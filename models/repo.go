@@ -168,6 +168,9 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
+	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects     int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -237,6 +240,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
+	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
 // MustOwner always returns a valid *User object to avoid
@@ -307,6 +311,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
+
+	//check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -353,6 +359,10 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 	}
+	hasProjects := false
+	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
+		hasProjects = true
+	}
 
 	repo.mustOwner(e)
 
@@ -390,6 +400,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		ExternalTracker:           externalTracker,
 		InternalTracker:           internalTracker,
 		HasWiki:                   hasWiki,
+		HasProjects:               hasProjects,
 		ExternalWiki:              externalWiki,
 		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
@@ -1638,6 +1649,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if len(repo.Topics) > 0 {
 		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
 			return err
+		}
+	}
+
+	projects, _, err := getProjects(sess, ProjectSearchOptions{
+		RepoID: repoID,
+	})
+	if err != nil {
+		return fmt.Errorf("get projects: %v", err)
+	}
+	for i := range projects {
+		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}
 

@@ -104,7 +104,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
@@ -215,6 +215,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PosterID:     posterID,
 			MentionedID:  mentionedID,
 			MilestoneIDs: mileIDs,
+			ProjectID:    projectID,
 			IsClosed:     util.OptionalBoolOf(isShowClosed),
 			IsPull:       isPullOption,
 			LabelIDs:     labelIDs,
@@ -357,7 +358,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["PageIsIssueList"] = true
 	}
 
-	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.QueryInt64("milestone"), ctx.QueryInt64("project"), util.OptionalBoolOf(isPullList))
 
 	var err error
 	// Get milestones
@@ -402,6 +403,33 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 }
 
+func retrieveProjects(ctx *context.Context, repo *models.Repository) {
+
+	var err error
+
+	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     models.ProjectTypeRepository,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     models.ProjectTypeRepository,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+}
+
 // RetrieveRepoReviewers find all reviewers of a repository
 func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issuePosterID int64) {
 	var err error
@@ -435,6 +463,11 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 	}
 
 	RetrieveRepoMilestonesAndAssignees(ctx, repo)
+	if ctx.Written() {
+		return nil
+	}
+
+	retrieveProjects(ctx, repo)
 	if ctx.Written() {
 		return nil
 	}
@@ -502,6 +535,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	body := ctx.Query("body")
 	ctx.Data["BodyQuery"] = body
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
 
 	milestoneID := ctx.QueryInt64("milestone")
 	if milestoneID > 0 {
@@ -512,6 +546,20 @@ func NewIssue(ctx *context.Context) {
 			ctx.Data["milestone_id"] = milestoneID
 			ctx.Data["Milestone"] = milestone
 		}
+	}
+
+	projectID := ctx.QueryInt64("project")
+	if projectID > 0 {
+		project, err := models.GetProjectByID(projectID)
+		if err != nil {
+			log.Error("GetProjectByID: %d: %v", projectID, err)
+		} else if project.RepoID != ctx.Repo.Repository.ID {
+			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
+		} else {
+			ctx.Data["project_id"] = projectID
+			ctx.Data["Project"] = project
+		}
+
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
@@ -528,7 +576,7 @@ func NewIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -536,7 +584,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
-		return nil, nil, 0
+		return nil, nil, 0, 0
 	}
 
 	var labelIDs []int64
@@ -545,7 +593,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 		labelIDMark := base.Int64sToMap(labelIDs)
 
@@ -567,9 +615,24 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 		ctx.Data["milestone_id"] = milestoneID
+	}
+
+	if form.ProjectID > 0 {
+		p, err := models.GetProjectByID(form.ProjectID)
+		if err != nil {
+			ctx.ServerError("GetProjectByID", err)
+			return nil, nil, 0, 0
+		}
+		if p.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("", nil)
+			return nil, nil, 0, 0
+		}
+
+		ctx.Data["Project"] = p
+		ctx.Data["project_id"] = form.ProjectID
 	}
 
 	// Check assignees
@@ -577,7 +640,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 	if len(form.AssigneeIDs) > 0 {
 		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 
 		// Check if the passed assignees actually exists and is assignable
@@ -585,17 +648,18 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 			assignee, err := models.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, 0
+				return nil, nil, 0, 0
 			}
 
 			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("canBeAssigned", err)
-				return nil, nil, 0
+				ctx.ServerError("CanBeAssigned", err)
+				return nil, nil, 0, 0
 			}
+
 			if !valid {
 				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, 0
+				return nil, nil, 0, 0
 			}
 		}
 	}
@@ -605,7 +669,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID
+	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
 }
 
 // NewIssuePost response for creating new issue
@@ -623,7 +687,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, false)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, form, false)
 	if ctx.Written() {
 		return
 	}
@@ -659,6 +723,13 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		}
 		ctx.ServerError("NewIssue", err)
 		return
+	}
+
+	if projectID > 0 {
+		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
@@ -758,6 +829,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
+
 	renderAttachmentSettings(ctx)
 
 	if err = issue.LoadAttributes(); err != nil {
@@ -839,6 +912,8 @@ func ViewIssue(ctx *context.Context) {
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
+		retrieveProjects(ctx, repo)
+
 		if ctx.Written() {
 			return
 		}
@@ -977,6 +1052,26 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
+		} else if comment.Type == models.CommentTypeProject {
+
+			if err = comment.LoadProject(); err != nil {
+				ctx.ServerError("LoadProject", err)
+				return
+			}
+
+			ghostProject := &models.Project{
+				ID:    -1,
+				Title: ctx.Tr("repo.issues.deleted_project"),
+			}
+
+			if comment.OldProjectID > 0 && comment.OldProject == nil {
+				comment.OldProject = ghostProject
+			}
+
+			if comment.ProjectID > 0 && comment.Project == nil {
+				comment.Project = ghostProject
+			}
+
 		} else if comment.Type == models.CommentTypeAssignees || comment.Type == models.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUser(); err != nil {
 				ctx.ServerError("LoadAssigneeUser", err)
@@ -1149,6 +1244,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
