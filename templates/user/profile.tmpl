@@ -52,7 +52,7 @@
 							<li>
 								<ul class="user-orgs">
 								{{range .Orgs}}
-									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.IsUserPartOfOrg $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
 										<a href="{{.HomeLink}}"><img class="ui image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
 									</li>
