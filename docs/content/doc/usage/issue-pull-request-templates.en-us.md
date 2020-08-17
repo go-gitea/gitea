@@ -56,6 +56,8 @@ Possible directory names for issue templates:
 * .gitea/issue_template
 * .github/ISSUE_TEMPLATE
 * .github/issue_template
+* .gitlab/ISSUE_TEMPLATE
+* .gitlab/issue_template
 
 Inside the directory can be multiple issue templates with the form
 
@@ -64,10 +66,14 @@ Inside the directory can be multiple issue templates with the form
 name: "Template Name"
 about: "This template is for testing!"
 title: "[TEST] "
+labels:
+  - bug
+  - "help needed"
 -----
 This is the template!
 ```
 
 In the above example, when a user is presented with the list of issues they can submit, this would show as `Template Name` with the description
 `This template is for testing!`. When submitting an issue with the above example, the issue title would be pre-populated with 
-`[TEST] ` while the issue body would be pre-populated with `This is the template!`.
+`[TEST] ` while the issue body would be pre-populated with `This is the template!`. The issue would also be assigned two labels,
+`bug` and `help needed`.

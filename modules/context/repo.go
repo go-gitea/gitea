@@ -33,6 +33,8 @@ var IssueTemplateDirCandidates = []string{
 	".gitea/issue_template",
 	".github/ISSUE_TEMPLATE",
 	".github/issue_template",
+	".gitlab/ISSUE_TEMPLATE",
+	".gitlab/issue_template",
 }
 
 // PullRequest contains informations to make a pull request

@@ -17,7 +17,7 @@ func isYAMLSeparator(line string) bool {
 			return false
 		}
 	}
-	return len(line) != 0
+	return len(line) > 2
 }
 
 // ExtractMetadata consumes a markdown file, parses YAML frontmatter,
