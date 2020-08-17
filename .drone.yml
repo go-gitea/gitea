@@ -13,13 +13,13 @@ workspace:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:12
+    image: node:14
     commands:
       - make node_modules
 
   - name: lint-frontend
     pull: always
-    image: node:12
+    image: node:14
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -36,7 +36,7 @@ steps:
 
   - name: checks-frontend
     pull: always
-    image: node:12
+    image: node:14
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
