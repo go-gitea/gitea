@@ -719,6 +719,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+	}
+
 	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err

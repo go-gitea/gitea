@@ -12,6 +12,7 @@ import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
 import renderMarkdownContent from './markdown/content.js';
@@ -527,6 +528,10 @@ function initCommentForm() {
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
             htmlEscape($(this).text())}</a>`);
           break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEscape($(this).text())}</a>`);
+          break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
@@ -556,7 +561,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -2485,6 +2491,7 @@ $(document).ready(async () => {
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initProject(),
     initServiceWorker(),
     initNotificationCount(),
     renderMarkdownContent(),
