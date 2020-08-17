@@ -919,8 +919,14 @@ a.ui.basic.green.label:hover {
 
 .ui.active.button:active,
 .ui.button:active,
-.ui.button:focus {
+.ui.button:focus,
+.ui.active.button {
     background-color: #2e3e4e;
+    color: #dbdbdb;
+}
+
+.ui.active.button:hover {
+    background-color: #475e75;
     color: #dbdbdb;
 }
 
@@ -1260,7 +1266,8 @@ input {
     border-color: #794f31;
 }
 
-.ui.red.message {
+.ui.red.message,
+.ui.error.message {
     background-color: rgba(80, 23, 17, .6);
     color: #f9cbcb;
     box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
@@ -1903,6 +1910,10 @@ footer .container .links > * {
     border-bottom-color: #404552;
 }
 
+.board-column {
+    background-color: rgba(0, 0, 0, .2) !important;
+}
+
 .tribute-container {
     box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .6);
 }
@@ -1920,6 +1931,54 @@ footer .container .links > * {
     color: #2a2e3a;
 }
 
+#git-graph-container.monochrome #rel-container .flow-group {
+    stroke: dimgrey;
+    fill: dimgrey;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group.highlight {
+    stroke: darkgrey;
+    fill: darkgrey;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group {
+    &.flow-color-16-5 {
+        stroke: #5543b1;
+        fill: #5543b1;
+    }
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
+    &.flow-color-16-5 {
+        stroke: #7058e6;
+        fill: #7058e6;
+    }
+}
+
+#git-graph-container #rev-list li.highlight,
+#git-graph-container #rev-list li.hover {
+    background-color: rgba(255, 255, 255, .05);
+}
+
+#git-graph-container #rev-list li.highlight.hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+#git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {
+    border-left-color: rgb(76, 80, 92);
+    border-left-style: solid;
+    border-left-width: 1px;
+}
+
 .mermaid-chart {
     filter: invert(84%) hue-rotate(180deg);
+}
+
+.is-loading:after {
+    border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
+}
+
+.markdown-block-error {
+    border: 1px solid rgba(121, 71, 66, .5) !important;
+    border-bottom: none !important;
 }

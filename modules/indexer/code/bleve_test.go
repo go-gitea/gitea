@@ -6,12 +6,12 @@ package code
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestIndexAndSearch(t *testing.T) {
 		assert.Fail(t, "Unable to create temporary directory")
 		return
 	}
-	defer os.RemoveAll(dir)
+	defer util.RemoveAll(dir)
 
 	setting.Indexer.RepoIndexerEnabled = true
 	idx, _, err := NewBleveIndexer(dir)

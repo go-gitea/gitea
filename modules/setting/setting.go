@@ -166,6 +166,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -207,6 +208,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -380,7 +382,8 @@ var (
 	Cfg           *ini.File
 	CustomPath    string // Custom directory path
 	CustomConf    string
-	CustomPID     string
+	PIDFile       = "/var/run/gitea.pid"
+	WritePIDFile  bool
 	ProdMode      bool
 	RunUser       string
 	IsWindows     bool
@@ -533,8 +536,8 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 func NewContext() {
 	Cfg = ini.Empty()
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if WritePIDFile && len(PIDFile) > 0 {
+		createPIDFile(PIDFile)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -652,7 +655,10 @@ func NewContext() {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
+	}
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
@@ -1118,4 +1124,5 @@ func NewServices() {
 	newIndexerService()
 	newTaskService()
 	NewQueueService()
+	newProject()
 }

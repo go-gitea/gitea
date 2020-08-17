@@ -26,13 +26,27 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make lint-backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: checks-frontend
+    pull: always
+    image: node:12
+    commands:
+      - make checks-frontend
+    depends_on: [deps-frontend]
+
+  - name: checks-backend
+    pull: always
+    image: golang:1.14
+    commands:
+      - make checks-backend
+    depends_on: [lint-backend]
 
   - name: build-frontend
     pull: always
@@ -49,11 +63,11 @@ steps:
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-arm64
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -63,11 +77,11 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-386
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -75,7 +89,7 @@ steps:
       GOARCH: 386
     commands:
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
 ---
 kind: pipeline
@@ -150,7 +164,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make backend
     environment:
@@ -166,7 +180,7 @@ steps:
 
   - name: unit-test
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -177,7 +191,7 @@ steps:
 
   - name: test-mysql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -192,7 +206,7 @@ steps:
 
   - name: test-mysql8
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -207,7 +221,7 @@ steps:
 
   - name: test-mssql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -222,7 +236,7 @@ steps:
 
   - name: generate-coverage
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make coverage
     environment:
@@ -238,14 +252,13 @@ steps:
         - push
         - pull_request
 
-  - name: coverage
+  - name: coverage-codecov
     pull: always
-    image: robertstettner/drone-codecov
+    image: plugins/codecov
     settings:
       files:
         - coverage.all
-    environment:
-      CODECOV_TOKEN:
+      token:
         from_secret: codecov_token
     depends_on:
       - generate-coverage
@@ -296,7 +309,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make backend
     environment:
@@ -306,7 +319,7 @@ steps:
 
   - name: test-sqlite
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -320,7 +333,7 @@ steps:
 
   - name: test-pgsql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -426,14 +439,23 @@ steps:
     commands:
       - git fetch --tags --force
 
-  - name: static
+  - name: static-windows
     pull: always
     image: techknowlogick/xgo:go-1.14.x
     commands:
       - apt update && apt -y install curl
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
-      - make release
+      - make frontend generate release-windows
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: static
+    pull: always
+    image: techknowlogick/xgo:go-1.15.x
+    commands:
+      - make release-linux release-darwin release-copy release-compress release-sources release-docs release-check
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -526,7 +548,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.14.x
+    image: techknowlogick/xgo:go-1.15.x
     commands:
       - apt update && apt -y install curl
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs

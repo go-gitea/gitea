@@ -24,7 +24,7 @@ import (
 
 	"golang.org/x/tools/go/internal/packagesdriver"
 	"golang.org/x/tools/internal/gocommand"
-	"golang.org/x/tools/internal/packagesinternal"
+	"golang.org/x/xerrors"
 )
 
 // debug controls verbose logging.
@@ -89,6 +89,10 @@ type golistState struct {
 	rootDirsError error
 	rootDirs      map[string]string
 
+	goVersionOnce  sync.Once
+	goVersionError error
+	goVersion      string // third field of 'go version'
+
 	// vendorDirs caches the (non)existence of vendor directories.
 	vendorDirs map[string]bool
 }
@@ -142,7 +146,7 @@ func goListDriver(cfg *Config, patterns ...string) (*driverResponse, error) {
 		sizeswg.Add(1)
 		go func() {
 			var sizes types.Sizes
-			sizes, sizeserr = packagesdriver.GetSizesGolist(ctx, cfg.BuildFlags, cfg.Env, cfg.Dir, usesExportData(cfg))
+			sizes, sizeserr = packagesdriver.GetSizesGolist(ctx, cfg.BuildFlags, cfg.Env, cfg.gocmdRunner, cfg.Dir)
 			// types.SizesFor always returns nil or a *types.StdSizes.
 			response.dr.Sizes, _ = sizes.(*types.StdSizes)
 			sizeswg.Done()
@@ -381,7 +385,7 @@ type jsonPackage struct {
 	Imports         []string
 	ImportMap       map[string]string
 	Deps            []string
-	Module          *packagesinternal.Module
+	Module          *Module
 	TestGoFiles     []string
 	TestImports     []string
 	XTestGoFiles    []string
@@ -502,10 +506,19 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 					errkind = "use of internal package not allowed"
 				}
 				if errkind != "" {
-					if len(old.Error.ImportStack) < 2 {
-						return nil, fmt.Errorf(`internal error: go list gave a %q error with an import stack with fewer than two elements`, errkind)
+					if len(old.Error.ImportStack) < 1 {
+						return nil, fmt.Errorf(`internal error: go list gave a %q error with empty import stack`, errkind)
 					}
-					importingPkg := old.Error.ImportStack[len(old.Error.ImportStack)-2]
+					importingPkg := old.Error.ImportStack[len(old.Error.ImportStack)-1]
+					if importingPkg == old.ImportPath {
+						// Using an older version of Go which put this package itself on top of import
+						// stack, instead of the importer. Look for importer in second from top
+						// position.
+						if len(old.Error.ImportStack) < 2 {
+							return nil, fmt.Errorf(`internal error: go list gave a %q error with an import stack without importing package`, errkind)
+						}
+						importingPkg = old.Error.ImportStack[len(old.Error.ImportStack)-2]
+					}
 					additionalErrors[importingPkg] = append(additionalErrors[importingPkg], Error{
 						Pos:  old.Error.Pos,
 						Msg:  old.Error.Err,
@@ -531,7 +544,26 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 			CompiledGoFiles: absJoin(p.Dir, p.CompiledGoFiles),
 			OtherFiles:      absJoin(p.Dir, otherFiles(p)...),
 			forTest:         p.ForTest,
-			module:          p.Module,
+			Module:          p.Module,
+		}
+
+		if (state.cfg.Mode&typecheckCgo) != 0 && len(p.CgoFiles) != 0 {
+			if len(p.CompiledGoFiles) > len(p.GoFiles) {
+				// We need the cgo definitions, which are in the first
+				// CompiledGoFile after the non-cgo ones. This is a hack but there
+				// isn't currently a better way to find it. We also need the pure
+				// Go files and unprocessed cgo files, all of which are already
+				// in pkg.GoFiles.
+				cgoTypes := p.CompiledGoFiles[len(p.GoFiles)]
+				pkg.CompiledGoFiles = append([]string{cgoTypes}, pkg.GoFiles...)
+			} else {
+				// golang/go#38990: go list silently fails to do cgo processing
+				pkg.CompiledGoFiles = nil
+				pkg.Errors = append(pkg.Errors, Error{
+					Msg:  "go list failed to return CompiledGoFiles; https://golang.org/issue/38990?",
+					Kind: ListError,
+				})
+			}
 		}
 
 		// Work around https://golang.org/issue/28749:
@@ -607,6 +639,39 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 			pkg.CompiledGoFiles = pkg.GoFiles
 		}
 
+		// Temporary work-around for golang/go#39986. Parse filenames out of
+		// error messages. This happens if there are unrecoverable syntax
+		// errors in the source, so we can't match on a specific error message.
+		if err := p.Error; err != nil && state.shouldAddFilenameFromError(p) {
+			addFilenameFromPos := func(pos string) bool {
+				split := strings.Split(pos, ":")
+				if len(split) < 1 {
+					return false
+				}
+				filename := strings.TrimSpace(split[0])
+				if filename == "" {
+					return false
+				}
+				if !filepath.IsAbs(filename) {
+					filename = filepath.Join(state.cfg.Dir, filename)
+				}
+				info, _ := os.Stat(filename)
+				if info == nil {
+					return false
+				}
+				pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, filename)
+				pkg.GoFiles = append(pkg.GoFiles, filename)
+				return true
+			}
+			found := addFilenameFromPos(err.Pos)
+			// In some cases, go list only reports the error position in the
+			// error text, not the error position. One such case is when the
+			// file's package name is a keyword (see golang.org/issue/39763).
+			if !found {
+				addFilenameFromPos(err.Err)
+			}
+		}
+
 		if p.Error != nil {
 			msg := strings.TrimSpace(p.Error.Err) // Trim to work around golang.org/issue/32363.
 			// Address golang.org/issue/35964 by appending import stack to error message.
@@ -634,6 +699,58 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 	sort.Slice(response.Packages, func(i, j int) bool { return response.Packages[i].ID < response.Packages[j].ID })
 
 	return &response, nil
+}
+
+func (state *golistState) shouldAddFilenameFromError(p *jsonPackage) bool {
+	if len(p.GoFiles) > 0 || len(p.CompiledGoFiles) > 0 {
+		return false
+	}
+
+	goV, err := state.getGoVersion()
+	if err != nil {
+		return false
+	}
+
+	// On Go 1.14 and earlier, only add filenames from errors if the import stack is empty.
+	// The import stack behaves differently for these versions than newer Go versions.
+	if strings.HasPrefix(goV, "go1.13") || strings.HasPrefix(goV, "go1.14") {
+		return len(p.Error.ImportStack) == 0
+	}
+
+	// On Go 1.15 and later, only parse filenames out of error if there's no import stack,
+	// or the current package is at the top of the import stack. This is not guaranteed
+	// to work perfectly, but should avoid some cases where files in errors don't belong to this
+	// package.
+	return len(p.Error.ImportStack) == 0 || p.Error.ImportStack[len(p.Error.ImportStack)-1] == p.ImportPath
+}
+
+func (state *golistState) getGoVersion() (string, error) {
+	state.goVersionOnce.Do(func() {
+		var b *bytes.Buffer
+		// Invoke go version. Don't use invokeGo because it will supply build flags, and
+		// go version doesn't expect build flags.
+		inv := gocommand.Invocation{
+			Verb: "version",
+			Env:  state.cfg.Env,
+			Logf: state.cfg.Logf,
+		}
+		gocmdRunner := state.cfg.gocmdRunner
+		if gocmdRunner == nil {
+			gocmdRunner = &gocommand.Runner{}
+		}
+		b, _, _, state.goVersionError = gocmdRunner.RunRaw(state.cfg.Context, inv)
+		if state.goVersionError != nil {
+			return
+		}
+
+		sp := strings.Split(b.String(), " ")
+		if len(sp) < 3 {
+			state.goVersionError = fmt.Errorf("go version output: expected 'go version <version>', got '%s'", b.String())
+			return
+		}
+		state.goVersion = sp[2]
+	})
+	return state.goVersion, state.goVersionError
 }
 
 // getPkgPath finds the package path of a directory if it's relative to a root directory.
@@ -707,7 +824,7 @@ func golistargs(cfg *Config, words []string) []string {
 func (state *golistState) invokeGo(verb string, args ...string) (*bytes.Buffer, error) {
 	cfg := state.cfg
 
-	inv := &gocommand.Invocation{
+	inv := gocommand.Invocation{
 		Verb:       verb,
 		Args:       args,
 		BuildFlags: cfg.BuildFlags,
@@ -715,8 +832,11 @@ func (state *golistState) invokeGo(verb string, args ...string) (*bytes.Buffer, 
 		Logf:       cfg.Logf,
 		WorkingDir: cfg.Dir,
 	}
-
-	stdout, stderr, _, err := inv.RunRaw(cfg.Context)
+	gocmdRunner := cfg.gocmdRunner
+	if gocmdRunner == nil {
+		gocmdRunner = &gocommand.Runner{}
+	}
+	stdout, stderr, _, err := gocmdRunner.RunRaw(cfg.Context, inv)
 	if err != nil {
 		// Check for 'go' executable not being found.
 		if ee, ok := err.(*exec.Error); ok && ee.Err == exec.ErrNotFound {
@@ -727,7 +847,7 @@ func (state *golistState) invokeGo(verb string, args ...string) (*bytes.Buffer, 
 		if !ok {
 			// Catastrophic error:
 			// - context cancellation
-			return nil, fmt.Errorf("couldn't run 'go': %v", err)
+			return nil, xerrors.Errorf("couldn't run 'go': %w", err)
 		}
 
 		// Old go version?
