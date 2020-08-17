@@ -8,7 +8,7 @@
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
 	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
 	 26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
-	 29 = PULL_PUSH_EVENT -->
+	 29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED -->
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
@@ -615,6 +615,27 @@
 		</div>
 		{{if not .IsForcePush}}
 			{{template "repo/commits_list_small" dict "comment" . "root" $}}
+		{{end}}
+	{{else if eq .Type 30}}
+		{{if not $.UnitProjectsGlobalDisabled}}
+		<div class="timeline-item event" id="{{.HashTag}}">
+			<span class="badge">{{svg "octicon-project" 16}}</span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{if gt .OldProjectID 0}}
+					{{if gt .ProjectID 0}}
+						{{$.i18n.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
+					{{end}}
+				{{else if gt .ProjectID 0}}
+					{{$.i18n.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
+				{{end}}
+			</span>
+		</div>
 		{{end}}
 	{{end}}
 {{end}}
