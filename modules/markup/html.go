@@ -7,6 +7,7 @@ package markup
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -287,9 +288,19 @@ func RenderDescriptionHTML(
 	return ctx.postProcess(rawHTML)
 }
 
+// RenderEmoji renders html text with emoji post processors
+func RenderEmoji(text string) template.HTML {
+	renderedText, err := renderEmoji([]byte(template.HTMLEscapeString(text)))
+	if err != nil {
+		log.Error("RenderEmoji: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
 // RenderEmoji for when we want to just process emoji and shortcodes
 // in various places it isn't already run through the normal markdown procesor
-func RenderEmoji(
+func renderEmoji(
 	rawHTML []byte,
 ) ([]byte, error) {
 	ctx := &postProcessCtx{

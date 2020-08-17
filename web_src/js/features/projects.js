@@ -1,14 +1,14 @@
-const { csrf } = window.config;
+import {reloadIssuesActions} from './issuesutil.js';
+
+const {csrf} = window.config;
 
 export default async function initProject() {
   if (!window.config || !window.config.PageIsProjects) {
     return;
   }
 
-  const { Sortable } = await import(
-    /* webpackChunkName: 'sortable' */ 'sortablejs'
-  );
-  const boardColumns = document.getElementsByClassName('board-column');
+  const {Sortable} = await import(/* webpackChunkName: 'sortable' */ 'sortablejs');
+
   const colContainer = document.getElementById('board-container');
   let projectURL = '';
   let projectID = 0;
@@ -17,44 +17,57 @@ export default async function initProject() {
     projectID = colContainer.dataset.projectid;
   }
 
-  //search as you type new issues
-  $('#current-card-details-input').on('keyup', '#issue-search', e => {
-  let q = e.currentTarget.value;
-  let repoURL = $('[data-repourl]').data('repourl');
-  fetch(`/api/v1/repos${repoURL}/issues?state=open&q=${q}&not_in_project_id=${projectID}`, {
-    method: 'GET',
-    headers: { 'X-Csrf-Token': csrf, 'Content-Type': 'application/json' }
-  })
-    .then(function(res) {
-      return res.json();
-    })
-    .then(function(data) {
-      let cards = '';
-      data.map(issue => {
-        let card = `<div class='card draggable-card board-card' data-priority='0' data-id='0' data-issueid='${issue.id}'>
-      <div class='content'>
-        <div class='header'>
-                <a href='${repoURL}/${issue.IsPull? 'pulls' : 'issues'}/${issue.number}/sidebar/true'
-                  data-url='${repoURL}/${issue.IsPull? 'pulls' : 'issues'}/${issue.number}/sidebar/true'>
-        #${issue.number} ${issue.title}
-        </a>
-        </div>
-        <div class='meta'>
-        </div>
-        <div class='description'>
+  if (colContainer) {
+    $('body').keyup((e) => {
+      if (e.keyCode === 27) {
+        $('#current-card-details').addClass('invisible');
+        $('#current-card-details').html('');
+        $('#current-card-details-input').html('');
+      }
+    });
+  }
 
-        </div>
-      </div>
-    </div>`;
+  $('#current-card-details').click((e) => {
+    if (e.pageX >= 980 && e.pageY <= 320) {
+      $('#current-card-details').addClass('invisible');
+      $('#current-card-details').html('');
+      $('#current-card-details-input').html('');
+    }
+  });
+
+  // search as you type new issues
+  $('#current-card-details-input').on('keyup', '#issue-search', async (e) => {
+    const q = e.currentTarget.value;
+    const repoURL = $('[data-repourl]').data('repourl');
+    const response = await fetch(`/api/v1/repos${repoURL}/issues?state=open&q=${q}&exclude_project_id=${projectID}&render_emoji_title=true`, {
+      method: 'GET',
+      headers: {'X-Csrf-Token': csrf, 'Content-Type': 'application/json'}
+    });
+    const dataIssues = await response.json();
+
+    let cards = '';
+    if (Array.isArray(dataIssues)) {
+      for (const issue of dataIssues) {
+        const card = `
+          <div class='card draggable-card board-card' data-priority='0' data-id='0' data-issueid='${issue.id}'>
+            <div class='content'>
+              <div class='header'>
+                <a href='${repoURL}/${issue.pull_request ? 'pulls' : 'issues'}/${issue.number}' data-url='${repoURL}/${issue.pull_request ? 'pulls' : 'issues'}/${issue.number}?sidebar=true'>#${issue.number} ${issue.title}</a>
+              </div>
+              <div class='meta'></div>
+              <div class='description'></div>
+            </div>
+          </div>
+        `;
         cards += card;
-      });
+      }
       $('#issue-results').html(
         `<div class='ui cards draggable-cards'>${cards}</div>`
       );
-      sortCards('.draggable-cards');
-    });
+    }
+    sortCards('.draggable-cards');
   });
-  sortCards('.draggable-cards')
+  sortCards('.draggable-cards');
 
   if (colContainer) {
     new Sortable(colContainer, {
@@ -62,35 +75,24 @@ export default async function initProject() {
       animation: 150,
       filter: '.ignore-elements',
       // Element dragging ended
-      onEnd: function(/**Event*/ evt) {
-        var itemEl = evt.item; // dragged HTMLElement
-        let columns = [];
-        $(evt.to).each((i, v) => {
-          $(v)
-            .children()
-            .each((j, y) => {
-              let column = $(y).data();
-              if (column && column.columnId) {
-                columns.push({
-                  id: column.columnId,
-                  priority: j
-                });
-              }
-            });
-        });
-        fetch(`${projectURL}/updatePriorities`, {
-          method: 'PUT',
-          headers: { 'X-Csrf-Token': csrf, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            boards: columns
-          })
-        })
-          .then(function(res) {
-            return res.json();
-          })
-          .then(function(data) {
-            console.log(JSON.stringify(data));
+      onEnd: async (e) => {
+        const boards = [];
+        for (const v of Object.values($(e.to))) {
+          $(v).children().each((j, childColumn) => {
+            const column = $(childColumn).data();
+            if (column && column.columnId) {
+              boards.push({
+                id: column.columnId,
+                priority: j
+              });
+            }
           });
+        }
+        await fetch(`${projectURL}/board/priority`, {
+          method: 'PUT',
+          headers: {'X-Csrf-Token': csrf, 'Content-Type': 'application/json'},
+          body: JSON.stringify({boards})
+        });
       }
     });
   }
@@ -105,12 +107,12 @@ export default async function initProject() {
 
     $(this)
       .find('.content > .form > .actions > .red')
-      .on('click', function(e) {
+      .on('click', function (e) {
         e.preventDefault();
 
         $.ajax({
           url: $(this).data('url'),
-          data: JSON.stringify({ title: projectTitleInput.val() }),
+          data: JSON.stringify({title: projectTitleInput.val()}),
           headers: {
             'X-Csrf-Token': csrf,
             'X-Remote': true
@@ -150,7 +152,7 @@ export default async function initProject() {
 
     $.ajax({
       url: $(this).data('url'),
-      data: JSON.stringify({ title: boardTitle.val() }),
+      data: JSON.stringify({title: boardTitle.val()}),
       headers: {
         'X-Csrf-Token': csrf,
         'X-Remote': true
@@ -163,56 +165,49 @@ export default async function initProject() {
     });
   });
 
-  $('#new-project-issue-item').on('click', e => {
-    $('#current-card-details').removeClass('hide');
-    $('#current-card-details').css('visibility', 'visible');
+  $('#new-project-issue-item').on('click', (_e) => {
+    $('#current-card-details').removeClass('invisible');
 
     $('#current-card-details').show();
-    let searchHtml= `<div class='ui search'>
-      <input class='prompt' type='text' id='issue-search' placeholder='Filter issues' /></div>`
-    let html = `
+    $('#current-card-details').html(`
       <div id='issue-results' class='ui cards draggable-cards'></div>
-      `;
-    $('#current-card-details').html(html);
-    $('#current-card-details-input').html(searchHtml);
-    sortCards('#issue-results')
+    `);
+    $('#current-card-details-input').html(`
+      <div class='ui search'>
+        <input class='prompt' type='text' id='issue-search' placeholder='Filter issues'/>
+      </div>
+    `);
+    sortCards('#issue-results');
   });
 
-  function sortCards(selector){
-    $(selector).each(function(i, eli) {
+  function sortCards(selector) {
+    $(selector).each((_i, eli) => {
       new Sortable(eli, {
         group: 'shared',
         filter: '.ignore-elements',
         animation: 150,
-        onEnd: function(/**Event*/ evt) {
-          var itemEl = evt.item; // dragged HTMLElement
-          let cardsFrom = [];
-          let cardsTo = [];
-          $(evt.from).each((i, v) => {
-            let column = $($(v)[0]).data();
+        onEnd: async (e) => {
+          const cardsFrom = [];
+          const cardsTo = [];
+          $(e.from).each((_i, v) => {
+            const column = $($(v)[0]).data();
             $(v)
               .children()
               .each((j, y) => {
-                let card = $(y).data();
-                if (
-                  card &&
-                  card.id &&
-                  evt.oldDraggableIndex !== evt.newDraggableIndex
-                )
-                  cardsFrom.push({
-                    id: card.id,
-                    priority: j,
-                    ProjectBoardID: column.columnId
+                const card = $(y).data();
+                if (card && card.id && e.oldDraggableIndex !== e.newDraggableIndex) {
+                  cardsFrom.push({id: card.id, priority: j, ProjectBoardID: column.columnId
                   });
+                }
               });
           });
 
-          $(evt.to).each((i, v) => {
-            let column = $($(v)[0]).data();
+          $(e.to).each((_i, v) => {
+            const column = $($(v)[0]).data();
             $(v)
               .children()
               .each((j, y) => {
-                let card = y.dataset;
+                const card = y.dataset;
                 if (card && card.id) {
                   cardsTo.push({
                     id: parseInt(card.id),
@@ -221,17 +216,19 @@ export default async function initProject() {
                     issueid: parseInt(card.issueid),
                     projectID: parseInt(projectID)
                   });
-                } else if (card && card.issueid && card.id === 0){
+                } else if (card && card.issueid && card.id === 0) {
                   cardsTo.push({
                     issueid: parseInt(card.issueid),
                     priority: parseInt(j),
                     ProjectBoardID: parseInt(column.columnId),
                     projectID: parseInt(projectID)
-                  })
+                  });
                 }
               });
           });
-          fetch(`${projectURL}/updateIssuesPriorities`, {
+
+          // Can't use await because onEnd is not async
+          const response = await fetch(`${projectURL}/issue/priority`, {
             method: 'PUT',
             headers: {
               'X-Csrf-Token': csrf,
@@ -240,18 +237,24 @@ export default async function initProject() {
             body: JSON.stringify({
               issues: cardsTo.concat(cardsFrom)
             })
-          })
-            .then(function(res) {
-              return res.json();
-            })
-            .then(function(data) {
-              if(data && data.length >0){
-                $(data).each((i,x)=>{$(`.board-column .cards [data-issueid=${x.IssueID}]`).attr('data-id', x.ID)})
-              }
-            });
+          });
+          const data = await response.json();
+          if (data && Array.isArray(data) && data.length > 0) {
+            $(data).each((_i, x) => {$(`.board-column .cards [data-issueid=${x.IssueID}]`).attr('data-id', x.ID)});
+          }
         }
       });
     });
   }
-}
 
+  // Show issue or pr in board sidebar
+  $('.board-column').on('click', '.draggable-cards [data-url]', (e) => {
+    e.preventDefault();
+    $('#current-card-details').empty();
+    $('#current-card-details-input').empty();
+    const data = $(e.currentTarget).data();
+    $('#current-card-details').removeClass('invisible');
+    $('#current-card-details').show();
+    reloadIssuesActions(data);
+  });
+}

@@ -287,7 +287,6 @@ func ViewProject(ctx *context.Context) {
 
 	allBoards := models.ProjectBoardList{uncategorizedBoard}
 	allBoards = append(allBoards, boards...)
-
 	if err = allBoards.LoadIssues(); err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -300,7 +299,9 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Boards"] = allBoards
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
-	project.LoadRepository()
+	if err := project.LoadRepository(); err != nil {
+		log.Error("failed loading project's repo %v\n", err)
+	}
 	if project.Repo != nil && project.Repo.ID != 0 {
 		ctx.Data["Repo"] = project.Repo
 	}
@@ -615,7 +616,11 @@ func UpdateBoardsPriorityPost(ctx *context.Context, form auth.UpdateBoardPriorit
 	}
 
 	boards := form
-	models.UpdateBoards(form.Boards)
+	if err := models.UpdateBoardsPriority(form.Boards); err != nil {
+		log.Error("failed updating boards %v", err)
+		ctx.JSON(500, err)
+		return
+	}
 	ctx.JSON(200, boards)
 }
 
@@ -629,9 +634,9 @@ func UpdateBoardIssuePriority(ctx *context.Context, form auth.UpdateIssuePriorit
 		return
 	}
 
-	err, issues := models.UpdateBoardIssues(form.Issues)
+	issues, err := models.UpdateBoardIssuesPriority(form.Issues)
 	if err != nil {
-		log.Info("failed updating issues %v", err)
+		log.Error("failed updating issues %v", err)
 	}
 
 	ctx.JSON(200, issues)

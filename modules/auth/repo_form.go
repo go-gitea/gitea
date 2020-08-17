@@ -765,7 +765,7 @@ func (f *DeadlineForm) Validate(ctx *macaron.Context, errs binding.Errors) bindi
 
 // UpdateBoardPriorityForm form for updating cards on drag and drop
 type UpdateBoardPriorityForm struct {
-	Boards []models.ProjectBoard `form:"boards" json:"boards"`
+	Boards []models.ProjectBoard
 }
 
 // Validate validates the fields

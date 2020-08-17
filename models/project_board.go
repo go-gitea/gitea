@@ -36,7 +36,7 @@ type ProjectBoard struct {
 	ID       int64 `xorm:"pk autoincr"`
 	Title    string
 	Default  bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-	Priority int
+	Priority int  `xorm:"NOT NULL DEFAULT 0"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -190,7 +190,7 @@ func GetUncategorizedBoard(projectID int64) (*ProjectBoard, error) {
 	}, nil
 }
 
-// LoadIssues load issues assigned to this board
+// LoadProjectIssues load project issues assigned to this board
 func (b *ProjectBoard) LoadProjectIssues() ([]*ProjectIssue, error) {
 	var boardID int64
 	if !b.Default {
@@ -200,25 +200,27 @@ func (b *ProjectBoard) LoadProjectIssues() ([]*ProjectIssue, error) {
 		// Issues without ProjectBoardID
 		boardID = 0
 	}
-	var projectIssuesDB []*ProjectIssue
 	var projectIssues []*ProjectIssue
-	err := x.Table("project_issue").Where("project_board_id = ? and project_id =?",
-		boardID, b.ProjectID).
-		OrderBy("priority").Find(&projectIssuesDB)
-	for _, projectIssue := range projectIssuesDB {
-		if issue, err := getIssueByID(x, projectIssue.IssueID); err != nil {
-			log.Info("failed getting projectIssue's issue %v\n", err)
-		} else {
-			issue.LoadLabels()
-			issue.LoadMilestone()
-			issue.loadAssignees(x)
-			projectIssue.Issue = issue
-			projectIssues = append(projectIssues, projectIssue)
-		}
+	var issues []*Issue
+	if err := x.Table("issue").
+		Cols("issue.id, issue.repo_id, issue.index, issue.poster_id,issue.name,issue.milestone_id,issue.is_closed,issue.is_pull,issue.created_unix,issue.updated_unix, project_issue.id as project_issue_id, project_issue.project_id as project_issue_project_id, project_issue.project_board_id as project_issue_project_board_id").
+		Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+		Where("project_board_id = ? and project_id =?",
+			boardID, b.ProjectID).
+		OrderBy("`project_issue`.priority").Find(&issues); err != nil {
+		log.Error("LoadAttributes: %v", err)
 	}
 
-	b.ProjectIssues = projectIssues
-	return projectIssues, err
+	if err := IssueList(issues).LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+	}
+
+	for _, issue := range issues {
+		projectIssue := issue.ProjectIssueID
+		projectIssue.Issue = issue
+		projectIssues = append(projectIssues, &projectIssue)
+	}
+	return projectIssues, nil
 }
 
 // LoadIssues load issues assigned to the boards
@@ -231,4 +233,20 @@ func (bs ProjectBoardList) LoadIssues() error {
 		bs[i].ProjectIssues = il
 	}
 	return nil
+}
+
+// UpdateBoardsPriority updates boards priority for a project
+func UpdateBoardsPriority(boards []ProjectBoard) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
+	for _, board := range boards {
+		if _, err := sess.ID(board.ID).Cols("priority").Update(&board); err != nil {
+			log.Info("failed updating board priorities %s", err)
+			return err
+		}
+	}
+	return sess.Commit()
 }

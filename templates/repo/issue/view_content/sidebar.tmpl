@@ -1,8 +1,8 @@
 <div class="four wide column">
 	<div class="ui segment metas">
-        {{if eq .Sidebar true}}
-        <h3>#{{.Issue.Index}} {{.Issue.Title}}</h3>
-        {{end}}
+			{{if .Sidebar}}
+				<h3>#{{.Issue.Index}} {{RenderEmoji .Issue.Title}}</h3>
+			{{end}}
 		{{template "repo/issue/branch_selector_field" .}}
 
 		{{if .Issue.IsPull }}
@@ -235,7 +235,7 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-project list">
+		<div class="ui list">
 			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.ProjectID}}

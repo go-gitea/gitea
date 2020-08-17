@@ -1874,6 +1874,13 @@
             "in": "query"
           },
           {
+            "type": "integer",
+            "format": "int64",
+            "description": "project to exclude from search when searching issues to add to a project",
+            "name": "exclude_project_id",
+            "in": "query"
+          },
+          {
             "type": "string",
             "description": "filter by type (issues / pulls) if set",
             "name": "type",
@@ -1883,6 +1890,12 @@
             "type": "integer",
             "description": "page number of requested issues",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "render emojis in issue title",
+            "name": "render_emoji_title",
             "in": "query"
           }
         ],
@@ -4078,6 +4091,12 @@
             "type": "integer",
             "description": "page size of results",
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "render emojis in issue title",
+            "name": "render_emoji_title",
             "in": "query"
           }
         ],

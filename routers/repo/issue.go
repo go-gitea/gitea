@@ -44,11 +44,11 @@ const (
 	tplIssueChoose base.TplName = "repo/issue/choose"
 	tplIssueView   base.TplName = "repo/issue/view"
 
+	tplSidebar   base.TplName = "repo/issue/view_content/sidebar"
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
-	tplSidebar            = "repo/issue/view_content/sidebar"
 )
 
 var (
@@ -1488,7 +1488,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 
-	if ctx.Params(":sidebar") == "true" {
+	if ctx.Query("sidebar") == "true" {
 		ctx.Data["Sidebar"] = true
 		ctx.HTML(200, tplSidebar)
 	} else {

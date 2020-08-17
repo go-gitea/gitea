@@ -8,18 +8,17 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/xorm"
 )
 
 // ProjectIssue saves relation from issue to a project
 type ProjectIssue struct {
-	ID          int64  `xorm:"pk autoincr"`
-	IssueID     int64  `xorm:"INDEX"`
-	ProjectID   int64  `xorm:"INDEX"`
-	IssueTitle  string `xorm:"-"`
-	IssueIsPull bool   `xorm:"-"`
-	Priority    int
-	Issue       *Issue `xorm:"-"`
+	ID        int64  `xorm:"pk autoincr"`
+	IssueID   int64  `xorm:"INDEX"`
+	ProjectID int64  `xorm:"INDEX"`
+	Priority  int    `xorm:"NOT NULL DEFAULT 0"`
+	Issue     *Issue `xorm:"-"`
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
@@ -69,12 +68,12 @@ func (i *Issue) projectID(e Engine) int64 {
 	return ip.ProjectID
 }
 
-// ProjectBoardID return project board id if issue was assigned to one
-func (i *Issue) ProjectBoardID() int64 {
-	return i.projectBoardID(x)
+// LoadProjectBoardID return project board id if issue was assigned to one
+func (i *Issue) LoadProjectBoardID() int64 {
+	return i.loadProjectBoardID(x)
 }
 
-func (i *Issue) projectBoardID(e Engine) int64 {
+func (i *Issue) loadProjectBoardID(e Engine) int64 {
 	var ip ProjectIssue
 	has, err := e.Where("issue_id=?", i.ID).Get(&ip)
 	if err != nil || !has {
@@ -146,7 +145,6 @@ func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
 func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
 	oldProjectID := issue.projectID(e)
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
-		log.Info("failed deleting project issue %w", err)
 		return err
 	}
 
@@ -221,4 +219,37 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 func (pb *ProjectBoard) removeIssues(e Engine) error {
 	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
+}
+
+// UpdateBoardIssuesPriority update given board issue priority
+func UpdateBoardIssuesPriority(issues []ProjectIssue) ([]ProjectIssue, error) {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		var updatedIssues []ProjectIssue
+		return updatedIssues, err
+	}
+	defer sess.Close()
+	var updatedIssues []ProjectIssue
+	for _, pissue := range issues {
+		if pissue.ID != 0 {
+			if _, err := sess.ID(pissue.ID).Cols("priority", "project_board_id").Update(&pissue); err != nil {
+				log.Info("failed updating cards priorities %s", err)
+				return updatedIssues, err
+			}
+			updatedIssues = append(updatedIssues, pissue)
+		} else {
+			var existingIssue ProjectIssue
+			if found, err := sess.Where("issue_id = ? and project_id = ?", pissue.IssueID, pissue.ProjectID).
+				Get(&existingIssue); err != nil {
+				log.Error("failed finding issue %s", err)
+			} else if !found {
+				if _, err := sess.Insert(&pissue); err != nil {
+					log.Info("failed inserting cards priorities %s", err)
+					return updatedIssues, err
+				}
+				updatedIssues = append(updatedIssues, pissue)
+			}
+		}
+	}
+	return updatedIssues, sess.Commit()
 }

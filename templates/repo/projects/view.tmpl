@@ -11,14 +11,14 @@
 			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
-				<button class="ui green button show-modal item"
-                   data-modal="#new-board-item">
-                   <i class="add icon"></i>
-                   {{.i18n.Tr "new_project_board"}}</button>
-				<button class="ui green button show-modal item" 
-                   id="new-project-issue-item">
-                   <i class="add icon"></i>
-                   {{.i18n.Tr "add_project_issue"}}</button>
+				<button class="ui green button show-modal item" data-modal="#new-board-item">
+					{{svg "octicon-plus" 16}}
+					{{.i18n.Tr "new_project_board"}}
+				</button>
+				<button class="ui green button show-modal item" id="new-project-issue-item">
+					{{svg "octicon-plus" 16}}
+					{{.i18n.Tr "add_project_issue"}}
+				</button>
 				{{end}}
 				<div class="ui small modal" id="new-board-item">
 					<div class="header">
@@ -77,11 +77,11 @@
 	<div class="ui container fluid padded" id="project-board">
 		<div id="current-card-details-input"></div>
 		<div class="board" id="board-container" data-repourl="{{.RepoLink}}" data-projectid="{{.Project.ID}}" data-url="{{.RepoLink}}/projects/{{$.Project.ID}}">
-			<div class="ui segment ignore-elements" id="current-card-details"></div>
+			<div class="ui segment ignore-elements invisible" id="current-card-details"></div>
 			{{ range $board := .Boards }}
 
 			<div class="ui segment board-column {{if eq .ID 0}}ignore-elements{{end}}"
-                 data-column-priority="{{.Priority}} "data-column-id="{{.ID}}">
+				data-column-priority="{{.Priority}} "data-column-id="{{.ID}}">
 				<div class="board-column-header">
 					<div class="ui large label board-label">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
@@ -153,7 +153,7 @@
 
 					<!-- start issue card -->
 					<div class="card board-card"
-                        data-issueid="{{.Issue.ID}}"
+						data-issueid="{{.Issue.ID}}"
 						data-id="{{.ID}}" data-priority="{{.Priority}}">
 						<div class="content">
 							<div class="header">
@@ -163,7 +163,7 @@
 									{{else}}{{svg "octicon-issue-opened"}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}" data-url="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}/sidebar/true">#{{.Issue.Index}} {{.Issue.Title}}</a>
+								<a class="project-board-title" href="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}" data-url="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}?sidebar=true">#{{.Issue.Index}} {{RenderEmoji .Issue.Title}}</a>
 							</div>
 							<div class="meta">
 								{{ if .Issue.MilestoneID }}

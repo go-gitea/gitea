@@ -1,0 +1,143 @@
+.board {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 .5em;
+}
+
+.board-column {
+  background-color: rgba(0, 0, 0, .05) !important;
+  border: 1px solid var(--color-secondary) !important;
+  margin: 0 .5rem !important;
+  padding: .5rem !important;
+  width: 320px;
+  height: 60vh;
+  overflow-y: scroll;
+  flex: 0 0 auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-column-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.board-label {
+  background: none !important;
+  line-height: 1.25 !important;
+}
+
+.board-column > .cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  .card .meta > a.milestone {
+    color: #999999;
+  }
+}
+
+.board-column > .divider {
+  margin: 5px 0;
+}
+
+.board-column:first-child {
+  margin-left: auto !important;
+}
+
+.board-column:last-child {
+  margin-right: auto !important;
+}
+
+.board-card {
+  margin: 3px !important;
+  width: auto !important;
+  background-color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.board-card .header {
+  font-size: 1.1em !important;
+}
+
+.board-card .content {
+  padding: 5px 8px !important;
+}
+
+.board-card .extra.content {
+  padding: 5px 8px !important;
+}
+
+.select-project .menu .item {
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select-project .item .svg {
+  margin-right: .5rem;
+}
+
+#current-card-details {
+  position: absolute;
+  right: 0;
+  background-color: #fff;
+  white-space: normal;
+  white-space: initial;
+  z-index: 100;
+  margin: .5rem !important;
+  padding: .5rem !important;
+  width: 320px;
+  height: 60vh;
+  flex: 0 0 auto;
+  overflow: scroll;
+  display: flex;
+  flex-direction: column;
+}
+
+#current-card-details::before {
+  content: '✕';
+  color: #808080;
+  text-align: right;
+  font-weight: 300;
+  font-family: Arial, sans-serif;
+  position: absolute;
+  font-size: 25px;
+  z-index: 9999;
+  right: 0;
+  cursor: pointer;
+}
+
+#issue-search {
+  margin: 2.5rem .8rem 0 .1rem;
+  width: 300px;
+  position: absolute;
+  right: 0;
+  z-index: 1000;
+  padding: .5rem !important;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#issue-results {
+  cursor: grab;
+  margin-top: 5rem;
+  padding: .5rem;
+}
+
+#issue-results .card,
+.board-column .card,
+#issue-results .card a {
+  cursor: grab;
+}
+
+.draggable-cards {
+  flex-flow: column;
+}

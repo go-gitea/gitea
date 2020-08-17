@@ -308,50 +308,23 @@ func deleteProjectByID(e Engine, id int64) error {
 	return updateRepositoryProjectCount(e, p.RepoID)
 }
 
-// Update given boards priority for a project
-func UpdateBoards(boards []ProjectBoard) error {
-	for _, board := range boards {
-		if _, err := x.ID(board.ID).Cols("priority").Update(&board); err != nil {
-			log.Info("failed updating board priorities %s", err)
+// LoadRepository loads repository of a given project
+func (p *Project) LoadRepository() error {
+	return p.loadRepository(x)
+}
+
+// loadRepository loads repository of a given project
+func (p *Project) loadRepository(e Engine) error {
+	if p.Repo != nil {
+		return nil
+	}
+	if p.Type == ProjectTypeRepository {
+		repo := &Repository{}
+		if _, err := e.ID(p.RepoID).Get(repo); err != nil {
+			log.Info("failed getting repo %v", err)
 			return err
 		}
-
-	}
-	return nil
-}
-
-// Update given issue priority and column
-func UpdateBoardIssues(issues []ProjectIssue) (error, []ProjectIssue) {
-	var updatedIssues []ProjectIssue
-	for _, pissue := range issues {
-		if pissue.ID != 0 {
-			if _, err := x.ID(pissue.ID).Cols("priority", "project_board_id").Update(&pissue); err != nil {
-				log.Info("failed updating cards priorities %s", err)
-				return err, updatedIssues
-			} else {
-				updatedIssues = append(updatedIssues, pissue)
-			}
-		} else {
-			if _, err := x.Insert(&pissue); err != nil {
-				log.Info("failed inserting cards priorities %s", err)
-				return err, updatedIssues
-			} else {
-				updatedIssues = append(updatedIssues, pissue)
-			}
-		}
-	}
-	return nil, updatedIssues
-}
-
-func (p *Project) LoadRepository() error {
-	var repo = Repository{}
-	if p.Type == ProjectTypeRepository {
-		_, err := x.ID(p.RepoID).Get(&repo)
-		p.Repo = &repo
-		if err != nil {
-			log.Info("failed getting repo %w", err)
-		}
-		return err
+		p.Repo = repo
 	}
 	return nil
 }

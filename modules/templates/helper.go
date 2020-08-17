@@ -154,7 +154,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
-		"RenderEmoji":                    RenderEmoji,
+		"RenderEmoji":                    markup.RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
@@ -372,7 +372,7 @@ func NewFuncMap() []template.FuncMap {
 
 			for _, label := range labels {
 				html = fmt.Sprintf("%s<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
-					html, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+					html, label.ForegroundColor(), label.Color, markup.RenderEmoji(label.Name))
 			}
 
 			return template.HTML(html)
@@ -633,16 +633,6 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return ""
 	}
 	return template.HTML(renderedMessage)
-}
-
-// RenderEmoji renders html text with emoji post processors
-func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
-	if err != nil {
-		log.Error("RenderEmoji: %v", err)
-		return template.HTML("")
-	}
-	return template.HTML(renderedText)
 }
 
 //ReactionToEmoji renders emoji for use in reactions

@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -63,6 +64,7 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+	ProjectIssueID   ProjectIssue
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -1100,9 +1102,10 @@ type IssuesOptions struct {
 	ExcludedLabelNames []string
 	SortType           string
 	IssueIDs           []int64
-	NotInProjectID     int64
+	ExcludeProjectID   int64
 	// prioritize issues from this repo
-	PriorityRepoID int64
+	PriorityRepoID   int64
+	RenderEmojiTitle util.OptionalBool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1181,20 +1184,19 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			And("project_issue.project_id=?", opts.ProjectID).OrderBy("priority")
+			And("project_issue.project_id=?", opts.ProjectID).OrderBy("`project_issue`.priority")
 	}
+
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}).OrderBy("priority"))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}).OrderBy("`project_issue`.priority"))
 		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}).OrderBy("priority"))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}).OrderBy("`project_issue`.priority"))
 		}
 	}
 
-	if opts.NotInProjectID != 0 {
-		if opts.NotInProjectID > 0 {
-			sess.NotIn("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_id": opts.NotInProjectID}).OrderBy("priority"))
-		}
+	if opts.ExcludeProjectID != 0 {
+		sess.NotIn("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_id": opts.ExcludeProjectID}).OrderBy("`project_issue`.priority"))
 	}
 
 	switch opts.IsPull {
@@ -1286,7 +1288,15 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	if err := IssueList(issues).LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
-
+	if opts.RenderEmojiTitle == util.OptionalBoolTrue {
+		var issuesWithEmojis []*Issue
+		for _, issue := range issues {
+			title := string(markup.RenderEmoji(issue.Title))
+			issue.Title = title
+			issuesWithEmojis = append(issuesWithEmojis, issue)
+		}
+		return issuesWithEmojis, nil
+	}
 	return issues, nil
 }
 
