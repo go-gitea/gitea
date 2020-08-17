@@ -50,7 +50,7 @@ steps:
 
   - name: build-frontend
     pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
+    image: node:14
     commands:
       - make frontend
     depends_on: [lint-frontend]
