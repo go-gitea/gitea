@@ -284,6 +284,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
+		if form.EnableProjects && !models.UnitTypeProjects.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else if !models.UnitTypeProjects.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+
 		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
