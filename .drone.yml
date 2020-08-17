@@ -34,6 +34,20 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: checks-frontend
+    pull: always
+    image: node:12
+    commands:
+      - make checks-frontend
+    depends_on: [deps-frontend]
+
+  - name: checks-backend
+    pull: always
+    image: golang:1.14
+    commands:
+      - make checks-backend
+    depends_on: [lint-backend]
+
   - name: build-frontend
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
@@ -49,7 +63,7 @@ steps:
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-arm64
     pull: always
@@ -63,7 +77,7 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-386
     pull: always
@@ -75,7 +89,7 @@ steps:
       GOARCH: 386
     commands:
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
 ---
 kind: pipeline

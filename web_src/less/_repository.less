@@ -3019,6 +3019,86 @@ tbody.commit-list {
     vertical-align: middle;
 }
 
+.board {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 .5em;
+}
+
+.board-column {
+    background-color: rgba(0, 0, 0, .05) !important;
+    border: 1px solid rgba(34, 36, 38, .15) !important;
+    margin: 0 .5rem !important;
+    padding: .5rem !important;
+    width: 320px;
+    height: 60vh;
+    overflow-y: scroll;
+    flex: 0 0 auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.board-column-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.board-label {
+    background: none !important;
+    line-height: 1.25 !important;
+}
+
+.board-column > .cards {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    .card .meta > a.milestone {
+        color: #999999;
+    }
+}
+
+.board-column > .divider {
+    margin: 5px 0;
+}
+
+.board-column:first-child {
+    margin-left: auto !important;
+}
+
+.board-column:last-child {
+    margin-right: auto !important;
+}
+
+.board-card {
+    margin: 3px !important;
+    width: auto !important;
+    background-color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.board-card .header {
+    font-size: 1.1em !important;
+}
+
+.board-card .content {
+    padding: 5px 8px !important;
+}
+
+.board-card .extra.content {
+    padding: 5px 8px !important;
+}
+
+td.blob-excerpt {
+    background-color: #fafafa;
+}
+
 .issue-keyword {
     border-bottom: 1px dotted #959da5;
     display: inline-block;
@@ -3081,4 +3161,14 @@ tbody.commit-list {
             background: none !important;
         }
     }
+}
+
+.select-project .item {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+
+.select-project .item .svg {
+    margin-right: .5rem;
 }
