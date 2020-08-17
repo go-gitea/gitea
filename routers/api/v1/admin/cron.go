@@ -76,6 +76,7 @@ func PostCronTask(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	task := cron.GetTask(ctx.Params(":task"))
 	if task == nil {
+		ctx.NotFound()
 		return
 	}
 	task.Run()
