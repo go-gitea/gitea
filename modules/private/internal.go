@@ -74,6 +74,5 @@ func newInternalRequest(url, method string) *httplib.Request {
 			},
 		})
 	}
-	req.SetTransport(&http.Transport{})
 	return req
 }
