@@ -131,7 +131,7 @@ func (s *Section) GetKey(name string) (*Key, error) {
 			}
 			break
 		}
-		return nil, fmt.Errorf("error when getting key of section '%s': key '%s' not exists", s.name, name)
+		return nil, fmt.Errorf("error when getting key of section %q: key %q not exists", s.name, name)
 	}
 	return key, nil
 }
@@ -249,7 +249,7 @@ func (s *Section) ChildSections() []*Section {
 	children := make([]*Section, 0, 3)
 	for _, name := range s.f.sectionList {
 		if strings.HasPrefix(name, prefix) {
-			children = append(children, s.f.sections[name])
+			children = append(children, s.f.sections[name]...)
 		}
 	}
 	return children
