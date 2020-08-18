@@ -152,6 +152,7 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
+
 	switch setting.Avatar.StoreType {
 	case "local":
 		m.Use(public.StaticHandler(
@@ -199,14 +200,52 @@ func NewMacaron() *macaron.Macaron {
 		log.Fatal("Unsupported avatar store type")
 	}
 
-	m.Use(public.StaticHandler(
-		setting.RepositoryAvatarUploadPath,
-		&public.Options{
-			Prefix:       "repo-avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
+	switch setting.RepoAvatar.StoreType {
+	case "local":
+		m.Use(public.StaticHandler(
+			setting.RepoAvatar.UploadPath,
+			&public.Options{
+				Prefix:       "repo-avatars",
+				SkipLogging:  setting.DisableRouterLog,
+				ExpiresAfter: setting.StaticCacheTime,
+			},
+		))
+	case "minio":
+		m.Use(func(ctx *context.Context) {
+			req := ctx.Req.Request
+			rPath := strings.TrimPrefix(req.RequestURI, "/avatars")
+			if setting.RepoAvatar.ServeDirect {
+				u, err := storage.RepoAvatars.URL(rPath, path.Base(rPath))
+				if err != nil {
+					ctx.ServerError("URL", err)
+					return
+				}
+				http.Redirect(
+					ctx.Resp,
+					req,
+					u.String(),
+					301,
+				)
+			} else {
+				rPath = strings.TrimPrefix(rPath, "/")
+				//If we have matched and access to release or issue
+				fr, err := storage.RepoAvatars.Open(rPath)
+				if err != nil {
+					ctx.ServerError("Open", err)
+					return
+				}
+				defer fr.Close()
+
+				_, err = io.Copy(ctx.Resp, fr)
+				if err != nil {
+					ctx.ServerError("io.Copy", err)
+					return
+				}
+			}
+		})
+	default:
+		log.Fatal("Unsupported repo-avatar store type")
+	}
 
 	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())

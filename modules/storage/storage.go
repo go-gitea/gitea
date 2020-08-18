@@ -89,8 +89,10 @@ var (
 	// LFS represents lfs storage
 	LFS ObjectStorage
 
-	// Avatars represents avatars storage
+	// Avatars represents user avatars storage
 	Avatars ObjectStorage
+	// RepoAvatars represents repository avatars storage
+	RepoAvatars ObjectStorage
 )
 
 // Init init the stoarge
@@ -100,6 +102,10 @@ func Init() error {
 	}
 
 	if err := initAvatars(); err != nil {
+		return err
+	}
+
+	if err := initRepoAvatars(); err != nil {
 		return err
 	}
 
@@ -131,5 +137,10 @@ func initAttachments() (err error) {
 
 func initLFS() (err error) {
 	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
+	return
+}
+
+func initRepoAvatars() (err error) {
+	RepoAvatars, err = initStorage(setting.RepoAvatar.Storage)
 	return
 }

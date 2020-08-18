@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"unicode/utf8"
 
 	// Needed for jpeg support
@@ -1796,11 +1797,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if len(repo.Avatar) > 0 {
-		avatarPath := repo.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := util.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", repo.Avatar, err)
 		}
 	}
 
@@ -2239,13 +2237,9 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 	return &forkedRepo, nil
 }
 
-// CustomAvatarPath returns repository custom avatar file path.
-func (repo *Repository) CustomAvatarPath() string {
-	// Avatar empty by default
-	if len(repo.Avatar) == 0 {
-		return ""
-	}
-	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
+// CustomAvatarRelativePath returns repository custom avatar file path.
+func (repo *Repository) CustomAvatarRelativePath() string {
+	return repo.Avatar
 }
 
 // generateRandomAvatar generates a random avatar for repository.
@@ -2259,18 +2253,20 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 	}
 
 	repo.Avatar = idToString
-	if err = os.MkdirAll(filepath.Dir(repo.CustomAvatarPath()), os.ModePerm); err != nil {
-		return fmt.Errorf("MkdirAll: %v", err)
-	}
-	fw, err := os.Create(repo.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("Create: %v", err)
-	}
-	defer fw.Close()
 
-	if err = png.Encode(fw, img); err != nil {
-		return fmt.Errorf("Encode: %v", err)
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+		if err = png.Encode(pw, img); err != nil {
+			log.Error("Encode: %v", err)
+		}
+	}()
+
+	if _, err := storage.Avatars.Save(repo.CustomAvatarRelativePath(), pr); err != nil {
+		return err
 	}
+
 	log.Info("New random avatar created for repository: %d", repo.ID)
 
 	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
@@ -2307,11 +2303,11 @@ func (repo *Repository) RelAvatarLink() string {
 
 func (repo *Repository) relAvatarLink(e Engine) string {
 	// If no avatar - path is empty
-	avatarPath := repo.CustomAvatarPath()
-	if len(avatarPath) == 0 || !com.IsFile(avatarPath) {
-		switch mode := setting.RepositoryAvatarFallback; mode {
+	avatarPath := repo.CustomAvatarRelativePath()
+	if len(avatarPath) == 0 {
+		switch mode := setting.RepoAvatar.Fallback; mode {
 		case "image":
-			return setting.RepositoryAvatarFallbackImage
+			return setting.RepoAvatar.FallbackImage
 		case "random":
 			if err := repo.generateRandomAvatar(e); err != nil {
 				log.Error("generateRandomAvatar: %v", err)
@@ -2349,37 +2345,40 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return err
 	}
 
+	newAvatar := fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
+	if repo.Avatar == newAvatar { // upload the same picture
+		return nil
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	oldAvatarPath := repo.CustomAvatarPath()
+	oldAvatarPath := repo.CustomAvatarRelativePath()
 
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
-	repo.Avatar = fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
+	repo.Avatar = newAvatar
 	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
-	if err := os.MkdirAll(setting.RepositoryAvatarUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("UploadAvatar: Failed to create dir %s: %v", setting.RepositoryAvatarUploadPath, err)
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		if err := png.Encode(pw, *m); err != nil {
+			log.Error("Encode: %v", err)
+		}
+	}()
+
+	if _, err := storage.RepoAvatars.Save(repo.CustomAvatarRelativePath(), pr); err != nil {
+		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %v", repo.RepoPath(), newAvatar, err)
 	}
 
-	fw, err := os.Create(repo.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("UploadAvatar: Create file: %v", err)
-	}
-	defer fw.Close()
-
-	if err = png.Encode(fw, *m); err != nil {
-		return fmt.Errorf("UploadAvatar: Encode png: %v", err)
-	}
-
-	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
-		if err := util.Remove(oldAvatarPath); err != nil {
+	if len(oldAvatarPath) > 0 {
+		if err := storage.RepoAvatars.Delete(oldAvatarPath); err != nil {
 			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
@@ -2389,13 +2388,12 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 
 // DeleteAvatar deletes the repos's custom avatar.
 func (repo *Repository) DeleteAvatar() error {
-
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil
 	}
 
-	avatarPath := repo.CustomAvatarPath()
+	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
 	sess := x.NewSession()
@@ -2409,14 +2407,10 @@ func (repo *Repository) DeleteAvatar() error {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
-	if _, err := os.Stat(avatarPath); err == nil {
-		if err := util.Remove(avatarPath); err != nil {
-			return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
-		}
-	} else {
-		// // Schrodinger: file may or may not exist. See err for details.
-		log.Trace("DeleteAvatar[%d]: %v", err)
+	if err := storage.RepoAvatars.Delete(avatarPath); err != nil {
+		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 	}
+
 	return sess.Commit()
 }
 
