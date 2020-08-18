@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -61,7 +62,11 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 		log.Error("Whilst putting LFS OID[%s]: Unable to open temporary file for writing: %s Error: %v", tmpPath, err)
 		return err
 	}
-	defer os.Remove(tmpPath)
+	defer func() {
+		if err := util.Remove(tmpPath); err != nil {
+			log.Warn("Unable to remove temporary path: %s: Error: %v", tmpPath, err)
+		}
+	}()
 
 	hash := sha256.New()
 	hw := io.MultiWriter(hash, file)

@@ -222,6 +222,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
@@ -715,6 +716,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			})
 		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		}
+	}
+
+	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
 		}
 	}
 

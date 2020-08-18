@@ -7318,6 +7318,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/update": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Merge PR's baseBranch into headBranch",
+        "operationId": "repoUpdatePullRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
@@ -12467,6 +12520,11 @@
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
+        "has_projects": {
+          "description": "either `true` to enable project unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasProjects"
+        },
         "has_pull_requests": {
           "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
           "type": "boolean",
@@ -14285,6 +14343,10 @@
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
+        "has_projects": {
+          "type": "boolean",
+          "x-go-name": "HasProjects"
+        },
         "has_pull_requests": {
           "type": "boolean",
           "x-go-name": "HasPullRequests"
@@ -15627,6 +15689,12 @@
       "name": "sudo",
       "in": "query"
     },
+    "TOTPHeader": {
+      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
+      "type": "apiKey",
+      "name": "X-GITEA-OTP",
+      "in": "header"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -15651,6 +15719,9 @@
     },
     {
       "SudoHeader": []
+    },
+    {
+      "TOTPHeader": []
     }
   ]
 }
