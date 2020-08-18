@@ -74,6 +74,7 @@ require (
 	github.com/mgechev/revive v1.0.2
 	github.com/mholt/archiver/v3 v3.3.0
 	github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
+	github.com/minio/minio-go/v7 v7.0.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
@@ -104,17 +105,17 @@ require (
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
-	golang.org/x/text v0.3.2
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	golang.org/x/tools v0.0.0-20200814230902-9882f1d1823d
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.52.0
+	gopkg.in/ini.v1 v1.57.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/yaml.v2 v2.3.0
 	mvdan.cc/xurls/v2 v2.1.0

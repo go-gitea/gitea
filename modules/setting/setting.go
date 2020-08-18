@@ -299,13 +299,6 @@ var (
 	AccessLogTemplate  string
 	EnableXORMLog      bool
 
-	// Attachment settings
-	AttachmentPath         string
-	AttachmentAllowedTypes string
-	AttachmentMaxSize      int64
-	AttachmentMaxFiles     int
-	AttachmentEnabled      bool
-
 	// Time settings
 	TimeFormat string
 	// UILocation is the location on the UI, so that we can display the time on UI.
@@ -840,15 +833,7 @@ func NewContext() {
 		}
 	}
 
-	sec = Cfg.Section("attachment")
-	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
-	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
-	}
-	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
-	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
-	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
+	newAttachmentService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {

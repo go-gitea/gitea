@@ -84,7 +84,10 @@ func (p *parser) BOM() error {
 	case mask[0] == 254 && mask[1] == 255:
 		fallthrough
 	case mask[0] == 255 && mask[1] == 254:
-		p.buf.Read(mask)
+		_, err = p.buf.Read(mask)
+		if err != nil {
+			return err
+		}
 	case mask[0] == 239 && mask[1] == 187:
 		mask, err := p.buf.Peek(3)
 		if err != nil && err != io.EOF {
@@ -93,7 +96,10 @@ func (p *parser) BOM() error {
 			return nil
 		}
 		if mask[2] == 191 {
-			p.buf.Read(mask)
+			_, err = p.buf.Read(mask)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -135,7 +141,7 @@ func readKeyName(delimiters string, in []byte) (string, int, error) {
 	}
 
 	// Get out key name
-	endIdx := -1
+	var endIdx int
 	if len(keyQuote) > 0 {
 		startIdx := len(keyQuote)
 		// FIXME: fail case -> """"""name"""=value
@@ -181,7 +187,7 @@ func (p *parser) readMultilines(line, val, valQuote string) (string, error) {
 		}
 		val += next
 		if p.isEOF {
-			return "", fmt.Errorf("missing closing key quote from '%s' to '%s'", line, next)
+			return "", fmt.Errorf("missing closing key quote from %q to %q", line, next)
 		}
 	}
 	return val, nil
@@ -413,7 +419,10 @@ func (f *File) parse(reader io.Reader) (err error) {
 		if f.options.AllowNestedValues &&
 			isLastValueEmpty && len(line) > 0 {
 			if line[0] == ' ' || line[0] == '\t' {
-				lastRegularKey.addNestedValue(string(bytes.TrimSpace(line)))
+				err = lastRegularKey.addNestedValue(string(bytes.TrimSpace(line)))
+				if err != nil {
+					return err
+				}
 				continue
 			}
 		}
@@ -460,7 +469,7 @@ func (f *File) parse(reader io.Reader) (err error) {
 			inUnparseableSection = false
 			for i := range f.options.UnparseableSections {
 				if f.options.UnparseableSections[i] == name ||
-					(f.options.Insensitive && strings.ToLower(f.options.UnparseableSections[i]) == strings.ToLower(name)) {
+					(f.options.Insensitive && strings.EqualFold(f.options.UnparseableSections[i], name)) {
 					inUnparseableSection = true
 					continue
 				}
