@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 
@@ -131,16 +130,6 @@ var (
 		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
 		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
-	}
-
-	LFS struct {
-		StartServer     bool          `ini:"LFS_START_SERVER"`
-		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes  []byte        `ini:"-"`
-		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
-		MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
-		LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 	}
 
 	// Security settings
@@ -472,27 +461,6 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
-func CheckLFSVersion() {
-	if LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		err := git.LoadGitVersion()
-		if err != nil {
-			log.Fatal("Error retrieving git version: %v", err)
-		}
-
-		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
-			LFS.StartServer = false
-			log.Error("LFS server support needs at least Git v2.1.2")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-		}
-	}
-}
-
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
@@ -722,51 +690,7 @@ func NewContext() {
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	sec = Cfg.Section("server")
-	if err = sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
-	}
-	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
-	}
-	if LFS.LocksPagingNum == 0 {
-		LFS.LocksPagingNum = 50
-	}
-
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
-
-	if LFS.StartServer {
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
-			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
-			}
-
-			// Save secret
-			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
-				// Keeps custom settings if there is already something.
-				if err := cfg.Append(CustomConf); err != nil {
-					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-				}
-			}
-
-			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-
-			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal("Failed to create '%s': %v", CustomConf, err)
-			}
-			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
-				return
-			}
-		}
-	}
+	newLFSService()
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
@@ -1084,14 +1008,6 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 		}
 	}
 	return token
-}
-
-func ensureLFSDirectory() {
-	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
-		}
-	}
 }
 
 // NewServices initializes the services
