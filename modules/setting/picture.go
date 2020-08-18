@@ -6,7 +6,6 @@ package setting
 
 import (
 	"net/url"
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
@@ -84,10 +83,10 @@ func newPictureService() {
 	Avatar.ServeDirect = sec.Key("AVATAR_SERVE_DIRECT").MustBool(false)
 	switch Avatar.StoreType {
 	case "local":
-		Avatar.UploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
+		Avatar.UploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(filepath.Join(AppDataPath, "avatars"))
 		forcePathSeparator(Avatar.UploadPath)
 		if !filepath.IsAbs(Avatar.UploadPath) {
-			Avatar.UploadPath = path.Join(AppWorkPath, Avatar.UploadPath)
+			Avatar.UploadPath = filepath.Join(AppWorkPath, Avatar.UploadPath)
 		}
 	case "minio":
 		Avatar.Minio.Endpoint = sec.Key("AVATAR_MINIO_ENDPOINT").MustString("localhost:9000")
@@ -151,10 +150,10 @@ func newRepoAvatarService() {
 	RepoAvatar.ServeDirect = sec.Key("REPOSITORY_AVATAR_SERVE_DIRECT").MustBool(false)
 	switch RepoAvatar.StoreType {
 	case "local":
-		RepoAvatar.UploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
+		RepoAvatar.UploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(filepath.Join(AppDataPath, "repo-avatars"))
 		forcePathSeparator(RepoAvatar.UploadPath)
 		if !filepath.IsAbs(RepoAvatar.UploadPath) {
-			RepoAvatar.UploadPath = path.Join(AppWorkPath, RepoAvatar.UploadPath)
+			RepoAvatar.UploadPath = filepath.Join(AppWorkPath, RepoAvatar.UploadPath)
 		}
 	case "minio":
 		RepoAvatar.Minio.Endpoint = sec.Key("REPOSITORY_AVATAR_MINIO_ENDPOINT").MustString("localhost:9000")
