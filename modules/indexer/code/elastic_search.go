@@ -110,7 +110,7 @@ const (
 )
 
 func (b *ElasticSearchIndexer) realIndexerName() string {
-	return fmt.Sprintf("%s_%d", b.indexerAliasName, esRepoIndexerLatestVersion)
+	return fmt.Sprintf("%s.v%d", b.indexerAliasName, esRepoIndexerLatestVersion)
 }
 
 // Init will initialize the indexer
