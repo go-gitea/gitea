@@ -598,7 +598,6 @@ func NewIssue(ctx *context.Context) {
 
 	}
 
-	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
