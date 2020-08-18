@@ -15,7 +15,7 @@ import (
 func listen(server *ssh.Server) {
 	gracefulServer := graceful.NewServer("tcp", server.Addr)
 
-	err := gracefulServer.ListenAndServe(server.Serve, setting.SSH.HAProxy)
+	err := gracefulServer.ListenAndServe(server.Serve, setting.SSH.UseProxyProtocol)
 	if err != nil {
 		select {
 		case <-graceful.GetManager().IsShutdown():

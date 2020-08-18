@@ -49,7 +49,7 @@ func newInternalRequest(url, method string) *httplib.Request {
 				if err != nil {
 					return conn, err
 				}
-				if setting.LocalHAProxy {
+				if setting.LocalUseProxyProtocol {
 					if err = haproxy.WriteLocalProxyHeader(conn); err != nil {
 						_ = conn.Close()
 						return nil, err
@@ -58,7 +58,7 @@ func newInternalRequest(url, method string) *httplib.Request {
 				return conn, err
 			},
 		})
-	} else if setting.LocalHAProxy {
+	} else if setting.LocalUseProxyProtocol {
 		req.SetTransport(&http.Transport{
 			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 				var d net.Dialer

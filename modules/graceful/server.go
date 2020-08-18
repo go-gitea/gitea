@@ -89,8 +89,8 @@ func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
 	if haProxy {
 		listener = &haproxy.Listener{
 			Listener:           listener,
-			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
-			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
 		}
 	}
 	srv.listener = listener
@@ -154,8 +154,8 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	if haProxy && !haProxyTLSBridging {
 		listener = &haproxy.Listener{
 			Listener:           listener,
-			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
-			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
 		}
 	}
 
@@ -166,8 +166,8 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	if haProxy && haProxyTLSBridging {
 		listener = &haproxy.Listener{
 			Listener:           listener,
-			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
-			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
 		}
 	}
 

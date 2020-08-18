@@ -77,42 +77,42 @@ var (
 	AppWorkPath    string
 
 	// Server settings
-	Protocol             Scheme
-	HAProxy              bool // `ini:"HAPROXY"`
-	HAProxyTLSBridging   bool // `ini:"HAPROXY_TLS_BRIDGING"`
-	HAProxyHeaderTimeout time.Duration
-	HAProxyAcceptUnknown bool
-	Domain               string
-	HTTPAddr             string
-	HTTPPort             string
-	LocalURL             string
-	LocalHAProxy         bool
-	RedirectOtherPort    bool
-	RedirectHAProxy      bool
-	PortToRedirect       string
-	OfflineMode          bool
-	CertFile             string
-	KeyFile              string
-	StaticRootPath       string
-	StaticCacheTime      time.Duration
-	EnableGzip           bool
-	LandingPageURL       LandingPage
-	UnixSocketPermission uint32
-	EnablePprof          bool
-	PprofDataPath        string
-	EnableLetsEncrypt    bool
-	LetsEncryptTOS       bool
-	LetsEncryptDirectory string
-	LetsEncryptEmail     string
-	GracefulRestartable  bool
-	GracefulHammerTime   time.Duration
-	StartupTimeout       time.Duration
-	StaticURLPrefix      string
+	Protocol                   Scheme
+	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
+	ProxyProtocolTLSBridging   bool // `ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
+	ProxyProtocolHeaderTimeout time.Duration
+	ProxyProtocolAcceptUnknown bool
+	Domain                     string
+	HTTPAddr                   string
+	HTTPPort                   string
+	LocalURL                   string
+	LocalUseProxyProtocol      bool
+	RedirectOtherPort          bool
+	RedirectorUseProxyProtocol bool
+	PortToRedirect             string
+	OfflineMode                bool
+	CertFile                   string
+	KeyFile                    string
+	StaticRootPath             string
+	StaticCacheTime            time.Duration
+	EnableGzip                 bool
+	LandingPageURL             LandingPage
+	UnixSocketPermission       uint32
+	EnablePprof                bool
+	PprofDataPath              string
+	EnableLetsEncrypt          bool
+	LetsEncryptTOS             bool
+	LetsEncryptDirectory       string
+	LetsEncryptEmail           string
+	GracefulRestartable        bool
+	GracefulHammerTime         time.Duration
+	StartupTimeout             time.Duration
+	StaticURLPrefix            string
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer       bool           `ini:"START_SSH_SERVER"`
-		HAProxy                  bool           `ini:"SSH_SERVER_HAPROXY"`
+		UseProxyProtocol         bool           `ini:"SSH_SERVER_USE_PROXY_PROTOCOL"`
 		BuiltinServerUser        string         `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain                   string         `ini:"SSH_DOMAIN"`
 		Port                     int            `ini:"SSH_PORT"`
@@ -596,10 +596,10 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
-	HAProxy = sec.Key("HAPROXY").MustBool(false)
-	HAProxyTLSBridging = sec.Key("HAPROXY_TLS_BRIDGING").MustBool(false)
-	HAProxyHeaderTimeout = sec.Key("HAPROXY_HEADER_TIMEOUT").MustDuration(5 * time.Second)
-	HAProxyAcceptUnknown = sec.Key("HAPROXY_ACCEPT_UNKNOWN").MustBool(false)
+	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
+	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)
+	ProxyProtocolHeaderTimeout = sec.Key("PROXY_PROTOCOL_HEADER_TIMEOUT").MustDuration(5 * time.Second)
+	ProxyProtocolAcceptUnknown = sec.Key("PROXY_PROTOCOL_ACCEPT_UNKNOWN").MustBool(false)
 	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
 	if !LetsEncryptTOS && EnableLetsEncrypt {
@@ -655,10 +655,10 @@ func NewContext() {
 		}
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
-	LocalHAProxy = sec.Key("LOCAL_HAPROXY").MustBool(HAProxy)
+	LocalUseProxyProtocol = sec.Key("LOCAL_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
-	RedirectHAProxy = sec.Key("REDIRECT_HAPROXY").MustBool(HAProxy)
+	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
@@ -709,7 +709,7 @@ func NewContext() {
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
 	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
-	SSH.HAProxy = sec.Key("SSH_SERVER_HAPROXY").MustBool(false)
+	SSH.UseProxyProtocol = sec.Key("SSH_SERVER_USE_PROXY_PROTOCOL").MustBool(false)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {

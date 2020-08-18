@@ -168,10 +168,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Server (`server`)
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, unix, fcgi+unix\]
-- `HAPROXY`: **false**: Expect HAPROXY headers on connections
-- `HAPROXY_TLS_BRIDGING`: **false**: When protocol is https, expect HAPROXY header after TLS negotiation.
-- `HAPROXY_HEADER_TIMEOUT`: **5s**: Timeout to wait for HAProxy header (set to 0 to have no timeout)
-- `HAPROXY_ACCEPT_UNKNOWN`: **false**: Accept Unknown HAProxy
+- `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
+- `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
+- `PROXY_PROTOCOL_HEADER_TIMEOUT`: **5s**: Timeout to wait for PROXY protocol header (set to 0 to have no timeout)
+- `PROXY_PROTOCOL_ACCEPT_UNKNOWN`: **false**: Accept PROXY protocol headers with Unknown type.
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -196,11 +196,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `unix`.
-- `LOCAL_HAPROXY`: **%(HAPROXY)**: When making local connections pass the HAPROXY header.
-   This should be set to false if the local connection will go through the HAPROXY.
+- `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: When making local connections pass the PROXY protocol header.
+   This should be set to false if the local connection will go through the proxy.
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
-- `SSH_SERVER_HAPROXY`: **false**: Expect HAPROXY header on connections to the built-in SSH Server.
+- `SSH_SERVER_USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol header on connections to the built-in SSH Server.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
@@ -220,7 +220,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCK_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
-- `REDIRECT_HAPROXY`: **%(HAPROXY)**: expect HAPROXY header on connections to https redirector.
+- `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: expect PROXY protocol header on connections to https redirector.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
    By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
