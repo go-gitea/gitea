@@ -60,7 +60,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, context2.ClearHandler(handler))
+	var err = runHTTP("tcp", source, context2.ClearHandler(handler), setting.RedirectHAProxy)
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
@@ -77,12 +77,12 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	go func() {
 		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
+		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)), setting.RedirectHAProxy)
 		if err != nil {
 			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 		}
 	}()
-	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
+	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m), setting.HAProxy, setting.HAProxyTLSBridging)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +177,7 @@ func runWeb(ctx *cli.Context) error {
 	switch setting.Protocol {
 	case setting.HTTP:
 		NoHTTPRedirector()
-		err = runHTTP("tcp", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("tcp", listenAddr, context2.ClearHandler(m), setting.HAProxy)
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
 			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
@@ -188,16 +188,16 @@ func runWeb(ctx *cli.Context) error {
 		} else {
 			NoHTTPRedirector()
 		}
-		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m), setting.HAProxy, setting.HAProxyTLSBridging)
 	case setting.FCGI:
 		NoHTTPRedirector()
-		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m), setting.HAProxy)
 	case setting.UnixSocket:
 		NoHTTPRedirector()
-		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("unix", listenAddr, context2.ClearHandler(m), setting.HAProxy)
 	case setting.FCGIUnix:
 		NoHTTPRedirector()
-		err = runFCGI("unix", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("unix", listenAddr, context2.ClearHandler(m), setting.HAProxy)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}

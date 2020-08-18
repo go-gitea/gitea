@@ -7,6 +7,7 @@ package ssh
 import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gliderlabs/ssh"
 )
@@ -14,7 +15,7 @@ import (
 func listen(server *ssh.Server) {
 	gracefulServer := graceful.NewServer("tcp", server.Addr)
 
-	err := gracefulServer.ListenAndServe(server.Serve)
+	err := gracefulServer.ListenAndServe(server.Serve, setting.SSH.HAProxy)
 	if err != nil {
 		select {
 		case <-graceful.GetManager().IsShutdown():

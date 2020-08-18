@@ -16,7 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	"code.gitea.io/gitea/modules/haproxy"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -71,16 +73,27 @@ func NewServer(network, address string) *Server {
 
 // ListenAndServe listens on the provided network address and then calls Serve
 // to handle requests on incoming connections.
-func (srv *Server) ListenAndServe(serve ServeFunction) error {
+func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
 	go srv.awaitShutdown()
 
-	l, err := GetListener(srv.network, srv.address)
+	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to GetListener: %v", err)
 		return err
 	}
 
-	srv.listener = newWrappedListener(l, srv)
+	// we need to wrap the listener to take account of our lifecycle
+	listener = newWrappedListener(listener, srv)
+
+	// Now we need to take account of HAProxy settings...
+	if haProxy {
+		listener = &haproxy.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
+			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+		}
+	}
+	srv.listener = listener
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -94,7 +107,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 // be provided. If the certificate is signed by a certificate authority, the
 // certFile should be the concatenation of the server's certificate followed by the
 // CA's certificate.
-func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFunction) error {
+func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
 	config := &tls.Config{}
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http/1.1"}
@@ -120,23 +133,45 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 		return err
 	}
 
-	return srv.ListenAndServeTLSConfig(config, serve)
+	return srv.ListenAndServeTLSConfig(config, serve, haProxy, haProxyTLSBridging)
 }
 
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
-func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
+func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
 	go srv.awaitShutdown()
 
-	l, err := GetListener(srv.network, srv.address)
+	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)
 		return err
 	}
 
-	wl := newWrappedListener(l, srv)
-	srv.listener = tls.NewListener(wl, tlsConfig)
+	// we need to wrap the listener to take account of our lifecycle
+	listener = newWrappedListener(listener, srv)
 
+	// Now we need to take account of HAProxy settings... If we're not bridging then we expect that the proxy will forward the connection to us
+	if haProxy && !haProxyTLSBridging {
+		listener = &haproxy.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
+			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+		}
+	}
+
+	// Now handle the tls protocol
+	listener = tls.NewListener(listener, tlsConfig)
+
+	// Now if we're bridging then we need the proxy to tell us who we're bridging for...
+	if haProxy && haProxyTLSBridging {
+		listener = &haproxy.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.HAProxyHeaderTimeout,
+			AcceptUnknown:      setting.HAProxyAcceptUnknown,
+		}
+	}
+
+	srv.listener = listener
 	srv.BeforeBegin(srv.network, srv.address)
 
 	return srv.Serve(serve)
