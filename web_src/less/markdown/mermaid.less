@@ -1,0 +1,12 @@
+.mermaid-chart {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+/* mermaid's errorRenderer seems to unavoidably spew stuff into <body>, hide it */
+body > div[id*="mermaid-"] {
+    display: none !important;
+}

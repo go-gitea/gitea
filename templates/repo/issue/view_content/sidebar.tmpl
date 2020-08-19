@@ -28,7 +28,7 @@
 
 					{{range $.PullReviewers}}
 						{{if eq .ReviewerID $ReviewerID }}
-							{{$notReviewed = false }} 
+							{{$notReviewed = false }}
 							{{if  eq .Type 4 }}
 								{{$checked = true}}
 								{{if or (eq $ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
@@ -88,10 +88,8 @@
 				{{end}}
 			</div>
 		</div>
-
-		{{end}}
-
 		<div class="ui divider"></div>
+		{{end}}
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
@@ -128,12 +126,12 @@
 			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 			{{range .Labels}}
 				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 				</div>
 			{{end}}
 			{{range .OrgLabels}}
 				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 				</div>
 
 			{{end}}
@@ -194,6 +192,48 @@
 			</div>
 		</div>
 
+		{{if .IsProjectsEnabled}}
+		<div class="ui divider"></div>
+		
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
+				{{svg "octicon-gear" 16}}
+			</span>
+			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
+				{{if .OpenProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						{{svg "octicon-project" 16}}
+						{{.i18n.Tr "repo.issues.new.open_projects"}}
+					</div>
+					{{range .OpenProjects}}
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</div>
+					{{end}}
+				{{end}}
+				{{if .ClosedProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						{{svg "octicon-project" 16}}
+						{{.i18n.Tr "repo.issues.new.closed_projects"}}
+					</div>
+					{{range .ClosedProjects}}
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</a>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+		<div class="ui select-project list">
+			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
+			<div class="selected">
+				{{if .Issue.ProjectID}}
+					<a class="item" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">{{svg "octicon-project" 16}} {{.Issue.Project.Title}}</a>
+				{{end}}
+			</div>
+		</div>
+		{{end}}
+
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
@@ -238,7 +278,7 @@
 			<div class="selected">
 				{{range .Issue.Assignees}}
 					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{$.RepoLink}}/issues?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.GetDisplayName}}</a>
+						<a href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.GetDisplayName}}</a>
 					</div>
 				{{end}}
 			</div>
@@ -357,7 +397,7 @@
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
 					{{svg "octicon-calendar" 16}}
-					{{.Issue.DeadlineUnix.FormatShort}}
+					{{.Issue.DeadlineUnix.FormatDate}}
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 					{{end}}

@@ -1,16 +1,15 @@
-const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const wrapAnsi = require('wrap-ansi');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
-const PostCSSSafeParser = require('postcss-safe-parser');
-const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
+const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
@@ -22,23 +21,41 @@ for (const path of glob('web_src/less/themes/*.less')) {
 
 const isProduction = process.env.NODE_ENV !== 'development';
 
+const filterCssImport = (url, ...args) => {
+  const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
+  const importedFile = url.replace(/[?#].+/, '').toLowerCase();
+
+  if (cssFile.includes('fomantic')) {
+    if (/brand-icons/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  }
+
+  if (cssFile.includes('font-awesome')) {
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  }
+
+  return true;
+};
+
 module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
+      resolve(__dirname, 'web_src/js/jquery.js'),
+      resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
     ],
-    jquery: [
-      resolve(__dirname, 'web_src/js/jquery.js'),
-    ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
     ],
-    icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
+    'eventsource.sharedworker': [
+      resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
+    ],
     ...themes,
   },
   devtool: false,
@@ -58,18 +75,14 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
-          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
         },
       }),
-      new OptimizeCSSAssetsPlugin({
-        cssProcessor: cssnano,
-        cssProcessorOptions: {
-          parser: PostCSSSafeParser,
-        },
-        cssProcessorPluginOptions: {
+      new CssMinimizerPlugin({
+        sourceMap: true,
+        minimizerOptions: {
           preset: [
             'default',
             {
@@ -84,15 +97,7 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-      cacheGroups: {
-        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
-        monaco: {
-          test: /monaco-editor/,
-          name: 'monaco',
-          chunks: 'async'
-        }
-      }
-    }
+    },
   },
   module: {
     rules: [
@@ -102,19 +107,13 @@ module.exports = {
         loader: 'vue-loader',
       },
       {
-        test: require.resolve('jquery-datetimepicker'),
-        use: 'imports-loader?define=>false,exports=>false',
-      },
-      {
         test: /\.worker\.js$/,
         exclude: /monaco/,
         use: [
           {
             loader: 'worker-loader',
             options: {
-              name: '[name].js',
-              inline: true,
-              fallback: false,
+              inline: 'no-fallback',
             },
           },
         ],
@@ -150,14 +149,42 @@ module.exports = {
                     regenerator: true,
                   }
                 ],
-                '@babel/plugin-proposal-object-rest-spread',
               ],
+              generatorOpts: {
+                compact: false,
+              },
             },
           },
         ],
       },
       {
-        test: /\.(less|css)$/i,
+        test: /.css$/i,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              url: filterCssImport,
+              import: filterCssImport,
+              sourceMap: true,
+            },
+          },
+          {
+            loader: 'postcss-loader',
+            options: {
+              plugins: () => [
+                PostCSSPresetEnv(),
+              ],
+              sourceMap: true,
+            },
+          },
+        ],
+      },
+      {
+        test: /.less$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -166,11 +193,10 @@ module.exports = {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
-              url: (_url, resourcePath) => {
-                // only resolve URLs for dependencies
-                return resourcePath.includes('node_modules');
-              },
-            }
+              url: filterCssImport,
+              import: filterCssImport,
+              sourceMap: true,
+            },
           },
           {
             loader: 'postcss-loader',
@@ -178,32 +204,23 @@ module.exports = {
               plugins: () => [
                 PostCSSPresetEnv(),
               ],
+              sourceMap: true,
             },
           },
           {
             loader: 'less-loader',
+            options: {
+              sourceMap: true,
+            },
           },
         ],
       },
       {
         test: /\.svg$/,
+        include: resolve(__dirname, 'public/img/svg'),
         use: [
           {
-            loader: 'svg-sprite-loader',
-            options: {
-              extract: true,
-              spriteFilename: 'img/svg/icons.svg',
-              symbolId: (path) => {
-                const {name} = parse(path);
-                if (/@primer[/\\]octicons/.test(path)) {
-                  return `octicon-${name}`;
-                }
-                return name;
-              },
-            },
-          },
-          {
-            loader: 'svgo-loader',
+            loader: 'raw-loader',
           },
         ],
       },
@@ -215,7 +232,20 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
+            },
+          },
+        ],
+      },
+      {
+        test: /\.png$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'img/webpack/',
+              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
             },
           },
         ],
@@ -224,9 +254,9 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    // avoid generating useless js output files for css- and svg-only chunks
+    // avoid generating useless js output files for css--only chunks
     new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css', 'svg'],
+      extensions: ['less', 'scss', 'css'],
       silent: true,
     }),
     new MiniCssExtractPlugin({
@@ -234,16 +264,36 @@ module.exports = {
       chunkFilename: 'css/[name].css',
     }),
     new SourceMapDevToolPlugin({
-      filename: 'js/[name].js.map',
+      filename: '[file].map',
       include: [
         'js/index.js',
+        'css/index.css',
       ],
-    }),
-    new SpriteLoaderPlugin({
-      plainSprite: true,
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
+    }),
+    new LicenseWebpackPlugin({
+      outputFilename: 'js/licenses.txt',
+      perChunkOutput: false,
+      addBanner: false,
+      skipChildCompilers: true,
+      modulesDirectories: [
+        resolve(__dirname, 'node_modules'),
+      ],
+      renderLicenses: (modules) => {
+        const line = '-'.repeat(80);
+        return modules.map((module) => {
+          const {name, version} = module.packageJson;
+          const {licenseId, licenseText} = module;
+          const body = wrapAnsi(licenseText || '', 80);
+          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+        }).join('\n');
+      },
+      stats: {
+        warnings: false,
+        errors: true,
+      },
     }),
   ],
   performance: {
@@ -264,5 +314,10 @@ module.exports = {
   },
   stats: {
     children: false,
+    excludeAssets: [
+      // exclude monaco's language chunks in stats output for brevity
+      // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
+      /^js\/[0-9]+\.js$/,
+    ],
   },
 };

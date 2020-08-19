@@ -84,8 +84,9 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 					})
 					return
 				}
-
-				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+				if ctx.Req.URL.Path != "/user/events" {
+					ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+				}
 				ctx.Redirect(setting.AppSubURL + "/user/login")
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
@@ -120,7 +121,9 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && !auth.IsAPIPath(ctx.Req.URL.Path) &&
 			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
-			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+			if ctx.Req.URL.Path != "/user/events" {
+				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}

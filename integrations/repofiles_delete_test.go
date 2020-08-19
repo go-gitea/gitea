@@ -80,7 +80,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 
 	t.Run("Delete README.md file", func(t *testing.T) {
 		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
@@ -122,7 +122,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
 		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)

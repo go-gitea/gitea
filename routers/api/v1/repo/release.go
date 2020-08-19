@@ -79,7 +79,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   required: true
 	// - name: per_page
 	//   in: query
-	//   description: items count every page wants to load
+	//   description: page size of results, deprecated - use limit
 	//   type: integer
 	//   deprecated: true
 	// - name: page
@@ -88,7 +88,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -194,8 +194,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-			ctx.ServerError("UpdateRelease", err)
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, true); err != nil {
+			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -266,8 +266,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
+	if err := releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, false); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
 		return
 	}
 

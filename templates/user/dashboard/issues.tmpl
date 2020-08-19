@@ -67,15 +67,13 @@
 					</div>
 					<div class="column center aligned">
 						<form class="ui form ignore-dirty">
-							<div class="ui fluid action input">
+							<div class="ui search fluid action input">
 								<input type="hidden" name="type" value="{{$.ViewType}}"/>
 								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]"/>
 								<input type="hidden" name="sort" value="{{$.SortType}}"/>
 								<input type="hidden" name="state" value="{{$.State}}"/>
-								<div class="ui search action input">
-									<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-									<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
-								</div>
+								<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
+								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
 							</div>
 						</form>
 					</div>
@@ -144,7 +142,7 @@
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
 								{{if .Milestone}}
-									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/milestone/{{.Milestone.ID}}">
 										{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
 									</a>
 								{{end}}
@@ -181,7 +179,7 @@
 									{{end}}
 
 									{{if gt $rejectOfficial 0}}
-										<span class="rejects">{{svg "octicon-request-changes" 16}}
+										<span class="rejects">{{svg "octicon-diff" 16}}
 											{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 										</span>
 									{{end}}
@@ -193,7 +191,7 @@
 									{{end}}
 
 									{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-										<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+										<span class="conflicting">{{svg "octicon-x" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
 								{{end}}
 							</p>

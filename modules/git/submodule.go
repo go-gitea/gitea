@@ -97,13 +97,13 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 
 	for _, scheme := range supportedSchemes {
 		if ref.Scheme == scheme {
-			if urlPrefixHostname == refHostname {
-				return urlPrefix + path.Clean(path.Join("/", ref.Path))
-			} else if ref.Scheme == "http" || ref.Scheme == "https" {
+			if ref.Scheme == "http" || ref.Scheme == "https" {
 				if len(ref.User.Username()) > 0 {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
 				}
 				return ref.Scheme + "://" + ref.Host + ref.Path
+			} else if urlPrefixHostname == refHostname {
+				return urlPrefix + path.Clean(path.Join("/", ref.Path))
 			} else {
 				return "http://" + refHostname + ref.Path
 			}

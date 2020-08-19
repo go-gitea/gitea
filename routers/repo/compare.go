@@ -9,14 +9,12 @@ import (
 	"fmt"
 	"html"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -381,7 +379,20 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranch, headBranch)
+	baseBranchRef := baseBranch
+	if baseIsBranch {
+		baseBranchRef = git.BranchPrefix + baseBranch
+	} else if baseIsTag {
+		baseBranchRef = git.TagPrefix + baseBranch
+	}
+	headBranchRef := headBranch
+	if headIsBranch {
+		headBranchRef = git.BranchPrefix + headBranch
+	} else if headIsTag {
+		headBranchRef = git.TagPrefix + headBranch
+	}
+
+	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
@@ -563,7 +574,6 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -595,7 +605,8 @@ func ExcerptBlob(ctx *context.Context) {
 		return
 	}
 	section := &gitdiff.DiffSection{
-		Name: filePath,
+		FileName: filePath,
+		Name:     filePath,
 	}
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
@@ -644,7 +655,6 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	ctx.Data["section"] = section
 	ctx.Data["fileName"] = filePath
-	ctx.Data["highlightClass"] = highlight.FileNameToHighlightClass(filepath.Base(filePath))
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(200, tplBlobExcerpt)

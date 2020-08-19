@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
@@ -80,7 +81,7 @@ func TestPatch(pr *models.PullRequest) error {
 		return fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
 	}
 	defer func() {
-		_ = os.Remove(tmpPatchFile.Name())
+		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
 	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {

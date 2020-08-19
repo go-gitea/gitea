@@ -264,7 +264,11 @@ func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload))
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getDingtalkIssueCommentPayload(pl)
+		}
+		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,

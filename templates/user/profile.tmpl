@@ -34,10 +34,9 @@
 									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
-							{{if .Owner.Description}}
+							{{if $.RenderedDescription}}
 								<li>
-									{{svg "octicon-info" 16}}
-									<span>{{.Owner.Description}}</span>
+									<div class="render-content markdown">{{$.RenderedDescription|Str2html}}</div>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}
@@ -53,7 +52,7 @@
 							<li>
 								<ul class="user-orgs">
 								{{range .Orgs}}
-									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.IsUserPartOfOrg $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
 										<a href="{{.HomeLink}}"><img class="ui image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
 									</li>
@@ -83,7 +82,7 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars")}}active{{end}} item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo" 16}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
@@ -104,10 +103,15 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
-				{{if .EnableHeatmap}}
-					{{template "user/dashboard/heatmap" .}}
-					<div class="ui divider"></div>
-				{{end}}
+					{{if .Owner.KeepActivityPrivate}}
+						<div class="ui info message">
+							<p>{{.i18n.Tr "user.disabled_public_activity"}}</p>
+						</div>
+					{{end}}
+					{{if .EnableHeatmap}}
+						{{template "user/dashboard/heatmap" .}}
+						<div class="ui divider"></div>
+					{{end}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>

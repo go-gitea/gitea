@@ -286,6 +286,9 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 
 	emails := make([]*EmailAddress, 0, len(e.Identities))
 	for _, ident := range e.Identities {
+		if ident.Revocation != nil {
+			continue
+		}
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
 			if e.Email == email {
@@ -467,7 +470,7 @@ func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey, committer, 
 		return &CommitVerification{ //Everything is ok
 			CommittingUser: committer,
 			Verified:       true,
-			Reason:         fmt.Sprintf("%s <%s> / %s", signer.Name, signer.Email, k.KeyID),
+			Reason:         fmt.Sprintf("%s / %s", signer.Name, k.KeyID),
 			SigningUser:    signer,
 			SigningKey:     k,
 			SigningEmail:   email,
@@ -509,6 +512,18 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 		return nil
 	}
 	for _, key := range keys {
+		var primaryKeys []*GPGKey
+		if key.PrimaryKeyID != "" {
+			primaryKeys, err = GetGPGKeysByKeyID(key.PrimaryKeyID)
+			if err != nil {
+				log.Error("GetGPGKeysByKeyID: %v", err)
+				return &CommitVerification{
+					CommittingUser: committer,
+					Verified:       false,
+					Reason:         "gpg.error.failed_retrieval_gpg_keys",
+				}
+			}
+		}
 		activated := false
 		if len(email) != 0 {
 			for _, e := range key.Emails {
@@ -516,6 +531,20 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 					activated = true
 					email = e.Email
 					break
+				}
+			}
+			if !activated {
+				for _, pkey := range primaryKeys {
+					for _, e := range pkey.Emails {
+						if e.IsActivated && strings.EqualFold(e.Email, email) {
+							activated = true
+							email = e.Email
+							break
+						}
+					}
+					if activated {
+						break
+					}
 				}
 			}
 		} else {
@@ -526,7 +555,22 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 					break
 				}
 			}
+			if !activated {
+				for _, pkey := range primaryKeys {
+					for _, e := range pkey.Emails {
+						if e.IsActivated {
+							activated = true
+							email = e.Email
+							break
+						}
+					}
+					if activated {
+						break
+					}
+				}
+			}
 		}
+
 		if !activated {
 			continue
 		}
@@ -614,7 +658,6 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	if keyID == "" && sig.IssuerFingerprint != nil && len(sig.IssuerFingerprint) > 0 {
 		keyID = fmt.Sprintf("%X", sig.IssuerFingerprint[12:20])
 	}
-
 	defaultReason := NoKeyFound
 
 	// First check if the sig has a keyID and if so just look at that
@@ -740,6 +783,21 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		Content: content,
 		CanSign: pubkey.CanSign(),
 		KeyID:   pubkey.KeyIdString(),
+	}
+	for _, subKey := range ekey.Subkeys {
+		content, err := base64EncPubKey(subKey.PublicKey)
+		if err != nil {
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.generate_hash",
+			}
+		}
+		k.SubsKey = append(k.SubsKey, &GPGKey{
+			Content: content,
+			CanSign: subKey.PublicKey.CanSign(),
+			KeyID:   subKey.PublicKey.KeyIdString(),
+		})
 	}
 	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
 		Name:  gpgSettings.Name,

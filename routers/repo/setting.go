@@ -76,7 +76,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
@@ -102,7 +102,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
-			form.Private = repo.BaseRepo.IsPrivate
+			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
@@ -284,6 +284,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
+		if form.EnableProjects && !models.UnitTypeProjects.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else if !models.UnitTypeProjects.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+
 		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
@@ -356,9 +365,46 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
-		log.Trace("Repository converted from mirror to regular: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name)
+		ctx.Redirect(repo.Link())
+
+	case "convert_fork":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+			return
+		}
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+		if repo.Name != form.RepoName {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+			return
+		}
+
+		if !repo.IsFork {
+			ctx.Error(404)
+			return
+		}
+
+		if !ctx.Repo.Owner.CanCreateRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+
+		repo.IsFork = false
+		repo.ForkID = 0
+		if err := models.UpdateRepository(repo, false); err != nil {
+			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+
+		log.Trace("Repository converted from fork to regular: %s", repo.FullName())
+		ctx.Flash.Success(ctx.Tr("repo.settings.convert_fork_succeed"))
+		ctx.Redirect(repo.Link())
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
@@ -381,7 +427,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if newOwner.Type == models.UserTypeOrganization {
-			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !ctx.User.IsUserPartOfOrg(newOwner.ID) {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return

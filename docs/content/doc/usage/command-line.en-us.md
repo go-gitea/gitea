@@ -44,7 +44,7 @@ Starts the server:
 - Examples:
     - `gitea web`
     - `gitea web --port 80`
-    - `gitea web --config /etc/gitea.ini --pid /var/run/gitea.pid`
+    - `gitea web --config /etc/gitea.ini --pid /some/custom/gitea.pid`
 - Notes:
     - Gitea should not be run as root. To bind to a port below 1024, you can use setcap on
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
@@ -318,3 +318,85 @@ var checklist = []check{
 ```
 
 This function will receive a command line context and return a list of details about the problems or error.
+
+#### manager
+
+Manage running server operations:
+
+- Commands:
+  - `shutdown`:      Gracefully shutdown the running process
+  - `restart`:       Gracefully restart the running process - (not implemented for windows servers)
+  - `flush-queues`:  Flush queues in the running process
+    - Options:
+      - `--timeout value`: Timeout for the flushing process (default: 1m0s)
+      - `--non-blocking`: Set to true to not wait for flush to complete before returning
+  - `logging`:       Adjust logging commands
+    - Commands:
+      - `pause`:   Pause logging
+        - Notes:
+          - The logging level will be raised to INFO temporarily if it is below this level.
+          - Gitea will buffer logs up to a certain point and will drop them after that point.
+      - `resume`:  Resume logging
+      - `release-and-reopen`: Cause Gitea to release and re-open files and connections used for logging (Equivalent to sending SIGUSR1 to Gitea.)
+      - `remove name`: Remove the named logger
+        - Options:
+          - `--group group`, `-g group`: Set the group to remove the sublogger from. (defaults to `default`)
+      - `add`:     Add a logger
+        - Commands:
+          - `console`: Add a console logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--stderr`: Output console logs to stderr - only relevant for console
+          - `file`: Add a file logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--filename value`, `-f value`: Filename for the logger - 
+              - `--rotate`, `-r`: Rotate logs
+              - `--max-size value`, `-s value`: Maximum size in bytes before rotation
+              - `--daily`, `-d`: Rotate logs daily
+              - `--max-days value`, `-D value`: Maximum number of daily logs to keep
+              - `--compress`, `-z`: Compress rotated logs
+              - `--compression-level value`, `-Z value`: Compression level to use
+          - `conn`: Add a network connection logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--reconnect-on-message`, `-R`: Reconnect to host for every message
+              - `--reconnect`, `-r`: Reconnect to host when connection is dropped
+              - `--protocol value`, `-P value`: Set protocol to use: tcp, unix, or udp (defaults to tcp)
+              - `--address value`, `-a value`: Host address and port to connect to (defaults to :7020)
+          - `smtp`: Add an SMTP logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--username value`, `-u value`: Mail server username
+              - `--password value`, `-P value`: Mail server password
+              - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
+              - `--send-to value`, `-s value`: Email address(es) to send to
+              - `--subject value`, `-S value`: Subject header of sent emails

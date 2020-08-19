@@ -26,39 +26,6 @@
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
 	<script>
-	{{SafeJS `/*
-	@licstart  The following is the entire license notice for the
-        JavaScript code in this page.
-
-	Copyright (c) 2016 The Gitea Authors
-	Copyright (c) 2015 The Gogs Authors
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
-	---
-	Licensing information for additional javascript libraries can be found at:
-	  {{StaticUrlPrefix}}/vendor/librejs.html
-
-	@licend  The above is the entire license notice
-        for the JavaScript code in this page.
-	*/`}}
-	</script>
-	<script>
 		window.config = {
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
@@ -66,7 +33,6 @@
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
-			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
@@ -78,24 +44,28 @@
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
       {{if .RequireTribute}}
-			tributeValues: [
-				{{ range .Assignees }}
-				{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+			tributeValues: Array.from(new Map([
+				{{ range .Participants }}
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
 				{{ end }}
-			],
+				{{ range .Assignees }}
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
+				{{ end }}
+			]).values()),
 			{{end}}
 		};
 	</script>
-	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
+	<link rel="icon" href="{{StaticUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{StaticUrlPrefix}}/img/favicon.png" type="image/png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
 	<link rel="fluid-icon" href="{{StaticUrlPrefix}}/img/gitea-lg.png" title="{{AppName}}">
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/fomantic/semantic.min.css?v={{MD5 AppVer}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>
@@ -103,9 +73,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-{{if .RequireMinicolors}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />

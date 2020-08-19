@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/unknwon/com"
 )
 
@@ -82,7 +83,7 @@ func (h *Hook) Name() string {
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
 		if isExist(h.path) {
-			err := os.Remove(h.path)
+			err := util.Remove(h.path)
 			if err != nil {
 				return err
 			}
@@ -129,7 +130,7 @@ func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
 	if com.IsExist(hookPath) {
-		err = os.Remove(hookPath)
+		err = util.Remove(hookPath)
 	} else {
 		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
 	}
