@@ -83,6 +83,13 @@ func migrateAttachments(dstStorage storage.ObjectStorage) error {
 	})
 }
 
+func migrateLFS(dstStorage storage.ObjectStorage) error {
+	return models.IterateLFS(func(mo *models.LFSMetaObject) error {
+		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
@@ -103,45 +110,50 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
+	var dstStorage storage.ObjectStorage
+	var err error
+	switch ctx.String("store") {
+	case "local":
+		p := ctx.String("path")
+		if p == "" {
+			log.Fatal("Path must be given when store is loal")
+			return nil
+		}
+		dstStorage, err = storage.NewLocalStorage(p)
+	case "minio":
+		dstStorage, err = storage.NewMinioStorage(
+			context.Background(),
+			ctx.String("minio-endpoint"),
+			ctx.String("minio-access-key-id"),
+			ctx.String("minio-secret-access-key"),
+			ctx.String("minio-bucket"),
+			ctx.String("minio-location"),
+			ctx.String("minio-base-path"),
+			ctx.Bool("minio-use-ssl"),
+		)
+	default:
+		return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
+	}
+
+	if err != nil {
+		return err
+	}
+
 	tp := ctx.String("type")
 	switch tp {
 	case "attachments":
-		var dstStorage storage.ObjectStorage
-		var err error
-		switch ctx.String("store") {
-		case "local":
-			p := ctx.String("path")
-			if p == "" {
-				log.Fatal("Path must be given when store is loal")
-				return nil
-			}
-			dstStorage, err = storage.NewLocalStorage(p)
-		case "minio":
-			dstStorage, err = storage.NewMinioStorage(
-				context.Background(),
-				ctx.String("minio-endpoint"),
-				ctx.String("minio-access-key-id"),
-				ctx.String("minio-secret-access-key"),
-				ctx.String("minio-bucket"),
-				ctx.String("minio-location"),
-				ctx.String("minio-base-path"),
-				ctx.Bool("minio-use-ssl"),
-			)
-		default:
-			return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
-		}
-
-		if err != nil {
-			return err
-		}
 		if err := migrateAttachments(dstStorage); err != nil {
 			return err
 		}
-
-		log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
-
-		return nil
+	case "lfs":
+		if err := migrateLFS(dstStorage); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
 	}
+
+	log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
 
 	return nil
 }

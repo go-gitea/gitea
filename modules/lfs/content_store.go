@@ -10,7 +10,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"path/filepath"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -30,7 +29,7 @@ type ContentStore struct {
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
 func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
-	f, err := s.Open(transformKey(meta.Oid))
+	f, err := s.Open(meta.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
 		return nil, err
@@ -48,7 +47,7 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
-	p := transformKey(meta.Oid)
+	p := meta.RelativePath()
 	written, err := s.Save(p, rd)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, p, err)
@@ -72,7 +71,7 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 
 // Exists returns true if the object exists in the content store.
 func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
-	_, err := s.ObjectStorage.Stat(transformKey(meta.Oid))
+	_, err := s.ObjectStorage.Stat(meta.RelativePath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -84,7 +83,7 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
 
 // Verify returns true if the object exists in the content store and size is correct.
 func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
-	p := transformKey(meta.Oid)
+	p := meta.RelativePath()
 	fi, err := s.ObjectStorage.Stat(p)
 	if os.IsNotExist(err) || (err == nil && fi.Size() != meta.Size) {
 		return false, nil
@@ -94,12 +93,4 @@ func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func transformKey(key string) string {
-	if len(key) < 5 {
-		return key
-	}
-
-	return filepath.Join(key[0:2], key[2:4], key[4:])
 }
