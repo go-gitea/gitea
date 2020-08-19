@@ -83,7 +83,7 @@ service gitea restart
 ### Restore Database in Docker
 
 ```
-docker-compose db up  # do not run `docker-compose up`, which will init new db from scratch.
+docker-compose up db # do not run `docker-compose up`, which will init new db from scratch.
 # postgres
 cat gitea-db.sql | docker exec -i $db_container_name psql -U $GITEA_USER -d $GITEA_DB
 ```
