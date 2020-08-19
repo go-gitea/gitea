@@ -267,6 +267,38 @@ func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
+// ErrUserPinnedRepoAlreadyExist represents a "UserPinnedRepo already exist" kind of error.
+type ErrUserPinnedRepoAlreadyExist struct {
+	UID    int64
+	RepoID int64
+}
+
+// IsErrUserPinnedRepoAlreadyExist checks if an error is a ErrUserPinnedRepoAlreadyExist.
+func IsErrUserPinnedRepoAlreadyExist(err error) bool {
+	_, ok := err.(ErrUserPinnedRepoAlreadyExist)
+	return ok
+}
+
+func (err ErrUserPinnedRepoAlreadyExist) Error() string {
+	return fmt.Sprintf("user has pinned this repo [uid: %d, repo_id: %d]", err.UID, err.RepoID)
+}
+
+// ErrUserPinnedRepoNotExist represents a "UserPinnedRepo not exist" kind of error.
+type ErrUserPinnedRepoNotExist struct {
+	UID    int64
+	RepoID int64
+}
+
+// IsErrUserPinnedRepoNotExist checks if an error is a ErrUserPinnedRepoNotExist.
+func IsErrUserPinnedRepoNotExist(err error) bool {
+	_, ok := err.(ErrUserPinnedRepoNotExist)
+	return ok
+}
+
+func (err ErrUserPinnedRepoNotExist) Error() string {
+	return fmt.Sprintf("user hasn't pinned this repo [uid: %d, repo_id: %d]", err.UID, err.RepoID)
+}
+
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |

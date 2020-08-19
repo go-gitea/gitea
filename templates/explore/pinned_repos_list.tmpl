@@ -1,0 +1,65 @@
+{{if (gt .PinnedReposNum 0)}}
+<h2>{{.i18n.Tr "explore.pinned_repos"}}</h2>
+<div class="ui cards">
+    {{range .PinnedRepos}}
+    <div class="card">
+      <div class="content">
+        <div class="header">
+            {{if .RelAvatarLink}}
+                <img class="ui avatar image" src="{{.RelAvatarLink}}">
+            {{end}}
+            <a class="name" href="{{.Link}}">
+                {{if $.Owner}}{{if (ne .Owner.ID $.Owner.ID)}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
+            </a>
+            {{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
+			{{if .IsTemplate}}
+				{{if .IsPrivate}}
+					<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+				{{else}}
+					{{if .Owner.Visibility.IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+					{{end}}
+				{{end}}
+			{{else}}
+				{{if .IsPrivate}}
+					<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+				{{else}}
+					{{if .Owner.Visibility.IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+					{{end}}
+				{{end}}
+			{{end}}
+			{{if .IsFork}}
+				<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
+			{{else if .IsMirror}}
+				<span class="middle">{{svg "octicon-mirror" 16}}</span>
+			{{end}}
+        </div>
+        <div class="meta">
+            {{if .DescriptionHTML}}<p>{{.DescriptionHTML}}</p>{{end}}
+        </div>
+        <div class="description">
+            {{if .PrimaryLanguage }}
+                <span class="text grey"><i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+            {{end}}
+            <span class="text grey">{{svg "octicon-star" 16}} {{.NumStars}}</span>
+            <span class="text grey">{{svg "octicon-git-branch" 16}} {{.NumForks}}</span>
+            {{if $.CanConfigPinnedRepos}}
+				<span class="text grey">
+					<form action="{{$.ConfigPinnedReposLink}}" method="POST">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="name" value="{{if $.Owner}}{{if (ne .Owner.ID $.Owner.ID)}}{{.Owner.Name}}/{{end}}{{end}}{{.Name}}" />
+						<input type="hidden" name="status" value="unpinned" />
+						<button class="ui mini button poping up" type="submit" data-content="{{$.i18n.Tr "settings.unpinned_repo"}}">
+							{{svg "octicon-pin" 16}}
+						</button>
+					</form>
+                </span>
+			{{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+</div>
+<div class="ui divider"></div>
+{{end}}

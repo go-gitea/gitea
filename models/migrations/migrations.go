@@ -226,6 +226,8 @@ var migrations = []Migration{
 	NewMigration("Increase Language field to 50 in LanguageStats", increaseLanguageField),
 	// v146 -> v147
 	NewMigration("Add projects info to repository table", addProjectsInfo),
+	// v147 ->v148
+	NewMigration("Add user_pinned_repo table", addUserPinnedRepoTable),
 }
 
 // GetCurrentDBVersion returns the current db version

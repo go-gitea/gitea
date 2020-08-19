@@ -360,3 +360,9 @@ type U2FDeleteForm struct {
 func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// RepoPinnedForm form for changing repository pinned settings
+type RepoPinnedForm struct {
+	RepoFullName string `binding:"Required" form:"name"`
+	Status       string `binding:"Required;In(pinned,unpinned)"`
+}

@@ -1,0 +1,17 @@
+-
+  id: 1
+  uid: 2
+  repo_id: 1
+  is_owned: true
+
+-
+  id: 2
+  uid: 6
+  repo_id: 1
+  is_owned: false
+
+-
+  id: 3
+  uid: 2
+  repo_id: 4
+  is_owned: false

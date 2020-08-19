@@ -355,6 +355,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Post("/pinned_repo", bindIgnErr(auth.RepoPinnedForm{}), userSetting.PinnedRepoPost)
 		m.Get("/change_password", user.MustChangePassword)
 		m.Post("/change_password", bindIgnErr(auth.MustChangePasswordForm{}), user.MustChangePasswordPost)
 		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
@@ -570,6 +571,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
 					Post(bindIgnErr(auth.UpdateOrgSettingForm{}), org.SettingsPost)
+				m.Post("/pinned_repo", bindIgnErr(auth.RepoPinnedForm{}), org.PinnedRepoPost)
 				m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 

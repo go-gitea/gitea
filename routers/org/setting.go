@@ -206,3 +206,34 @@ func Labels(ctx *context.Context) {
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.HTML(200, tplSettingsLabels)
 }
+
+// PinnedRepoPost response pinned repo settings
+func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
+	repo, err := models.GetRepositoryByOwnerAndName(ctx.Org.Organization.Name, form.RepoFullName)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.Status(404)
+			return
+		}
+
+		ctx.ServerError("models.GetRepositoryByOwnerAndName", err)
+		return
+	}
+
+	if form.Status == "unpinned" {
+		if err = ctx.Org.Organization.RemovePinnedRepo(repo.ID); err != nil && !models.IsErrUserPinnedRepoNotExist(err) {
+			ctx.ServerError("ctx.Org.Organization.RemovePinnedRepo", err)
+			return
+		}
+
+		ctx.Redirect(ctx.Org.Organization.HomeLink())
+		return
+	}
+
+	if err = ctx.Org.Organization.AddPinnedRepo(repo); err != nil && !models.IsErrUserPinnedRepoAlreadyExist(err) {
+		ctx.ServerError("ctx.Org.Organization.AddPinnedRepo", err)
+		return
+	}
+
+	ctx.Redirect(ctx.Org.Organization.HomeLink())
+}

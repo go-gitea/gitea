@@ -246,6 +246,42 @@ func Profile(ctx *context.Context) {
 			return
 		}
 
+		pinnedRepos := make([]*models.Repository, 0, 10)
+		has := false
+		for _, repo := range repos {
+			if has, err = ctxUser.IsPinnedRepoExist(repo.ID); err != nil {
+				ctx.ServerError("IsPinnedRepoExist", err)
+				return
+			}
+
+			if has {
+				pinnedRepos = append(pinnedRepos, repo)
+				repo.IsPinned = true
+			}
+		}
+
+		var pinnedRepos2 []*models.Repository
+
+		pinnedRepos2, err = ctxUser.GetPinnedRepos(ctx.User, true, true)
+		if err != nil {
+			ctx.ServerError("GetPinnedRepos(true)", err)
+			return
+		}
+
+		if len(pinnedRepos2) > 0 {
+			for _, repo := range pinnedRepos2 {
+				repo.IsPinned = true
+			}
+			pinnedRepos = append(pinnedRepos, pinnedRepos2...)
+		}
+
+		ctx.Data["PinnedRepos"] = pinnedRepos
+		ctx.Data["PinnedReposNum"] = len(pinnedRepos)
+		ctx.Data["CanConfigPinnedRepos"] = ctx.IsSigned && ctx.User.ID == ctxUser.ID
+		if ctx.IsSigned && ctx.User.ID == ctxUser.ID {
+			ctx.Data["ConfigPinnedReposLink"] = "/user/settings/pinned_repo"
+		}
+
 		total = int(count)
 	}
 	ctx.Data["Repos"] = repos

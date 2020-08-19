@@ -119,6 +119,27 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	pinnedRepos := make([]*models.Repository, 0, 10)
+	has := false
+	for _, repo := range repos {
+		if has, err = org.IsPinnedRepoExist(repo.ID); err != nil {
+			ctx.ServerError("IsPinnedRepoExist", err)
+			return
+		}
+
+		if has {
+			pinnedRepos = append(pinnedRepos, repo)
+			repo.IsPinned = true
+		}
+	}
+
+	ctx.Data["PinnedRepos"] = pinnedRepos
+	ctx.Data["PinnedReposNum"] = len(pinnedRepos)
+	ctx.Data["CanConfigPinnedRepos"] = ctx.IsSigned && ctx.Org.IsOwner
+	if ctx.IsSigned && ctx.Org.IsOwner {
+		ctx.Data["ConfigPinnedReposLink"] = ctx.Org.OrgLink + "/settings/pinned_repo"
+	}
+
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
