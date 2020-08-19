@@ -164,7 +164,7 @@ func NewMacaron() *macaron.Macaron {
 			},
 		))
 	case "minio":
-		m.Use(func(ctx *context.Context) {
+		m.Use(func(ctx *macaron.Context) {
 			req := ctx.Req.Request
 			if req.Method != "GET" && req.Method != "HEAD" {
 				return
@@ -179,7 +179,7 @@ func NewMacaron() *macaron.Macaron {
 			if setting.Avatar.ServeDirect {
 				u, err := storage.Avatars.URL(rPath, path.Base(rPath))
 				if err != nil {
-					ctx.ServerError("URL", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 				http.Redirect(
@@ -193,14 +193,14 @@ func NewMacaron() *macaron.Macaron {
 				//If we have matched and access to release or issue
 				fr, err := storage.Avatars.Open(rPath)
 				if err != nil {
-					ctx.ServerError("Open", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 				defer fr.Close()
 
 				_, err = io.Copy(ctx.Resp, fr)
 				if err != nil {
-					ctx.ServerError("io.Copy", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 			}
@@ -220,7 +220,7 @@ func NewMacaron() *macaron.Macaron {
 			},
 		))
 	case "minio":
-		m.Use(func(ctx *context.Context) {
+		m.Use(func(ctx *macaron.Context) {
 			req := ctx.Req.Request
 			if req.Method != "GET" && req.Method != "HEAD" {
 				return
@@ -235,7 +235,7 @@ func NewMacaron() *macaron.Macaron {
 			if setting.RepoAvatar.ServeDirect {
 				u, err := storage.RepoAvatars.URL(rPath, path.Base(rPath))
 				if err != nil {
-					ctx.ServerError("URL", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 				http.Redirect(
@@ -249,14 +249,14 @@ func NewMacaron() *macaron.Macaron {
 				//If we have matched and access to release or issue
 				fr, err := storage.RepoAvatars.Open(rPath)
 				if err != nil {
-					ctx.ServerError("Open", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 				defer fr.Close()
 
 				_, err = io.Copy(ctx.Resp, fr)
 				if err != nil {
-					ctx.ServerError("io.Copy", err)
+					ctx.Error(500, err.Error())
 					return
 				}
 			}
