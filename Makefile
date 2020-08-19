@@ -280,7 +280,7 @@ misspell:
 .PHONY: manpage
 manpage:
 	@hash go-md2man > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/cpuguy83/go-md2man; \
+		GO111MODULE=off $(GO) get -u github.com/cpuguy83/go-md2man; \
 	fi
 	for f in $(MANPAGE); do \
 		go-md2man -in $$f.md -out $$f; \
