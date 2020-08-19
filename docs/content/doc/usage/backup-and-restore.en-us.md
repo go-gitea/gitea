@@ -80,6 +80,14 @@ mysql --default-character-set=utf8mb4 -u$USER -p$PASS $DATABASE <gitea-db.sql
 service gitea restart
 ```
 
+### Restore Database in Docker
+
+```
+docker-compose db up -d # do not run `docker-compose up -d`, which will init new db from scratch.
+# postgres
+cat gitea-db.sql | docker exec -i $db_container_name psql -U $GITEA_USER -d $GITEA_DB
+```
+
 Repository git-hooks should be regenerated if installation method is changed (eg. binary -> Docker), or if Gitea is installed to a different directory than the previous installation.
 
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
