@@ -166,7 +166,16 @@ func NewMacaron() *macaron.Macaron {
 	case "minio":
 		m.Use(func(ctx *context.Context) {
 			req := ctx.Req.Request
-			rPath := strings.TrimPrefix(req.RequestURI, "/avatars")
+			if req.Method != "GET" && req.Method != "HEAD" {
+				return
+			}
+
+			var prefix = "/avatars"
+			if !strings.HasPrefix(req.RequestURI, prefix) {
+				return
+			}
+
+			rPath := strings.TrimPrefix(req.RequestURI, prefix)
 			if setting.Avatar.ServeDirect {
 				u, err := storage.Avatars.URL(rPath, path.Base(rPath))
 				if err != nil {
@@ -213,7 +222,16 @@ func NewMacaron() *macaron.Macaron {
 	case "minio":
 		m.Use(func(ctx *context.Context) {
 			req := ctx.Req.Request
-			rPath := strings.TrimPrefix(req.RequestURI, "/avatars")
+			if req.Method != "GET" && req.Method != "HEAD" {
+				return
+			}
+
+			var prefix = "/repo-avatars"
+			if !strings.HasPrefix(req.RequestURI, prefix) {
+				return
+			}
+
+			rPath := strings.TrimPrefix(req.RequestURI, prefix)
 			if setting.RepoAvatar.ServeDirect {
 				u, err := storage.RepoAvatars.URL(rPath, path.Base(rPath))
 				if err != nil {
