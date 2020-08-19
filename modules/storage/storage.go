@@ -67,11 +67,7 @@ func Init() error {
 		return err
 	}
 
-	if err := initLFS(); err != nil {
-		return err
-	}
-
-	return nil
+	return initLFS()
 }
 
 func initAttachments() error {
