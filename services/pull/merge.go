@@ -544,7 +544,11 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 		return false, err
 	}
 
-	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID)) {
+	if pr.ProtectedBranch != nil && pr.ProtectedBranch.EnableMergeWhitelist {
+		if pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
+			return true, nil
+		}
+	} else if p.CanWrite(models.UnitTypeCode) {
 		return true, nil
 	}
 
