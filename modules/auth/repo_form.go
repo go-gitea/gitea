@@ -128,6 +128,7 @@ type RepoSettingForm struct {
 	ExternalTrackerURL               string
 	TrackerURLFormat                 string
 	TrackerIssueStyle                string
+	EnableProjects                   bool
 	EnablePulls                      bool
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
@@ -364,6 +365,7 @@ type CreateIssueForm struct {
 	AssigneeIDs string `form:"assignee_ids"`
 	Ref         string `form:"ref"`
 	MilestoneID int64
+	ProjectID   int64
 	AssigneeID  int64
 	Content     string
 	Files       []string
@@ -420,6 +422,35 @@ func (i IssueLockForm) HasValidReason() bool {
 	}
 
 	return false
+}
+
+// __________                   __               __
+// \______   \_______  ____    |__| ____   _____/  |_  ______
+//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
+//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
+//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
+//                         \______|    \/     \/          \/
+
+// CreateProjectForm form for creating a project
+type CreateProjectForm struct {
+	Title     string `binding:"Required;MaxSize(100)"`
+	Content   string
+	BoardType models.ProjectBoardType
+}
+
+// UserCreateProjectForm is a from for creating an individual or organization
+// form.
+type UserCreateProjectForm struct {
+	Title     string `binding:"Required;MaxSize(100)"`
+	Content   string
+	BoardType models.ProjectBoardType
+	UID       int64 `binding:"Required"`
+}
+
+// EditProjectBoardTitleForm is a form for editing the title of a project's
+// board
+type EditProjectBoardTitleForm struct {
+	Title string `binding:"Required;MaxSize(100)"`
 }
 
 //    _____  .__.__                   __

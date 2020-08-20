@@ -818,5 +818,6 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
 }
