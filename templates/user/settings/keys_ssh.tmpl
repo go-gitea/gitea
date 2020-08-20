@@ -51,7 +51,7 @@
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" placeholder="Begins with 'ssh-rsa', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', or 'ecdsa-sha2-nistp521'" required>{{.content}}</textarea>
+				<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui green button">
