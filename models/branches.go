@@ -98,9 +98,10 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
-		return true
+		// Then we need to fall back on whether the user has write permission
+		return permissionInRepo.CanWrite(UnitTypeCode)
 	}
 
 	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
