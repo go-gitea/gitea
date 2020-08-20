@@ -1,0 +1,23 @@
+-
+  id: 1
+  issue_id: 1
+  project_id: 1
+  project_board_id: 1
+
+-
+  id: 2
+  issue_id: 2
+  project_id: 1
+  project_board_id: 0 # no board assigned
+
+-
+  id: 3
+  issue_id: 3
+  project_id: 1
+  project_board_id: 2
+
+-
+  id: 4
+  issue_id: 5
+  project_id: 1
+  project_board_id: 3
