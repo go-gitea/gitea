@@ -435,7 +435,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	}
 
 	// Push Options
-	if repo != nil {
+	if repo != nil && len(opts.GitPushOptions) > 0 {
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
 		if err := models.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
