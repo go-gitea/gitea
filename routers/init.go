@@ -28,6 +28,8 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
@@ -53,6 +55,9 @@ func checkRunMode() {
 // NewServices init new services
 func NewServices() {
 	setting.NewServices()
+	if err := storage.Init(); err != nil {
+		log.Fatal("storage init failed: %v", err)
+	}
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
@@ -178,4 +183,6 @@ func GlobalInit(ctx context.Context) {
 	if setting.InstallLock {
 		sso.Init()
 	}
+
+	svg.Init()
 }

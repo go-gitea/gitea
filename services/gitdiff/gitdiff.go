@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,8 +89,8 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 }
 
-// BlobExceprtChunkSize represent max lines of excerpt
-const BlobExceprtChunkSize = 20
+// BlobExcerptChunkSize represent max lines of excerpt
+const BlobExcerptChunkSize = 20
 
 // GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
@@ -138,7 +139,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return DiffLineExpandUp
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExceprtChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return DiffLineExpandUpDown
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return DiffLineExpandDown
@@ -180,22 +181,65 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
+var addSpanRegex = regexp.MustCompile(`<span [class="[a-z]*]*$`)
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-
+	var addSpan string
 	for i := range diffs {
 		switch {
+		case diffs[i].Type == diffmatchpatch.DiffEqual:
+			// Looking for the case where our 3rd party diff library previously detected a string difference
+			// in the middle of a span class because we highlight them first. This happens when added/deleted code
+			// also changes the chroma class name, either partially or fully. If found, just move the openining span code forward into the next section
+			// see TestDiffToHTML for examples
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
+			}
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				buf.WriteString(strings.TrimSuffix(diffs[i].Text, addSpan))
+			} else {
+				addSpan = ""
+				buf.WriteString(getLineContent(diffs[i].Text))
+			}
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
+			}
+			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
+			}
 			buf.Write(addedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
+			}
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
+			}
 			buf.Write(removedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
-		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(highlight.Code(fileName, getLineContent(diffs[i].Text)))
 		}
 	}
 	return template.HTML(buf.Bytes())
@@ -287,7 +331,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }
@@ -715,6 +759,12 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		// git >= 2.28 now returns an error if base and head have become unrelated.
+		// previously it would return the results of git diff --shortstat base head so let's try that...
+		shortstatArgs = []string{beforeCommitID, afterCommitID}
+		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
+	}
 	if err != nil {
 		return nil, err
 	}

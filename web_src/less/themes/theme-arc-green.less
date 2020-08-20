@@ -534,7 +534,8 @@ a:hover {
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
-.ui.secondary.menu a.item:hover {
+.ui.secondary.menu a.item:hover,
+.ui.dropdown .menu .active.item {
     color: #ffffff;
 }
 
@@ -825,10 +826,10 @@ a.ui.basic.green.label:hover {
     border-bottom-color: rgba(255, 255, 255, .1);
 
     .item.active {
-        border-top-color: transparent;
-        border-left-color: transparent;
-        border-right-color: transparent;
-        background: #383c4a;
+        border-top-color: #404552;
+        border-left-color: #404552;
+        border-right-color: #404552;
+        background: #353945;
         color: #dbdbdb;
     }
 
@@ -842,8 +843,10 @@ a.ui.basic.green.label:hover {
 
     &.navbar {
         .item.active {
+            border-top-color: transparent;
             border-left-color: transparent;
             border-right-color: transparent;
+            background: #383c4a;
         }
     }
 }
@@ -916,8 +919,14 @@ a.ui.basic.green.label:hover {
 
 .ui.active.button:active,
 .ui.button:active,
-.ui.button:focus {
+.ui.button:focus,
+.ui.active.button {
     background-color: #2e3e4e;
+    color: #dbdbdb;
+}
+
+.ui.active.button:hover {
+    background-color: #475e75;
     color: #dbdbdb;
 }
 
@@ -1015,7 +1024,7 @@ a.ui.basic.green.label:hover {
 }
 
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
-    background: radial-gradient(#383c4a 60%, transparent 60%) no-repeat;
+    background: radial-gradient(#383c4a 40%, transparent 40%) no-repeat;
 }
 
 .repository .comment.form .content .form:after {
@@ -1056,9 +1065,17 @@ a.ui.basic.green.label:hover {
     border-color: #634343 !important;
 }
 
+.repository .diff-file-box .code-diff-unified tbody tr.del-code td.lines-num {
+    background-color: #4e2c2c !important;
+}
+
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td {
     background-color: #283e2d !important;
     border-color: #314a37 !important;
+}
+
+.repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
+    background-color: #2c4632 !important;
 }
 
 .removed-code {
@@ -1071,12 +1088,11 @@ a.ui.basic.green.label:hover {
 
 .tag-code,
 .tag-code td {
-    background: #242637 !important;
+    background: #353945 !important;
 
 }
 .tag-code td.lines-num {
-    background-color: #242637 !important;
-    border-color: transparent !important;
+    background-color: #3a3e4c !important;
 }
 
 .tag-code td.lines-type-marker,
@@ -1181,6 +1197,10 @@ td.blob-hunk {
     color: #dbdbdb;
 }
 
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+    background: #2c303a;
+}
+
 .ui.checkbox label,
 .ui.checkbox + label,
 .ui.form .field > label {
@@ -1246,7 +1266,8 @@ input {
     border-color: #794f31;
 }
 
-.ui.red.message {
+.ui.red.message,
+.ui.error.message {
     background-color: rgba(80, 23, 17, .6);
     color: #f9cbcb;
     box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
@@ -1424,13 +1445,21 @@ input {
 }
 
 .lines-num {
-    background: #2e323e !important;
     color: #9e9e9e !important;
     border-color: #2d2d2d !important;
 }
 
 td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
+}
+
+a.blob-excerpt {
+    color: #ccc;
+    background: #393d4a;
+}
+
+a.blob-excerpt:hover {
+    background: #87ab63;
 }
 
 .code-view .lines-code.active {
@@ -1551,6 +1580,11 @@ a.ui.labels .label:hover {
 .repository .diff-file-box .code-diff-split tbody tr td.del-code {
     background-color: #3c2626 !important;
     border-color: #634343 !important;
+}
+
+.organization.teams .detail .item:not(:last-child),
+.organization.members .list .item {
+    border-bottom-color: #404552;
 }
 
 .ui.blue.button:active,
@@ -1860,11 +1894,24 @@ footer .container .links > * {
 }
 
 .repository.release #release-list > li .detail {
-    border-left-color: #888;
+    border-left-color: #4c505c;
 }
 
 .repository.release #release-list > li .detail .dot {
     background-color: #888;
+    border-color: #383c4a;
+}
+
+.repository.release #release-list > li .detail .download .list {
+    border-top-color: #404552;
+}
+
+.repository.release #release-list > li .detail .download .list li {
+    border-bottom-color: #404552;
+}
+
+.board-column {
+    background-color: rgba(0, 0, 0, .2) !important;
 }
 
 .tribute-container {
@@ -1882,4 +1929,56 @@ footer .container .links > * {
 
 .repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
     color: #2a2e3a;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group {
+    stroke: dimgrey;
+    fill: dimgrey;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group.highlight {
+    stroke: darkgrey;
+    fill: darkgrey;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group {
+    &.flow-color-16-5 {
+        stroke: #5543b1;
+        fill: #5543b1;
+    }
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
+    &.flow-color-16-5 {
+        stroke: #7058e6;
+        fill: #7058e6;
+    }
+}
+
+#git-graph-container #rev-list li.highlight,
+#git-graph-container #rev-list li.hover {
+    background-color: rgba(255, 255, 255, .05);
+}
+
+#git-graph-container #rev-list li.highlight.hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+#git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {
+    border-left-color: rgb(76, 80, 92);
+    border-left-style: solid;
+    border-left-width: 1px;
+}
+
+.mermaid-chart {
+    filter: invert(84%) hue-rotate(180deg);
+}
+
+.is-loading:after {
+    border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
+}
+
+.markdown-block-error {
+    border: 1px solid rgba(121, 71, 66, .5) !important;
+    border-bottom: none !important;
 }

@@ -180,10 +180,18 @@ menu:
 ## Attachment (`attachment`)
 
 - `ENABLED`: 是否允许用户上传附件。
-- `PATH`: 附件存储路径
 - `ALLOWED_TYPES`: 允许上传的附件类型。比如：`image/jpeg|image/png`，用 `*/*` 表示允许任何类型。
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
+- `STORE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORE_TYPE` 为 `local` 时有效。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORE_TYPE` 是 `minio` 时有效。
 
 关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
 

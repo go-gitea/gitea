@@ -1,11 +1,10 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
-const CssNanoPlugin = require('cssnano-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
-const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -22,13 +21,13 @@ for (const path of glob('web_src/less/themes/*.less')) {
 
 const isProduction = process.env.NODE_ENV !== 'development';
 
-const filterCssImport = (parsedImport, cssFile) => {
-  const url = parsedImport && parsedImport.url ? parsedImport.url : parsedImport;
+const filterCssImport = (url, ...args) => {
+  const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
 
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff)$/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
 
   if (cssFile.includes('font-awesome')) {
@@ -57,10 +56,6 @@ module.exports = {
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
     ],
-    icons: [
-      ...glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
-      ...glob('assets/svg/*.svg'),
-    ],
     ...themes,
   },
   devtool: false,
@@ -85,9 +80,9 @@ module.exports = {
           },
         },
       }),
-      new CssNanoPlugin({
+      new CssMinimizerPlugin({
         sourceMap: true,
-        cssnanoOptions: {
+        minimizerOptions: {
           preset: [
             'default',
             {
@@ -102,14 +97,6 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-      cacheGroups: {
-        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
-        monaco: {
-          test: /monaco-editor/,
-          name: 'monaco',
-          chunks: 'async',
-        },
-      },
     },
   },
   module: {
@@ -126,9 +113,7 @@ module.exports = {
           {
             loader: 'worker-loader',
             options: {
-              name: '[name].js',
-              inline: true,
-              fallback: false,
+              inline: 'no-fallback',
             },
           },
         ],
@@ -164,7 +149,6 @@ module.exports = {
                     regenerator: true,
                   }
                 ],
-                '@babel/plugin-proposal-object-rest-spread',
               ],
               generatorOpts: {
                 compact: false,
@@ -233,23 +217,10 @@ module.exports = {
       },
       {
         test: /\.svg$/,
+        include: resolve(__dirname, 'public/img/svg'),
         use: [
           {
-            loader: 'svg-sprite-loader',
-            options: {
-              extract: true,
-              spriteFilename: 'img/svg/icons.svg',
-              symbolId: (path) => {
-                const {name} = parse(path);
-                if (/@primer[/\\]octicons/.test(path)) {
-                  return `octicon-${name}`;
-                }
-                return name;
-              },
-            },
-          },
-          {
-            loader: 'svgo-loader',
+            loader: 'raw-loader',
           },
         ],
       },
@@ -261,7 +232,20 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
+            },
+          },
+        ],
+      },
+      {
+        test: /\.png$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'img/webpack/',
+              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
             },
           },
         ],
@@ -270,9 +254,9 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    // avoid generating useless js output files for css- and svg-only chunks
+    // avoid generating useless js output files for css--only chunks
     new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css', 'svg'],
+      extensions: ['less', 'scss', 'css'],
       silent: true,
     }),
     new MiniCssExtractPlugin({
@@ -285,9 +269,6 @@ module.exports = {
         'js/index.js',
         'css/index.css',
       ],
-    }),
-    new SpriteLoaderPlugin({
-      plainSprite: true,
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
@@ -333,5 +314,10 @@ module.exports = {
   },
   stats: {
     children: false,
+    excludeAssets: [
+      // exclude monaco's language chunks in stats output for brevity
+      // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
+      /^js\/[0-9]+\.js$/,
+    ],
   },
 };
