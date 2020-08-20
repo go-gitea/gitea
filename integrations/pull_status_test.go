@@ -114,7 +114,7 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 
-		text := strings.TrimSpace(doc.doc.Find(".item.text.green").Text())
-		assert.EqualValues(t, "This pull request can be merged automatically.", text)
+		text := strings.TrimSpace(doc.doc.Find(".item.text.grey").Text())
+		assert.EqualValues(t, "This branche is equal with target branch.", text)
 	})
 }
