@@ -160,6 +160,10 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.
+	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
+	// either `true` to enable AutoCheckManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
+	AutoCheckManualMerge *bool `json:"auto_check_manual_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 }

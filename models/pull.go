@@ -34,6 +34,7 @@ const (
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
 	PullRequestStatusError
+	PullRequestStatusEmpty
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -329,6 +330,11 @@ func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
+// IsEmpty returns true if this pull request is empty.
+func (pr *PullRequest) IsEmpty() bool {
+	return pr.Status == PullRequestStatusEmpty
+}
+
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
 
@@ -341,6 +347,8 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
+	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
+	MergeStyleManuallyMerged MergeStyle = "manually-merged"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue

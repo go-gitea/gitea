@@ -1183,6 +1183,8 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+			} else if prConfig.AllowManualMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleManuallyMerged
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
@@ -1223,6 +1225,10 @@ func ViewIssue(ctx *context.Context) {
 			ctx.ServerError("GetReviewersByIssueID", err)
 			return
 		}
+
+		ctx.Data["StillCanManualMerge"] = !pull.CanAutoMerge() && !pull.IsChecking() &&
+			!pull.IsWorkInProgress() && !pull.HasMerged && !issue.IsClosed &&
+			(ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)) && prConfig.AllowManualMerge
 	}
 
 	// Get Dependencies

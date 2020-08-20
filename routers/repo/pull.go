@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -754,14 +755,73 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+	if pr.HasMerged {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 
-	if pr.HasMerged {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+	// handle manually-merged mark
+	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
+		prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+		if err != nil {
+			ctx.ServerError("pr.BaseRepo.GetUnit(models.UnitTypePullRequests): %v", err)
+			return
+		}
+		prConfig := prUnit.PullRequestsConfig()
+
+		// Check if merge style is correct and allowed
+		if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
+			ctx.Status(403)
+			return
+		}
+
+		if len(form.MergeCommitID) < 40 {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
+		}
+
+		commit, err := ctx.Repo.GitRepo.GetCommit(form.MergeCommitID)
+		if err != nil {
+			ctx.ServerError("ctx.Repo.GitRepo.GetCommit", err)
+			return
+		}
+
+		branchName, err := commit.GetBranchName()
+		if err != nil {
+			ctx.ServerError("commit.GetBranchName", err)
+			return
+		}
+
+		if branchName != pr.BaseBranch {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
+		}
+
+		pr.MergedCommitID = commit.ID.String()
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+		pr.Status = models.PullRequestStatusManuallyMerged
+		pr.Merger = ctx.User
+		pr.MergerID = ctx.User.ID
+
+		if merged, err := pr.SetMerged(); err != nil {
+			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
+			ctx.Status(500)
+			return
+		} else if !merged {
+			return
+		}
+
+		notification.NotifyMergePullRequest(pr, ctx.User)
+		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	if !pr.CanAutoMerge() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}

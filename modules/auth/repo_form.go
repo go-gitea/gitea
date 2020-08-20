@@ -135,6 +135,8 @@ type RepoSettingForm struct {
 	PullsAllowRebase                 bool
 	PullsAllowRebaseMerge            bool
 	PullsAllowSquash                 bool
+	PullsAllowManualMerge            bool
+	EnableAutoCheckManualMerge       bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
@@ -513,11 +515,12 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash
-	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
+	// enum: merge,rebase,rebase-merge,squash,manually-merged
+	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
 	MergeTitleField   string
 	MergeMessageField string
-	ForceMerge        *bool `json:"force_merge,omitempty"`
+	MergeCommitID     string // only used for manually-merged
+	ForceMerge        *bool  `json:"force_merge,omitempty"`
 }
 
 // Validate validates the fields

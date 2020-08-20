@@ -99,7 +99,7 @@ func TestPatch(pr *models.PullRequest) error {
 
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
-		pr.Status = models.PullRequestStatusMergeable
+		pr.Status = models.PullRequestStatusEmpty
 		pr.ConflictedFiles = []string{}
 		return nil
 	}

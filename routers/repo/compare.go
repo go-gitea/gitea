@@ -437,6 +437,14 @@ func PrepareCompareDiff(
 
 	if headCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
+		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+			config := unit.PullRequestsConfig()
+			if !config.AutoCheckManualMerge {
+				ctx.Data["AllowEmptyPr"] = true
+			} else {
+				ctx.Data["AllowEmptyPr"] = false
+			}
+		}
 		return true
 	}
 
