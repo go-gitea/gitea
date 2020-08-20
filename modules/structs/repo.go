@@ -129,7 +129,7 @@ type CreateRepoOption struct {
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// AAAA
-	Template *CreateRepoTemplateOption
+	Template *CreateRepoTemplateOption `json:"template,omitempty" 
 }
 
 // EditRepoOption options when editing a repository's properties
