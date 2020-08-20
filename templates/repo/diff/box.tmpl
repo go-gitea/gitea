@@ -155,10 +155,7 @@
 														{{if gt (len $line.Comments) 0}}
 															{{$resolved := (index $line.Comments 0).IsResolved}}
 															{{$resolveDoer := (index $line.Comments 0).ResolveDoer}}
-															{{$isNotPending := false}}
-															{{if (index $line.Comments 0).Review}}
-															{{$isNotPending = (not (eq (index $line.Comments 0).Review.Type 0))}}
-															{{end}}
+															{{$isNotPending := (not (eq (index $line.Comments 0).Review.Type 0))}}
 															<tr class="add-code-comment">
 																<td class="lines-num"></td>
 																<td class="lines-type-marker"></td>
