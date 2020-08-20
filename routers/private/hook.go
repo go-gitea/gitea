@@ -567,7 +567,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 		if !git.IsErrUnsupportedVersion(err) {
 			gitRepo.Close()
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+				"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
 		}
@@ -576,7 +576,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 
 	if err := repo.UpdateDefaultBranch(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+			"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
 		return
 	}

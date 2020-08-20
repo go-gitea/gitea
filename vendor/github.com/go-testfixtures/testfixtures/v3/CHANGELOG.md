@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.4.0 - 2020-08-09
+
+- Add support to CockroachDB
+  ([#77](https://github.com/go-testfixtures/testfixtures/pull/77)).
+
+## v3.3.0 - 2020-06-27
+
+- Add support for the [github.com/jackc/pgx](https://github.com/jackc/pgx)
+  PostgreSQL driver
+  ([#71](https://github.com/go-testfixtures/testfixtures/issues/71), [#74](https://github.com/go-testfixtures/testfixtures/pull/74)).
+- Fix bug where some tables were empty due to `ON DELETE CASCADE`
+  ([#67](https://github.com/go-testfixtures/testfixtures/issues/67), [#70](https://github.com/go-testfixtures/testfixtures/pull/70)).
+- Fix SQLite version
+  ([#73](https://github.com/go-testfixtures/testfixtures/pull/73)).
+- On MySQL, return a clearer error message when a table doesn't exist
+  ([#69](https://github.com/go-testfixtures/testfixtures/pull/69)).
+
 ## v3.2.0 - 2020-05-10
 
 - Add support for loading multiple files and directories
