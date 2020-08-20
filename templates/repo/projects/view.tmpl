@@ -11,7 +11,9 @@
 			</div>
 			<div class="column right aligned">
 				{{if .PageIsProjects}}
-				<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
+					{{ if $.IsSigned }}
+					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
+					{{end}}
 				{{end}}
 
 				<div class="ui small modal" id="new-board-item">
