@@ -89,8 +89,8 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 }
 
-// BlobExceprtChunkSize represent max lines of excerpt
-const BlobExceprtChunkSize = 20
+// BlobExcerptChunkSize represent max lines of excerpt
+const BlobExcerptChunkSize = 20
 
 // GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
@@ -139,7 +139,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return DiffLineExpandUp
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExceprtChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return DiffLineExpandUpDown
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return DiffLineExpandDown
