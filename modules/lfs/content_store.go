@@ -55,6 +55,9 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 	}
 
 	if written != meta.Size {
+		if err := s.Delete(p); err != nil {
+			log.Error("Cleaning the LFS OID[%s] failed: %v", meta.Oid, err)
+		}
 		return errSizeMismatch
 	}
 
