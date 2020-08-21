@@ -46,7 +46,7 @@
 				<div class="board-column-header">
 					<div class="ui large label board-label">{{.Title}}</div>
 
-					{{if and $.IsSigned (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived) $.PageIsProjects}}
+					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived) $.PageIsProjects}}
 					{{ if not (eq .ID 0) }}
 					<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
 						<span class="ui text">
