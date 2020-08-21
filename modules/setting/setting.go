@@ -826,8 +826,7 @@ func NewContext() {
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
-		cfgdata = []string{
-			"off"}
+		cfgdata = []string{"off"}
 	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
