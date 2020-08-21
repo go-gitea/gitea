@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -275,18 +275,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				}
 				defer resp.Body.Close()
 
-				localPath := attach.LocalPath()
-				if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-					return fmt.Errorf("MkdirAll: %v", err)
-				}
-
-				fw, err := os.Create(localPath)
-				if err != nil {
-					return fmt.Errorf("Create: %v", err)
-				}
-				defer fw.Close()
-
-				_, err = io.Copy(fw, resp.Body)
+				_, err = storage.Attachments.Save(attach.RelativePath(), resp.Body)
 				return err
 			}()
 			if err != nil {
