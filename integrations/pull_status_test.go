@@ -115,6 +115,6 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".item.text.grey").Text())
-		assert.EqualValues(t, "This branche is equal with target branch.", text)
+		assert.EqualValues(t, "This branch is equal with the target branch.", text)
 	})
 }
