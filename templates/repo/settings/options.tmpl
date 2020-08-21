@@ -338,7 +338,7 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="enable_auto_check_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutoCheckManualMerge)}}checked{{end}}>
+								<input name="enable_automatic_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutomaticManualMerge)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.enable_auto_check_manual_merge"}}</label>
 							</div>
 						</div>

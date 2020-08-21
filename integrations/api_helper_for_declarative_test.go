@@ -232,6 +232,23 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	}
 }
 
+func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			Do:            string(models.MergeStyleManuallyMerged),
+			MergeCommitID: commitID,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
+	}
+}
+
 func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing.T, api.Branch)) func(*testing.T) {
 	return func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s?token=%s", ctx.Username, ctx.Reponame, branch, ctx.Token)

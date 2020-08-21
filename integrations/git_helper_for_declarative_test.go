@@ -193,3 +193,11 @@ func doGitPull(dstPath string, args ...string) func(*testing.T) {
 		assert.NoError(t, err)
 	}
 }
+
+func doGitGetLastCommitID(dstPath, branch string) func(*testing.T) string {
+	return func(t *testing.T) (r string) {
+		r, err := git.NewCommand("rev-parse", branch).RunInDir(dstPath)
+		assert.NoError(t, err)
+		return
+	}
+}

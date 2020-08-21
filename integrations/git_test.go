@@ -69,6 +69,7 @@ func testGit(t *testing.T, u *url.URL) {
 		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
 
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
+		t.Run("CreatePrAndManuallyMerge", doCreatPrAndManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
@@ -465,6 +466,34 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+	}
+}
+
+func doCreatPrAndManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBranch, headBranch string) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		var (
+			pr           api.PullRequest
+			err          error
+			lasTCommitID string
+		)
+
+		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
+		t.Run("AddCommit", func(t *testing.T) {
+			_ = doCommitAndPush(t, littleSize, dstPath, "data-file-")
+		})
+		t.Run("PushToHeadeBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			assert.NoError(t, err)
+		})
+		t.Run("CheckOutBaseBranch", doGitCheckoutBranch(dstPath, baseBranch))
+		t.Run("GitMerge", doGitMerge(dstPath, headBranch))
+		t.Run("GetLastCommitID", func(t *testing.T) {
+			lasTCommitID = doGitGetLastCommitID(dstPath, baseBranch)(t)
+		})
+		t.Run("PushToBaseBranch", doGitPushTestRepository(dstPath, "origin", baseBranch))
+		t.Run("ManuallyMergePR", doAPIManuallyMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, lasTCommitID, pr.Index))
 	}
 }
 

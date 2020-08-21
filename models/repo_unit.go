@@ -94,7 +94,7 @@ type PullRequestsConfig struct {
 	AllowRebaseMerge          bool
 	AllowSquash               bool
 	AllowManualMerge          bool
-	AutoCheckManualMerge      bool
+	AutomaticManualMerge      bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.

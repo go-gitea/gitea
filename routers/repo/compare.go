@@ -439,7 +439,7 @@ func PrepareCompareDiff(
 		ctx.Data["IsNothingToCompare"] = true
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
-			if !config.AutoCheckManualMerge {
+			if !config.AutomaticManualMerge {
 				ctx.Data["AllowEmptyPr"] = true
 			} else {
 				ctx.Data["AllowEmptyPr"] = false

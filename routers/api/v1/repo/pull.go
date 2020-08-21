@@ -766,57 +766,14 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	// handle manually-merged mark
 	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
-		prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
-		if err != nil {
-			ctx.ServerError("pr.BaseRepo.GetUnit(models.UnitTypePullRequests): %v", err)
+		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+			if models.IsErrInvalidMergeStyle(err) || strings.Contains(err.Error(), "Wrong commit ID") {
+				ctx.Error(http.StatusMethodNotAllowed, err.Error(), "")
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
 			return
 		}
-		prConfig := prUnit.PullRequestsConfig()
-
-		// Check if merge style is correct and allowed
-		if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
-			ctx.Error(http.StatusMethodNotAllowed, "manually-merged is not allowed", "")
-			return
-		}
-
-		if len(form.MergeCommitID) < 40 {
-			ctx.Error(http.StatusMethodNotAllowed, "commit id is wrong, need real commit id on base branch", "")
-			return
-		}
-
-		commit, err := ctx.Repo.GitRepo.GetCommit(form.MergeCommitID)
-		if err != nil {
-			ctx.ServerError("ctx.Repo.GitRepo.GetCommit", err)
-			return
-		}
-
-		branchName, err := commit.GetBranchName()
-		if err != nil {
-			ctx.ServerError("commit.GetBranchName", err)
-			return
-		}
-
-		if branchName != pr.BaseBranch {
-			ctx.Error(http.StatusMethodNotAllowed, "commit id is wrong, need real commit id on base branch", "")
-			return
-		}
-
-		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = models.PullRequestStatusManuallyMerged
-		pr.Merger = ctx.User
-		pr.MergerID = ctx.User.ID
-
-		if merged, err := pr.SetMerged(); err != nil {
-			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
-			ctx.Status(500)
-			return
-		} else if !merged {
-			return
-		}
-
-		notification.NotifyMergePullRequest(pr, ctx.User)
-		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		ctx.Status(http.StatusOK)
 		return
 	}
