@@ -20,7 +20,7 @@ tasks:
   test:mysql:
     desc: Test MySQL
     cmds:
-      - task: test:db
+      - task: test-db
         vars: {DATABASE: mysql}
 
   test:sqlite:
@@ -34,6 +34,12 @@ tasks:
     cmds:
       - task: test-db
         vars: {DATABASE: sqlserver}
+
+  test:crdb:
+    desc: Test CockroachDB
+    cmds:
+      - task: test-db
+        vars: {DATABASE: cockroachdb}
 
   test-db:
     cmds:
@@ -56,4 +62,4 @@ tasks:
   docker:test:
     cmds:
       - docker-compose down -v
-      - docker-compose run testfixtures go test -v -tags 'postgresql sqlite mysql sqlserver'
+      - docker-compose run testfixtures go test -v -tags 'postgresql sqlite mysql sqlserver cockroachdb'

@@ -44,6 +44,7 @@
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
       {{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
