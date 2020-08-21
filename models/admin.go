@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -63,6 +65,18 @@ func CreateRepositoryNotice(desc string, args ...interface{}) error {
 // creates a system notice when error occurs.
 func RemoveAllWithNotice(title, path string) {
 	removeAllWithNotice(x, title, path)
+}
+
+// RemoveStorageWithNotice removes a file from the storage and
+// creates a system notice when error occurs.
+func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
+	if err := bucket.Delete(path); err != nil {
+		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
+		log.Warn(title+" [%s]: %v", path, err)
+		if err = createNotice(x, NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
 }
 
 func removeAllWithNotice(e Engine, title, path string) {

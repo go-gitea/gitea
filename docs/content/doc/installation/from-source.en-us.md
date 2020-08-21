@@ -137,7 +137,7 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ./gitea web
 ```
 
-## Changing the default CustomPath, CustomConf and AppWorkPath
+## Changing default paths
 
 Gitea will search for a number of things from the `CustomPath`. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
