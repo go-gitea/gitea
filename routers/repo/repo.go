@@ -524,7 +524,7 @@ func Download(ctx *context.Context) {
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
+		if err := commit.CreateArchive(ctx.Req.Context(), archivePath, git.CreateArchiveOpts{
 			Format: archiveType,
 			Prefix: setting.Repository.PrefixArchiveFiles,
 		}); err != nil {
