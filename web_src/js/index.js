@@ -6,6 +6,7 @@ import './publicpath.js';
 import './polyfills.js';
 
 import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 import {svg} from './utils.js';
@@ -24,10 +25,6 @@ import {initNotificationsTable, initNotificationCount} from './features/notifica
 import {createCodeEditor} from './features/codeeditor.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -532,12 +529,12 @@ function initCommentForm() {
       switch (input_id) {
         case '#milestone_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
+            htmlEscape($(this).text())}</a>`);
           break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+                          htmlEscape($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
@@ -1942,7 +1939,7 @@ function searchUsers() {
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -2223,7 +2220,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -3500,8 +3497,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });
