@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -499,4 +500,15 @@ func (g *RepositoryDumper) Rollback() error {
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
 	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts.ReleaseAssets)
 	return MigrateRepositoryWithUploader(ctx, ownerName, opts, uploader)
+}
+
+// RestoreRepository restore a repository from the disk direcotry
+func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string) error {
+	doer, err := models.GetAdminUser()
+	if err != nil {
+		return err
+	}
+	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
+	var downloader = NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	return DoMigrateRepository(downloader, uploader, base.MigrateOptions{})
 }

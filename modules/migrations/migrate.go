@@ -127,9 +127,13 @@ func MigrateRepositoryWithUploader(ctx context.Context, ownerName string, opts b
 	return nil
 }
 
-// migrateRepository will download information and then upload it to Uploader, this is a simple
+// DoMigrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
+func DoMigrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
+	return migrateRepository(downloader, uploader, opts)
+}
+
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
