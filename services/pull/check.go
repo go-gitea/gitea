@@ -146,7 +146,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 
 	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
-		if !config.AutomaticManualMerge {
+		if !config.AutodetectManualMerge {
 			return false
 		}
 	} else {
