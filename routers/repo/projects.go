@@ -95,6 +95,7 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
@@ -106,16 +107,17 @@ func Projects(ctx *context.Context) {
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.HTML(200, tplProjectsNew)
 }
 
-// NewRepoProjectPost creates a new project
-func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
-
+// NewProjectPost creates a new project
+func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+		ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
 		ctx.HTML(200, tplProjectsNew)
 		return
 	}
@@ -192,6 +194,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
 	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -218,9 +221,10 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMilestoneNew)
+		ctx.HTML(200, tplProjectsNew)
 		return
 	}
 
@@ -287,6 +291,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = allBoards
 	ctx.Data["PageIsProjects"] = true
@@ -551,6 +556,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 func CreateProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
 	ctx.HTML(200, tplGenericProjectsNew)
 }
@@ -566,6 +572,7 @@ func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
 	ctx.Data["ContextUser"] = user
 
 	if ctx.HasError() {
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 		ctx.HTML(200, tplGenericProjectsNew)
 		return
 	}
