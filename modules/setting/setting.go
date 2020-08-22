@@ -825,6 +825,9 @@ func NewContext() {
 	InternalToken = loadInternalToken(sec)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
 		name := strings.ToLower(strings.Trim(name, `"`))
