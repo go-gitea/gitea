@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	tplCommentPrefix         = `# gitea public key`
-	tplCommand               = "%s --config=%q serv key-%d"
-	tplPublicKey             = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommentPrefix = `# gitea public key`
+	tplCommand       = "%s --config=%q serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+
 	authorizedPrincipalsFile = "authorized_principals"
 )
 
