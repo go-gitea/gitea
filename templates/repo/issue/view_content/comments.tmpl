@@ -218,7 +218,7 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|Escape) (.NewTitle|Escape) $createdStr | Safe}}
+				{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 11}}
