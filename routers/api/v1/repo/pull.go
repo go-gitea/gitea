@@ -768,7 +768,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
 		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) || strings.Contains(err.Error(), "Wrong commit ID") {
-				ctx.Error(http.StatusMethodNotAllowed, err.Error(), "")
+				ctx.Error(http.StatusMethodNotAllowed, "Manually-Merged", err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
