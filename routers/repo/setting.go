@@ -304,7 +304,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
 					AllowManualMerge:          form.PullsAllowManualMerge,
-					AutodetectManualMerge:      form.EnableAutodetectManualMerge,
+					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {

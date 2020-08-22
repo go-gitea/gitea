@@ -689,7 +689,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
 					AllowManualMerge:          true,
-					AutodetectManualMerge:      false,
+					AutodetectManualMerge:     false,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
