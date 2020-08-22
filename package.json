@@ -18,6 +18,7 @@
     "cssnano": "4.1.10",
     "domino": "2.1.5",
     "dropzone": "5.7.0",
+    "escape-goat": "3.0.0",
     "fast-glob": "3.2.2",
     "file-loader": "6.0.0",
     "fomantic-ui": "2.8.4",
