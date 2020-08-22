@@ -63,6 +63,7 @@
 	</div>
 {{end}}
 <div class="timeline-item comment merge box">
+	{{if .IsSigned}}
 	<a class="timeline-avatar text  {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
@@ -402,4 +403,5 @@
 			{{end}}
 		</div>
 	</div>
+	{{end}}
 </div>
