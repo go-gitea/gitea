@@ -6,7 +6,6 @@ package repository
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1"
 )
@@ -27,9 +27,9 @@ import (
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
-// wikiRemoteURL returns accessible repository URL for wiki if exists.
+// WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func wikiRemoteURL(remote string) string {
+func WikiRemoteURL(remote string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
@@ -57,7 +57,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	var err error
-	if err = os.RemoveAll(repoPath); err != nil {
+	if err = util.RemoveAll(repoPath); err != nil {
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
@@ -71,9 +71,9 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 
 	if opts.Wiki {
 		wikiPath := models.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := os.RemoveAll(wikiPath); err != nil {
+			if err := util.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
@@ -84,7 +84,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 				Branch:  "master",
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
-				if err := os.RemoveAll(wikiPath); err != nil {
+				if err := util.RemoveAll(wikiPath); err != nil {
 					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
 			}

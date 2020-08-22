@@ -98,8 +98,10 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 			}
 			return
 		}
-		if err := models.CreateTaskNotice(true, config.FormatMessage(t.Name, "finished", doer)); err != nil {
-			log.Error("CreateNotice: %v", err)
+		if config.DoNoticeOnSuccess() {
+			if err := models.CreateTaskNotice(true, config.FormatMessage(t.Name, "finished", doer)); err != nil {
+				log.Error("CreateNotice: %v", err)
+			}
 		}
 	})
 }

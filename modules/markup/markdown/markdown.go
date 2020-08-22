@@ -7,6 +7,7 @@ package markdown
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -15,7 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
+	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark-highlighting"
 	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -49,6 +52,50 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 				extension.TaskList,
 				extension.DefinitionList,
 				common.FootnoteExtension,
+				highlighting.NewHighlighting(
+					highlighting.WithFormatOptions(
+						chromahtml.WithClasses(true),
+						chromahtml.PreventSurroundingPre(true),
+					),
+					highlighting.WithWrapperRenderer(func(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
+						if entering {
+							language, _ := c.Language()
+							if language == nil {
+								language = []byte("text")
+							}
+
+							languageStr := string(language)
+
+							preClasses := []string{}
+							if languageStr == "mermaid" {
+								preClasses = append(preClasses, "is-loading")
+							}
+
+							if len(preClasses) > 0 {
+								_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
+								if err != nil {
+									return
+								}
+							} else {
+								_, err := w.WriteString(`<pre>`)
+								if err != nil {
+									return
+								}
+							}
+
+							// include language-x class as part of commonmark spec
+							_, err := w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							if err != nil {
+								return
+							}
+						} else {
+							_, err := w.WriteString("</code></pre>")
+							if err != nil {
+								return
+							}
+						}
+					}),
+				),
 				meta.Meta,
 			),
 			goldmark.WithParserOptions(

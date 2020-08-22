@@ -9,12 +9,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -304,11 +304,11 @@ func TestAPIRepoMigrate(t *testing.T) {
 		cloneURL, repoName string
 		expectedStatus     int
 	}{
-		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-own", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-org", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-own", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-org", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
 	}
 
 	defer prepareTestEnv(t)()
@@ -341,14 +341,14 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		user, err := models.GetUserByName(httpContext.Username)
 		assert.NoError(t, err)
 		userID := user.ID
 
-		cloneURL := "https://github.com/go-gitea/git.git"
+		cloneURL := "https://github.com/go-gitea/test_repo.git"
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+httpContext.Token,
 			&api.MigrateRepoOption{
@@ -404,7 +404,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+httpContext.Token,

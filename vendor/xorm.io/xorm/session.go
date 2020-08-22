@@ -102,12 +102,12 @@ func newSessionID() string {
 func newSession(engine *Engine) *Session {
 	var ctx context.Context
 	if engine.logSessionID {
-		ctx = context.WithValue(engine.defaultContext, log.SessionIDKey, newSessionID())
+		ctx = context.WithValue(engine.defaultContext, log.SessionIDKey,  newSessionID())
 	} else {
 		ctx = engine.defaultContext
 	}
 
-	return &Session{
+	session := &Session{
 		ctx:    ctx,
 		engine: engine,
 		tx:     nil,
@@ -136,6 +136,10 @@ func newSession(engine *Engine) *Session {
 
 		sessionType: engineSession,
 	}
+	if engine.logSessionID {
+		session.ctx = context.WithValue(session.ctx, log.SessionKey, session)
+	}
+	return session
 }
 
 // Close release the connection from pool
@@ -163,6 +167,10 @@ func (session *Session) Close() error {
 
 func (session *Session) db() *core.DB {
 	return session.engine.db
+}
+
+func (session *Session) Engine() *Engine {
+	return session.engine
 }
 
 func (session *Session) getQueryer() core.Queryer {

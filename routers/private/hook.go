@@ -39,6 +39,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		_ = stdoutWriter.Close()
 	}()
 
+	// This is safe as force pushes are already forbidden
 	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
@@ -70,6 +71,7 @@ func checkFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 		_ = stdoutWriter.Close()
 	}()
 
+	// This use of ...  is safe as force-pushes have already been ruled out.
 	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
@@ -555,7 +557,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 		if !git.IsErrUnsupportedVersion(err) {
 			gitRepo.Close()
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+				"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
 		}
@@ -564,7 +566,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 
 	if err := repo.UpdateDefaultBranch(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+			"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
 		return
 	}

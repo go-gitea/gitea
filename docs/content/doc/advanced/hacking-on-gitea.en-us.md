@@ -91,7 +91,23 @@ The simplest recommended way to build from source is:
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-See `make help` for all available `make` tasks. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
+The `build` target will execute both `frontend` and `backend` sub-targets. If the `bindata` tag is present, the frontend files will be compiled into the binary. It is recommended to leave out the tag when doing frontend development so that changes will be reflected.
+
+See `make help` for all available `make` targets. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
+
+## Building continuously
+
+Both the `frontend` and `backend` targets can be ran continuously when source files change:
+
+````bash
+# in your first terminal
+make watch-backend
+
+# in your second terminal
+make watch-frontend
+````
+
+On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
 
 ### Formatting, code analysis and spell check
 
@@ -123,24 +139,10 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-For simple changes, edit files in `web_src`, run the build and start the server to test:
+Either use the `watch-frontend` target mentioned above or just build once:
 
 ```bash
 make build && ./gitea
-```
-
-`make build` runs both `make frontend` and `make backend` which can be run individually as well as long as the `bindata` tag is not used (which compiles frontend files into the binary).
-
-For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent. First, build and run the backend:
-
-```bash
-make backend && ./gitea
-```
-
-With the backend running, open another terminal and run:
-
-```bash
-make watch-frontend
 ```
 
 Before committing, make sure the linters pass:
@@ -151,10 +153,13 @@ make lint-frontend
 
 Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
 
-### Building Images
+### Building and adding SVGs
 
-To build the images, ImageMagick, `inkscape` and `zopflipng` binaries must be available in
-your `PATH` to run `make generate-images`.
+SVG icons are built using the `make svg` target which compiles the icon sources defined in `build/generate-svg.js` into the output directory `public/img/svg`. Custom icons can be added in the `web_src/svg` directory.
+
+### Building the Logo
+
+The PNG versions of the logo are built from a single SVG source file `assets/logo.svg` using the `make generate-images` target. To run it, Node.js and npm must be available. The same process can also be used to generate a custom logo PNGs from a SVG source file. It's possible to remove parts of the SVG logo for the favicon build by adding a `detail-remove` class to the SVG nodes to be removed.
 
 ### Updating the API
 

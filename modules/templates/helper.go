@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -98,8 +99,19 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a, b int) int {
-			return a + b
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
 		},
 		"ActionIcon": ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
@@ -164,9 +176,16 @@ func NewFuncMap() []template.FuncMap {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
-		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
+		"TabSizeClass": func(ec interface{}, filename string) string {
+			var (
+				value *editorconfig.Editorconfig
+				ok    bool
+			)
 			if ec != nil {
-				def, err := ec.GetDefinitionForFilename(filename)
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
+					return "tab-size-8"
+				}
+				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
 					log.Error("tab size class: getting definition for filename: %v", err)
 					return "tab-size-8"
@@ -282,8 +301,8 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
-		"NotificationSettings": func() map[string]int {
-			return map[string]int{
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
@@ -298,8 +317,30 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": func(icon string, size int) template.HTML {
-			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+		"svg": SVG,
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return SVG("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return SVG("octicon-triangle-down", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return SVG("octicon-triangle-up", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
 		},
 	}}
 }
@@ -407,7 +448,36 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
+		},
 	}}
+}
+
+var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
+var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+
+// SVG render icons
+func SVG(icon string, size int) template.HTML {
+	if svgStr, ok := svg.SVGs[icon]; ok {
+		if size != 16 {
+			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
+			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		return template.HTML(svgStr)
+	}
+	return template.HTML("")
 }
 
 // Safe render raw as HTML
@@ -594,7 +664,9 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
-		return "request-changes"
+		return "diff"
+	case models.ActionPublishRelease:
+		return "tag"
 	default:
 		return "question"
 	}

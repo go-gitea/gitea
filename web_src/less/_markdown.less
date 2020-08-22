@@ -30,17 +30,43 @@
     }
 
     .anchor {
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: block;
-        padding-right: 6px;
-        padding-left: 30px;
-        margin-left: -30px;
+        padding-right: 4px;
+        margin-left: -20px;
+        line-height: 1;
+        color: inherit;
+    }
+
+    .anchor .svg {
+        vertical-align: middle;
     }
 
     .anchor:focus {
         outline: none;
+    }
+
+    h1 .anchor .svg,
+    h2 .anchor .svg,
+    h3 .anchor .svg,
+    h4 .anchor .svg,
+    h5 .anchor .svg,
+    h6 .anchor .svg {
+        visibility: hidden;
+    }
+
+    h1:hover .anchor .svg,
+    h2:hover .anchor .svg,
+    h3:hover .anchor .svg,
+    h4:hover .anchor .svg,
+    h5:hover .anchor .svg,
+    h6:hover .anchor .svg {
+        visibility: visible;
+    }
+
+    h2 .anchor .svg,
+    h3 .anchor .svg,
+    h4 .anchor .svg {
+        position: relative;
+        top: -2px;
     }
 
     h1,
@@ -49,7 +75,6 @@
     h4,
     h5,
     h6 {
-        position: relative;
         margin-top: 1em;
         margin-bottom: 16px;
         font-weight: bold;
@@ -58,37 +83,6 @@
         &:first-of-type {
             margin-top: 0 !important;
         }
-    }
-
-    h1 .octicon-link,
-    h2 .octicon-link,
-    h3 .octicon-link,
-    h4 .octicon-link,
-    h5 .octicon-link,
-    h6 .octicon-link {
-        display: none;
-        color: #000000;
-        vertical-align: middle;
-    }
-
-    h1:hover .anchor,
-    h2:hover .anchor,
-    h3:hover .anchor,
-    h4:hover .anchor,
-    h5:hover .anchor,
-    h6:hover .anchor {
-        padding-left: 8px;
-        margin-left: -30px;
-        text-decoration: none;
-    }
-
-    h1:hover .anchor .octicon-link,
-    h2:hover .anchor .octicon-link,
-    h3:hover .anchor .octicon-link,
-    h4:hover .anchor .octicon-link,
-    h5:hover .anchor .octicon-link,
-    h6:hover .anchor .octicon-link {
-        display: inline-block;
     }
 
     h1 tt,
@@ -113,10 +107,6 @@
         border-bottom: 1px solid #eeeeee;
     }
 
-    h1 .anchor {
-        line-height: 1;
-    }
-
     h2 {
         padding-bottom: .3em;
         font-size: 1.75em;
@@ -124,42 +114,22 @@
         border-bottom: 1px solid #eeeeee;
     }
 
-    h2 .anchor {
-        line-height: 1;
-    }
-
     h3 {
         font-size: 1.5em;
         line-height: 1.43;
-    }
-
-    h3 .anchor {
-        line-height: 1.2;
     }
 
     h4 {
         font-size: 1.25em;
     }
 
-    h4 .anchor {
-        line-height: 1.2;
-    }
-
     h5 {
         font-size: 1em;
-    }
-
-    h5 .anchor {
-        line-height: 1.1;
     }
 
     h6 {
         font-size: 1em;
         color: #777777;
-    }
-
-    h6 .anchor {
-        line-height: 1.1;
     }
 
     p,
@@ -523,4 +493,22 @@
         -ms-user-select: none;
         user-select: none;
     }
+}
+
+.markdown-block-error {
+    margin-bottom: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 85% !important;
+    white-space: pre !important;
+    padding: .5rem 1rem !important;
+    text-align: left !important;
+}
+
+.markdown-block-error + pre {
+    border-top: none !important;
+    margin-top: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
 }
