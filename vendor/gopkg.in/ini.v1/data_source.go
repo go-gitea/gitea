@@ -68,6 +68,8 @@ func parseDataSource(source interface{}) (dataSource, error) {
 		return &sourceData{s}, nil
 	case io.ReadCloser:
 		return &sourceReadCloser{s}, nil
+	case io.Reader:
+		return &sourceReadCloser{ioutil.NopCloser(s)}, nil
 	default:
 		return nil, fmt.Errorf("error parsing data source: unknown type %q", s)
 	}
