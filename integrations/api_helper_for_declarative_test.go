@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -58,6 +59,23 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			return
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
+func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
