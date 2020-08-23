@@ -345,8 +345,8 @@
             }
 
             td {
-                padding-top: 8px;
-                padding-bottom: 8px;
+                padding-top: 0;
+                padding-bottom: 0;
                 overflow: initial;
 
                 &.name {
@@ -361,13 +361,18 @@
                     width: 120px;
                 }
 
-                .truncate {
+                > a {
+                    width: calc(100% - 8px); /* prevent overflow into adjacant cell */
                     display: inline-block;
-                    max-width: 100%;
+                    padding-top: 8px;
+                    padding-bottom: 8px;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    vertical-align: top;
                     white-space: nowrap;
+                }
+
+                > * {
+                    vertical-align: middle;
                 }
             }
 
