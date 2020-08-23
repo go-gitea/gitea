@@ -17,6 +17,21 @@
     }
 }
 
+.add-comment-left.add-comment-right .ui.attached.header {
+    border: 1px solid #d4d4d5;
+    margin-top: .5em;
+
+    &:not(.top) {
+        margin-bottom: .5em;
+    }
+
+    .show-outdated,
+    .hide-outdated {
+        display: block;
+        margin-left: auto;
+    }
+}
+
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
 .focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
     opacity: 1;
@@ -45,15 +60,14 @@
             border: 0;
             padding: 0;
             margin: 0;
-
-            &.markdown {
-                padding: 1em;
-                min-height: 168px;
-            }
         }
 
         &.header {
             padding: .1rem 1rem;
+
+            .text {
+                margin: 0;
+            }
         }
     }
 
@@ -66,17 +80,26 @@
         border: 0;
     }
 
-    .ui.attached.tabular.menu {
-        background: #f7f7f7;
-        border: 1px solid #d4d4d5;
-        padding-top: 5px;
-        padding-left: 5px;
-        margin-top: 0;
+    .ui.active.tab {
+        padding: .5em;
+
+        &.markdown {
+            padding: 1em;
+            min-height: 168px;
+        }
+    }
+
+    .ui.tabular.menu {
+        margin: .5em;
+    }
+
+    .comment-list {
+        padding-bottom: 10px;
     }
 
     .footer {
         border-top: 1px solid #f1f1f1;
-        margin-top: 10px;
+        padding: 10px 0;
 
         .markdown-info {
             display: inline-block;
@@ -101,7 +124,7 @@
     }
 
     form.comment-form-reply {
-        margin: 0 0 0 4em;
+        margin: 0 0 0 1em;
     }
 }
 
@@ -110,27 +133,30 @@
     color: rgba(0, 0, 0, .87);
 }
 
-.ui.fold-code {
-    margin-right: 1em;
-    padding-left: 5px;
-    cursor: pointer;
-    width: 22px;
-    font-size: 12px;
+a.fold-file {
+    margin-right: 10px;
+    color: inherit;
 }
 
-.ui.fold-code:hover {
-    color: #428bca;
+a.blob-excerpt {
+    color: #575a68;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background: #daecfe;
 }
 
-.ui.blob-excerpt {
-    display: block;
-    line-height: 20px;
-    font-size: 16px;
-    cursor: pointer;
+a.blob-excerpt:hover {
+    background: #428bca;
+    color: #fff;
 }
 
-.ui.blob-excerpt:hover {
-    color: #428bca;
+.btn-review > .dropdown.icon {
+    width: auto;
+    font-size: .85714286em;
+    margin: 0 0 0 1em;
 }
 
 @media only screen and (max-width: 768px) {

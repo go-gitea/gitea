@@ -228,6 +228,8 @@
 						<dd>{{.Mailer.SendmailPath}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
 						<dd>{{.Mailer.SendmailArgs}}</dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
+						<dd>{{.Mailer.SendmailTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 					{{end}}
 					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
@@ -235,7 +237,7 @@
 						{{.CsrfTokenHtml}}
 						<div class="inline field ui left">
 							<div class="ui input">
-								<input type="email" name="email" required>
+								<input type="email" name="email" placeholder="{{.i18n.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
 						</div>
 						<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>

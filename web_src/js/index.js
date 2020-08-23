@@ -1,36 +1,34 @@
-/* globals wipPrefixes */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
-import './polyfills.js';
 
 import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
-import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
-import initDateTimePicker from './features/datetimepicker.js';
-import {initTribute, issuesTribute, emojiTribute} from './features/tribute.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
+import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
-import highlight from './features/highlight.js';
+import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
-
 let previewFileModes;
-let simpleMDEditor;
 const commentMDEditors = {};
-let codeMirrorEditor;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -42,15 +40,13 @@ function initCommentPreviewTab($form) {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
-      mode: 'gfm',
+      mode: 'comment',
       context: $this.data('context'),
-      text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+      const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      $('pre code', $previewPanel[0]).each(function () {
-        highlight(this);
-      });
+      renderMarkdownContent();
     });
   });
 
@@ -65,7 +61,8 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
-      let context = `{$this.data('context')}/`;
+      let context = `${$this.data('context')}/`;
+      const mode = $this.data('markdown-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -73,15 +70,13 @@ function initEditPreviewTab($form) {
       context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
-        mode: 'gfm',
+        mode,
         context,
-        text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
-        const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        $('pre code', $previewPanel[0]).each(function () {
-          highlight(this);
-        });
+        renderMarkdownContent();
       });
     });
   }
@@ -95,9 +90,9 @@ function initEditDiffTab($form) {
     $.post($this.data('url'), {
       _csrf: csrf,
       context: $this.data('context'),
-      content: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
+      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
     });
   });
@@ -115,10 +110,9 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
-  $branchMenu.find('.item:not(.no-select)').on('click', function () {
-    const selectedValue = $(this).data('id');
-    $($(this).data('id-selector')).val(selectedValue);
-    $selectBranch.find('.ui .branch-name').text(selectedValue);
+  $branchMenu.find('.item:not(.no-select)').click(function () {
+    $($(this).data('id-selector')).val($(this).data('id'));
+    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
@@ -139,15 +133,15 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  $('.color-picker').each(function () {
-    $(this).minicolors();
-  });
+  createColorPicker($('.color-picker'));
+
   $('.precolors .color').on('click', function () {
     const color_hex = $(this).data('color-hex');
     $('.color-picker').val(color_hex);
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
+    $('.color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
@@ -242,7 +236,7 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(vm).closest('.content');
         let react = content.find('.segment.reactions');
-        if (!resp.empty && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
         }
         if (!resp.empty) {
@@ -532,12 +526,16 @@ function initCommentForm() {
       switch (input_id) {
         case '#milestone_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
+            htmlEscape($(this).text())}</a>`);
+          break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEscape($(this).text())}</a>`);
           break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+                          htmlEscape($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
@@ -563,7 +561,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -757,21 +756,20 @@ async function initRepository() {
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-
-    await initDateTimePicker($datepicker.data('lang'));
-
-    $datepicker.datetimepicker({
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      onSelectDate(date) {
-        $('#deadline').val(date.toISOString().substring(0, 10));
-      },
-    });
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
+    });
+  }
+
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      if (gitignores || license) {
+        $('input[name="auto_init"]').prop('checked', true);
+      }
     });
   }
 
@@ -819,7 +817,7 @@ async function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        }).success((data) => {
+        }).done((data) => {
           $branchTarget.text(data.base_branch);
         }).always(() => {
           reload();
@@ -894,8 +892,7 @@ async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        issuesTribute.attach($textarea.get());
-        emojiTribute.attach($textarea.get());
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -915,6 +912,7 @@ async function initRepository() {
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -972,8 +970,8 @@ async function initRepository() {
         $tabMenu.attr('data-preview', $editContentZone.data('preview'));
         $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
-        $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
-        $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
+        $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
+        $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
@@ -1000,9 +998,6 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              $('pre code', $renderContent[0]).each(function () {
-                highlight(this);
-              });
             }
             const $content = $segment.parent();
             if (!$content.find('.ui.small.images').length) {
@@ -1019,6 +1014,7 @@ async function initRepository() {
             }
             dz.emit('submit');
             dz.emit('reload');
+            renderMarkdownContent();
           });
         });
       } else {
@@ -1044,7 +1040,7 @@ async function initRepository() {
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
-        }).success(() => {
+        }).done(() => {
           $(`#${$this.data('comment-id')}`).remove();
         });
       }
@@ -1111,8 +1107,10 @@ async function initRepository() {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('blue');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
   $('#repo-clone-url').on('click', function () {
     $(this).select();
@@ -1200,14 +1198,23 @@ function initPullRequestReview() {
     $(this).hide();
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
+    const $textarea = form.find('textarea');
+    let $simplemde;
+    if ($textarea.data('simplemde')) {
+      $simplemde = $textarea.data('simplemde');
+    } else {
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.data('simplemde', $simplemde);
+    }
+    $textarea.focus();
+    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
   }
-
-  $('.diff-detail-box.ui.sticky').sticky();
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
@@ -1229,25 +1236,41 @@ function initPullRequestReview() {
       $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
     });
   $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
     const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+
+    const oldLineNum = tr.find('.lines-num-old').data('line-num');
+    const newLineNum = tr.find('.lines-num-new').data('line-num');
+    const addCommentKey = `${oldLineNum}|${newLineNum}`;
+    if (document.querySelector(`[data-add-comment-key="${addCommentKey}"]`)) return; // don't add same comment box twice
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-add-comment-key="${addCommentKey}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0) {
@@ -1259,7 +1282,12 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
     }
-    commentCloud.find('textarea').focus();
+    const $textarea = commentCloud.find('textarea');
+    attachTribute($textarea.get(), {mentions: true, emoji: true});
+
+    const $simplemde = setCommentSimpleMDE($textarea);
+    $textarea.focus();
+    $simplemde.codemirror.focus();
   });
 }
 
@@ -1323,12 +1351,11 @@ function initWikiForm() {
               _csrf: csrf,
               mode: 'gfm',
               context: $editArea.data('context'),
-              text: plainText
+              text: plainText,
+              wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              $(preview).find('pre code').each((_, e) => {
-                highlight(e);
-              });
+              renderMarkdownContent();
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -1467,62 +1494,6 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        }, (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
-      {
-        name: 'revert-to-textarea',
-        action(e) {
-          e.toTextArea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-    ]
-  });
-  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
-
-  return true;
-}
-
 function setCommentSimpleMDE($editArea) {
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
@@ -1553,7 +1524,8 @@ function setCommentSimpleMDE($editArea) {
   $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
-      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -1564,32 +1536,11 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  issuesTribute.attach(simplemde.codemirror.getInputField());
-  emojiTribute.attach(simplemde.codemirror.getInputField());
+  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
   return simplemde;
 }
 
-function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
-  }
-
-  if (codeMirrorEditor) {
-    return true;
-  }
-
-  codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
-    lineNumbers: true
-  });
-  codeMirrorEditor.on('change', (cm, _change) => {
-    $editArea.val(cm.getValue());
-  });
-
-  return true;
-}
-
-function initEditor() {
+async function initEditor() {
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       $('.quick-pull-branch-name').show();
@@ -1650,89 +1601,7 @@ function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const markdownFileExts = $editArea.data('markdown-file-exts').split(',');
-  const lineWrapExtensions = $editArea.data('line-wrap-extensions').split(',');
-
-  $editFilename.on('keyup', () => {
-    const val = $editFilename.val();
-    let mode, spec, extension, extWithDot, dataUrl, apiCall;
-
-    extension = extWithDot = '';
-    const m = /.+\.([^.]+)$/.exec(val);
-    if (m) {
-      extension = m[1];
-      extWithDot = `.${extension}`;
-    }
-
-    const info = CodeMirror.findModeByExtension(extension);
-    const previewLink = $('a[data-tab=preview]');
-    if (info) {
-      mode = info.mode;
-      spec = info.mime;
-      apiCall = mode;
-    } else {
-      apiCall = extension;
-    }
-
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.includes(apiCall)) {
-      dataUrl = previewLink.data('url');
-      previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
-      previewLink.show();
-    } else {
-      previewLink.hide();
-    }
-
-    // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.includes(extWithDot)) {
-      if (setSimpleMDE($editArea)) {
-        return;
-      }
-    }
-
-    // Else we are going to use CodeMirror
-    if (!codeMirrorEditor && !setCodeMirror($editArea)) {
-      return;
-    }
-
-    if (mode) {
-      codeMirrorEditor.setOption('mode', spec);
-      CodeMirror.autoLoadMode(codeMirrorEditor, mode);
-    }
-
-    if (lineWrapExtensions.includes(extWithDot)) {
-      codeMirrorEditor.setOption('lineWrapping', true);
-    } else {
-      codeMirrorEditor.setOption('lineWrapping', false);
-    }
-
-    // get the filename without any folder
-    let value = $editFilename.val();
-    if (value.length === 0) {
-      return;
-    }
-    value = value.split('/');
-    value = value[value.length - 1];
-
-    $.getJSON($editFilename.data('ec-url-prefix') + value, (editorconfig) => {
-      if (editorconfig.indent_style === 'tab') {
-        codeMirrorEditor.setOption('indentWithTabs', true);
-        codeMirrorEditor.setOption('extraKeys', {});
-      } else {
-        codeMirrorEditor.setOption('indentWithTabs', false);
-        // required because CodeMirror doesn't seems to use spaces correctly for {"indentWithTabs": false}:
-        // - https://github.com/codemirror/CodeMirror/issues/988
-        // - https://codemirror.net/doc/manual.html#keymaps
-        codeMirrorEditor.setOption('extraKeys', {
-          Tab(cm) {
-            const spaces = new Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
-            cm.replaceSelection(spaces);
-          }
-        });
-      }
-      codeMirrorEditor.setOption('indentUnit', editorconfig.indent_size || 4);
-      codeMirrorEditor.setOption('tabSize', editorconfig.tab_width || 4);
-    });
-  }).trigger('keyup');
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -2019,7 +1888,8 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
@@ -2077,7 +1947,7 @@ function searchUsers() {
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -2141,49 +2011,43 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({target}) => {
-    const box = target.closest('.file-content');
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
-    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
-    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2192,7 +2056,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2288,7 +2152,7 @@ function u2fRegisterRequest() {
   $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
-  }).success((req) => {
+  }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
     if (req.registeredKeys === null) {
@@ -2318,8 +2182,9 @@ function initWipTitle() {
     $issueTitle.focus();
     const value = $issueTitle.val().trim().toUpperCase();
 
-    for (const i in wipPrefixes) {
-      if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
+    for (const prefix of wipPrefixes) {
+      if (value.startsWith(prefix.toUpperCase())) {
         return;
       }
     }
@@ -2358,7 +2223,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -2444,6 +2309,7 @@ $(document).ready(async () => {
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2494,15 +2360,6 @@ $(document).ready(async () => {
       _csrf: csrf
     }).done(() => {
       window.location.href = $this.data('done-url');
-    });
-  });
-
-  // Set anchor.
-  $('.markdown').each(function () {
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2563,6 +2420,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
   initRepository();
@@ -2588,15 +2446,16 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initTableSort();
   initNotificationsTable();
-  initNotificationCount();
-  initTribute();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
     switch (localStorage.getItem('repo-clone-protocol')) {
       case 'ssh':
-        if ($('#repo-clone-ssh').length === 0) {
+        if ($('#repo-clone-ssh').length > 0) {
+          $('#repo-clone-ssh').trigger('click');
+        } else {
           $('#repo-clone-https').trigger('click');
         }
         break;
@@ -2611,10 +2470,9 @@ $(document).ready(async () => {
     'div.repository.settings.collaboration': initRepositoryCollaboration
   };
 
-  let selector;
-  for (selector in routes) {
+  for (const [selector, fn] of Object.entries(routes)) {
     if ($(selector).length > 0) {
-      routes[selector]();
+      fn();
       break;
     }
   }
@@ -2627,12 +2485,16 @@ $(document).ready(async () => {
     }
   });
 
-  // parallel init of lazy-loaded features
+  // parallel init of async loaded features
   await Promise.all([
-    highlight(document.querySelectorAll('pre code')),
+    attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initProject(),
+    initServiceWorker(),
+    initNotificationCount(),
+    renderMarkdownContent(),
   ]);
 });
 
@@ -2666,7 +2528,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
@@ -2781,6 +2643,15 @@ function linkEmailAction(e) {
 }
 
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {props: ['size'], template});
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2822,33 +2693,70 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'unarchived';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        searchQuery: '',
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
+        finalPage: 1,
+        searchQuery,
         isLoading: false,
         staticPrefix: StaticUrlPrefix,
+        counts: {},
         repoTypes: {
           all: {
-            count: 0,
             searchMode: '',
           },
           forks: {
-            count: 0,
             searchMode: 'fork',
           },
           mirrors: {
-            count: 0,
             searchMode: 'mirror',
           },
           sources: {
-            count: 0,
             searchMode: 'source',
           },
           collaborative: {
-            count: 0,
             searchMode: 'collaborative',
           },
         }
@@ -2857,21 +2765,26 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
-        }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
+        }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
+        }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
+        }`;
       },
       repoTypeCount() {
-        return this.repoTypes[this.reposFilter].count;
+        return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       }
     },
 
     mounted() {
       this.searchRepos(this.reposFilter);
-
+      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.dropdown').dropdown();
+      this.setCheckboxes();
       const self = this;
       Vue.nextTick(() => {
         self.$refs.search.focus();
@@ -2881,36 +2794,168 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
+      },
+
+      setCheckboxes() {
+        switch (this.archivedFilter) {
+          case 'unarchived':
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'archived':
+            $('#archivedFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+        }
+        switch (this.privateFilter) {
+          case 'public':
+            $('#privateFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'private':
+            $('#privateFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.privateFilter = 'both';
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
       },
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
-        this.repoTypes[filter].count = 0;
-        this.searchRepos(filter);
+        this.page = 1;
+        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
       },
 
-      showRepo(repo, filter) {
-        switch (filter) {
-          case 'sources':
-            return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
-          case 'forks':
-            return repo.owner.id === this.uid && !repo.mirror && repo.fork;
-          case 'mirrors':
-            return repo.mirror;
-          case 'collaborative':
-            return repo.owner.id !== this.uid && !repo.mirror;
-          default:
-            return true;
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'unarchived') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
         }
       },
 
-      searchRepos(reposFilter) {
+      toggleArchivedFilter() {
+        switch (this.archivedFilter) {
+          case 'both':
+            this.archivedFilter = 'unarchived';
+            break;
+          case 'unarchived':
+            this.archivedFilter = 'archived';
+            break;
+          case 'archived':
+            this.archivedFilter = 'both';
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      togglePrivateFilter() {
+        switch (this.privateFilter) {
+          case 'both':
+            this.privateFilter = 'public';
+            break;
+          case 'public':
+            this.privateFilter = 'private';
+            break;
+          case 'private':
+            this.privateFilter = 'both';
+            break;
+          default:
+            this.privateFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+
+      changePage(page) {
+        this.page = page;
+        if (this.page > this.finalPage) {
+          this.page = this.finalPage;
+        }
+        if (this.page < 1) {
+          this.page = 1;
+        }
+        this.repos = [];
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      searchRepos() {
         const self = this;
 
         this.isLoading = true;
 
-        const searchedMode = this.repoTypes[reposFilter].searchMode;
+        if (!this.reposTotalCount) {
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
+            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+          });
+        }
+
+        const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
@@ -2918,10 +2963,12 @@ function initVueComponents() {
           if (searchedURL === self.searchURL) {
             self.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '') {
+            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
               self.reposTotalCount = count;
             }
-            self.repoTypes[reposFilter].count = count;
+            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
+            self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
@@ -2930,15 +2977,17 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
-        } if (repo.mirror) {
-          return 'octicon-repo-clone';
-        } if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
-        } if (repo.private) {
+        } else if (repo.mirror) {
+          return 'octicon-mirror';
+        } else if (repo.template) {
+          return `octicon-repo-template`;
+        } else if (repo.private) {
           return 'octicon-lock';
+        } else if (repo.internal) {
+          return 'octicon-repo';
         }
         return 'octicon-repo';
       }
@@ -3085,7 +3134,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.trigger('submit');
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;
@@ -3455,8 +3504,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });
@@ -3533,12 +3582,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});

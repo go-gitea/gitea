@@ -11,5 +11,11 @@ import (
 func dropColumnHeadUserNameOnPullRequest(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	return dropTableColumns(sess, "pull_request", "head_user_name")
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := dropTableColumns(sess, "pull_request", "head_user_name"); err != nil {
+		return err
+	}
+	return sess.Commit()
 }

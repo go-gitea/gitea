@@ -41,6 +41,7 @@ type Issue struct {
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
+	Project          *Project   `xorm:"-"`
 	Priority         int
 	AssigneeID       int64        `xorm:"-"`
 	Assignee         *User        `xorm:"-"`
@@ -76,7 +77,6 @@ var (
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
 const issueMaxDupIndexAttempts = 3
-const maxIssueIDs = 950
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -249,7 +249,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 }
 
 func (issue *Issue) loadMilestone(e Engine) (err error) {
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
+	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
@@ -272,6 +272,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadMilestone(e); err != nil {
+		return
+	}
+
+	if err = issue.loadProject(e); err != nil {
 		return
 	}
 
@@ -580,8 +584,13 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		}
 	}
 
+	issue.IsClosed = isClosed
+	return issue.doChangeStatus(e, doer, isMergePull)
+}
+
+func (issue *Issue) doChangeStatus(e *xorm.Session, doer *User, isMergePull bool) (*Comment, error) {
 	// Check for open dependencies
-	if isClosed && issue.Repo.isDependenciesEnabled(e) {
+	if issue.IsClosed && issue.Repo.isDependenciesEnabled(e) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {
@@ -593,23 +602,22 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		}
 	}
 
-	issue.IsClosed = isClosed
-	if isClosed {
+	if issue.IsClosed {
 		issue.ClosedUnix = timeutil.TimeStampNow()
 	} else {
 		issue.ClosedUnix = 0
 	}
 
-	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err := updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
 		return nil, err
 	}
 
 	// Update issue count of labels
-	if err = issue.getLabels(e); err != nil {
+	if err := issue.getLabels(e); err != nil {
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err = updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
+		if err := updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
@@ -1059,6 +1067,8 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	MilestoneIDs       []int64
+	ProjectID          int64
+	ProjectBoardID     int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1110,9 +1120,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if len(opts.IssueIDs) > 0 {
-		if len(opts.IssueIDs) > maxIssueIDs {
-			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-		}
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
@@ -1145,6 +1152,19 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if len(opts.MilestoneIDs) > 0 {
 		sess.In("issue.milestone_id", opts.MilestoneIDs)
+	}
+
+	if opts.ProjectID > 0 {
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+			And("project_issue.project_id=?", opts.ProjectID)
+	}
+
+	if opts.ProjectBoardID != 0 {
+		if opts.ProjectBoardID > 0 {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+		} else {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
+		}
 	}
 
 	switch opts.IsPull {
@@ -1356,9 +1376,6 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
-			if len(opts.IssueIDs) > maxIssueIDs {
-				opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-			}
 			sess.In("issue.id", opts.IssueIDs)
 		}
 
@@ -1442,9 +1459,6 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 	if len(opts.IssueIDs) > 0 {
-		if len(opts.IssueIDs) > maxIssueIDs {
-			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-		}
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
@@ -1607,28 +1621,59 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 }
 
 // UpdateIssueByAPI updates all allowed fields of given issue.
-func UpdateIssueByAPI(issue *Issue) error {
+// If the issue status is changed a statusChangeComment is returned
+// similarly if the title is changed the titleChanged bool is set to true
+func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, titleChanged bool, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return err
+		return nil, false, err
+	}
+
+	if err := issue.loadRepo(sess); err != nil {
+		return nil, false, fmt.Errorf("loadRepo: %v", err)
+	}
+
+	// Reload the issue
+	currentIssue, err := getIssueByID(sess, issue.ID)
+	if err != nil {
+		return nil, false, err
 	}
 
 	if _, err := sess.ID(issue.ID).Cols(
-		"name", "is_closed", "content", "milestone_id", "priority",
-		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		"name", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "is_locked").
 		Update(issue); err != nil {
-		return err
+		return nil, false, err
 	}
 
-	if err := issue.loadPoster(sess); err != nil {
-		return err
+	titleChanged = currentIssue.Title != issue.Title
+	if titleChanged {
+		var opts = &CreateCommentOptions{
+			Type:     CommentTypeChangeTitle,
+			Doer:     doer,
+			Repo:     issue.Repo,
+			Issue:    issue,
+			OldTitle: currentIssue.Title,
+			NewTitle: issue.Title,
+		}
+		_, err := createComment(sess, opts)
+		if err != nil {
+			return nil, false, fmt.Errorf("createComment: %v", err)
+		}
 	}
 
-	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
-		return err
+	if currentIssue.IsClosed != issue.IsClosed {
+		statusChangeComment, err = issue.doChangeStatus(sess, doer, false)
+		if err != nil {
+			return nil, false, err
+		}
 	}
-	return sess.Commit()
+
+	if err := issue.addCrossReferences(sess, doer, true); err != nil {
+		return nil, false, err
+	}
+	return statusChangeComment, titleChanged, sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
@@ -1880,4 +1925,77 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 			"original_author_id": 0,
 		})
 	return err
+}
+
+func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
+	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
+
+	// Delete comments and attachments
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Comment{}); err != nil {
+		return
+	}
+
+	// Dependencies for issues in this repository
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err = sess.In("dependency_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueUser{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Reaction{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueWatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Stopwatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&TrackedTime{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&ProjectIssue{}); err != nil {
+		return
+	}
+
+	var attachments []*Attachment
+	if err = sess.In("issue_id", deleteCond).
+		Find(&attachments); err != nil {
+		return
+	}
+
+	for j := range attachments {
+		attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Attachment{}); err != nil {
+		return
+	}
+
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return
+	}
+
+	return
 }

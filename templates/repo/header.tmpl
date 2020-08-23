@@ -5,46 +5,30 @@
 			<div class="ui huge breadcrumb repo-title">
 				{{if .RelAvatarLink}}
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
-				{{else if .IsTemplate}}
-					{{if .IsPrivate}}
-						{{svg "octicon-repo-template-private" 32}}
-					{{else}}
-						{{svg "octicon-repo-template" 32}}
-					{{end}}
 				{{else}}
-					{{if .IsPrivate}}
-						{{svg "octicon-lock" 32}}
-					{{else if .IsMirror}}
-						{{svg "octicon-repo-clone" 32}}
-					{{else if .IsFork}}
-						{{svg "octicon-repo-forked" 32}}
-					{{else}}
-						{{svg "octicon-repo" 32}}
-					{{end}}
+					{{template "repo/header_icon" .}}
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
-				{{if .RelAvatarLink}}
-					{{if .IsTemplate}}
-						{{if .IsPrivate}}
-							{{svg "octicon-repo-template-private" 32}}
-						{{else}}
-							{{svg "octicon-repo-template" 32}}
-						{{end}}
+				{{if .IsTemplate}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
 					{{else}}
-						{{if .IsPrivate}}
-							{{svg "octicon-lock" 32}}
-						{{else if .IsMirror}}
-							{{svg "octicon-repo-clone" 32}}
-						{{else if .IsFork}}
-							{{svg "octicon-repo-forked" 32}}
-						{{else}}
-							{{svg "octicon-repo" 32}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+						{{end}}
+					{{end}}
+				{{else}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
 						{{end}}
 					{{end}}
 				{{end}}
-				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
+				{{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}</a></div>{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
@@ -55,7 +39,7 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" tabindex="0">
 							<button type="submit" class="ui compact basic button">
-								<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
+								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye" 16}}{{$.i18n.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
 								{{.NumWatches}}
@@ -66,7 +50,7 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" tabindex="0">
 							<button type="submit" class="ui compact basic button">
-								<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
+								{{if $.IsStaringRepo}}{{svg "octicon-star-fill" 16}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star" 16}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/stars">
 								{{.NumStars}}
@@ -76,7 +60,7 @@
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
 							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
-								{{svg "octicon-repo-forked" 15}}{{$.i18n.Tr "repo.fork"}}
+								{{svg "octicon-repo-forked" 16}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{.NumForks}}
@@ -114,6 +98,15 @@
 						{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 					</a>
 				{{end}}
+
+				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
+						{{svg "octicon-project" 16}} {{.i18n.Tr "repo.project_board"}}
+						<span class="ui {{if not .Repository.NumOpenProjects}}gray{{else}}blue{{end}} small label">
+							{{.Repository.NumOpenProjects}}
+						</span>
+					</a>
+				{{ end }}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">

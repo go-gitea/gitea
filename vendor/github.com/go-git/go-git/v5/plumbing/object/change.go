@@ -18,7 +18,7 @@ type Change struct {
 	To   ChangeEntry
 }
 
-var empty = ChangeEntry{}
+var empty ChangeEntry
 
 // Action returns the kind of action represented by the change, an
 // insertion, a deletion or a modification.
@@ -27,9 +27,11 @@ func (c *Change) Action() (merkletrie.Action, error) {
 		return merkletrie.Action(0),
 			fmt.Errorf("malformed change: empty from and to")
 	}
+
 	if c.From == empty {
 		return merkletrie.Insert, nil
 	}
+
 	if c.To == empty {
 		return merkletrie.Delete, nil
 	}

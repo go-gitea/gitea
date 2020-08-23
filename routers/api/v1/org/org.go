@@ -6,6 +6,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -46,7 +47,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -74,7 +75,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -101,7 +102,7 @@ func GetAll(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -115,8 +116,10 @@ func GetAll(ctx *context.APIContext) {
 		}
 	}
 
-	publicOrgs, _, err := models.SearchUsers(&models.SearchUserOptions{
-		ListOptions: utils.GetListOptions(ctx),
+	listOptions := utils.GetListOptions(ctx)
+
+	publicOrgs, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		ListOptions: listOptions,
 		Type:        models.UserTypeOrganization,
 		OrderBy:     models.SearchOrderByAlphabetically,
 		Visible:     vMode,
@@ -130,6 +133,9 @@ func GetAll(ctx *context.APIContext) {
 		orgs[i] = convert.ToOrganization(publicOrgs[i])
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &orgs)
 }
 

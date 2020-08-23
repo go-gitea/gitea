@@ -1,5 +1,4 @@
 .repository {
-
     padding-top: 15px;
 
     .repo-header {
@@ -15,13 +14,25 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
-                position: relative;
-                top: 5px;
+            .label {
+                vertical-align: middle;
+                margin-top: -.29165em;
             }
 
-            svg.octicon-lock {
-                margin-left: 5px;
+            &.repo-title .repo-header-icon {
+                display: inline-block;
+                position: relative;
+
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
         }
 
@@ -33,8 +44,8 @@
             white-space: nowrap;
         }
 
-        .svg.octicon-repo-forked {
-            margin-top: -1px;
+        .repo-buttons .svg {
+            margin: 0 .42857143em 0 -.21428571em;
         }
 
         .button {
@@ -86,6 +97,10 @@
         }
 
         .ui.list {
+            &.assignees .icon {
+                line-height: 2em;
+            }
+
             .hide {
                 display: none !important;
             }
@@ -318,13 +333,12 @@
                     margin-right: 5px;
                     color: #777777;
 
-                    &.octicon-mail-reply {
+                    &.octicon-reply {
                         margin-right: 10px;
                     }
 
                     &.octicon-file-directory,
-                    &.octicon-file-submodule,
-                    &.octicon-file-symlink-directory {
+                    &.octicon-file-submodule {
                         color: #1e70bf;
                     }
                 }
@@ -426,12 +440,12 @@
                 }
 
                 img {
-                    padding: 5px 5px 0 5px;
+                    border-radius: 0;
                 }
             }
 
             .plain-text {
-                padding: 1em 2em 1em 2em;
+                padding: 1em 2em;
 
                 pre {
                     word-break: break-word;
@@ -631,18 +645,11 @@
 
         .pull {
             &.tabular.menu {
-                margin-bottom: 10px;
+                margin-bottom: 1rem;
 
                 .svg {
                     margin-right: 5px;
                 }
-            }
-
-            &.tab.segment {
-                border: 0;
-                padding: 10px 0 0;
-                box-shadow: none;
-                background-color: inherit;
             }
 
             .merge.box {
@@ -650,31 +657,29 @@
                     margin-left: 10px;
                     margin-top: 10px;
                 }
-                .icon-octicon {
-                    padding-left: 2px;
-                }
                 .branch-update.grid {
                     .row {
-                        padding-bottom: 0;
+                        padding-bottom: 1rem;
                         .icon {
                             margin-top: 1.1rem;
-                        }
-                        .ui.button {
-                            margin-bottom: 1rem;
                         }
                     }
                 }
             }
 
             .review-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
-                    float: none;
-                    display: inline-block;
-                    text-align: center;
-                    vertical-align: middle;
-
                     .svg {
                         width: 23px;
                         height: 23px;
@@ -686,8 +691,12 @@
                 }
 
                 .type-icon {
-                    float: right;
+                    align-self: flex-start;
                     margin-right: 1em;
+
+                    i {
+                        line-height: 1.8em;
+                    }
                 }
 
                 .divider {
@@ -761,12 +770,24 @@
                     }
                 }
 
-                &:first-child {
+                .avatar.image,
+                .avatar.image img {
+                    width: 20px;
+                    height: 20px;
+                    margin-right: .15em;
+                }
+
+                &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
 
-                &:last-child {
+                &:last-child:not(.commit) {
                     padding-bottom: 0 !important;
+                }
+
+                .badge.badge-commit {
+                    border-color: transparent;
+                    background: radial-gradient(white 40%, transparent 40%) no-repeat;
                 }
 
                 .badge {
@@ -778,22 +799,21 @@
                     display: flex;
                     float: left;
                     margin-left: -32px;
-                    margin-top: -1px;
                     margin-right: 8px;
                     color: #444;
+                    align-items: center;
+                    justify-content: center;
 
                     .svg {
-                        width: 28px;
-                        height: 28px;
-                        text-align: center;
-                        line-height: 28px;
-                        padding: 4px;
+                        width: 24px;
+                        height: 24px;
+                        padding: 3px;
 
                         &.octicon-circle-slash {
                             color: #bd2c00;
                         }
 
-                        &.octicon-primitive-dot {
+                        &.octicon-dot-fill {
                             color: #6cc644;
                         }
 
@@ -808,11 +828,98 @@
                 }
 
                 &.event > .text {
-                    line-height: 30px;
+                    line-height: 32px;
+                    vertical-align: middle;
+                }
+
+                &.commits-list {
+                    padding-left: 15px;
+                    padding-top: 0;
+
+                    .singular-commit {
+                        line-height: 30px;
+
+                        &:not(:last-child) {
+                            padding-bottom: 2px;
+                        }
+
+                        .shabox {
+                            .sha.label {
+                                margin: 0;
+                                border: 1px solid #bbbbbb;
+
+                                &.isSigned.isWarning {
+                                    border: 1px solid #db2828;
+                                    background: fade(#db2828, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#db2828, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerified {
+                                    border: 1px solid #21ba45;
+                                    background: fade(#21ba45, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#21ba45, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerifiedUntrusted {
+                                    border: 1px solid #fbbd08;
+                                    background: fade(#fbbd08, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#fbbd08, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerifiedUnmatched {
+                                    border: 1px solid #f2711c;
+                                    background: fade(#f2711c, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#f2711c, 30%) !important;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                &.event > .commit-status-link {
+                    float: right;
+                    margin-right: 8px;
+                    margin-top: 4px;
                 }
 
                 .author {
                     font-weight: 700;
+                }
+
+                .comment-form-reply .footer {
+                    padding-bottom: 1em;
                 }
             }
 
@@ -848,8 +955,21 @@
 
                         &.action {
                             margin-top: 6px;
-                            margin-left: 10px;
+                            padding-left: 10px;
+                            padding-right: 3px;
                         }
+                    }
+                }
+
+                > .content {
+                    > div:first-child {
+                        border-top-left-radius: 4px;
+                        border-top-right-radius: 4px;
+                    }
+
+                    > div:last-child {
+                        border-bottom-left-radius: 4px;
+                        border-bottom-right-radius: 4px;
                     }
                 }
 
@@ -861,11 +981,8 @@
                         position: relative;
                         color: #767676;
                         background-color: #f7f7f7;
-                        border-top-left-radius: 3px;
-                        border-top-right-radius: 3px;
 
                         .text {
-                            max-width: 78%;
                             padding-top: 10px;
                             padding-bottom: 10px;
                         }
@@ -895,8 +1012,29 @@
                     }
 
                     > .merge-section {
-                        border-top: 1px solid #d4d4d5;
                         background-color: #f7f7f7;
+
+                        .item {
+                            padding: .25rem 0;
+                        }
+
+                        .item-section {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 0;
+                            margin-top: -.25rem;
+                            margin-bottom: -.25rem;
+                        }
+
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     .markdown {
@@ -967,13 +1105,18 @@
                 }
 
                 .ui.form {
-                    .field:first-child {
-                        clear: none;
-                    }
+                    .field {
+                        &:first-child {
+                            clear: none;
+                        }
 
-                    .tab.segment {
-                        border: 0;
-                        padding: 10px 0 0;
+                        &.footer {
+                            overflow: hidden;
+                        }
+
+                        .tab.markdown {
+                            min-height: 5rem;
+                        }
                     }
 
                     textarea {
@@ -1032,17 +1175,16 @@
                 .detail {
                     font-size: .9rem;
                     margin-top: 5px;
-                    margin-left: 35px;
-
-                    .svg {
-                        &.octicon-git-commit {
-                            margin-top: 2px;
-                        }
-                    }
+                    margin-left: 8px;
                 }
 
                 .segments {
                     box-shadow: none;
+
+                    .show-outdated,
+                    .hide-outdated {
+                        display: block;
+                    }
                 }
             }
         }
@@ -1080,11 +1222,6 @@
                 &:after {
                     border-right-color: #ffffff;
                 }
-            }
-
-            .tab.segment {
-                border: 0;
-                padding: 10px 0 0;
             }
 
             textarea {
@@ -1205,10 +1342,6 @@
         textarea {
             height: 200px;
         }
-
-        #deadline {
-            width: 150px;
-        }
     }
 
     &.compare.pull {
@@ -1230,6 +1363,14 @@
                     border-right-color: #ffffff;
                 }
             }
+        }
+
+        .pullrequest-form {
+            margin-bottom: 1.5rem;
+        }
+
+        .markdown {
+            font-size: 14px;
         }
     }
 
@@ -1318,7 +1459,8 @@
     }
 
     #commits-table td.sha .sha.label,
-    #repo-files-table .sha.label {
+    #repo-files-table .sha.label,
+    .timeline-item.commits-list .singular-commit .sha.label {
         border: 1px solid #bbbbbb;
 
         .ui.signature.avatar {
@@ -1342,8 +1484,12 @@
                 margin-right: 0;
             }
 
+            .svg {
+                margin: 0 .25em 0 0;
+            }
+
             > div {
-                display: inline-flex;
+                display: flex;
                 align-items: center;
             }
         }
@@ -1430,6 +1576,16 @@
         background: #ffffff;
         line-height: 30px;
 
+        &.sticky {
+            position: sticky;
+            top: 0;
+            z-index: 8;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4d4d5;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
         > div:after {
             clear: both;
             content: "";
@@ -1480,7 +1636,7 @@
                 height: 12px;
                 width: 40px;
                 display: inline-block;
-                margin: 2px 4px 0 4px;
+                margin: 2px 4px 0;
                 vertical-align: text-top;
 
                 .add {
@@ -1512,20 +1668,14 @@
             .lines-num {
                 text-align: right;
                 color: #a6a6a6;
-                background: #fafafa;
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
-                vertical-align: top;
 
                 span.fold {
                     display: block;
                     text-align: center;
                 }
-            }
-
-            .lines-num-old {
-                border-right: 1px solid #dddddd;
             }
         }
 
@@ -1538,10 +1688,12 @@
             }
 
             .lines-num {
-                border-color: #d4d4d5;
-                border-right-width: 1px;
-                border-right-style: solid;
                 padding: 0 5px !important;
+            }
+
+            .tag-code .lines-num,
+            .tag-code td {
+                padding: 0 !important;
             }
 
             tbody {
@@ -1553,14 +1705,6 @@
 
                     td.center {
                         text-align: center;
-                    }
-
-                    .removed-code {
-                        background-color: #ff9999;
-                    }
-
-                    .added-code {
-                        background-color: #99ff99;
                     }
 
                     [data-line-num]::before {
@@ -1585,14 +1729,23 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffe0e0 !important;
-                border-color: #f1c0c0 !important;
+                background-color: #ffeef0;
+                border-color: #f1c0c0;
             }
 
             &.add-code td {
-                background-color: #d6fcd6 !important;
-                border-color: #c1e9c1 !important;
+                background-color: #e6ffed;
+                border-color: #bef5cb;
             }
+
+            &.del-code td.lines-num {
+                background-color: #ffe5e4;
+            }
+
+            &.add-code td.lines-num {
+                background-color: #cdffd8;
+            }
+
         }
 
         .code-diff-split {
@@ -1611,28 +1764,35 @@
                 &.del-code td:nth-child(4),
                 &.del-code td:nth-child(5),
                 &.del-code td:nth-child(6) {
-                    background-color: #fafafa;
+                    background-color: #fafbfc;
+                    border-right-color: #eaecef;
                 }
 
-                &.del-code td:nth-child(1),
-                &.del-code td:nth-child(2),
-                &.del-code td:nth-child(3),
-                td.del-code {
-                    background-color: #ffe0e0 !important;
-                    border-color: #f1c0c0 !important;
+                &.del-code {
+                    background-color: #ffeef0;
                 }
 
-                &.add-code td:nth-child(4),
-                &.add-code td:nth-child(5),
-                &.add-code td:nth-child(6),
-                td.add-code {
-                    background-color: #d6fcd6 !important;
-                    border-color: #c1e9c1 !important;
+                &.del-code td.add-code {
+                    background-color: #e6ffed;
+                }
+                &.del-code td.lines-num-new.add-code {
+                    background-color: #cdffd8;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code {
+                    background-color: #e6ffed;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code td.lines-num-new {
+                    background-color: #cdffd8;
                 }
 
                 td:nth-child(4) {
                     border-left-width: 1px;
                     border-left-style: solid;
+                    border-left-color: #f6f8fa;
                 }
             }
         }
@@ -1640,7 +1800,8 @@
         &.file-content {
             img {
                 max-width: 100%;
-                padding: 5px 5px 0 5px;
+                padding: 0;
+                border-radius: 0;
             }
             img.emoji {
                 padding: 0;
@@ -1907,10 +2068,6 @@
         &.view {
             .choose.page {
                 margin-top: -5px;
-            }
-
-            .ui.sub.header {
-                text-transform: none;
             }
 
             > .markdown {
@@ -2183,8 +2340,10 @@
 
             > .item {
                 float: left;
-                padding: .5rem .5rem !important;
+                padding: .5rem !important;
                 font-size: 1.5em;
+                width: 45px;
+                left: 13px;
 
                 img.emoji {
                     margin-right: 0;
@@ -2197,9 +2356,12 @@
         padding: 0;
         display: flex;
 
-        .ui.label {
+        .ui.label,
+        .ui.label.visible {
             max-height: 40px;
-            padding: 9px 15px 7px;
+            padding: .4rem .8rem;
+            display: flex !important;
+            align-items: center;
             border: 0;
             border-right: 1px solid;
             border-radius: 0;
@@ -2220,19 +2382,16 @@
         }
 
         .reaction-count {
-            margin-left: 4px;
+            margin-left: .5rem;
         }
 
         .select-reaction {
-            float: left;
-            padding: .4em;
-            line-height: 21px;
+            display: flex;
+            align-items: center;
+            padding: 0 .5rem;
 
             &:not(.active) a {
                 display: none;
-            }
-            > svg {
-                vertical-align: middle;
             }
         }
 
@@ -2273,6 +2432,24 @@
                 padding: 0;
                 margin: 0;
                 height: 100%;
+            }
+        }
+    }
+
+    &.diff .committed-by {
+        padding-top: .5rem;
+
+        .ui.avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            margin-right: .25rem;
+
+            svg {
+                vertical-align: text-bottom;
+                margin-right: 2px;
             }
         }
     }
@@ -2390,6 +2567,12 @@
             padding-top: 5px;
             color: #999999;
 
+            .waiting,
+            .approvals,
+            .rejects {
+                padding-left: 5px;
+            }
+
             .checklist {
                 padding-left: 5px;
 
@@ -2459,10 +2642,19 @@
 
 .ui.form {
     .dropzone {
-        width: 100%;
-        margin-bottom: 10px;
         border: 2px dashed #0087f5;
         box-shadow: none !important;
+        padding: 0;
+        min-height: 5rem;
+        border-radius: 4px;
+
+        .dz-button {
+            color: rgba(0, 0, 0, .6);
+        }
+
+        &:hover .dz-button {
+            color: rgba(0, 0, 0, .8);
+        }
 
         .dz-error-message {
             top: 140px;
@@ -2489,7 +2681,7 @@
             &:not(:first-child) {
                 border-top: 1px solid #eaeaea;
                 padding: 1rem;
-                margin: 15px -1rem -1rem -1rem;
+                margin: 15px -1rem -1rem;
             }
 
             > .svg {
@@ -2572,7 +2764,7 @@
         .precolors {
             padding-left: 0;
             padding-right: 0;
-            margin: 3px 10px auto 10px;
+            margin: 3px 10px auto;
             width: 120px;
 
             .color {
@@ -2612,7 +2804,10 @@
 }
 
 #transfer-repo-modal,
-#delete-repo-modal {
+#delete-repo-modal,
+#delete-wiki-modal,
+#convert-fork-repo-modal,
+#convert-mirror-repo-modal {
     .ui.message {
         width: 100% !important;
     }
@@ -2813,12 +3008,91 @@ tbody.commit-list {
     margin: 0 !important;
 }
 
+.tag-code {
+    height: 28px;
+}
+
 .tag-code,
 .tag-code td {
-    background-color: #f0f0f0 !important;
-    border-color: #d3cfcf !important;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    background-color: #f0f9ff;
+    border-color: #f1f8ff !important;
+    vertical-align: middle;
+}
+
+.board {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 .5em;
+}
+
+.board-column {
+    background-color: rgba(0, 0, 0, .05) !important;
+    border: 1px solid rgba(34, 36, 38, .15) !important;
+    margin: 0 .5rem !important;
+    padding: .5rem !important;
+    width: 320px;
+    height: 60vh;
+    overflow-y: scroll;
+    flex: 0 0 auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.board-column-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.board-label {
+    background: none !important;
+    line-height: 1.25 !important;
+}
+
+.board-column > .cards {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    .card .meta > a.milestone {
+        color: #999999;
+    }
+}
+
+.board-column > .divider {
+    margin: 5px 0;
+}
+
+.board-column:first-child {
+    margin-left: auto !important;
+}
+
+.board-column:last-child {
+    margin-right: auto !important;
+}
+
+.board-card {
+    margin: 3px !important;
+    width: auto !important;
+    background-color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.board-card .header {
+    font-size: 1.1em !important;
+}
+
+.board-card .content {
+    padding: 5px 8px !important;
+}
+
+.board-card .extra.content {
+    padding: 5px 8px !important;
 }
 
 td.blob-excerpt {
@@ -2864,4 +3138,37 @@ td.blob-excerpt {
 .repository.file .repository-summary {
     height: 48px;
     overflow: hidden;
+}
+
+.ui.form .right .ui.button {
+    margin-left: .25em;
+    margin-right: 0;
+}
+
+.removed-code {
+    background-color: #fdb8c0;
+}
+
+.added-code {
+    background-color: #acf2bd;
+}
+
+.repository .ui.menu.new-menu {
+    background: none !important;
+
+    @media only screen and (max-width: 1200px) {
+        &:after {
+            background: none !important;
+        }
+    }
+}
+
+.select-project .item {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+
+.select-project .item .svg {
+    margin-right: .5rem;
 }

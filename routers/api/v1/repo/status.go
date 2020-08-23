@@ -108,7 +108,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -160,7 +160,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -208,8 +208,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	}
 	repo := ctx.Repo.Repository
 
-	statuses, _, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
-		ListOptions: utils.GetListOptions(ctx),
+	listOptions := utils.GetListOptions(ctx)
+
+	statuses, maxResults, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
+		ListOptions: listOptions,
 		SortType:    ctx.QueryTrim("sort"),
 		State:       ctx.QueryTrim("state"),
 	})
@@ -222,6 +224,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	for _, status := range statuses {
 		apiStatuses = append(apiStatuses, status.APIFormat())
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 
 	ctx.JSON(http.StatusOK, apiStatuses)
 }

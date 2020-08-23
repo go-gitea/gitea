@@ -72,7 +72,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
-	Status            NotificationStatus
+	Status            []NotificationStatus
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
 }
@@ -89,8 +89,8 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
 	}
-	if opts.Status != 0 {
-		cond = cond.And(builder.Eq{"notification.status": opts.Status})
+	if len(opts.Status) > 0 {
+		cond = cond.And(builder.In("notification.status", opts.Status))
 	}
 	if opts.UpdatedAfterUnix != 0 {
 		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
@@ -716,6 +716,21 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 		And("status = ?", status).
 		Count(&Notification{})
 	return
+}
+
+// UserIDCount is a simple coalition of UserID and Count
+type UserIDCount struct {
+	UserID int64
+	Count  int64
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
+	sql := `SELECT user_id, count(*) AS count FROM notification ` +
+		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
+		`updated_unix < ?) AND status = ? GROUP BY user_id`
+	var res []UserIDCount
+	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
 func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {

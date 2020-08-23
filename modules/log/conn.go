@@ -77,6 +77,13 @@ func (i *connWriter) connect() error {
 	return nil
 }
 
+func (i *connWriter) releaseReopen() error {
+	if i.innerWriter != nil {
+		return i.connect()
+	}
+	return nil
+}
+
 // ConnLogger implements LoggerProvider.
 // it writes messages in keep-live tcp connection.
 type ConnLogger struct {
@@ -117,6 +124,11 @@ func (log *ConnLogger) Flush() {
 // GetName returns the default name for this implementation
 func (log *ConnLogger) GetName() string {
 	return "conn"
+}
+
+// ReleaseReopen causes the ConnLogger to reconnect to the server
+func (log *ConnLogger) ReleaseReopen() error {
+	return log.out.(*connWriter).releaseReopen()
 }
 
 func init() {

@@ -5,9 +5,11 @@
 		<div class="ui three column stackable grid">
 			<div class="column">
 				<h3>{{.Milestone.Name}}</h3>
+				<div class="content">
+					{{.Milestone.RenderedContent|Str2html}}
+				</div>
 			</div>
 			<div class="column center aligned">
-
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
@@ -186,7 +188,33 @@
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
 					{{end}}
-					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
+
+					{{if .IsClosed}}
+						{{if .IsPull}}
+							{{if .PullRequest.HasMerged}}
+								<div class="ui purple label">#{{.Index}}</div>
+								<a class="ui purple text">{{svg "octicon-git-pull-request" 16}}</a>
+							{{else}}
+								<div class="ui red label">#{{.Index}}</div>
+								<a class="ui red text">{{svg "octicon-git-pull-request" 16}}</a>
+							{{end}}
+						{{else}}
+							<div class="ui red label">#{{.Index}}</div>
+							<a class="ui red text">{{svg "octicon-issue-closed" 16}}</a>
+						{{end}}
+					{{else}}
+						{{if .IsRead}}
+							<div class="ui white label">#{{.Index}}</div>
+						{{else}}
+							<div class="ui green label">#{{.Index}}</div>
+						{{end}}
+						{{if .IsPull}}
+							<a class="ui green text">{{svg "octicon-git-pull-request" 16}}</a>
+						{{else}}
+							<a class="ui green text">{{svg "octicon-issue-opened" 16}}</a>
+						{{end}}
+					{{end}}
+
 					<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
 
 					{{if .IsPull }}
@@ -218,8 +246,8 @@
 						{{end}}
 
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
-								{{svg "octicon-git-branch" 16}} {{.Ref}}
+							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
+								{{svg "octicon-git-branch" 16}} {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
@@ -249,7 +277,7 @@
 							{{end}}
 
 							{{if gt $rejectOfficial 0}}
-								<span class="rejects">{{svg "octicon-request-changes" 16}}
+								<span class="rejects">{{svg "octicon-diff" 16}}
 									{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 								</span>
 							{{end}}
@@ -261,7 +289,7 @@
 							{{end}}
 
 							{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-								<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+								<span class="conflicting">{{svg "octicon-x" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 							{{end}}
 						{{end}}
 					</p>

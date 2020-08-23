@@ -26,6 +26,14 @@ import (
 
 // Deliver deliver hook task
 func Deliver(t *models.HookTask) error {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst delivering a hook...
+		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, t.URL, err, log.Stack(2))
+	}()
 	t.IsDelivered = true
 
 	var req *http.Request
@@ -69,15 +77,18 @@ func Deliver(t *models.HookTask) error {
 		if err != nil {
 			return err
 		}
+	case http.MethodPut:
+		switch t.Type {
+		case models.MATRIX:
+			req, err = getMatrixHookRequest(t)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+		}
 	default:
 		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
-	}
-
-	if t.Type == models.MATRIX {
-		req, err = getMatrixHookRequest(t)
-		if err != nil {
-			return err
-		}
 	}
 
 	req.Header.Add("X-Gitea-Delivery", t.UUID)

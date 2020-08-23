@@ -82,12 +82,14 @@ type Repository struct {
 	HasWiki                   bool             `json:"has_wiki"`
 	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests           bool             `json:"has_pull_requests"`
+	HasProjects               bool             `json:"has_projects"`
 	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                bool             `json:"allow_merge_commits"`
 	AllowRebase               bool             `json:"allow_rebase"`
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
+	Internal                  bool             `json:"internal"`
 }
 
 // CreateRepoOption options when creating repository
@@ -146,6 +148,8 @@ type EditRepoOption struct {
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
+	// either `true` to enable project unit, or `false` to disable them.
+	HasProjects *bool `json:"has_projects,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
@@ -158,6 +162,22 @@ type EditRepoOption struct {
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
+}
+
+// CreateBranchRepoOption options when creating a branch in a repository
+// swagger:model
+type CreateBranchRepoOption struct {
+
+	// Name of the branch to create
+	//
+	// required: true
+	// unique: true
+	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
+
+	// Name of the old branch to create from
+	//
+	// unique: true
+	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

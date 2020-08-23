@@ -20,14 +20,14 @@ func TestMatrixIssuesPayloadOpened(t *testing.T) {
 
 	p.Action = api.HookIssueOpened
 	pl, err := getMatrixIssuesPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue opened: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
 	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
 
 	p.Action = api.HookIssueClosed
 	pl, err = getMatrixIssuesPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue closed: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
 	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue closed: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
@@ -39,7 +39,7 @@ func TestMatrixIssueCommentPayload(t *testing.T) {
 	sl := &MatrixMeta{}
 
 	pl, err := getMatrixIssueCommentPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on issue [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
@@ -52,7 +52,7 @@ func TestMatrixPullRequestCommentPayload(t *testing.T) {
 	sl := &MatrixMeta{}
 
 	pl, err := getMatrixIssueCommentPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on pull request [#2 Fix bug](http://localhost:3000/test/repo/pulls/2) by [user1](https://try.gitea.io/user1)", pl.Body)
@@ -65,7 +65,7 @@ func TestMatrixReleasePayload(t *testing.T) {
 	sl := &MatrixMeta{}
 
 	pl, err := getMatrixReleasePayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Release created: [v1.0](http://localhost:3000/test/repo/src/v1.0) by [user1](https://try.gitea.io/user1)", pl.Body)
@@ -78,7 +78,7 @@ func TestMatrixPullRequestPayload(t *testing.T) {
 	sl := &MatrixMeta{}
 
 	pl, err := getMatrixPullRequestPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#2 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
@@ -148,9 +148,38 @@ func TestMatrixHookRequest(t *testing.T) {
 }`
 
 	req, err := getMatrixHookRequest(h)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, req)
 
 	assert.Equal(t, "Bearer dummy_access_token", req.Header.Get("Authorization"))
 	assert.Equal(t, wantPayloadContent, h.PayloadContent)
+}
+
+func Test_getTxnID(t *testing.T) {
+	type args struct {
+		payload []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "dummy payload",
+			args:    args{payload: []byte("Hello World")},
+			want:    "0a4d55a8d778e5022fab701977c5d840bbc486d0",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getMatrixTxnID(tt.args.payload)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getMatrixTxnID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

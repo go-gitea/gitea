@@ -52,10 +52,14 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 		urlPrefixHostname = prefixURL.Host
 	}
 
+	if strings.HasSuffix(urlPrefix, "/") {
+		urlPrefix = urlPrefix[:len(urlPrefix)-1]
+	}
+
 	// FIXME: Need to consider branch - which will require changes in modules/git/commit.go:GetSubModules
 	// Relative url prefix check (according to git submodule documentation)
 	if strings.HasPrefix(refURI, "./") || strings.HasPrefix(refURI, "../") {
-		return urlPrefix + path.Clean(path.Join(repoFullName, refURI))
+		return urlPrefix + path.Clean(path.Join("/", repoFullName, refURI))
 	}
 
 	if !strings.Contains(refURI, "://") {
@@ -73,7 +77,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 			}
 
 			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + urlPrefixHostname + path.Join(prefixURL.Path, path.Clean(pth))
+				return urlPrefix + path.Clean(path.Join("/", pth))
 			}
 			return "http://" + refHostname + pth
 		}
@@ -93,13 +97,13 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 
 	for _, scheme := range supportedSchemes {
 		if ref.Scheme == scheme {
-			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + prefixURL.Host + path.Join(prefixURL.Path, ref.Path)
-			} else if ref.Scheme == "http" || ref.Scheme == "https" {
+			if ref.Scheme == "http" || ref.Scheme == "https" {
 				if len(ref.User.Username()) > 0 {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
 				}
 				return ref.Scheme + "://" + ref.Host + ref.Path
+			} else if urlPrefixHostname == refHostname {
+				return urlPrefix + path.Clean(path.Join("/", ref.Path))
 			} else {
 				return "http://" + refHostname + ref.Path
 			}

@@ -21,9 +21,9 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// GetSingleCommitBySHA get a commit via sha
-func GetSingleCommitBySHA(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommitBySHA
+// GetSingleCommit get a commit via sha
+func GetSingleCommit(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
 	// ---
 	// summary: Get a single commit from a repository
 	// produces:
@@ -41,7 +41,7 @@ func GetSingleCommitBySHA(ctx *context.APIContext) {
 	//   required: true
 	// - name: sha
 	//   in: path
-	//   description: the commit hash
+	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
 	// responses:
@@ -53,52 +53,11 @@ func GetSingleCommitBySHA(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if !git.SHAPattern.MatchString(sha) {
-		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid sha: %s", sha))
+	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
 	getCommit(ctx, sha)
-}
-
-// GetSingleCommitByRef get a commit via ref
-func GetSingleCommitByRef(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref} repository repoGetSingleCommitByRef
-	// ---
-	// summary: Get a single commit from a repository
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: ref
-	//   in: path
-	//   description: a git ref
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Commit"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	ref := ctx.Params("ref")
-
-	if validation.GitRefNamePatternInvalid.MatchString(ref) || !validation.CheckGitRefAdditionalRulesValid(ref) {
-		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid ref: %s", ref))
-		return
-	}
-
-	getCommit(ctx, ref)
 }
 
 func getCommit(ctx *context.APIContext, identifier string) {
@@ -150,7 +109,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -243,13 +202,16 @@ func GetAllCommits(ctx *context.APIContext) {
 		i++
 	}
 
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-
+	// kept for backwards compatibility
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
 	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
@@ -337,7 +299,7 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 				},
 				Date: commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Summary(),
+			Message: commit.Message(),
 			Tree: &api.CommitMeta{
 				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),
