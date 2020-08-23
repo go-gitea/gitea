@@ -76,6 +76,23 @@ func TestParsePatch(t *testing.T) {
 	}
 	println(result)
 
+	var diff2a = `diff --git "a/A \\ B" b/A/B
+--- "a/A \\ B"
++++ b/A/B
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+	println(result)
+
 	var diff3 = `diff --git a/README.md b/README.md
 --- a/README.md
 +++ b/README.md
