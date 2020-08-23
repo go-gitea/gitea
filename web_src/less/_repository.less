@@ -345,8 +345,8 @@
             }
 
             td {
-                padding-top: 8px;
-                padding-bottom: 8px;
+                padding-top: 0;
+                padding-bottom: 0;
                 overflow: initial;
 
                 &.name {
@@ -361,13 +361,18 @@
                     width: 120px;
                 }
 
-                .truncate {
+                > a {
+                    width: calc(100% - 8px); /* prevent overflow into adjacant cell */
                     display: inline-block;
-                    max-width: 100%;
+                    padding-top: 8px;
+                    padding-bottom: 8px;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    vertical-align: top;
                     white-space: nowrap;
+                }
+
+                > * {
+                    vertical-align: middle;
                 }
             }
 
@@ -2340,9 +2345,10 @@
 
             > .item {
                 float: left;
-                padding: .5rem !important;
+                padding: .25rem !important;
+                margin: .25rem;
                 font-size: 1.5em;
-                width: 45px;
+                width: 39px;
                 left: 13px;
 
                 img.emoji {
@@ -2356,10 +2362,9 @@
         padding: 0;
         display: flex;
 
-        .ui.label,
-        .ui.label.visible {
+        .ui.label {
             max-height: 40px;
-            padding: .4rem .8rem;
+            padding: 7px 18px;
             display: flex !important;
             align-items: center;
             border: 0;
@@ -2367,7 +2372,7 @@
             border-radius: 0;
             margin: 0;
             font-size: 14px;
-            font-weight: 100;
+            font-weight: normal;
             border-color: inherit !important;
 
             &.disabled {
@@ -2388,10 +2393,21 @@
         .select-reaction {
             display: flex;
             align-items: center;
-            padding: 0 .5rem;
+            padding: 0 14px;
 
             &:not(.active) a {
                 display: none;
+            }
+
+            .item {
+                border-radius: 6px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .item:hover {
+                background: #4183c4;
             }
         }
 
