@@ -87,9 +87,9 @@
 					{{if .Issue.PullRequest.MergedCommitID}}
 						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL .Issue.PullRequest.MergedCommitID}}
 						{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.i18n.Tr "repo.pulls.manually_merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+							{{$.i18n.Tr "repo.pulls.manually_merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
 						{{else}}
-						{{$.i18n.Tr "repo.pulls.merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+							{{$.i18n.Tr "repo.pulls.merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
 						{{end}}
 					{{else}}
 						{{$.i18n.Tr "repo.pulls.has_merged"}}
@@ -303,20 +303,20 @@
 							</div>
 							{{end}}
 							{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
-							<div class="ui form manually-merged-fields" style="display: none">
-								<form action="{{.Link}}/merge" method="post">
-									{{.CsrfTokenHtml}}
-									<div class="field">
-										<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
-									</div>
-									<button class="ui red button" type="submit" name="do" value="manually-merged">
-										{{$.i18n.Tr "repo.pulls.merge_manually"}}
-									</button>
-									<button class="ui button merge-cancel">
-										{{$.i18n.Tr "cancel"}}
-									</button>
-								</form>
-							</div>
+								<div class="ui form manually-merged-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										<div class="field">
+											<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
+										</div>
+										<button class="ui red button" type="submit" name="do" value="manually-merged">
+											{{$.i18n.Tr "repo.pulls.merge_manually"}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
 							{{end}}
 							<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
@@ -355,7 +355,7 @@
 										<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
 										{{end}}
 										{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
-										<div class="item{{if eq .MergeStyle "manually-merged"}} active selected{{end}}" data-do="manually-merged">{{$.i18n.Tr "repo.pulls.merge_manually"}}</div>
+											<div class="item{{if eq .MergeStyle "manually-merged"}} active selected{{end}}" data-do="manually-merged">{{$.i18n.Tr "repo.pulls.merge_manually"}}</div>
 										{{end}}
 									</div>
 								</div>
