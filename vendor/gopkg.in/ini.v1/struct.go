@@ -479,7 +479,7 @@ func reflectSliceWithProperType(key *Key, field reflect.Value, delim string, all
 				_ = keyWithShadows.AddShadow(val)
 			}
 		}
-		key = keyWithShadows
+		*key = *keyWithShadows
 		return nil
 	}
 
