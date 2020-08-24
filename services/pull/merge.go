@@ -595,7 +595,7 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (er error) {
+func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
 	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
 	if err != nil {
 		return
@@ -630,7 +630,8 @@ func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if merged, err := pr.SetMerged(); err != nil {
+	merged := false
+	if merged, err = pr.SetMerged(); err != nil {
 		return
 	} else if !merged {
 		return fmt.Errorf("SetMerged failed")
