@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// GetCron api for getting cron tasks
-func GetCron(ctx *context.APIContext) {
+// ListCronTasks api for getting cron tasks
+func ListCronTasks(ctx *context.APIContext) {
 	// swagger:operation GET /admin/cron admin adminCronList
 	// ---
 	// summary: List cron tasks
