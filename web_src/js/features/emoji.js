@@ -24,7 +24,7 @@ for (const key of emojiKeys) {
 export function emojiHTML(name) {
   let inner;
   if (name === 'gitea') {
-    inner = `<img class="emoji" alt=":${name}:" src="${StaticUrlPrefix}/img/emoji/gitea.png" align="absmiddle">`;
+    inner = `<img alt=":${name}:" src="${StaticUrlPrefix}/img/emoji/gitea.png">`;
   } else {
     inner = emojiString(name);
   }
