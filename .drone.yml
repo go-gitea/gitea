@@ -548,8 +548,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.15.x
     commands:
-      - apt update && apt -y install curl
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
