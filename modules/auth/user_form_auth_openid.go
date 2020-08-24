@@ -25,6 +25,7 @@ type SignUpOpenIDForm struct {
 	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
+	HcaptchaResponse   string `form:"h-captcha-response"`
 }
 
 // Validate validates the fields

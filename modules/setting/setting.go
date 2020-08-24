@@ -61,6 +61,7 @@ const (
 const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
+	HCaptcha     = "hcaptcha"
 )
 
 // settings

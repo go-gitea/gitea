@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
@@ -373,6 +374,13 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 				return
 			}
 			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			err := ctx.Req.ParseForm()
+			if err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, _ = hcaptcha.Verify(form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
@@ -901,6 +902,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, _ = hcaptcha.Verify(form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1078,6 +1081,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, _ = hcaptcha.Verify(form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
