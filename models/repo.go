@@ -2254,6 +2254,11 @@ func (repo *Repository) relAvatarLink(e Engine) string {
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
 
+// AvatarLink returns a link to the repository's avatar.
+func (repo *Repository) AvatarLink() string {
+	return repo.avatarLink(x)
+}
+
 // avatarLink returns user avatar absolute link.
 func (repo *Repository) avatarLink(e Engine) string {
 	link := repo.relAvatarLink(e)
