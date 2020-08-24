@@ -100,6 +100,11 @@ func isAPIPath(ctx *macaron.Context) bool {
 	return strings.HasPrefix(ctx.Req.URL.Path, "/api/")
 }
 
+// isInternalPath returns true if the specified URL is an internal API path
+func isInternalPath(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/api/internal/")
+}
+
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(ctx *macaron.Context) bool {
 	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"

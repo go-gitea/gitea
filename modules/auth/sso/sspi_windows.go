@@ -148,6 +148,8 @@ func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) (shouldAuth bool) {
 		} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
+	} else if isInternalPath(ctx) {
+		shouldAuth = false
 	} else if isAPIPath(ctx) || isAttachmentDownload(ctx) {
 		shouldAuth = true
 	}

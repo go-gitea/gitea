@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1595,7 +1596,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
-		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
 	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
@@ -1720,12 +1721,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
+		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	if len(repo.Avatar) > 0 {
