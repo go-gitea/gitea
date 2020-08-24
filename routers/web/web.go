@@ -262,6 +262,11 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: User *****
 	m.Group("/user", func() {
+		m.Group("/kitspace", func() {
+			m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.KitspaceSignUp)
+			m.Post("/sign_in", bindIgnErr(auth.SignInForm{}), user.KitspaceSignIn)
+		})
+
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(forms.SignInForm{}), user.SignInPost)
 		m.Group("", func() {
