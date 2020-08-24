@@ -613,6 +613,9 @@ func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.
 
 	commit, err := baseGitRepo.GetCommit(commitID)
 	if err != nil {
+		if git.IsErrNotExist(err) {
+			return fmt.Errorf("Wrong commit ID")
+		}
 		return
 	}
 
