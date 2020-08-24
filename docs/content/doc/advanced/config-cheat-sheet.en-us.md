@@ -323,7 +323,7 @@ set name for unique queues. Individual queues will default to
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
-- `PASSWORD_COMPLEXITY`: **lower,upper,digit,spec**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, the default values will be used. Possible values are: 
+- `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
     - lower - use one or more lower latin characters
     - upper - use one or more upper latin characters
     - digit - use one or more digits

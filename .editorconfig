@@ -11,7 +11,7 @@ trim_trailing_whitespace = false
 
 [*.{go,tmpl,html}]
 indent_style = tab
-indent_size = 4
+indent_size = 2
 
 [*.{less,css}]
 indent_style = space
