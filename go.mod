@@ -14,7 +14,7 @@ require (
 	gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
 	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-	gitea.com/macaron/macaron v1.4.0
+	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
