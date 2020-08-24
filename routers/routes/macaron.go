@@ -155,6 +155,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
 	bindIgnErr := binding.BindIgnErr
+	bind := binding.Bind
 	validation.AddBindingRules()
 
 	openIDSignInEnabled := func(ctx *context.Context) {
@@ -207,6 +208,11 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 
 	// ***** START: User *****
 	m.Group("/user", func() {
+		m.Group("/kitspace", func() {
+			m.Post("/sign_up", bind(auth.RegisterForm{}), user.KitspaceSignUp)
+			m.Post("/sign_in", bind(auth.SignInForm{}), user.KitspaceSignIn)
+		})
+
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
 		m.Group("", func() {
