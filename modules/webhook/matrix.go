@@ -5,6 +5,7 @@
 package webhook
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -291,7 +292,14 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 	}
 	t.PayloadContent = string(payload)
 
-	req, err := http.NewRequest("POST", t.URL, strings.NewReader(string(payload)))
+	txnID, err := getMatrixTxnID(payload)
+	if err != nil {
+		return nil, fmt.Errorf("getMatrixHookRequest: unable to hash payload: %+v", err)
+	}
+
+	t.URL = fmt.Sprintf("%s/%s", t.URL, txnID)
+
+	req, err := http.NewRequest(t.HTTPMethod, t.URL, strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -300,4 +308,15 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 	req.Header.Add("Authorization", "Bearer "+payloadunsafe.AccessToken)
 
 	return req, nil
+}
+
+// getMatrixTxnID creates a txnID based on the payload to ensure idempotency
+func getMatrixTxnID(payload []byte) (string, error) {
+	h := sha1.New()
+	_, err := h.Write(payload)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }

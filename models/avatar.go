@@ -41,7 +41,18 @@ func AvatarLink(email string) string {
 			Email: lowerEmail,
 			Hash:  sum,
 		}
-		_, _ = x.Insert(emailHash)
+		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			// we don't care about any DB problem just return the lowerEmail
+			return lowerEmail, nil
+		}
+		_, _ = sess.Insert(emailHash)
+		if err := sess.Commit(); err != nil {
+			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+			return lowerEmail, nil
+		}
 		return lowerEmail, nil
 	})
 	return setting.AppSubURL + "/avatar/" + url.PathEscape(sum)

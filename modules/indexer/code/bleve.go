@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve"
 	analyzer_custom "github.com/blevesearch/bleve/analysis/analyzer/custom"
@@ -75,14 +76,14 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	if metadata.Version < latestVersion {
 		// the indexer is using a previous version, so we should delete it and
 		// re-populate
-		return nil, os.RemoveAll(path)
+		return nil, util.RemoveAll(path)
 	}
 
 	index, err := bleve.Open(path)
 	if err != nil && err == upsidedown.IncompatibleVersion {
 		// the indexer was built with a previous version of bleve, so we should
 		// delete it and re-populate
-		return nil, os.RemoveAll(path)
+		return nil, util.RemoveAll(path)
 	} else if err != nil {
 		return nil, err
 	}

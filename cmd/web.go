@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
@@ -40,7 +41,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: "/var/run/gitea.pid",
+			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
 	},
@@ -109,7 +110,8 @@ func runWeb(ctx *cli.Context) error {
 
 	// Set pid file setting
 	if ctx.IsSet("pid") {
-		setting.CustomPID = ctx.String("pid")
+		setting.PIDFile = ctx.String("pid")
+		setting.WritePIDFile = true
 	}
 
 	// Perform global initialization
@@ -156,7 +158,7 @@ func runWeb(ctx *cli.Context) error {
 
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
-		listenAddr += ":" + setting.HTTPPort
+		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 
