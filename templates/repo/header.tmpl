@@ -99,6 +99,15 @@
 					</a>
 				{{end}}
 
+				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
+						{{svg "octicon-project" 16}} {{.i18n.Tr "repo.project_board"}}
+						<span class="ui {{if not .Repository.NumOpenProjects}}gray{{else}}blue{{end}} small label">
+							{{.Repository.NumOpenProjects}}
+						</span>
+					</a>
+				{{ end }}
+
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag" 16}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{.NumReleases}}</span>

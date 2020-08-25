@@ -4,6 +4,7 @@
 import './publicpath.js';
 
 import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
@@ -11,10 +12,12 @@ import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
 import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -23,10 +26,6 @@ import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -134,15 +133,15 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  $('.color-picker').each(function () {
-    $(this).minicolors();
-  });
+  createColorPicker($('.color-picker'));
+
   $('.precolors .color').on('click', function () {
     const color_hex = $(this).data('color-hex');
     $('.color-picker').val(color_hex);
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
+    $('.color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
@@ -527,12 +526,16 @@ function initCommentForm() {
       switch (input_id) {
         case '#milestone_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
+            htmlEscape($(this).text())}</a>`);
+          break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEscape($(this).text())}</a>`);
           break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+                          htmlEscape($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
@@ -558,7 +561,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -1943,7 +1947,7 @@ function searchUsers() {
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -2219,7 +2223,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -2487,6 +2491,7 @@ $(document).ready(async () => {
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initProject(),
     initServiceWorker(),
     initNotificationCount(),
     renderMarkdownContent(),
@@ -3499,8 +3504,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });

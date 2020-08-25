@@ -1,8 +1,5 @@
 extends: stylelint-config-standard
 
-ignoreFiles:
-  - web_src/less/vendor/**/*
-
 rules:
   at-rule-empty-line-before: null
   block-closing-brace-empty-line-before: null
