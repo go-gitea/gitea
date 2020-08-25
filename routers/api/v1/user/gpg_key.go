@@ -118,12 +118,12 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
-	key, err := models.AddGPGKey(uid, form.ArmoredKey)
+	keys, err := models.AddGPGKey(uid, form.ArmoredKey)
 	if err != nil {
 		HandleAddGPGKeyError(ctx, err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToGPGKey(key))
+	ctx.JSON(http.StatusCreated, convert.ToGPGKey(keys[0]))
 }
 
 // swagger:parameters userCurrentPostGPGKey

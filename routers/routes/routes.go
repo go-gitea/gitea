@@ -536,6 +536,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -860,24 +861,26 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
-			m.Get("/new", repo.NewProject)
-			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
-			m.Group("/:id", func() {
-				m.Get("", repo.ViewProject)
-				m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
-				m.Post("/delete", repo.DeleteProject)
+			m.Get("/:id", repo.ViewProject)
+			m.Group("", func() {
+				m.Get("/new", repo.NewProject)
+				m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+				m.Group("/:id", func() {
+					m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
+					m.Post("/delete", repo.DeleteProject)
 
-				m.Get("/edit", repo.EditProject)
-				m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
-				m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
+					m.Get("/edit", repo.EditProject)
+					m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
+					m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
 
-				m.Group("/:boardID", func() {
-					m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
-					m.Delete("", repo.DeleteProjectBoard)
+					m.Group("/:boardID", func() {
+						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
+						m.Delete("", repo.DeleteProjectBoard)
 
-					m.Post("/:index", repo.MoveIssueAcrossBoards)
+						m.Post("/:index", repo.MoveIssueAcrossBoards)
+					})
 				})
-			})
+			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
