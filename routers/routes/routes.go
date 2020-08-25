@@ -723,7 +723,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/new", func() {
 				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
 					Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
-				m.Get("/choose", context.RepoRef(), repo.NewIssueChoose)
+				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.

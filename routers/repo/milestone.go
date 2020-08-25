@@ -275,7 +275,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Milestone"] = milestone
 
 	issues(ctx, milestoneID, util.OptionalBoolNone)
-	ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)

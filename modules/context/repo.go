@@ -857,6 +857,10 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 		}
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".md") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue template is too large: %s", entry.Name())
+					continue
+				}
 				r, err := entry.Blob().DataAsync()
 				if err != nil {
 					log.Debug("DataAsync: %v", err)

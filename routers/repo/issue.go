@@ -358,7 +358,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
 	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
@@ -489,12 +489,12 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
 	if ctx.Query("template") != "" {
 		for _, dirName := range possibleDirs {
-			content, found := getFileContentFromDefaultBranch(ctx, path.Join(dirName, ctx.Query("template")))
+			templateContent, found := getFileContentFromDefaultBranch(ctx, path.Join(dirName, ctx.Query("template")))
 			if found {
 				var meta api.IssueTemplate
-				if contents, err := markdown.ExtractMetadata(content, &meta); err == nil {
+				if templateBody, err := markdown.ExtractMetadata(templateContent, &meta); err == nil {
 					ctx.Data[issueTemplateTitleKey] = meta.Title
-					ctx.Data[ctxDataKey] = contents
+					ctx.Data[ctxDataKey] = templateBody
 					labelIDs := make([]string, 0, len(meta.Labels))
 					if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
 						for _, labelName := range meta.Labels {
@@ -529,7 +529,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
@@ -563,14 +563,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(200, tplIssueNew)
 }
 
-// NewIssueChoose render creating issue from template page
-func NewIssueChoose(ctx *context.Context) {
+// NewIssueChooseTemplate render creating issue from template page
+func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["milestone"] = ctx.QueryInt64("milestone")
 
 	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
-	ctx.Data["NewIssueChoose"] = len(issueTemplates) > 0
+	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["IssueTemplates"] = issueTemplates
 
 	ctx.HTML(200, tplIssueChoose)
@@ -661,7 +661,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["ReadOnly"] = false
@@ -795,7 +795,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {

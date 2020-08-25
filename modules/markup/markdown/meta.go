@@ -28,14 +28,13 @@ func ExtractMetadata(contents string, out interface{}) (string, error) {
 	lines := strings.Split(contents, "\n")
 	for idx, line := range lines {
 		if seps == 2 {
-			body = append(body, lines[idx:]...)
+			front, body = lines[:idx], lines[idx:]
 			break
 		}
 		if isYAMLSeparator(line) {
 			seps++
 			continue
 		}
-		front = append(front, line)
 	}
 
 	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), out); err != nil {
