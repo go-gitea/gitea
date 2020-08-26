@@ -882,7 +882,6 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 		return
 	}
 
-
 	var isMember bool
 	if keyMap != nil {
 		var has bool
