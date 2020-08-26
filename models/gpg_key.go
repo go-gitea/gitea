@@ -868,10 +868,10 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 	}
 
 	// Now we drop to the more nuanced trust models...
+	verification.TrustStatus = "trusted"
 
 	if verification.SigningUser.ID == 0 {
 		// This commit is signed by the default key - but this key is not assigned to a user in the DB.
-		verification.TrustStatus = "trusted"
 
 		// However in the CollaboratorCommitterTrustModel we cannot mark this as trusted
 		// unless the default key matches the email of a non-user.
@@ -882,7 +882,6 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 		return
 	}
 
-	verification.TrustStatus = "trusted"
 
 	var isMember bool
 	if keyMap != nil {
