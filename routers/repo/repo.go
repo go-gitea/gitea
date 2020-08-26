@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -319,6 +318,9 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
+	// Plain git should be first
+	ctx.Data["service"] = structs.PlainGitService
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -352,15 +354,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = structs.PlainGitService
-	u, err := url.Parse(form.CloneAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
-	}
-
 	var opts = migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
+		GitServiceType: structs.GitServiceType(form.Service),
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -368,6 +364,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
+		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
