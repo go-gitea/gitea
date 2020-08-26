@@ -14,8 +14,8 @@ import (
 type UserPinnedRepo struct {
 	ID      int64 `xorm:"pk autoincr"`
 	UID     int64 `xorm:"INDEX NOT NULL"`
-	RepoID  int64 `xorm:"INDEX NOT NULL"`
-	IsOwned bool  `xorm:"INDEX NOT NULL"`
+	RepoID  int64 `xorm:"NOT NULL"`
+	IsOwned bool  `xorm:"NOT NULL"`
 }
 
 // AddPinnedRepo add a pinned repo
@@ -97,5 +97,16 @@ func (u *User) GetPinnedRepos(actor *User, onlyIncludeNotOwned, loadAttributes b
 		}
 	}
 
+	return
+}
+
+// ChangePinnedRepoIsOwndStatus change isPinned repo status for a repo
+func ChangePinnedRepoIsOwndStatus(repoID, oldOwnerID, newOwnerID int64) (err error) {
+	_, err = x.Exec("UPDATE `user_pinned_repo` SET is_owned=? WHERE uid=? AND repo_id=?", false, oldOwnerID, repoID)
+	if err != nil {
+		return
+	}
+
+	_, err = x.Exec("UPDATE `user_pinned_repo` SET is_owned=? WHERE uid=? AND repo_id=?", true, newOwnerID, repoID)
 	return
 }
