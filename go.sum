@@ -23,8 +23,8 @@ gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4 h1:e2rAFDejB0qN8OrY4xP
 gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4/go.mod h1:rtOK4J20kpMD9XcNsnO5YA843YSTe/MUMbDj/TJ/Q7A=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439 h1:88c34YM29a1GlWLrLBaG/GTT2htDdJz1u3n9+lmPolg=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439/go.mod h1:IsQPHx73HnnqFBYiVHjg87q4XBZyGXXu77xANukvZuk=
-gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae h1:OXxYwGmGNfYrC0/sUUL9KSvr2Sfvmzwgd2YD65vIjGE=
-gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae/go.mod h1:jGHtoovArcQj+sw7NJxyPgjuRxOSG9a/oFu3VkLRTKQ=
+gitea.com/macaron/gzip v0.0.0-20200826025450-161976698d9a h1:LbFxTi1MhHeoNEsqfHaaCERAkbNtrc4o/pG14cIOFIc=
+gitea.com/macaron/gzip v0.0.0-20200826025450-161976698d9a/go.mod h1:z8vCjuhqDfvzPUJDowGqbsgoeYBvDbl95S5k6y43Pxo=
 gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223 h1:iZWwQif/LHMjBgfY/ua8CFVa4XMDfbbs7EZ0Q1dYguU=
 gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223/go.mod h1:+qsc10s4hBsHKU/9luGGumFh4m5FFVc7uih+8/mM1NY=
 gitea.com/macaron/inject v0.0.0-20190803172902-8375ba841591/go.mod h1:h6E4kLao1Yko6DOU6QDnQPcuoNzvbZqzj2mtPcEn1aM=
@@ -489,8 +489,8 @@ github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvW
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/klauspost/compress v1.4.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.9.2/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
-github.com/klauspost/compress v1.10.2 h1:Znfn6hXZAHaLPNnlqUYRrBSReFHYybslgv4PTiyz6P0=
-github.com/klauspost/compress v1.10.2/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.10.11 h1:K9z59aO18Aywg2b/WSgBaUX99mHy2BES18Cr5lBKZHk=
+github.com/klauspost/compress v1.10.11/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/cpuid v1.2.0/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid v1.2.3 h1:CCtW0xUnWGVINKvE/WWOYKdsPV6mawAtvQuSl8guwQs=
 github.com/klauspost/cpuid v1.2.3/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
