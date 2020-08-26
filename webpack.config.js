@@ -4,17 +4,19 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const PostCSSPresetEnv = () => require('postcss-preset-env')({
-  features: {
-    'system-ui-font-family': false,
-  }
-});
+const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
 const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
+
+const postCssPresetEnvConfig = {
+  features: {
+    'system-ui-font-family': false,
+  }
+};
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
@@ -180,7 +182,7 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               plugins: () => [
-                PostCSSPresetEnv(),
+                PostCSSPresetEnv(postCssPresetEnvConfig),
               ],
               sourceMap: true,
             },
@@ -206,7 +208,7 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               plugins: () => [
-                PostCSSPresetEnv(),
+                PostCSSPresetEnv(postCssPresetEnvConfig),
               ],
               sourceMap: true,
             },
