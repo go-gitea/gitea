@@ -29,6 +29,11 @@ type RepoIndexerStatus struct {
 	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 
+// TableName sets the table name to `repo_indexer_status`
+func (repoIndexerStatus *RepoIndexerStatus) TableName() string {
+	return tbRepoIndexerStatus[1 : len(tbRepoIndexerStatus)-1]
+}
+
 // GetUnindexedRepos returns repos which do not have an indexer status
 func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)

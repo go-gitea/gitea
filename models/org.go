@@ -336,6 +336,11 @@ type OrgUser struct {
 	IsPublic bool  `xorm:"INDEX"`
 }
 
+// TableName sets the table name to `org_user`
+func (o *OrgUser) TableName() string {
+	return tbOrgUser[1 : len(tbOrgUser)-1]
+}
+
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
 	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {

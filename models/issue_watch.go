@@ -18,6 +18,11 @@ type IssueWatch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
+// TableName sets the table name to `issue_watch`
+func (i *IssueWatch) TableName() string {
+	return tbIssueWatch[1 : len(tbIssueWatch)-1]
+}
+
 // IssueWatchList contains IssueWatch
 type IssueWatchList []*IssueWatch
 

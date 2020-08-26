@@ -43,6 +43,11 @@ type Release struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
+// TableName sets the table name to `release`
+func (r *Release) TableName() string {
+	return tbRelease[1 : len(tbRelease)-1]
+}
+
 func (r *Release) loadAttributes(e Engine) error {
 	var err error
 	if r.Repo == nil {

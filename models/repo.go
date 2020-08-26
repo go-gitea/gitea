@@ -205,6 +205,11 @@ type Repository struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// TableName sets the table name to `repository`
+func (repo *Repository) TableName() string {
+	return tbRepository[1 : len(tbRepository)-1]
+}
+
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {

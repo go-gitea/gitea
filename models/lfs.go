@@ -26,6 +26,11 @@ type LFSMetaObject struct {
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
+// TableName sets the table name to `lfs_meta_object`
+func (m *LFSMetaObject) TableName() string {
+	return tbLfsMetaObject[1 : len(tbLfsMetaObject)-1]
+}
+
 // Pointer returns the string representation of an LFS pointer file
 func (m *LFSMetaObject) Pointer() string {
 	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)

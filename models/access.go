@@ -71,6 +71,11 @@ type Access struct {
 	Mode   AccessMode
 }
 
+// TableName sets the table name to `access`
+func (a *Access) TableName() string {
+	return tbAccess[1 : len(tbAccess)-1]
+}
+
 func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	var userID int64

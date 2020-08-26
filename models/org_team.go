@@ -102,6 +102,11 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	return teams, count, nil
 }
 
+// TableName sets the table name to `Tteam`
+func (t *Team) TableName() string {
+	return tbTeam[1 : len(tbTeam)-1]
+}
+
 // ColorFormat provides a basic color format for a Team
 func (t *Team) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
@@ -747,6 +752,11 @@ type TeamUser struct {
 	UID    int64 `xorm:"UNIQUE(s)"`
 }
 
+// TableName sets the table name to `team_user`
+func (t *TeamUser) TableName() string {
+	return tbTeamUser[1 : len(tbTeamUser)-1]
+}
+
 func isTeamMember(e Engine, orgID, teamID, userID int64) (bool, error) {
 	return e.
 		Where("org_id=?", orgID).
@@ -988,6 +998,11 @@ type TeamRepo struct {
 	RepoID int64 `xorm:"UNIQUE(s)"`
 }
 
+// TableName sets the table name to `team_repo`
+func (t *TeamRepo) TableName() string {
+	return tbTeamRepo[1 : len(tbTeamRepo)-1]
+}
+
 func hasTeamRepo(e Engine, orgID, teamID, repoID int64) bool {
 	has, _ := e.
 		Where("org_id=?", orgID).
@@ -1042,6 +1057,11 @@ type TeamUnit struct {
 	OrgID  int64    `xorm:"INDEX"`
 	TeamID int64    `xorm:"UNIQUE(s)"`
 	Type   UnitType `xorm:"UNIQUE(s)"`
+}
+
+// TableName sets the table name to `team_unit`
+func (t *TeamUnit) TableName() string {
+	return tbTeamUnit[1 : len(tbTeamUnit)-1]
 }
 
 // Unit returns Unit

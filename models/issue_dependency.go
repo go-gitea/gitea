@@ -20,6 +20,11 @@ type IssueDependency struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
+//TableName sets the table name to `issue_dependency`
+func (issueDependency *IssueDependency) TableName() string {
+	return tbIssueDependency[1 : len(tbIssueDependency)-1]
+}
+
 // DependencyType Defines Dependency Type Constants
 type DependencyType int
 

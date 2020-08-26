@@ -20,6 +20,11 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
+// TableName sets the table name to `stop_watch`
+func (sw *Stopwatch) TableName() string {
+	return tbStopwatch[1 : len(tbStopwatch)-1]
+}
+
 // Stopwatches is a List ful of Stopwatch
 type Stopwatches []Stopwatch
 

@@ -25,6 +25,11 @@ type TrackedTime struct {
 	Deleted     bool      `xorm:"NOT NULL DEFAULT false"`
 }
 
+// TableName sets the table name to `tracked_time`
+func (t *TrackedTime) TableName() string {
+	return tbTrackedTime[1 : len(tbTrackedTime)-1]
+}
+
 // TrackedTimeList is a List of TrackedTime's
 type TrackedTimeList []*TrackedTime
 

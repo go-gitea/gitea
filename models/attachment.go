@@ -33,6 +33,11 @@ type Attachment struct {
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
+// TableName sets the table name to `attachment`
+func (a *Attachment) TableName() string {
+	return tbAttachment[1 : len(tbAttachment)-1]
+}
+
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.

@@ -38,6 +38,11 @@ type Milestone struct {
 	TotalTrackedTime int64 `xorm:"-"`
 }
 
+// TableName sets the table name to `milestone`
+func (m *Milestone) TableName() string {
+	return tbMilestone[1 : len(tbMilestone)-1]
+}
+
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Milestone) BeforeUpdate() {
 	if m.NumIssues > 0 {

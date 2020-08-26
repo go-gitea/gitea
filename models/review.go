@@ -73,6 +73,11 @@ type Review struct {
 	Comments []*Comment `xorm:"-"`
 }
 
+// TableName sets the table name to `review`
+func (r *Review) TableName() string {
+	return tbReview[1 : len(tbReview)-1]
+}
+
 func (r *Review) loadCodeComments(e Engine) (err error) {
 	if r.CodeComments != nil {
 		return

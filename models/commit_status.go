@@ -38,6 +38,11 @@ type CommitStatus struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// TableName sets the table name to `commit_status`
+func (status *CommitStatus) TableName() string {
+	return tbCommitStatus[1 : len(tbCommitStatus)-1]
+}
+
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)

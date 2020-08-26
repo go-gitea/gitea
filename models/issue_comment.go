@@ -197,6 +197,11 @@ type PushActionContent struct {
 	CommitIDs   []string `json:"commit_ids"`
 }
 
+// TableName sets the table name to `comment`
+func (c *Comment) TableName() string {
+	return tbComment[1 : len(tbComment)-1]
+}
+
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
 	return c.loadIssue(x)

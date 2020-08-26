@@ -19,6 +19,11 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+// TableName sets the table name to `issue_assignees`
+func (ia *IssueAssignees) TableName() string {
+	return tbIssueAssignees[1 : len(tbIssueAssignees)-1]
+}
+
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees() error {
 	return issue.loadAssignees(x)

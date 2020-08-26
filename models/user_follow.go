@@ -11,6 +11,11 @@ type Follow struct {
 	FollowID int64 `xorm:"UNIQUE(follow)"`
 }
 
+// TableName sets the table name to `follow`
+func (f *Follow) TableName() string {
+	return tbFollow[1 : len(tbFollow)-1]
+}
+
 // IsFollowing returns true if user is following followID.
 func IsFollowing(userID, followID int64) bool {
 	has, _ := x.Get(&Follow{UserID: userID, FollowID: followID})

@@ -32,10 +32,20 @@ type Topic struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+//TableName sets the table name to `topic`
+func (t *Topic) TableName() string {
+	return tbTopic[1 : len(tbTopic)-1]
+}
+
 // RepoTopic represents associated repositories and topics
 type RepoTopic struct {
 	RepoID  int64 `xorm:"UNIQUE(s)"`
 	TopicID int64 `xorm:"UNIQUE(s)"`
+}
+
+//TableName sets the table name to `repo_topic`
+func (r *RepoTopic) TableName() string {
+	return tbRepoTopic[1 : len(tbRepoTopic)-1]
 }
 
 // ErrTopicNotExist represents an error that a topic is not exist

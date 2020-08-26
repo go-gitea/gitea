@@ -19,6 +19,11 @@ type Collaboration struct {
 	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
 }
 
+// TableName sets the table name to `collaboration`
+func (c *Collaboration) TableName() string {
+	return tbCollaboration[1 : len(tbCollaboration)-1]
+}
+
 func (repo *Repository) addCollaborator(e Engine, u *User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,

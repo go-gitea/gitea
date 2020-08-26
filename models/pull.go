@@ -67,6 +67,11 @@ type PullRequest struct {
 	isHeadRepoLoaded bool `xorm:"-"`
 }
 
+// TableName sets the table name to `pull_request`
+func (pr *PullRequest) TableName() string {
+	return tbPullRequest[1 : len(tbPullRequest)-1]
+}
+
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {

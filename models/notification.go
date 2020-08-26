@@ -66,6 +66,11 @@ type Notification struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
+// TableName sets the table name to `notification`
+func (n *Notification) TableName() string {
+	return tbNotification[1 : len(tbNotification)-1]
+}
+
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
 type FindNotificationOptions struct {
 	ListOptions

@@ -32,6 +32,11 @@ type EmailAddress struct {
 	IsPrimary   bool `xorm:"-"`
 }
 
+// TableName sets the table name to `email_address`
+func (email *EmailAddress) TableName() string {
+	return tbEmailAddress[1 : len(tbEmailAddress)-1]
+}
+
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)

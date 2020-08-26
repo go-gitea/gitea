@@ -11,6 +11,11 @@ type Star struct {
 	RepoID int64 `xorm:"UNIQUE(s)"`
 }
 
+// TableName sets the table name to `star`
+func (s *Star) TableName() string {
+	return tbStar[1 : len(tbStar)-1]
+}
+
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
 	sess := x.NewSession()

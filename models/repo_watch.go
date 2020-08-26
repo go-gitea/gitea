@@ -32,6 +32,11 @@ type Watch struct {
 	Mode   RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
+// TableName sets the table name to `watch`
+func (w *Watch) TableName() string {
+	return tbWatch[1 : len(tbWatch)-1]
+}
+
 // getWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
 func getWatch(e Engine, userID, repoID int64) (Watch, error) {
 	watch := Watch{UserID: userID, RepoID: repoID}

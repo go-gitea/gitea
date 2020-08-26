@@ -83,6 +83,11 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
+// TableName sets the table name to `issue`
+func (issue *Issue) TableName() string {
+	return tbIssue[1 : len(tbIssue)-1]
+}
+
 func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
 	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")

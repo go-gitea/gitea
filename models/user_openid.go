@@ -24,6 +24,11 @@ type UserOpenID struct {
 	Show bool   `xorm:"DEFAULT false"`
 }
 
+// TableName sets the table name to `user_open_id`
+func (u *UserOpenID) TableName() string {
+	return tbUserOpenID[1 : len(tbUserOpenID)-1]
+}
+
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
 func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	openids := make([]*UserOpenID, 0, 5)

@@ -28,6 +28,11 @@ type Reaction struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+// TableName sets the table name to `reaction`
+func (r *Reaction) TableName() string {
+	return tbReaction[1 : len(tbReaction)-1]
+}
+
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
 	ListOptions

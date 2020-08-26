@@ -81,6 +81,11 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 	return list, nil
 }
 
+// TableName sets the table name to `label`
+func (label *Label) TableName() string {
+	return tbLabel[1 : len(tbLabel)-1]
+}
+
 // CalOpenIssues sets the number of open issues of a label based on the already stored number of closed issues.
 func (label *Label) CalOpenIssues() {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
@@ -616,6 +621,11 @@ type IssueLabel struct {
 	ID      int64 `xorm:"pk autoincr"`
 	IssueID int64 `xorm:"UNIQUE(s)"`
 	LabelID int64 `xorm:"UNIQUE(s)"`
+}
+
+// TableName sets the table name to `issue_label`
+func (i *IssueLabel) TableName() string {
+	return tbIssueLabel[1 : len(tbIssueLabel)-1]
 }
 
 func hasIssueLabel(e Engine, issueID, labelID int64) bool {

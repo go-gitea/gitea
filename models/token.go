@@ -32,6 +32,11 @@ type AccessToken struct {
 	HasUsed           bool               `xorm:"-"`
 }
 
+// TableName sets the table name to `access_token`
+func (t *AccessToken) TableName() string {
+	return tbAccessToken[1 : len(tbAccessToken)-1]
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
 	t.HasUsed = t.UpdatedUnix > t.CreatedUnix

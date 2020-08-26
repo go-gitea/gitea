@@ -175,6 +175,11 @@ type SearchOrganizationsOptions struct {
 	All bool
 }
 
+// TableName sets the table name to `user`
+func (u *User) TableName() string {
+	return tbUser[1 : len(tbUser)-1]
+}
+
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",

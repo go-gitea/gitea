@@ -17,6 +17,11 @@ type IssueUser struct {
 	IsMentioned bool
 }
 
+// TableName sets the table name to `issue_user`
+func (i *IssueUser) TableName() string {
+	return tbIssueUser[1 : len(tbIssueUser)-1]
+}
+
 func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	assignees, err := repo.getAssignees(e)
 	if err != nil {
