@@ -269,6 +269,9 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
 	ctx.Data["releases"] = ctx.Query("releases") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
+	// Plain git should be first
+	ctx.Data["service"] = structs.PlainGitService
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
