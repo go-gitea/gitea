@@ -5,15 +5,15 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
@@ -56,15 +56,14 @@ func (a *Attachment) APIFormat() *api.Attachment {
 	}
 }
 
-// AttachmentLocalPath returns where attachment is stored in local file
-// system based on given UUID.
-func AttachmentLocalPath(uuid string) string {
-	return path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)
+// AttachmentRelativePath returns the relative path
+func AttachmentRelativePath(uuid string) string {
+	return path.Join(uuid[0:1], uuid[1:2], uuid)
 }
 
-// LocalPath returns where attachment is stored in local file system.
-func (a *Attachment) LocalPath() string {
-	return AttachmentLocalPath(a.UUID)
+// RelativePath returns the relative path of the attachment
+func (a *Attachment) RelativePath() string {
+	return AttachmentRelativePath(a.UUID)
 }
 
 // DownloadURL returns the download url of the attached file
@@ -100,29 +99,11 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.New().String()
 
-	localPath := attach.LocalPath()
-	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("MkdirAll: %v", err)
-	}
-
-	fw, err := os.Create(localPath)
+	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
-	defer fw.Close()
-
-	if _, err = fw.Write(buf); err != nil {
-		return nil, fmt.Errorf("Write: %v", err)
-	} else if _, err = io.Copy(fw, file); err != nil {
-		return nil, fmt.Errorf("Copy: %v", err)
-	}
-
-	// Update file size
-	var fi os.FileInfo
-	if fi, err = fw.Stat(); err != nil {
-		return nil, fmt.Errorf("file size: %v", err)
-	}
-	attach.Size = fi.Size()
+	attach.Size = size
 
 	if _, err := x.Insert(attach); err != nil {
 		return nil, err
@@ -238,7 +219,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if err := util.Remove(a.LocalPath()); err != nil {
+			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
 				return i, err
 			}
 		}
@@ -289,4 +270,26 @@ func updateAttachment(e Engine, atta *Attachment) error {
 func DeleteAttachmentsByRelease(releaseID int64) error {
 	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
+}
+
+// IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
+func IterateAttachment(f func(attach *Attachment) error) error {
+	var start int
+	const batchSize = 100
+	for {
+		var attachments = make([]*Attachment, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&attachments); err != nil {
+			return err
+		}
+		if len(attachments) == 0 {
+			return nil
+		}
+		start += len(attachments)
+
+		for _, attach := range attachments {
+			if err := f(attach); err != nil {
+				return err
+			}
+		}
+	}
 }

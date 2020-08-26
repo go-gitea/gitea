@@ -127,6 +127,12 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorUserStarNum,
 	},
+	{
+		title:     "Enable push options",
+		name:      "enable-push-options",
+		isDefault: false,
+		f:         runDoctorEnablePushOptions,
+	},
 	// more checks please append here
 }
 
@@ -604,4 +610,29 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	//ToDo: function to recalc all counters
 
 	return results, nil
+}
+
+func runDoctorEnablePushOptions(ctx *cli.Context) ([]string, error) {
+	numRepos := 0
+	_, err := iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		numRepos++
+		r, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+
+		if ctx.Bool("fix") {
+			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	var prefix string
+	if !ctx.Bool("fix") {
+		prefix = "DRY RUN: "
+	}
+	return []string{fmt.Sprintf("%sEnabled push options for %d repositories.", prefix, numRepos)}, err
 }

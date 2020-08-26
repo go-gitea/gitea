@@ -97,6 +97,10 @@ const (
 	CommentTypeMergePull
 	// push to PR head branch
 	CommentTypePullPush
+	// Project changed
+	CommentTypeProject
+	// Project board changed
+	CommentTypeProjectBoard
 )
 
 // CommentTag defines comment tag type
@@ -122,6 +126,10 @@ type Comment struct {
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
 	Label            *Label `xorm:"-"`
+	OldProjectID     int64
+	ProjectID        int64
+	OldProject       *Project `xorm:"-"`
+	Project          *Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
@@ -389,6 +397,32 @@ func (c *Comment) LoadLabel() error {
 	return nil
 }
 
+// LoadProject if comment.Type is CommentTypeProject, then load project.
+func (c *Comment) LoadProject() error {
+
+	if c.OldProjectID > 0 {
+		var oldProject Project
+		has, err := x.ID(c.OldProjectID).Get(&oldProject)
+		if err != nil {
+			return err
+		} else if has {
+			c.OldProject = &oldProject
+		}
+	}
+
+	if c.ProjectID > 0 {
+		var project Project
+		has, err := x.ID(c.ProjectID).Get(&project)
+		if err != nil {
+			return err
+		} else if has {
+			c.Project = &project
+		}
+	}
+
+	return nil
+}
+
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
@@ -647,6 +681,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID:          LabelID,
 		OldMilestoneID:   opts.OldMilestoneID,
 		MilestoneID:      opts.MilestoneID,
+		OldProjectID:     opts.OldProjectID,
+		ProjectID:        opts.ProjectID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		CommitID:         opts.CommitID,
@@ -810,6 +846,8 @@ type CreateCommentOptions struct {
 	DependentIssueID int64
 	OldMilestoneID   int64
 	MilestoneID      int64
+	OldProjectID     int64
+	ProjectID        int64
 	AssigneeID       int64
 	RemovedAssignee  bool
 	OldTitle         string
