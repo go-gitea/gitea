@@ -10,7 +10,19 @@
             {{end}}
             <a class="name" href="{{.Link}}">
                 {{if $.Owner}}{{if (ne .Owner.ID $.Owner.ID)}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-            </a>
+			</a>
+			{{if $.CanConfigPinnedRepos}}
+				<span class="text grey">
+					<form action="{{$.ConfigPinnedReposLink}}" method="POST">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="name" value="{{if $.Owner}}{{if (ne .Owner.ID $.Owner.ID)}}{{.Owner.Name}}/{{end}}{{end}}{{.Name}}" />
+						<input type="hidden" name="status" value="unpinned" />
+						<button class="ui right poping up" type="submit" data-content="{{$.i18n.Tr "settings.unpinned_repo"}}">
+							{{svg "octicon-pin" 16}}
+						</button>
+					</form>
+				</span>
+			{{end}}
             {{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
 			{{if .IsTemplate}}
 				{{if .IsPrivate}}
@@ -44,22 +56,9 @@
             {{end}}
             <span class="text grey">{{svg "octicon-star" 16}} {{.NumStars}}</span>
             <span class="text grey">{{svg "octicon-git-branch" 16}} {{.NumForks}}</span>
-            {{if $.CanConfigPinnedRepos}}
-				<span class="text grey">
-					<form action="{{$.ConfigPinnedReposLink}}" method="POST">
-						{{$.CsrfTokenHtml}}
-						<input type="hidden" name="name" value="{{if $.Owner}}{{if (ne .Owner.ID $.Owner.ID)}}{{.Owner.Name}}/{{end}}{{end}}{{.Name}}" />
-						<input type="hidden" name="status" value="unpinned" />
-						<button class="ui mini button poping up" type="submit" data-content="{{$.i18n.Tr "settings.unpinned_repo"}}">
-							{{svg "octicon-pin" 16}}
-						</button>
-					</form>
-                </span>
-			{{end}}
         </div>
       </div>
     </div>
     {{end}}
 </div>
-<div class="ui divider"></div>
 {{end}}

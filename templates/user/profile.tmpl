@@ -128,21 +128,22 @@
 				{{else}}
 					{{template "explore/pinned_repos_list" .}}
 					{{if $.CanConfigPinnedRepos}}
-					{{if (gt .PinnedReposNum 0)}}
+						{{if (gt .PinnedReposNum 0)}}
+							<div class="ui divider"></div>
+						{{end}}
+						<form class="ui form" action="{{$.ConfigPinnedReposLink}}" method="post">
+							{{$.CsrfTokenHtml}}
+							<input type="hidden" name="status" value="pinned" />
+							<div class="three fields">
+								<div class="field">
+									<input type="text" name="name" placeholder="{{$.i18n.Tr "settings.pinned_other_repo_des"}}">
+								</div>
+								<div class="field">
+									<button class="ui green button" type="submit">{{$.i18n.Tr "settings.pinned_other_repo"}}</button>
+								</div>
+							</div>
+						</form>
 						<div class="ui divider"></div>
-					{{end}}
-					<form class="ui form" action="{{$.ConfigPinnedReposLink}}" method="post">
-						{{$.CsrfTokenHtml}}
-						<input type="hidden" name="status" value="pinned" />
-						<div class="three fields">
-							<div class="field">
-								<input type="text" name="name" placeholder="{{$.i18n.Tr "settings.pinned_other_repo_des"}}">
-							</div>
-							<div class="field">
-								<button class="ui green button" type="submit">{{$.i18n.Tr "settings.pinned_other_repo"}}</button>
-							</div>
-						</div>
-					</form>
 					{{end}}
 					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}

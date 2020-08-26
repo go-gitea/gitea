@@ -43,7 +43,7 @@
 							{{$.CsrfTokenHtml}}
 							<input type="hidden" name="name" value="{{.Name}}" />
 							<input type="hidden" name="status" value="{{if .IsPinned}}unpinned{{else}}pinned{{end}}" />
-							<button class="ui mini button poping up" type="submit" data-content="{{if .IsPinned}}{{$.i18n.Tr "settings.unpinned_repo"}}{{else}}{{$.i18n.Tr "settings.pinned_repo"}}{{end}}">
+							<button class="ui poping up" type="submit" data-content="{{if .IsPinned}}{{$.i18n.Tr "settings.unpinned_repo"}}{{else}}{{$.i18n.Tr "settings.pinned_repo"}}{{end}}">
 								{{svg "octicon-pin" 16}}
 							</button>
 						</form>
