@@ -64,5 +64,5 @@ func TestGetPinnedRepos(t *testing.T) {
 
 	repos, err = user2.GetPinnedRepos(nil, []int64{1}, true)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(repos))
+	assert.Equal(t, 1, len(repos))
 }
