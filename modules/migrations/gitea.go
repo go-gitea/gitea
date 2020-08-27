@@ -100,7 +100,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		}
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
 		if len(opts.AuthToken) > 0 {
-			u.User = url.User(opts.AuthToken)
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
 		}
 		remoteAddr = u.String()
 	}

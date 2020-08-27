@@ -43,6 +43,7 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
@@ -73,9 +74,12 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(baseURL, repoPath, username, password, token string) *GitlabDownloader {
-	gitlabClient, err := gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
+	var gitlabClient *gitlab.Client
+	var err error
 	if token != "" {
 		gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	} else {
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
 	if err != nil {
@@ -253,7 +257,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Release {
-
+	var zero int
 	r := &base.Release{
 		TagName:         rel.TagName,
 		TargetCommitish: rel.Commit.ID,
@@ -266,9 +270,11 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 
 	for k, asset := range rel.Assets.Links {
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			ID:          int64(asset.ID),
-			Name:        asset.Name,
-			ContentType: &rel.Assets.Sources[k].Format,
+			ID:            int64(asset.ID),
+			Name:          asset.Name,
+			ContentType:   &rel.Assets.Sources[k].Format,
+			Size:          &zero,
+			DownloadCount: &zero,
 		})
 	}
 	return r
@@ -300,7 +306,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 // GetAsset returns an asset
 func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
 	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id))
-	if  err != nil {
+	if err != nil {
 		return nil, err
 	}
 	resp, err := http.Get(link.URL)

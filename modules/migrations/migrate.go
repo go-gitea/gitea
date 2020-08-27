@@ -32,7 +32,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
-		err error
+		err        error
 	)
 
 	for _, factory := range factories {
