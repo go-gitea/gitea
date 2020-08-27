@@ -8,7 +8,7 @@ import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
-import initMigration from "./features/migration";
+import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
