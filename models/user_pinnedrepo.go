@@ -12,10 +12,9 @@ import (
 
 // UserPinnedRepo represents a pinned repo by an user or org.
 type UserPinnedRepo struct {
-	ID      int64 `xorm:"pk autoincr"`
-	UID     int64 `xorm:"INDEX NOT NULL"`
-	RepoID  int64 `xorm:"NOT NULL"`
-	IsOwned bool  `xorm:"NOT NULL"`
+	ID     int64 `xorm:"pk autoincr"`
+	UID    int64 `xorm:"INDEX NOT NULL"`
+	RepoID int64 `xorm:"NOT NULL"`
 }
 
 // AddPinnedRepo add a pinned repo
@@ -30,9 +29,8 @@ func (u *User) AddPinnedRepo(repo *Repository) (err error) {
 	}
 
 	r := &UserPinnedRepo{
-		UID:     u.ID,
-		RepoID:  repo.ID,
-		IsOwned: u.ID == repo.OwnerID,
+		UID:    u.ID,
+		RepoID: repo.ID,
 	}
 
 	_, err = x.Insert(r)
@@ -60,7 +58,7 @@ func (u *User) IsPinnedRepoExist(repoID int64) (isExist bool, err error) {
 }
 
 // GetPinnedRepos get pinned repos
-func (u *User) GetPinnedRepos(actor *User, onlyIncludeNotOwned, loadAttributes bool) (repos RepositoryList, err error) {
+func (u *User) GetPinnedRepos(actor *User, excludeRepoIDs []int64, loadAttributes bool) (repos RepositoryList, err error) {
 	var cond = builder.NewCond()
 	repos = make(RepositoryList, 0, 10)
 
@@ -76,17 +74,16 @@ func (u *User) GetPinnedRepos(actor *User, onlyIncludeNotOwned, loadAttributes b
 
 	var idBuilder *builder.Builder
 
-	if onlyIncludeNotOwned {
-		idBuilder = builder.Select("repo_id").
-			From("user_pinned_repo").
-			Where(builder.Eq{"uid": u.ID, "is_owned": false})
-	} else {
-		idBuilder = builder.Select("repo_id").
-			From("user_pinned_repo").
-			Where(builder.Eq{"uid": u.ID})
-	}
+	idBuilder = builder.Select("repo_id").
+		From("user_pinned_repo").
+		Where(builder.Eq{"uid": u.ID})
 
 	cond = cond.And(builder.In("id", idBuilder))
+
+	if len(excludeRepoIDs) > 0 {
+		cond = cond.And(builder.NotIn("id", excludeRepoIDs))
+	}
+
 	if err = x.Where(cond).Find(&repos); err != nil {
 		return nil, err
 	}
@@ -97,16 +94,5 @@ func (u *User) GetPinnedRepos(actor *User, onlyIncludeNotOwned, loadAttributes b
 		}
 	}
 
-	return
-}
-
-// ChangePinnedRepoIsOwndStatus change isPinned repo status for a repo
-func ChangePinnedRepoIsOwndStatus(repoID, oldOwnerID, newOwnerID int64) (err error) {
-	_, err = x.Exec("UPDATE `user_pinned_repo` SET is_owned=? WHERE uid=? AND repo_id=?", false, oldOwnerID, repoID)
-	if err != nil {
-		return
-	}
-
-	_, err = x.Exec("UPDATE `user_pinned_repo` SET is_owned=? WHERE uid=? AND repo_id=?", true, newOwnerID, repoID)
 	return
 }

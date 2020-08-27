@@ -260,9 +260,14 @@ func Profile(ctx *context.Context) {
 			}
 		}
 
+		exitsPinnedRepoIDs := make([]int64, 0, len(pinnedRepos))
+		for _, repo := range pinnedRepos {
+			exitsPinnedRepoIDs = append(exitsPinnedRepoIDs, repo.ID)
+		}
+
 		var pinnedRepos2 []*models.Repository
 
-		pinnedRepos2, err = ctxUser.GetPinnedRepos(ctx.User, true, true)
+		pinnedRepos2, err = ctxUser.GetPinnedRepos(ctx.User, exitsPinnedRepoIDs, true)
 		if err != nil {
 			ctx.ServerError("GetPinnedRepos(true)", err)
 			return

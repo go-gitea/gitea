@@ -48,10 +48,6 @@ func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, tea
 		}
 	}
 
-	if err = models.ChangePinnedRepoIsOwndStatus(repo.ID, oldOwner.ID, newOwner.ID); err != nil {
-		return err
-	}
-
 	notification.NotifyTransferRepository(doer, repo, oldOwner.Name)
 
 	return nil
