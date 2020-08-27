@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
@@ -126,7 +127,20 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	verb, args := parseCmd(cmd)
+	words, err := shellquote.Split(cmd)
+	if err != nil {
+		fail("Error parsing arguments", "Failed to parse arguments: %v", err)
+	}
+
+	if len(words) < 2 {
+		fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
+	}
+
+	verb := words[0]
+	repoPath := words[1]
+	if repoPath[0] == '/' {
+		repoPath = repoPath[1:]
+	}
 
 	var lfsVerb string
 	if verb == lfsAuthenticateVerb {
@@ -134,17 +148,14 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 
-		argsSplit := strings.Split(args, " ")
-		if len(argsSplit) >= 2 {
-			args = strings.TrimSpace(argsSplit[0])
-			lfsVerb = strings.TrimSpace(argsSplit[1])
+		if len(words) > 2 {
+			lfsVerb = words[2]
 		}
 	}
 
-	repoPath := strings.ToLower(strings.Trim(args, "'"))
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
-		fail("Invalid repository path", "Invalid repository path: %v", args)
+		fail("Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
 	username := strings.ToLower(rr[0])
