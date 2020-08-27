@@ -45,6 +45,19 @@
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 					</div>
 
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.migrate_options"}}</label>
+						<div class="ui checkbox">
+							{{if .DisableMirrors}}
+								<input id="mirror" name="mirror" type="checkbox" readonly>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
+							{{else}}
+								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
+							{{end}}
+						</div>
+					</div>
+
 					<span class="help">{{.i18n.Tr "repo.migrate.migrate_items_options"}}</span>
 					<div id="migrate_items">
 						<div class="inline field">
@@ -121,18 +134,6 @@
 							{{else}}
 								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
-							{{end}}
-						</div>
-					</div>
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.migrate_type"}}</label>
-						<div class="ui checkbox">
-							{{if .DisableMirrors}}
-								<input id="mirror" name="mirror" type="checkbox" readonly>
-								<label>{{.i18n.Tr "repo.migrate_type_helper_disabled"}}</label>
-							{{else}}
-								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_type_helper" | Safe}}</label>
 							{{end}}
 						</div>
 					</div>
