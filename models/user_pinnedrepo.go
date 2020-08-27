@@ -72,9 +72,7 @@ func (u *User) GetPinnedRepos(actor *User, excludeRepoIDs []int64, loadAttribute
 		cond = cond.And(accessibleRepositoryCondition(actor))
 	}
 
-	var idBuilder *builder.Builder
-
-	idBuilder = builder.Select("repo_id").
+	idBuilder := builder.Select("repo_id").
 		From("user_pinned_repo").
 		Where(builder.Eq{"uid": u.ID})
 
