@@ -49,7 +49,7 @@
 							{{svg "octicon-file-submodule" 16}}
 							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName}}
 							{{if $refURL}}
-								<a class="flex-0" href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a class="flex-1" href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
+								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
 							{{else}}
 								{{$entry.Name}}<span class="at">@</span>{{ShortSha $commit.RefID}}
 							{{end}}
@@ -58,7 +58,7 @@
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory" 16}}
-								<a class="flex-1" href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
 									{{else}}
@@ -67,14 +67,14 @@
 								</a>
 							{{else}}
 								{{svg (printf "octicon-%s" (EntryIcon $entry)) 16}}
-								<a class="flex-1" href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
 				</td>
 				<td class="message nine wide">
 					<span class="truncate">
-						<a class="flex-1" href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
 					</span>
 				</td>
 				<td class="text right age three wide">{{TimeSince $commit.Committer.When $.Lang}}</td>
