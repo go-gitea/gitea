@@ -60,14 +60,6 @@ func setup(logPath string, debug bool) {
 	}
 }
 
-func parseCmd(cmd string) (string, string) {
-	ss := strings.SplitN(cmd, " ", 2)
-	if len(ss) != 2 {
-		return "", ""
-	}
-	return ss[0], strings.Replace(ss[1], "'/", "'", 1)
-}
-
 var (
 	allowedCommands = map[string]models.AccessMode{
 		"git-upload-pack":    models.AccessModeRead,
