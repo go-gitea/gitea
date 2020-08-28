@@ -11,10 +11,10 @@ require (
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
-	gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
+	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-	gitea.com/macaron/macaron v1.4.0
+	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
@@ -61,7 +61,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.10.2
+	github.com/klauspost/compress v1.10.11
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.7.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
@@ -104,7 +104,7 @@ require (
 	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
@@ -115,7 +115,7 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.57.0
+	gopkg.in/ini.v1 v1.60.2
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/yaml.v2 v2.3.0
 	mvdan.cc/xurls/v2 v2.1.0
