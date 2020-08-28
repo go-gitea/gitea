@@ -25,7 +25,7 @@ gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 ## explicit
 gitea.com/macaron/csrf
-# gitea.com/macaron/gzip v0.0.0-20200826025450-161976698d9a
+# gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 ## explicit
 gitea.com/macaron/gzip
 # gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
@@ -933,7 +933,7 @@ gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 ## explicit
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.60.1
+# gopkg.in/ini.v1 v1.60.2
 ## explicit
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
