@@ -12,8 +12,6 @@ but it can be used as a secondary step to compressors (like Snappy) that does no
 
 * [Godoc documentation](https://godoc.org/github.com/klauspost/compress/huff0)
 
-THIS PACKAGE IS NOT CONSIDERED STABLE AND API OR ENCODING MAY CHANGE IN THE FUTURE.
-
 ## News
 
  * Mar 2018: First implementation released. Consider this beta software for now.
@@ -74,6 +72,8 @@ which can be given to the decompressor.
 
 Decompressing is done by calling the [`Decompress1X`](https://godoc.org/github.com/klauspost/compress/huff0#Scratch.Decompress1X) 
 or [`Decompress4X`](https://godoc.org/github.com/klauspost/compress/huff0#Scratch.Decompress4X) function.
+
+For concurrently decompressing content with a fixed table a stateless [`Decoder`](https://godoc.org/github.com/klauspost/compress/huff0#Decoder) can be requested which will remain correct as long as the scratch is unchanged. The capacity of the provided slice indicates the expected output size.
 
 You must provide the output from the compression stage, at exactly the size you got back. If you receive an error back
 your input was likely corrupted. 

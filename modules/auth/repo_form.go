@@ -56,8 +56,10 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 type MigrateRepoForm struct {
 	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
+	Service      int    `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true

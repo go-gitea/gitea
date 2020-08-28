@@ -193,9 +193,9 @@ func (ctx *Context) parseForm() {
 	contentType := ctx.Req.Header.Get(_CONTENT_TYPE)
 	if (ctx.Req.Method == "POST" || ctx.Req.Method == "PUT") &&
 		len(contentType) > 0 && strings.Contains(contentType, "multipart/form-data") {
-		ctx.Req.ParseMultipartForm(MaxMemory)
+		_ = ctx.Req.ParseMultipartForm(MaxMemory)
 	} else {
-		ctx.Req.ParseForm()
+		_ = ctx.Req.ParseForm()
 	}
 }
 
@@ -258,6 +258,11 @@ func (ctx *Context) Params(name string) string {
 		name = ":" + name
 	}
 	return ctx.params[name]
+}
+
+// AllParams returns all params.
+func (ctx *Context) AllParams() Params {
+	return ctx.params
 }
 
 // SetParams sets value of param with given name.

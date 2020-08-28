@@ -25,19 +25,10 @@ func (b *byteReader) advance(n uint) {
 	b.off += int(n)
 }
 
-// Int32 returns a little endian int32 starting at current offset.
-func (b byteReader) Int32() int32 {
-	b2 := b.b[b.off : b.off+4 : b.off+4]
-	v3 := int32(b2[3])
-	v2 := int32(b2[2])
-	v1 := int32(b2[1])
-	v0 := int32(b2[0])
-	return v0 | (v1 << 8) | (v2 << 16) | (v3 << 24)
-}
-
 // Uint32 returns a little endian uint32 starting at current offset.
 func (b byteReader) Uint32() uint32 {
-	b2 := b.b[b.off : b.off+4 : b.off+4]
+	b2 := b.b[b.off:]
+	b2 = b2[:4]
 	v3 := uint32(b2[3])
 	v2 := uint32(b2[2])
 	v1 := uint32(b2[1])

@@ -295,7 +295,7 @@ func (b *blockEnc) encodeRaw(a []byte) {
 	b.output = bh.appendTo(b.output[:0])
 	b.output = append(b.output, a...)
 	if debug {
-		println("Adding RAW block, length", len(a))
+		println("Adding RAW block, length", len(a), "last:", b.last)
 	}
 }
 
@@ -308,7 +308,7 @@ func (b *blockEnc) encodeRawTo(dst, src []byte) []byte {
 	dst = bh.appendTo(dst)
 	dst = append(dst, src...)
 	if debug {
-		println("Adding RAW block, length", len(src))
+		println("Adding RAW block, length", len(src), "last:", b.last)
 	}
 	return dst
 }
@@ -322,7 +322,7 @@ func (b *blockEnc) encodeLits(raw bool) error {
 	// Don't compress extremely small blocks
 	if len(b.literals) < 32 || raw {
 		if debug {
-			println("Adding RAW block, length", len(b.literals))
+			println("Adding RAW block, length", len(b.literals), "last:", b.last)
 		}
 		bh.setType(blockTypeRaw)
 		b.output = bh.appendTo(b.output)
@@ -349,7 +349,7 @@ func (b *blockEnc) encodeLits(raw bool) error {
 	switch err {
 	case huff0.ErrIncompressible:
 		if debug {
-			println("Adding RAW block, length", len(b.literals))
+			println("Adding RAW block, length", len(b.literals), "last:", b.last)
 		}
 		bh.setType(blockTypeRaw)
 		b.output = bh.appendTo(b.output)
@@ -444,9 +444,9 @@ func fuzzFseEncoder(data []byte) int {
 }
 
 // encode will encode the block and append the output in b.output.
-func (b *blockEnc) encode(raw bool) error {
+func (b *blockEnc) encode(raw, rawAllLits bool) error {
 	if len(b.sequences) == 0 {
-		return b.encodeLits(raw)
+		return b.encodeLits(rawAllLits)
 	}
 	// We want some difference
 	if len(b.literals) > (b.size - (b.size >> 5)) {
