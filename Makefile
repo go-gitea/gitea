@@ -42,8 +42,10 @@ ifeq ($(HAS_GO), GO)
 endif
 
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
+	GOFLAGS := -v
 	EXECUTABLE ?= gitea
 endif
 
@@ -55,7 +57,6 @@ endif
 
 GOFMT ?= gofmt -s
 
-GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -556,7 +557,7 @@ release-windows: | $(DIST_DIRS)
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	@echo "Warning: windows version is built using golang 1.14"
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go go-1.14.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -680,7 +681,7 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.30.0; \
 	fi
 	golangci-lint run --timeout 5m
 
