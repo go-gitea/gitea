@@ -43,6 +43,11 @@ func (b *bitWriter) addBits16Clean(value uint16, bits uint8) {
 func (b *bitWriter) encSymbol(ct cTable, symbol byte) {
 	enc := ct[symbol]
 	b.bitContainer |= uint64(enc.val) << (b.nBits & 63)
+	if false {
+		if enc.nBits == 0 {
+			panic("nbits 0")
+		}
+	}
 	b.nBits += enc.nBits
 }
 
@@ -54,6 +59,14 @@ func (b *bitWriter) encTwoSymbols(ct cTable, av, bv byte) {
 	sh := b.nBits & 63
 	combined := uint64(encA.val) | (uint64(encB.val) << (encA.nBits & 63))
 	b.bitContainer |= combined << sh
+	if false {
+		if encA.nBits == 0 {
+			panic("nbitsA 0")
+		}
+		if encB.nBits == 0 {
+			panic("nbitsB 0")
+		}
+	}
 	b.nBits += encA.nBits + encB.nBits
 }
 
