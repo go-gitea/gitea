@@ -377,7 +377,7 @@ func (f *File) parse(reader io.Reader) (err error) {
 
 	// Ignore error because default section name is never empty string.
 	name := DefaultSection
-	if f.options.Insensitive {
+	if f.options.Insensitive || f.options.InsensitiveSections {
 		name = strings.ToLower(DefaultSection)
 	}
 	section, _ := f.NewSection(name)
@@ -469,7 +469,7 @@ func (f *File) parse(reader io.Reader) (err error) {
 			inUnparseableSection = false
 			for i := range f.options.UnparseableSections {
 				if f.options.UnparseableSections[i] == name ||
-					(f.options.Insensitive && strings.EqualFold(f.options.UnparseableSections[i], name)) {
+					((f.options.Insensitive || f.options.InsensitiveSections) && strings.EqualFold(f.options.UnparseableSections[i], name)) {
 					inUnparseableSection = true
 					continue
 				}

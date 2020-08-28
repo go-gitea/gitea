@@ -25,7 +25,7 @@ gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 ## explicit
 gitea.com/macaron/csrf
-# gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
+# gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 ## explicit
 gitea.com/macaron/gzip
 # gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
@@ -34,7 +34,7 @@ gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 ## explicit
 gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.4.0
+# gitea.com/macaron/macaron v1.5.0
 ## explicit
 gitea.com/macaron/macaron
 # gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
@@ -479,7 +479,7 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.10.2
+# github.com/klauspost/compress v1.10.11
 ## explicit
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -768,7 +768,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -933,7 +933,7 @@ gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 ## explicit
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.57.0
+# gopkg.in/ini.v1 v1.60.2
 ## explicit
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2

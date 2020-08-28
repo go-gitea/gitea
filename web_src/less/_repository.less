@@ -361,14 +361,24 @@
           width: 120px;
         }
 
-        > a {
-          width: calc(100% - 8px); /* prevent overflow into adjacant cell */
+        .truncate {
           display: inline-block;
-          padding-top: 8px;
-          padding-bottom: 8px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          width: 100%;
+          padding-top: 8px;
+          padding-bottom: 8px;
+        }
+
+        a {
+          padding-top: 8px;
+          padding-bottom: 8px;
+        }
+
+        .at {
+          margin-left: 3px;
+          margin-right: 3px;
         }
 
         > * {
