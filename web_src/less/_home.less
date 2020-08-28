@@ -1,65 +1,65 @@
 .home {
-    .logo {
-        max-width: 220px;
+  .logo {
+    max-width: 220px;
+  }
+
+  .hero {
+    @media only screen and (max-width: 767px) {
+      h1 {
+        font-size: 3.5em;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
     }
 
-    .hero {
-        @media only screen and (max-width: 767px) {
-            h1 {
-                font-size: 3.5em;
-            }
+    @media only screen and (min-width: 768px) {
+      h1 {
+        font-size: 5.5em;
+      }
 
-            h2 {
-                font-size: 2em;
-            }
-        }
-
-        @media only screen and (min-width: 768px) {
-            h1 {
-                font-size: 5.5em;
-            }
-
-            h2 {
-                font-size: 3em;
-            }
-        }
-
-        .svg {
-            color: #5aa509;
-            height: 40px;
-            width: 50px;
-            vertical-align: bottom;
-        }
-
-        &.header {
-            font-size: 20px;
-        }
+      h2 {
+        font-size: 3em;
+      }
     }
 
-    p.large {
-        font-size: 16px;
+    .svg {
+      color: #5aa509;
+      height: 40px;
+      width: 50px;
+      vertical-align: bottom;
     }
 
-    .stackable {
-        padding-top: 30px;
+    &.header {
+      font-size: 20px;
     }
+  }
 
-    a {
-        color: #5aa509;
-    }
+  p.large {
+    font-size: 16px;
+  }
+
+  .stackable {
+    padding-top: 30px;
+  }
+
+  a {
+    color: #5aa509;
+  }
 }
 
 .signup {
-    padding-top: 15px;
+  padding-top: 15px;
 }
 
 footer {
-    .ui.container .left,
-    .ui.container .right {
-        @media only screen and (max-width: 880px) {
-            display: block;
-            text-align: center;
-            float: none;
-        }
+  .ui.container .left,
+  .ui.container .right {
+    @media only screen and (max-width: 880px) {
+      display: block;
+      text-align: center;
+      float: none;
     }
+  }
 }

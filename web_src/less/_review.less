@@ -1,193 +1,193 @@
 .ui.button.add-code-comment {
-    font-size: 14px;
-    height: 16px;
-    line-height: 16px !important;
-    padding: 0;
-    position: relative;
-    width: 16px;
-    z-index: 5;
-    float: left;
-    margin: 2px -10px 2px -20px;
-    opacity: 0;
-    transition: transform .1s ease-in-out;
-    transform: scale(1, 1);
+  font-size: 14px;
+  height: 16px;
+  line-height: 16px !important;
+  padding: 0;
+  position: relative;
+  width: 16px;
+  z-index: 5;
+  float: left;
+  margin: 2px -10px 2px -20px;
+  opacity: 0;
+  transition: transform .1s ease-in-out;
+  transform: scale(1, 1);
 
-    &:hover {
-        transform: scale(1.2, 1.2);
-    }
+  &:hover {
+    transform: scale(1.2, 1.2);
+  }
 }
 
 .add-comment-left.add-comment-right .ui.attached.header {
-    border: 1px solid #d4d4d5;
-    margin-top: .5em;
+  border: 1px solid #d4d4d5;
+  margin-top: .5em;
 
-    &:not(.top) {
-        margin-bottom: .5em;
-    }
+  &:not(.top) {
+    margin-bottom: .5em;
+  }
 
-    .show-outdated,
-    .hide-outdated {
-        display: block;
-        margin-left: auto;
-    }
+  .show-outdated,
+  .hide-outdated {
+    display: block;
+    margin-left: auto;
+  }
 }
 
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
 .focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
-    opacity: 1;
+  opacity: 1;
 }
 
 .comment-code-cloud {
-    padding: 4px;
-    position: relative;
-    border: 1px solid #f1f1f1;
-    margin: 13px 10px 5px auto;
+  padding: 4px;
+  position: relative;
+  border: 1px solid #f1f1f1;
+  margin: 13px 10px 5px auto;
 
-    &:before {
-        content: " ";
-        width: 0;
-        height: 0;
-        border-left: 13px solid transparent;
-        border-right: 13px solid transparent;
-        border-bottom: 13px solid #f1f1f1;
-        left: 20px;
-        position: absolute;
-        top: -13px;
+  &:before {
+    content: " ";
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-bottom: 13px solid #f1f1f1;
+    left: 20px;
+    position: absolute;
+    top: -13px;
+  }
+
+  .attached {
+    &.tab {
+      border: 0;
+      padding: 0;
+      margin: 0;
     }
 
-    .attached {
-        &.tab {
-            border: 0;
-            padding: 0;
-            margin: 0;
-        }
+    &.header {
+      padding: .1rem 1rem;
 
-        &.header {
-            padding: .1rem 1rem;
+      .text {
+        margin: 0;
+      }
+    }
+  }
 
-            .text {
-                margin: 0;
-            }
-        }
+  .right.menu.options .item {
+    padding: .85714286em .442857em;
+    cursor: pointer;
+  }
+
+  .ui.form textarea {
+    border: 0;
+  }
+
+  .ui.active.tab {
+    padding: .5em;
+
+    &.markdown {
+      padding: 1em;
+      min-height: 168px;
+    }
+  }
+
+  .ui.tabular.menu {
+    margin: .5em;
+  }
+
+  .comment-list {
+    padding-bottom: 10px;
+  }
+
+  .footer {
+    border-top: 1px solid #f1f1f1;
+    padding: 10px 0;
+
+    .markdown-info {
+      display: inline-block;
+      margin: 5px 0;
+      font-size: 12px;
+      color: rgba(0, 0, 0, .6);
     }
 
-    .right.menu.options .item {
-        padding: .85714286em .442857em;
-        cursor: pointer;
+    .ui.right.floated {
+      padding-top: 6px;
     }
 
-    .ui.form textarea {
-        border: 0;
+    &:after {
+      clear: both;
+      content: "";
+      display: block;
     }
+  }
 
-    .ui.active.tab {
-        padding: .5em;
+  button.comment-form-reply {
+    margin: .5em .5em .5em 4.5em;
+  }
 
-        &.markdown {
-            padding: 1em;
-            min-height: 168px;
-        }
-    }
-
-    .ui.tabular.menu {
-        margin: .5em;
-    }
-
-    .comment-list {
-        padding-bottom: 10px;
-    }
-
-    .footer {
-        border-top: 1px solid #f1f1f1;
-        padding: 10px 0;
-
-        .markdown-info {
-            display: inline-block;
-            margin: 5px 0;
-            font-size: 12px;
-            color: rgba(0, 0, 0, .6);
-        }
-
-        .ui.right.floated {
-            padding-top: 6px;
-        }
-
-        &:after {
-            clear: both;
-            content: "";
-            display: block;
-        }
-    }
-
-    button.comment-form-reply {
-        margin: .5em .5em .5em 4.5em;
-    }
-
-    form.comment-form-reply {
-        margin: 0 0 0 1em;
-    }
+  form.comment-form-reply {
+    margin: 0 0 0 1em;
+  }
 }
 
 .file-comment {
-    font: 12px @monospaced-fonts, monospace;
-    color: rgba(0, 0, 0, .87);
+  font: 12px @monospaced-fonts, monospace;
+  color: rgba(0, 0, 0, .87);
 }
 
 a.fold-file {
-    margin-right: 10px;
-    color: inherit;
+  margin-right: 10px;
+  color: inherit;
 }
 
 a.blob-excerpt {
-    color: #575a68;
-    height: 28px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    background: #daecfe;
+  color: #575a68;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  background: #daecfe;
 }
 
 a.blob-excerpt:hover {
-    background: #428bca;
-    color: #fff;
+  background: #428bca;
+  color: #fff;
 }
 
 .btn-review > .dropdown.icon {
-    width: auto;
-    font-size: .85714286em;
-    margin: 0 0 0 1em;
+  width: auto;
+  font-size: .85714286em;
+  margin: 0 0 0 1em;
 }
 
 @media only screen and (max-width: 768px) {
-    #review-box > .menu {
-        > .ui.segment {
-            width: 94vw;
-        }
-        .editor-toolbar {
-            overflow-x: auto;
-        }
+  #review-box > .menu {
+    > .ui.segment {
+      width: 94vw;
     }
+    .editor-toolbar {
+      overflow-x: auto;
+    }
+  }
 
-    #review-box .CodeMirror-scroll {
-        max-width: calc(100vw - 70px);
-    }
+  #review-box .CodeMirror-scroll {
+    max-width: calc(100vw - 70px);
+  }
 }
 
 @media only screen and (min-width: 768px) and (max-width: 992px) {
-    #review-box .CodeMirror-scroll {
-        max-width: 700px;
-    }
+  #review-box .CodeMirror-scroll {
+    max-width: 700px;
+  }
 }
 
 @media only screen and (min-width: 992px) and (max-width: 1200px) {
-    #review-box .CodeMirror-scroll {
-        max-width: 800px;
-    }
+  #review-box .CodeMirror-scroll {
+    max-width: 800px;
+  }
 }
 
 @media only screen and (min-width: 1200px) {
-    #review-box .CodeMirror-scroll {
-        max-width: 900px;
-    }
+  #review-box .CodeMirror-scroll {
+    max-width: 900px;
+  }
 }

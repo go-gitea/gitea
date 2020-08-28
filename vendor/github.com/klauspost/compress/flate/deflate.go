@@ -80,9 +80,7 @@ type advancedState struct {
 	// deflate state
 	length         int
 	offset         int
-	hash           uint32
 	maxInsertIndex int
-	ii             uint16 // position of last match, intended to overflow to reset.
 
 	// Input hash chains
 	// hashHead[hashValue] contains the largest inputIndex with the specified hash value
@@ -97,6 +95,9 @@ type advancedState struct {
 	// input window: unprocessed data is window[index:windowEnd]
 	index     int
 	hashMatch [maxMatchLength + minMatchLength]uint32
+
+	hash uint32
+	ii   uint16 // position of last match, intended to overflow to reset.
 }
 
 type compressor struct {
@@ -107,18 +108,19 @@ type compressor struct {
 	// compression algorithm
 	fill func(*compressor, []byte) int // copy data to window
 	step func(*compressor)             // process window
-	sync bool                          // requesting flush
 
-	window        []byte
-	windowEnd     int
-	blockStart    int  // window index where current tokens start
-	byteAvailable bool // if true, still need to process window[index-1].
-	err           error
+	window     []byte
+	windowEnd  int
+	blockStart int // window index where current tokens start
+	err        error
 
 	// queued output tokens
 	tokens tokens
 	fast   fastEnc
 	state  *advancedState
+
+	sync          bool // requesting flush
+	byteAvailable bool // if true, still need to process window[index-1].
 }
 
 func (d *compressor) fillDeflate(b []byte) int {
