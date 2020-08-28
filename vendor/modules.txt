@@ -638,10 +638,10 @@ github.com/quasoft/websspi/secctx
 # github.com/sergi/go-diff v1.1.0
 ## explicit
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
+# github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 ## explicit
 github.com/shurcooL/httpfs/vfsutil
-# github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
+# github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 ## explicit
 github.com/shurcooL/vfsgen
 # github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d
@@ -851,6 +851,7 @@ golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.5
 ## explicit
 google.golang.org/appengine
+google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
