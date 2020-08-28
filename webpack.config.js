@@ -1,5 +1,6 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
+const AddAssetPlugin = require('add-asset-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -49,6 +50,7 @@ module.exports = {
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
+      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
     ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
@@ -273,7 +275,7 @@ module.exports = {
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
     }),
-    new LicenseWebpackPlugin({
+    isProduction ? new LicenseWebpackPlugin({
       outputFilename: 'js/licenses.txt',
       perChunkOutput: false,
       addBanner: false,
@@ -281,6 +283,9 @@ module.exports = {
       modulesDirectories: [
         resolve(__dirname, 'node_modules'),
       ],
+      additionalModules: [
+        '@primer/octicons',
+      ].map((name) => ({name, directory: resolve(__dirname, `node_modules/${name}`)})),
       renderLicenses: (modules) => {
         const line = '-'.repeat(80);
         return modules.map((module) => {
@@ -294,7 +299,7 @@ module.exports = {
         warnings: false,
         errors: true,
       },
-    }),
+    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,

@@ -37,6 +37,14 @@ func (opts ListOptions) setEnginePagination(e Engine) Engine {
 	return e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
+// GetStartEnd returns the start and end of the ListOptions
+func (opts ListOptions) GetStartEnd() (start, end int) {
+	opts.setDefaultValues()
+	start = (opts.Page - 1) * opts.PageSize
+	end = start + opts.Page
+	return
+}
+
 func (opts ListOptions) setDefaultValues() {
 	if opts.PageSize <= 0 {
 		opts.PageSize = setting.API.DefaultPagingNum

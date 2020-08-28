@@ -4,6 +4,8 @@
 
 package zstd
 
+/*
+// encParams are not really used, just here for reference.
 type encParams struct {
 	// largest match distance : larger == more compression, more memory needed during decompression
 	windowLog uint8
@@ -152,3 +154,4 @@ var defEncParams = [4][]encParams{
 		{14, 15, 15, 10, 3, 999, strategyBtultra2}, // level 22.
 	},
 }
+*/

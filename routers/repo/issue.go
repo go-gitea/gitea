@@ -1212,6 +1212,8 @@ func ViewIssue(ctx *context.Context) {
 					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
 				}
 			}
+		} else {
+			ctx.Data["WontSignReason"] = "not_signed_in"
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete &&
 			pull.HeadRepo != nil &&
