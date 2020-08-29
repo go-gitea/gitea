@@ -72,6 +72,12 @@ var cmdRecreateTable = cli.Command{
 	Name:      "recreate-table",
 	Usage:     "Recreate tables from XORM definitions and copy the data.",
 	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "Print SQL commands sent",
+		},
+	},
 	Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
 
 This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
@@ -158,8 +164,15 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.EnableXORMLog = false
-	if err := initDBDisableConsole(true); err != nil {
+	setting.NewContext()
+	setting.InitDBConfig()
+
+	setting.EnableXORMLog = ctx.Bool("debug")
+	setting.Database.LogSQL = ctx.Bool("debug")
+	setting.Cfg.Section("log").Key("XORM").SetValue(",")
+
+	setting.NewXORMLogService(!ctx.Bool("debug"))
+	if err := models.SetEngine(); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
