@@ -13,6 +13,12 @@ const {resolve, parse} = require('path');
 const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
+const postCssPresetEnvConfig = {
+  features: {
+    'system-ui-font-family': false,
+  }
+};
+
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
@@ -50,6 +56,7 @@ module.exports = {
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
+      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
     ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
@@ -177,7 +184,7 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               plugins: () => [
-                PostCSSPresetEnv(),
+                PostCSSPresetEnv(postCssPresetEnvConfig),
               ],
               sourceMap: true,
             },
@@ -203,7 +210,7 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               plugins: () => [
-                PostCSSPresetEnv(),
+                PostCSSPresetEnv(postCssPresetEnvConfig),
               ],
               sourceMap: true,
             },
