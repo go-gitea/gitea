@@ -198,16 +198,6 @@ func initIntegrationTest() {
 			}
 		}
 
-		// Make the user's default search path the created schema; this will affect new connections
-		if _, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
-		}
-
-		// Make the current connection's search the created schema
-		if _, err = db.Exec(fmt.Sprintf(`SET search_path = %s`, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
-		}
-
 	case setting.Database.UseMSSQL:
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",

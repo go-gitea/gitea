@@ -194,11 +194,6 @@ func restoreOldDB(t *testing.T, version string) bool {
 				assert.NoError(t, err)
 			}
 			schrows.Close()
-
-			// Make the user's default search path the created schema; this will affect new connections
-			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
-			assert.NoError(t, err)
-
 			db.Close()
 		}
 
