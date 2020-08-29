@@ -317,7 +317,7 @@ lint-backend: golangci-lint revive vet
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
