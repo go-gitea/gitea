@@ -18,7 +18,7 @@
     url('../fonts/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
 }
 
-@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" sans-serif;
+@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
 @monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
 
 .override-fonts(@fonts) {
@@ -79,7 +79,7 @@
   }
 }
 
-.override-fonts(@default-fonts);
+.override-fonts(@default-fonts, sans-serif;);
 
 body {
   background-color: #ffffff;
@@ -90,27 +90,27 @@ body {
 
 @ja-fonts: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Source Han Sans JP', 'Noto Sans CJK JP', 'Droid Sans Japanese', 'Meiryo', 'MS PGothic';
 :lang(ja) {
-  .override-fonts(@default-fonts, @ja-fonts;);
+  .override-fonts(@default-fonts, @ja-fonts, sans-serif;);
 }
 
 @zh-CN-fonts: 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Heiti SC', SimHei;
 :lang(zh-CN) {
-  .override-fonts(@default-fonts, @zh-CN-fonts;);
+  .override-fonts(@default-fonts, @zh-CN-fonts, sans-serif;);
 }
 
 @zh-TW-fonts: 'PingFang TC', 'Hiragino Sans TC', 'Source Han Sans TW', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU;
 :lang(zh-TW) {
-  .override-fonts(@default-fonts, @zh-TW-fonts;);
+  .override-fonts(@default-fonts, @zh-TW-fonts, sans-serif;);
 }
 
 @zh-HK-fonts: 'PingFang HK', 'Hiragino Sans TC', 'Source Han Sans HK', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU_HKSCS, PMingLiU;
 :lang(zh-HK) {
-  .override-fonts(@default-fonts, @zh-HK-fonts;);
+  .override-fonts(@default-fonts, @zh-HK-fonts, sans-serif;);
 }
 
 @ko-fonts: 'Apple SD Gothic Neo', 'NanumBarunGothic', 'Malgun Gothic', 'Gulim', 'Dotum', 'Nanum Gothic', 'Source Han Sans KR', 'Noto Sans CJK KR';
 :lang(ko) {
-  .override-fonts(@default-fonts, @ko-fonts;);
+  .override-fonts(@default-fonts, @ko-fonts, sans-serif;);
 }
 
 img {
@@ -1072,7 +1072,7 @@ i.icon.centerlock {
 
     .blame-data {
       display: flex;
-      font-family: @default-fonts;
+      font-family: @default-fonts, sans-serif;
 
       .blame-message {
         flex-grow: 2;
