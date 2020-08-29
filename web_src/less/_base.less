@@ -1,24 +1,99 @@
+:root {
+  --fonts-system-ui: system-ui, -apple-system;
+  --fonts-proportional: "Lato", var(--fonts-system-ui);
+}
+
 @font-face {
-  font-family: 'Yu Gothic';
-  src: local('Yu Gothic Medium');
+  font-family: "Lato";
+  src:
+    local("Lato Regular"),
+    local("Lato-Regular"),
+    url('../fonts/lato-fonts/Lato-Regular.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-Regular.woff') format("woff"); /* Modern Browsers */
+  font-style: normal;
+  font-weight: normal;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Italic"),
+    local("Lato-Italic"),
+    url('../fonts/lato-fonts/Lato-Italic.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-Italic.woff') format("woff"); /* Modern Browsers */
+  font-style: italic;
+  font-weight: normal;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Bold"),
+    local("Lato-Bold"),
+    url('../fonts/lato-fonts/Lato-Bold.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-Bold.woff') format("woff"); /* Modern Browsers */
+  font-style: normal;
+  font-weight: bold;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Bold Italic"),
+    local("Lato-BoldItalic"),
+    url('../fonts/lato-fonts/Lato-BoldItalic.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-BoldItalic.woff') format("woff"); /* Modern Browsers */
+  font-style: italic;
+  font-weight: bold;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Light"),
+    local("Lato-Light"),
+    url('../fonts/lato-fonts/Lato-Light.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-Light.woff') format("woff"); /* Modern Browsers */
+  font-style: normal;
+  font-weight: 300;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Light Italic"),
+    local("Lato-LightItalic"),
+    url('../fonts/lato-fonts/Lato-LightItalic.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-LightItalic.woff') format("woff"); /* Modern Browsers */
+  font-style: italic;
+  font-weight: 300;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Regular"), local("YuGothic Regular"), local("Yu Gothic Medium");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Medium"), local("YuGothic Medium");
   font-weight: 400;
 }
 
 @font-face {
-  font-family: 'Yu Gothic';
-  src: local('Yu Gothic Bold');
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Bold"), local("YuGothic Bold");
   font-weight: 700;
 }
 
-@font-face {
-  font-family: 'Noto Color Emoji';
-  src:
-    local('Noto Color Emoji'),
-    local('Noto-Color-Emoji'),
-    url('../fonts/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
-}
-
-@default-fonts: system-ui, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla";
+@default-fonts: var(--fonts-proportional), "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
 @monospaced-fonts: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
 
 .override-fonts(@fonts) {
@@ -88,27 +163,27 @@ body {
   flex-direction: column;
 }
 
-@ja-fonts: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Source Han Sans JP', 'Noto Sans CJK JP', 'Droid Sans Japanese', 'Meiryo', 'MS PGothic';
+@ja-fonts: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Source Han Sans JP", "Noto Sans CJK JP", "Droid Sans Japanese", "Meiryo", "MS PGothic";
 :lang(ja) {
   .override-fonts(@default-fonts, @ja-fonts, sans-serif;);
 }
 
-@zh-CN-fonts: 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Heiti SC', SimHei;
+@zh-CN-fonts: "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", SimHei;
 :lang(zh-CN) {
   .override-fonts(@default-fonts, @zh-CN-fonts, sans-serif;);
 }
 
-@zh-TW-fonts: 'PingFang TC', 'Hiragino Sans TC', 'Source Han Sans TW', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU;
+@zh-TW-fonts: "PingFang TC", "Hiragino Sans TC", "Source Han Sans TW", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", PMingLiU;
 :lang(zh-TW) {
   .override-fonts(@default-fonts, @zh-TW-fonts, sans-serif;);
 }
 
-@zh-HK-fonts: 'PingFang HK', 'Hiragino Sans TC', 'Source Han Sans HK', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU_HKSCS, PMingLiU;
+@zh-HK-fonts: "PingFang HK", "Hiragino Sans TC", "Source Han Sans HK", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", PMingLiU_HKSCS, PMingLiU;
 :lang(zh-HK) {
   .override-fonts(@default-fonts, @zh-HK-fonts, sans-serif;);
 }
 
-@ko-fonts: 'Apple SD Gothic Neo', 'NanumBarunGothic', 'Malgun Gothic', 'Gulim', 'Dotum', 'Nanum Gothic', 'Source Han Sans KR', 'Noto Sans CJK KR';
+@ko-fonts: "Apple SD Gothic Neo", "NanumBarunGothic", "Malgun Gothic", "Gulim", "Dotum", "Nanum Gothic", "Source Han Sans KR", "Noto Sans CJK KR";
 :lang(ko) {
   .override-fonts(@default-fonts, @ko-fonts, sans-serif;);
 }
@@ -874,7 +949,7 @@ footer {
     margin-top: -15px;
     display: block;
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
-    content: ' ';
+    content: " ";
     right: 0;
     height: 53px;
     z-index: 1000;
