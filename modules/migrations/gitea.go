@@ -93,12 +93,15 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	var remoteAddr = repo.CloneURL
-	if len(opts.AuthUsername) > 0 {
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(repo.CloneURL)
 		if err != nil {
 			return err
 		}
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
 		remoteAddr = u.String()
 	}
 
@@ -210,7 +213,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
@@ -269,13 +272,11 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 			// download attachment
 			err = func() error {
-				resp, err := http.Get(asset.URL)
+				rc, err := downloader.GetAsset(rel.TagName, asset.ID)
 				if err != nil {
 					return err
 				}
-				defer resp.Body.Close()
-
-				_, err = storage.Attachments.Save(attach.RelativePath(), resp.Body)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
 				return err
 			}()
 			if err != nil {

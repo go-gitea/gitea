@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -32,21 +34,6 @@ func init() {
 type GitlabDownloaderFactory struct {
 }
 
-// Match returns true if the migration remote URL matched this downloader factory
-func (f *GitlabDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
-	var matched bool
-
-	u, err := url.Parse(opts.CloneAddr)
-	if err != nil {
-		return false, err
-	}
-	if strings.EqualFold(u.Host, "gitlab.com") && opts.AuthUsername != "" {
-		matched = true
-	}
-
-	return matched, nil
-}
-
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
@@ -56,10 +43,11 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword), nil
+	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
 }
 
 // GitServiceType returns the type of git service
@@ -85,15 +73,13 @@ type GitlabDownloader struct {
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
-func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
+func NewGitlabDownloader(baseURL, repoPath, username, password, token string) *GitlabDownloader {
 	var gitlabClient *gitlab.Client
 	var err error
-	if username != "" {
-		if password == "" {
-			gitlabClient, err = gitlab.NewClient(username, gitlab.WithBaseURL(baseURL))
-		} else {
-			gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
-		}
+	if token != "" {
+		gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	} else {
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
 	if err != nil {
@@ -271,7 +257,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Release {
-
+	var zero int
 	r := &base.Release{
 		TagName:         rel.TagName,
 		TargetCommitish: rel.Commit.ID,
@@ -284,9 +270,11 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 
 	for k, asset := range rel.Assets.Links {
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:         asset.URL,
-			Name:        asset.Name,
-			ContentType: &rel.Assets.Sources[k].Format,
+			ID:            int64(asset.ID),
+			Name:          asset.Name,
+			ContentType:   &rel.Assets.Sources[k].Format,
+			Size:          &zero,
+			DownloadCount: &zero,
 		})
 	}
 	return r
@@ -313,6 +301,21 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
+}
+
+// GetAsset returns an asset
+func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
+	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id))
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Get(link.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	// resp.Body is closed by the uploader
+	return resp.Body, nil
 }
 
 // GetIssues returns issues according start and limit

@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -269,6 +268,9 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
 	ctx.Data["releases"] = ctx.Query("releases") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
+	// Plain git should be first
+	ctx.Data["service"] = structs.PlainGitService
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -316,6 +318,9 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
+	// Plain git should be first
+	ctx.Data["service"] = structs.PlainGitService
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -349,15 +354,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = structs.PlainGitService
-	u, err := url.Parse(form.CloneAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
-	}
-
 	var opts = migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
+		GitServiceType: structs.GitServiceType(form.Service),
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -365,6 +364,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
+		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
@@ -524,7 +524,7 @@ func Download(ctx *context.Context) {
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
+		if err := commit.CreateArchive(ctx.Req.Context(), archivePath, git.CreateArchiveOpts{
 			Format: archiveType,
 			Prefix: setting.Repository.PrefixArchiveFiles,
 		}); err != nil {

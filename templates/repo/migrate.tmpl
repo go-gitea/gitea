@@ -14,24 +14,83 @@
 						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 						<span class="help">
 						{{.i18n.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate.clone_local_path"}}{{end}}
-						<br/>{{.i18n.Tr "repo.migrate.migrate_items_options"}}
 						{{if .LFSActive}}<br/>{{.i18n.Tr "repo.migrate.lfs_mirror_unsupported"}}{{end}}
 						</span>
 					</div>
-					<div class="ui accordion optional field">
-						<div class="title {{if .Err_Auth}}text red active{{end}}">
-							<i class="icon dropdown"></i>
-							{{.i18n.Tr "repo.need_auth"}}
-						</div>
-						<div class="content {{if .Err_Auth}}active{{end}}">
-							<div class="inline field {{if .Err_Auth}}error{{end}}">
-								<label for="auth_username">{{.i18n.Tr "username"}}</label>
-								<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
+
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.migrate_service"}}</label>
+						<div class="ui selection dropdown">
+							<input id="service_type" type="hidden" name="service" value="{{.service}}">
+							<div class="default text"></div>
+							<i class="dropdown icon"></i>
+							<div class="menu">
+								{{range .Services}}
+									<div id="service-{{.}}" class="item" data-token="{{.TokenAuth}}" data-value="{{.}}">{{.Title}}</div>
+								{{end}}
 							</div>
-							<input class="fake" type="password">
-							<div class="inline field {{if .Err_Auth}}error{{end}}">
-								<label for="auth_password">{{.i18n.Tr "password"}}</label>
-								<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
+						</div>
+					</div>
+					<div class="inline field {{if .Err_Auth}}error{{end}}">
+						<label for="auth_username">{{.i18n.Tr "username"}}</label>
+						<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
+					</div>
+					<input class="fake" type="password">
+					<div class="inline field {{if .Err_Auth}}error{{end}}">
+						<label for="auth_password">{{.i18n.Tr "password"}}</label>
+						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
+					</div>
+					<div class="inline field {{if .Err_Auth}}error{{end}}">
+						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
+						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
+					</div>
+
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.migrate_options"}}</label>
+						<div class="ui checkbox">
+							{{if .DisableMirrors}}
+								<input id="mirror" name="mirror" type="checkbox" readonly>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
+							{{else}}
+								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
+							{{end}}
+						</div>
+					</div>
+
+					<span class="help">{{.i18n.Tr "repo.migrate.migrate_items_options"}}</span>
+					<div id="migrate_items">
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.migrate_items"}}</label>
+							<div class="ui checkbox">
+								<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_wiki" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="labels" type="checkbox" {{if .labels}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_labels" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_pullrequests" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="releases" type="checkbox" {{if .releases}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_releases" | Safe}}</label>
 							</div>
 						</div>
 					</div>
@@ -76,53 +135,6 @@
 								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
-						</div>
-					</div>
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.migrate_type"}}</label>
-						<div class="ui checkbox">
-							{{if .DisableMirrors}}
-								<input id="mirror" name="mirror" type="checkbox" readonly>
-								<label>{{.i18n.Tr "repo.migrate_type_helper_disabled"}}</label>
-							{{else}}
-								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_type_helper" | Safe}}</label>
-							{{end}}
-						</div>
-					</div>
-					<div id="migrate_items" class="ui field">
-						<div class="inline field">
-							<label>{{.i18n.Tr "repo.migrate_items"}}</label>
-							<div class="ui checkbox">
-								<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_wiki" | Safe}}</label>
-							</div>
-							<div class="ui checkbox">
-								<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
-							</div>
-						</div>
-						<div class="inline field">
-							<label></label>
-							<div class="ui checkbox">
-								<input name="labels" type="checkbox" {{if .labels}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_labels" | Safe}}</label>
-							</div>
-							<div class="ui checkbox">
-								<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
-							</div>
-						</div>
-						<div class="inline field">
-							<label></label>
-							<div class="ui checkbox">
-								<input name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_pullrequests" | Safe}}</label>
-							</div>
-							<div class="ui checkbox">
-								<input name="releases" type="checkbox" {{if .releases}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_releases" | Safe}}</label>
-							</div>
 						</div>
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">

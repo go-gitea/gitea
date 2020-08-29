@@ -117,6 +117,10 @@ func (rw *mockResponseWriter) Before(b macaron.BeforeFunc) {
 	b(rw)
 }
 
+func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
+	return nil
+}
+
 type mockRender struct {
 	http.ResponseWriter
 }
