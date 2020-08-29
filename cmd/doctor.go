@@ -177,10 +177,6 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
-		return err
-	}
-
 	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
