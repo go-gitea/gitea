@@ -2360,10 +2360,18 @@
         font-size: 1.5em;
         width: 39px;
         left: 13px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
 
         img.emoji {
           margin-right: 0;
         }
+      }
+
+      > .item:hover {
+        background: #4183c4;
       }
     }
   }
@@ -2407,17 +2415,6 @@
 
       &:not(.active) a {
         display: none;
-      }
-
-      .item {
-        border-radius: 6px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .item:hover {
-        background: #4183c4;
       }
     }
 
