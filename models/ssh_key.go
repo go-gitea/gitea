@@ -1076,8 +1076,6 @@ type PrincipalKey struct{}
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
-	log.Trace(content)
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
