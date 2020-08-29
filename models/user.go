@@ -1254,7 +1254,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err != nil {
 		return err
 	}
-	err = RewriteAllPrincipalKeys(e)
+	err = rewriteAllPrincipalKeys(e)
 	if err != nil {
 		return err
 	}
