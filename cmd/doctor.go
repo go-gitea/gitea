@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
@@ -141,6 +142,12 @@ var checklist = []check{
 		name:      "recalculate_stars_number",
 		isDefault: false,
 		f:         runDoctorUserStarNum,
+	},
+	{
+		title:     "Enable push options",
+		name:      "enable-push-options",
+		isDefault: false,
+		f:         runDoctorEnablePushOptions,
 	},
 	// more checks please append here
 }
@@ -366,7 +373,7 @@ func runDoctorWritableDir(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(tmpFile.Name()); err != nil {
+	if err := util.Remove(tmpFile.Name()); err != nil {
 		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
 	}
 	tmpFile.Close()
@@ -657,4 +664,29 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	//ToDo: function to recalc all counters
 
 	return results, nil
+}
+
+func runDoctorEnablePushOptions(ctx *cli.Context) ([]string, error) {
+	numRepos := 0
+	_, err := iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		numRepos++
+		r, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+
+		if ctx.Bool("fix") {
+			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	var prefix string
+	if !ctx.Bool("fix") {
+		prefix = "DRY RUN: "
+	}
+	return []string{fmt.Sprintf("%sEnabled push options for %d repositories.", prefix, numRepos)}, err
 }

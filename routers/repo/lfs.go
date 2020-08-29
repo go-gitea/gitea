@@ -11,7 +11,6 @@ import (
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -356,7 +356,7 @@ func LFSDelete(ctx *context.Context) {
 	// Please note a similar condition happens in models/repo.go DeleteRepository
 	if count == 0 {
 		oidPath := filepath.Join(oid[0:2], oid[2:4], oid[4:])
-		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
+		err = util.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
 		if err != nil {
 			ctx.ServerError("LFSDelete", err)
 			return

@@ -8,10 +8,12 @@ import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
+import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
 import renderMarkdownContent from './markdown/content.js';
@@ -527,6 +529,10 @@ function initCommentForm() {
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
             htmlEscape($(this).text())}</a>`);
           break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEscape($(this).text())}</a>`);
+          break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
@@ -556,7 +562,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -1147,25 +1154,6 @@ async function initRepository() {
       $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
-}
-
-function initMigration() {
-  const toggleMigrations = function () {
-    const authUserName = $('#auth_username').val();
-    const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
-      $('#migrate_items').show();
-    } else {
-      $('#migrate_items').hide();
-    }
-  };
-
-  toggleMigrations();
-
-  $('#clone_addr').on('input', toggleMigrations);
-  $('#auth_username').on('input', toggleMigrations);
-  $('#mirror').on('change', toggleMigrations);
 }
 
 function initPullRequestReview() {
@@ -2471,20 +2459,13 @@ $(document).ready(async () => {
     }
   }
 
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.on('change', () => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
-    }
-  });
-
   // parallel init of async loaded features
   await Promise.all([
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initProject(),
     initServiceWorker(),
     initNotificationCount(),
     renderMarkdownContent(),
