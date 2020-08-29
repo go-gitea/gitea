@@ -125,6 +125,7 @@ var (
 		CreateAuthorizedKeysFile       bool              `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
 		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
 		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
+		AuthorizedPrincipalsAllow      []string          `ini:"SSH_AUTHORIZED_PRINCIPALS_ALLOW"`
 		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
 		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
 		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
@@ -731,6 +732,11 @@ func NewContext() {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
 		}
+	}
+
+	SSH.AuthorizedPrincipalsAllow = sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(",")
+	if len(SSH.AuthorizedPrincipalsAllow) == 0 {
+		SSH.AuthorizedPrincipalsAllow = []string{"email", "username"}
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()

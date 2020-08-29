@@ -42,7 +42,7 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	}
 	switch form.Type {
 	case "principal":
-		content, err := models.CheckPrincipalKeyString(form.Content)
+		content, err := models.CheckPrincipalKeyString(ctx.User, form.Content)
 		if err != nil {
 			if models.IsErrSSHDisabled(err) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
@@ -52,7 +52,7 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if _, err = models.AddPrincipalKey(ctx.User.ID, content, content, 0); err != nil {
+		if _, err = models.AddPrincipalKey(ctx.User.ID, content, 0); err != nil {
 			ctx.Data["HasPrincipalError"] = true
 			switch {
 			case models.IsErrKeyAlreadyExist(err), models.IsErrKeyNameAlreadyUsed(err):

@@ -1071,11 +1071,8 @@ func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployK
 	return keys, x.Where(cond).Find(&keys)
 }
 
-// PrincipalKey represents principal key information.
-type PrincipalKey struct{}
-
 // AddPrincipalKey adds new principal to database and authorized_principals file.
-func AddPrincipalKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
+func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -1084,7 +1081,7 @@ func AddPrincipalKey(ownerID int64, name, content string, loginSourceID int64) (
 
 	// Key name of same user cannot be duplicated.
 	has, err := sess.
-		Where("content = ? AND name = ? AND type = ?", content, name, KeyTypePrincipal).
+		Where("content = ? AND type = ?", content, KeyTypePrincipal).
 		Get(new(PublicKey))
 	if err != nil {
 		return nil, err
@@ -1094,7 +1091,7 @@ func AddPrincipalKey(ownerID int64, name, content string, loginSourceID int64) (
 
 	key := &PublicKey{
 		OwnerID:       ownerID,
-		Name:          name,
+		Name:          content,
 		Content:       content,
 		Mode:          AccessModeWrite,
 		Type:          KeyTypePrincipal,
@@ -1173,7 +1170,7 @@ func appendAuthorizedPrincipalsToFile(keys ...*PublicKey) error {
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
-func CheckPrincipalKeyString(content string) (_ string, err error) {
+func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
 	}
@@ -1181,6 +1178,28 @@ func CheckPrincipalKeyString(content string) (_ string, err error) {
 	content = strings.TrimSpace(content)
 	if strings.ContainsAny(content, "\r\n") {
 		return "", errors.New("only a single line with a single principal please")
+	}
+
+	// check all the allowed principals, email, username or anything
+	// if any matches, return ok
+	match := false
+	for _, v := range setting.SSH.AuthorizedPrincipalsAllow {
+		switch v {
+		case "anything":
+			match = true
+		case "email":
+			if content == user.Email {
+				match = true
+			}
+		case "username":
+			if content == user.Name {
+				match = true
+			}
+		}
+	}
+
+	if !match {
+		return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
 	}
 
 	return content, nil
