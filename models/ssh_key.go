@@ -1101,7 +1101,11 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
-	return key, sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	return key, RewriteAllPrincipalKeys()
 }
 
 func addPrincipalKey(e Engine, key *PublicKey) (err error) {
@@ -1110,62 +1114,6 @@ func addPrincipalKey(e Engine, key *PublicKey) (err error) {
 		return err
 	}
 
-	return appendAuthorizedPrincipalsToFile(key)
-}
-
-// appendAuthorizedPrincipalsToFile appends new SSH keys' content to authorized_principals file.
-func appendAuthorizedPrincipalsToFile(keys ...*PublicKey) error {
-	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
-		return nil
-	}
-
-	sshOpLocker.Lock()
-	defer sshOpLocker.Unlock()
-
-	if setting.SSH.RootPath != "" {
-		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
-		// This of course doesn't guarantee that this is the right directory for authorized_keys
-		// but at least if it's supposed to be this directory and it doesn't exist and we're the
-		// right user it will at least be created properly.
-		err := os.MkdirAll(setting.SSH.RootPath, 0700)
-		if err != nil {
-			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
-			return err
-		}
-	}
-
-	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
-	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	// Note: chmod is noop on Windows.
-	if !setting.IsWindows {
-		fi, err := f.Stat()
-		if err != nil {
-			return err
-		}
-
-		// .ssh directory should have mode 700, and authorized_keys file should have mode 600.
-		if fi.Mode().Perm() > 0600 {
-			log.Error(authorizedPrincipalsFile+"file has unusual permission flags: %s - setting to -rw-------", fi.Mode().Perm().String())
-			if err = f.Chmod(0600); err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, key := range keys {
-		if key.Type != KeyTypePrincipal {
-			continue
-		}
-		if _, err = f.WriteString(key.AuthorizedString()); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
