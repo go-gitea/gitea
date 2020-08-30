@@ -12,9 +12,8 @@ import (
 
 // UserPinnedRepo represents a pinned repo by an user or org.
 type UserPinnedRepo struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UID    int64 `xorm:"INDEX NOT NULL"`
-	RepoID int64 `xorm:"NOT NULL"`
+	UID    int64 `xorm:"pk INDEX NOT NULL"`
+	RepoID int64 `xorm:"pk NOT NULL"`
 }
 
 // AddPinnedRepo add a pinned repo
