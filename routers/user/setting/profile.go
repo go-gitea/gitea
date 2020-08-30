@@ -264,6 +264,11 @@ func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
 			return
 		}
 
+		if form.IsBtn {
+			ctx.Status(200)
+			return
+		}
+
 		ctx.Redirect(ctx.User.HomeLink())
 		return
 	}
@@ -281,6 +286,11 @@ func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
 
 	if err = ctx.User.AddPinnedRepo(repo); err != nil && !models.IsErrUserPinnedRepoAlreadyExist(err) {
 		ctx.ServerError("ctx.User.AddPinnedRepo", err)
+		return
+	}
+
+	if form.IsBtn {
+		ctx.Status(200)
 		return
 	}
 

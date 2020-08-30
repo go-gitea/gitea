@@ -2381,15 +2381,13 @@ $(document).ready(async () => {
 
   $('.pinned-repo-btn').on('click', function (e) {
     const $this = $(this);
-    const $redirect = $this.data('redirect');
     e.preventDefault();
     $.post($this.data('url'), {
       _csrf: csrf,
       name: $this.data('name'),
-      status: $this.data('status')
-    }).done(() => {
-      window.location.href = $redirect;
-    });
+      status: $this.data('status'),
+      is_btn: true,
+    }).done(reload());
   });
 
   // NOTICE: This event trigger targets Firefox caching behaviour, as the checkboxes stay checked after reload

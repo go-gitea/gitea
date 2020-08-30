@@ -226,7 +226,7 @@ func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
 			return
 		}
 
-		ctx.Redirect(ctx.Org.Organization.HomeLink())
+		ctx.Status(200)
 		return
 	}
 
@@ -235,5 +235,5 @@ func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Org.Organization.HomeLink())
+	ctx.Status(200)
 }

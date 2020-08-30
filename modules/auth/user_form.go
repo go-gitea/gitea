@@ -365,4 +365,5 @@ func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 type RepoPinnedForm struct {
 	RepoFullName string `binding:"Required" form:"name"`
 	Status       string `binding:"Required;In(pinned,unpinned)"`
+	IsBtn        bool
 }

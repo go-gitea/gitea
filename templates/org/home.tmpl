@@ -28,8 +28,10 @@
 					</div>
 					<div class="ui divider"></div>
 				{{end}}
-				{{template "explore/pinned_repos_list" .}}
-				<div class="ui divider"></div>
+				{{if (gt .PinnedReposNum 0)}}
+					{{template "explore/pinned_repos_list" .}}
+					<div class="ui divider"></div>
+				{{end}}
 				{{template "explore/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
