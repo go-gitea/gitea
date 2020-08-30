@@ -19,13 +19,6 @@ import (
 	"github.com/unknwon/com"
 )
 
-const (
-	// ProtectedBranchRepoID protected Repo ID
-	ProtectedBranchRepoID = "GITEA_REPO_ID"
-	// ProtectedBranchPRID protected Repo PR ID
-	ProtectedBranchPRID = "GITEA_PR_ID"
-)
-
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                        int64  `xorm:"pk autoincr"`
@@ -98,9 +91,10 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
-		return true
+		// Then we need to fall back on whether the user has write permission
+		return permissionInRepo.CanWrite(UnitTypeCode)
 	}
 
 	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
