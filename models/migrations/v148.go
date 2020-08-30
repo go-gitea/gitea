@@ -11,9 +11,8 @@ import (
 func addUserPinnedRepoTable(x *xorm.Engine) error {
 
 	type UserPinnedRepo struct {
-		ID     int64 `xorm:"pk autoincr"`
-		UID    int64 `xorm:"INDEX NOT NULL"`
-		RepoID int64 `xorm:"NOT NULL"`
+		UID    int64 `xorm:"pk INDEX NOT NULL"`
+		RepoID int64 `xorm:"pk NOT NULL"`
 	}
 
 	return x.Sync2(new(UserPinnedRepo))

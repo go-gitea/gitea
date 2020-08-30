@@ -1,19 +1,15 @@
 -
-  id: 1
   uid: 2
   repo_id: 1
 
 -
-  id: 2
   uid: 6
   repo_id: 1
 
 -
-  id: 3
   uid: 2
   repo_id: 4
 
 -
-  id: 4
   uid: 2
   repo_id: 16
