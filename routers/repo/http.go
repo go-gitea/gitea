@@ -323,7 +323,7 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req.Request

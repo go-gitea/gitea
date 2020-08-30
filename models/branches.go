@@ -19,13 +19,6 @@ import (
 	"github.com/unknwon/com"
 )
 
-const (
-	// ProtectedBranchRepoID protected Repo ID
-	ProtectedBranchRepoID = "GITEA_REPO_ID"
-	// ProtectedBranchPRID protected Repo PR ID
-	ProtectedBranchPRID = "GITEA_PR_ID"
-)
-
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                        int64  `xorm:"pk autoincr"`

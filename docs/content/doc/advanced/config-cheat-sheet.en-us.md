@@ -270,7 +270,11 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
+- `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_NAME`: **gitea_codes**: Code indexer name, available when `REPO_INDEXER_TYPE` is elasticsearch
+
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
@@ -615,7 +619,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 - `ENABLE`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
-- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
