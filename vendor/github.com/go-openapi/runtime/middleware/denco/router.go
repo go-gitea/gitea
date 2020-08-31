@@ -17,6 +17,9 @@ const (
 	// TerminationCharacter is a special character for end of path.
 	TerminationCharacter = '#'
 
+	// SeparatorCharacter separates path segments.
+	SeparatorCharacter = '/'
+
 	// MaxSize is max size of records and internal slice.
 	MaxSize = (1 << 22) - 1
 )
@@ -420,10 +423,11 @@ type record struct {
 
 // makeRecords returns the records that use to build Double-Arrays.
 func makeRecords(srcs []Record) (statics, params []*record) {
-	spChars := string([]byte{ParamCharacter, WildcardCharacter})
 	termChar := string(TerminationCharacter)
+	paramPrefix := string(SeparatorCharacter) + string(ParamCharacter)
+	wildcardPrefix := string(SeparatorCharacter) + string(WildcardCharacter)
 	for _, r := range srcs {
-		if strings.ContainsAny(r.Key, spChars) {
+		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) {
 			r.Key += termChar
 			params = append(params, &record{Record: r})
 		} else {

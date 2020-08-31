@@ -2,10 +2,13 @@ package commands
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"errors"
 
 	"github.com/go-openapi/loads"
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands/diff"
@@ -22,32 +25,46 @@ type DiffCommand struct {
 	Format              string `long:"format" short:"f" description:"When present, writes output as json" default:"txt" choice:"txt" choice:"json"`
 	IgnoreFile          string `long:"ignore" short:"i" description:"Exception file of diffs to ignore (copy output from json diff format)"  default:"none specified"`
 	Destination         string `long:"dest" short:"d" description:"Output destination file or stdout" default:"stdout"`
+	Args                struct {
+		OldSpec string `positional-arg-name:"{old spec}"`
+		NewSpec string `positional-arg-name:"{new spec}"`
+	} `required:"2" positional-args:"specs" description:"Input specs to be diff-ed"`
 }
 
 // Execute diffs the two specs provided
-func (c *DiffCommand) Execute(args []string) error {
-	if len(args) != 2 {
-		msg := `missing arguments for diff command (use --help for more info)`
-		return errors.New(msg)
+func (c *DiffCommand) Execute(_ []string) error {
+	if c.Args.OldSpec == "" || c.Args.NewSpec == "" {
+		return errors.New(`missing arguments for diff command (use --help for more info)`)
 	}
 
-	log.Println("Run Config:")
-	log.Printf("Spec1: %s", args[0])
-	log.Printf("Spec2: %s", args[1])
-	log.Printf("ReportOnlyBreakingChanges (-c) :%v", c.OnlyBreakingChanges)
-	log.Printf("OutputFormat (-f) :%s", c.Format)
-	log.Printf("IgnoreFile (-i) :%s", c.IgnoreFile)
-	log.Printf("Diff Report Destination (-d) :%s", c.Destination)
+	c.printInfo()
 
-	diffs, err := getDiffs(args[0], args[1])
+	var (
+		output io.WriteCloser
+		err    error
+	)
+	if c.Destination != "" {
+		output, err = os.OpenFile(c.Destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		if err != nil {
+			return fmt.Errorf("%s: %w", c.Destination, err)
+		}
+		defer func() {
+			_ = output.Close()
+		}()
+	} else {
+		output = os.Stdout
+	}
+
+	diffs, err := c.getDiffs()
 	if err != nil {
 		return err
 	}
 
-	ignores, err := readIgnores(c.IgnoreFile)
+	ignores, err := c.readIgnores()
 	if err != nil {
 		return err
 	}
+
 	diffs = diffs.FilterIgnores(ignores)
 	if len(ignores) > 0 {
 		log.Printf("Diff Report Ignored Items from IgnoreFile")
@@ -56,40 +73,44 @@ func (c *DiffCommand) Execute(args []string) error {
 		}
 	}
 
-	if c.Format == JSONFormat {
-		err = diffs.ReportAllDiffs(true)
-		if err != nil {
-			return err
-		}
+	var (
+		input io.Reader
+		warn  error
+	)
+	if c.Format != JSONFormat && c.OnlyBreakingChanges {
+		input, err, warn = diffs.ReportCompatibility()
 	} else {
-		if c.OnlyBreakingChanges {
-			err = diffs.ReportCompatibility()
-		} else {
-			err = diffs.ReportAllDiffs(false)
-		}
+		input, err, warn = diffs.ReportAllDiffs(c.Format == JSONFormat)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(output, input)
+	if err != nil {
+		return err
+	}
+	return warn
 }
 
-func readIgnores(ignoreFile string) (diff.SpecDifferences, error) {
+func (c *DiffCommand) readIgnores() (diff.SpecDifferences, error) {
+	ignoreFile := c.IgnoreFile
 	ignoreDiffs := diff.SpecDifferences{}
 
-	if ignoreFile == "none specified" {
+	if ignoreFile == "none specified" || ignoreFile == "" {
 		return ignoreDiffs, nil
 	}
 	// Open our jsonFile
 	jsonFile, err := os.Open(ignoreFile)
-	// if we os.Open returns an error then handle it
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", ignoreFile, err)
 	}
-	// defer the closing of our jsonFile so that we can parse it later on
-	defer jsonFile.Close()
+	defer func() {
+		_ = jsonFile.Close()
+	}()
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading %s: %w", ignoreFile, err)
 	}
-	// def
 	err = json.Unmarshal(byteValue, &ignoreDiffs)
 	if err != nil {
 		return nil, err
@@ -97,10 +118,10 @@ func readIgnores(ignoreFile string) (diff.SpecDifferences, error) {
 	return ignoreDiffs, nil
 }
 
-func getDiffs(oldSpecPath, newSpecPath string) (diff.SpecDifferences, error) {
+func (c *DiffCommand) getDiffs() (diff.SpecDifferences, error) {
+	oldSpecPath, newSpecPath := c.Args.OldSpec, c.Args.NewSpec
 	swaggerDoc1 := oldSpecPath
 	specDoc1, err := loads.Spec(swaggerDoc1)
-
 	if err != nil {
 		return nil, err
 	}
@@ -112,4 +133,14 @@ func getDiffs(oldSpecPath, newSpecPath string) (diff.SpecDifferences, error) {
 	}
 
 	return diff.Compare(specDoc1.Spec(), specDoc2.Spec())
+}
+
+func (c *DiffCommand) printInfo() {
+	log.Println("Run Config:")
+	log.Printf("Spec1: %s", c.Args.OldSpec)
+	log.Printf("Spec2: %s", c.Args.NewSpec)
+	log.Printf("ReportOnlyBreakingChanges (-c) :%v", c.OnlyBreakingChanges)
+	log.Printf("OutputFormat (-f) :%s", c.Format)
+	log.Printf("IgnoreFile (-i) :%s", c.IgnoreFile)
+	log.Printf("Diff Report Destination (-d) :%s", c.Destination)
 }
