@@ -377,7 +377,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while geting reactions: %v", err)
+			return nil, false, fmt.Errorf("error while loading reactions: %v", err)
 		}
 
 		allIssues = append(allIssues, &base.Issue{
@@ -504,7 +504,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			return nil, fmt.Errorf("error while geting reactions: %v", err)
+			return nil, fmt.Errorf("error while loading reactions: %v", err)
 		}
 
 		var assignees []string
