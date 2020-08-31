@@ -66,7 +66,7 @@ func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *PlainGitDownloader) GetAsset(_ string, _ int64) (io.ReadCloser, error) {
+func (g *PlainGitDownloader) GetAsset(_ string, _, _ int64) (io.ReadCloser, error) {
 	return nil, ErrNotSupported
 }
 

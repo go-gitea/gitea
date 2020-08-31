@@ -319,7 +319,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *GithubDownloaderV3) GetAsset(_ string, id int64) (io.ReadCloser, error) {
+func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, error) {
 	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
 	if err != nil {
 		return nil, err

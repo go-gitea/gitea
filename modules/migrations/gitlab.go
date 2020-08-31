@@ -304,7 +304,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
+func (g *GitlabDownloader) GetAsset(tag string, _, id int64) (io.ReadCloser, error) {
 	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id))
 	if err != nil {
 		return nil, err

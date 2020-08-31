@@ -31,7 +31,6 @@ type PullRequest struct {
 	MergeCommitSHA string
 	Head           PullRequestBranch
 	Base           PullRequestBranch
-	Assignee       string
 	Assignees      []string
 	IsLocked       bool
 	Reactions      []*Reaction

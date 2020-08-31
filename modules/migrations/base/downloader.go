@@ -15,7 +15,7 @@ import (
 
 // AssetDownloader downloads an asset (attachment) for a release
 type AssetDownloader interface {
-	GetAsset(tag string, id int64) (io.ReadCloser, error)
+	GetAsset(relTag string, relID, id int64) (io.ReadCloser, error)
 }
 
 // Downloader downloads the site repo informations
