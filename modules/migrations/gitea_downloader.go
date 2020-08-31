@@ -343,7 +343,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			Closed:      issue.Closed,
 			Reactions:   reactions,
 			Labels:      labels,
-			// IsLocked:    issue.IsLocked, // ToDo on sdk release v0.13.0
+			IsLocked:    issue.IsLocked,
 		})
 	}
 
@@ -484,8 +484,8 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			Merged:         pr.HasMerged,
 			MergedTime:     pr.Merged,
 			MergeCommitSHA: mergeCommitSHA,
-			// IsLocked:       pr.IsLocked, sdk v0.13.0 TODO
-			PatchURL: pr.PatchURL,
+			IsLocked:       pr.IsLocked,
+			PatchURL:       pr.PatchURL,
 			Head: base.PullRequestBranch{
 				Ref:       headRef,
 				SHA:       headSHA,
