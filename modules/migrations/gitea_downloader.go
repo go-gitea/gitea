@@ -172,6 +172,14 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
+func (g *GiteaDownloader) convertGiteaLabel(label *gitea.Label) *base.Label {
+	return &base.Label{
+		Name:        label.Name,
+		Color:       label.Color,
+		Description: label.Description,
+	}
+}
+
 // GetLabels returns labels
 func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 	if g == nil {
@@ -191,11 +199,7 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 		}
 
 		for i := range ls {
-			labels = append(labels, &base.Label{
-				Name:        ls[i].Name,
-				Color:       ls[i].Color,
-				Description: ls[i].Description,
-			})
+			labels = append(labels, g.convertGiteaLabel(ls[i]))
 		}
 		if len(ls) < perPage {
 			break
@@ -308,11 +312,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		var labels = make([]*base.Label, 0, len(issue.Labels))
 		for i := range issue.Labels {
-			labels = append(labels, &base.Label{
-				Name:        issue.Labels[i].Name,
-				Color:       issue.Labels[i].Color,
-				Description: issue.Labels[i].Description,
-			})
+			labels = append(labels, g.convertGiteaLabel(issue.Labels[i]))
 		}
 
 		var milestone string
@@ -415,11 +415,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		var labels = make([]*base.Label, 0, len(pr.Labels))
 		for i := range pr.Labels {
-			labels = append(labels, &base.Label{
-				Name:        pr.Labels[i].Name,
-				Color:       pr.Labels[i].Color,
-				Description: pr.Labels[i].Description,
-			})
+			labels = append(labels, g.convertGiteaLabel(pr.Labels[i]))
 		}
 
 		var (
