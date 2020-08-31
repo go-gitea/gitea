@@ -394,6 +394,11 @@ function initCommentForm() {
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function () {
+      const $canChange = $(this).data('can-change');
+      if ($canChange.length > 0) {
+        return false;
+      }
+
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
