@@ -65,10 +65,11 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
-	ctx       context.Context
-	client    *gitea.Client
-	repoOwner string
-	repoName  string
+	ctx        context.Context
+	client     *gitea.Client
+	repoOwner  string
+	repoName   string
+	pagination bool
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
@@ -82,11 +83,17 @@ func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *Gi
 
 	path := strings.Split(repoPath, "/")
 
+	paginationSupport := true
+	if err := giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
+		paginationSupport = false
+	}
+
 	return &GiteaDownloader{
-		ctx:       context.Background(),
-		client:    giteaClient,
-		repoOwner: path[0],
-		repoName:  path[1],
+		ctx:        context.Background(),
+		client:     giteaClient,
+		repoOwner:  path[0],
+		repoName:   path[1],
+		pagination: paginationSupport,
 	}
 }
 
@@ -343,7 +350,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		})
 	}
 
-	return allIssues, len(issues) == 0, nil
+	return allIssues, len(issues) < perPage, nil
 }
 
 // GetComments returns comments according issueNumber
@@ -353,6 +360,11 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, 100)
 
 	for i := 1; ; i++ {
+		select {
+		case <-g.ctx.Done():
+			return nil, nil
+		default:
+		}
 		comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea.ListIssueCommentOptions{ListOptions: gitea.ListOptions{
 			PageSize: perPage,
 			Page:     i,
@@ -360,9 +372,7 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error while listing comments: %v", err)
 		}
-		if len(comments) == 0 {
-			break
-		}
+
 		for _, comment := range comments {
 			rl, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, comment.ID)
 			if err != nil {
@@ -388,6 +398,8 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 				Reactions:   reactions,
 			})
 		}
+
+		break //ToDo enable pagination vor (gitea >= 1.13) when it got implemented
 	}
 	return allComments, nil
 }
