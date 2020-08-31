@@ -74,7 +74,7 @@ type GiteaDownloader struct {
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
-//   Use either a username/password, personal token entered into the username field, or anonymous/public access
+//   Use either a username/password or personal token. token is preferred
 //   Note: Public access only allows very basic access
 func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *GiteaDownloader {
 	giteaClient := gitea.NewClient(baseURL, token)
@@ -83,7 +83,7 @@ func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *Gi
 	}
 
 	// do not support gitea instances older that 1.10
-	// because 1.10 first got the needed pull & release endpoints
+	// because gitea v1.10.0 first got the needed pull & release endpoints
 	if err := giteaClient.CheckServerVersionConstraint(">=1.10"); err != nil {
 		log.Error(fmt.Sprintf("NewGiteaDownloader: %s", err.Error()))
 		return nil
