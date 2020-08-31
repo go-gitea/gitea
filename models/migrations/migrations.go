@@ -228,6 +228,8 @@ var migrations = []Migration{
 	NewMigration("Add projects info to repository table", addProjectsInfo),
 	// v147 -> v148
 	NewMigration("create review for 0 review id code comments", createReviewsForCodeComments),
+	// v148 -> v149
+	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
 }
 
 // GetCurrentDBVersion returns the current db version
