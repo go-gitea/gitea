@@ -276,21 +276,17 @@ func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, er
 // getIssueReactions
 func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
 	var reactions []*base.Reaction
-	for i := 1; ; i++ {
-		rl, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
-		if err != nil {
-			return nil, err
-		}
-		if len(rl) == 0 {
-			break
-		}
-		for _, reaction := range rl {
-			reactions = append(reactions, &base.Reaction{
-				UserID:   reaction.User.ID,
-				UserName: reaction.User.UserName,
-				Content:  reaction.Reaction,
-			})
-		}
+	rl, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, reaction := range rl {
+		reactions = append(reactions, &base.Reaction{
+			UserID:   reaction.User.ID,
+			UserName: reaction.User.UserName,
+			Content:  reaction.Reaction,
+		})
 	}
 	return reactions, nil
 }
