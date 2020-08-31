@@ -44,7 +44,7 @@
 						{{$canChoose = true}}
 					{{end}}
 
-					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-can-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-ban-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}

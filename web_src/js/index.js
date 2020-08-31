@@ -394,8 +394,8 @@ function initCommentForm() {
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function () {
-      const $canChange = $(this).data('can-change');
-      if ($canChange.length > 0) {
+      const $banChange = $(this).data('ban-change');
+      if ($banChange.length > 0) {
         return false;
       }
 
