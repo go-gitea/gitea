@@ -35,8 +35,22 @@ type CreateUserOption struct {
 	SendNotify         bool   `json:"send_notify"`
 }
 
+// Validate the CreateUserOption struct
+func (opt CreateUserOption) Validate() error {
+	if len(opt.Email) == 0 {
+		return fmt.Errorf("email is empty")
+	}
+	if len(opt.Username) == 0 {
+		return fmt.Errorf("username is empty")
+	}
+	return nil
+}
+
 // AdminCreateUser create a user
 func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

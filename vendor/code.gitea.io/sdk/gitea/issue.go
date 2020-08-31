@@ -44,6 +44,7 @@ type Issue struct {
 	Assignees        []*User    `json:"assignees"`
 	// Whether the issue is open or closed
 	State       StateType        `json:"state"`
+	IsLocked    bool             `json:"is_locked"`
 	Comments    int              `json:"comments"`
 	Created     time.Time        `json:"created_at"`
 	Updated     time.Time        `json:"updated_at"`
@@ -173,8 +174,19 @@ type CreateIssueOption struct {
 	Closed bool    `json:"closed"`
 }
 
+// Validate the CreateIssueOption struct
+func (opt CreateIssueOption) Validate() error {
+	if len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	return nil
+}
+
 // CreateIssue create a new issue for a given repository
 func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -195,8 +207,19 @@ type EditIssueOption struct {
 	Deadline  *time.Time `json:"due_date"`
 }
 
+// Validate the EditIssueOption struct
+func (opt EditIssueOption) Validate() error {
+	if len(opt.Title) != 0 && len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	return nil
+}
+
 // EditIssue modify an existing issue for a given repository
 func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

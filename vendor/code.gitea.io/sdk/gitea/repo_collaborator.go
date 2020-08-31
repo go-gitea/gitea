@@ -41,8 +41,20 @@ type AddCollaboratorOption struct {
 	Permission *string `json:"permission"`
 }
 
+// Validate the AddCollaboratorOption struct
+func (opt AddCollaboratorOption) Validate() error {
+	if opt.Permission != nil &&
+		*opt.Permission != "read" && *opt.Permission != "write" && *opt.Permission != "admin" {
+		return fmt.Errorf("permission mode invalid")
+	}
+	return nil
+}
+
 // AddCollaborator add some user as a collaborator of a repository
 func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollaboratorOption) error {
+	if err := opt.Validate(); err != nil {
+		return err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return err

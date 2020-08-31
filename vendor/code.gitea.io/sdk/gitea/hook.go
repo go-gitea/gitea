@@ -64,8 +64,19 @@ type CreateHookOption struct {
 	Active       bool              `json:"active"`
 }
 
+// Validate the CreateHookOption struct
+func (opt CreateHookOption) Validate() error {
+	if len(opt.Type) == 0 {
+		return fmt.Errorf("hook type needed")
+	}
+	return nil
+}
+
 // CreateOrgHook create one hook for an organization, with options
 func (c *Client) CreateOrgHook(org string, opt CreateHookOption) (*Hook, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -35,6 +36,7 @@ type PullRequest struct {
 	Assignee  *User      `json:"assignee"`
 	Assignees []*User    `json:"assignees"`
 	State     StateType  `json:"state"`
+	IsLocked  bool       `json:"is_locked"`
 	Comments  int        `json:"comments"`
 
 	HTMLURL  string `json:"html_url"`
@@ -148,8 +150,24 @@ type EditPullRequestOption struct {
 	Deadline  *time.Time `json:"due_date"`
 }
 
+// Validate the EditPullRequestOption struct
+func (opt EditPullRequestOption) Validate(c *Client) error {
+	if len(opt.Title) != 0 && len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	if len(opt.Base) != 0 {
+		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+			return fmt.Errorf("can not change base gitea to old")
+		}
+	}
+	return nil
+}
+
 // EditPullRequest modify pull request with PR id and options
 func (c *Client) EditPullRequest(owner, repo string, index int64, opt EditPullRequestOption) (*PullRequest, error) {
+	if err := opt.Validate(c); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -166,12 +184,20 @@ type MergePullRequestOption struct {
 	Message string     `json:"MergeMessageField"`
 }
 
-// MergePullRequest merge a PR to repository by PR id
-func (c *Client) MergePullRequest(owner, repo string, index int64, opt MergePullRequestOption) (bool, error) {
+// Validate the MergePullRequestOption struct
+func (opt MergePullRequestOption) Validate(c *Client) error {
 	if opt.Style == MergeStyleSquash {
 		if err := c.CheckServerVersionConstraint(">=1.11.5"); err != nil {
-			return false, err
+			return err
 		}
+	}
+	return nil
+}
+
+// MergePullRequest merge a PR to repository by PR id
+func (c *Client) MergePullRequest(owner, repo string, index int64, opt MergePullRequestOption) (bool, error) {
+	if err := opt.Validate(c); err != nil {
+		return false, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -40,8 +41,7 @@ type PullReview struct {
 	Stale             bool            `json:"stale"`
 	Official          bool            `json:"official"`
 	CodeCommentsCount int             `json:"comments_count"`
-	// swagger:strfmt date-time
-	Submitted time.Time `json:"submitted_at"`
+	Submitted         time.Time       `json:"submitted_at"`
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
@@ -54,9 +54,7 @@ type PullReviewComment struct {
 	Reviewer *User  `json:"user"`
 	ReviewID int64  `json:"pull_request_review_id"`
 
-	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
-	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 
 	Path         string `json:"path"`
@@ -98,6 +96,38 @@ type SubmitPullReviewOptions struct {
 // ListPullReviewsOptions options for listing PullReviews
 type ListPullReviewsOptions struct {
 	ListOptions
+}
+
+// Validate the CreatePullReviewOptions struct
+func (opt CreatePullReviewOptions) Validate() error {
+	if opt.State != ReviewStateApproved && len(strings.TrimSpace(opt.Body)) == 0 {
+		return fmt.Errorf("body is empty")
+	}
+	for i := range opt.Comments {
+		if err := opt.Comments[i].Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Validate the SubmitPullReviewOptions struct
+func (opt SubmitPullReviewOptions) Validate() error {
+	if opt.State != ReviewStateApproved && len(strings.TrimSpace(opt.Body)) == 0 {
+		return fmt.Errorf("body is empty")
+	}
+	return nil
+}
+
+// Validate the CreatePullReviewComment struct
+func (opt CreatePullReviewComment) Validate() error {
+	if len(strings.TrimSpace(opt.Body)) == 0 {
+		return fmt.Errorf("body is empty")
+	}
+	if opt.NewLineNum != 0 && opt.OldLineNum != 0 {
+		return fmt.Errorf("old and new line num are set, cant identify the code comment position")
+	}
+	return nil
 }
 
 // ListPullReviews lists all reviews of a pull request
@@ -158,6 +188,9 @@ func (c *Client) CreatePullReview(owner, repo string, index int64, opt CreatePul
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return nil, err
 	}
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -171,6 +204,9 @@ func (c *Client) CreatePullReview(owner, repo string, index int64, opt CreatePul
 // SubmitPullReview submit a pending review to an pull request
 func (c *Client) SubmitPullReview(owner, repo string, index, id int64, opt SubmitPullReviewOptions) (*PullReview, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+		return nil, err
+	}
+	if err := opt.Validate(); err != nil {
 		return nil, err
 	}
 	body, err := json.Marshal(&opt)

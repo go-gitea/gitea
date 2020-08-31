@@ -280,6 +280,10 @@ func comparePrereleases(v string, other string) int {
 
 // Equal tests if two versions are equal.
 func (v *Version) Equal(o *Version) bool {
+	if v == nil || o == nil {
+		return v == o
+	}
+
 	return v.Compare(o) == 0
 }
 
@@ -288,7 +292,7 @@ func (v *Version) GreaterThan(o *Version) bool {
 	return v.Compare(o) > 0
 }
 
-// GreaterThanOrEqualTo tests if this version is greater than or equal to another version.
+// GreaterThanOrEqual tests if this version is greater than or equal to another version.
 func (v *Version) GreaterThanOrEqual(o *Version) bool {
 	return v.Compare(o) >= 0
 }
@@ -298,7 +302,7 @@ func (v *Version) LessThan(o *Version) bool {
 	return v.Compare(o) < 0
 }
 
-// LessThanOrEqualTo tests if this version is less than or equal to another version.
+// LessThanOrEqual tests if this version is less than or equal to another version.
 func (v *Version) LessThanOrEqual(o *Version) bool {
 	return v.Compare(o) <= 0
 }

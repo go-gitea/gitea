@@ -46,15 +46,26 @@ func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, error) {
 // AddTimeOption options for adding time to an issue
 type AddTimeOption struct {
 	// time in seconds
-	Time int64 `json:"time" binding:"Required"`
+	Time int64 `json:"time"`
 	// optional
 	Created time.Time `json:"created"`
 	// optional
 	User string `json:"user_name"`
 }
 
+// Validate the AddTimeOption struct
+func (opt AddTimeOption) Validate() error {
+	if opt.Time == 0 {
+		return fmt.Errorf("no time to add")
+	}
+	return nil
+}
+
 // AddTime adds time to issue with the given index
 func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*TrackedTime, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

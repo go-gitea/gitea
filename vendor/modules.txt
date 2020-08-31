@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.12.1
+# code.gitea.io/sdk/gitea v0.12.1-0.20200730194618-9e280adb4daa
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/lunny/levelqueue v0.3.0
@@ -430,7 +430,8 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.6
 ## explicit
 github.com/hashicorp/go-retryablehttp
-# github.com/hashicorp/go-version v1.2.0
+# github.com/hashicorp/go-version v1.2.1
+## explicit
 github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl

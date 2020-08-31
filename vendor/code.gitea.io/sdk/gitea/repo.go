@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -57,6 +58,20 @@ type Repository struct {
 	AvatarURL                 string      `json:"avatar_url"`
 }
 
+// RepoType represent repo type
+type RepoType string
+
+const (
+	// RepoTypeNone dont specify a type
+	RepoTypeNone RepoType = ""
+	// RepoTypeSource is the default repo type
+	RepoTypeSource RepoType = "source"
+	// RepoTypeFork is a repo witch was forked from an other one
+	RepoTypeFork RepoType = "fork"
+	// RepoTypeMirror represents an mirror repo
+	RepoTypeMirror RepoType = "mirror"
+)
+
 // ListReposOptions options for listing repositories
 type ListReposOptions struct {
 	ListOptions
@@ -91,17 +106,52 @@ func (c *Client) ListOrgRepos(org string, opt ListOrgReposOptions) ([]*Repositor
 // SearchRepoOptions options for searching repositories
 type SearchRepoOptions struct {
 	ListOptions
-	Keyword         string
-	Topic           bool
-	IncludeDesc     bool
-	UID             int64
-	PriorityOwnerID int64
-	StarredBy       int64
-	Private         bool
-	Template        bool
-	Mode            string
-	Exclusive       bool
-	Sort            string
+
+	// The keyword to query
+	Keyword string
+	// Limit search to repositories with keyword as topic
+	KeywordIsTopic bool
+	// Include search of keyword within repository description
+	KeywordInDescription bool
+
+	/*
+		User Filter
+	*/
+
+	// Repo Owner
+	OwnerID int64
+	// Stared By UserID
+	StarredByUserID int64
+
+	/*
+		Repo Attributes
+	*/
+
+	// pubic, private or all repositories (defaults to all)
+	IsPrivate *bool
+	// archived, non-archived or all repositories (defaults to all)
+	IsArchived *bool
+	// Exclude template repos from search
+	ExcludeTemplate bool
+	// Filter by "fork", "source", "mirror"
+	Type RepoType
+
+	/*
+		Sort Filters
+	*/
+
+	// sort repos by attribute. Supported values are "alpha", "created", "updated", "size", and "id". Default is "alpha"
+	Sort string
+	// sort order, either "asc" (ascending) or "desc" (descending). Default is "asc", ignored if "sort" is not specified.
+	Order string
+	// Repo owner to prioritize in the results
+	PrioritizedByOwnerID int64
+
+	/*
+		Cover EdgeCases
+	*/
+	// if set all other options are ignored and this string is used as query
+	RawQuery string
 }
 
 // QueryEncode turns options into querystring argument
@@ -110,33 +160,45 @@ func (opt *SearchRepoOptions) QueryEncode() string {
 	if opt.Keyword != "" {
 		query.Add("q", opt.Keyword)
 	}
-
-	query.Add("topic", fmt.Sprintf("%t", opt.Topic))
-	query.Add("includeDesc", fmt.Sprintf("%t", opt.IncludeDesc))
-
-	if opt.UID > 0 {
-		query.Add("uid", fmt.Sprintf("%d", opt.UID))
+	if opt.KeywordIsTopic {
+		query.Add("topic", "true")
+	}
+	if opt.KeywordInDescription {
+		query.Add("includeDesc", "true")
 	}
 
-	if opt.PriorityOwnerID > 0 {
-		query.Add("priority_owner_id", fmt.Sprintf("%d", opt.PriorityOwnerID))
+	// User Filter
+	if opt.OwnerID > 0 {
+		query.Add("uid", fmt.Sprintf("%d", opt.OwnerID))
+		query.Add("exclusive", "true")
+	}
+	if opt.StarredByUserID > 0 {
+		query.Add("starredBy", fmt.Sprintf("%d", opt.StarredByUserID))
 	}
 
-	if opt.StarredBy > 0 {
-		query.Add("starredBy", fmt.Sprintf("%d", opt.StarredBy))
+	// Repo Attributes
+	if opt.IsPrivate != nil {
+		query.Add("is_private", fmt.Sprintf("%v", opt.IsPrivate))
+	}
+	if opt.IsArchived != nil {
+		query.Add("archived", fmt.Sprintf("%v", opt.IsArchived))
+	}
+	if opt.ExcludeTemplate {
+		query.Add("template", "false")
+	}
+	if len(opt.Type) != 0 {
+		query.Add("mode", string(opt.Type))
 	}
 
-	query.Add("private", fmt.Sprintf("%t", opt.Private))
-	query.Add("template", fmt.Sprintf("%t", opt.Template))
-
-	if opt.Mode != "" {
-		query.Add("mode", opt.Mode)
-	}
-
-	query.Add("exclusive", fmt.Sprintf("%t", opt.Exclusive))
-
+	// Sort Filters
 	if opt.Sort != "" {
 		query.Add("sort", opt.Sort)
+	}
+	if opt.PrioritizedByOwnerID > 0 {
+		query.Add("priority_owner_id", fmt.Sprintf("%d", opt.PrioritizedByOwnerID))
+	}
+	if opt.Order != "" {
+		query.Add("order", opt.Order)
 	}
 
 	return query.Encode()
@@ -152,7 +214,20 @@ func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, error) {
 	resp := new(searchRepoResponse)
 
 	link, _ := url.Parse("/repos/search")
-	link.RawQuery = opt.QueryEncode()
+
+	if len(opt.RawQuery) != 0 {
+		link.RawQuery = opt.RawQuery
+	} else {
+		link.RawQuery = opt.QueryEncode()
+		// IsPrivate only works on gitea >= 1.12.0
+		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil && opt.IsPrivate != nil {
+			if *opt.IsPrivate {
+				// private repos only not supported on gitea <= 1.11.x
+				return nil, err
+			}
+			link.Query().Add("private", "false")
+		}
+	}
 
 	err := c.getParsedResponse("GET", link.String(), nil, nil, &resp)
 	return resp.Repos, err
@@ -161,7 +236,6 @@ func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, error) {
 // CreateRepoOption options when creating repository
 type CreateRepoOption struct {
 	// Name of the repository to create
-	//
 	Name string `json:"name"`
 	// Description of the repository to create
 	Description string `json:"description"`
@@ -181,8 +255,19 @@ type CreateRepoOption struct {
 	DefaultBranch string `json:"default_branch"`
 }
 
+// Validate the CreateRepoOption struct
+func (opt CreateRepoOption) Validate() error {
+	if len(strings.TrimSpace(opt.Name)) == 0 {
+		return fmt.Errorf("name is empty")
+	}
+	return nil
+}
+
 // CreateRepo creates a repository for authenticated user.
 func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -193,6 +278,9 @@ func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, error) {
 
 // CreateOrgRepo creates an organization repository for authenticated user.
 func (c *Client) CreateOrgRepo(org string, opt CreateRepoOption) (*Repository, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

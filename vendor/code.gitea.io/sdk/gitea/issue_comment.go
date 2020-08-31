@@ -77,8 +77,19 @@ type CreateIssueCommentOption struct {
 	Body string `json:"body"`
 }
 
+// Validate the CreateIssueCommentOption struct
+func (opt CreateIssueCommentOption) Validate() error {
+	if len(opt.Body) == 0 {
+		return fmt.Errorf("body is empty")
+	}
+	return nil
+}
+
 // CreateIssueComment create comment on an issue.
 func (c *Client) CreateIssueComment(owner, repo string, index int64, opt CreateIssueCommentOption) (*Comment, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -92,8 +103,19 @@ type EditIssueCommentOption struct {
 	Body string `json:"body"`
 }
 
+// Validate the EditIssueCommentOption struct
+func (opt EditIssueCommentOption) Validate() error {
+	if len(opt.Body) == 0 {
+		return fmt.Errorf("body is empty")
+	}
+	return nil
+}
+
 // EditIssueComment edits an issue comment.
 func (c *Client) EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err

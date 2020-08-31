@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -63,9 +64,20 @@ type CreateReleaseOption struct {
 	IsPrerelease bool   `json:"prerelease"`
 }
 
+// Validate the CreateReleaseOption struct
+func (opt CreateReleaseOption) Validate() error {
+	if len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	return nil
+}
+
 // CreateRelease create a release
-func (c *Client) CreateRelease(user, repo string, form CreateReleaseOption) (*Release, error) {
-	body, err := json.Marshal(form)
+func (c *Client) CreateRelease(user, repo string, opt CreateReleaseOption) (*Release, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
+	body, err := json.Marshal(opt)
 	if err != nil {
 		return nil, err
 	}

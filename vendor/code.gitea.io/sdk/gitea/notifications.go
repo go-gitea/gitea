@@ -29,16 +29,31 @@ type NotificationSubject struct {
 	Type             string `json:"type" binding:"In(Issue,Pull,Commit)"`
 }
 
+// NotifyStatus notification status type
+type NotifyStatus string
+
+const (
+	// NotifyStatusUnread was not read
+	NotifyStatusUnread NotifyStatus = "unread"
+	// NotifyStatusRead was already read by user
+	NotifyStatusRead NotifyStatus = "read"
+	// NotifyStatusPinned notification is pinned by user
+	NotifyStatusPinned NotifyStatus = "pinned"
+)
+
 // ListNotificationOptions represents the filter options
 type ListNotificationOptions struct {
 	ListOptions
 	Since  time.Time
 	Before time.Time
+	Status []NotifyStatus
 }
 
-// MarkNotificationOptions represents the filter options
+// MarkNotificationOptions represents the filter & modify options
 type MarkNotificationOptions struct {
 	LastReadAt time.Time
+	Status     []NotifyStatus
+	ToStatus   NotifyStatus
 }
 
 // QueryEncode encode options to url query
@@ -50,7 +65,18 @@ func (opt *ListNotificationOptions) QueryEncode() string {
 	if !opt.Before.IsZero() {
 		query.Add("before", opt.Before.Format(time.RFC3339))
 	}
+	for _, s := range opt.Status {
+		query.Add("status-types", string(s))
+	}
 	return query.Encode()
+}
+
+// Validate the CreateUserOption struct
+func (opt ListNotificationOptions) Validate(c *Client) error {
+	if len(opt.Status) != 0 {
+		return c.CheckServerVersionConstraint(">=1.12.3")
+	}
+	return nil
 }
 
 // QueryEncode encode options to url query
@@ -59,7 +85,21 @@ func (opt *MarkNotificationOptions) QueryEncode() string {
 	if !opt.LastReadAt.IsZero() {
 		query.Add("last_read_at", opt.LastReadAt.Format(time.RFC3339))
 	}
+	for _, s := range opt.Status {
+		query.Add("status-types", string(s))
+	}
+	if len(opt.ToStatus) != 0 {
+		query.Add("to-status", string(opt.ToStatus))
+	}
 	return query.Encode()
+}
+
+// Validate the CreateUserOption struct
+func (opt MarkNotificationOptions) Validate(c *Client) error {
+	if len(opt.Status) != 0 || len(opt.ToStatus) != 0 {
+		return c.CheckServerVersionConstraint(">=1.12.3")
+	}
+	return nil
 }
 
 // CheckNotifications list users's notification threads
@@ -84,16 +124,24 @@ func (c *Client) GetNotification(id int64) (*NotificationThread, error) {
 }
 
 // ReadNotification mark notification thread as read by ID
-func (c *Client) ReadNotification(id int64) error {
+// It optionally takes a second argument if status has to be set other than 'read'
+func (c *Client) ReadNotification(id int64, status ...NotifyStatus) error {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return err
 	}
-	_, err := c.getResponse("PATCH", fmt.Sprintf("/notifications/threads/%d", id), nil, nil)
+	link := fmt.Sprintf("/notifications/threads/%d", id)
+	if len(status) != 0 {
+		link += fmt.Sprintf("?to-status=%s", status[0])
+	}
+	_, err := c.getResponse("PATCH", link, nil, nil)
 	return err
 }
 
 // ListNotifications list users's notification threads
 func (c *Client) ListNotifications(opt ListNotificationOptions) ([]*NotificationThread, error) {
+	if err := opt.Validate(c); err != nil {
+		return nil, err
+	}
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return nil, err
 	}
@@ -105,6 +153,9 @@ func (c *Client) ListNotifications(opt ListNotificationOptions) ([]*Notification
 
 // ReadNotifications mark notification threads as read
 func (c *Client) ReadNotifications(opt MarkNotificationOptions) error {
+	if err := opt.Validate(c); err != nil {
+		return err
+	}
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return err
 	}
@@ -116,6 +167,9 @@ func (c *Client) ReadNotifications(opt MarkNotificationOptions) error {
 
 // ListRepoNotifications list users's notification threads on a specific repo
 func (c *Client) ListRepoNotifications(owner, reponame string, opt ListNotificationOptions) ([]*NotificationThread, error) {
+	if err := opt.Validate(c); err != nil {
+		return nil, err
+	}
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return nil, err
 	}
@@ -127,6 +181,9 @@ func (c *Client) ListRepoNotifications(owner, reponame string, opt ListNotificat
 
 // ReadRepoNotifications mark notification threads as read on a specific repo
 func (c *Client) ReadRepoNotifications(owner, reponame string, opt MarkNotificationOptions) error {
+	if err := opt.Validate(c); err != nil {
+		return err
+	}
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return err
 	}

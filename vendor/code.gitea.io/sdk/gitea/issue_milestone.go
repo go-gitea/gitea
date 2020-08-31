@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -64,8 +65,19 @@ type CreateMilestoneOption struct {
 	Deadline    *time.Time `json:"due_on"`
 }
 
+// Validate the CreateMilestoneOption struct
+func (opt CreateMilestoneOption) Validate() error {
+	if len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	return nil
+}
+
 // CreateMilestone create one milestone with options
 func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) (*Milestone, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -76,7 +88,7 @@ func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) 
 	// make creating closed milestones need gitea >= v1.13.0
 	// this make it backwards compatible
 	if err == nil && opt.State == StateClosed && milestone.State != StateClosed {
-		closed := "closed"
+		closed := StateClosed
 		return c.EditMilestone(owner, repo, milestone.ID, EditMilestoneOption{
 			State: &closed,
 		})
@@ -89,12 +101,23 @@ func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) 
 type EditMilestoneOption struct {
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
-	State       *string    `json:"state"`
+	State       *StateType `json:"state"`
 	Deadline    *time.Time `json:"due_on"`
+}
+
+// Validate the EditMilestoneOption struct
+func (opt EditMilestoneOption) Validate() error {
+	if len(opt.Title) != 0 && len(strings.TrimSpace(opt.Title)) == 0 {
+		return fmt.Errorf("title is empty")
+	}
+	return nil
 }
 
 // EditMilestone modify milestone with options
 func (c *Client) EditMilestone(owner, repo string, id int64, opt EditMilestoneOption) (*Milestone, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
