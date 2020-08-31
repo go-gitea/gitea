@@ -154,6 +154,13 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-g.ctx.Done():
+			return nil, nil
+		default:
+		}
+
 		ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName, gitea_sdk.ListMilestoneOption{
 			ListOptions: gitea_sdk.ListOptions{
 				PageSize: g.maxPerPage,
@@ -209,6 +216,13 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 	var labels = make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-g.ctx.Done():
+			return nil, nil
+		default:
+		}
+
 		ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName, gitea_sdk.ListLabelsOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
@@ -265,6 +279,13 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 
 	var releases = make([]*base.Release, 0, g.maxPerPage)
 	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-g.ctx.Done():
+			return nil, nil
+		default:
+		}
+
 		rl, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
@@ -410,11 +431,13 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
 	// for i := 1; ; i++ {
+	// make sure gitea can shutdown gracefully
 	select {
 	case <-g.ctx.Done():
 		return nil, nil
 	default:
 	}
+
 	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 		// PageSize: g.maxPerPage,
 		// Page:     i,
@@ -573,6 +596,13 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-g.ctx.Done():
+			return nil, nil
+		default:
+		}
+
 		prl, err := g.client.ListPullReviews(g.repoOwner, g.repoName, index, gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
