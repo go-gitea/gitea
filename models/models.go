@@ -82,6 +82,7 @@ func init() {
 		new(Action),
 		new(Issue),
 		new(PullRequest),
+		new(Revision),
 		new(Comment),
 		new(Attachment),
 		new(Label),

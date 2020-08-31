@@ -525,6 +525,14 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
 				})
 			} else {
+				gitRepo, err := git.OpenRepository(baseRepo.RepoPath())
+				if err == nil {
+					defer gitRepo.Close()
+					_, err = gitRepo.CreateNewRevision(pr.Index, branch)
+				}
+				if err != nil {
+					log.Error("Failed to update revisions in PR in: %-v Branch: %s PR: %d Error: %v", repo, branch, pr.Index, err)
+				}
 				results = append(results, private.HookPostReceiveBranchResult{
 					Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
 					Create:  false,

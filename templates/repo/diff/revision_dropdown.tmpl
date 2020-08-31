@@ -1,0 +1,22 @@
+<div class="ui dropdown tiny button">
+	{{$revisionBtnText := ""}}
+	{{if eq $.RevisionIndex 0}}
+		{{$revisionBtnText = $.i18n.Tr "repo.diff.base_revision_button_desc" }}
+	{{else}}
+		{{$revisionBtnText = $.i18n.Tr "repo.diff.revision_button_desc" $.Revision.Index $.Revision.Commit }}
+	{{end}}
+	{{.i18n.Tr "repo.diff.revision_button" $revisionBtnText}}
+	<i class="dropdown icon"></i>
+	<div class="menu">
+		{{range $.Revisions}}
+			<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&rv={{.Index}}" {{if eq .Index $.RevisionCount}}style="pointer-events: none !important;cursor: default;color:Gray;"{{end}}>
+				<i class="circle {{ if eq $.RevisionIndex .Index }}dot{{else if ne .Index $.RevisionCount}}outline{{end}} icon"></i>
+				{{$.i18n.Tr "repo.diff.revision_desc" .Commit .Index }}
+			</a>
+		{{end}}
+		<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&rv=0">
+			<i class="circle {{ if eq $.RevisionIndex 0 }}dot{{else}}outline{{end}} icon"></i>
+			{{.i18n.Tr "repo.diff.base_revision_desc"}}
+		</a>
+	</div>
+</div>

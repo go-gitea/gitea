@@ -53,3 +53,23 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	return refs, nil
 }
+
+// UpsertRef create a new ref
+func (repo *Repository) UpsertRef(ref, commit string) error {
+	cmd := NewCommand("update-ref")
+	cmd.AddArguments("--", ref, commit)
+
+	_, err := cmd.RunInDir(repo.Path)
+
+	return err
+}
+
+// DeleteRef deletes a ref
+func (repo *Repository) DeleteRef(ref string) error {
+	cmd := NewCommand("update-ref")
+	cmd.AddArguments("-d", "--", ref)
+
+	_, err := cmd.RunInDir(repo.Path)
+
+	return err
+}

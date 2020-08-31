@@ -1,0 +1,15 @@
+<h4 class="ui top attached header">
+	<div class="ui stackable grid">
+		<div class="five wide column">
+			{{if or .PageIsRevisions (gt .RevisionCount 0)}}
+				{{.RevisionCount}} {{.i18n.Tr "repo.revisions.revisions"}}
+			{{else}}
+				{{.i18n.Tr "repo.revisions.no_revisions" }}
+			{{end}}
+		</div>
+	</div>
+</h4>
+
+{{if and .Revisions (gt .RevisionCount 0)}}
+    {{template "repo/revisions_list" .}}
+{{end}}

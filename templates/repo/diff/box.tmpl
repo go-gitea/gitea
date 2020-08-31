@@ -21,6 +21,7 @@
 			{{svg "octicon-diff"}} {{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			<div class="ui right">
 				{{if .PageIsPullFiles}}
+					{{template "repo/diff/revision_dropdown" .}}
 					{{template "repo/diff/whitespace_dropdown" .}}
 				{{else}}
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
