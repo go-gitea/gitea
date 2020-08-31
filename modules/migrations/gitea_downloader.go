@@ -473,9 +473,9 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
+		return nil, false, errors.New("error: GiteaDownloader is nil")
 	}
 
 	if perPage > g.maxPerPage {
@@ -491,7 +491,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		State: gitea_sdk.StateAll,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
 	for _, pr := range prs {
 		var milestone string
@@ -527,7 +527,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			return nil, fmt.Errorf("error while loading reactions: %v", err)
+			return nil, false, fmt.Errorf("error while loading reactions: %v", err)
 		}
 
 		var assignees []string
@@ -580,7 +580,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		})
 	}
 
-	return allPRs, nil
+	return allPRs, len(prs) < perPage, nil
 }
 
 // GetReviews returns pull requests review

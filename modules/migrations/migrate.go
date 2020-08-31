@@ -231,7 +231,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating pull requests and comments")
 		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
-			prs, err := downloader.GetPullRequests(i, prBatchSize)
+			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
 				return err
 			}
@@ -302,7 +302,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(prs) < prBatchSize {
+			if isEnd {
 				break
 			}
 		}

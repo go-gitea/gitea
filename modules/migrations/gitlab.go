@@ -441,7 +441,7 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -457,7 +457,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error while listing merge requests: %v", err)
+		return nil, false, fmt.Errorf("error while listing merge requests: %v", err)
 	}
 	for _, pr := range prs {
 
@@ -530,7 +530,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		})
 	}
 
-	return allPRs, nil
+	return allPRs, len(prs) < perPage, nil
 }
 
 // GetReviews returns pull requests review
