@@ -82,6 +82,13 @@ func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *Gi
 		giteaClient.SetBasicAuth(username, password)
 	}
 
+	// do not support gitea instances older that 1.10
+	// because 1.10 first got the needed pull & release endpoints
+	if err := giteaClient.CheckServerVersionConstraint(">=1.10"); err != nil {
+		log.Error(fmt.Sprintf("NewGiteaDownloader: %s", err.Error()))
+		return nil
+	}
+
 	path := strings.Split(repoPath, "/")
 
 	paginationSupport := true
@@ -252,6 +259,10 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea.Release) *base.Release 
 
 // GetReleases returns releases
 func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
+	if g == nil {
+		return nil, errors.New("error: GiteaDownloader is nil")
+	}
+
 	var releases = make([]*base.Release, 0, g.maxPerPage)
 	for i := 1; ; i++ {
 		rl, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea.ListReleasesOptions{ListOptions: gitea.ListOptions{
@@ -274,6 +285,9 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 
 // GetAsset returns an asset
 func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, error) {
+	if g == nil {
+		return nil, errors.New("error: GiteaDownloader is nil")
+	}
 
 	asset, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, relID, id)
 	if err != nil {
@@ -288,9 +302,12 @@ func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, er
 	return resp.Body, nil
 }
 
-// getIssueReactions
 func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
 	var reactions []*base.Reaction
+	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
+		log.Info("GiteaDownloader: instance to old, skip getIssueReactions")
+		return reactions, nil
+	}
 	rl, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
 	if err != nil {
 		return nil, err
@@ -306,8 +323,32 @@ func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, erro
 	return reactions, nil
 }
 
+func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction, error) {
+	var reactions []*base.Reaction
+	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
+		log.Info("GiteaDownloader: instance to old, skip getCommentReactions")
+		return reactions, nil
+	}
+	rl, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, commentID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range rl {
+		reactions = append(reactions, &base.Reaction{
+			UserID:   rl[i].User.ID,
+			UserName: rl[i].User.UserName,
+			Content:  rl[i].Reaction,
+		})
+	}
+	return reactions, nil
+}
+
 // GetIssues returns issues according start and limit
 func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+	if g == nil {
+		return nil, true, errors.New("error: GiteaDownloader is nil")
+	}
 
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
@@ -357,14 +398,14 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		})
 	}
 
-	if !g.pagination { // ToDo check since when pagination is supported for issues
-		return allIssues, true, nil
-	}
 	return allIssues, len(issues) < perPage, nil
 }
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
+	if g == nil {
+		return nil, errors.New("error: GiteaDownloader is nil")
+	}
 
 	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
@@ -383,17 +424,9 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 	}
 
 	for _, comment := range comments {
-		rl, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, comment.ID)
+		reactions, err := g.getCommentReactions(comment.ID)
 		if err != nil {
-			return nil, err
-		}
-		var reactions []*base.Reaction
-		for i := range rl {
-			reactions = append(reactions, &base.Reaction{
-				UserID:   rl[i].User.ID,
-				UserName: rl[i].User.UserName,
-				Content:  rl[i].Reaction,
-			})
+			return nil, fmt.Errorf("error while listing comment creactions: %v", err)
 		}
 
 		allComments = append(allComments, &base.Comment{
@@ -418,6 +451,9 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+	if g == nil {
+		return nil, errors.New("error: GiteaDownloader is nil")
+	}
 
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
@@ -526,6 +562,13 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
+	if g == nil {
+		return nil, errors.New("error: GiteaDownloader is nil")
+	}
+	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
+		log.Info("GiteaDownloader: instance to old, skip GetReviews")
+		return nil, nil
+	}
 
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 
