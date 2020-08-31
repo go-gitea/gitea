@@ -70,6 +70,7 @@ type GiteaDownloader struct {
 	repoOwner  string
 	repoName   string
 	pagination bool
+	maxPerPage int
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
@@ -88,12 +89,18 @@ func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *Gi
 		paginationSupport = false
 	}
 
+	// set small maxPerPage since we can only guess (default would be 50 but this can differ)
+	// safest value would be 1 but this is really inefficient
+	// ToDo https://github.com/go-gitea/gitea/issues/12664
+	maxPerPage := 10
+
 	return &GiteaDownloader{
 		ctx:        context.Background(),
 		client:     giteaClient,
 		repoOwner:  path[0],
 		repoName:   path[1],
 		pagination: paginationSupport,
+		maxPerPage: maxPerPage,
 	}
 }
 
@@ -137,13 +144,12 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 	if g == nil {
 		return nil, errors.New("error: GiteaDownloader is nil")
 	}
-	var perPage = 50
-	var milestones = make([]*base.Milestone, 0, perPage)
+	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName, gitea.ListMilestoneOption{
 			ListOptions: gitea.ListOptions{
-				PageSize: perPage,
+				PageSize: g.maxPerPage,
 				Page:     i,
 			},
 			State: gitea.StateAll,
@@ -172,7 +178,7 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 				State:       string(ms[i].State),
 			})
 		}
-		if len(ms) < perPage {
+		if !g.pagination || len(ms) < g.maxPerPage {
 			break
 		}
 	}
@@ -193,12 +199,11 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 		return nil, errors.New("error: GiteaDownloader is nil")
 	}
 
-	var perPage = 50
-	var labels = make([]*base.Label, 0, perPage)
+	var labels = make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName, gitea.ListLabelsOptions{ListOptions: gitea.ListOptions{
-			PageSize: perPage,
+			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
 		if err != nil {
@@ -208,7 +213,7 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 		for i := range ls {
 			labels = append(labels, g.convertGiteaLabel(ls[i]))
 		}
-		if len(ls) < perPage {
+		if !g.pagination || len(ls) < g.maxPerPage {
 			break
 		}
 	}
@@ -247,11 +252,10 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea.Release) *base.Release 
 
 // GetReleases returns releases
 func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
-	var perPage = 100
-	var releases = make([]*base.Release, 0, perPage)
+	var releases = make([]*base.Release, 0, g.maxPerPage)
 	for i := 1; ; i++ {
 		rl, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea.ListReleasesOptions{ListOptions: gitea.ListOptions{
-			PageSize: perPage,
+			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
 		if err != nil {
@@ -261,7 +265,7 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 		for i := range rl {
 			releases = append(releases, g.convertGiteaRelease(rl[i]))
 		}
-		if len(rl) < perPage {
+		if !g.pagination || len(rl) < g.maxPerPage {
 			break
 		}
 	}
@@ -305,6 +309,9 @@ func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, erro
 // GetIssues returns issues according start and limit
 func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 	var allIssues = make([]*base.Issue, 0, perPage)
 
 	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea.ListIssueOption{
@@ -350,63 +357,71 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		})
 	}
 
+	if !g.pagination { // ToDo check since when pagination is supported for issues
+		return allIssues, true, nil
+	}
 	return allIssues, len(issues) < perPage, nil
 }
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 
-	var perPage = 50
-	var allComments = make([]*base.Comment, 0, 100)
+	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
-	for i := 1; ; i++ {
-		select {
-		case <-g.ctx.Done():
-			return nil, nil
-		default:
-		}
-		comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea.ListIssueCommentOptions{ListOptions: gitea.ListOptions{
-			PageSize: perPage,
-			Page:     i,
-		}})
+	// for i := 1; ; i++ {
+	select {
+	case <-g.ctx.Done():
+		return nil, nil
+	default:
+	}
+	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea.ListIssueCommentOptions{ListOptions: gitea.ListOptions{
+		// PageSize: g.maxPerPage,
+		// Page:     i,
+	}})
+	if err != nil {
+		return nil, fmt.Errorf("error while listing comments: %v", err)
+	}
+
+	for _, comment := range comments {
+		rl, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, comment.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing comments: %v", err)
+			return nil, err
 		}
-
-		for _, comment := range comments {
-			rl, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, comment.ID)
-			if err != nil {
-				return nil, err
-			}
-			var reactions []*base.Reaction
-			for i := range rl {
-				reactions = append(reactions, &base.Reaction{
-					UserID:   rl[i].User.ID,
-					UserName: rl[i].User.UserName,
-					Content:  rl[i].Reaction,
-				})
-			}
-
-			allComments = append(allComments, &base.Comment{
-				IssueIndex:  index,
-				PosterID:    comment.Poster.ID,
-				PosterName:  comment.Poster.UserName,
-				PosterEmail: comment.Poster.Email,
-				Content:     comment.Body,
-				Created:     comment.Created,
-				Updated:     comment.Updated,
-				Reactions:   reactions,
+		var reactions []*base.Reaction
+		for i := range rl {
+			reactions = append(reactions, &base.Reaction{
+				UserID:   rl[i].User.ID,
+				UserName: rl[i].User.UserName,
+				Content:  rl[i].Reaction,
 			})
 		}
 
-		break //ToDo enable pagination vor (gitea >= 1.13) when it got implemented
+		allComments = append(allComments, &base.Comment{
+			IssueIndex:  index,
+			PosterID:    comment.Poster.ID,
+			PosterName:  comment.Poster.UserName,
+			PosterEmail: comment.Poster.Email,
+			Content:     comment.Body,
+			Created:     comment.Created,
+			Updated:     comment.Updated,
+			Reactions:   reactions,
+		})
 	}
+
+	// ToDo enable pagination vor (gitea >= 1.13) when it got implemented
+	// 	if !g.pagination || len(comments) < g.maxPerPage {
+	//		break
+	//	}
+	//}
 	return allComments, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
 
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
 	prs, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea.ListPullRequestsOptions{
@@ -512,13 +527,12 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 
-	var perPage = 50
-	var allReviews = make([]*base.Review, 0, perPage)
+	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		prl, err := g.client.ListPullReviews(g.repoOwner, g.repoName, index, gitea.ListPullReviewsOptions{ListOptions: gitea.ListOptions{
 			Page:     i,
-			PageSize: perPage,
+			PageSize: g.maxPerPage,
 		}})
 		if err != nil {
 			return nil, err
@@ -526,33 +540,28 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 
 		for _, pr := range prl {
 
+			rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID, gitea.ListPullReviewsCommentsOptions{})
+			if err != nil {
+				return nil, err
+			}
 			var reviewComments []*base.ReviewComment
-			for ii := 1; ; ii++ {
-				rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID, gitea.ListPullReviewsCommentsOptions{})
-				if err != nil {
-					return nil, err
+			for i := range rcl {
+				line := int(rcl[i].LineNum)
+				if rcl[i].OldLineNum > 0 {
+					line = int(rcl[i].OldLineNum) * -1
 				}
-				for i := range rcl {
-					line := int(rcl[i].LineNum)
-					if rcl[i].OldLineNum > 0 {
-						line = int(rcl[i].OldLineNum) * -1
-					}
 
-					reviewComments = append(reviewComments, &base.ReviewComment{
-						ID:        rcl[i].ID,
-						Content:   rcl[i].Body,
-						TreePath:  rcl[i].Path,
-						DiffHunk:  rcl[i].DiffHunk,
-						Position:  line,
-						CommitID:  rcl[i].CommitID,
-						PosterID:  rcl[i].Reviewer.ID,
-						CreatedAt: rcl[i].Created,
-						UpdatedAt: rcl[i].Updated,
-					})
-				}
-				if len(rcl) < perPage {
-					break
-				}
+				reviewComments = append(reviewComments, &base.ReviewComment{
+					ID:        rcl[i].ID,
+					Content:   rcl[i].Body,
+					TreePath:  rcl[i].Path,
+					DiffHunk:  rcl[i].DiffHunk,
+					Position:  line,
+					CommitID:  rcl[i].CommitID,
+					PosterID:  rcl[i].Reviewer.ID,
+					CreatedAt: rcl[i].Created,
+					UpdatedAt: rcl[i].Updated,
+				})
 			}
 
 			allReviews = append(allReviews, &base.Review{
@@ -569,7 +578,7 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 			})
 		}
 
-		if len(prl) < perPage {
+		if len(prl) < g.maxPerPage {
 			break
 		}
 	}
