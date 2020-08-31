@@ -1,0 +1,19 @@
+{{template "base/head" .}}
+<div class="repository view issue pull revisions">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="navbar">
+			{{template "repo/issue/navbar" .}}
+			<div class="ui right">
+				<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | EscapePound}}...{{.PullRequestCtx.HeadInfo | EscapePound}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+			</div>
+		</div>
+		<div class="ui divider"></div>
+		{{template "repo/issue/view_title" .}}
+		{{template "repo/pulls/tab_menu" .}}
+		<div class="ui bottom attached tab pull active">
+			{{template "repo/revisions_table" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

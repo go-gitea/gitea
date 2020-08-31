@@ -9,6 +9,11 @@
 		{{$.i18n.Tr "repo.pulls.tab_commits"}}
 		<span class="ui {{if not .NumCommits}}gray{{else}}blue{{end}} small label">{{if .NumCommits}}{{.NumCommits}}{{else}}N/A{{end}}</span>
 	</a>
+	<a class="item {{if .PageIsRevisions}}active{{end}}" {{if .NumRevisions}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/revisions"{{end}}>
+		{{svg "octicon-history" 16}}
+		{{$.i18n.Tr "repo.pulls.revisions"}}
+		<span class="ui {{if not .NumRevisions}}gray{{else}}blue{{end}} small label">{{if .NumRevisions}}{{.NumRevisions}}{{else}}N/A{{end}}</span>
+	</a>
 	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/files"{{end}}>
 		{{svg "octicon-diff"}}
 		{{$.i18n.Tr "repo.pulls.tab_files"}}

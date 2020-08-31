@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -68,5 +69,18 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
 	default:
 		ctx.Data["WhitespaceBehavior"] = ""
+	}
+}
+
+// SetSinceRevision set from which revision to render the diff
+func SetSinceRevision(ctx *context.Context) {
+	revision := ctx.Query("rv")
+
+	rv, err := strconv.ParseInt(revision, 10, 64)
+
+	if rv >= 0 && err == nil {
+		ctx.Data["RevisionIndex"] = rv
+	} else {
+		ctx.Data["RevisionIndex"] = int64(0)
 	}
 }

@@ -1,0 +1,64 @@
+<div class="ui attached table segment">
+		<table class="ui very basic striped fixed table single line" id="commits-table">
+			<thead>
+				<tr>
+					<th class="two wide">{{.i18n.Tr "repo.revisions.revision"}}</th>
+					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
+					<th class="two wide sha">{{.i18n.Tr "repo.revisions.changeset"}}</th>
+					<th class="three wide right aligned">{{.i18n.Tr "repo.revisions.compare_to"}}</th>
+					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
+				</tr>
+			</thead>
+			<tbody class="commit-list">
+				{{range $.Revisions}}
+					<tr>
+						<td class="revision">
+							#{{.Index}}
+						</td>
+						<td class="author">
+							{{$userName := .User.Name}}
+							{{if .User}}
+								{{if .User.FullName}}
+									{{$userName = .User.FullName}}
+								{{end}}
+								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+							{{else}}
+								<img class="ui avatar image" src="{{AvatarLink .User.Email}}" alt=""/>&nbsp;&nbsp;{{$userName}}
+							{{end}}
+						</td>
+						<td class="sha">
+							<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.PR.MergeBase}}...{{.Commit}}" rel="nofollow">
+								<span class="ui sha label">
+									<span class="shortsha">{{ShortSha .Commit}} ({{$.i18n.Tr "repo.revisions.n_commits" .NumberOfCommits}})</span>
+								</span>
+							</a>
+						</td>
+						<td class="text right aligned">
+							(
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.PR.MergeBase}}...{{.ChangesetHeadRef}}" rel="nofollow">
+									{{$.i18n.Tr "repo.revisions.base"}} 
+								</a>
+								|
+								{{if gt .Index 1}}
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.PrevChangesetHeadRef}}...{{.ChangesetHeadRef}}">
+								{{end}}
+								{{$.i18n.Tr "repo.revisions.prev"}}
+								{{if gt .Index 1}}
+									</a>
+								{{end}}
+								|
+								{{if lt .Index $.RevisionCount}}
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.ChangesetHeadRef}}...refs/pull/{{.PR.Index}}/head" rel="nofollow">
+								{{end}}
+								{{$.i18n.Tr "repo.revisions.latest"}}
+								{{if lt .Index $.RevisionCount}}
+									</a>
+								{{end}}
+							)
+						</td>
+						<td class="text right aligned">{{TimeSince .Created.AsTime $.Lang}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>

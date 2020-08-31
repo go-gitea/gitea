@@ -63,6 +63,11 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 	defer baseGitRepo.Close()
 
+	_, err = models.InitializeRevisions(pr)
+	if err != nil {
+		return err
+	}
+
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
 		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 	if err != nil {
@@ -280,6 +285,10 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			comment, err := models.CreatePushPullComment(doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(doer, pr, comment)
+			}
+			_, err = models.CreateNewRevision(pr, doer, newCommitID)
+			if err != nil {
+				log.Error("Couldn't create revision entry for a push for PR [base_repo_id: %d, base_branch: %s, PRID: %d]: %v", repoID, branch, pr.Index, err)
 			}
 		}
 
