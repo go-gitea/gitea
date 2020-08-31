@@ -31,9 +31,11 @@ type Milestone struct {
 	Completeness    int  // Percentage(1-100).
 	IsOverdue       bool `xorm:"-"`
 
-	DeadlineString string `xorm:"-"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	DeadlineUnix   timeutil.TimeStamp
 	ClosedDateUnix timeutil.TimeStamp
+	DeadlineString string `xorm:"-"`
 
 	TotalTrackedTime int64 `xorm:"-"`
 }
