@@ -51,8 +51,9 @@ var CmdServ = cli.Command{
 }
 
 func setup(logPath string, debug bool) {
-	if !debug {
-		_ = log.DelLogger("console")
+	_ = log.DelLogger("console")
+	if debug {
+		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
 	}
 	setting.NewContext()
 	if debug {
@@ -117,6 +118,8 @@ func runServ(c *cli.Context) error {
 		}
 		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
+	} else if c.Bool("debug") {
+		log.Debug("SSH_ORIGINAL_COMMAND: %s", os.Getenv("SSH_ORIGINAL_COMMAND"))
 	}
 
 	words, err := shellquote.Split(cmd)
@@ -144,6 +147,9 @@ func runServ(c *cli.Context) error {
 			lfsVerb = words[2]
 		}
 	}
+
+	// LowerCase and trim the repoPath as that's how they are stored.
+	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
