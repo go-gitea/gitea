@@ -146,9 +146,8 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 		}
 
 		for i := range ms {
-			var state = "open"
-
 			// ToDo: expose this info
+			// https://github.com/go-gitea/gitea/issues/12655
 			createdAT := time.Now()
 			var updatedAT *time.Time
 			if ms[i].Closed != nil {
@@ -163,7 +162,7 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 				Created:     createdAT,
 				Updated:     updatedAT,
 				Closed:      ms[i].Closed,
-				State:       state,
+				State:       string(ms[i].State),
 			})
 		}
 		if len(ms) < perPage {
@@ -207,16 +206,17 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 
 func (g *GiteaDownloader) convertGiteaRelease(rel *gitea.Release) *base.Release {
 	r := &base.Release{
-		TagName:        rel.TagName,
-		Name:           rel.Title,
-		Body:           rel.Note,
-		Draft:          rel.IsDraft,
-		Prerelease:     rel.IsPrerelease,
-		PublisherID:    rel.Publisher.ID,
-		PublisherName:  rel.Publisher.UserName,
-		PublisherEmail: rel.Publisher.Email,
-		Published:      rel.PublishedAt,
-		Created:        rel.CreatedAt,
+		TagName:         rel.TagName,
+		TargetCommitish: rel.Target,
+		Name:            rel.Title,
+		Body:            rel.Note,
+		Draft:           rel.IsDraft,
+		Prerelease:      rel.IsPrerelease,
+		PublisherID:     rel.Publisher.ID,
+		PublisherName:   rel.Publisher.UserName,
+		PublisherEmail:  rel.Publisher.Email,
+		Published:       rel.PublishedAt,
+		Created:         rel.CreatedAt,
 	}
 
 	for _, asset := range rel.Attachments {
