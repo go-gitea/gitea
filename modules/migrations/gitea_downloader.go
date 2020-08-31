@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 
-	"code.gitea.io/sdk/gitea"
+	gitea_sdk "code.gitea.io/sdk/gitea"
 )
 
 var (
@@ -66,7 +66,7 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
 	ctx        context.Context
-	client     *gitea.Client
+	client     *gitea_sdk.Client
 	repoOwner  string
 	repoName   string
 	pagination bool
@@ -77,7 +77,7 @@ type GiteaDownloader struct {
 //   Use either a username/password or personal token. token is preferred
 //   Note: Public access only allows very basic access
 func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *GiteaDownloader {
-	giteaClient := gitea.NewClient(baseURL, token)
+	giteaClient := gitea_sdk.NewClient(baseURL, token)
 	if token == "" {
 		giteaClient.SetBasicAuth(username, password)
 	}
@@ -143,7 +143,7 @@ func (g *GiteaDownloader) GetTopics() ([]string, error) {
 		return nil, errors.New("error: GiteaDownloader is nil")
 	}
 
-	return g.client.ListRepoTopics(g.repoOwner, g.repoName, gitea.ListRepoTopicsOptions{})
+	return g.client.ListRepoTopics(g.repoOwner, g.repoName, gitea_sdk.ListRepoTopicsOptions{})
 }
 
 // GetMilestones returns milestones
@@ -154,12 +154,12 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
-		ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName, gitea.ListMilestoneOption{
-			ListOptions: gitea.ListOptions{
+		ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName, gitea_sdk.ListMilestoneOption{
+			ListOptions: gitea_sdk.ListOptions{
 				PageSize: g.maxPerPage,
 				Page:     i,
 			},
-			State: gitea.StateAll,
+			State: gitea_sdk.StateAll,
 		})
 		if err != nil {
 			return nil, err
@@ -192,7 +192,7 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
-func (g *GiteaDownloader) convertGiteaLabel(label *gitea.Label) *base.Label {
+func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label {
 	return &base.Label{
 		Name:        label.Name,
 		Color:       label.Color,
@@ -209,7 +209,7 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 	var labels = make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
-		ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName, gitea.ListLabelsOptions{ListOptions: gitea.ListOptions{
+		ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName, gitea_sdk.ListLabelsOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -227,7 +227,7 @@ func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
 	return labels, nil
 }
 
-func (g *GiteaDownloader) convertGiteaRelease(rel *gitea.Release) *base.Release {
+func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Release {
 	r := &base.Release{
 		TagName:         rel.TagName,
 		TargetCommitish: rel.Target,
@@ -265,7 +265,7 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 
 	var releases = make([]*base.Release, 0, g.maxPerPage)
 	for i := 1; ; i++ {
-		rl, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea.ListReleasesOptions{ListOptions: gitea.ListOptions{
+		rl, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -355,10 +355,10 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 	}
 	var allIssues = make([]*base.Issue, 0, perPage)
 
-	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea.ListIssueOption{
-		ListOptions: gitea.ListOptions{Page: page, PageSize: perPage},
-		State:       gitea.StateAll,
-		Type:        gitea.IssueTypeIssue,
+	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
+		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: perPage},
+		State:       gitea_sdk.StateAll,
+		Type:        gitea_sdk.IssueTypeIssue,
 	})
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing issues: %v", err)
@@ -415,7 +415,7 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 		return nil, nil
 	default:
 	}
-	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea.ListIssueCommentOptions{ListOptions: gitea.ListOptions{
+	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 		// PageSize: g.maxPerPage,
 		// Page:     i,
 	}})
@@ -460,12 +460,12 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 	}
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
-	prs, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea.ListPullRequestsOptions{
-		ListOptions: gitea.ListOptions{
+	prs, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
+		ListOptions: gitea_sdk.ListOptions{
 			Page:     page,
 			PageSize: perPage,
 		},
-		State: gitea.StateAll,
+		State: gitea_sdk.StateAll,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error while listing repos: %v", err)
@@ -573,7 +573,7 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
-		prl, err := g.client.ListPullReviews(g.repoOwner, g.repoName, index, gitea.ListPullReviewsOptions{ListOptions: gitea.ListOptions{
+		prl, err := g.client.ListPullReviews(g.repoOwner, g.repoName, index, gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -583,7 +583,7 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 
 		for _, pr := range prl {
 
-			rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID, gitea.ListPullReviewsCommentsOptions{})
+			rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID, gitea_sdk.ListPullReviewsCommentsOptions{})
 			if err != nil {
 				return nil, err
 			}
