@@ -1071,6 +1071,13 @@ func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployK
 	return keys, x.Where(cond).Find(&keys)
 }
 
+// __________       .__              .__             .__
+// \______   _______|__| ____   ____ |_____________  |  |   ______
+//  |     ___\_  __ |  |/    \_/ ___\|  \____ \__  \ |  |  /  ___/
+//  |    |    |  | \|  |   |  \  \___|  |  |_> / __ \|  |__\___ \
+//  |____|    |__|  |__|___|  /\___  |__|   __(____  |____/____  >
+//                          \/     \/   |__|       \/          \/
+
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
 	sess := x.NewSession()
@@ -1079,7 +1086,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		return nil, err
 	}
 
-	// Key name of same user cannot be duplicated.
+	// Principals cannot be duplicated.
 	has, err := sess.
 		Where("content = ? AND type = ?", content, KeyTypePrincipal).
 		Get(new(PublicKey))
@@ -1109,7 +1116,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 }
 
 func addPrincipalKey(e Engine, key *PublicKey) (err error) {
-	// Save SSH key.
+	// Save Key representing a principal.
 	if _, err = e.Insert(key); err != nil {
 		return err
 	}
@@ -1130,27 +1137,32 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 
 	// check all the allowed principals, email, username or anything
 	// if any matches, return ok
-	match := false
 	for _, v := range setting.SSH.AuthorizedPrincipalsAllow {
 		switch v {
 		case "anything":
-			match = true
+			return content, nil
 		case "email":
-			if content == user.Email {
-				match = true
+			emails, err := GetEmailAddresses(user.ID)
+			if err != nil {
+				return "", err
 			}
+			for _, email := range emails {
+				if !email.IsActivated {
+					continue
+				}
+				if content == email.Email {
+					return content, nil
+				}
+			}
+
 		case "username":
 			if content == user.Name {
-				match = true
+				return content, nil
 			}
 		}
 	}
 
-	if !match {
-		return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
-	}
-
-	return content, nil
+	return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
 }
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
