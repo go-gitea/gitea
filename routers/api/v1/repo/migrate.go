@@ -9,12 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -26,7 +26,7 @@ import (
 )
 
 // Migrate migrate remote git repository to gitea
-func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
+func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	// swagger:operation POST /repos/migrate repository repoMigrate
 	// ---
 	// summary: Migrate a remote git repository
@@ -87,7 +87,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		}
 	}
 
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
+	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, ctx.User)
 	if err != nil {
 		if models.IsErrInvalidCloneAddr(err) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
@@ -107,11 +107,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = api.PlainGitService
-	u, err := url.Parse(remoteAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = api.GithubService
-	}
+	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Repository.DisableMirrors {
 		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))

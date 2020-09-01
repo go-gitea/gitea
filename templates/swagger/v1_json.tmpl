@@ -13557,6 +13557,89 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
+    "MigrateRepoOptions": {
+      "description": "MigrateRepoOptions options for migrating repository's",
+      "type": "object",
+      "required": [
+        "clone_addr",
+        "uid",
+        "repo_name"
+      ],
+      "properties": {
+        "auth_password": {
+          "type": "string",
+          "x-go-name": "AuthPassword"
+        },
+        "auth_token": {
+          "type": "string",
+          "x-go-name": "AuthToken"
+        },
+        "auth_username": {
+          "type": "string",
+          "x-go-name": "AuthUsername"
+        },
+        "clone_addr": {
+          "type": "string",
+          "x-go-name": "CloneAddr"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
+        "mirror": {
+          "type": "boolean",
+          "x-go-name": "Mirror"
+        },
+        "private": {
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        },
+        "service": {
+          "type": "string",
+          "enum": [
+            "git",
+            "github",
+            "gitea",
+            "gitlab"
+          ],
+          "x-go-name": "Service"
+        },
+        "uid": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UID"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Milestone": {
       "description": "Milestone milestone is a collection of issues on one repository",
       "type": "object",
@@ -15725,7 +15808,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/SubmitPullReviewOptions"
+        "$ref": "#/definitions/MigrateRepoOptions"
       }
     },
     "redirect": {

@@ -235,6 +235,30 @@ func (gt GitServiceType) Title() string {
 	return ""
 }
 
+// MigrateRepoOptions options for migrating repository's
+type MigrateRepoOptions struct {
+	// required: true
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// enum: git,github,gitea,gitlab
+	Service      string `json:"service"`
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
+	// required: true
+	UID int64 `json:"uid" binding:"Required"`
+	// required: true
+	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror       bool   `json:"mirror"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(255)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
+}
+
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
 	switch gt {

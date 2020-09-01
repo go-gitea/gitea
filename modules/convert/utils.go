@@ -5,7 +5,10 @@
 package convert
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // ToCorrectPageSize makes sure page size is in allowed range.
@@ -16,4 +19,20 @@ func ToCorrectPageSize(size int) int {
 		size = setting.API.MaxResponseItems
 	}
 	return size
+}
+
+// ToGitServiceType return GitServiceType based on string
+func ToGitServiceType(value string) structs.GitServiceType {
+	switch strings.ToLower(value) {
+	case "github":
+		return structs.GithubService
+	case "gitea":
+		return structs.GiteaService
+	case "gitlab":
+		return structs.GitlabService
+	case "gogs":
+		return structs.GogsService
+	default:
+		return structs.PlainGitService
+	}
 }
