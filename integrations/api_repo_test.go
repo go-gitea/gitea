@@ -316,9 +316,9 @@ func TestAPIRepoMigrate(t *testing.T) {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOption{
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
 			CloneAddr: testCase.cloneURL,
-			UID:       int(testCase.userID),
+			RepoOwner: testCase.userID,
 			RepoName:  testCase.repoName,
 		})
 		resp := MakeRequest(t, req, NoExpectedStatus)
@@ -360,9 +360,9 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		cloneURL := "https://github.com/go-gitea/test_repo.git"
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+httpContext.Token,
-			&api.MigrateRepoOption{
+			&api.MigrateRepoOptions{
 				CloneAddr: cloneURL,
-				UID:       int(userID),
+				RepoOwner: userID,
 				RepoName:  httpContext.Reponame,
 			})
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
