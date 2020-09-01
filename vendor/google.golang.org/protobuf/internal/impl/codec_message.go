@@ -31,11 +31,6 @@ type coderMessageInfo struct {
 	needsInitCheck     bool
 	isMessageSet       bool
 	numRequiredFields  uint8
-
-	// Include space for a number of coderFieldInfos to improve cache locality.
-	// The number of entries is chosen through a combination of guesswork and
-	// empirical testing.
-	coderFieldBuf [32]coderFieldInfo
 }
 
 type coderFieldInfo struct {
@@ -58,7 +53,7 @@ func (mi *MessageInfo) makeCoderMethods(t reflect.Type, si structInfo) {
 
 	mi.coderFields = make(map[protowire.Number]*coderFieldInfo)
 	fields := mi.Desc.Fields()
-	preallocFields := mi.coderFieldBuf[:]
+	preallocFields := make([]coderFieldInfo, fields.Len())
 	for i := 0; i < fields.Len(); i++ {
 		fd := fields.Get(i)
 
@@ -87,13 +82,7 @@ func (mi *MessageInfo) makeCoderMethods(t reflect.Type, si structInfo) {
 			fieldOffset = offsetOf(fs, mi.Exporter)
 			childMessage, funcs = fieldCoder(fd, ft)
 		}
-		var cf *coderFieldInfo
-		if len(preallocFields) > 0 {
-			cf = &preallocFields[0]
-			preallocFields = preallocFields[1:]
-		} else {
-			cf = new(coderFieldInfo)
-		}
+		cf := &preallocFields[i]
 		*cf = coderFieldInfo{
 			num:        fd.Number(),
 			offset:     fieldOffset,
