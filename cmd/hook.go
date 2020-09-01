@@ -170,7 +170,7 @@ Gitea or set your environment appropriately.`, "")
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(models.EnvPRID), 10, 64)
 	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
 	hookOptions := private.HookOptions{
@@ -178,6 +178,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 		ProtectedBranchID:               prID,
 		IsDeployKey:                     isDeployKey,
 	}
@@ -326,6 +327,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -437,4 +439,18 @@ func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 		fmt.Fprintln(os.Stderr, "")
 		os.Stderr.Sync()
 	}
+}
+
+func pushOptions() map[string]string {
+	opts := make(map[string]string)
+	if pushCount, err := strconv.Atoi(os.Getenv(private.GitPushOptionCount)); err == nil {
+		for idx := 0; idx < pushCount; idx++ {
+			opt := os.Getenv(fmt.Sprintf("GIT_PUSH_OPTION_%d", idx))
+			kv := strings.SplitN(opt, "=", 2)
+			if len(kv) == 2 {
+				opts[kv[0]] = kv[1]
+			}
+		}
+	}
+	return opts
 }

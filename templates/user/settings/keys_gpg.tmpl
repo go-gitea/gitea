@@ -47,7 +47,7 @@
 			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="gpg-key-content" name="content" required>{{.content}}</textarea>
+				<textarea id="gpg-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="gpg">
 			<button class="ui green button">

@@ -21,14 +21,17 @@ IMPORT := code.gitea.io/gitea
 export GO111MODULE=on
 
 GO ?= go
-SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.14.x
+XGO_VERSION := go-1.15.x
 MIN_GO_VERSION := 001012000
 MIN_NODE_VERSION := 010013000
+
+DOCKER_IMAGE ?= gitea/gitea
+DOCKER_TAG ?= latest
+DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
@@ -38,23 +41,22 @@ ifeq ($(HAS_GO), GO)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
+	GOFLAGS := -v
 	EXECUTABLE ?= gitea
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		SED_INPLACE := sed -i ''
-	endif
-	ifeq ($(UNAME_S),FreeBSD)
-		SED_INPLACE := sed -i ''
-	endif
+endif
+
+ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
+	SED_INPLACE := sed -i
+else
+	SED_INPLACE := sed -i ''
 endif
 
 GOFMT ?= gofmt -s
 
-GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -95,12 +97,14 @@ FOMANTIC_DEST_DIR := web_src/fomantic/build
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f) $(FOMANTIC_DEST)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 SVG_DEST_DIR := public/img/svg
+
+AIR_TMP_DIR := .air
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
@@ -144,8 +148,6 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 .PHONY: all
 all: build
 
-include docker/Makefile
-
 .PHONY: help
 help:
 	@echo "Make Routines:"
@@ -153,12 +155,16 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
-	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - checks                           run various consistency checks"
+	@echo " - checks-frontend                  check frontend files"
+	@echo " - checks-backend                   check backend files"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -220,7 +226,7 @@ vet:
 	# Default vet
 	$(GO) vet $(GO_PACKAGES)
 	# Custom vet
-	$(GO) build -mod=vendor gitea.com/jolheiser/gitea-vet
+	$(GO) build -mod=vendor code.gitea.io/gitea-vet
 	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
@@ -288,21 +294,37 @@ fmt-check:
 		exit 1; \
 	fi;
 
-.PHONY: lint
-lint: lint-backend lint-frontend
+.PHONY: checks
+checks: checks-frontend checks-backend
 
-.PHONY: lint-backend
-lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
+.PHONY: checks-frontend
+checks-frontend: svg-check
+
+.PHONY: checks-backend
+checks-backend: misspell-check test-vendor swagger-check swagger-validate
+
+.PHONY: lint
+lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules svg-check
+lint-frontend: node_modules
 	npx eslint web_src/js build webpack.config.js
 	npx stylelint web_src/less
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive vet
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+
+.PHONY: watch-backend
+watch-backend: go-check
+	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+	fi
+	air -c .air.conf
 
 .PHONY: test
 test:
@@ -534,7 +556,8 @@ release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	@echo "Warning: windows version is built using golang 1.14"
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -577,7 +600,7 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) node_modules
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache --exclude=./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
@@ -600,6 +623,7 @@ npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	@touch node_modules
 
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
@@ -626,9 +650,10 @@ svg: node-check | node_modules
 
 .PHONY: svg-check
 svg-check: svg
-	@diff=$$(git diff $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIR)
+	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
@@ -645,34 +670,8 @@ update-translations:
 
 .PHONY: generate-images
 generate-images:
-	$(eval TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp'))
-	mkdir -p $(TMPDIR)/images
-	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
-	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png
-	inkscape -f $(PWD)/assets/logo.svg -w 192 -h 192 -e $(PWD)/public/img/gitea-192.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
-	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png
-	inkscape -f $(PWD)/assets/logo.svg -w 200 -h 200 -e $(PWD)/public/img/avatar_default.png
-	inkscape -f $(PWD)/assets/logo.svg -w 180 -h 180 -e $(PWD)/public/img/favicon.png
-	inkscape -f $(PWD)/assets/logo.svg -w 128 -h 128 -e $(TMPDIR)/images/128-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 64 -h 64 -e $(TMPDIR)/images/64-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer1 -e $(TMPDIR)/images/32-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
-	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
-	rm -f $(TMPDIR)/images/*-*.png
-	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
-					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
-					$(PWD)/public/img/favicon.ico
-	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
-
-	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
+	npm install --no-save --no-package-lock xmldom fabric imagemin-zopfli
+	node build/generate-images.js
 
 .PHONY: pr\#%
 pr\#%: clean-all
@@ -682,9 +681,18 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.30.0; \
 	fi
 	golangci-lint run --timeout 5m
+
+.PHONY: docker
+docker:
+	docker build --disable-content-trust=false -t $(DOCKER_REF) .
+# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+.PHONY: docker-build
+docker-build:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" LDFLAGS="$(LDFLAGS)" CGO_EXTRA_CFLAGS="$(CGO_EXTRA_CFLAGS)" webhippie/golang:edge make clean build
 
 # This endif closes the if at the top of the file
 endif

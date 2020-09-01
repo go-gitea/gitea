@@ -27,7 +27,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
-	downloader := NewGitlabDownloader("https://gitlab.com", "gitea/test_repo", gitlabPersonalAccessToken, "")
+	downloader := NewGitlabDownloader("https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
 	if downloader == nil {
 		t.Fatal("NewGitlabDownloader is nil")
 	}

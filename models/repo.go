@@ -17,6 +17,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -167,6 +169,9 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
+	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects     int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -236,6 +241,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
+	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
 // MustOwner always returns a valid *User object to avoid
@@ -306,6 +312,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
+
+	//check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -352,6 +360,10 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 	}
+	hasProjects := false
+	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
+		hasProjects = true
+	}
 
 	repo.mustOwner(e)
 
@@ -389,6 +401,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		ExternalTracker:           externalTracker,
 		InternalTracker:           internalTracker,
 		HasWiki:                   hasWiki,
+		HasProjects:               hasProjects,
 		ExternalWiki:              externalWiki,
 		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
@@ -969,12 +982,21 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	cl := new(CloneLink)
+
+	// if we have a ipv6 literal we need to put brackets around it
+	// for the git cloning to work.
+	sshDomain := setting.SSH.Domain
+	ip := net.ParseIP(setting.SSH.Domain)
+	if ip != nil && ip.To4() == nil {
+		sshDomain = "[" + setting.SSH.Domain + "]"
+	}
+
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -1430,7 +1452,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		if repo.IsPrivate && com.IsExist(daemonExportFile) {
-			if err = os.Remove(daemonExportFile); err != nil {
+			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
 		} else if !repo.IsPrivate && !com.IsExist(daemonExportFile) {
@@ -1574,7 +1596,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
-		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
 	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
@@ -1628,6 +1650,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if len(repo.Topics) > 0 {
 		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
 			return err
+		}
+	}
+
+	projects, _, err := getProjects(sess, ProjectSearchOptions{
+		RepoID: repoID,
+	})
+	if err != nil {
+		return fmt.Errorf("get projects: %v", err)
+	}
+	for i := range projects {
+		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}
 
@@ -1687,18 +1721,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
+		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	if len(repo.Avatar) > 0 {
 		avatarPath := repo.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -1842,7 +1876,7 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
 				default:
 				}
-				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
+				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
 			})
 }
 
@@ -1901,7 +1935,7 @@ func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, i
 				}
 				toDelete := filepath.Join(path, info.Name())
 				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = os.Remove(toDelete); err != nil {
+				if err = util.Remove(toDelete); err != nil {
 					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
 				}
 			}
@@ -2220,6 +2254,11 @@ func (repo *Repository) relAvatarLink(e Engine) string {
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
 
+// AvatarLink returns a link to the repository's avatar.
+func (repo *Repository) AvatarLink() string {
+	return repo.avatarLink(x)
+}
+
 // avatarLink returns user avatar absolute link.
 func (repo *Repository) avatarLink(e Engine) string {
 	link := repo.relAvatarLink(e)
@@ -2270,7 +2309,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	}
 
 	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
-		if err := os.Remove(oldAvatarPath); err != nil {
+		if err := util.Remove(oldAvatarPath); err != nil {
 			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
@@ -2301,7 +2340,7 @@ func (repo *Repository) DeleteAvatar() error {
 	}
 
 	if _, err := os.Stat(avatarPath); err == nil {
-		if err := os.Remove(avatarPath); err != nil {
+		if err := util.Remove(avatarPath); err != nil {
 			return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 		}
 	} else {

@@ -7,13 +7,20 @@ package base
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"code.gitea.io/gitea/modules/structs"
 )
 
+// AssetDownloader downloads an asset (attachment) for a release
+type AssetDownloader interface {
+	GetAsset(tag string, id int64) (io.ReadCloser, error)
+}
+
 // Downloader downloads the site repo informations
 type Downloader interface {
+	AssetDownloader
 	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
@@ -28,7 +35,6 @@ type Downloader interface {
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
 type DownloaderFactory interface {
-	Match(opts MigrateOptions) (bool, error)
 	New(opts MigrateOptions) (Downloader, error)
 	GitServiceType() structs.GitServiceType
 }
