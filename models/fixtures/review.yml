@@ -82,3 +82,14 @@
   official: true
   updated_unix: 946684815
   created_unix: 946684815
+
+  -
+    id: 11
+    type: 1
+    reviewer_id: 7
+    issue_id: 3
+    content: "Invalid Review #2"
+    updated_unix: 946684822
+    created_unix: 946684822
+    dismissed: true
+  

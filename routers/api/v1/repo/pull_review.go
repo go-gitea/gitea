@@ -539,3 +539,79 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 
 	return review, pr, false
 }
+
+// DismissPullReview dismiss a review for a pull request
+func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOptions) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals repository repoDismissPullReview
+	// ---
+	// summary: Dismiss a review for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/DismissPullReviewOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	if !ctx.Repo.IsAdmin() {
+		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
+		return
+	}
+	review, pr, isWrong := prepareSingleReview(ctx)
+	if isWrong {
+		return
+	}
+
+	if (review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject) || pr.Issue.IsClosed {
+		ctx.Error(http.StatusForbidden, "", "Wrong using")
+		return
+	}
+
+	_, err := pull_service.DismissReview(review.ID, opts.Message, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
+		return
+	}
+
+	if review, err = models.GetReviewByID(review.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
+		return
+	}
+
+	// convert response
+	apiReview, err := convert.ToPullReview(review, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
+}

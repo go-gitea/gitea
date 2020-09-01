@@ -1082,7 +1082,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadDepIssueDetails", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
+		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview ||  comment.Type == models.CommentTypeDismissReview {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 			if err = comment.LoadReview(); err != nil && !models.IsErrReviewNotExist(err) {

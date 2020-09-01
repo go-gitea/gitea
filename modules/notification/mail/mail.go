@@ -146,6 +146,12 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }
 
+func (m *mailNotifier) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	if err := mailer.MailParticipantsComment(comment, models.ActionPullReviewDismissed, review.Issue); err != nil {
+		log.Error("MailParticipantsComment: %v", err)
+	}
+}
+
 func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
 	if err := rel.LoadAttributes(); err != nil {
 		log.Error("NotifyNewRelease: %v", err)

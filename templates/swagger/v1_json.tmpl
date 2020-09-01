@@ -7348,6 +7348,69 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Dismiss a review for a pull request",
+        "operationId": "repoDismissPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DismissPullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/update": {
       "post": {
         "produces": [
@@ -12125,6 +12188,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "DismissPullReviewOptions": {
+      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "EditAttachmentOptions": {
       "description": "EditAttachmentOptions options for editing attachments",
       "type": "object",
@@ -14057,6 +14131,10 @@
           "type": "string",
           "x-go-name": "CommitID"
         },
+        "dismissed": {
+          "type": "boolean",
+          "x-go-name": "Dismissed"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -15675,7 +15753,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/SubmitPullReviewOptions"
+        "$ref": "#/definitions/DismissPullReviewOptions"
       }
     },
     "redirect": {

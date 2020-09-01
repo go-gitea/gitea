@@ -820,6 +820,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
 								m.Combo("/comments").
 									Get(repo.GetPullReviewComments)
+								m.Post("/dismissals", bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
 							})
 						})
 

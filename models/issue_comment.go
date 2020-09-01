@@ -101,6 +101,8 @@ const (
 	CommentTypeProject
 	// Project board changed
 	CommentTypeProjectBoard
+	// Dismiss Review
+	CommentTypeDismissReview
 )
 
 // CommentTag defines comment tag type

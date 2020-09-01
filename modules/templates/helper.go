@@ -667,6 +667,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "diff"
 	case models.ActionPublishRelease:
 		return "tag"
+	case models.ActionPullReviewDismissed:
+		return "x"
 	default:
 		return "question"
 	}

@@ -60,9 +60,10 @@ type Review struct {
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
-	Official bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID string `xorm:"VARCHAR(40)"`
-	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
+	Official  bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID  string `xorm:"VARCHAR(40)"`
+	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
+	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -388,8 +389,8 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?, ?) AND dismissed = ? GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviewsUnfiltered); err != nil {
 		return nil, err
 	}
@@ -435,6 +436,19 @@ func MarkReviewsAsStale(issueID int64) (err error) {
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
 func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+
+	return
+}
+
+// MarkReviewAsDismissed marks existing reviews as stale
+func MarkReviewAsDismissed(review *Review) (err error) {
+	if review.Dismissed || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+		return nil
+	}
+
+	review.Dismissed = true
+
+	_, err = x.Cols("dismissed").Update(review)
 
 	return
 }

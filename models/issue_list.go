@@ -530,7 +530,7 @@ func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, e
 	}
 	sess := e.In("issue_id", ids)
 	err := sess.Select("issue_id, type, count(id) as `count`").
-		Where("official = ?", true).
+		Where("official = ? AND dismissed = ?", true, false).
 		GroupBy("issue_id, type").
 		OrderBy("issue_id").
 		Table("review").

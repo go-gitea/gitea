@@ -27,9 +27,33 @@
 						</div>
 						<div class="review-item-right">
 							{{if .Stale}}
-							<span class="type-icon text grey">
-								<i class="octicon icon fa-hourglass-end"></i>
-							</span>
+								<span class="type-icon text grey">
+									<i class="octicon icon fa-hourglass-end"></i>
+								</span>
+							{{end}}
+							{{if (and $.Permission.IsAdmin (or (eq .Type 1) (eq .Type 3)) (not $.Issue.IsClosed))}}
+								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}">
+									{{svg "octicon-x" 16}}
+								</a>
+								<div class="ui small modal" id="dismiss-review-modal">
+									<div class="header">
+										{{$.i18n.Tr "repo.issues.dismiss_review_confirm"}}
+									</div>
+									<div class="content">
+										<form class="ui form dismiss-review-form" id="dismiss-review-{{.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="review_id" value="{{.ID}}">
+											<div class="field">
+												<label for="message">{{$.i18n.Tr "action.review_dismissed_reason"}}</label>
+												<input id="message" name="message">
+											</div>
+											<div class="text right actions">
+												<div class="ui -cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+												<button class="ui red button" type="submit">{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}</button>
+											</div>
+										</form>
+									</div>
+								</div>
 							{{end}}
 							<span class="type-icon text {{if eq .Type 1}}green
 								{{- else if eq .Type 2}}grey

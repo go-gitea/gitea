@@ -679,6 +679,13 @@ function initIssueComments() {
     ).then(reload);
   });
 
+  $('.dismiss-review-btn').on('click', function (e) {
+    e.preventDefault();
+    const $this = $(this);
+    const $dismissReviewModal = $this.next();
+    $dismissReviewModal.modal('show');
+  });
+
   $(document).on('click', (event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;

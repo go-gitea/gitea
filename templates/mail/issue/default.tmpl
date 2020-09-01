@@ -49,6 +49,8 @@
 			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
 		{{else if eq .ActionName "review"}}
 			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{else if eq .ActionName "review_dismissed"}}
+			<b>@{{.Doer.Name}}</b> dismissed last review from {{.Comment.Review.Reviewer.Name}} for this pull request.
 		{{end}}
 
 		{{- if eq .Body ""}}

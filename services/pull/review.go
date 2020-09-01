@@ -193,3 +193,50 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 
 	return review, comm, nil
 }
+
+// DismissReview dismissing stale review by repo admin
+func DismissReview(reviewID int64, message string, doer *models.User) (comment *models.Comment, err error) {
+	review, err := models.GetReviewByID(reviewID)
+	if err != nil {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		return nil, fmt.Errorf("Wrong using")
+	}
+
+	if err = models.MarkReviewAsDismissed(review); err != nil {
+		return
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadPullRequest(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadAttributes(); err != nil {
+		return
+	}
+
+	comment, err = models.CreateComment(&models.CreateCommentOptions{
+		Doer:     doer,
+		Content:  message,
+		Type:     models.CommentTypeDismissReview,
+		ReviewID: review.ID,
+		Issue:    review.Issue,
+		Repo:     review.Issue.Repo,
+	})
+	if err != nil {
+		return
+	}
+
+	comment.Review = review
+	comment.Poster = doer
+	comment.Issue = review.Issue
+
+	notification.NotifyPullRevieweDismiss(doer, review, comment)
+
+	return
+}
