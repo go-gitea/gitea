@@ -2,8 +2,8 @@ sudo: false
 language: go
 
 go:
-  - 1.9
-  - "1.10"
+  - "1.13"
+  - "1.14"
   - tip
 
 os:
@@ -16,6 +16,7 @@ matrix:
   fast_finish: true
 
 script:
-  - go build
-  - go test -race -v ./...
-
+  - go build -v ./...
+  - go test -count=1 -cover -race -v ./...
+  - go vet ./...
+  - FILES=$(gofmt -s -l . zipfs sftpfs mem); if [[ -n "${FILES}" ]]; then  echo "You have go format errors; gofmt your changes"; exit 1; fi
