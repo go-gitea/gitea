@@ -239,7 +239,7 @@ func (gt GitServiceType) Title() string {
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// Owner of the new created repo, if not set current user is used
+	// ID of repo owner, if not set current user is used
 	RepoOwner int64 `json:"uid"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`

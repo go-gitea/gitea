@@ -1798,7 +1798,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/MigrateRepoForm"
+              "$ref": "#/definitions/MigrateRepoOptions"
             }
           }
         ],
@@ -13628,7 +13628,7 @@
           "x-go-name": "Service"
         },
         "uid": {
-          "description": "Owner of the new created repo, if not set current user is used",
+          "description": "ID of repo owner, if not set current user is used",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoOwner"

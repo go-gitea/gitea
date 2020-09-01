@@ -38,7 +38,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/MigrateRepoForm"
+	//     "$ref": "#/definitions/MigrateRepoOptions"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
