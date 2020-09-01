@@ -16,7 +16,7 @@ type RedocOpts struct {
 	Path string
 	// SpecURL the url to find the spec for
 	SpecURL string
-	// RedocURL for the js that generates the redoc site, defaults to: https://rebilly.github.io/ReDoc/releases/latest/redoc.min.js
+	// RedocURL for the js that generates the redoc site, defaults to: https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js
 	RedocURL string
 	// Title for the documentation site, default to: API documentation
 	Title string
@@ -74,13 +74,15 @@ func Redoc(opts RedocOpts, next http.Handler) http.Handler {
 }
 
 const (
-	redocLatest   = "https://rebilly.github.io/ReDoc/releases/latest/redoc.min.js"
+	redocLatest   = "https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js"
 	redocTemplate = `<!DOCTYPE html>
 <html>
   <head>
     <title>{{ .Title }}</title>
-    <!-- needed for adaptive design -->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- needed for adaptive design -->
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
 
     <!--
     ReDoc doesn't change outer page styles
