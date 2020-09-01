@@ -25,6 +25,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 	"github.com/kr/pretty"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -37,27 +38,31 @@ const (
 	str     = "string"
 	object  = "object"
 	binary  = "binary"
-	sHTTP   = "http"
 	body    = "body"
+	b64     = "byte"
 )
 
 // Extensions supported by go-swagger
 const (
-	xClass       = "x-class"         // class name used by discriminator
-	xGoCustomTag = "x-go-custom-tag" // additional tag for serializers on struct fields
-	xGoName      = "x-go-name"       // name of the generated go variable
-	xGoType      = "x-go-type"       // reuse existing type (do not generate)
-	xIsNullable  = "x-isnullable"
-	xNullable    = "x-nullable" // turns the schema into a pointer
-	xOmitEmpty   = "x-omitempty"
-	xSchemes     = "x-schemes" // additional schemes supported for operations (server generation)
-	xOrder       = "x-order"   // sort order for properties (or any schema)
+	xClass        = "x-class"         // class name used by discriminator
+	xGoCustomTag  = "x-go-custom-tag" // additional tag for serializers on struct fields
+	xGoName       = "x-go-name"       // name of the generated go variable
+	xGoType       = "x-go-type"       // reuse existing type (do not generate)
+	xIsNullable   = "x-isnullable"
+	xNullable     = "x-nullable" // turns the schema into a pointer
+	xOmitEmpty    = "x-omitempty"
+	xSchemes      = "x-schemes" // additional schemes supported for operations (server generation)
+	xOrder        = "x-order"   // sort order for properties (or any schema)
+	xGoJSONString = "x-go-json-string"
+	xGoEnumCI     = "x-go-enum-ci" // make string enumeration case-insensitive
+
+	xGoOperationTag = "x-go-operation-tag" // additional tag to override generation in operation groups
 )
 
-// swaggerTypeMapping contains a mapping from go type to swagger type or format
+// swaggerTypeName contains a mapping from go type to swagger type or format
 var swaggerTypeName map[string]string
 
-func init() {
+func initTypes() {
 	swaggerTypeName = make(map[string]string)
 	for k, v := range typeMapping {
 		swaggerTypeName[v] = k
@@ -86,6 +91,8 @@ func simpleResolvedType(tn, fmt string, items *spec.Items) (result resolvedType)
 				// special case of swagger format "binary", rendered as io.ReadCloser interface
 				// TODO(fredbi): should set IsCustomFormatter=false when binary
 				result.IsStream = fmt == binary
+				// special case of swagger format "byte", rendered as a strfmt.Base64 type: no validation
+				result.IsBase64 = fmt == b64
 				return
 			}
 		}
@@ -134,16 +141,15 @@ func newTypeResolver(pkg string, doc *loads.Document) *typeResolver {
 func knownDefGoType(def string, schema spec.Schema, clear func(string) string) (string, string, string) {
 	debugLog("known def type: %q", def)
 	ext := schema.Extensions
-	if nm, ok := ext.GetString(xGoName); ok {
-		if clear == nil {
-			debugLog("known def type %s no clear: %q", xGoName, nm)
-			return nm, "", ""
-		}
-		debugLog("known def type %s clear: %q -> %q", xGoName, nm, clear(nm))
-		return clear(nm), "", ""
+	nm, hasGoName := ext.GetString(xGoName)
+
+	if hasGoName {
+		debugLog("known def type %s named from %s as %q", def, xGoName, nm)
+		def = nm
 	}
-	v, ok := ext[xGoType]
-	if !ok {
+	extType, isExternalType := hasExternalType(ext)
+
+	if !isExternalType || extType.Embedded {
 		if clear == nil {
 			debugLog("known def type no clear: %q", def)
 			return def, "", ""
@@ -151,25 +157,51 @@ func knownDefGoType(def string, schema spec.Schema, clear func(string) string) (
 		debugLog("known def type clear: %q -> %q", def, clear(def))
 		return clear(def), "", ""
 	}
-	xt := v.(map[string]interface{})
-	t := xt["type"].(string)
-	impIface, ok := xt["import"]
 
+	// external type definition trumps regular type resolution
+	log.Printf("type %s imported as external type %s.%s", def, extType.Import.Package, extType.Type)
+	return extType.Import.Alias + "." + extType.Type, extType.Import.Package, extType.Import.Alias
+}
+
+// x-go-type:
+//   type: mytype
+//   import:
+//     package:
+//     alias:
+//   hints:
+//     kind: map|object|array|interface|primitive|stream|tuple
+//     nullable: true|false
+//  embedded: true
+type externalTypeDefinition struct {
+	Type   string
+	Import struct {
+		Package string
+		Alias   string
+	}
+	Hints struct {
+		Kind     string
+		Nullable bool
+	}
+	Embedded bool
+}
+
+func hasExternalType(ext spec.Extensions) (*externalTypeDefinition, bool) {
+	v, ok := ext[xGoType]
 	if !ok {
-		return t, "", ""
+		return nil, false
 	}
-
-	imp := impIface.(map[string]interface{})
-	pkg := imp["package"].(string)
-	al, ok := imp["alias"]
-	var alias string
-	if ok {
-		alias = al.(string)
-	} else {
-		alias = path.Base(pkg)
+	var extType externalTypeDefinition
+	err := mapstructure.Decode(v, &extType)
+	if err != nil {
+		log.Printf("warning: x-go-type extension could not be decoded (%v). Skipped", v)
+		return nil, false
 	}
-	debugLog("known def type %s no clear: %q: pkg=%s, alias=%s", xGoType, alias+"."+t, pkg, alias)
-	return alias + "." + t, pkg, alias
+	if extType.Import.Package != "" && extType.Import.Alias == "" {
+		// NOTE(fred): possible name conflict here (TODO(fred): deconflict this default alias)
+		extType.Import.Alias = path.Base(extType.Import.Package)
+	}
+	debugLogAsJSON("known def external %s type", xGoType, extType)
+	return &extType, true
 }
 
 type typeResolver struct {
@@ -218,40 +250,39 @@ func (t *typeResolver) IsNullable(schema *spec.Schema) bool {
 }
 
 func (t *typeResolver) resolveSchemaRef(schema *spec.Schema, isRequired bool) (returns bool, result resolvedType, err error) {
-	if schema.Ref.String() != "" {
-		debugLog("resolving ref (anon: %t, req: %t) %s", false, isRequired, schema.Ref.String())
-		returns = true
-		var ref *spec.Schema
-		var er error
-
-		ref, er = spec.ResolveRef(t.Doc.Spec(), &schema.Ref)
-		if er != nil {
-			debugLog("error resolving ref %s: %v", schema.Ref.String(), er)
-			err = er
-			return
-		}
-		res, er := t.ResolveSchema(ref, false, isRequired)
-		if er != nil {
-			err = er
-			return
-		}
-		result = res
-
-		tn := filepath.Base(schema.Ref.GetURL().Fragment)
-		tpe, pkg, alias := knownDefGoType(tn, *ref, t.goTypeName)
-		debugLog("type name %s, package %s, alias %s", tpe, pkg, alias)
-		if tpe != "" {
-			result.GoType = tpe
-			result.Pkg = pkg
-			result.PkgAlias = alias
-		}
-		result.HasDiscriminator = res.HasDiscriminator
-		result.IsBaseType = result.HasDiscriminator
-		result.IsNullable = t.IsNullable(ref)
-		//result.IsAliased = true
+	if schema.Ref.String() == "" {
 		return
-
 	}
+	debugLog("resolving ref (anon: %t, req: %t) %s", false, isRequired, schema.Ref.String())
+	returns = true
+	var ref *spec.Schema
+	var er error
+
+	ref, er = spec.ResolveRef(t.Doc.Spec(), &schema.Ref)
+	if er != nil {
+		debugLog("error resolving ref %s: %v", schema.Ref.String(), er)
+		err = er
+		return
+	}
+	res, er := t.ResolveSchema(ref, false, isRequired)
+	if er != nil {
+		err = er
+		return
+	}
+	result = res
+
+	tn := filepath.Base(schema.Ref.GetURL().Fragment)
+	tpe, pkg, alias := knownDefGoType(tn, *ref, t.goTypeName)
+	debugLog("type name %s, package %s, alias %s", tpe, pkg, alias)
+	if tpe != "" {
+		result.GoType = tpe
+		result.Pkg = pkg
+		result.PkgAlias = alias
+	}
+	result.HasDiscriminator = res.HasDiscriminator
+	result.IsBaseType = result.HasDiscriminator
+	result.IsNullable = t.IsNullable(ref)
+	result.IsEnumCI = false
 	return
 }
 
@@ -293,6 +324,7 @@ func (t *typeResolver) resolveFormat(schema *spec.Schema, isAnonymous bool, isRe
 		// TODO: should set IsCustomFormatter=false in this case.
 		result.IsPrimitive = schFmt != binary
 		result.IsStream = schFmt == binary
+		result.IsBase64 = schFmt == b64
 		// propagate extensions in resolvedType
 		result.Extensions = schema.Extensions
 
@@ -322,21 +354,6 @@ func (t *typeResolver) isNullable(schema *spec.Schema) bool {
 		return nullable
 	}
 	return len(schema.Properties) > 0
-}
-
-func setIsEmptyOmitted(result *resolvedType, schema *spec.Schema, tpe string) {
-	defaultValue := true
-	if tpe == array {
-		defaultValue = false
-	}
-	v, found := schema.Extensions[xOmitEmpty]
-	if !found {
-		result.IsEmptyOmitted = defaultValue
-		return
-	}
-
-	omitted, cast := v.(bool)
-	result.IsEmptyOmitted = omitted && cast
 }
 
 func (t *typeResolver) firstType(schema *spec.Schema) string {
@@ -396,6 +413,7 @@ func (t *typeResolver) resolveArray(schema *spec.Schema, isAnonymous, isRequired
 	result.ElemType = &rt
 	result.SwaggerType = array
 	result.SwaggerFormat = ""
+	result.IsEnumCI = hasEnumCI(schema.Extensions)
 	t.inferAliasing(&result, schema, isAnonymous, isRequired)
 	result.Extensions = schema.Extensions
 
@@ -627,28 +645,96 @@ func boolExtension(ext spec.Extensions, key string) *bool {
 	return nil
 }
 
+func hasEnumCI(ve spec.Extensions) bool {
+	v, ok := ve[xGoEnumCI]
+	if !ok {
+		return false
+	}
+
+	isEnumCI, ok := v.(bool)
+	// All enumeration types are case-sensitive by default
+	return ok && isEnumCI
+}
+
+func (t *typeResolver) shortCircuitResolveExternal(tpe, pkg, alias string, extType *externalTypeDefinition, schema *spec.Schema) resolvedType {
+	// short circuit type resolution for external types
+	var result resolvedType
+	result.Extensions = schema.Extensions
+	result.GoType = tpe
+	result.Pkg = pkg
+	result.PkgAlias = alias
+	result.setKind(extType.Hints.Kind)
+	result.IsNullable = t.IsNullable(schema)
+
+	// other extensions
+	if result.IsArray {
+		result.IsEmptyOmitted = false
+		tpe = "array"
+	}
+	result.setExtensions(schema, tpe)
+	return result
+}
+
 func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequired bool) (result resolvedType, err error) {
 	debugLog("resolving schema (anon: %t, req: %t) %s", isAnonymous, isRequired, t.ModelName)
+	defer func() {
+		debugLog("returning after resolve schema: %s", pretty.Sprint(result))
+	}()
+
 	if schema == nil {
 		result.IsInterface = true
 		result.GoType = iface
 		return
 	}
 
-	tpe := t.firstType(schema)
-	defer setIsEmptyOmitted(&result, schema, tpe)
+	extType, isExternalType := hasExternalType(schema.Extensions)
+	if isExternalType {
+		tpe, pkg, alias := knownDefGoType(t.ModelName, *schema, t.goTypeName)
+		debugLog("found type declared as external, imported from %s as %s. Has type hints? %t, rendered has embedded? %t",
+			pkg, tpe, extType.Hints.Kind != "", extType.Embedded)
 
+		if extType.Hints.Kind != "" && !extType.Embedded {
+			// use hint to qualify type
+			debugLog("short circuits external type resolution with hint for %s", tpe)
+			result = t.shortCircuitResolveExternal(tpe, pkg, alias, extType, schema)
+			return
+		}
+
+		// use spec to qualify type
+		debugLog("marking type %s as external embedded: %t", tpe, extType.Embedded)
+		// mark this type as an embedded external definition if requested
+		defer func() {
+			result.IsEmbedded = extType.Embedded
+			if result.IsEmbedded {
+				result.ElemType = &resolvedType{
+					GoType:     extType.Import.Alias + "." + extType.Type,
+					Pkg:        extType.Import.Package,
+					PkgAlias:   extType.Import.Alias,
+					IsNullable: extType.Hints.Nullable,
+				}
+				result.setKind(extType.Hints.Kind)
+			}
+		}()
+	}
+
+	tpe := t.firstType(schema)
 	var returns bool
+
 	returns, result, err = t.resolveSchemaRef(schema, isRequired)
+
 	if returns {
 		if !isAnonymous {
 			result.IsMap = false
 			result.IsComplexObject = true
 			debugLog("not anonymous ref")
 		}
-		debugLog("returning after ref")
+		debugLog("anonymous after ref")
 		return
 	}
+
+	defer func() {
+		result.setExtensions(schema, tpe)
+	}()
 
 	// special case of swagger type "file", rendered as io.ReadCloser interface
 	if t.firstType(schema) == file {
@@ -662,7 +748,6 @@ func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequire
 
 	returns, result, err = t.resolveFormat(schema, isAnonymous, isRequired)
 	if returns {
-		debugLog("returning after resolve format: %s", pretty.Sprint(result))
 		return
 	}
 
@@ -671,7 +756,6 @@ func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequire
 	switch tpe {
 	case array:
 		result, err = t.resolveArray(schema, isAnonymous, false)
-		return
 
 	case file, number, integer, boolean:
 		result.Extensions = schema.Extensions
@@ -690,7 +774,6 @@ func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequire
 			result.IsNullable = nullableNumber(schema, isRequired)
 		case file:
 		}
-		return
 
 	case str:
 		result.GoType = str
@@ -704,23 +787,21 @@ func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequire
 	case object:
 		result, err = t.resolveObject(schema, isAnonymous)
 		if err != nil {
-			return resolvedType{}, err
+			result = resolvedType{}
+			break
 		}
 		result.HasDiscriminator = schema.Discriminator != ""
-		return
 
 	case "null":
 		result.GoType = iface
 		result.SwaggerType = object
 		result.IsNullable = false
 		result.IsInterface = true
-		return
 
 	default:
 		err = fmt.Errorf("unresolvable: %v (format %q)", schema.Type, schema.Format)
-		return
 	}
-	return result, err
+	return
 }
 
 // resolvedType is a swagger type that has been resolved and analyzed for usage
@@ -736,6 +817,9 @@ type resolvedType struct {
 	IsNullable        bool
 	IsStream          bool
 	IsEmptyOmitted    bool
+	IsJSONString      bool
+	IsEnumCI          bool
+	IsBase64          bool
 
 	// A tuple gets rendered as an anonymous struct with P{index} as property name
 	IsTuple            bool
@@ -766,6 +850,11 @@ type resolvedType struct {
 	// IsSuperAlias indicates that the aliased type is really the same type,
 	// e.g. in golang, this translates to: type A = B
 	IsSuperAlias bool
+
+	// IsEmbedded applies to externally defined types. When embedded, a type
+	// is generated in models that embeds the external type, with the Validate
+	// method.
+	IsEmbedded bool
 }
 
 func (rt *resolvedType) Zero() string {
@@ -798,4 +887,103 @@ func (rt *resolvedType) Zero() string {
 	}
 
 	return ""
+}
+
+func (rt *resolvedType) setExtensions(schema *spec.Schema, origType string) {
+	rt.IsEnumCI = hasEnumCI(schema.Extensions)
+	rt.setIsEmptyOmitted(schema, origType)
+	rt.setIsJSONString(schema, origType)
+}
+
+func (rt *resolvedType) setIsEmptyOmitted(schema *spec.Schema, tpe string) {
+	if v, found := schema.Extensions[xOmitEmpty]; found {
+		omitted, cast := v.(bool)
+		rt.IsEmptyOmitted = omitted && cast
+		return
+	}
+	// array of primitives are by default not empty-omitted, but arrays of aliased type are
+	rt.IsEmptyOmitted = (tpe != array) || (tpe == array && rt.IsAliased)
+}
+
+func (rt *resolvedType) setIsJSONString(schema *spec.Schema, tpe string) {
+	_, found := schema.Extensions[xGoJSONString]
+	if !found {
+		rt.IsJSONString = false
+		return
+	}
+	rt.IsJSONString = true
+}
+
+func (rt *resolvedType) setKind(kind string) {
+	if kind != "" {
+		debugLog("overriding kind for %s as %s", rt.GoType, kind)
+	}
+	switch kind {
+	case "map":
+		rt.IsMap = true
+		rt.IsArray = false
+		rt.IsComplexObject = false
+		rt.IsInterface = false
+		rt.IsStream = false
+		rt.IsTuple = false
+		rt.IsPrimitive = false
+		rt.SwaggerType = object
+	case "array":
+		rt.IsMap = false
+		rt.IsArray = true
+		rt.IsComplexObject = false
+		rt.IsInterface = false
+		rt.IsStream = false
+		rt.IsTuple = false
+		rt.IsPrimitive = false
+		rt.SwaggerType = array
+	case "object":
+		rt.IsMap = false
+		rt.IsArray = false
+		rt.IsComplexObject = true
+		rt.IsInterface = false
+		rt.IsStream = false
+		rt.IsTuple = false
+		rt.IsPrimitive = false
+		rt.SwaggerType = object
+	case "interface", "null":
+		rt.IsMap = false
+		rt.IsArray = false
+		rt.IsComplexObject = false
+		rt.IsInterface = true
+		rt.IsStream = false
+		rt.IsTuple = false
+		rt.IsPrimitive = false
+		rt.SwaggerType = iface
+	case "stream":
+		rt.IsMap = false
+		rt.IsArray = false
+		rt.IsComplexObject = false
+		rt.IsInterface = false
+		rt.IsStream = true
+		rt.IsTuple = false
+		rt.IsPrimitive = false
+		rt.SwaggerType = file
+	case "tuple":
+		rt.IsMap = false
+		rt.IsArray = false
+		rt.IsComplexObject = false
+		rt.IsInterface = false
+		rt.IsStream = false
+		rt.IsTuple = true
+		rt.IsPrimitive = false
+		rt.SwaggerType = array
+	case "primitive":
+		rt.IsMap = false
+		rt.IsArray = false
+		rt.IsComplexObject = false
+		rt.IsInterface = false
+		rt.IsStream = false
+		rt.IsTuple = false
+		rt.IsPrimitive = true
+	case "":
+		break
+	default:
+		log.Printf("warning: unsupported hint value for external type: %q. Skipped", kind)
+	}
 }
