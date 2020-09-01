@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"code.gitea.io/gitea/modules/git"
@@ -45,37 +46,41 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 }
 
 func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetTopics() ([]string, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
+	return nil, nil
+}
 
+func (r *RepositoryRestorer) GetAsset(tagName string, id int) (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-
+	return nil, false, nil
 }
 
 func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
-
+	return nil, nil
 }
 
 func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-
+	return nil, nil
 }

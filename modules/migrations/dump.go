@@ -251,7 +251,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
+func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
 	if g.migrateReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.Name)
@@ -261,12 +261,13 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 			for _, asset := range release.Assets {
 				attachLocalPath := filepath.Join(attachDir, asset.Name)
 				// download attachment
+
 				err := func(attachLocalPath string) error {
-					resp, err := http.Get(asset.URL)
+					rc, err := downloader.GetAsset(release.TagName, asset.ID)
 					if err != nil {
 						return err
 					}
-					defer resp.Body.Close()
+					defer rc.Close()
 
 					fw, err := os.Create(attachLocalPath)
 					if err != nil {
@@ -274,7 +275,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 					}
 					defer fw.Close()
 
-					_, err = io.Copy(fw, resp.Body)
+					_, err = io.Copy(fw, rc)
 					return err
 				}(attachLocalPath)
 				if err != nil {
