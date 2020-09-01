@@ -419,7 +419,11 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		})
 	}
 
-	return allIssues, len(issues) < perPage, nil
+	isEnd := len(issues) < perPage
+	if !g.pagination {
+		isEnd = len(issues) == 0
+	}
+	return allIssues, isEnd, nil
 }
 
 // GetComments returns comments according issueNumber
@@ -580,7 +584,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		})
 	}
 
-	return allPRs, len(prs) < perPage, nil
+	isEnd := len(prs) < perPage
+	if !g.pagination {
+		isEnd = len(prs) == 0
+	}
+	return allPRs, isEnd, nil
 }
 
 // GetReviews returns pull requests review
