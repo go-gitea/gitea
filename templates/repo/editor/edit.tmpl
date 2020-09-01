@@ -6,6 +6,7 @@
 		<form class="ui edit form" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="ui secondary menu">
 				<div class="fitted item treepath">
 					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
@@ -41,9 +42,7 @@
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>
-					<div class="editor-loading">
-						{{.i18n.Tr "loading"}}
-					</div>
+					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markdown" data-tab="preview">
 					{{.i18n.Tr "loading"}}

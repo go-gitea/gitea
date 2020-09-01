@@ -6,8 +6,11 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
 )
 
@@ -37,16 +40,6 @@ func init() {
 type GithubDownloaderV3Factory struct {
 }
 
-// Match returns ture if the migration remote URL matched this downloader factory
-func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error) {
-	u, err := url.Parse(opts.CloneAddr)
-	if err != nil {
-		return false, err
-	}
-
-	return strings.EqualFold(u.Host, "github.com") && opts.AuthUsername != "", nil
-}
-
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
@@ -60,7 +53,7 @@ func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Download
 
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
-	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -81,7 +74,7 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
 		userName:  userName,
 		password:  password,
@@ -90,23 +83,19 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 		repoName:  repoName,
 	}
 
-	var client *http.Client
-	if userName != "" {
-		if password == "" {
-			ts := oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: userName},
-			)
-			client = oauth2.NewClient(downloader.ctx, ts)
-		} else {
-			client = &http.Client{
-				Transport: &http.Transport{
-					Proxy: func(req *http.Request) (*url.URL, error) {
-						req.SetBasicAuth(userName, password)
-						return nil, nil
-					},
-				},
-			}
-		}
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				req.SetBasicAuth(userName, password)
+				return nil, nil
+			},
+		},
+	}
+	if token != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		client = oauth2.NewClient(downloader.ctx, ts)
 	}
 	downloader.client = github.NewClient(client)
 	return &downloader
@@ -290,10 +279,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
-		u, _ := url.Parse(*asset.BrowserDownloadURL)
-		u.User = url.UserPassword(g.userName, g.password)
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:           u.String(),
+			ID:            *asset.ID,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,
@@ -331,6 +318,18 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	return releases, nil
 }
 
+// GetAsset returns an asset
+func (g *GithubDownloaderV3) GetAsset(_ string, id int64) (io.ReadCloser, error) {
+	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
+	if err != nil {
+		return nil, err
+	}
+	if asset == nil {
+		return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
+	}
+	return asset, nil
+}
+
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	opt := &github.IssueListByRepoOptions{
@@ -364,7 +363,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		}
 		var labels = make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
-			labels = append(labels, convertGithubLabel(&l))
+			labels = append(labels, convertGithubLabel(l))
 		}
 
 		var email string
@@ -425,8 +424,8 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		asc         = "asc"
 	)
 	opt := &github.IssueListCommentsOptions{
-		Sort:      created,
-		Direction: asc,
+		Sort:      &created,
+		Direction: &asc,
 		ListOptions: github.ListOptions{
 			PerPage: 100,
 		},

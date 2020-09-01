@@ -98,8 +98,12 @@ menu:
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `redis` 时，保存Redis队列的连接字符串。
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
 
-- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间）。
+- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间，如果是bleve可能需要占用约6倍存储空间）。
+- `REPO_INDEXER_TYPE`: **bleve**: 代码搜索引擎类型，可以为 `bleve` 或者 `elasticsearch`。
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: 用于代码搜索的索引文件路径。
+- `REPO_INDEXER_CONN_STR`: ****: 代码搜索引擎连接字符串，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。例如： http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_NAME`: **gitea_codes**: 代码搜索引擎的名字，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。
+
 - `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 
@@ -180,10 +184,18 @@ menu:
 ## Attachment (`attachment`)
 
 - `ENABLED`: 是否允许用户上传附件。
-- `PATH`: 附件存储路径
 - `ALLOWED_TYPES`: 允许上传的附件类型。比如：`image/jpeg|image/png`，用 `*/*` 表示允许任何类型。
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
+- `STORE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORE_TYPE` 为 `local` 时有效。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORE_TYPE` 是 `minio` 时有效。
 
 关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
 

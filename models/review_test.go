@@ -49,10 +49,10 @@ func TestReview_LoadCodeComments(t *testing.T) {
 
 func TestReviewType_Icon(t *testing.T) {
 	assert.Equal(t, "check", ReviewTypeApprove.Icon())
-	assert.Equal(t, "request-changes", ReviewTypeReject.Icon())
+	assert.Equal(t, "diff", ReviewTypeReject.Icon())
 	assert.Equal(t, "comment", ReviewTypeComment.Icon())
 	assert.Equal(t, "comment", ReviewTypeUnknown.Icon())
-	assert.Equal(t, "primitive-dot", ReviewTypeRequest.Icon())
+	assert.Equal(t, "dot-fill", ReviewTypeRequest.Icon())
 	assert.Equal(t, "comment", ReviewType(6).Icon())
 }
 

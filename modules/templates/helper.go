@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -98,8 +99,19 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a, b int) int {
-			return a + b
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
 		},
 		"ActionIcon": ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
@@ -436,12 +448,36 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
+		},
 	}}
 }
 
+var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
+var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+
 // SVG render icons
 func SVG(icon string, size int) template.HTML {
-	return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+	if svgStr, ok := svg.SVGs[icon]; ok {
+		if size != 16 {
+			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
+			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		return template.HTML(svgStr)
+	}
+	return template.HTML("")
 }
 
 // Safe render raw as HTML
@@ -571,7 +607,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
@@ -628,7 +664,9 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
-		return "request-changes"
+		return "diff"
+	case models.ActionPublishRelease:
+		return "tag"
 	default:
 		return "question"
 	}

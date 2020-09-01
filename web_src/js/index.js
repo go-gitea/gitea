@@ -4,27 +4,29 @@
 import './publicpath.js';
 
 import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
+import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -45,6 +47,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
+      renderMarkdownContent();
     });
   });
 
@@ -74,6 +77,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
+        renderMarkdownContent();
       });
     });
   }
@@ -130,15 +134,15 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  $('.color-picker').each(function () {
-    $(this).minicolors();
-  });
+  createColorPicker($('.color-picker'));
+
   $('.precolors .color').on('click', function () {
     const color_hex = $(this).data('color-hex');
     $('.color-picker').val(color_hex);
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
+    $('.color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
@@ -523,12 +527,16 @@ function initCommentForm() {
       switch (input_id) {
         case '#milestone_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
+            htmlEscape($(this).text())}</a>`);
+          break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEscape($(this).text())}</a>`);
           break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+                          htmlEscape($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
@@ -554,7 +562,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -751,6 +760,17 @@ async function initRepository() {
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
+    });
+  }
+
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      if (gitignores || license) {
+        $('input[name="auto_init"]').prop('checked', true);
+      }
     });
   }
 
@@ -995,6 +1015,7 @@ async function initRepository() {
             }
             dz.emit('submit');
             dz.emit('reload');
+            renderMarkdownContent();
           });
         });
       } else {
@@ -1133,25 +1154,6 @@ async function initRepository() {
       $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
-}
-
-function initMigration() {
-  const toggleMigrations = function () {
-    const authUserName = $('#auth_username').val();
-    const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
-      $('#migrate_items').show();
-    } else {
-      $('#migrate_items').hide();
-    }
-  };
-
-  toggleMigrations();
-
-  $('#clone_addr').on('input', toggleMigrations);
-  $('#auth_username').on('input', toggleMigrations);
-  $('#mirror').on('change', toggleMigrations);
 }
 
 function initPullRequestReview() {
@@ -1335,6 +1337,7 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+              renderMarkdownContent();
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -1589,7 +1592,9 @@ async function initEditor() {
   const dirtyFileClass = 'dirty-file';
 
   // Disabling the button at the start
-  $commitButton.prop('disabled', true);
+  if ($('input[name="page_has_posted"]').val() !== 'true') {
+    $commitButton.prop('disabled', true);
+  }
 
   // Registering a custom listener for the file path and the file content
   $editForm.areYouSure({
@@ -1926,7 +1931,7 @@ function searchUsers() {
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -2016,22 +2021,17 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({target}) => {
-    const box = target.closest('.file-content');
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
-    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
-    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.currentTarget);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2207,7 +2207,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -2461,22 +2461,16 @@ $(document).ready(async () => {
     }
   }
 
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.on('change', () => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
-    }
-  });
-
   // parallel init of async loaded features
   await Promise.all([
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initProject(),
     initServiceWorker(),
     initNotificationCount(),
+    renderMarkdownContent(),
   ]);
 });
 
@@ -2625,6 +2619,15 @@ function linkEmailAction(e) {
 }
 
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {props: ['size'], template});
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2950,17 +2953,17 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
         } else if (repo.mirror) {
-          return 'octicon-repo-clone';
+          return 'octicon-mirror';
         } else if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
+          return `octicon-repo-template`;
         } else if (repo.private) {
           return 'octicon-lock';
         } else if (repo.internal) {
-          return 'octicon-internal-repo';
+          return 'octicon-repo';
         }
         return 'octicon-repo';
       }
@@ -3477,8 +3480,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });
@@ -3555,12 +3558,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});

@@ -1,22 +1,16 @@
 <div class="repo-header-icon">
 	{{if $.IsTemplate}}
-		{{if $.IsPrivate}}
-			{{svg "octicon-repo-template-private" 32}}
-		{{else}}
-			{{svg "octicon-repo-template" 32}}
-		{{end}}
+		{{svg "octicon-repo-template" 32}}
 	{{else}}
 		{{if $.IsPrivate}}
 			{{svg "octicon-lock" 32}}
 		{{else if and (not $.IsMirror) (not $.IsFork) ($.Owner)}}
+			{{svg "octicon-repo" 32}}
 			{{if $.Owner.Visibility.IsPrivate}}
-				{{svg "octicon-internal-repo" 32}}
 				<img class="ui avatar image" src="{{$.Owner.RelAvatarLink}}">
-			{{else}}
-				{{svg "octicon-repo" 32}}
 			{{end}}
 		{{else if $.IsMirror}}
-			{{svg "octicon-repo-clone" 32}}
+			{{svg "octicon-mirror" 32}}
 		{{else if $.IsFork}}
 			{{svg "octicon-repo-forked" 32}}
 		{{else}}

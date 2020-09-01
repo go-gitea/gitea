@@ -31,10 +31,6 @@ var (
 	generatorLogger *log.Logger
 )
 
-func init() {
-	debugOptions()
-}
-
 func debugOptions() {
 	generatorLogger = log.New(os.Stdout, "generator:", log.LstdFlags)
 }
