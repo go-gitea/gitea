@@ -310,10 +310,11 @@ func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error)
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(g.ctx, "GET", link.URL, nil)
+	req, err := http.NewRequest("GET", link.URL, nil)
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(g.ctx)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
