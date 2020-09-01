@@ -65,6 +65,7 @@
 							{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
 							{{svg "octicon-issue-closed" 16}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock" 16}} {{.TotalTrackedTime|Sec2Time}}{{end}}
+							{{if .UpdatedUnix}}{{svg "octicon-clock" 16}} {{$.i18n.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
