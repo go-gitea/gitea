@@ -47,12 +47,11 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	ctxUser := ctx.User
-	if form.RepoOwner == 0 {
-		form.RepoOwner = ctx.User.ID
-	} else if form.RepoOwner != ctxUser.ID {
-		// Not equal means context user is an organization,
-		// or is another user/organization if current user is admin.
+	repoOwner := ctx.User
+
+	// Not equal means context user is an organization,
+	// or is another user/organization if current user is admin.
+	if form.RepoOwner != 0 && form.RepoOwner != repoOwner.ID {
 		org, err := models.GetUserByID(form.RepoOwner)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -62,7 +61,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 			}
 			return
 		}
-		ctxUser = org
+		repoOwner = org
 	}
 
 	if ctx.HasError() {
@@ -71,14 +70,14 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	}
 
 	if !ctx.User.IsAdmin {
-		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+		if !repoOwner.IsOrganization() && ctx.User.ID != repoOwner.ID {
 			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
 			return
 		}
 
-		if ctxUser.IsOrganization() {
+		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+			isOwner, err := repoOwner.IsOwnedBy(ctx.User.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -143,7 +142,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(ctx.User, repoOwner, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -153,7 +152,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		Status:         models.RepositoryBeingMigrated,
 	})
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
 
@@ -170,24 +169,24 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		if err == nil {
 			repo.Status = models.RepositoryReady
 			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
 				return
 			}
 		}
 
 		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
+			if errDelete := models.DeleteRepository(ctx.User, repoOwner.ID, repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, ctxUser.Name, opts); err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts); err != nil {
+		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
 	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
 }
 
