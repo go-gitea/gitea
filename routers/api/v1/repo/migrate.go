@@ -48,10 +48,12 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	//     "$ref": "#/responses/validationError"
 
 	ctxUser := ctx.User
-	// Not equal means context user is an organization,
-	// or is another user/organization if current user is admin.
-	if form.UID != ctxUser.ID {
-		org, err := models.GetUserByID(form.UID)
+	if form.RepoOwner == 0 {
+		form.RepoOwner = ctx.User.ID
+	} else if form.RepoOwner != ctxUser.ID {
+		// Not equal means context user is an organization,
+		// or is another user/organization if current user is admin.
+		org, err := models.GetUserByID(form.RepoOwner)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -122,6 +124,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		Mirror:         form.Mirror,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
+		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

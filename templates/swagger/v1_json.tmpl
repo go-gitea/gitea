@@ -13562,7 +13562,6 @@
       "type": "object",
       "required": [
         "clone_addr",
-        "uid",
         "repo_name"
       ],
       "properties": {
@@ -13629,9 +13628,10 @@
           "x-go-name": "Service"
         },
         "uid": {
+          "description": "Owner of the new created repo, if not set current user is used",
           "type": "integer",
           "format": "int64",
-          "x-go-name": "UID"
+          "x-go-name": "RepoOwner"
         },
         "wiki": {
           "type": "boolean",

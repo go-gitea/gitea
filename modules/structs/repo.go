@@ -239,15 +239,17 @@ func (gt GitServiceType) Title() string {
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// Owner of the new created repo, if not set current user is used
+	RepoOwner int64 `json:"uid"`
+	// required: true
+	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+
 	// enum: git,github,gitea,gitlab
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
-	// required: true
-	UID int64 `json:"uid" binding:"Required"`
-	// required: true
-	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+
 	Mirror       bool   `json:"mirror"`
 	Private      bool   `json:"private"`
 	Description  string `json:"description" binding:"MaxSize(255)"`
