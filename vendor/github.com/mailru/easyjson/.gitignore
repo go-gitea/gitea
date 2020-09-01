@@ -3,3 +3,4 @@
 *.iml
 .idea
 *.swp
+bin/*

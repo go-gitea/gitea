@@ -5,7 +5,6 @@ package toml
 import (
 	"errors"
 	"fmt"
-	"unicode"
 )
 
 // Convert the bare key group string to an array.
@@ -109,5 +108,5 @@ func parseKey(key string) ([]string, error) {
 }
 
 func isValidBareChar(r rune) bool {
-	return isAlphanumeric(r) || r == '-' || unicode.IsNumber(r)
+	return isAlphanumeric(r) || r == '-' || isDigit(r)
 }

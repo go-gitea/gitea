@@ -819,15 +819,15 @@ func ToStringE(i interface{}) (string, error) {
 	case int8:
 		return strconv.FormatInt(int64(s), 10), nil
 	case uint:
-		return strconv.FormatInt(int64(s), 10), nil
+		return strconv.FormatUint(uint64(s), 10), nil
 	case uint64:
-		return strconv.FormatInt(int64(s), 10), nil
+		return strconv.FormatUint(uint64(s), 10), nil
 	case uint32:
-		return strconv.FormatInt(int64(s), 10), nil
+		return strconv.FormatUint(uint64(s), 10), nil
 	case uint16:
-		return strconv.FormatInt(int64(s), 10), nil
+		return strconv.FormatUint(uint64(s), 10), nil
 	case uint8:
-		return strconv.FormatInt(int64(s), 10), nil
+		return strconv.FormatUint(uint64(s), 10), nil
 	case []byte:
 		return string(s), nil
 	case template.HTML:
