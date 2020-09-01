@@ -200,6 +200,7 @@ type swaggerTypable interface {
 	Schema() *spec.Schema
 	Level() int
 	AddExtension(key string, value interface{})
+	WithEnum(...interface{})
 }
 
 // Map all Go builtin types that have Json representation to Swagger/Json types.

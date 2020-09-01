@@ -3,6 +3,7 @@ package codescan
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"log"
 	"os"
@@ -290,7 +291,7 @@ func (s *scanCtx) FindModel(pkgPath, name string) (*entityDecl, bool) {
 		}
 	}
 	if decl, found := s.FindDecl(pkgPath, name); found {
-		s.app.Models[decl.Ident] = decl
+		s.app.ExtraModels[decl.Ident] = decl
 		return decl, true
 	}
 	return nil, false
@@ -352,6 +353,36 @@ func (s *scanCtx) FindComments(pkg *packages.Package, name string) (*ast.Comment
 	return nil, false
 }
 
+func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list []interface{}, _ bool) {
+	for _, f := range pkg.Syntax {
+		for _, d := range f.Decls {
+			gd, ok := d.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+
+			if gd.Tok != token.CONST {
+				continue
+			}
+
+			for _, s := range gd.Specs {
+				if vs, ok := s.(*ast.ValueSpec); ok {
+					if vsIdent, ok := vs.Type.(*ast.Ident); ok {
+						if vsIdent.Name == enumName {
+							if len(vs.Values) > 0 {
+								if bl, ok := vs.Values[0].(*ast.BasicLit); ok {
+									list = append(list, getEnumBasicLitValue(bl))
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return list, true
+}
+
 func newTypeIndex(pkgs []*packages.Package,
 	excludeDeps bool, includeTags, excludeTags map[string]bool,
 	includePkgs, excludePkgs []string) (*typeIndex, error) {
@@ -359,6 +390,7 @@ func newTypeIndex(pkgs []*packages.Package,
 	ac := &typeIndex{
 		AllPackages: make(map[string]*packages.Package),
 		Models:      make(map[*ast.Ident]*entityDecl),
+		ExtraModels: make(map[*ast.Ident]*entityDecl),
 		excludeDeps: excludeDeps,
 		includeTags: includeTags,
 		excludeTags: excludeTags,
@@ -374,6 +406,7 @@ func newTypeIndex(pkgs []*packages.Package,
 type typeIndex struct {
 	AllPackages map[string]*packages.Package
 	Models      map[*ast.Ident]*entityDecl
+	ExtraModels map[*ast.Ident]*entityDecl
 	Meta        []metaSection
 	Routes      []parsedPathContent
 	Operations  []parsedPathContent
@@ -483,12 +516,12 @@ func (a *typeIndex) processDecl(pkg *packages.Package, file *ast.File, n node, g
 			def, ok := pkg.TypesInfo.Defs[ts.Name]
 			if !ok {
 				debugLog("couldn't find type info for %s", ts.Name)
-				//continue
+				continue
 			}
 			nt, isNamed := def.Type().(*types.Named)
 			if !isNamed {
 				debugLog("%s is not a named type but a %T", ts.Name, def.Type())
-				//continue
+				continue
 			}
 			decl := &entityDecl{
 				Comments: gd.Doc,
@@ -516,16 +549,16 @@ func (a *typeIndex) walkImports(pkg *packages.Package) error {
 	if a.excludeDeps {
 		return nil
 	}
-	for k := range pkg.Imports {
-		if _, known := a.AllPackages[k]; known {
+	for _, v := range pkg.Imports {
+		if _, known := a.AllPackages[v.PkgPath]; known {
 			continue
 		}
-		pk := pkg.Imports[k]
-		a.AllPackages[pk.PkgPath] = pk
-		if err := a.processPackage(pk); err != nil {
+
+		a.AllPackages[v.PkgPath] = v
+		if err := a.processPackage(v); err != nil {
 			return err
 		}
-		if err := a.walkImports(pk); err != nil {
+		if err := a.walkImports(v); err != nil {
 			return err
 		}
 	}
