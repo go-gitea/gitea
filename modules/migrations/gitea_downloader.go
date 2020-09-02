@@ -35,7 +35,7 @@ type GiteaDownloaderFactory struct {
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GiteaDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (f *GiteaDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader,
 
 	log.Trace("Create gitea downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGiteaDownloader(baseURL, repoPath, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
+	return NewGiteaDownloader(ctx, baseURL, repoPath, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
 }
 
 // GitServiceType returns the type of git service
@@ -76,7 +76,7 @@ type GiteaDownloader struct {
 // NewGiteaDownloader creates a gitea Downloader via gitea API
 //   Use either a username/password or personal token. token is preferred
 //   Note: Public access only allows very basic access
-func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *GiteaDownloader {
+func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) *GiteaDownloader {
 	giteaClient := gitea_sdk.NewClient(baseURL, token)
 	if token == "" {
 		giteaClient.SetBasicAuth(username, password)
@@ -102,7 +102,7 @@ func NewGiteaDownloader(baseURL, repoPath, username, password, token string) *Gi
 	maxPerPage := 10
 
 	return &GiteaDownloader{
-		ctx:        context.Background(),
+		ctx:        ctx,
 		client:     giteaClient,
 		repoOwner:  path[0],
 		repoName:   path[1],

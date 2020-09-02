@@ -222,7 +222,7 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 		}
 		select {
 		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
+			return nil, false, d.ctx.Err()
 		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
 		}
 	}

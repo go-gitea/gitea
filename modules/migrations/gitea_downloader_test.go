@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -52,7 +53,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
 
-	downloader := NewGiteaDownloader("https://gitea.com", "gitea/test_repo", "", "", giteaToken)
+	downloader := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	if downloader == nil {
 		t.Fatal("NewGitlabDownloader is nil")
 	}
