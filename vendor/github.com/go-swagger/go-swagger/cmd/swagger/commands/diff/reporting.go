@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 
@@ -153,10 +154,10 @@ var numberWideness = map[string]int{
 	"integer.int32": 0,
 }
 
-func prettyprint(b []byte) ([]byte, error) {
+func prettyprint(b []byte) (io.ReadWriter, error) {
 	var out bytes.Buffer
 	err := json.Indent(&out, b, "", "  ")
-	return out.Bytes(), err
+	return &out, err
 }
 
 // JSONMarshal allows the item to be correctly rendered to json
