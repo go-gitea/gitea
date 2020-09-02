@@ -21,13 +21,19 @@ import (
 
 func main() {
 	var (
-		prefix      = "gitea-gitignore"
-		url         = "https://api.github.com/repos/github/gitignore/tarball"
-		destination = ""
+		prefix         = "gitea-gitignore"
+		url            = "https://api.github.com/repos/github/gitignore/tarball"
+		githubApiToken = ""
+		destination    = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/gitignore/", "destination for the gitignores")
+	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
+
+	if len(githubApiToken) > 0 {
+		url += "?token=" + githubApiToken
+	}
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)
 

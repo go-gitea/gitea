@@ -21,13 +21,19 @@ import (
 
 func main() {
 	var (
-		prefix      = "gitea-licenses"
-		url         = "https://api.github.com/repos/spdx/license-list-data/tarball"
-		destination = ""
+		prefix         = "gitea-licenses"
+		url            = "https://api.github.com/repos/spdx/license-list-data/tarball"
+		githubApiToken = ""
+		destination    = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
+	flag.StringVar(&gitHubApiToken, "token", "", "github api token")
 	flag.Parse()
+
+	if len(gitHubApiToken) > 0 {
+		url += "?token=" + githubApiToken
+	}
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)
 
