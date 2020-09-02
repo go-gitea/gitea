@@ -96,6 +96,8 @@ type MemProvider struct {
 // Init initializes memory session provider.
 func (p *MemProvider) Init(maxLifetime int64, _ string) error {
 	p.lock.Lock()
+	p.list = list.New()
+	p.data = make(map[string]*list.Element)
 	p.maxLifetime = maxLifetime
 	p.lock.Unlock()
 	return nil
@@ -120,7 +122,8 @@ func (p *MemProvider) Read(sid string) (_ RawStore, err error) {
 	e, ok := p.data[sid]
 	p.lock.RUnlock()
 
-	if ok {
+	// Only restore if the session is still alive.
+	if ok && (e.Value.(*MemStore).lastAccess.Unix()+p.maxLifetime) >= time.Now().Unix() {
 		if err = p.update(sid); err != nil {
 			return nil, err
 		}
@@ -130,7 +133,10 @@ func (p *MemProvider) Read(sid string) (_ RawStore, err error) {
 	// Create a new session.
 	p.lock.Lock()
 	defer p.lock.Unlock()
-
+	if ok {
+		p.list.Remove(e)
+		delete(p.data, sid)
+	}
 	s := NewMemStore(sid)
 	p.data[sid] = p.list.PushBack(s)
 	return s, nil
@@ -213,5 +219,5 @@ func (p *MemProvider) GC() {
 }
 
 func init() {
-	Register("memory", &MemProvider{list: list.New(), data: make(map[string]*list.Element)})
+	Register("memory", &MemProvider{})
 }
