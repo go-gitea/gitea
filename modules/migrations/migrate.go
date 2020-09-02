@@ -37,7 +37,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 
 	for _, factory := range factories {
 		if factory.GitServiceType() == opts.GitServiceType {
-			downloader, err = factory.New(opts)
+			downloader, err = factory.New(ctx, opts)
 			if err != nil {
 				return nil, err
 			}
@@ -60,10 +60,8 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	uploader.gitServiceType = opts.GitServiceType
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
-
-	downloader.SetContext(ctx)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {

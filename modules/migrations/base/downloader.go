@@ -35,7 +35,7 @@ type Downloader interface {
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
 type DownloaderFactory interface {
-	New(opts MigrateOptions) (Downloader, error)
+	New(ctx context.Context, opts MigrateOptions) (Downloader, error)
 	GitServiceType() structs.GitServiceType
 }
 
@@ -46,14 +46,16 @@ var (
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
 	Downloader
+	ctx        context.Context
 	RetryTimes int // the total execute times
 	RetryDelay int // time to delay seconds
 }
 
 // NewRetryDownloader creates a retry downloader
-func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
+func NewRetryDownloader(ctx context.Context, downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
 	return &RetryDownloader{
 		Downloader: downloader,
+		ctx:        ctx,
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
 	}
@@ -61,6 +63,7 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 
 // SetContext set context
 func (d *RetryDownloader) SetContext(ctx context.Context) {
+	d.ctx = ctx
 	d.Downloader.SetContext(ctx)
 }
 
@@ -75,7 +78,11 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 		if repo, err = d.Downloader.GetRepoInfo(); err == nil {
 			return repo, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -91,7 +98,11 @@ func (d *RetryDownloader) GetTopics() ([]string, error) {
 		if topics, err = d.Downloader.GetTopics(); err == nil {
 			return topics, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -107,7 +118,11 @@ func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 		if milestones, err = d.Downloader.GetMilestones(); err == nil {
 			return milestones, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -123,7 +138,11 @@ func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 		if releases, err = d.Downloader.GetReleases(); err == nil {
 			return releases, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -139,7 +158,11 @@ func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 		if labels, err = d.Downloader.GetLabels(); err == nil {
 			return labels, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -156,7 +179,11 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 		if issues, isEnd, err = d.Downloader.GetIssues(page, perPage); err == nil {
 			return issues, isEnd, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, false, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, false, err
 }
@@ -172,7 +199,11 @@ func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 		if comments, err = d.Downloader.GetComments(issueNumber); err == nil {
 			return comments, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -188,7 +219,11 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, er
 		if prs, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
 			return prs, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -204,7 +239,11 @@ func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error)
 		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
 			return reviews, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
