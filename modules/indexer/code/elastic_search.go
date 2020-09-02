@@ -168,6 +168,11 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 }
 
 func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+	// Ignore vendored files in code search
+	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+		return nil, nil
+	}
+
 	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
 		RunInDir(repo.RepoPath())
 	if err != nil {

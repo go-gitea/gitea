@@ -97,7 +97,7 @@ func Init() {
 
 	// Create the Queue
 	switch setting.Indexer.RepoType {
-	case "bleve":
+	case "bleve", "elasticsearch":
 		handler := func(data ...queue.Data) {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
@@ -118,8 +118,33 @@ func Init() {
 						log.Error("indexer.Delete: %v", err)
 					}
 				} else {
-					if err := indexer.Index(indexerData.RepoID); err != nil {
+					repo, err := models.GetRepositoryByID(indexerData.RepoID)
+					if err != nil {
+						log.Error("GetRepositoryByID: %v", err)
+						continue
+					}
+
+					sha, err := getDefaultBranchSha(repo)
+					if err != nil {
+						log.Error("getDefaultBranchSha: %v", err)
+						continue
+					}
+					changes, err := getRepoChanges(repo, sha)
+					if err != nil {
+						log.Error("getRepoChanges: %v", err)
+						continue
+					} else if changes == nil {
+						continue
+					}
+
+					if err := indexer.Index(repo, sha, changes); err != nil {
 						log.Error("indexer.Index: %v", err)
+						continue
+					}
+
+					if err := repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha); err != nil {
+						log.Error("repo.UpdateIndexerStatus: %v", err)
+						continue
 					}
 				}
 			}
@@ -190,7 +215,7 @@ func Init() {
 		// Start processing the queue
 		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
 
-		if created {
+		if populate {
 			go graceful.GetManager().RunWithShutdownContext(populateRepoIndexer)
 		}
 		select {
