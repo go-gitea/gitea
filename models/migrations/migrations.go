@@ -496,26 +496,29 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 
-		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
-			return err
-		}
-
 		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
 
-		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+		var indices []string
+		schema := sess.Engine().Dialect().URI().Schema
+		sess.Engine().SetSchema("")
+		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, index := range indices {
+			newIndexName := strings.Replace(index, "tmp_recreate__", "", 1)
+			if _, err := sess.Exec(fmt.Sprintf("ALTER INDEX `%s` RENAME TO `%s`", index, newIndexName)); err != nil {
+				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
+				return err
+			}
 		}
 
-		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
-			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
-			return err
-		}
 	case setting.Database.UseMSSQL:
 		// MSSQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
