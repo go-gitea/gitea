@@ -53,7 +53,7 @@ add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 [markup.asciidoc]
 ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoctor -e -a leveloffset=-1 --out-file=- -"
+RENDER_COMMAND = "asciidoctor -s -a showtitle --out-file=- -"
 ; Input is not a standard input but a file
 IS_INPUT_FILE = false
 
