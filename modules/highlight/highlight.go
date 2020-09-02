@@ -8,6 +8,7 @@ package highlight
 import (
 	"bufio"
 	"bytes"
+	gohtml "html"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -160,7 +161,7 @@ func plainText(code string, numLines int) map[int]string {
 		if content == "" {
 			content = "\n"
 		}
-		m[line] = content
+		m[line] = gohtml.EscapeString(content)
 	}
 	return m
 }
