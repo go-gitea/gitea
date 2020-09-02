@@ -78,6 +78,30 @@ var (
 	indexerQueue queue.Queue
 )
 
+func index(indexer Indexer, repoID int64) error {
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		return err
+	}
+
+	sha, err := getDefaultBranchSha(repo)
+	if err != nil {
+		return err
+	}
+	changes, err := getRepoChanges(repo, sha)
+	if err != nil {
+		return err
+	} else if changes == nil {
+		return nil
+	}
+
+	if err := indexer.Index(repo, sha, changes); err != nil {
+		return err
+	}
+
+	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+}
+
 // Init initialize the repo indexer
 func Init() {
 	if !setting.Indexer.RepoIndexerEnabled {
@@ -118,32 +142,8 @@ func Init() {
 						log.Error("indexer.Delete: %v", err)
 					}
 				} else {
-					repo, err := models.GetRepositoryByID(indexerData.RepoID)
-					if err != nil {
-						log.Error("GetRepositoryByID: %v", err)
-						continue
-					}
-
-					sha, err := getDefaultBranchSha(repo)
-					if err != nil {
-						log.Error("getDefaultBranchSha: %v", err)
-						continue
-					}
-					changes, err := getRepoChanges(repo, sha)
-					if err != nil {
-						log.Error("getRepoChanges: %v", err)
-						continue
-					} else if changes == nil {
-						continue
-					}
-
-					if err := indexer.Index(repo, sha, changes); err != nil {
-						log.Error("indexer.Index: %v", err)
-						continue
-					}
-
-					if err := repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha); err != nil {
-						log.Error("repo.UpdateIndexerStatus: %v", err)
+					if err := index(indexer, indexerData.RepoID); err != nil {
+						log.Error("index: %v", err)
 						continue
 					}
 				}
