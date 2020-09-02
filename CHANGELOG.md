@@ -13,6 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * StaticRootPath configurable at compile time (#12371) (#12652)
 * BUGFIXES
+  * Fix to show an issue that is related to a deleted issue (#12651) (#12692)
   * Expire time acknowledged for cache (#12605) (#12611)
   * Fix diff path unquoting (#12554) (#12575)
   * Improve HTML escaping helper (#12562)
