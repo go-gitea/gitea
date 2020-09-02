@@ -44,7 +44,7 @@
 						{{$canChoose = true}}
 					{{end}}
 
-					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-ban-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}} {{if not $canChoose}}ban-change{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
@@ -106,15 +106,15 @@
 					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_labels"}}">
 				</div>
 				{{end}}
-				<div class="no-select item" data-ban-change="">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-ban-change=""><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-ban-change=""><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
@@ -250,7 +250,7 @@
 					<i class="search icon"></i>
 					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_assignees"}}">
 				</div>
-				<div class="no-select item" data-ban-change="">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
 
 					{{$AssigneeID := .ID}}
@@ -258,7 +258,7 @@
 						{{if eq .ID $AssigneeID}}
 						 checked
 						{{end}}
-					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}" data-ban-change="">
+					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 						{{$checked := false}}
 						{{range $.Issue.Assignees}}
 							{{if eq .ID $AssigneeID}}
