@@ -23,6 +23,7 @@ type Tree struct {
 	values    map[string]interface{} // string -> *tomlValue, *Tree, []*Tree
 	comment   string
 	commented bool
+	inline    bool
 	position  Position
 }
 
@@ -222,8 +223,12 @@ func (t *Tree) SetPathWithOptions(keys []string, opts SetOptions, value interfac
 	switch v := value.(type) {
 	case *Tree:
 		v.comment = opts.Comment
+		v.commented = opts.Commented
 		toInsert = value
 	case []*Tree:
+		for i := range v {
+			v[i].commented = opts.Commented
+		}
 		toInsert = value
 	case *tomlValue:
 		v.comment = opts.Comment
@@ -307,6 +312,7 @@ func (t *Tree) createSubTree(keys []string, pos Position) error {
 		if !exists {
 			tree := newTreeWithPosition(Position{Line: t.position.Line + i, Col: t.position.Col})
 			tree.position = pos
+			tree.inline = subtree.inline
 			subtree.values[intermediateKey] = tree
 			nextTree = tree
 		}

@@ -16,7 +16,7 @@ import (
 
 const (
 	// Output messages
-	nothingToDo = "Nothing to do. Need some swagger files to merge.\nUSAGE: swagger mixin [-c <expected#Collisions>] <primary-swagger-file> <mixin-swagger-file>..."
+	nothingToDo = "nothing to do. Need some swagger files to merge.\nUSAGE: swagger mixin [-c <expected#Collisions>] <primary-swagger-file> <mixin-swagger-file...>"
 )
 
 // MixinSpec holds command line flag definitions specific to the mixin

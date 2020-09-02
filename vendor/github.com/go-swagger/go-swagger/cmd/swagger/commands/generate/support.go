@@ -22,40 +22,33 @@ import (
 
 // Support generates the supporting files
 type Support struct {
-	shared
-	Name          string   `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
-	Operations    []string `long:"operation" short:"O" description:"specify an operation to include, repeat for multiple"`
-	Principal     string   `long:"principal" description:"the model to use for the security principal"`
-	Models        []string `long:"model" short:"M" description:"specify a model to include, repeat for multiple"`
-	DumpData      bool     `long:"dump-data" description:"when present dumps the json for the template generator instead of generating files"`
-	DefaultScheme string   `long:"default-scheme" description:"the default scheme for this API" default:"http"`
+	WithShared
+	WithModels
+	WithOperations
+
+	clientOptions
+	serverOptions
+	schemeOptions
+	mediaOptions
+
+	Name string `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
 }
 
-func (s *Support) getOpts() (*generator.GenOpts, error) {
-	return &generator.GenOpts{
-		Spec:          string(s.Spec),
-		Target:        string(s.Target),
-		APIPackage:    s.APIPackage,
-		ModelPackage:  s.ModelPackage,
-		ServerPackage: s.ServerPackage,
-		ClientPackage: s.ClientPackage,
-		Principal:     s.Principal,
-		DumpData:      s.DumpData,
-		DefaultScheme: s.DefaultScheme,
-		Template:      s.Template,
-		TemplateDir:   string(s.TemplateDir),
-	}, nil
-}
-
-func (s *Support) getShared() *shared {
-	return &s.shared
+func (s *Support) apply(opts *generator.GenOpts) {
+	s.Shared.apply(opts)
+	s.Models.apply(opts)
+	s.Operations.apply(opts)
+	s.clientOptions.apply(opts)
+	s.serverOptions.apply(opts)
+	s.schemeOptions.apply(opts)
+	s.mediaOptions.apply(opts)
 }
 
 func (s *Support) generate(opts *generator.GenOpts) error {
-	return generator.GenerateSupport(s.Name, nil, nil, opts)
+	return generator.GenerateSupport(s.Name, s.Models.Models, s.Operations.Operations, opts)
 }
 
-func (s *Support) log(rp string) {
+func (s Support) log(rp string) {
 
 	log.Printf(`Generation completed!
 

@@ -72,11 +72,17 @@ func (ht responseTypable) Schema() *spec.Schema {
 func (ht responseTypable) SetSchema(schema *spec.Schema) {
 	ht.response.Schema = schema
 }
+
 func (ht responseTypable) CollectionOf(items *spec.Items, format string) {
 	ht.header.CollectionOf(items, format)
 }
+
 func (ht responseTypable) AddExtension(key string, value interface{}) {
 	ht.response.AddExtension(key, value)
+}
+
+func (ht responseTypable) WithEnum(values ...interface{}) {
+	ht.header.WithEnum(values)
 }
 
 type headerValidations struct {
@@ -185,6 +191,7 @@ func (r *responseBuilder) buildFromField(fld *types.Var, tpe types.Type, typable
 		if err := sb.buildFromType(ftpe.Elem(), schemaTypable{schema, typable.Level() + 1}); err != nil {
 			return err
 		}
+		r.postDecls = append(r.postDecls, sb.postDecls...)
 		return nil
 	case *types.Named:
 		if decl, found := r.ctx.DeclForType(ftpe.Obj().Type()); found {
