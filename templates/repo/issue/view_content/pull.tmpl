@@ -49,7 +49,7 @@
 								{{end}}
 
 								{{if $canChoose }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{svg "octicon-sync" 16}}
 									</a>
 								{{end}}
@@ -73,7 +73,7 @@
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
 	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
-	{{- else if and .RequireSigned (not .WillSign)}}red
+	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
@@ -126,7 +126,7 @@
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
 					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
@@ -159,7 +159,7 @@
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_missing"}}
 					</div>
-				{{else if and .RequireSigned (not .WillSign)}}
+				{{else if and .AllowMerge .RequireSigned (not .WillSign)}}
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
@@ -170,7 +170,7 @@
 					</div>
 				{{end}}
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
 							<i class="icon icon-octicon">{{svg "octicon-dot-fill" 16}}</i>
@@ -216,7 +216,7 @@
 					</div>
 				{{end}}
 
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}

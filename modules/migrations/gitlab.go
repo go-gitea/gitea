@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -32,23 +34,8 @@ func init() {
 type GitlabDownloaderFactory struct {
 }
 
-// Match returns true if the migration remote URL matched this downloader factory
-func (f *GitlabDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
-	var matched bool
-
-	u, err := url.Parse(opts.CloneAddr)
-	if err != nil {
-		return false, err
-	}
-	if strings.EqualFold(u.Host, "gitlab.com") && opts.AuthUsername != "" {
-		matched = true
-	}
-
-	return matched, nil
-}
-
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GitlabDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
@@ -56,10 +43,11 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword), nil
+	return NewGitlabDownloader(ctx, baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
 }
 
 // GitServiceType returns the type of git service
@@ -85,15 +73,13 @@ type GitlabDownloader struct {
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
-func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
+func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) *GitlabDownloader {
 	var gitlabClient *gitlab.Client
 	var err error
-	if username != "" {
-		if password == "" {
-			gitlabClient, err = gitlab.NewClient(username, gitlab.WithBaseURL(baseURL))
-		} else {
-			gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
-		}
+	if token != "" {
+		gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	} else {
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
 	if err != nil {
@@ -102,7 +88,7 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	}
 
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
-	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil)
+	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		log.Trace("Error retrieving project: %v", err)
 		return nil
@@ -114,7 +100,7 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	}
 
 	return &GitlabDownloader{
-		ctx:      context.Background(),
+		ctx:      ctx,
 		client:   gitlabClient,
 		repoID:   gr.ID,
 		repoName: gr.Name,
@@ -132,7 +118,7 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 		return nil, errors.New("error: GitlabDownloader is nil")
 	}
 
-	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
+	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +158,7 @@ func (g *GitlabDownloader) GetTopics() ([]string, error) {
 		return nil, errors.New("error: GitlabDownloader is nil")
 	}
 
-	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
+	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +179,7 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 			ListOptions: gitlab.ListOptions{
 				Page:    i,
 				PerPage: perPage,
-			}}, nil)
+			}}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +237,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{
 			Page:    i,
 			PerPage: perPage,
-		}, nil)
+		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +257,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Release {
-
+	var zero int
 	r := &base.Release{
 		TagName:         rel.TagName,
 		TargetCommitish: rel.Commit.ID,
@@ -284,9 +270,11 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 
 	for k, asset := range rel.Assets.Links {
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:         asset.URL,
-			Name:        asset.Name,
-			ContentType: &rel.Assets.Sources[k].Format,
+			ID:            int64(asset.ID),
+			Name:          asset.Name,
+			ContentType:   &rel.Assets.Sources[k].Format,
+			Size:          &zero,
+			DownloadCount: &zero,
 		})
 	}
 	return r
@@ -300,7 +288,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
 			Page:    i,
 			PerPage: perPage,
-		}, nil)
+		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -313,6 +301,28 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
+}
+
+// GetAsset returns an asset
+func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
+	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id), gitlab.WithContext(g.ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", link.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(g.ctx)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// resp.Body is closed by the uploader
+	return resp.Body, nil
 }
 
 // GetIssues returns issues according start and limit
@@ -333,7 +343,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 
 	var allIssues = make([]*base.Issue, 0, perPage)
 
-	issues, _, err := g.client.Issues.ListProjectIssues(g.repoID, opt, nil)
+	issues, _, err := g.client.Issues.ListProjectIssues(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing issues: %v", err)
 	}
@@ -390,14 +400,14 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
 				PerPage: 100,
-			}, nil)
+			}, nil, gitlab.WithContext(g.ctx))
 		} else {
 			// If this is a PR, we need to figure out the Gitlab/original PR ID to be passed below
 			realIssueNumber = issueNumber - g.issueCount
 			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
 				PerPage: 100,
-			}, nil)
+			}, nil, gitlab.WithContext(g.ctx))
 		}
 
 		if err != nil {
@@ -452,7 +462,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
-	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil)
+	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, fmt.Errorf("error while listing merge requests: %v", err)
 	}
@@ -533,7 +543,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
 
-	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber))
+	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
 	}

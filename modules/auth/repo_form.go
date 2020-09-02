@@ -56,8 +56,10 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 type MigrateRepoForm struct {
 	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
+	Service      int    `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
@@ -128,6 +130,7 @@ type RepoSettingForm struct {
 	ExternalTrackerURL               string
 	TrackerURLFormat                 string
 	TrackerIssueStyle                string
+	EnableProjects                   bool
 	EnablePulls                      bool
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
@@ -366,6 +369,7 @@ type CreateIssueForm struct {
 	AssigneeIDs string `form:"assignee_ids"`
 	Ref         string `form:"ref"`
 	MilestoneID int64
+	ProjectID   int64
 	AssigneeID  int64
 	Content     string
 	Files       []string
@@ -422,6 +426,35 @@ func (i IssueLockForm) HasValidReason() bool {
 	}
 
 	return false
+}
+
+// __________                   __               __
+// \______   \_______  ____    |__| ____   _____/  |_  ______
+//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
+//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
+//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
+//                         \______|    \/     \/          \/
+
+// CreateProjectForm form for creating a project
+type CreateProjectForm struct {
+	Title     string `binding:"Required;MaxSize(100)"`
+	Content   string
+	BoardType models.ProjectBoardType
+}
+
+// UserCreateProjectForm is a from for creating an individual or organization
+// form.
+type UserCreateProjectForm struct {
+	Title     string `binding:"Required;MaxSize(100)"`
+	Content   string
+	BoardType models.ProjectBoardType
+	UID       int64 `binding:"Required"`
+}
+
+// EditProjectBoardTitleForm is a form for editing the title of a project's
+// board
+type EditProjectBoardTitleForm struct {
+	Title string `binding:"Required;MaxSize(100)"`
 }
 
 //    _____  .__.__                   __

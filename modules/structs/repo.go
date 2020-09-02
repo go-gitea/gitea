@@ -82,6 +82,7 @@ type Repository struct {
 	HasWiki                   bool             `json:"has_wiki"`
 	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests           bool             `json:"has_pull_requests"`
+	HasProjects               bool             `json:"has_projects"`
 	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                bool             `json:"allow_merge_commits"`
 	AllowRebase               bool             `json:"allow_rebase"`
@@ -147,6 +148,8 @@ type EditRepoOption struct {
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
+	// either `true` to enable project unit, or `false` to disable them.
+	HasProjects *bool `json:"has_projects,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
@@ -215,6 +218,32 @@ func (gt GitServiceType) Name() string {
 	return ""
 }
 
+// Title represents the service type's proper title
+func (gt GitServiceType) Title() string {
+	switch gt {
+	case GithubService:
+		return "GitHub"
+	case GiteaService:
+		return "Gitea"
+	case GitlabService:
+		return "GitLab"
+	case GogsService:
+		return "Gogs"
+	case PlainGitService:
+		return "Git"
+	}
+	return ""
+}
+
+// TokenAuth represents whether a service type supports token-based auth
+func (gt GitServiceType) TokenAuth() bool {
+	switch gt {
+	case GithubService, GiteaService, GitlabService:
+		return true
+	}
+	return false
+}
+
 var (
 	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
 	// TODO: add to this list after new git service added
@@ -230,6 +259,7 @@ type MigrateRepoOption struct {
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

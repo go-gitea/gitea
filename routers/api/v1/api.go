@@ -934,6 +934,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 
 		m.Group("/admin", func() {
+			m.Group("/cron", func() {
+				m.Get("", admin.ListCronTasks)
+				m.Post("/:task", admin.PostCronTask)
+			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
 				m.Get("", admin.GetAllUsers)

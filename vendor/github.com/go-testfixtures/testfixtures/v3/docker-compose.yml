@@ -7,6 +7,7 @@ services:
       - postgresql
       - mysql
       - sqlserver
+      - cockroachdb
     environment:
       PGPASSWORD: postgres
       PG_CONN_STRING: host=postgresql user=postgres dbname=testfixtures_test port=5432 sslmode=disable
@@ -16,6 +17,8 @@ services:
       SQLITE_CONN_STRING: testfixtures_test.sqlite3
 
       SQLSERVER_CONN_STRING: server=sqlserver;database=master;user id=sa;password=SQL@1server;encrypt=disable
+
+      CRDB_CONN_STRING: host=cockroachdb user=root dbname=defaultdb port=26257 sslmode=disable
 
   postgresql:
     image: postgres:12.1-alpine
@@ -35,3 +38,7 @@ services:
     environment:
       ACCEPT_EULA: 'Y'
       SA_PASSWORD: SQL@1server
+
+  cockroachdb:
+    image: cockroachdb/cockroach:v20.1.3
+    command: start-single-node --store /cockroach-data --insecure --advertise-host cockroachdb

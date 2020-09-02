@@ -28,6 +28,7 @@ func TestGetRefURL(t *testing.T) {
 		{"git://git@try.gitea.io:9999/go-gitea/gitea", "https://try.gitea.io/", "go-gitea/sdk", "https://try.gitea.io/go-gitea/gitea"},
 		{"ssh://git@127.0.0.1:9999/go-gitea/gitea", "https://127.0.0.1:3000/", "go-gitea/sdk", "https://127.0.0.1:3000/go-gitea/gitea"},
 		{"https://gitea.com:3000/user1/repo1.git", "https://127.0.0.1:3000/", "user/repo2", "https://gitea.com:3000/user1/repo1"},
+		{"https://example.gitea.com/gitea/user1/repo1.git", "https://example.gitea.com/gitea/", "user/repo2", "https://example.gitea.com/gitea/user1/repo1"},
 		{"https://username:password@github.com/username/repository.git", "/", "username/repository2", "https://username:password@github.com/username/repository"},
 		{"somethingbad", "https://127.0.0.1:3000/go-gitea/gitea", "/", ""},
 		{"git@localhost:user/repo", "https://localhost/", "user2/repo1", "https://localhost/user/repo"},

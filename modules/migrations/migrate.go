@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -33,18 +32,15 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
-		theFactory base.DownloaderFactory
+		err        error
 	)
 
 	for _, factory := range factories {
-		if match, err := factory.Match(opts); err != nil {
-			return nil, err
-		} else if match {
-			downloader, err = factory.New(opts)
+		if factory.GitServiceType() == opts.GitServiceType {
+			downloader, err = factory.New(ctx, opts)
 			if err != nil {
 				return nil, err
 			}
-			theFactory = factory
 			break
 		}
 	}
@@ -57,20 +53,15 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
-		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
 		log.Trace("Will migrate from git: %s", opts.OriginalURL)
-	} else if opts.GitServiceType == structs.NotMigrated {
-		opts.GitServiceType = theFactory.GitServiceType()
 	}
 
 	uploader.gitServiceType = opts.GitServiceType
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
-
-	downloader.SetContext(ctx)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
@@ -169,7 +160,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err := uploader.CreateReleases(downloader, releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]

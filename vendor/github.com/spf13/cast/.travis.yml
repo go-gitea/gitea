@@ -4,6 +4,7 @@ env:
 sudo: required
 go:
   - "1.11.x"
+  - "1.12.x"
   - tip
 os:
   - linux
