@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -64,7 +65,7 @@ func assertLabelEqual(t *testing.T, name, color, description string, label *base
 
 func TestGitHubDownloadRepo(t *testing.T) {
 	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
-	downloader := NewGithubDownloaderV3("", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
+	downloader := NewGithubDownloaderV3(context.Background(), "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
 	err := downloader.RefreshRate()
 	assert.NoError(t, err)
 

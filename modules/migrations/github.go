@@ -41,7 +41,7 @@ type GithubDownloaderV3Factory struct {
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Download
 
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
-	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(ctx, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -74,11 +74,11 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(ctx context.Context, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
 		userName:  userName,
 		password:  password,
-		ctx:       context.Background(),
+		ctx:       ctx,
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}

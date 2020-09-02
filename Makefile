@@ -171,6 +171,8 @@ help:
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
+	@echo " - generate-license                 update license files"
+	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
@@ -668,6 +670,15 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
+
+.PHONY: generate-license
+generate-license:
+	GO111MODULE=on $(GO) run build/generate-licenses.go
+
+.PHONY: generate-gitignore
+generate-gitignore:
+	GO111MODULE=on $(GO) run build/generate-gitignores.go
+
 
 .PHONY: generate-images
 generate-images:
