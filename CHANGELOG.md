@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Escape provider name in oauth2 provider redirect (#12648) (#12650)
   * Escape Email on password reset page (#12610) (#12612)
+  * When reading expired sessions - expire them (#12686) (#12690)
 * BUGFIXES
   * Expire time acknowledged for cache (#12605) (#12611)
   * Fix diff path unquoting (#12554) (#12575)
