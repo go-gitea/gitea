@@ -36,7 +36,7 @@ gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.5.0
 ## explicit
 gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20200902200703-958cff69aa10
+# gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
 ## explicit
 gitea.com/macaron/session
 gitea.com/macaron/session/couchbase

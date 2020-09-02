@@ -124,7 +124,7 @@ func (p *PostgresProvider) Read(sid string) (session.RawStore, error) {
 	now := time.Now().Unix()
 	var data []byte
 	expiry := now
-	err := p.c.QueryRow("SELECT data FROM session WHERE key=$1", sid).Scan(&data, &expiry)
+	err := p.c.QueryRow("SELECT data, expiry FROM session WHERE key=$1", sid).Scan(&data, &expiry)
 	if err == sql.ErrNoRows {
 		_, err = p.c.Exec("INSERT INTO session(key,data,expiry) VALUES($1,$2,$3)",
 			sid, "", now)
