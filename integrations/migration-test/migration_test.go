@@ -270,6 +270,13 @@ func doMigrationTest(t *testing.T, version string) {
 	})
 	assert.NoError(t, err)
 
+	// We do this a second time to ensure that there is not a problem with retained indices
+	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		currentEngine = x
+		return migrations.RecreateTables(beans...)(x)
+	})
+	assert.NoError(t, err)
+
 	currentEngine.Close()
 }
 
