@@ -101,7 +101,7 @@ func GetMilestone(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
 
-	milestone := getMile(ctx)
+	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -194,7 +194,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
 
-	milestone := getMile(ctx)
+	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -246,7 +246,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	m := getMile(ctx)
+	m := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -258,8 +258,8 @@ func DeleteMilestone(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// getMile get milestone by ID and if not available by name
-func getMile(ctx *context.APIContext) *models.Milestone {
+// getMilestoneByIDOrName get milestone by ID and if not available by name
+func getMilestoneByIDOrName(ctx *context.APIContext) *models.Milestone {
 	mile := ctx.Params(":id")
 	mileID, _ := strconv.ParseInt(mile, 0, 64)
 
