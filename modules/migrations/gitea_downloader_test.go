@@ -128,7 +128,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			Name:            "Second Release",
 			TagName:         "v2-rc1",
 			TargetCommitish: "master",
-			Body:            "this repo has:\r\n* reactions\r\n* wiki\r\n* issues  (open/closed)\r\n* pulls (open/closed/merged) (external/internal)\r\n* pull reviews\r\n* projects\r\n* milestones\r\n* lables\r\n* releases\r\n\r\nto test migration agains",
+			Body:            "this repo has:\r\n* reactions\r\n* wiki\r\n* issues  (open/closed)\r\n* pulls (open/closed/merged) (external/internal)\r\n* pull reviews\r\n* projects\r\n* milestones\r\n* labels\r\n* releases\r\n\r\nto test migration against",
 			Draft:           false,
 			Prerelease:      true,
 			Created:         time.Date(2020, 9, 1, 18, 2, 43, 0, time.UTC),
@@ -224,7 +224,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, comments, 2)
 	assert.EqualValues(t, 1598975370, comments[0].Created.Unix())
-	assert.EqualValues(t, 1598975370, comments[0].Updated.Unix())
+	assert.EqualValues(t, 1599070865, comments[0].Updated.Unix())
 	assert.EqualValues(t, 1598975393, comments[1].Created.Unix())
 	assert.EqualValues(t, 1598975393, comments[1].Updated.Unix())
 	assert.EqualValues(t, []*base.Comment{
@@ -235,7 +235,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			PosterEmail: "6543@noreply.gitea.io",
 			Created:     comments[0].Created,
 			Updated:     comments[0].Updated,
-			Content:     "a realy good question!\r\n\r\nIt is the used as TESTSET for gitea2gitea repo migration function",
+			Content:     "a really good question!\n\nIt is the used as TESTSET for gitea2gitea repo migration function",
 		},
 		{
 			IssueIndex:  4,
@@ -268,7 +268,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		State:       "closed",
 		IsLocked:    false,
 		Created:     time.Unix(1598982759, 0),
-		Updated:     time.Unix(1598983027, 0),
+		Updated:     time.Unix(1599023425, 0),
 		Closed:      &merged12,
 		Assignees:   []string{"techknowlogick"},
 		Labels:      []*base.Label{},
