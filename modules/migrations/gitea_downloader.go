@@ -401,6 +401,11 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			return nil, false, fmt.Errorf("error while loading reactions: %v", err)
 		}
 
+		var assignees []string
+		for i := range issue.Assignees {
+			assignees = append(assignees, issue.Assignees[i].UserName)
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:       issue.Title,
 			Number:      issue.Index,
@@ -415,6 +420,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			Closed:      issue.Closed,
 			Reactions:   reactions,
 			Labels:      labels,
+			Assignees:   assignees,
 			IsLocked:    issue.IsLocked,
 		})
 	}
@@ -519,9 +525,13 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			if pr.Head.Repository != nil {
 				headUserName = pr.Head.Repository.Owner.UserName
 				headRepoName = pr.Head.Repository.Name
+				headCloneURL = pr.Head.Repository.CloneURL
 			}
 			headSHA = pr.Head.Sha
 			headRef = pr.Head.Ref
+			if headSHA == "" {
+				// ToDo: !!! ned get headSHA workaround
+			}
 		}
 
 		var mergeCommitSHA string
@@ -548,6 +558,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			updatedAt = *pr.Updated
 		}
 
+		closedAt := pr.Closed
+		if pr.Merged != nil && closedAt == nil {
+			closedAt = pr.Merged
+		}
+
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
 			Number:         pr.Index,
@@ -558,7 +573,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			State:          string(pr.State),
 			Created:        createdAt,
 			Updated:        updatedAt,
-			Closed:         pr.Closed,
+			Closed:         closedAt,
 			Labels:         labels,
 			Milestone:      milestone,
 			Reactions:      reactions,

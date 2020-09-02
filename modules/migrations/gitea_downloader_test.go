@@ -17,24 +17,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertEqualIssue(t *testing.T, issueExp, IssueGet *base.Issue) {
-	assert.EqualValues(t, issueExp.Number, IssueGet.Number)
-	assert.EqualValues(t, issueExp.Title, IssueGet.Title)
-	assert.EqualValues(t, issueExp.Content, IssueGet.Content)
-	assert.EqualValues(t, issueExp.Milestone, IssueGet.Milestone)
-	assert.EqualValues(t, issueExp.PosterID, IssueGet.PosterID)
-	assert.EqualValues(t, issueExp.PosterName, IssueGet.PosterName)
-	assert.EqualValues(t, issueExp.PosterEmail, IssueGet.PosterEmail)
-	assert.EqualValues(t, issueExp.IsLocked, IssueGet.IsLocked)
-	assert.EqualValues(t, issueExp.Created.Unix(), IssueGet.Created.Unix())
-	assert.EqualValues(t, issueExp.Updated.Unix(), IssueGet.Updated.Unix())
+func assertEqualIssue(t *testing.T, issueExp, issueGet *base.Issue) {
+	assert.EqualValues(t, issueExp.Number, issueGet.Number)
+	assert.EqualValues(t, issueExp.Title, issueGet.Title)
+	assert.EqualValues(t, issueExp.Content, issueGet.Content)
+	assert.EqualValues(t, issueExp.Milestone, issueGet.Milestone)
+	assert.EqualValues(t, issueExp.PosterID, issueGet.PosterID)
+	assert.EqualValues(t, issueExp.PosterName, issueGet.PosterName)
+	assert.EqualValues(t, issueExp.PosterEmail, issueGet.PosterEmail)
+	assert.EqualValues(t, issueExp.IsLocked, issueGet.IsLocked)
+	assert.EqualValues(t, issueExp.Created.Unix(), issueGet.Created.Unix())
+	assert.EqualValues(t, issueExp.Updated.Unix(), issueGet.Updated.Unix())
 	if issueExp.Closed != nil {
-		assert.EqualValues(t, issueExp.Closed.Unix(), IssueGet.Closed.Unix())
+		assert.EqualValues(t, issueExp.Closed.Unix(), issueGet.Closed.Unix())
 	} else {
-		assert.True(t, IssueGet.Closed == nil)
+		assert.True(t, issueGet.Closed == nil)
 	}
-	assert.EqualValues(t, issueExp.Labels, IssueGet.Labels)
-	assert.EqualValues(t, issueExp.Reactions, IssueGet.Reactions)
+	sort.Strings(issueExp.Assignees)
+	sort.Strings(issueGet.Assignees)
+	assert.EqualValues(t, issueExp.Assignees, issueGet.Assignees)
+	assert.EqualValues(t, issueExp.Labels, issueGet.Labels)
+	assert.EqualValues(t, issueExp.Reactions, issueGet.Reactions)
 }
 
 func TestGiteaDownloadRepo(t *testing.T) {
@@ -216,11 +219,112 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Closed:    &closed2,
 	}, issues[1])
 
-	/*
-		ToDo:
-		GetComments(issueNumber int64) ([]*Comment, error)
-		GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
-		GetReviews(pullRequestNumber int64) ([]*Review, error)
-	*/
+	comments, err := downloader.GetComments(4)
+	assert.NoError(t, err)
+	assert.Len(t, comments, 2)
+	assert.EqualValues(t, 1598975370, comments[0].Created.Unix())
+	assert.EqualValues(t, 1598975370, comments[0].Updated.Unix())
+	assert.EqualValues(t, 1598975393, comments[1].Created.Unix())
+	assert.EqualValues(t, 1598975393, comments[1].Updated.Unix())
+	assert.EqualValues(t, []*base.Comment{
+		{
+			IssueIndex:  4,
+			PosterID:    689,
+			PosterName:  "6543",
+			PosterEmail: "6543@noreply.gitea.io",
+			Created:     comments[0].Created,
+			Updated:     comments[0].Updated,
+			Content:     "a realy good question!\r\n\r\nIt is the used as TESTSET for gitea2gitea repo migration function",
+		},
+		{
+			IssueIndex:  4,
+			PosterID:    -1,
+			PosterName:  "Ghost",
+			PosterEmail: "",
+			Created:     comments[1].Created,
+			Updated:     comments[1].Updated,
+			Content:     "Oh!",
+		},
+	}, comments)
 
+	prs, isEnd, err := downloader.GetPullRequests(1, 50)
+	assert.NoError(t, err)
+	assert.True(t, isEnd)
+	assert.Len(t, prs, 6)
+	prs, isEnd, err = downloader.GetPullRequests(1, 3)
+	assert.NoError(t, err)
+	assert.False(t, isEnd)
+	assert.Len(t, prs, 3)
+	merged12 := time.Unix(1598982934, 0)
+	assertEqualPulls(t, &base.PullRequest{
+		Number:      12,
+		PosterID:    689,
+		PosterName:  "6543",
+		PosterEmail: "6543@noreply.gitea.io",
+		Title:       "Dont Touch",
+		Content:     "\r\nadd dont touch note",
+		Milestone:   "V2 Finalize",
+		State:       "closed",
+		IsLocked:    false,
+		Created:     time.Unix(1598982759, 0),
+		Updated:     time.Unix(1598983027, 0),
+		Closed:      &merged12,
+		Assignees:   []string{"techknowlogick"},
+		Labels:      []*base.Label{},
+
+		Base: base.PullRequestBranch{
+			CloneURL:  "",
+			Ref:       "master",
+			SHA:       "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
+			RepoName:  "test_repo",
+			OwnerName: "gitea",
+		},
+		Head: base.PullRequestBranch{
+			CloneURL:  "https://gitea.com/6543-forks/test_repo.git",
+			Ref:       "refs/pull/12/head",
+			SHA:       "",
+			RepoName:  "test_repo",
+			OwnerName: "6543-forks",
+		},
+		Merged:         true,
+		MergedTime:     &merged12,
+		MergeCommitSHA: "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
+		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
+	}, prs[1])
 }
+
+func assertEqualPulls(t *testing.T, pullExp, pullGet *base.PullRequest) {
+	assertEqualIssue(t, pull2issue(pullExp), pull2issue(pullGet))
+	assert.EqualValues(t, 0, pullGet.OriginalNumber)
+	assert.EqualValues(t, pullExp.PatchURL, pullGet.PatchURL)
+	assert.EqualValues(t, pullExp.Merged, pullGet.Merged)
+	assert.EqualValues(t, pullExp.MergedTime.Unix(), pullGet.MergedTime.Unix())
+	assert.EqualValues(t, pullExp.MergeCommitSHA, pullGet.MergeCommitSHA)
+	assert.EqualValues(t, pullExp.Base, pullGet.Base)
+	assert.EqualValues(t, pullExp.Head, pullGet.Head)
+}
+
+func pull2issue(pull *base.PullRequest) *base.Issue {
+	return &base.Issue{
+		Number:      pull.Number,
+		PosterID:    pull.PosterID,
+		PosterName:  pull.PosterName,
+		PosterEmail: pull.PosterEmail,
+		Title:       pull.Title,
+		Content:     pull.Content,
+		Milestone:   pull.Milestone,
+		State:       pull.State,
+		IsLocked:    pull.IsLocked,
+		Created:     pull.Created,
+		Updated:     pull.Updated,
+		Closed:      pull.Closed,
+		Labels:      pull.Labels,
+		Reactions:   pull.Reactions,
+		Assignees:   pull.Assignees,
+	}
+}
+
+/*
+	ToDo:
+	GetReviews(pullRequestNumber int64) ([]*Review, error)
+*/
