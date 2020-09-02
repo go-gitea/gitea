@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,10 +23,15 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 	needPkgsSet := make(map[string]bool)
 	modifiedPkgsSet := make(map[string]bool)
 
+	pkgOfDir := make(map[string][]*Package)
 	for _, pkg := range response.dr.Packages {
 		// This is an approximation of import path to id. This can be
 		// wrong for tests, vendored packages, and a number of other cases.
 		havePkgs[pkg.PkgPath] = pkg.ID
+		x := commonDir(pkg.GoFiles)
+		if x != "" {
+			pkgOfDir[x] = append(pkgOfDir[x], pkg)
+		}
 	}
 
 	// If no new imports are added, it is safe to avoid loading any needPkgs.
@@ -64,6 +70,9 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 			// to the overlay.
 			continue
 		}
+		// If all the overlay files belong to a different package, change the
+		// package name to that package.
+		maybeFixPackageName(pkgName, isTestFile, pkgOfDir[dir])
 	nextPackage:
 		for _, p := range response.dr.Packages {
 			if pkgName != p.Name && p.ID != "command-line-arguments" {
@@ -93,8 +102,11 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 				}
 			}
 		}
-		// The overlay could have included an entirely new package.
-		if pkg == nil {
+		// The overlay could have included an entirely new package or an
+		// ad-hoc package. An ad-hoc package is one that we have manually
+		// constructed from inadequate `go list` results for a file= query.
+		// It will have the ID command-line-arguments.
+		if pkg == nil || pkg.ID == "command-line-arguments" {
 			// Try to find the module or gopath dir the file is contained in.
 			// Then for modules, add the module opath to the beginning.
 			pkgPath, ok, err := state.getPkgPath(dir)
@@ -104,34 +116,53 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 			if !ok {
 				break
 			}
+			var forTest string // only set for x tests
 			isXTest := strings.HasSuffix(pkgName, "_test")
 			if isXTest {
+				forTest = pkgPath
 				pkgPath += "_test"
 			}
 			id := pkgPath
-			if isTestFile && !isXTest {
-				id = fmt.Sprintf("%s [%s.test]", pkgPath, pkgPath)
-			}
-			// Try to reclaim a package with the same id if it exists in the response.
-			for _, p := range response.dr.Packages {
-				if reclaimPackage(p, id, opath, contents) {
-					pkg = p
-					break
+			if isTestFile {
+				if isXTest {
+					id = fmt.Sprintf("%s [%s.test]", pkgPath, forTest)
+				} else {
+					id = fmt.Sprintf("%s [%s.test]", pkgPath, pkgPath)
 				}
 			}
-			// Otherwise, create a new package
-			if pkg == nil {
-				pkg = &Package{PkgPath: pkgPath, ID: id, Name: pkgName, Imports: make(map[string]*Package)}
-				response.addPackage(pkg)
-				havePkgs[pkg.PkgPath] = id
-				// Add the production package's sources for a test variant.
-				if isTestFile && !isXTest && testVariantOf != nil {
-					pkg.GoFiles = append(pkg.GoFiles, testVariantOf.GoFiles...)
-					pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, testVariantOf.CompiledGoFiles...)
-					// Add the package under test and its imports to the test variant.
-					pkg.forTest = testVariantOf.PkgPath
-					for k, v := range testVariantOf.Imports {
-						pkg.Imports[k] = &Package{ID: v.ID}
+			if pkg != nil {
+				// TODO(rstambler): We should change the package's path and ID
+				// here. The only issue is that this messes with the roots.
+			} else {
+				// Try to reclaim a package with the same ID, if it exists in the response.
+				for _, p := range response.dr.Packages {
+					if reclaimPackage(p, id, opath, contents) {
+						pkg = p
+						break
+					}
+				}
+				// Otherwise, create a new package.
+				if pkg == nil {
+					pkg = &Package{
+						PkgPath: pkgPath,
+						ID:      id,
+						Name:    pkgName,
+						Imports: make(map[string]*Package),
+					}
+					response.addPackage(pkg)
+					havePkgs[pkg.PkgPath] = id
+					// Add the production package's sources for a test variant.
+					if isTestFile && !isXTest && testVariantOf != nil {
+						pkg.GoFiles = append(pkg.GoFiles, testVariantOf.GoFiles...)
+						pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, testVariantOf.CompiledGoFiles...)
+						// Add the package under test and its imports to the test variant.
+						pkg.forTest = testVariantOf.PkgPath
+						for k, v := range testVariantOf.Imports {
+							pkg.Imports[k] = &Package{ID: v.ID}
+						}
+					}
+					if isXTest {
+						pkg.forTest = forTest
 					}
 				}
 			}
@@ -149,6 +180,8 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 			continue
 		}
 		for _, imp := range imports {
+			// TODO(rstambler): If the package is an x test and the import has
+			// a test variant, make sure to replace it.
 			if _, found := pkg.Imports[imp]; found {
 				continue
 			}
@@ -282,7 +315,17 @@ func (state *golistState) determineRootDirs() (map[string]string, error) {
 }
 
 func (state *golistState) determineRootDirsModules() (map[string]string, error) {
-	out, err := state.invokeGo("list", "-m", "-json", "all")
+	// This will only return the root directory for the main module.
+	// For now we only support overlays in main modules.
+	// Editing files in the module cache isn't a great idea, so we don't
+	// plan to ever support that, but editing files in replaced modules
+	// is something we may want to support. To do that, we'll want to
+	// do a go list -m to determine the replaced module's module path and
+	// directory, and then a go list -m {{with .Replace}}{{.Dir}}{{end}} <replaced module's path>
+	// from the main module to determine if that module is actually a replacement.
+	// See bcmills's comment here: https://github.com/golang/go/issues/37629#issuecomment-594179751
+	// for more information.
+	out, err := state.invokeGo("list", "-m", "-json")
 	if err != nil {
 		return nil, err
 	}
@@ -373,4 +416,58 @@ func extractPackageName(filename string, contents []byte) (string, bool) {
 		return "", false
 	}
 	return f.Name.Name, true
+}
+
+func commonDir(a []string) string {
+	seen := make(map[string]bool)
+	x := append([]string{}, a...)
+	for _, f := range x {
+		seen[filepath.Dir(f)] = true
+	}
+	if len(seen) > 1 {
+		log.Fatalf("commonDir saw %v for %v", seen, x)
+	}
+	for k := range seen {
+		// len(seen) == 1
+		return k
+	}
+	return "" // no files
+}
+
+// It is possible that the files in the disk directory dir have a different package
+// name from newName, which is deduced from the overlays. If they all have a different
+// package name, and they all have the same package name, then that name becomes
+// the package name.
+// It returns true if it changes the package name, false otherwise.
+func maybeFixPackageName(newName string, isTestFile bool, pkgsOfDir []*Package) {
+	names := make(map[string]int)
+	for _, p := range pkgsOfDir {
+		names[p.Name]++
+	}
+	if len(names) != 1 {
+		// some files are in different packages
+		return
+	}
+	var oldName string
+	for k := range names {
+		oldName = k
+	}
+	if newName == oldName {
+		return
+	}
+	// We might have a case where all of the package names in the directory are
+	// the same, but the overlay file is for an x test, which belongs to its
+	// own package. If the x test does not yet exist on disk, we may not yet
+	// have its package name on disk, but we should not rename the packages.
+	//
+	// We use a heuristic to determine if this file belongs to an x test:
+	// The test file should have a package name whose package name has a _test
+	// suffix or looks like "newName_test".
+	maybeXTest := strings.HasPrefix(oldName+"_test", newName) || strings.HasSuffix(newName, "_test")
+	if isTestFile && maybeXTest {
+		return
+	}
+	for _, p := range pkgsOfDir {
+		p.Name = newName
+	}
 }

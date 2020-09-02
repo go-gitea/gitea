@@ -43,21 +43,17 @@
 			{{$entry := index $item 0}}
 			{{$commit := index $item 1}}
 			<tr>
-				{{if $entry.IsSubModule}}
-					<td>
-						<span class="truncate">
+				<td class="name four wide">
+					<span class="truncate">
+						{{if $entry.IsSubModule}}
 							{{svg "octicon-file-submodule" 16}}
 							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName}}
 							{{if $refURL}}
-								<a href="{{$refURL}}">{{$entry.Name}}</a> @ <a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
+								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
 							{{else}}
-								{{$entry.Name}} @ {{ShortSha $commit.RefID}}
+								{{$entry.Name}}<span class="at">@</span>{{ShortSha $commit.RefID}}
 							{{end}}
-						</span>
-					</td>
-				{{else}}
-					<td class="name four wide">
-						<span class="truncate">
+						{{else}}
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
@@ -73,9 +69,9 @@
 								{{svg (printf "octicon-%s" (EntryIcon $entry)) 16}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
-						</span>
-					</td>
-				{{end}}
+						{{end}}
+					</span>
+				</td>
 				<td class="message nine wide">
 					<span class="truncate">
 						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>

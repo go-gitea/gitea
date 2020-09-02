@@ -29,11 +29,6 @@ func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
 }
 
-var (
-	// Debug is true when the SWAGGER_DEBUG env var is not empty
-	Debug = os.Getenv("SWAGGER_DEBUG") != ""
-)
-
 var opts struct {
 	// General options applicable to all commands
 	Quiet   func()       `long:"quiet" short:"q" description:"silence logs"`

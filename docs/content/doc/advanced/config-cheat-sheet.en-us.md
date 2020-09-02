@@ -270,7 +270,11 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
+- `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_NAME`: **gitea_codes**: Code indexer name, available when `REPO_INDEXER_TYPE` is elasticsearch
+
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
@@ -323,7 +327,7 @@ set name for unique queues. Individual queues will default to
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
-- `PASSWORD_COMPLEXITY`: **lower,upper,digit,spec**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, the default values will be used. Possible values are: 
+- `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
     - lower - use one or more lower latin characters
     - upper - use one or more upper latin characters
     - digit - use one or more digits
@@ -470,11 +474,20 @@ set name for unique queues. Individual queues will default to
 ## Attachment (`attachment`)
 
 - `ENABLED`: **true**: Enable this to allow uploading attachments.
-- `PATH`: **data/attachments**: Path to store attachments.
 - `ALLOWED_TYPES`: **see app.example.ini**: Allowed MIME types, e.g. `image/jpeg|image/png`.
    Use `*/*` for all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
+- `STORE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local`.
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `PATH`: **data/attachments**: Path to store attachments only available when STORE_TYPE is `local`
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORE_TYPE is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORE_TYPE is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when STORE_TYPE is `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments only available when STORE_TYPE is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORE_TYPE is `minio`
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket only available when STORE_TYPE is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -606,7 +619,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 - `ENABLE`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
-- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
