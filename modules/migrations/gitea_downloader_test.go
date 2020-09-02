@@ -282,7 +282,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Head: base.PullRequestBranch{
 			CloneURL:  "https://gitea.com/6543-forks/test_repo.git",
 			Ref:       "refs/pull/12/head",
-			SHA:       "",
+			SHA:       "b6ab5d9ae000b579a5fff03f92c486da4ddf48b6",
 			RepoName:  "test_repo",
 			OwnerName: "6543-forks",
 		},

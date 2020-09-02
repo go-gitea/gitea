@@ -530,7 +530,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			headSHA = pr.Head.Sha
 			headRef = pr.Head.Ref
 			if headSHA == "" {
-				// ToDo: !!! ned get headSHA workaround
+				headCommit, err := g.client.GetSingleCommit(g.repoOwner, g.repoName, url.PathEscape(pr.Head.Ref))
+				if err != nil {
+					return nil, false, fmt.Errorf("error while resolving git ref: %v", err)
+				}
+				headSHA = headCommit.SHA
 			}
 		}
 
