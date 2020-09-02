@@ -393,7 +393,8 @@ function initCommentForm() {
       }
     });
 
-    $listMenu.find('.item:not(.no-select)').on('click', function () {
+    $listMenu.find('.item:not(.no-select)').on('click', function (e) {
+      e.preventDefault();
       const $banChange = $(this).data('ban-change');
       if ($banChange.length > 0) {
         return false;
@@ -453,7 +454,8 @@ function initCommentForm() {
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
-    $listMenu.find('.no-select.item').on('click', function () {
+    $listMenu.find('.no-select.item').on('click', function (e) {
+      e.preventDefault();
       if (hasUpdateAction) {
         updateIssuesMeta(
           $listMenu.data('update-url'),
