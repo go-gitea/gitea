@@ -18,79 +18,79 @@
 
 ## Цель
 
-The goal of this project is to make the easiest, fastest, and most
-painless way of setting up a self-hosted Git service.
-Using Go, this can be done with an independent binary distribution across
-**all platforms** which Go supports, including Linux, macOS, and Windows
-on x86, amd64, ARM and PowerPC architectures.
-Want to try it before doing anything else?
-Do it [with the online demo](https://try.gitea.io/)!
-This project has been
-[forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
-[Gogs](https://gogs.io) since 2016.11 but changed a lot.
+Цель этого проекта - сделать самый простой, быстрый и самый
+безболезненный способ настройки автономной службы Git.
+Используя Go, это можно сделать с помощью независимого двоичного распределения по
+**всем платформам** который поддерживает Go, включая Linux, macOS и Windows
+на архитектурах x86, amd64, ARM и PowerPC.
+Хотите попробовать, прежде чем делать что-нибудь ещё?
+Попробуйте [с онлайн-демонстрацией](https://try.gitea.io/)!
+Этот проект был
+[форкнут](https://blog.gitea.io/2016/12/welcome-to-gitea/) от
+[Gogs](https://gogs.io) с 2016.11 но многое изменилось.
 
-## Building
+## Строение
 
-From the root of the source tree, run:
+Из корня source tree, выполнить:
 
     TAGS="bindata" make build
 
-or if sqlite support is required:
+или если требуется поддержка sqlite:
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
-The `build` target is split into two sub-targets:
+Цель `build` будет разделена на две подцели:
 
-- `make backend` which requires [Go 1.12](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
+- `make backend` что требует [Go 1.12](https://golang.org/dl/) или лучше.
+- `make frontend` что требует [Node.js 10.13](https://nodejs.org/en/download/) или лучше.
 
-If pre-built frontend files are present it is possible to only build the backend:
+Если присутствуют предварительно созданные файлы внешнего интерфейса, можно создать только серверную часть:
 
 		TAGS="bindata" make backend
 
-Parallelism is not supported for these targets, so please don't include `-j <num>`.
+Для этих целей параллелизм не поддерживается, поэтому не включайте `-j <num>`.
 
-More info: https://docs.gitea.io/en-us/install-from-source/
+Больше информации: https://docs.gitea.io/en-us/install-from-source/
 
-## Using
+## Использование
 
     ./gitea web
 
-NOTE: If you're interested in using our APIs, we have experimental
-support with [documentation](https://try.gitea.io/api/swagger).
+ПРИМЕЧАНИЕ. Если вы заинтересованы в использовании нашего API, у нас есть экспериментальная
+поддержка с [документацией](https://try.gitea.io/api/swagger).
 
-## Contributing
+## Содействие
 
-Expected workflow is: Fork -> Patch -> Push -> Pull Request
+Как это сделать?: Fork -> Patch -> Push -> Pull Request
 
-NOTES:
+ПРИМЕЧАНИЕ:
 
-1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+1. **ВЫ ДОЛЖНЫ ПРОЧИТАТЬ [РУКОВОДСТВО ДЛЯ СОУЧАСТНИКОВ](CONTRIBUTING.md) ПЕРЕД НАЧАЛОМ РАБОТЫ НАД PULL REQUEST'ОМ.**
+2. Если вы обнаружили уязвимость в проекте, напишите в частном порядке по адресу **security@gitea.io**. Спасибо!
 
-## Further information
+## Дальнейшая информация
 
-For more information and instructions about how to install Gitea, please look
-at our [documentation](https://docs.gitea.io/en-us/). If you have questions
-that are not covered by the documentation, you can get in contact with us on
-our [Discord server](https://discord.gg/Gitea),
-or [forum](https://discourse.gitea.io/)!
+Для получения дополнительной информации и инструкций по установке Gitea, пожалуйста, посмотрите
+на нашу [документацию](https://docs.gitea.io/en-us/). Если у вас есть вопросы
+которые не описаны в документации, вы можете связаться с нами по
+нашему [Discord серверу](https://discord.gg/Gitea),
+или [форуме](https://discourse.gitea.io/)!
 
-## Authors
+## Авторство
 
-* [Maintainers](https://github.com/orgs/go-gitea/people)
-* [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
-* [Translators](options/locale/TRANSLATORS)
+* [Разработчики](https://github.com/orgs/go-gitea/people)
+* [Участники развития](https://github.com/go-gitea/gitea/graphs/contributors)
+* [Переводчики](options/locale/TRANSLATORS)
 
-## Backers
+## Сторонники
 
-Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/gitea#backer)]
+Спасибо всем нашим сторонникам! 🙏 [[Стать сторонником](https://opencollective.com/gitea#backer)]
 
 <a href="https://opencollective.com/gitea#backers" target="_blank"><img src="https://opencollective.com/gitea/backers.svg?width=890"></a>
 
-## Sponsors
+## Спонсоры
 
-Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/gitea#sponsor)]
+Поддержите этот проект, став спонсором. Здесь будет отображаться ваш логотип со ссылкой на ваш сайт. [[Стать спонсором](https://opencollective.com/gitea#sponsor)]
 
 <a href="https://opencollective.com/gitea/sponsor/0/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/0/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/1/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/1/avatar.svg"></a>
@@ -103,27 +103,27 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 <a href="https://opencollective.com/gitea/sponsor/8/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/8/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/9/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/9/avatar.svg"></a>
 
-## FAQ
+## ЧАВО
 
-**How do you pronounce Gitea?**
+**Как вы произносите Gitea?**
 
-Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
+Gitea произносится как [/ги’ти:/](https://youtu.be/EM71-2uDAoY) с твёрдым г.
 
-**Why is this not hosted on a Gitea instance?**
+**Почему это не размещено на инстанции Gitea?**
 
-We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
+Мы [работаем над этим](https://github.com/go-gitea/gitea/issues/1029).
 
-## License
+## Лицензия
 
-This project is licensed under the MIT License.
-See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file
-for the full license text.
+Этот проект находится под лицензией MIT License.
+Просмотрите файл [ЛИЦЕНЗИИ](https://github.com/go-gitea/gitea/blob/master/LICENSE)
+для полного текста лицензии.
 
-## Screenshots
-Looking for an overview of the interface? Check it out!
+## Скриншоты
+Ищете обзор интерфейса? Зацените!
 
-|![Dashboard](https://dl.gitea.io/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.io/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.io/screenshots/global_issues.png)|
+|![Панель управления](https://dl.gitea.io/screenshots/home_timeline.png)|![Профиль пользователя](https://dl.gitea.io/screenshots/user_profile.png)|![Общие задачи](https://dl.gitea.io/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
-|![Branches](https://dl.gitea.io/screenshots/branches.png)|![Web Editor](https://dl.gitea.io/screenshots/web_editor.png)|![Activity](https://dl.gitea.io/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.io/screenshots/migration.png)|![Migrating](https://dl.gitea.io/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
-![Pull Request Dark](https://dl.gitea.io/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.io/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.io/screenshots/diff_dark.png)|
+|![Ветки](https://dl.gitea.io/screenshots/branches.png)|![Веб-редактор текста](https://dl.gitea.io/screenshots/web_editor.png)|![Активность](https://dl.gitea.io/screenshots/activity.png)|
+|![Новая миграция](https://dl.gitea.io/screenshots/migration.png)|![Миграция](https://dl.gitea.io/screenshots/migration.gif)|![Вид Pull Request'а](https://image.ibb.co/e02dSb/6.png)
+![Тёмный Pull Request](https://dl.gitea.io/screenshots/pull_requests_dark.png)|![Тёмная рецензия на Diff(список измёненных файлов в коммите)](https://dl.gitea.io/screenshots/review_dark.png)|![Тёмный Diff(список измёненных файлов в коммите)](https://dl.gitea.io/screenshots/diff_dark.png)|
