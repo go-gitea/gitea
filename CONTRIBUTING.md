@@ -1,4 +1,5 @@
 # Contribution Guidelines
+[Русский](CONTRIBUTING_RU.md)
 
 ## Table of Contents
 

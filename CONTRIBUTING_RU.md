@@ -1,8 +1,9 @@
-# Contribution Guidelines
+# Правила соучастников
+[English](CONTRIBUTING.md)
 
-## Table of Contents
+## Оглавление
 
-- [Contribution Guidelines](#contribution-guidelines)
+- [Правила соучастников](#contribution-guidelines)
   - [Introduction](#introduction)
   - [Bug reports](#bug-reports)
   - [Discuss your design](#discuss-your-design)
@@ -21,10 +22,10 @@
   - [Releasing Gitea](#releasing-gitea)
   - [Copyright](#copyright)
 
-## Introduction
+## Введение
 
-This document explains how to contribute changes to the Gitea project.
-It assumes you have followed the
+В этом документе объясняется, как внести изменения в проект Gitea.
+Предполагается, что вы следовали
 [installation instructions](https://docs.gitea.io/en-us/).
 Sensitive security-related issues should be reported to
 [security@gitea.io](mailto:security@gitea.io).
