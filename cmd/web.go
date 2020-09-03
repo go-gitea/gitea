@@ -209,6 +209,5 @@ func runWeb(ctx *cli.Context) error {
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
-	graceful.GetManager().DoFinalRestartIfNeeded()
-	return nil
+	return graceful.GetManager().DoFinalRestartIfNeeded()
 }
