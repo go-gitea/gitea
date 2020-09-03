@@ -244,12 +244,19 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	rvs, err := downloader.GetReviews(1)
 	assert.NoError(t, err)
 	if assert.Len(t, rvs, 2) {
-		assert.EqualValues(t, 4102996, rvs[0].ReviewerID)
-		assert.EqualValues(t, "zeripath", rvs[0].ReviewerName)
-		assert.EqualValues(t, "APPROVED", rvs[0].State)
-		assert.EqualValues(t, 527793, rvs[1].ReviewerID)
-		assert.EqualValues(t, "axifive", rvs[1].ReviewerName)
-		assert.EqualValues(t, "APPROVED", rvs[1].State)
+		for i := range rvs {
+			switch rvs[i].ReviewerID {
+			case 4102996:
+				assert.EqualValues(t, "zeripath", rvs[i].ReviewerName)
+				assert.EqualValues(t, "APPROVED", rvs[i].State)
+			case 527793:
+				assert.EqualValues(t, "axifive", rvs[i].ReviewerName)
+				assert.EqualValues(t, "APPROVED", rvs[i].State)
+			default:
+				t.Errorf("Unexpected Reviewer ID: %d", rvs[i].ReviewerID)
+
+			}
+		}
 	}
 	rvs, err = downloader.GetReviews(2)
 	assert.NoError(t, err)
