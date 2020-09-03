@@ -1,22 +1,22 @@
+[English](README.md)
 [简体中文](README_ZH.md)
-[Русский](README_RU.md)
 
 <h1> <img src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea-192.png" alt="logo" width="30" height="30"> Gitea - Git with a cup of tea</h1>
 
-[![Build Status](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/master)](https://drone.gitea.io/go-gitea/gitea)
-[![Join the Discord chat at https://discord.gg/Gitea](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
+[![Статус версии](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/master)](https://drone.gitea.io/go-gitea/gitea)
+[![Присоединяйтесь к нашему чату Discord через https://discord.gg/Gitea](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](https://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
 [![codecov](https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/gitea)
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea)
 [![GoDoc](https://godoc.org/code.gitea.io/gitea?status.svg)](https://godoc.org/code.gitea.io/gitea)
-[![GitHub release](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest)
-[![Help Contribute to Open Source](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea)
-[![Become a backer/sponsor of gitea](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub релизы](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest)
+[![Помогите внести свой вклад в развитие открытого исходного кода](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea)
+[![Станьте стронником//спонсором gitea](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea)
+[![Лицензия: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
-[![TODOs](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea)
+[![Лист запланированного](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea)
 
-## Purpose
+## Цель
 
 The goal of this project is to make the easiest, fastest, and most
 painless way of setting up a self-hosted Git service.
