@@ -133,6 +133,8 @@ type User struct {
 	LastRepoVisibility bool
 	// Maximum repository creation limit, -1 means use global default
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
+	// Maximum private repository creation limit, -1 means use global default
+	MaxPrivateRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
 	// Permissions
 	IsActive                bool `xorm:"INDEX"` // Activate primary email
@@ -149,10 +151,11 @@ type User struct {
 	UseCustomAvatar bool
 
 	// Counters
-	NumFollowers int
-	NumFollowing int `xorm:"NOT NULL DEFAULT 0"`
-	NumStars     int
-	NumRepos     int
+	NumFollowers    int
+	NumFollowing    int `xorm:"NOT NULL DEFAULT 0"`
+	NumStars        int
+	NumRepos        int
+	NumPrivateRepos int
 
 	// For organization
 	NumTeams                  int
@@ -186,6 +189,10 @@ func (u *User) ColorFormat(s fmt.State) {
 func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
 		u.MaxRepoCreation = -1
+	}
+
+	if u.MaxPrivateRepoCreation < -1 {
+		u.MaxPrivateRepoCreation = -1
 	}
 
 	// Organization does not need email
@@ -280,6 +287,14 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
+// MaxPrivateCreationLimit returns the number of private repositories a user is allowed to create
+func (u *User) MaxPrivateCreationLimit() int {
+	if u.MaxPrivateRepoCreation <= -1 {
+		return setting.Repository.MaxPrivateCreationLimit
+	}
+	return u.MaxPrivateRepoCreation
+}
+
 // CanCreateRepo returns if user login can create a repository
 // NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
 func (u *User) CanCreateRepo() bool {
@@ -293,6 +308,21 @@ func (u *User) CanCreateRepo() bool {
 		return u.NumRepos < setting.Repository.MaxCreationLimit
 	}
 	return u.NumRepos < u.MaxRepoCreation
+}
+
+// CanCreatePrivateRepo returns if user login can create a private repository
+// NOTE: functions calling this assume a failure due to private repository count limit; if new checks are added, those functions should be revised
+func (u *User) CanCreatePrivateRepo() bool {
+	if u.IsAdmin {
+		return true
+	}
+	if u.MaxPrivateRepoCreation <= -1 {
+		if setting.Repository.MaxPrivateCreationLimit <= -1 {
+			return true
+		}
+		return u.NumPrivateRepos < setting.Repository.MaxPrivateCreationLimit
+	}
+	return u.NumPrivateRepos < u.MaxPrivateRepoCreation
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -1005,6 +1035,7 @@ func CreateUser(u *User) (err error) {
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
+	u.MaxPrivateRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 
 	if _, err = sess.Insert(u); err != nil {
