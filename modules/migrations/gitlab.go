@@ -501,6 +501,22 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			milestone = pr.Milestone.Title
 		}
 
+		var reactions []*base.Reaction
+		var page = 1
+		for {
+			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: page}, gitlab.WithContext(g.ctx))
+			if err != nil {
+				return nil, fmt.Errorf("error while listing merge requests awards: %v", err)
+			}
+			if len(awards) == 0 {
+				break
+			}
+			for i := range awards {
+				reactions = append(reactions, g.awardToReaction(awards[i]))
+			}
+			page++
+		}
+
 		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
 		newPRNumber := g.issueCount + int64(pr.IID)
 
@@ -520,6 +536,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			MergeCommitSHA: pr.MergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
+			Reactions:      reactions,
 			Head: base.PullRequestBranch{
 				Ref:       pr.SourceBranch,
 				SHA:       pr.SHA,
@@ -569,4 +586,12 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 	}
 
 	return reviews, nil
+}
+
+func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.Reaction {
+	return &base.Reaction{
+		UserID:   int64(award.User.ID),
+		UserName: award.User.Username,
+		Content:  award.Name,
+	}
 }

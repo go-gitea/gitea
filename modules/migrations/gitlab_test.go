@@ -220,6 +220,15 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "bug",
 				},
 			},
+			Reactions: []*base.Reaction{{
+				UserID:   4575606,
+				UserName: "real6543",
+				Content:  "thumbsup",
+			}, {
+				UserID:   4575606,
+				UserName: "real6543",
+				Content:  "tada",
+			}},
 			PatchURL: "https://gitlab.com/gitea/test_repo/-/merge_requests/2.patch",
 			Head: base.PullRequestBranch{
 				Ref:       "feat/test",
