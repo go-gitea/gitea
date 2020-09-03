@@ -1965,10 +1965,15 @@ func isGroupMember(gid int) bool {
 }
 
 //sys	faccessat(dirfd int, path string, mode uint32) (err error)
+//sys	Faccessat2(dirfd int, path string, mode uint32, flags int) (err error)
 
 func Faccessat(dirfd int, path string, mode uint32, flags int) (err error) {
-	if flags & ^(AT_SYMLINK_NOFOLLOW|AT_EACCESS) != 0 {
-		return EINVAL
+	if flags == 0 {
+		return faccessat(dirfd, path, mode)
+	}
+
+	if err := Faccessat2(dirfd, path, mode, flags); err != ENOSYS {
+		return err
 	}
 
 	// The Linux kernel faccessat system call does not take any flags.
@@ -1977,8 +1982,8 @@ func Faccessat(dirfd int, path string, mode uint32, flags int) (err error) {
 	// Because people naturally expect syscall.Faccessat to act
 	// like C faccessat, we do the same.
 
-	if flags == 0 {
-		return faccessat(dirfd, path, mode)
+	if flags & ^(AT_SYMLINK_NOFOLLOW|AT_EACCESS) != 0 {
+		return EINVAL
 	}
 
 	var st Stat_t
@@ -2121,6 +2126,18 @@ func Klogset(typ int, arg int) (err error) {
 	}
 	return nil
 }
+
+// RemoteIovec is Iovec with the pointer replaced with an integer.
+// It is used for ProcessVMReadv and ProcessVMWritev, where the pointer
+// refers to a location in a different process' address space, which
+// would confuse the Go garbage collector.
+type RemoteIovec struct {
+	Base uintptr
+	Len  int
+}
+
+//sys	ProcessVMReadv(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_READV
+//sys	ProcessVMWritev(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_WRITEV
 
 /*
  * Unimplemented

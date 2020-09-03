@@ -107,6 +107,7 @@ includes_FreeBSD='
 #include <sys/types.h>
 #include <sys/disk.h>
 #include <sys/event.h>
+#include <sys/sched.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
@@ -297,6 +298,7 @@ includes_NetBSD='
 #include <sys/extattr.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
+#include <sys/sched.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
@@ -325,6 +327,7 @@ includes_OpenBSD='
 #include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/select.h>
+#include <sys/sched.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/stat.h>
@@ -507,6 +510,8 @@ ccflags="$@"
 		$2 ~ /^(CLOCK|TIMER)_/ ||
 		$2 ~ /^CAN_/ ||
 		$2 ~ /^CAP_/ ||
+		$2 ~ /^CP_/ ||
+		$2 ~ /^CPUSTATES$/ ||
 		$2 ~ /^ALG_/ ||
 		$2 ~ /^FS_(POLICY_FLAGS|KEY_DESC|ENCRYPTION_MODE|[A-Z0-9_]+_KEY_SIZE)/ ||
 		$2 ~ /^FS_IOC_.*(ENCRYPTION|VERITY|[GS]ETFLAGS)/ ||
