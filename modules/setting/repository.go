@@ -30,6 +30,7 @@ var (
 		ForcePrivate                            bool
 		DefaultPrivate                          string
 		MaxCreationLimit                        int
+		MaxPrivateCreationLimit                 int
 		MirrorQueueLength                       int
 		PullRequestQueueLength                  int
 		PreferredLicenses                       []string
@@ -132,6 +133,7 @@ var (
 		ForcePrivate:                            false,
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		MaxCreationLimit:                        -1,
+		MaxPrivateCreationLimit:                 -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
 		PreferredLicenses:                       []string{"Apache License 2.0,MIT License"},
@@ -242,6 +244,7 @@ func newRepository() {
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
+	Repository.MaxPrivateCreationLimit = sec.Key("MAX_PRIVATE_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString("master")
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
