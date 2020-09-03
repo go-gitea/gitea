@@ -106,12 +106,12 @@ func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
 
 // checkArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
 // The function returns the actual public key on success
-func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
+func checkArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
 	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(content))
 	if err != nil {
 		return nil, ErrGPGKeyParsing{err}
 	}
-	return list[0], nil
+	return list, nil
 }
 
 //addGPGKey add key, import and subkeys to database
@@ -152,38 +152,40 @@ func addGPGSubKey(e Engine, key *GPGKey) (err error) {
 }
 
 // AddGPGKey adds new public key to database.
-func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
-	ekey, err := checkArmoredGPGKeyString(content)
+func AddGPGKey(ownerID int64, content string) ([]*GPGKey, error) {
+	ekeys, err := checkArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}
-
-	// Key ID cannot be duplicated.
-	has, err := x.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
-		Get(new(GPGKey))
-	if err != nil {
-		return nil, err
-	} else if has {
-		return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
-	}
-
-	//Get DB session
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
+	keys := make([]*GPGKey, 0, len(ekeys))
+	for _, ekey := range ekeys {
+		// Key ID cannot be duplicated.
+		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+			Get(new(GPGKey))
+		if err != nil {
+			return nil, err
+		} else if has {
+			return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
+		}
 
-	key, err := parseGPGKey(ownerID, ekey)
-	if err != nil {
-		return nil, err
+		//Get DB session
+
+		key, err := parseGPGKey(ownerID, ekey)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = addGPGKey(sess, key, content); err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
 	}
-
-	if err = addGPGKey(sess, key, content); err != nil {
-		return nil, err
-	}
-
-	return key, sess.Commit()
+	return keys, sess.Commit()
 }
 
 //base64EncPubKey encode public key content to base 64
@@ -221,7 +223,11 @@ func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
 	if err != nil {
 		return nil, err
 	}
-	return checkArmoredGPGKeyString(impKey.Content)
+	keys, err := checkArmoredGPGKeyString(impKey.Content)
+	if err != nil {
+		return nil, err
+	}
+	return keys[0], err
 }
 
 //parseSubGPGKey parse a sub Key
@@ -761,7 +767,7 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 	}
 
 	// Otherwise we have to parse the key
-	ekey, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
+	ekeys, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
 	if err != nil {
 		log.Error("Unable to get default signing key: %v", err)
 		return &CommitVerification{
@@ -770,22 +776,9 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 			Reason:         "gpg.error.generate_hash",
 		}
 	}
-	pubkey := ekey.PrimaryKey
-	content, err := base64EncPubKey(pubkey)
-	if err != nil {
-		return &CommitVerification{
-			CommittingUser: committer,
-			Verified:       false,
-			Reason:         "gpg.error.generate_hash",
-		}
-	}
-	k := &GPGKey{
-		Content: content,
-		CanSign: pubkey.CanSign(),
-		KeyID:   pubkey.KeyIdString(),
-	}
-	for _, subKey := range ekey.Subkeys {
-		content, err := base64EncPubKey(subKey.PublicKey)
+	for _, ekey := range ekeys {
+		pubkey := ekey.PrimaryKey
+		content, err := base64EncPubKey(pubkey)
 		if err != nil {
 			return &CommitVerification{
 				CommittingUser: committer,
@@ -793,25 +786,40 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 				Reason:         "gpg.error.generate_hash",
 			}
 		}
-		k.SubsKey = append(k.SubsKey, &GPGKey{
+		k := &GPGKey{
 			Content: content,
-			CanSign: subKey.PublicKey.CanSign(),
-			KeyID:   subKey.PublicKey.KeyIdString(),
-		})
-	}
-	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
-		Name:  gpgSettings.Name,
-		Email: gpgSettings.Email,
-	}, gpgSettings.Email); commitVerification != nil {
-		return commitVerification
-	}
-	if keyID == k.KeyID {
-		// This is a bad situation ... We have a key id that matches our default key but the signature doesn't match.
-		return &CommitVerification{
-			CommittingUser: committer,
-			Verified:       false,
-			Warning:        true,
-			Reason:         BadSignature,
+			CanSign: pubkey.CanSign(),
+			KeyID:   pubkey.KeyIdString(),
+		}
+		for _, subKey := range ekey.Subkeys {
+			content, err := base64EncPubKey(subKey.PublicKey)
+			if err != nil {
+				return &CommitVerification{
+					CommittingUser: committer,
+					Verified:       false,
+					Reason:         "gpg.error.generate_hash",
+				}
+			}
+			k.SubsKey = append(k.SubsKey, &GPGKey{
+				Content: content,
+				CanSign: subKey.PublicKey.CanSign(),
+				KeyID:   subKey.PublicKey.KeyIdString(),
+			})
+		}
+		if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
+			Name:  gpgSettings.Name,
+			Email: gpgSettings.Email,
+		}, gpgSettings.Email); commitVerification != nil {
+			return commitVerification
+		}
+		if keyID == k.KeyID {
+			// This is a bad situation ... We have a key id that matches our default key but the signature doesn't match.
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Warning:        true,
+				Reason:         BadSignature,
+			}
 		}
 	}
 	return nil

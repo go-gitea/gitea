@@ -436,6 +436,18 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 		}
 	}
 
+	// Push Options
+	if repo != nil && len(opts.GitPushOptions) > 0 {
+		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
+		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
+		if err := models.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+		}
+	}
+
 	results := make([]private.HookPostReceiveBranchResult, 0, len(opts.OldCommitIDs))
 
 	// We have to reload the repo in case its state is changed above

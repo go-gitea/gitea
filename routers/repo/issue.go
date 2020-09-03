@@ -1212,6 +1212,8 @@ func ViewIssue(ctx *context.Context) {
 					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
 				}
 			}
+		} else {
+			ctx.Data["WontSignReason"] = "not_signed_in"
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete &&
 			pull.HeadRepo != nil &&
@@ -1514,10 +1516,11 @@ func updatePullReviewRequest(ctx *context.Context) {
 	}
 
 	reviewID := ctx.QueryInt64("id")
-	event := ctx.Query("is_add")
+	action := ctx.Query("action")
 
-	if event != "add" && event != "remove" {
-		ctx.ServerError("updatePullReviewRequest", fmt.Errorf("is_add should not be \"%s\"", event))
+	// TODO: Not support 'clear' now
+	if action != "attach" && action != "detach" {
+		ctx.Status(403)
 		return
 	}
 
@@ -1530,19 +1533,20 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			err = isLegalReviewRequest(reviewer, ctx.User, action == "attach", issue)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
+			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 			if err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
 		} else {
-			ctx.ServerError("updatePullReviewRequest", fmt.Errorf("%d in %d is not Pull Request", issue.ID, issue.Repo.ID))
+			ctx.Status(403)
+			return
 		}
 	}
 

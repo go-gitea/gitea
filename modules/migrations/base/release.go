@@ -8,7 +8,7 @@ import "time"
 
 // ReleaseAsset represents a release asset
 type ReleaseAsset struct {
-	URL           string
+	ID            int64
 	Name          string
 	ContentType   *string
 	Size          *int
