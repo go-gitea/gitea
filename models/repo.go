@@ -1013,6 +1013,10 @@ func CheckCreateRepository(doer, u *User, name string) error {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
+	if !doer.CanCreatePrivateRepo() {
+		return ErrReachLimitOfPrivateRepo{u.MaxPrivateRepoCreation}
+	}
+
 	if err := IsUsableRepoName(name); err != nil {
 		return err
 	}
@@ -1139,6 +1143,11 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error
 		return fmt.Errorf("increment user total_repos: %v", err)
 	}
 	u.NumRepos++
+
+	if _, err = ctx.e.Incr("num_private_repos").ID(u.ID).Update(new(User)); err != nil {
+		return fmt.Errorf("increment user total_private_repos: %v", err)
+	}
+	u.NumPrivateRepos++
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {

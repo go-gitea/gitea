@@ -267,6 +267,21 @@ func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
+// ErrReachLimitOfPrivateRepo represents a "ReachLimitOfRepo" kind of error.
+type ErrReachLimitOfPrivateRepo struct {
+	Limit int
+}
+
+// IsErrReachLimitOfPrivateRepo checks if an error is a ErrReachLimitOfPrivateRepo.
+func IsErrReachLimitOfPrivateRepo(err error) bool {
+	_, ok := err.(ErrReachLimitOfPrivateRepo)
+	return ok
+}
+
+func (err ErrReachLimitOfPrivateRepo) Error() string {
+	return fmt.Sprintf("user has reached maximum limit of private repositories [limit: %d]", err.Limit)
+}
+
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |
