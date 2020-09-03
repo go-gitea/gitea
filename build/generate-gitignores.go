@@ -24,16 +24,14 @@ func main() {
 		prefix         = "gitea-gitignore"
 		url            = "https://api.github.com/repos/github/gitignore/tarball"
 		githubApiToken = ""
+		githubUsername = ""
 		destination    = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/gitignore/", "destination for the gitignores")
+	flag.StringVar(&githubUsername, "username", "", "github username")
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
-
-	if len(githubApiToken) > 0 {
-		url += "?token=" + githubApiToken
-	}
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)
 
@@ -43,12 +41,19 @@ func main() {
 
 	defer util.Remove(file.Name())
 
-	resp, err := http.Get(url)
-
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Failed to download archive. %s", err)
 	}
 
+	if len(githubApiToken) > 0 && len(githubUsername) > 0 {
+		req.SetBasicAuth(githubUsername, githubApiToken)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to download archive. %s", err)
+	}
 	defer resp.Body.Close()
 
 	if _, err := io.Copy(file, resp.Body); err != nil {
