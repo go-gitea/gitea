@@ -130,7 +130,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterName: "lafriks",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 28, 8, 43, 35, 459000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 8, 46, 23, 304000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
@@ -171,7 +171,6 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterID:   1241334,
 			PosterName: "lafriks",
 			Created:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
 			Content:    "This is a comment",
 			Reactions:  nil,
 		},
@@ -207,15 +206,15 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	assert.EqualValues(t, []*base.PullRequest{
 		{
-			Number:     4,
-			Title:      "Test branch",
-			Content:    "do not merge this PR",
-			Milestone:  "1.0.0",
-			PosterID:   1241334,
-			PosterName: "lafriks",
-			State:      "opened",
-			Created:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
+			Number:         4,
+			OriginalNumber: 2,
+			Title:          "Test branch",
+			Content:        "do not merge this PR",
+			Milestone:      "1.0.0",
+			PosterID:       1241334,
+			PosterName:     "lafriks",
+			State:          "opened",
+			Created:        time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
@@ -244,12 +243,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	rvs, err := downloader.GetReviews(1)
 	assert.NoError(t, err)
-	if assert.Len(t, prs, 2) {
-		assert.EqualValues(t, 527793, rvs[0].ReviewerID)
-		assert.EqualValues(t, "axifive", rvs[0].ReviewerName)
+	if assert.Len(t, rvs, 2) {
+		assert.EqualValues(t, 4102996, rvs[0].ReviewerID)
+		assert.EqualValues(t, "zeripath", rvs[0].ReviewerName)
 		assert.EqualValues(t, "APPROVED", rvs[0].State)
-		assert.EqualValues(t, 4102996, rvs[1].ReviewerID)
-		assert.EqualValues(t, "zeripath", rvs[1].ReviewerName)
+		assert.EqualValues(t, 527793, rvs[1].ReviewerID)
+		assert.EqualValues(t, "axifive", rvs[1].ReviewerName)
 		assert.EqualValues(t, "APPROVED", rvs[1].State)
 	}
 	rvs, err = downloader.GetReviews(2)
