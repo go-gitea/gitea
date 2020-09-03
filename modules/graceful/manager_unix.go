@@ -23,6 +23,7 @@ import (
 type Manager struct {
 	isChild                bool
 	forked                 bool
+	needsRestart           bool
 	lock                   *sync.RWMutex
 	state                  state
 	shutdown               chan struct{}
@@ -165,6 +166,23 @@ func (g *Manager) DoGracefulRestart() {
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
 
+		g.doShutdown()
+	}
+}
+
+// DoForcedRestart causes a graceful restart if can otherwise graceful shutdown and restart at end of web.go
+func (g *Manager) DoForcedRestart() {
+	if setting.GracefulRestartable {
+		log.Info("PID: %d. Forking...", os.Getpid())
+		err := g.doFork()
+		if err != nil && err.Error() != "another process already forked. Ignoring this one" {
+			log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+		}
+	} else {
+		log.Info("PID: %d. Not set graceful restartable. Shutting down and will attempt restart at the end of web.go ...", os.Getpid())
+		g.lock.Lock()
+		g.needsRestart = true
+		g.lock.Unlock()
 		g.doShutdown()
 	}
 }

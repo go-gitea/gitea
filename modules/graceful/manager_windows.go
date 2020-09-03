@@ -34,6 +34,7 @@ const (
 type Manager struct {
 	ctx                    context.Context
 	isChild                bool
+	needsRestart           bool
 	lock                   *sync.RWMutex
 	state                  state
 	shutdown               chan struct{}
@@ -173,6 +174,14 @@ func (g *Manager) DoGracefulShutdown() {
 		g.lock.Unlock()
 		g.doShutdown()
 	}
+}
+
+// DoForcedRestart causes a graceful shutdown and restart during Terminate phase
+func (g *Manager) DoForcedRestart() {
+	g.lock.Lock()
+	g.needsRestart = true
+	g.lock.Unlock()
+	g.DoGracefulShutdown()
 }
 
 // RegisterServer registers the running of a listening server.

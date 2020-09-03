@@ -6,6 +6,7 @@ package graceful
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -310,6 +311,22 @@ func (g *Manager) setState(st state) {
 // or will not be taking a listener
 func (g *Manager) InformCleanup() {
 	g.createServerWaitGroup.Done()
+}
+
+// DoFinalRestartIfNeeded will restart the process if needed
+func (g *Manager) DoFinalRestartIfNeeded() error {
+	select {
+	case <-g.done:
+	default:
+		return fmt.Errorf("This should only be called once the manager is done")
+	}
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	if g.needsRestart {
+		_, err := RestartProcessNoListeners()
+		return err
+	}
+	return nil
 }
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating

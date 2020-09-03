@@ -16,9 +16,8 @@ import (
 
 // Restart is not implemented for Windows based servers as they can't fork
 func Restart(ctx *macaron.Context) {
-	ctx.JSON(http.StatusNotImplemented, map[string]interface{}{
-		"err": "windows servers cannot be gracefully restarted - shutdown and restart manually",
-	})
+	graceful.GetManager().DoForcedRestart()
+	ctx.PlainText(http.StatusOK, []byte("success"))
 }
 
 // Shutdown causes the server to perform a graceful shutdown

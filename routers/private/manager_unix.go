@@ -14,9 +14,9 @@ import (
 	"gitea.com/macaron/macaron"
 )
 
-// Restart causes the server to perform a graceful restart
+// Restart causes the server to perform a graceful restart if possible but otherwise a graceful shutdown and restart
 func Restart(ctx *macaron.Context) {
-	graceful.GetManager().DoGracefulRestart()
+	graceful.GetManager().DoForcedRestart()
 	ctx.PlainText(http.StatusOK, []byte("success"))
 
 }
