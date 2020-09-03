@@ -9,6 +9,6 @@ import (
 )
 
 func purgeInvalidDependenciesComments(x *xorm.Engine) error {
-	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id NOT IN (SELECT id FROM issue)")
+	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id NOT IN (SELECT id FROM issue) AND dependent_issue_id != 0")
 	return err
 }
