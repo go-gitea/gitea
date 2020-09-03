@@ -145,4 +145,5 @@ func TestMarkReviewAsDismissed(t *testing.T) {
 	review2 := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
 	assert.NoError(t, MarkReviewAsDismissed(review1))
 	assert.NoError(t, MarkReviewAsDismissed(review2))
+	assert.NoError(t, MarkReviewAsUnDismissed(review2))
 }

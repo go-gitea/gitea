@@ -240,3 +240,18 @@ func DismissReview(reviewID int64, message string, doer *models.User) (comment *
 
 	return
 }
+
+// UnDismissReview cancel dismissed stale review by repo admin
+func UnDismissReview(reviewID int64) (err error) {
+	review, err := models.GetReviewByID(reviewID)
+	if err != nil {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		return fmt.Errorf("Wrong using")
+	}
+
+	err = models.MarkReviewAsUnDismissed(review)
+	return
+}

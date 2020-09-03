@@ -453,6 +453,19 @@ func MarkReviewAsDismissed(review *Review) (err error) {
 	return
 }
 
+// MarkReviewAsUnDismissed marks dismissed reviews as not dismissed
+func MarkReviewAsUnDismissed(review *Review) (err error) {
+	if !review.Dismissed || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+		return nil
+	}
+
+	review.Dismissed = false
+
+	_, err = x.Cols("dismissed").Update(review)
+
+	return
+}
+
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
 	sess := x.NewSession()
