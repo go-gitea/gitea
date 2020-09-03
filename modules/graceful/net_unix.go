@@ -25,10 +25,6 @@ const (
 	startFD   = 3
 )
 
-// In order to keep the working directory the same as when we started we record
-// it at startup.
-var originalWD, _ = os.Getwd()
-
 var (
 	once  = sync.Once{}
 	mutex = sync.Mutex{}

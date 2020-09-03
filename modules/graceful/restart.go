@@ -9,6 +9,10 @@ import (
 	"os/exec"
 )
 
+// In order to keep the working directory the same as when we started we record
+// it at startup.
+var originalWD, _ = os.Getwd()
+
 // RestartProcessNoListeners starts a new process without passing it the active listeners.
 func RestartProcessNoListeners() (int, error) {
 	// Use the original binary location. This works with symlinks such that if
