@@ -139,8 +139,18 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "discussion",
 				},
 			},
-			Reactions: nil,
-			Closed:    &closed1,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsup",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "open_mouth",
+				}},
+			Closed: &closed1,
 		},
 		{
 			Number:     2,
@@ -157,8 +167,38 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "duplicate",
 				},
 			},
-			Reactions: nil,
-			Closed:    &closed2,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsup",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsdown",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "laughing",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "tada",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "confused",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "hearts",
+				}},
+			Closed: &closed2,
 		},
 	}, issues)
 
