@@ -591,8 +591,13 @@ func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOption
 		return
 	}
 
-	if (review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject) || pr.Issue.IsClosed {
-		ctx.Error(http.StatusForbidden, "", "Wrong using")
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
+		return
+	}
+
+	if pr.Issue.IsClosed {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
 		return
 	}
 
