@@ -400,6 +400,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 }
 
 // GetComments returns comments according issueNumber
+// TODO: figure out how to transfer comment reactions
 func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, 100)
 
