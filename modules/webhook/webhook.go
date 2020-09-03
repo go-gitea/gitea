@@ -76,6 +76,14 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		}
 	}
 
+	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
+	// Integration webhooks (e.g. drone) still receive the required data.
+	if pushEvent, ok := p.(*api.PushPayload); ok &&
+		w.HookTaskType != models.GITEA && w.HookTaskType != models.GOGS &&
+		len(pushEvent.Commits) == 0 {
+		return nil
+	}
+
 	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
 	// branch filter has no effect.
 	if branch := getPayloadBranch(p); branch != "" {
