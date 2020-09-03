@@ -327,7 +327,6 @@ func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error)
 
 // GetIssues returns issues according start and limit
 //   Note: issue label description and colors are not supported by the go-gitlab library at this time
-//   TODO: figure out how to transfer issue reactions
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	state := "all"
 	sort := "asc"
@@ -361,6 +360,22 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			milestone = issue.Milestone.Title
 		}
 
+		var reactions []*base.Reaction
+		var awardPage = 1
+		for {
+			awards, _, err := g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
+			if err != nil {
+				return nil, false, fmt.Errorf("error while listing issue awards: %v", err)
+			}
+			if len(awards) < perPage {
+				break
+			}
+			for i := range awards {
+				reactions = append(reactions, g.awardToReaction(awards[i]))
+			}
+			awardPage++
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:      issue.Title,
 			Number:     int64(issue.IID),
@@ -371,6 +386,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			State:      issue.State,
 			Created:    *issue.CreatedAt,
 			Labels:     labels,
+			Reactions:  reactions,
 			Closed:     issue.ClosedAt,
 			IsLocked:   issue.DiscussionLocked,
 			Updated:    *issue.UpdatedAt,
@@ -384,6 +400,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 }
 
 // GetComments returns comments according issueNumber
+// TODO: figure out how to transfer comment reactions
 func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, 100)
 
@@ -501,6 +518,22 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			milestone = pr.Milestone.Title
 		}
 
+		var reactions []*base.Reaction
+		var awardPage = 1
+		for {
+			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
+			if err != nil {
+				return nil, fmt.Errorf("error while listing merge requests awards: %v", err)
+			}
+			if len(awards) < perPage {
+				break
+			}
+			for i := range awards {
+				reactions = append(reactions, g.awardToReaction(awards[i]))
+			}
+			awardPage++
+		}
+
 		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
 		newPRNumber := g.issueCount + int64(pr.IID)
 
@@ -520,6 +553,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			MergeCommitSHA: pr.MergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
+			Reactions:      reactions,
 			Head: base.PullRequestBranch{
 				Ref:       pr.SourceBranch,
 				SHA:       pr.SHA,
@@ -569,4 +603,12 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 	}
 
 	return reviews, nil
+}
+
+func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.Reaction {
+	return &base.Reaction{
+		UserID:   int64(award.User.ID),
+		UserName: award.User.Username,
+		Content:  award.Name,
+	}
 }
