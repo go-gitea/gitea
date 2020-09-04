@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
@@ -35,8 +34,10 @@ var (
 	// DefaultContext is the default context to run git commands in
 	DefaultContext = context.Background()
 
-	gitVersion  *version.Version
-	versionLock sync.RWMutex
+	gitVersion *version.Version
+
+	// will be checked on Init
+	goVersionLessThan115 = true
 )
 
 func log(format string, args ...interface{}) {
@@ -62,14 +63,10 @@ func LocalVersion() (*version.Version, error) {
 
 // LoadGitVersion returns current Git version from shell.
 func LoadGitVersion() error {
-	versionLock.RLock()
+	// doesn't need RWMutex because its exec by Init()
 	if gitVersion != nil {
-		versionLock.RUnlock()
 		return nil
 	}
-	versionLock.RUnlock()
-	versionLock.Lock()
-	defer versionLock.Unlock()
 
 	stdout, err := NewCommand("version").Run()
 	if err != nil {
@@ -127,6 +124,20 @@ func SetExecutablePath(path string) error {
 // Init initializes git module
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
+
+	// Save current git version on init to gitVersion otherwise it would require an RWMutex
+	if err := LoadGitVersion(); err != nil {
+		return err
+	}
+
+	// Save if the go version used to compile gitea is greater or equal 1.15
+	runtimeVersion, err := version.NewVersion(strings.TrimPrefix(runtime.Version(), "go"))
+	if err != nil {
+		return err
+	}
+	version115, _ := version.NewVersion("1.15")
+	goVersionLessThan115 = runtimeVersion.LessThan(version115)
+
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if err := checkAndSetConfig(configKey, defaultValue, false); err != nil {
