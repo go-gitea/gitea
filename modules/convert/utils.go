@@ -11,7 +11,7 @@ import (
 // ToCorrectPageSize makes sure page size is in allowed range.
 func ToCorrectPageSize(size int) int {
 	if size <= 0 {
-		size = 10
+		size = setting.API.DefaultPagingNum
 	} else if size > setting.API.MaxResponseItems {
 		size = setting.API.MaxResponseItems
 	}

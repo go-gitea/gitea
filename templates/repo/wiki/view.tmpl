@@ -3,8 +3,8 @@
 	{{template "repo/header" .}}
 	{{ $title := .title}}
 	<div class="ui container">
-		<div class="ui stackable grid">
-			<div class="ui ten wide column">
+		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
+			<div class="fitted item">
 				<div class="choose page">
 					<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 						<div class="ui basic small button">
@@ -28,7 +28,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="ui six wide column">
+			<div class="right fitted item">
 				<div class="ui action small input" id="clone-panel">
 					{{if not $.DisableHTTP}}
 						<button class="ui basic clone button" id="repo-clone-https" data-link="{{.WikiCloneLink.HTTPS}}">
@@ -56,7 +56,7 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> <i class="fa fa-fw fa-history"></i></a>
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history" 16}}</a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}

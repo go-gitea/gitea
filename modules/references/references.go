@@ -41,8 +41,9 @@ var (
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueKeywordsOnce                             sync.Once
 
-	giteaHostInit sync.Once
-	giteaHost     string
+	giteaHostInit         sync.Once
+	giteaHost             string
+	giteaIssuePullPattern *regexp.Regexp
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -152,11 +153,23 @@ func getGiteaHostName() string {
 	giteaHostInit.Do(func() {
 		if uapp, err := url.Parse(setting.AppURL); err == nil {
 			giteaHost = strings.ToLower(uapp.Host)
+			giteaIssuePullPattern = regexp.MustCompile(
+				`(\s|^|\(|\[)` +
+					regexp.QuoteMeta(strings.TrimSpace(setting.AppURL)) +
+					`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
+					`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 		} else {
 			giteaHost = ""
+			giteaIssuePullPattern = nil
 		}
 	})
 	return giteaHost
+}
+
+// getGiteaIssuePullPattern
+func getGiteaIssuePullPattern() *regexp.Regexp {
+	getGiteaHostName()
+	return giteaIssuePullPattern
 }
 
 // FindAllMentionsMarkdown matches mention patterns in given content and
@@ -219,7 +232,42 @@ func findAllIssueReferencesMarkdown(content string) []*rawReference {
 
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
 func FindAllIssueReferences(content string) []IssueReference {
-	return rawToIssueReferenceList(findAllIssueReferencesBytes([]byte(content), []string{}))
+	// Need to convert fully qualified html references to local system to #/! short codes
+	contentBytes := []byte(content)
+	if re := getGiteaIssuePullPattern(); re != nil {
+		pos := 0
+		for {
+			match := re.FindSubmatchIndex(contentBytes[pos:])
+			if match == nil {
+				break
+			}
+			// match[0]-match[1] is whole string
+			// match[2]-match[3] is preamble
+			pos += match[3]
+			// match[4]-match[5] is owner/repo
+			endPos := pos + match[5] - match[4]
+			copy(contentBytes[pos:endPos], contentBytes[match[4]:match[5]])
+			pos = endPos
+			// match[6]-match[7] == 'issues'
+			contentBytes[pos] = '#'
+			if string(contentBytes[match[6]:match[7]]) == "pulls" {
+				contentBytes[pos] = '!'
+			}
+			pos++
+			// match[8]-match[9] is the number
+			endPos = pos + match[9] - match[8]
+			copy(contentBytes[pos:endPos], contentBytes[match[8]:match[9]])
+			copy(contentBytes[endPos:], contentBytes[match[9]:])
+			// now we reset the length
+			// our new section has length endPos - match[3]
+			// our old section has length match[9] - match[3]
+			contentBytes = contentBytes[:len(contentBytes)-match[9]+endPos]
+			pos = endPos
+		}
+	} else {
+		log.Debug("No GiteaIssuePullPattern pattern")
+	}
+	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}))
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.

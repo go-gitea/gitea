@@ -29,6 +29,7 @@ var (
 	NoErrAlreadyUpToDate     = errors.New("already up-to-date")
 	ErrDeleteRefNotSupported = errors.New("server does not support delete-refs")
 	ErrForceNeeded           = errors.New("some refs were not updated")
+	ErrExactSHA1NotSupported = errors.New("server does not support exact SHA1 refspec")
 )
 
 const (
@@ -120,6 +121,15 @@ func (r *Remote) PushContext(ctx context.Context, o *PushOptions) (err error) {
 
 	if isDelete && !ar.Capabilities.Supports(capability.DeleteRefs) {
 		return ErrDeleteRefNotSupported
+	}
+
+	if o.Force {
+		for i := 0; i < len(o.RefSpecs); i++ {
+			rs := &o.RefSpecs[i]
+			if !rs.IsForceUpdate() {
+				o.RefSpecs[i] = config.RefSpec("+" + rs.String())
+			}
+		}
 	}
 
 	localRefs, err := r.references()
@@ -300,6 +310,10 @@ func (r *Remote) fetch(ctx context.Context, o *FetchOptions) (sto storer.Referen
 
 	req, err := r.newUploadPackRequest(o, ar)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := r.isSupportedRefSpec(o.RefSpecs, ar); err != nil {
 		return nil, err
 	}
 
@@ -546,6 +560,7 @@ func (r *Remote) addReferenceIfRefSpecMatches(rs config.RefSpec,
 
 func (r *Remote) references() ([]*plumbing.Reference, error) {
 	var localRefs []*plumbing.Reference
+
 	iter, err := r.s.IterReferences()
 	if err != nil {
 		return nil, err
@@ -701,6 +716,11 @@ func doCalculateRefs(
 		return err
 	}
 
+	if s.IsExactSHA1() {
+		ref := plumbing.NewHashReference(s.Dst(""), plumbing.NewHash(s.Src()))
+		return refs.SetReference(ref)
+	}
+
 	var matched bool
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
 		if !s.Match(ref.Name()) {
@@ -850,6 +870,26 @@ func (r *Remote) newUploadPackRequest(o *FetchOptions,
 	return req, nil
 }
 
+func (r *Remote) isSupportedRefSpec(refs []config.RefSpec, ar *packp.AdvRefs) error {
+	var containsIsExact bool
+	for _, ref := range refs {
+		if ref.IsExactSHA1() {
+			containsIsExact = true
+		}
+	}
+
+	if !containsIsExact {
+		return nil
+	}
+
+	if ar.Capabilities.Supports(capability.AllowReachableSHA1InWant) ||
+		ar.Capabilities.Supports(capability.AllowTipSHA1InWant) {
+		return nil
+	}
+
+	return ErrExactSHA1NotSupported
+}
+
 func buildSidebandIfSupported(l *capability.List, reader io.Reader, p sideband.Progress) io.Reader {
 	var t sideband.Type
 
@@ -883,7 +923,7 @@ func (r *Remote) updateLocalReferenceStorage(
 		}
 
 		for _, ref := range fetchedRefs {
-			if !spec.Match(ref.Name()) {
+			if !spec.Match(ref.Name()) && !spec.IsExactSHA1() {
 				continue
 			}
 

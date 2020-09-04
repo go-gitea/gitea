@@ -109,7 +109,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -202,13 +202,16 @@ func GetAllCommits(ctx *context.APIContext) {
 		i++
 	}
 
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-
+	// kept for backwards compatibility
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
 	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
@@ -296,7 +299,7 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 				},
 				Date: commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Summary(),
+			Message: commit.Message(),
 			Tree: &api.CommitMeta{
 				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),

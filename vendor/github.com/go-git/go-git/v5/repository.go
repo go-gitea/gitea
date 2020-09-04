@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/openpgp"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/internal/revision"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -24,6 +23,8 @@ import (
 	"github.com/go-git/go-git/v5/storage"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/go-git/go-git/v5/utils/ioutil"
+	"github.com/imdario/mergo"
+	"golang.org/x/crypto/openpgp"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -155,7 +156,7 @@ func setConfigWorktree(r *Repository, worktree, storage billy.Filesystem) error 
 		return nil
 	}
 
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -434,14 +435,56 @@ func cleanUpDir(path string, all bool) error {
 	return err
 }
 
-// Config return the repository config
+// Config return the repository config. In a filesystem backed repository this
+// means read the `.git/config`.
 func (r *Repository) Config() (*config.Config, error) {
 	return r.Storer.Config()
 }
 
+// SetConfig marshall and writes the repository config. In a filesystem backed
+// repository this means write the `.git/config`. This function should be called
+// with the result of `Repository.Config` and never with the output of
+// `Repository.ConfigScoped`.
+func (r *Repository) SetConfig(cfg *config.Config) error {
+	return r.Storer.SetConfig(cfg)
+}
+
+// ConfigScoped returns the repository config, merged with requested scope and
+// lower. For example if, config.GlobalScope is given the local and global config
+// are returned merged in one config value.
+func (r *Repository) ConfigScoped(scope config.Scope) (*config.Config, error) {
+	// TODO(mcuadros): v6, add this as ConfigOptions.Scoped
+
+	var err error
+	system := config.NewConfig()
+	if scope >= config.SystemScope {
+		system, err = config.LoadConfig(config.SystemScope)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	global := config.NewConfig()
+	if scope >= config.GlobalScope {
+		global, err = config.LoadConfig(config.GlobalScope)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	local, err := r.Storer.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	_ = mergo.Merge(global, system)
+	_ = mergo.Merge(local, global)
+	return local, nil
+}
+
 // Remote return a remote if exists
 func (r *Repository) Remote(name string) (*Remote, error) {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +499,7 @@ func (r *Repository) Remote(name string) (*Remote, error) {
 
 // Remotes returns a list with all the remotes
 func (r *Repository) Remotes() ([]*Remote, error) {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +523,7 @@ func (r *Repository) CreateRemote(c *config.RemoteConfig) (*Remote, error) {
 
 	remote := NewRemote(r.Storer, c)
 
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +554,7 @@ func (r *Repository) CreateRemoteAnonymous(c *config.RemoteConfig) (*Remote, err
 
 // DeleteRemote delete a remote from the repository and delete the config
 func (r *Repository) DeleteRemote(name string) error {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -526,7 +569,7 @@ func (r *Repository) DeleteRemote(name string) error {
 
 // Branch return a Branch if exists
 func (r *Repository) Branch(name string) (*config.Branch, error) {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +588,7 @@ func (r *Repository) CreateBranch(c *config.Branch) error {
 		return err
 	}
 
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -560,7 +603,7 @@ func (r *Repository) CreateBranch(c *config.Branch) error {
 
 // DeleteBranch delete a Branch from the repository and delete the config
 func (r *Repository) DeleteBranch(name string) error {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -835,7 +878,7 @@ func (r *Repository) cloneRefSpec(o *CloneOptions) []config.RefSpec {
 }
 
 func (r *Repository) setIsBare(isBare bool) error {
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -851,7 +894,7 @@ func (r *Repository) updateRemoteConfigIfNeeded(o *CloneOptions, c *config.Remot
 
 	c.Fetch = r.cloneRefSpec(o)
 
-	cfg, err := r.Storer.Config()
+	cfg, err := r.Config()
 	if err != nil {
 		return err
 	}
@@ -1541,7 +1584,7 @@ func (r *Repository) createNewObjectPack(cfg *RepackConfig) (h plumbing.Hash, er
 		return h, err
 	}
 	defer ioutil.CheckClose(wc, &err)
-	scfg, err := r.Storer.Config()
+	scfg, err := r.Config()
 	if err != nil {
 		return h, err
 	}

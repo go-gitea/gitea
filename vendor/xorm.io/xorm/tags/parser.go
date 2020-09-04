@@ -115,6 +115,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 	t := v.Type()
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
+		v = v.Elem()
 	}
 	if t.Kind() != reflect.Struct {
 		return nil, ErrUnsupportedType

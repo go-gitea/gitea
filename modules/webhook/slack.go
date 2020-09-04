@@ -321,7 +321,11 @@ func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getSlackIssuesPayload(p.(*api.IssuePayload), slack)
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack)
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getSlackIssueCommentPayload(pl, slack)
+		}
+		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
 	case models.HookEventPush:
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,

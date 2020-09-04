@@ -6,7 +6,7 @@ const languagesByExt = {};
 function getEditorconfig(input) {
   try {
     return JSON.parse(input.dataset.editorconfig);
-  } catch (_err) {
+  } catch {
     return null;
   }
 }

@@ -206,7 +206,11 @@ func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getTelegramIssuesPayload(p.(*api.IssuePayload))
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload))
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getTelegramIssueCommentPayload(pl)
+		}
+		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getTelegramPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,

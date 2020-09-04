@@ -17,21 +17,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-const fileSizeLimit int64 = 16 * 1024 * 1024
-
-// specialLanguages defines list of languages that are excluded from the calculation
-// unless they are the only language present in repository. Only languages which under
-// normal circumstances are not considered to be code should be listed here.
-var specialLanguages = []string{
-	"XML",
-	"JSON",
-	"TOML",
-	"YAML",
-	"INI",
-	"SVG",
-	"Text",
-	"Markdown",
-}
+const fileSizeLimit int64 = 16 * 1024 // 16 KiB
+const bigFileSize int64 = 1024 * 1024 // 1 MiB
 
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
@@ -62,8 +49,11 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			return nil
 		}
 
-		// If content can not be read just do detection by filename
-		content, _ := readFile(f, fileSizeLimit)
+		// If content can not be read or file is too big just do detection by filename
+		var content []byte
+		if f.Size <= bigFileSize {
+			content, _ = readFile(f, fileSizeLimit)
+		}
 		if enry.IsGenerated(f.Name, content) {
 			return nil
 		}
@@ -91,8 +81,11 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	// filter special languages unless they are the only language
 	if len(sizes) > 1 {
-		for _, language := range specialLanguages {
-			delete(sizes, language)
+		for language := range sizes {
+			langtype := enry.GetLanguageType(language)
+			if langtype != enry.Programming && langtype != enry.Markup {
+				delete(sizes, language)
+			}
 		}
 	}
 

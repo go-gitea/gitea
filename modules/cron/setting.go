@@ -17,13 +17,15 @@ type Config interface {
 	DoRunAtStart() bool
 	GetSchedule() string
 	FormatMessage(name, status string, doer *models.User, args ...interface{}) string
+	DoNoticeOnSuccess() bool
 }
 
 // BaseConfig represents the basic config for a Cron task
 type BaseConfig struct {
-	Enabled    bool
-	RunAtStart bool
-	Schedule   string
+	Enabled         bool
+	RunAtStart      bool
+	Schedule        string
+	NoSuccessNotice bool
 }
 
 // OlderThanConfig represents a cron task with OlderThan setting
@@ -51,6 +53,11 @@ func (b *BaseConfig) IsEnabled() bool {
 // DoRunAtStart returns whether the task should be run at the start
 func (b *BaseConfig) DoRunAtStart() bool {
 	return b.RunAtStart
+}
+
+// DoNoticeOnSuccess returns whether a success notice should be posted
+func (b *BaseConfig) DoNoticeOnSuccess() bool {
+	return !b.NoSuccessNotice
 }
 
 // FormatMessage returns a message for the task

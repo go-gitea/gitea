@@ -22,7 +22,7 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 `custom/conf/app.ini` 当中。在发行版中可能会以 `/etc/gitea/` 的形式为 `custom` 设置一个符号链接，查看配置详情请移步：
 
 - [快速备忘单](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [完整配置清单](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [完整配置清单](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 如果您在 binary 同目录下无法找到 `custom` 文件夹，请检查您的 `GITEA_CUSTOM`
 环境变量配置， 因为它可能被配置到了其他地方（可能被一些启动脚本设置指定了目录）。

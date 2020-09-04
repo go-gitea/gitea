@@ -408,7 +408,11 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord)
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getDiscordIssueCommentPayload(pl, discord)
+		}
+		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
 	case models.HookEventPush:
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,

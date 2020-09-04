@@ -96,7 +96,7 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     the LDAP server. The default period is every 24 hours but that can be
     changed in the app.ini file.  See the *cron.sync_external_users* section in
     the [sample
-    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     for detailed comments about that section.  The *User Search Base* and *User
     Filter* settings described above will limit which users can use Gitea and
     which users will be synchronized.  When initially run the task will create

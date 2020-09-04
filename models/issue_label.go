@@ -295,10 +295,8 @@ func getLabelByID(e Engine, labelID int64) (*Label, error) {
 		return nil, ErrLabelNotExist{labelID}
 	}
 
-	l := &Label{
-		ID: labelID,
-	}
-	has, err := e.Get(l)
+	l := &Label{}
+	has, err := e.ID(labelID).Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -81,14 +81,14 @@ To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it w
 
 ## Cloudron
 
-Gitea is available as a 1-click install on [Cloudron](https://cloudron.io). For those unaware,
+Gitea is available as a 1-click install on [Cloudron](https://cloudron.io). 
 Cloudron makes it easy to run apps like Gitea on your server and keep them up-to-date and secure.
 
 [![Install](https://cloudron.io/img/button.svg)](https://cloudron.io/button.html?app=io.gitea.cloudronapp)
 
 The Gitea package is maintained [here](https://git.cloudron.io/cloudron/gitea-app).
 
-There is a [demo instance](https://my-demo.cloudron.me) (username: cloudron password: cloudron) where
+There is a [demo instance](https://my.demo.cloudron.io) (username: cloudron password: cloudron) where
 you can experiment with running Gitea.
 
 ## Third-party

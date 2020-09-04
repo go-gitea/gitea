@@ -57,6 +57,8 @@ supported:
 	* sslkey - Key file location. The file must contain PEM encoded data.
 	* sslrootcert - The location of the root certificate file. The file
 	  must contain PEM encoded data.
+	* spn - Configures GSS (Kerberos) SPN.
+	* service - GSS (Kerberos) service name to use when constructing the SPN (default is `postgres`).
 
 Valid values for sslmode are:
 
@@ -240,6 +242,22 @@ bytes by the PostgreSQL server.
 
 You can find a complete, working example of Listener usage at
 https://godoc.org/github.com/lib/pq/example/listen.
+
+
+Kerberos Support
+
+
+If you need support for Kerberos authentication, add the following to your main
+package:
+
+	import "github.com/lib/pq/auth/kerberos"
+
+	func init() {
+		pq.RegisterGSSProvider(func() (pq.Gss, error) { return kerberos.NewGSS() })
+	}
+
+This package is in a separate module so that users who don't need Kerberos
+don't have to download unnecessary dependencies.
 
 */
 package pq

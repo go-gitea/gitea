@@ -15,6 +15,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 func main() {
@@ -33,7 +35,7 @@ func main() {
 		log.Fatalf("Failed to create temp file. %s", err)
 	}
 
-	defer os.Remove(file.Name())
+	defer util.Remove(file.Name())
 
 	resp, err := http.Get(url)
 

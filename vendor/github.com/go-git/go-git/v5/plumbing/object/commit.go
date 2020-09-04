@@ -78,21 +78,30 @@ func (c *Commit) Tree() (*Tree, error) {
 
 // PatchContext returns the Patch between the actual commit and the provided one.
 // Error will be return if context expires. Provided context must be non-nil.
+//
+// NOTE: Since version 5.1.0 the renames are correctly handled, the settings
+// used are the recommended options DefaultDiffTreeOptions.
 func (c *Commit) PatchContext(ctx context.Context, to *Commit) (*Patch, error) {
 	fromTree, err := c.Tree()
 	if err != nil {
 		return nil, err
 	}
 
-	toTree, err := to.Tree()
-	if err != nil {
-		return nil, err
+	var toTree *Tree
+	if to != nil {
+		toTree, err = to.Tree()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return fromTree.PatchContext(ctx, toTree)
 }
 
 // Patch returns the Patch between the actual commit and the provided one.
+//
+// NOTE: Since version 5.1.0 the renames are correctly handled, the settings
+// used are the recommended options DefaultDiffTreeOptions.
 func (c *Commit) Patch(to *Commit) (*Patch, error) {
 	return c.PatchContext(context.Background(), to)
 }

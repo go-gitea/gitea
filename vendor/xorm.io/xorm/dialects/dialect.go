@@ -96,51 +96,6 @@ func (b *Base) DBType() schemas.DBType {
 	return b.uri.DBType
 }
 
-// String generate column description string according dialect
-func (b *Base) String(col *schemas.Column) string {
-	sql := b.dialect.Quoter().Quote(col.Name) + " "
-
-	sql += b.dialect.SQLType(col) + " "
-
-	if col.IsPrimaryKey {
-		sql += "PRIMARY KEY "
-		if col.IsAutoIncrement {
-			sql += b.dialect.AutoIncrStr() + " "
-		}
-	}
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
-	}
-
-	if col.Nullable {
-		sql += "NULL "
-	} else {
-		sql += "NOT NULL "
-	}
-
-	return sql
-}
-
-// StringNoPk generate column description string according dialect without primary keys
-func (b *Base) StringNoPk(col *schemas.Column) string {
-	sql := b.dialect.Quoter().Quote(col.Name) + " "
-
-	sql += b.dialect.SQLType(col) + " "
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
-	}
-
-	if col.Nullable {
-		sql += "NULL "
-	} else {
-		sql += "NOT NULL "
-	}
-
-	return sql
-}
-
 func (b *Base) FormatBytes(bs []byte) string {
 	return fmt.Sprintf("0x%x", bs)
 }
@@ -178,8 +133,8 @@ func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableNa
 }
 
 func (db *Base) AddColumnSQL(tableName string, col *schemas.Column) string {
-	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName),
-		db.String(col))
+	s, _ := ColumnString(db.dialect, col, true)
+	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName), s)
 }
 
 func (db *Base) CreateIndexSQL(tableName string, index *schemas.Index) string {
@@ -207,7 +162,8 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 }
 
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
-	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, db.StringNoPk(col))
+	s, _ := ColumnString(db.dialect, col, false)
+	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, s)
 }
 
 func (b *Base) ForUpdateSQL(query string) string {
@@ -265,4 +221,64 @@ func regDrvsNDialects() bool {
 
 func init() {
 	regDrvsNDialects()
+}
+
+// ColumnString generate column description string according dialect
+func ColumnString(dialect Dialect, col *schemas.Column, includePrimaryKey bool) (string, error) {
+	bd := strings.Builder{}
+
+	if err := dialect.Quoter().QuoteTo(&bd, col.Name); err != nil {
+		return "", err
+	}
+
+	if err := bd.WriteByte(' '); err != nil {
+		return "", err
+	}
+
+	if _, err := bd.WriteString(dialect.SQLType(col)); err != nil {
+		return "", err
+	}
+
+	if err := bd.WriteByte(' '); err != nil {
+		return "", err
+	}
+
+	if includePrimaryKey && col.IsPrimaryKey {
+		if _, err := bd.WriteString("PRIMARY KEY "); err != nil {
+			return "", err
+		}
+
+		if col.IsAutoIncrement {
+			if _, err := bd.WriteString(dialect.AutoIncrStr()); err != nil {
+				return "", err
+			}
+			if err := bd.WriteByte(' '); err != nil {
+				return "", err
+			}
+		}
+	}
+
+	if col.Default != "" {
+		if _, err := bd.WriteString("DEFAULT "); err != nil {
+			return "", err
+		}
+		if _, err := bd.WriteString(col.Default); err != nil {
+			return "", err
+		}
+		if err := bd.WriteByte(' '); err != nil {
+			return "", err
+		}
+	}
+
+	if col.Nullable {
+		if _, err := bd.WriteString("NULL "); err != nil {
+			return "", err
+		}
+	} else {
+		if _, err := bd.WriteString("NOT NULL "); err != nil {
+			return "", err
+		}
+	}
+
+	return bd.String(), nil
 }

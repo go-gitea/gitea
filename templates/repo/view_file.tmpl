@@ -88,18 +88,30 @@
 					{{end}}
 				</div>
 			{{else if .FileSize}}
+				{{if .IsFileTooLarge}}
 				<table>
 					<tbody>
 						<tr>
-						{{if .IsFileTooLarge}}
 							<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
-						{{else}}
-							<td class="lines-num">{{.LineNums}}</td>
-							<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
-						{{end}}
 						</tr>
 					</tbody>
 				</table>
+				{{else}}
+				<table>
+					<tbody>
+						{{range $line, $code := .FileContent}}
+						<tr>
+							<td id="L{{$line}}" class="lines-num">
+								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
+							</td>
+							<td rel="L{{$line}}" class="lines-code chroma">
+								<code>{{$code | Safe}}</code>
+							</td>
+						</tr>
+						{{end}}
+					</tbody>
+				</table>
+				{{end}}
 			{{end}}
 		</div>
 	</div>

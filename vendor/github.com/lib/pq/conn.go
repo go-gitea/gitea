@@ -149,6 +149,15 @@ type conn struct {
 
 	// If true this connection is in the middle of a COPY
 	inCopy bool
+
+	// If not nil, notices will be synchronously sent here
+	noticeHandler func(*Error)
+
+	// If not nil, notifications will be synchronously sent here
+	notificationHandler func(*Notification)
+
+	// GSSAPI context
+	gss GSS
 }
 
 // Handle driver-side settings in parsed connection string.
@@ -329,10 +338,6 @@ func (c *Connector) open(ctx context.Context) (cn *conn, err error) {
 
 func dial(ctx context.Context, d Dialer, o values) (net.Conn, error) {
 	network, address := network(o)
-	// SSL is not necessary or supported over UNIX domain sockets
-	if network == "unix" {
-		o["sslmode"] = "disable"
-	}
 
 	// Zero or not specified means wait indefinitely.
 	if timeout, ok := o["connect_timeout"]; ok && timeout != "0" {
@@ -971,7 +976,13 @@ func (cn *conn) recv() (t byte, r *readBuf) {
 		case 'E':
 			panic(parseError(r))
 		case 'N':
-			// ignore
+			if n := cn.noticeHandler; n != nil {
+				n(parseError(r))
+			}
+		case 'A':
+			if n := cn.notificationHandler; n != nil {
+				n(recvNotification(r))
+			}
 		default:
 			return
 		}
@@ -988,8 +999,14 @@ func (cn *conn) recv1Buf(r *readBuf) byte {
 		}
 
 		switch t {
-		case 'A', 'N':
-			// ignore
+		case 'A':
+			if n := cn.notificationHandler; n != nil {
+				n(recvNotification(r))
+			}
+		case 'N':
+			if n := cn.noticeHandler; n != nil {
+				n(parseError(r))
+			}
 		case 'S':
 			cn.processParameterStatus(r)
 		default:
@@ -1057,7 +1074,10 @@ func isDriverSetting(key string) bool {
 		return true
 	case "binary_parameters":
 		return true
-
+	case "service":
+		return true
+	case "spn":
+		return true
 	default:
 		return false
 	}
@@ -1137,6 +1157,59 @@ func (cn *conn) auth(r *readBuf, o values) {
 		if r.int32() != 0 {
 			errorf("unexpected authentication response: %q", t)
 		}
+	case 7: // GSSAPI, startup
+		if newGss == nil {
+			errorf("kerberos error: no GSSAPI provider registered (import github.com/lib/pq/auth/kerberos if you need Kerberos support)")
+		}
+		cli, err := newGss()
+		if err != nil {
+			errorf("kerberos error: %s", err.Error())
+		}
+
+		var token []byte
+
+		if spn, ok := o["spn"]; ok {
+			// Use the supplied SPN if provided..
+			token, err = cli.GetInitTokenFromSpn(spn)
+		} else {
+			// Allow the kerberos service name to be overridden
+			service := "postgres"
+			if val, ok := o["service"]; ok {
+				service = val
+			}
+
+			token, err = cli.GetInitToken(o["host"], service)
+		}
+
+		if err != nil {
+			errorf("failed to get Kerberos ticket: %q", err)
+		}
+
+		w := cn.writeBuf('p')
+		w.bytes(token)
+		cn.send(w)
+
+		// Store for GSSAPI continue message
+		cn.gss = cli
+
+	case 8: // GSSAPI continue
+
+		if cn.gss == nil {
+			errorf("GSSAPI protocol error")
+		}
+
+		b := []byte(*r)
+
+		done, tokOut, err := cn.gss.Continue(b)
+		if err == nil && !done {
+			w := cn.writeBuf('p')
+			w.bytes(tokOut)
+			cn.send(w)
+		}
+
+		// Errors fall through and read the more detailed message
+		// from the server..
+
 	case 10:
 		sc := scram.NewClient(sha256.New, o["user"], o["password"])
 		sc.Step(nil)

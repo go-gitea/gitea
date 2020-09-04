@@ -6,10 +6,12 @@ package oauth2
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	uuid "github.com/google/uuid"
 	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -25,7 +27,6 @@ import (
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/yandex"
-	uuid "github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
 
@@ -61,7 +62,7 @@ func Init(x *xorm.Engine) error {
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
-		return uuid.NewV4().String()
+		return uuid.New().String()
 	}
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
@@ -119,7 +120,7 @@ func RemoveProvider(providerName string) {
 
 // used to create different types of goth providers
 func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string, customURLMapping *CustomURLMapping) (goth.Provider, error) {
-	callbackURL := setting.AppURL + "user/oauth2/" + providerName + "/callback"
+	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
 
 	var provider goth.Provider
 	var err error

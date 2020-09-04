@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
@@ -36,7 +37,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 )
 
 var mac *macaron.Macaron
@@ -88,22 +88,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	var helper testfixtures.Helper
-	if setting.Database.UseMySQL {
-		helper = &testfixtures.MySQL{}
-	} else if setting.Database.UsePostgreSQL {
-		helper = &testfixtures.PostgreSQL{}
-	} else if setting.Database.UseSQLite3 {
-		helper = &testfixtures.SQLite{}
-	} else if setting.Database.UseMSSQL {
-		helper = &testfixtures.SQLServer{}
-	} else {
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
-	}
-
 	err := models.InitFixtures(
-		helper,
 		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {
@@ -114,11 +99,11 @@ func TestMain(m *testing.M) {
 
 	writerCloser.t = nil
 
-	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+		fmt.Printf("util.RemoveAll: %v\n", err)
 		os.Exit(1)
 	}
-	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
 		fmt.Printf("Unable to remove repo indexer: %v\n", err)
 		os.Exit(1)
 	}
@@ -154,7 +139,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
-	os.RemoveAll(models.LocalCopyPath())
+	util.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 
@@ -246,7 +231,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
@@ -489,7 +474,7 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
 }

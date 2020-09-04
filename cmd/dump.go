@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/session"
 	archiver "github.com/mholt/archiver/v3"
@@ -243,7 +244,11 @@ func runDump(ctx *cli.Context) error {
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
-	defer os.Remove(dbDump.Name())
+	defer func() {
+		if err := util.Remove(dbDump.Name()); err != nil {
+			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
+		}
+	}()
 
 	targetDBType := ctx.String("database")
 	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
@@ -313,7 +318,7 @@ func runDump(ctx *cli.Context) error {
 
 	if fileName != "-" {
 		if err = w.Close(); err != nil {
-			_ = os.Remove(fileName)
+			_ = util.Remove(fileName)
 			fatal("Failed to save %s: %v", fileName, err)
 		}
 

@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -102,18 +103,16 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Repo.GitRepo.CreateBranch(deletedBranch.Name, deletedBranch.Commit); err != nil {
+	if err := git.Push(ctx.Repo.Repository.RepoPath(), git.PushOptions{
+		Remote: ctx.Repo.Repository.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
+		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
+	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
 		}
 		log.Error("CreateBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
-		return
-	}
-
-	if err := ctx.Repo.Repository.RemoveDeletedBranch(deletedBranch.ID); err != nil {
-		log.Error("RemoveDeletedBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
@@ -216,7 +215,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
-		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)
+		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
 		if divergenceError != nil {
 			ctx.ServerError("CountDivergingCommits", divergenceError)
 			return nil
@@ -331,6 +330,8 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 	var err error
 	if ctx.Repo.IsViewBranch {
 		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+	} else if ctx.Repo.IsViewTag {
+		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	} else {
 		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	}
