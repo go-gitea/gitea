@@ -270,7 +270,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	if pwned {
-		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.")
+		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
