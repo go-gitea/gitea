@@ -897,16 +897,20 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, _ = hcaptcha.Verify(form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug(err.Error())
 		}
 
 		if !valid {
@@ -1076,16 +1080,20 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, _ = hcaptcha.Verify(form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug(err.Error())
 		}
 
 		if !valid {

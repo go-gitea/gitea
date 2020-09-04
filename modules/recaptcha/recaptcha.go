@@ -18,10 +18,10 @@ import (
 
 // Response is the structure of JSON returned from API
 type Response struct {
-	Success     bool      `json:"success"`
-	ChallengeTS time.Time `json:"challenge_ts"`
-	Hostname    string    `json:"hostname"`
-	ErrorCodes  []string  `json:"error-codes"`
+	Success     bool        `json:"success"`
+	ChallengeTS time.Time   `json:"challenge_ts"`
+	Hostname    string      `json:"hostname"`
+	ErrorCodes  []ErrorCode `json:"error-codes"`
 }
 
 const apiURL = "api/siteverify"
@@ -44,5 +44,32 @@ func Verify(response string) (bool, error) {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)
 	}
 
-	return jsonResponse.Success, nil
+	return jsonResponse.Success, jsonResponse.ErrorCodes[0]
+}
+
+// ErrorCode is a reCaptcha error
+type ErrorCode string
+
+// String fulfills the Stringer interface
+func (e ErrorCode) String() string {
+	switch e {
+	case "missing-input-secret":
+		return "The secret parameter is missing."
+	case "invalid-input-secret":
+		return "The secret parameter is invalid or malformed."
+	case "missing-input-response":
+		return "The response parameter is missing."
+	case "invalid-input-response":
+		return "The response parameter is invalid or malformed."
+	case "bad-request":
+		return "The request is invalid or malformed."
+	case "timeout-or-duplicate":
+		return "The response is no longer valid: either is too old or has been used previously."
+	}
+	return string(e)
+}
+
+// Error fulfills the error interface
+func (e ErrorCode) Error() string {
+	return e.String()
 }
