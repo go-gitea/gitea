@@ -1008,12 +1008,12 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string) error {
-	if !doer.CanCreateRepo() {
+func CheckCreateRepository(doer, u *User, name string, private bool) error {
+	if !private && !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
-	if !doer.CanCreatePrivateRepo() {
+	if private && !doer.CanCreatePrivateRepo() {
 		return ErrReachLimitOfPrivateRepo{u.MaxPrivateRepoCreation}
 	}
 
@@ -1144,10 +1144,12 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error
 	}
 	u.NumRepos++
 
-	if _, err = ctx.e.Incr("num_private_repos").ID(u.ID).Update(new(User)); err != nil {
-		return fmt.Errorf("increment user total_private_repos: %v", err)
+	if repo.IsPrivate {
+		if _, err = ctx.e.Incr("num_private_repos").ID(u.ID).Update(new(User)); err != nil {
+			return fmt.Errorf("increment user total_private_repos: %v", err)
+		}
+		u.NumPrivateRepos++
 	}
-	u.NumPrivateRepos++
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {

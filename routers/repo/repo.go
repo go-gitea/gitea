@@ -388,7 +388,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, opts.Private)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 		return
