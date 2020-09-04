@@ -67,6 +67,7 @@ func LoadGitVersion() error {
 		versionLock.RUnlock()
 		return nil
 	}
+	versionLock.RUnlock()
 	versionLock.Lock()
 	defer versionLock.Unlock()
 
