@@ -138,13 +138,13 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	if err := CheckGitVersionConstraint(">= 2.10"); err == nil {
+	if CheckGitVersionConstraint(">= 2.10") == nil {
 		if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
 			return err
 		}
 	}
 
-	if err := CheckGitVersionConstraint(">= 2.18"); err == nil {
+	if CheckGitVersionConstraint(">= 2.18") == nil {
 		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
 			return err
 		}
