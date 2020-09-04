@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
-	"github.com/mcuadros/go-version"
+
+	"github.com/hashicorp/go-version"
 )
 
 var (
@@ -132,7 +133,9 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	// TODO: verify if this is still needed in golang 1.15
-	if version.Compare(runtime.Version(), "go1.15", "<") {
+	runtimeVersion, err := version.NewVersion(strings.TrimPrefix(runtime.Version(), "go"))
+	version115, _ := version.NewVersion("1.15")
+	if err == nil && runtimeVersion.LessThan(version115) {
 		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
 	cmd.Dir = dir
