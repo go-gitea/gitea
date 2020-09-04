@@ -13,7 +13,7 @@ plugins:
   - eslint-plugin-import
 
 env:
-  es2020: true
+  es2021: true
   node: true
 
 globals:
