@@ -8672,6 +8672,23 @@
         }
       }
     },
+    "/settings/api": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for api",
+        "operationId": "getGeneralAPISettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAPISettings"
+          }
+        }
+      }
+    },
     "/settings/repository": {
       "get": {
         "produces": [
@@ -12977,6 +12994,33 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GeneralAPISettings": {
+      "description": "GeneralAPISettings contains global api settings exposed by it",
+      "type": "object",
+      "properties": {
+        "default_git_trees_per_page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultGitTreesPerPage"
+        },
+        "default_max_blob_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultMaxBlobSize"
+        },
+        "default_paging_num": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultPagingNum"
+        },
+        "max_response_items": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxResponseItems"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GeneralRepoSettings": {
       "description": "GeneralRepoSettings contains global repository settings exposed by API",
       "type": "object",
@@ -15195,6 +15239,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GeneralAPISettings": {
+      "description": "GeneralAPISettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralAPISettings"
       }
     },
     "GeneralRepoSettings": {
