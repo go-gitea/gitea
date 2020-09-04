@@ -69,7 +69,7 @@ func newGit() {
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
-	version, err := git.GitVersion()
+	version, err := git.LocalVersion()
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}

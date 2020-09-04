@@ -52,8 +52,8 @@ func log(format string, args ...interface{}) {
 	}
 }
 
-// GitVersion returns current Git version from shell.
-func GitVersion() (*version.Version, error) {
+// LocalVersion returns current Git version from shell.
+func LocalVersion() (*version.Version, error) {
 	if err := LoadGitVersion(); err != nil {
 		return nil, err
 	}

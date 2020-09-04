@@ -243,7 +243,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	if version, err := git.GitVersion(); err == nil {
+	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
