@@ -521,6 +521,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/api", settings.GetGeneralAPISettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
