@@ -265,6 +265,13 @@ func runChangePassword(c *cli.Context) error {
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
+	pwned, err := pwd.IsPwned(c.String("password"))
+	if err != nil {
+		return err
+	}
+	if pwned {
+		return errors.New("Password has been pwned too many times")
+	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {

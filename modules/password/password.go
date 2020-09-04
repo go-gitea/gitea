@@ -88,7 +88,7 @@ func IsComplexEnough(pwd string) bool {
 	return true
 }
 
-// Generate  a random password
+// Generate a random password
 func Generate(n int) (string, error) {
 	NewComplexity()
 	buffer := make([]byte, n)
@@ -101,7 +101,11 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		if IsComplexEnough(string(buffer)) && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
+		pwned, err := IsPwned(string(buffer))
+		if err != nil {
+			return "", err
+		}
+		if IsComplexEnough(string(buffer)) && !pwned && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
 			return string(buffer), nil
 		}
 	}
