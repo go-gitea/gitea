@@ -161,6 +161,7 @@ func Init(ctx context.Context) error {
 	return nil
 }
 
+// CheckGitVersionConstraint check version constrain against local installed git version
 func CheckGitVersionConstraint(constraint string) error {
 	if err := LoadGitVersion(); err != nil {
 		return err

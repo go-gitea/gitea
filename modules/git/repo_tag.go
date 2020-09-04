@@ -238,8 +238,6 @@ func (repo *Repository) GetTags() ([]string, error) {
 		return nil
 	})
 
-	// ToDo version.Sort(tagNames)
-
 	// Reverse order
 	for i := 0; i < len(tagNames)/2; i++ {
 		j := len(tagNames) - i - 1
