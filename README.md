@@ -1,6 +1,6 @@
 [简体中文](README_ZH.md)
 [Русский](README_RU.md)
-<a href="README_RU.md"><img width="20px" src="https://iris-go.com/images/flag-russia.svg" />
+<a href="README_RU.md"><img width="20px" src="https://image.flaticon.com/icons/svg/197/197408.svg" />
 
 <h1> <img src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea-192.png" alt="logo" width="30" height="30"> Gitea - Git with a cup of tea</h1>
 
