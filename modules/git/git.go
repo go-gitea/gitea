@@ -11,17 +11,13 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/mcuadros/go-version"
+	"github.com/hashicorp/go-version"
 )
-
-// Version return this package's current version
-func Version() string {
-	return "0.4.2"
-}
 
 var (
 	// Debug enables verbose logging on everything.
@@ -39,7 +35,8 @@ var (
 	// DefaultContext is the default context to run git commands in
 	DefaultContext = context.Background()
 
-	gitVersion string
+	gitVersion  *version.Version
+	versionLock sync.RWMutex
 )
 
 func log(format string, args ...interface{}) {
@@ -55,31 +52,46 @@ func log(format string, args ...interface{}) {
 	}
 }
 
-// BinVersion returns current Git version from shell.
-func BinVersion() (string, error) {
-	if len(gitVersion) > 0 {
-		return gitVersion, nil
+// GitVersion returns current Git version from shell.
+func GitVersion() (*version.Version, error) {
+	if err := LoadGitVersion(); err != nil {
+		return nil, err
 	}
+	return gitVersion, nil
+}
+
+// LoadGitVersion returns current Git version from shell.
+func LoadGitVersion() error {
+	versionLock.RLock()
+	if gitVersion != nil {
+		versionLock.RUnlock()
+		return nil
+	}
+	versionLock.Lock()
+	defer versionLock.Unlock()
 
 	stdout, err := NewCommand("version").Run()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	fields := strings.Fields(stdout)
 	if len(fields) < 3 {
-		return "", fmt.Errorf("not enough output: %s", stdout)
+		return fmt.Errorf("not enough output: %s", stdout)
 	}
+
+	var versionString string
 
 	// Handle special case on Windows.
 	i := strings.Index(fields[2], "windows")
 	if i >= 1 {
-		gitVersion = fields[2][:i-1]
-		return gitVersion, nil
+		versionString = fields[2][:i-1]
+	} else {
+		versionString = fields[2]
 	}
 
-	gitVersion = fields[2]
-	return gitVersion, nil
+	gitVersion, err = version.NewVersion(versionString)
+	return err
 }
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
@@ -94,11 +106,17 @@ func SetExecutablePath(path string) error {
 	}
 	GitExecutable = absPath
 
-	gitVersion, err := BinVersion()
+	err = LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("Git version missing: %v", err)
 	}
-	if version.Compare(gitVersion, GitVersionRequired, "<") {
+
+	versionRequired, err := version.NewVersion(GitVersionRequired)
+	if err != nil {
+		return err
+	}
+
+	if gitVersion.LessThan(versionRequired) {
 		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
 	}
 
@@ -120,13 +138,13 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	if version.Compare(gitVersion, "2.10", ">=") {
+	if err := CheckGitVersionConstraint(">= 2.10"); err == nil {
 		if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
 			return err
 		}
 	}
 
-	if version.Compare(gitVersion, "2.18", ">=") {
+	if err := CheckGitVersionConstraint(">= 2.18"); err == nil {
 		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
 			return err
 		}
@@ -139,6 +157,20 @@ func Init(ctx context.Context) error {
 		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func CheckGitVersionConstraint(constraint string) error {
+	if err := LoadGitVersion(); err != nil {
+		return err
+	}
+	check, err := version.NewConstraint(constraint)
+	if err != nil {
+		return err
+	}
+	if !check.Check(gitVersion) {
+		return fmt.Errorf("installed git binary  %s does not satisfy version constraint %s", gitVersion.Original(), constraint)
 	}
 	return nil
 }
