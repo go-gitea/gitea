@@ -79,16 +79,16 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 ## Сборка
 
-To build from source, the following programs must be present on the system:
+Для сборки из source в системе должны присутствовать следующие программы:
 
-- `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
-- `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
+- `go` {{< min-go-version >}} или лучше, просмотрите [тут](https://golang.org/dl/)
+- `node` {{< min-node-version >}} или лучше с `npm`, просмотрите [тут](https://nodejs.org/en/download/)
+- `make`, просмотрите <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>тут</a>
 
-Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
-are provided to keep the build process as simple as possible.
+Различные [задачи](https://github.com/go-gitea/gitea/blob/master/Makefile)
+предоставлены, чтобы максимально упростить процесс сборки.
 
-Depending on requirements, the following build tags can be included.
+В зависимости от требований могут быть включены следующие теги сборки.
 
 * `bindata`: Build a single monolithic binary, with all assets included.
 * `sqlite sqlite_unlock_notify`: Enable support for a
