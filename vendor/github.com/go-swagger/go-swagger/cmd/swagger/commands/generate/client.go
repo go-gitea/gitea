@@ -20,56 +20,51 @@ import (
 	"github.com/go-swagger/go-swagger/generator"
 )
 
+type clientOptions struct {
+	ClientPackage string `long:"client-package" short:"c" description:"the package to save the client specific code" default:"client"`
+}
+
+func (co clientOptions) apply(opts *generator.GenOpts) {
+	opts.ClientPackage = co.ClientPackage
+}
+
 // Client the command to generate a swagger client
 type Client struct {
-	shared
-	Name            string   `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
-	Operations      []string `long:"operation" short:"O" description:"specify an operation to include, repeat for multiple"`
-	Tags            []string `long:"tags" description:"the tags to include, if not specified defaults to all"`
-	Principal       string   `long:"principal" short:"P" description:"the model to use for the security principal"`
-	Models          []string `long:"model" short:"M" description:"specify a model to include, repeat for multiple"`
-	DefaultScheme   string   `long:"default-scheme" description:"the default scheme for this client" default:"http"`
-	DefaultProduces string   `long:"default-produces" description:"the default mime type that API operations produce" default:"application/json"`
-	SkipModels      bool     `long:"skip-models" description:"no models will be generated when this flag is specified"`
-	SkipOperations  bool     `long:"skip-operations" description:"no operations will be generated when this flag is specified"`
-	DumpData        bool     `long:"dump-data" description:"when present dumps the json for the template generator instead of generating files"`
-	SkipValidation  bool     `long:"skip-validation" description:"skips validation of spec prior to generation"`
+	WithShared
+	WithModels
+	WithOperations
+
+	clientOptions
+	schemeOptions
+	mediaOptions
+
+	SkipModels     bool `long:"skip-models" description:"no models will be generated when this flag is specified"`
+	SkipOperations bool `long:"skip-operations" description:"no operations will be generated when this flag is specified"`
+
+	Name string `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
 }
 
-func (c *Client) getOpts() (*generator.GenOpts, error) {
-	return &generator.GenOpts{
-		Spec: string(c.Spec),
+func (c Client) apply(opts *generator.GenOpts) {
+	c.Shared.apply(opts)
+	c.Models.apply(opts)
+	c.Operations.apply(opts)
+	c.clientOptions.apply(opts)
+	c.schemeOptions.apply(opts)
+	c.mediaOptions.apply(opts)
 
-		Target:            string(c.Target),
-		APIPackage:        c.APIPackage,
-		ModelPackage:      c.ModelPackage,
-		ServerPackage:     c.ServerPackage,
-		ClientPackage:     c.ClientPackage,
-		Principal:         c.Principal,
-		DefaultScheme:     c.DefaultScheme,
-		DefaultProduces:   c.DefaultProduces,
-		IncludeModel:      !c.SkipModels,
-		IncludeValidator:  !c.SkipModels,
-		IncludeHandler:    !c.SkipOperations,
-		IncludeParameters: !c.SkipOperations,
-		IncludeResponses:  !c.SkipOperations,
-		ValidateSpec:      !c.SkipValidation,
-		Tags:              c.Tags,
-		IncludeSupport:    true,
-		Template:          c.Template,
-		TemplateDir:       string(c.TemplateDir),
-		DumpData:          c.DumpData,
-		ExistingModels:    c.ExistingModels,
-		IsClient:          true,
-	}, nil
-}
+	opts.IncludeModel = !c.SkipModels
+	opts.IncludeValidator = !c.SkipModels
+	opts.IncludeHandler = !c.SkipOperations
+	opts.IncludeParameters = !c.SkipOperations
+	opts.IncludeResponses = !c.SkipOperations
+	opts.Name = c.Name
 
-func (c *Client) getShared() *shared {
-	return &c.shared
+	opts.IsClient = true
+	opts.IncludeSupport = true
 }
 
 func (c *Client) generate(opts *generator.GenOpts) error {
-	return generator.GenerateClient(c.Name, c.Models, c.Operations, opts)
+	return generator.GenerateClient(c.Name, c.Models.Models, c.Operations.Operations, opts)
 }
 
 func (c *Client) log(rp string) {

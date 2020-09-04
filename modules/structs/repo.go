@@ -218,6 +218,32 @@ func (gt GitServiceType) Name() string {
 	return ""
 }
 
+// Title represents the service type's proper title
+func (gt GitServiceType) Title() string {
+	switch gt {
+	case GithubService:
+		return "GitHub"
+	case GiteaService:
+		return "Gitea"
+	case GitlabService:
+		return "GitLab"
+	case GogsService:
+		return "Gogs"
+	case PlainGitService:
+		return "Git"
+	}
+	return ""
+}
+
+// TokenAuth represents whether a service type supports token-based auth
+func (gt GitServiceType) TokenAuth() bool {
+	switch gt {
+	case GithubService, GiteaService, GitlabService:
+		return true
+	}
+	return false
+}
+
 var (
 	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
 	// TODO: add to this list after new git service added
@@ -233,6 +259,7 @@ type MigrateRepoOption struct {
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

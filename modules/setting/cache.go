@@ -23,7 +23,7 @@ type Cache struct {
 var (
 	// CacheService the global cache
 	CacheService = struct {
-		Cache
+		Cache `ini:"cache"`
 
 		LastCommit struct {
 			Enabled      bool

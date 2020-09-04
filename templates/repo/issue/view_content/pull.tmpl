@@ -49,7 +49,7 @@
 								{{end}}
 
 								{{if $canChoose }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{svg "octicon-sync" 16}}
 									</a>
 								{{end}}
@@ -126,7 +126,7 @@
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
 					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
