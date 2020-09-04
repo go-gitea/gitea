@@ -43,12 +43,12 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) (err error) {
+func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) error {
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err = issue.ChangeRef(doer, oldRef); err != nil {
-		return
+	if err := issue.ChangeRef(doer, oldRef); err != nil {
+		return err
 	}
 
 	notification.NotifyIssueChangeRef(doer, issue, oldRef)
