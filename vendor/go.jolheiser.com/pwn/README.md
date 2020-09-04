@@ -1,6 +1,6 @@
 # Have I Been Pwned
 
-Go library for interacting with [haveibeenpwned](https://haveibeenpwned.com/).
+Go library for interacting with [HaveIBeenPwned](https://haveibeenpwned.com/).
 
 Implemented:
 

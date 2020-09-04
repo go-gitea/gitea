@@ -914,8 +914,8 @@ github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wK
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.4 h1:hi1bXHMVrlQh6WwxAy+qZCV/SYIlqo+Ushwdpa4tAKg=
 go.etcd.io/bbolt v1.3.4/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
-go.jolheiser.com/pwn v0.0.2 h1:8znQ0TYCudf9PWmYu7kaGXzcEwjPTMAMXzjcR6ySfNg=
-go.jolheiser.com/pwn v0.0.2/go.mod h1:/j5Dl8ftNqqJ8Dlx3YTrJV1wIR2lWOTyrNU3Qe7rk6I=
+go.jolheiser.com/pwn v0.0.3 h1:MQowb3QvCL5r5NmHmCPxw93SdjfgJ0q6rAwYn4i1Hjg=
+go.jolheiser.com/pwn v0.0.3/go.mod h1:/j5Dl8ftNqqJ8Dlx3YTrJV1wIR2lWOTyrNU3Qe7rk6I=
 go.mongodb.org/mongo-driver v1.0.3/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
 go.mongodb.org/mongo-driver v1.1.1 h1:Sq1fR+0c58RME5EoqKdjkiQAmPjmfHlZOoRI6fTUOcs=
 go.mongodb.org/mongo-driver v1.1.1/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=

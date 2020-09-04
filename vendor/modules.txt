@@ -756,7 +756,7 @@ github.com/yuin/goldmark-highlighting
 github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.4
 go.etcd.io/bbolt
-# go.jolheiser.com/pwn v0.0.2
+# go.jolheiser.com/pwn v0.0.3
 ## explicit
 go.jolheiser.com/pwn
 # go.mongodb.org/mongo-driver v1.3.5

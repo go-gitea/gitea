@@ -6,7 +6,10 @@ import (
 	"net/http"
 )
 
-const userAgent = "Go-Pwn"
+const (
+	libVersion = "0.0.3"
+	userAgent  = "go.jolheiser.com/pwn v" + libVersion
+)
 
 // Client is a HaveIBeenPwned client
 type Client struct {
