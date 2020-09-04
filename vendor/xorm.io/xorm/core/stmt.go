@@ -9,9 +9,8 @@ import (
 	"database/sql"
 	"errors"
 	"reflect"
-	"time"
 
-	"xorm.io/xorm/log"
+	"xorm.io/xorm/contexts"
 )
 
 // Stmt reprents a stmt objects
@@ -30,28 +29,16 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
 		i++
 		return "?"
 	})
-
-	start := time.Now()
-	showSQL := db.NeedLogSQL(ctx)
-	if showSQL {
-		db.Logger.BeforeSQL(log.LogContext{
-			Ctx: ctx,
-			SQL: "PREPARE",
-		})
-	}
-	stmt, err := db.DB.PrepareContext(ctx, query)
-	if showSQL {
-		db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         "PREPARE",
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
+	hookCtx := contexts.NewContextHook(ctx, "PREPARE", nil)
+	ctx, err := db.beforeProcess(hookCtx)
 	if err != nil {
 		return nil, err
 	}
-
+	stmt, err := db.DB.PrepareContext(ctx, query)
+	hookCtx.End(ctx, nil, err)
+	if err := db.afterProcess(hookCtx); err != nil {
+		return nil, err
+	}
 	return &Stmt{stmt, db, names, query}, nil
 }
 
@@ -94,49 +81,28 @@ func (s *Stmt) ExecStruct(st interface{}) (sql.Result, error) {
 }
 
 func (s *Stmt) ExecContext(ctx context.Context, args ...interface{}) (sql.Result, error) {
-	start := time.Now()
-	showSQL := s.db.NeedLogSQL(ctx)
-	if showSQL {
-		s.db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  s.query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, s.query, args)
+	ctx, err := s.db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	res, err := s.Stmt.ExecContext(ctx, args)
-	if showSQL {
-		s.db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         s.query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
+	hookCtx.End(ctx, res, err)
+	if err := s.db.afterProcess(hookCtx); err != nil {
+		return nil, err
 	}
-	return res, err
+	return res, nil
 }
 
 func (s *Stmt) QueryContext(ctx context.Context, args ...interface{}) (*Rows, error) {
-	start := time.Now()
-	showSQL := s.db.NeedLogSQL(ctx)
-	if showSQL {
-		s.db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  s.query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, s.query, args)
+	ctx, err := s.db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	rows, err := s.Stmt.QueryContext(ctx, args...)
-	if showSQL {
-		s.db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         s.query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
-	if err != nil {
+	hookCtx.End(ctx, nil, err)
+	if err := s.db.afterProcess(hookCtx); err != nil {
 		return nil, err
 	}
 	return &Rows{rows, s.db}, nil
@@ -175,7 +141,7 @@ func (s *Stmt) QueryStructContext(ctx context.Context, st interface{}) (*Rows, e
 		args[i] = vv.Elem().FieldByName(k).Interface()
 	}
 
-	return s.Query(args...)
+	return s.QueryContext(ctx, args...)
 }
 
 func (s *Stmt) QueryStruct(st interface{}) (*Rows, error) {

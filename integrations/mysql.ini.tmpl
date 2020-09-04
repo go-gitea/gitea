@@ -35,11 +35,22 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-mysql
+LFS_CONTENT_PATH = integrations/gitea-integration-mysql/datalfs-mysql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mysql/data
 BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+STORE_TYPE = minio
+SERVE_DIRECT = false
+MINIO_ENDPOINT = minio:9000
+MINIO_ACCESS_KEY_ID = 123456
+MINIO_SECRET_ACCESS_KEY = 12345678
+MINIO_BUCKET = gitea
+MINIO_LOCATION = us-east-1
+MINIO_BASE_PATH = attachments/
+MINIO_USE_SSL = false
 
 [mailer]
 ENABLED = true
@@ -58,12 +69,14 @@ NO_REPLY_ADDRESS                  = noreply.example.org
 ENABLE_NOTIFY_MAIL                = true
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-mysql/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-mysql/data/repo-avatars
 
 [session]
-PROVIDER = file
-PROVIDER_CONFIG = data/sessions-mysql
+PROVIDER        = file
+PROVIDER_CONFIG = integrations/gitea-integration-mysql/data/sessions
 
 [log]
 MODE                 = test,file

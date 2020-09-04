@@ -140,10 +140,13 @@ type SearchRepoOptions struct {
 	PriorityOwnerID int64
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
-	OnlyPrivate     bool // Include only private repositories in results
 	StarredByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
+	// None -> include public and private
+	// True -> include just private
+	// False -> incude just public
+	IsPrivate util.OptionalBool
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -221,15 +224,8 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				))))
 	}
 
-	if opts.OnlyPrivate {
-		cond = cond.And(
-			builder.Or(
-				builder.Eq{"is_private": true},
-				builder.In("owner_id", builder.Select("id").From("`user`").Where(
-					builder.And(
-						builder.Eq{"type": UserTypeOrganization},
-						builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-					)))))
+	if opts.IsPrivate != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.IsTrue()})
 	}
 
 	if opts.Template != util.OptionalBoolNone {
@@ -249,14 +245,35 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		}
 
 		if opts.Collaborate != util.OptionalBoolFalse {
+			// A Collaboration is:
 			collaborateCond := builder.And(
+				// 1. Repository we don't own
+				builder.Neq{"owner_id": opts.OwnerID},
+				// 2. But we can see because of:
 				builder.Or(
-					builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
-					builder.In("id", builder.Select("`team_repo`.repo_id").
+					// A. We have access
+					builder.In("`repository`.id",
+						builder.Select("`access`.repo_id").
+							From("access").
+							Where(builder.Eq{"`access`.user_id": opts.OwnerID})),
+					// B. We are in a team for
+					builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
 						From("team_repo").
 						Where(builder.Eq{"`team_user`.uid": opts.OwnerID}).
-						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id"))),
-				builder.Neq{"owner_id": opts.OwnerID})
+						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
+					// C. Public repositories in private organizations that we are member of
+					builder.And(
+						builder.Eq{"`repository`.is_private": false},
+						builder.In("`repository`.owner_id",
+							builder.Select("`org_user`.org_id").
+								From("org_user").
+								Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
+								Where(builder.Eq{
+									"`org_user`.uid":    opts.OwnerID,
+									"`user`.type":       UserTypeOrganization,
+									"`user`.visibility": structs.VisibleTypePrivate,
+								})))),
+			)
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
 			}

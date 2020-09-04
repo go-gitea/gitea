@@ -1,13 +1,11 @@
 <form class="ui form ignore-dirty">
-	<div class="ui fluid action input">
+	<div class="ui search fluid action input">
 		<input type="hidden" name="type" value="{{$.ViewType}}"/>
 		<input type="hidden" name="state" value="{{$.State}}"/>
 		<input type="hidden" name="labels" value="{{.SelectLabels}}"/>
 		<input type="hidden" name="milestone" value="{{$.MilestoneID}}"/>
 		<input type="hidden" name="assignee" value="{{$.AssigneeID}}"/>
-		<div class="ui search action input">
-			<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-			<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
-		</div>
+		<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
+		<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
 	</div>
 </form>

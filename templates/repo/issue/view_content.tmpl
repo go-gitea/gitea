@@ -41,7 +41,7 @@
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
-								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false }}
+								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							</div>
 						{{end}}
 					</div>

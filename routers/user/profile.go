@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/org"
@@ -93,8 +94,14 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
+	if len(ctxUser.Description) != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
+
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
@@ -209,6 +216,16 @@ func Profile(ctx *context.Context) {
 		}
 
 		total = int(count)
+	case "projects":
+		ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     models.ProjectTypeIndividual,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{

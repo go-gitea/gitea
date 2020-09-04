@@ -173,6 +173,8 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", issueCount))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -198,6 +200,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: whether issue is open or closed
 	//   type: string
+	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
@@ -210,6 +213,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	//   enum: [issues, pulls]
 	// - name: milestones
 	//   in: query
 	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
@@ -220,7 +224,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -288,9 +292,6 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("limit") == 0 {
-		listOptions.PageSize = setting.UI.IssuePagingNum
-	}
 
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
@@ -322,6 +323,9 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -691,7 +695,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, form.Deadline.Location())
+			23, 59, 59, 0, time.Local)
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -105,6 +106,12 @@ func TestCreateReleaseDraft(t *testing.T) {
 
 func TestCreateReleasePaging(t *testing.T) {
 	defer prepareTestEnv(t)()
+
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
+	defer func() {
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
+	}()
+	setting.API.DefaultPagingNum = 10
 
 	session := loginUser(t, "user2")
 	// Create enaugh releases to have paging

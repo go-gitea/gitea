@@ -299,6 +299,11 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), err, stderr)
 	}
 
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.basePath, "--cached", "HEAD")
+	if err != nil {
+		return nil, err
+	}
+
 	return diff, nil
 }
 

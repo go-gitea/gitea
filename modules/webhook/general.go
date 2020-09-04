@@ -119,6 +119,8 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 			linkFormatter(mileStoneLink, p.PullRequest.Milestone.Title), titleLink)
 	case api.HookIssueDemilestoned:
 		text = fmt.Sprintf("[%s] Pull request milestone cleared: %s", repoLink, titleLink)
+	case api.HookIssueReviewed:
+		text = fmt.Sprintf("[%s] Pull request reviewed: %s", repoLink, titleLink)
 	}
 	if withSender {
 		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName))

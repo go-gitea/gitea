@@ -38,5 +38,5 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 func TestRepoMigrate(t *testing.T) {
 	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoMigrate(t, session, "https://github.com/go-gitea/git.git", "git")
+	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
 }

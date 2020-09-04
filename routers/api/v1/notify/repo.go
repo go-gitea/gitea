@@ -11,8 +11,36 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
+
+func statusStringToNotificationStatus(status string) models.NotificationStatus {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "unread":
+		return models.NotificationStatusUnread
+	case "read":
+		return models.NotificationStatusRead
+	case "pinned":
+		return models.NotificationStatusPinned
+	default:
+		return 0
+	}
+}
+
+func statusStringsToNotificationStatuses(statuses []string, defaultStatuses []string) []models.NotificationStatus {
+	if len(statuses) == 0 {
+		statuses = defaultStatuses
+	}
+	results := make([]models.NotificationStatus, 0, len(statuses))
+	for _, status := range statuses {
+		notificationStatus := statusStringToNotificationStatus(status)
+		if notificationStatus > 0 {
+			results = append(results, notificationStatus)
+		}
+	}
+	return results
+}
 
 // ListRepoNotifications list users's notification threads on a specific repo
 func ListRepoNotifications(ctx *context.APIContext) {
@@ -39,6 +67,14 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	//   description: If true, show notifications marked as read. Default value is false
 	//   type: string
 	//   required: false
+	// - name: status-types
+	//   in: query
+	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread & pinned"
+	//   type: array
+	//   collectionFormat: multi
+	//   items:
+	//     type: string
+	//   required: false
 	// - name: since
 	//   in: query
 	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
@@ -57,7 +93,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -75,9 +111,10 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
 	}
-	qAll := strings.Trim(ctx.Query("all"), " ")
-	if qAll != "true" {
-		opts.Status = models.NotificationStatusUnread
+
+	if !ctx.QueryBool("all") {
+		statuses := ctx.QueryStrings("status-types")
+		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread", "pinned"})
 	}
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
@@ -97,7 +134,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 func ReadRepoNotifications(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/notifications notification notifyReadRepoList
 	// ---
-	// summary: Mark notification threads as read on a specific repo
+	// summary: Mark notification threads as read, pinned or unread on a specific repo
 	// consumes:
 	// - application/json
 	// produces:
@@ -113,6 +150,24 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: all
+	//   in: query
+	//   description: If true, mark all notifications on this repo. Default value is false
+	//   type: string
+	//   required: false
+	// - name: status-types
+	//   in: query
+	//   description: "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread."
+	//   type: array
+	//   collectionFormat: multi
+	//   items:
+	//     type: string
+	//   required: false
+	// - name: to-status
+	//   in: query
+	//   description: Status to mark notifications as. Defaults to read.
+	//   type: string
+	//   required: false
 	// - name: last_read_at
 	//   in: query
 	//   description: Describes the last point that notifications were checked. Anything updated since this time will not be updated.
@@ -135,11 +190,17 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 			lastRead = tmpLastRead.Unix()
 		}
 	}
+
 	opts := models.FindNotificationOptions{
 		UserID:            ctx.User.ID,
 		RepoID:            ctx.Repo.Repository.ID,
 		UpdatedBeforeUnix: lastRead,
-		Status:            models.NotificationStatusUnread,
+	}
+
+	if !ctx.QueryBool("all") {
+		statuses := ctx.QueryStrings("status-types")
+		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
+		log.Error("%v", opts.Status)
 	}
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
@@ -147,8 +208,13 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	if targetStatus == 0 {
+		targetStatus = models.NotificationStatusRead
+	}
+
 	for _, n := range nl {
-		err := models.SetNotificationStatus(n.ID, ctx.User, models.NotificationStatusRead)
+		err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

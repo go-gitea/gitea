@@ -47,6 +47,7 @@ type ServCommandResults struct {
 	KeyID       int64
 	KeyName     string
 	UserName    string
+	UserEmail   string
 	UserID      int64
 	OwnerName   string
 	RepoName    string

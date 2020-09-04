@@ -78,9 +78,9 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: onlyPrivate
+	// - name: is_private
 	//   in: query
-	//   description: only include private repositories this user has access to (defaults to false)
+	//   description: show only pubic, private or all repositories (defaults to all)
 	//   type: boolean
 	// - name: template
 	//   in: query
@@ -116,7 +116,7 @@ func Search(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -133,7 +133,6 @@ func Search(ctx *context.APIContext) {
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		OnlyPrivate:        ctx.IsSigned && ctx.QueryBool("onlyPrivate"),
 		Template:           util.OptionalBoolNone,
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
@@ -167,6 +166,10 @@ func Search(ctx *context.APIContext) {
 
 	if ctx.Query("archived") != "" {
 		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
+	}
+
+	if ctx.Query("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.QueryBool("is_private"))
 	}
 
 	var sortMode = ctx.Query("sort")
@@ -219,6 +222,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
@@ -712,6 +716,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			})
 		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		}
+	}
+
+	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
 		}
 	}
 

@@ -7,14 +7,29 @@
 				{{end}}
 				<a class="name" href="{{.Link}}">
 					{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 				</a>
-				{{if .IsPrivate}}
-					<span class="middle text gold">{{svg "octicon-lock" 16}}</span>
-				{{else if .IsFork}}
+				{{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
+				{{if .IsTemplate}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+						{{end}}
+					{{end}}
+				{{else}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+						{{end}}
+					{{end}}
+				{{end}}
+				{{if .IsFork}}
 					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
 				{{else if .IsMirror}}
-					<span class="middle">{{svg "octicon-repo-clone" 16}}</span>
+					<span class="middle">{{svg "octicon-mirror" 16}}</span>
 				{{end}}
 				<div class="ui right metas">
 					{{if .PrimaryLanguage }}

@@ -23,7 +23,7 @@ package merkletrie
 
 // # Cases
 //
-// When comparing noders in both trees you will found yourself in
+// When comparing noders in both trees you will find yourself in
 // one of 169 possible cases, but if we ignore moves, we can
 // simplify a lot the search space into the following table:
 //
@@ -256,17 +256,21 @@ import (
 )
 
 var (
+	// ErrCanceled is returned whenever the operation is canceled.
 	ErrCanceled = errors.New("operation canceled")
 )
 
 // DiffTree calculates the list of changes between two merkletries.  It
 // uses the provided hashEqual callback to compare noders.
-func DiffTree(fromTree, toTree noder.Noder,
-	hashEqual noder.Equal) (Changes, error) {
+func DiffTree(
+	fromTree,
+	toTree noder.Noder,
+	hashEqual noder.Equal,
+) (Changes, error) {
 	return DiffTreeContext(context.Background(), fromTree, toTree, hashEqual)
 }
 
-// DiffTree calculates the list of changes between two merkletries.  It
+// DiffTreeContext calculates the list of changes between two merkletries. It
 // uses the provided hashEqual callback to compare noders.
 // Error will be returned if context expires
 // Provided context must be non nil

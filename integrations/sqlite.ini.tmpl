@@ -29,12 +29,15 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2203
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-sqlite
+LFS_CONTENT_PATH = integrations/gitea-integration-sqlite/data
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-sqlite/data
 ENABLE_GZIP      = true
 BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+PATH = integrations/gitea-integration-sqlite/data
 
 [mailer]
 ENABLED     = true
@@ -52,11 +55,15 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-sqlite/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-sqlite/data/repo-avatars
+
 
 [session]
 PROVIDER = file
+PROVIDER_CONFIG = integrations/gitea-integration-sqlite/data/sessions
 
 [log]
 MODE                 = test,file

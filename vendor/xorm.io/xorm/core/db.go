@@ -12,8 +12,8 @@ import (
 	"reflect"
 	"regexp"
 	"sync"
-	"time"
 
+	"xorm.io/xorm/contexts"
 	"xorm.io/xorm/log"
 	"xorm.io/xorm/names"
 )
@@ -88,6 +88,7 @@ type DB struct {
 	reflectCache      map[reflect.Type]*cacheStruct
 	reflectCacheMutex sync.RWMutex
 	Logger            log.ContextLogger
+	hooks             contexts.Hooks
 }
 
 // Open opens a database
@@ -118,7 +119,7 @@ func (db *DB) NeedLogSQL(ctx context.Context) bool {
 		return false
 	}
 
-	v := ctx.Value("__xorm_show_sql")
+	v := ctx.Value(log.SessionShowSQLKey)
 	if showSQL, ok := v.(bool); ok {
 		return showSQL
 	}
@@ -140,26 +141,14 @@ func (db *DB) reflectNew(typ reflect.Type) reflect.Value {
 
 // QueryContext overwrites sql.DB.QueryContext
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*Rows, error) {
-	start := time.Now()
-	showSQL := db.NeedLogSQL(ctx)
-	if showSQL {
-		db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, query, args)
+	ctx, err := db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	rows, err := db.DB.QueryContext(ctx, query, args...)
-	if showSQL {
-		db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
-	if err != nil {
+	hookCtx.End(ctx, nil, err)
+	if err := db.afterProcess(hookCtx); err != nil {
 		if rows != nil {
 			rows.Close()
 		}
@@ -239,7 +228,7 @@ var (
 	re = regexp.MustCompile(`[?](\w+)`)
 )
 
-// ExecMapContext exec map with context.Context
+// ExecMapContext exec map with context.ContextHook
 // insert into (name) values (?)
 // insert into (name) values (?name)
 func (db *DB) ExecMapContext(ctx context.Context, query string, mp interface{}) (sql.Result, error) {
@@ -263,28 +252,42 @@ func (db *DB) ExecStructContext(ctx context.Context, query string, st interface{
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	start := time.Now()
-	showSQL := db.NeedLogSQL(ctx)
-	if showSQL {
-		db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, query, args)
+	ctx, err := db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	res, err := db.DB.ExecContext(ctx, query, args...)
-	if showSQL {
-		db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
+	hookCtx.End(ctx, res, err)
+	if err := db.afterProcess(hookCtx); err != nil {
+		return nil, err
 	}
-	return res, err
+	return res, nil
 }
 
 func (db *DB) ExecStruct(query string, st interface{}) (sql.Result, error) {
 	return db.ExecStructContext(context.Background(), query, st)
+}
+
+func (db *DB) beforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	if db.NeedLogSQL(c.Ctx) {
+		db.Logger.BeforeSQL(log.LogContext(*c))
+	}
+	ctx, err := db.hooks.BeforeProcess(c)
+	if err != nil {
+		return nil, err
+	}
+	return ctx, nil
+}
+
+func (db *DB) afterProcess(c *contexts.ContextHook) error {
+	err := db.hooks.AfterProcess(c)
+	if db.NeedLogSQL(c.Ctx) {
+		db.Logger.AfterSQL(log.LogContext(*c))
+	}
+	return err
+}
+
+func (db *DB) AddHook(h ...contexts.Hook) {
+	db.hooks.AddHook(h...)
 }

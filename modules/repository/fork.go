@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // ForkRepository forks a repository
@@ -36,7 +37,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 		LowerName:     strings.ToLower(name),
 		Description:   desc,
 		DefaultBranch: oldRepo.DefaultBranch,
-		IsPrivate:     oldRepo.IsPrivate,
+		IsPrivate:     oldRepo.IsPrivate || oldRepo.Owner.Visibility == structs.VisibleTypePrivate,
 		IsEmpty:       oldRepo.IsEmpty,
 		IsFork:        true,
 		ForkID:        oldRepo.ID,

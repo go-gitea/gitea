@@ -55,6 +55,7 @@ type Issue struct {
 	// type: string
 	// enum: open,closed
 	State    StateType `json:"state"`
+	IsLocked bool      `json:"is_locked"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`

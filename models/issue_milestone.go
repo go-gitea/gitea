@@ -183,6 +183,33 @@ func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
 	return err
 }
 
+// ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
+func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	m := &Milestone{
+		ID:     milestoneID,
+		RepoID: repoID,
+	}
+
+	has, err := sess.ID(milestoneID).Where("repo_id = ?", repoID).Get(m)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrMilestoneNotExist{ID: milestoneID, RepoID: repoID}
+	}
+
+	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	sess := x.NewSession()
@@ -191,20 +218,27 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 		return err
 	}
 
+	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func changeMilestoneStatus(e Engine, m *Milestone, isClosed bool) error {
 	m.IsClosed = isClosed
 	if isClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
-	if _, err := sess.ID(m.ID).Cols("is_closed", "closed_date_unix").Update(m); err != nil {
+	count, err := e.ID(m.ID).Where("repo_id = ? AND is_closed = ?", m.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
+	if err != nil {
 		return err
 	}
-
-	if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
-		return err
+	if count < 1 {
+		return nil
 	}
-
-	return sess.Commit()
+	return updateRepoMilestoneNum(e, m.RepoID)
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
@@ -330,41 +364,38 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesByRepoID returns all opened milestones of a repository.
-func GetMilestonesByRepoID(repoID int64, state api.StateType, listOptions ListOptions) (MilestoneList, error) {
-	sess := x.Where("repo_id = ?", repoID)
+// GetMilestonesOption contain options to get milestones
+type GetMilestonesOption struct {
+	ListOptions
+	RepoID   int64
+	State    api.StateType
+	Name     string
+	SortType string
+}
 
-	switch state {
+// GetMilestones returns milestones filtered by GetMilestonesOption's
+func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
+	sess := x.Where("repo_id = ?", opts.RepoID)
+
+	switch opts.State {
 	case api.StateClosed:
 		sess = sess.And("is_closed = ?", true)
-
 	case api.StateAll:
 		break
-
-	case api.StateOpen:
-		fallthrough
-
+	// api.StateOpen:
 	default:
 		sess = sess.And("is_closed = ?", false)
 	}
 
-	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+	if len(opts.Name) != 0 {
+		sess = sess.And(builder.Like{"name", opts.Name})
 	}
 
-	miles := make([]*Milestone, 0, listOptions.PageSize)
-	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
-}
-
-// GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
-	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	switch sortType {
+	switch opts.SortType {
 	case "furthestduedate":
 		sess.Desc("deadline_unix")
 	case "leastcomplete":
@@ -375,9 +406,13 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 		sess.Asc("num_issues")
 	case "mostissues":
 		sess.Desc("num_issues")
+	case "id":
+		sess.Asc("id")
 	default:
-		sess.Asc("deadline_unix")
+		sess.Asc("deadline_unix").Asc("id")
 	}
+
+	miles := make([]*Milestone, 0, opts.PageSize)
 	return miles, sess.Find(&miles)
 }
 

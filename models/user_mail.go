@@ -71,8 +71,8 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 // GetEmailAddressByID gets a user's email address by ID
 func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
-	email := &EmailAddress{ID: id, UID: uid}
-	if has, err := x.Get(email); err != nil {
+	email := &EmailAddress{UID: uid}
+	if has, err := x.ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -126,7 +126,7 @@ func isEmailUsed(e Engine, email string) (bool, error) {
 		return true, nil
 	}
 
-	return e.Get(&EmailAddress{Email: email})
+	return e.Where("email=?", email).Get(&EmailAddress{})
 }
 
 // IsEmailUsed returns true if the email has been used.
@@ -251,8 +251,8 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		return ErrEmailNotActivated
 	}
 
-	user := &User{ID: email.UID}
-	has, err = x.Get(user)
+	user := &User{}
+	has, err = x.ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {

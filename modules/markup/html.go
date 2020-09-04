@@ -65,10 +65,6 @@ var (
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
 	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
-
-	// find emoji literal: search all emoji hex range as many times as they appear as
-	// some emojis (skin color etc..) are just two or more chained together
-	emojiRegex = regexp.MustCompile(`[\x{1F000}-\x{1FFFF}|\x{2000}-\x{32ff}|\x{fe4e5}-\x{fe4ee}|\x{200D}|\x{FE0F}|\x{e0000}-\x{e007f}]+`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -485,6 +481,7 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Attr:     []html.Attribute{},
 	}
 	if class != "" {
+		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
 		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
 	}
 
@@ -922,8 +919,7 @@ func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 
 // emoji processor to match emoji and add emoji class
 func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emojiRegex.FindStringSubmatchIndex(node.Data)
-
+	m := emoji.FindEmojiSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}

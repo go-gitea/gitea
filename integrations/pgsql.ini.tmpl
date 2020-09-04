@@ -34,11 +34,14 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2202
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-pgsql
+LFS_CONTENT_PATH = integrations/gitea-integration-pgsql/data/lfs-pgsql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
 BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+PATH = integrations/gitea-integration-pgsql/data
 
 [mailer]
 ENABLED = true
@@ -57,12 +60,14 @@ NO_REPLY_ADDRESS                  = noreply.example.org
 ENABLE_NOTIFY_MAIL                = true
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-pgsql/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-pgsql/data/repo-avatars
 
 [session]
-PROVIDER = file
-PROVIDER_CONFIG = data/sessions-pgsql
+PROVIDER        = file
+PROVIDER_CONFIG = integrations/gitea-integration-pgsql/data/sessions
 
 [log]
 MODE                 = test,file

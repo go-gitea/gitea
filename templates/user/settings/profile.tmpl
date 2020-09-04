@@ -59,6 +59,13 @@
 					</div>
 
 				<div class="field">
+					<label for="keep-activity-private">{{.i18n.Tr "settings.privacy"}}</label>
+					<div class="ui checkbox" id="keep-activity-private">
+						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_activity_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_activity_private"}}</strong></label>
+						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+					</div>
+				</div>
+				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>

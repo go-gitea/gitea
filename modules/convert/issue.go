@@ -36,6 +36,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		Body:     issue.Content,
 		Labels:   ToLabelList(issue.Labels),
 		State:    issue.State(),
+		IsLocked: issue.IsLocked,
 		Comments: issue.NumComments,
 		Created:  issue.CreatedUnix.AsTime(),
 		Updated:  issue.UpdatedUnix.AsTime(),

@@ -103,7 +103,7 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 					OrigCommitID: comment.OldRef,
 					DiffHunk:     patch2diff(comment.Patch),
 					HTMLURL:      comment.HTMLURL(),
-					HTMLPullURL:  review.Issue.APIURL(),
+					HTMLPullURL:  review.Issue.HTMLURL(),
 				}
 
 				if comment.Line < 0 {

@@ -10,6 +10,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git-fixtures/v4 v4.0.1
 	github.com/google/go-cmp v0.3.0
+	github.com/imdario/mergo v0.3.9
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd

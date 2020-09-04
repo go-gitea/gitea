@@ -54,6 +54,10 @@ func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models
 func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 }
 
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func (*NullNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+}
+
 // NotifyUpdateComment places a place holder function
 func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }

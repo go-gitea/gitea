@@ -184,6 +184,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	}
 
 	ctx.Data["PageIsEdit"] = true
+	ctx.Data["PageHasPosted"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -339,7 +340,7 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	if diff.NumFiles() == 0 {
+	if diff.NumFiles == 0 {
 		ctx.PlainText(200, []byte(ctx.Tr("repo.editor.no_changes_to_show")))
 		return
 	}

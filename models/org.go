@@ -7,12 +7,12 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 	"xorm.io/builder"
@@ -305,14 +305,14 @@ func deleteOrg(e *xorm.Session, u *User) error {
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -435,7 +435,7 @@ func hasOrgVisible(e Engine, org *User, user *User) bool {
 		return true
 	}
 
-	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.isUserPartOfOrg(e, user.ID) {
+	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.hasMemberWithUserID(e, user.ID) {
 		return false
 	}
 	return true
@@ -717,7 +717,7 @@ func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 		Find(&teamIDs)
 }
 
-// TeamsWithAccessToRepo returns all teamsthat have given access level to the repository.
+// TeamsWithAccessToRepo returns all teams that have given access level to the repository.
 func (org *User) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
 	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
 }

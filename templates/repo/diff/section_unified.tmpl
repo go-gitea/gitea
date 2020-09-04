@@ -1,66 +1,77 @@
 {{$file := .file}}
-{{$highlightClass := $file.GetHighlightClass}}
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
-		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
-			{{if eq .GetType 4}}
-				<td colspan="2" class="lines-num">
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-					<i class="ui blob-excerpt fa fa-caret-down" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
+		{{if or $.root.AfterCommitID (ne .GetType 4)}}
+			<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+				{{if eq .GetType 4}}
+					<td colspan="2" class="lines-num">
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+								{{svg "octicon-fold-down" 16}}
+							</a>
+						{{end}}
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+								{{svg "octicon-fold-up" 16}}
+							</a>
+						{{end}}
+						{{if eq $line.GetExpandDirection 2}}
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+								{{svg "octicon-fold" 16}}
+							</a>
+						{{end}}
+					</td>
+				{{else}}
+					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
+					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-					<i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
+				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
+				{{if eq .GetType 4}}
+					<td class="chroma lines-code blob-hunk"><span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+				{{else}}
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
 				{{end}}
-				{{if eq $line.GetExpandDirection 2}}
-					<span class="ui blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">{{svg "octicon-fold" 16}}</span>
-				{{end}}
-				</td>
-			{{else}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
-			{{end}}
-			<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-			<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</span></td>
-		</tr>
-		{{if gt (len $line.Comments) 0}}
-			{{$resolved := (index $line.Comments 0).IsResolved}}
-			{{$resolveDoer := (index $line.Comments 0).ResolveDoer}}
-			{{$isNotPending := (not (eq (index $line.Comments 0).Review.Type 0))}}
-		<tr>
-			<td colspan="2" class="lines-num"></td>
-			<td class="add-comment-left add-comment-right" colspan="2">
-				{{if $resolved}}
-					<div class = "ui attached header">
-						<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-						<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
-							{{svg "octicon-unfold" 16}}
-								{{$.root.i18n.Tr "repo.issues.review.show_resolved"}}
-						</button>
-						<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
-							{{svg "octicon-fold" 16}}
-							{{$.root.i18n.Tr "repo.issues.review.hide_resolved"}}
-						</button>
-					</div>
-				{{end}}
-				<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
-					<div class="comment-list">
-						<ui class="ui comments">
-						{{ template "repo/diff/comments" dict "root" $.root "comments" $line.Comments}}
-						</ui>
-					</div>
-					{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $line.Comments 0).ReviewID "root" $.root "comment" (index $line.Comments 0)}}
-					{{if and $.root.CanMarkConversation $isNotPending}}
-						<button class="ui icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.root.RepoLink}}/issues/resolve_conversation" >
-							{{if $resolved}}
-								{{$.root.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
-							{{else}}
-								{{$.root.i18n.Tr "repo.issues.review.resolve_conversation"}}
+			</tr>
+			{{if gt (len $line.Comments) 0}}
+				{{$resolved := (index $line.Comments 0).IsResolved}}
+				{{$resolveDoer := (index $line.Comments 0).ResolveDoer}}
+				{{$isNotPending := (not (eq (index $line.Comments 0).Review.Type 0))}}
+				<tr>
+					<td colspan="2" class="lines-num"></td>
+					<td class="add-comment-left add-comment-right" colspan="2">
+						{{if $resolved}}
+							<div class = "ui attached header">
+								<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>
+								<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+									{{svg "octicon-unfold" 16}}
+									{{$.root.i18n.Tr "repo.issues.review.show_resolved"}}
+								</button>
+								<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									{{svg "octicon-fold" 16}}
+									{{$.root.i18n.Tr "repo.issues.review.hide_resolved"}}
+								</button>
+							</div>
+						{{end}}
+						<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
+							<div class="comment-list">
+								<ui class="ui comments">
+									{{ template "repo/diff/comments" dict "root" $.root "comments" $line.Comments}}
+								</ui>
+							</div>
+							{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $line.Comments 0).ReviewID "root" $.root "comment" (index $line.Comments 0)}}
+							{{if and $.root.CanMarkConversation $isNotPending}}
+								<button class="ui icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.root.RepoLink}}/issues/resolve_conversation" >
+									{{if $resolved}}
+										{{$.root.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
+									{{else}}
+										{{$.root.i18n.Tr "repo.issues.review.resolve_conversation"}}
+									{{end}}
+								</button>
 							{{end}}
-						</button>
-					{{end}}
-				</div>
-			</td>
-		</tr>
+						</div>
+					</td>
+				</tr>
+			{{end}}
 		{{end}}
 	{{end}}
 {{end}}

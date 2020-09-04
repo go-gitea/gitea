@@ -51,7 +51,7 @@ var (
 	}
 )
 
-// GetDBTypeByName returns the dataase type as it defined on XORM according the given name
+// GetDBTypeByName returns the database type as it defined on XORM according the given name
 func GetDBTypeByName(name string) string {
 	return dbTypes[name]
 }
@@ -60,11 +60,13 @@ func GetDBTypeByName(name string) string {
 func InitDBConfig() {
 	sec := Cfg.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
+	defaultCharset := "utf8"
 	switch Database.Type {
 	case "sqlite3":
 		Database.UseSQLite3 = true
 	case "mysql":
 		Database.UseMySQL = true
+		defaultCharset = "utf8mb4"
 	case "postgres":
 		Database.UsePostgreSQL = true
 	case "mssql":
@@ -78,7 +80,7 @@ func InitDBConfig() {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
+	Database.Charset = sec.Key("CHARSET").In(defaultCharset, []string{"utf8", "utf8mb4"})
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
@@ -105,7 +107,7 @@ func DBConnStr() (string, error) {
 	switch Database.Type {
 	case "mysql":
 		connType := "tcp"
-		if Database.Host[0] == '/' { // looks like a unix socket
+		if len(Database.Host) > 0 && Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
 		}
 		tls := Database.SSLMode
@@ -163,7 +165,7 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 
 // ParseMSSQLHostPort splits the host into host and port
 func ParseMSSQLHostPort(info string) (string, string) {
-	host, port := "127.0.0.1", "1433"
+	host, port := "127.0.0.1", "0"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
 		port = strings.Split(info, ":")[1]

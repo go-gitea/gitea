@@ -115,7 +115,7 @@ func fileContent(f *File) (content string, isBinary bool, err error) {
 	return
 }
 
-// textPatch is an implementation of fdiff.Patch interface
+// Patch is an implementation of fdiff.Patch interface
 type Patch struct {
 	message     string
 	filePatches []fdiff.FilePatch

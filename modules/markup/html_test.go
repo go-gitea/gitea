@@ -208,7 +208,7 @@ func TestRender_email(t *testing.T) {
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
-		`<p>“info@gitea.com”</p>`)
+		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
@@ -255,7 +255,7 @@ func TestRender_emoji(t *testing.T) {
 	//Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
-		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
 
 	test(
 		"Some text with 😄 in the middle",
@@ -263,6 +263,12 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		"Some text with :smile: in the middle",
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with 😄😄 2 emoji next to each other",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+	test(
+		"😎🤪🔐🤑❓",
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
 
 	// should match nothing
 	test(

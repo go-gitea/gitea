@@ -21,7 +21,7 @@
 				<a class="item" data-tab="preview">{{.i18n.Tr "preview"}}</a>
 			</div>
 			<div class="field">
-				<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/wiki" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
+				<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
 			</div>
 			<div class="field">
 				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">
