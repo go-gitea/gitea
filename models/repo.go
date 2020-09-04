@@ -1658,6 +1658,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	if repo.IsPrivate {
+		if _, err = sess.Exec("UPDATE `user` SET num_private_repos=num_private_repos-1 WHERE id=?", uid); err != nil {
+			return err
+		}
+	}
+
 	if len(repo.Topics) > 0 {
 		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
 			return err
