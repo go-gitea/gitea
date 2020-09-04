@@ -151,8 +151,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	if !ctx.User.CanCreateRepo() {
+	if ctx.Data["private"] == false && !ctx.User.CanCreateRepo() {
 		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
+	} else if ctx.Data["private"] == true && !ctx.User.CanCreatePrivateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_private_creation", ctx.User.MaxPrivateCreationLimit()), tplCreate, nil)
 	} else {
 		ctx.HTML(200, tplCreate)
 	}
@@ -162,6 +164,8 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
+	case models.IsErrReachLimitOfPrivateRepo(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_private_creation", owner.MaxPrivateCreationLimit()), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
@@ -289,6 +293,8 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
+	case models.IsErrReachLimitOfPrivateRepo(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_private_creation", owner.MaxPrivateCreationLimit()), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
