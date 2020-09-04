@@ -1,0 +1,183 @@
+---
+date: "2016-12-01T16:00:00+02:00"
+title: "Установка с source"
+slug: "install-from-source"
+weight: 10
+toc: true
+draft: false
+menu:
+  sidebar:
+    parent: "installation"
+    name: "Из source"
+    weight: 30
+    identifier: "install-from-source"
+---
+
+# Установка из source
+
+Вам следует [установить go](https://golang.org/doc/install) и установить окружающую среду go
+правильно. В частности, рекомендуется установить `$GOPATH`
+переменную среды и добавить каталог или каталоги go bin
+`${GOPATH//://bin:}/bin` в `$PATH`. См. Запись в вики Go для
+[GOPATH](https://github.com/golang/go/wiki/GOPATH).
+
+Далее [устанавливаем Node.js с npm](https://nodejs.org/en/download/) который
+требуется для создания файлов JavaScript и CSS. Минимальная поддерживаемая версия Node.js
+это {{< min-node-version >}} и рекомендуется последняя версия LTS.
+
+**Примечание**: При выполнении задач make, требующих внешних инструментов, например
+`make misspell-check`, Gitea автоматически загрузит и соберёт их как
+нужно. Чтобы использовать их, вы должны иметь каталог `"$GOPATH/bin"`
+по пути к исполняемому файлу. Если вы не добавите каталог go bin в
+исполняемый файл, вам придётся управлять им самостоятельно.
+
+**Примечание 2**: Go версии {{< min-go-version >}} или выше требуется. Однако рекомендуется
+иметь ту же версию, что и наша непрерывная интеграция, см. совет, данный в
+<a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
+Gitea</a>
+
+## Скачивание
+
+Во-первых, мы должны получить исходный код. С появлением модулей go
+самый простой способ сделать это - использовать git напрямую, так как нам больше не нужно
+gitea, созданная внутри GOPATH.
+
+```bash
+git clone https://github.com/go-gitea/gitea
+```
+
+(Предыдущие версии этого документа рекомендовали использовать `go get`. Это
+больше не нужно.)
+
+Решите, какую версию Gitea собрать и установить. В настоящее время есть
+несколько вариантов на выбор. В branch'е `master` представляет текущую
+версию в разработке. Чтобы построить с master'ом, перейдите к [разделу сборки](#build).
+
+Для работы с помеченными релизами можно использовать следующие команды:
+
+```bash
+git branch -a
+git checkout v{{< version >}}
+```
+
+Чтобы проверить Pull Request, сначала включите новую branch'а (`xyz` в PR id;
+например `2663` для [#2663](https://github.com/go-gitea/gitea/pull/2663)):
+
+```bash
+git fetch origin pull/xyz/head:pr-xyz
+```
+
+Чтобы собрать Gitea из исходного кода в конкретном релизе с тегами (как v{{< version >}}), перечислите
+доступные теги и проверьте конкретный тег.
+
+Перечислить доступные теги следующим образом.
+
+```bash
+git tag -l
+git checkout v{{< version >}}  # or git checkout pr-xyz
+```
+
+## Сборка
+
+To build from source, the following programs must be present on the system:
+
+- `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
+- `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
+- `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
+
+Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
+are provided to keep the build process as simple as possible.
+
+Depending on requirements, the following build tags can be included.
+
+* `bindata`: Build a single monolithic binary, with all assets included.
+* `sqlite sqlite_unlock_notify`: Enable support for a
+  [SQLite3](https://sqlite.org/) database. Suggested only for tiny
+  installations.
+* `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
+  be used to authenticate local users or extend authentication to methods
+  available to PAM.
+
+Bundling assets into the binary using the `bindata` build tag is recommended for
+production deployments. It is possible to serve the static assets directly via a reverse proxy,
+but in most cases it is not necessary, and assets should still be bundled in the binary.
+You may want to exclude bindata while developing/testing Gitea.
+To include assets, add the `bindata` tag:
+
+```bash
+TAGS="bindata" make build
+```
+
+In the default release build of our continuous integration system, the build
+tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
+recommended way to build from source is therefore:
+
+```bash
+TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+The `build` target is split into two sub-targets:
+
+- `make backend` which requires [Go {{< min-go-version >}}](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js {{< min-node-version >}}](https://nodejs.org/en/download/) or greater.
+
+If pre-built frontend files are present it is possible to only build the backend:
+
+```bash
+TAGS="bindata" make backend
+```
+
+## Test
+
+After following the steps above, a `gitea` binary will be available in the working directory.
+It can be tested from this directory or moved to a directory with test data. When Gitea is
+launched manually from command line, it can be killed by pressing `Ctrl + C`.
+
+```bash
+./gitea web
+```
+
+## Changing default paths
+
+Gitea will search for a number of things from the `CustomPath`. By default this is
+the `custom/` directory in the current working directory when running Gitea. It will also
+look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
+current working directory as the relative base path `AppWorkPath` for a number configurable
+values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
+
+These values, although useful when developing, may conflict with downstream users preferences.
+
+One option is to use a script file to shadow the `gitea` binary and create an appropriate
+environment before running Gitea. However, when building you can change these defaults
+using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
+
+* To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+* For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+* For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+* To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+
+Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
+with the appropriate `TAGS` as above.
+
+Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+
+## Cross Build
+
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+
+To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
+
+Cross-build Gitea for Linux ARM64, without any tags:
+
+```
+GOOS=linux GOARCH=arm64 make build
+```
+
+Cross-build Gitea for Linux ARM64, with recommended build tags:
+
+```
+CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
