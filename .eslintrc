@@ -13,9 +13,7 @@ plugins:
   - eslint-plugin-import
 
 env:
-  browser: true
-  es6: true
-  jquery: true
+  es2021: true
   node: true
 
 globals:
@@ -24,9 +22,13 @@ globals:
   Dropzone: false
   SimpleMDE: false
   u2fApi: false
-  Tribute: false
 
 overrides:
+  - files: ["web_src/**/*.js"]
+    env:
+      browser: true
+      jquery: true
+      node: false
   - files: ["web_src/**/*worker.js"]
     env:
       worker: true

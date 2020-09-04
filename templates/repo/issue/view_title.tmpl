@@ -31,18 +31,18 @@
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			{{if .Issue.OriginalAuthor }}
 				{{.Issue.OriginalAuthor}}
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
 			{{else}}
 				<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}</span>
 			{{else}}
 				<span id="pull-desc" class="pull-desc">
 				 <a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}
+				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}
 			    </span>
 			{{end}}
 			<span id="pull-desc-edit" style="display: none">
