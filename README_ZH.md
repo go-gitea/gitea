@@ -1,5 +1,5 @@
-[English](README.md)
-[Русский](README_RU.md)
+<a href="README.md"><img width="20px" src="https://image.flaticon.com/icons/svg/197/197374.svg" />
+<a href="README_RU.md"><img width="20px" src="https://image.flaticon.com/icons/svg/197/197408.svg" />
 
 <h1> <img src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea-192.png" alt="logo" width="30" height="30"> Gitea - Git with a cup of tea</h1>
 
