@@ -13617,6 +13617,11 @@
           "type": "string",
           "x-go-name": "RepoName"
         },
+        "repo_owner": {
+          "description": "Name of User or Organisation who will own Repo after migration",
+          "type": "string",
+          "x-go-name": "RepoOwner"
+        },
         "service": {
           "type": "string",
           "enum": [
@@ -13628,10 +13633,10 @@
           "x-go-name": "Service"
         },
         "uid": {
-          "description": "ID of repo owner, if not set current user is used",
+          "description": "deprecated (only for backwards compatibility)",
           "type": "integer",
           "format": "int64",
-          "x-go-name": "RepoOwner"
+          "x-go-name": "RepoOwnerID"
         },
         "wiki": {
           "type": "boolean",

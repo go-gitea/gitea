@@ -47,21 +47,25 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	repoOwner := ctx.User
-
-	// Not equal means context user is an organization,
-	// or is another user/organization if current user is admin.
-	if form.RepoOwner != 0 && form.RepoOwner != repoOwner.ID {
-		org, err := models.GetUserByID(form.RepoOwner)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
-			}
-			return
+	//get repoOwner
+	var (
+		repoOwner *models.User
+		err       error
+	)
+	if len(form.RepoOwner) != 0 {
+		repoOwner, err = models.GetUserByName(form.RepoOwner)
+	} else if form.RepoOwnerID != 0 {
+		repoOwner, err = models.GetUserByID(form.RepoOwnerID)
+	} else {
+		repoOwner = ctx.User
+	}
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetUser", err)
 		}
-		repoOwner = org
+		return
 	}
 
 	if ctx.HasError() {

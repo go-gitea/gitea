@@ -317,9 +317,9 @@ func TestAPIRepoMigrate(t *testing.T) {
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
-			CloneAddr: testCase.cloneURL,
-			RepoOwner: testCase.userID,
-			RepoName:  testCase.repoName,
+			CloneAddr:   testCase.cloneURL,
+			RepoOwnerID: testCase.userID,
+			RepoName:    testCase.repoName,
 		})
 		resp := MakeRequest(t, req, NoExpectedStatus)
 		if resp.Code == http.StatusUnprocessableEntity {
@@ -361,9 +361,9 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+httpContext.Token,
 			&api.MigrateRepoOptions{
-				CloneAddr: cloneURL,
-				RepoOwner: userID,
-				RepoName:  httpContext.Reponame,
+				CloneAddr:   cloneURL,
+				RepoOwnerID: userID,
+				RepoName:    httpContext.Reponame,
 			})
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}

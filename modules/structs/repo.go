@@ -239,8 +239,10 @@ func (gt GitServiceType) Title() string {
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// ID of repo owner, if not set current user is used
-	RepoOwner int64 `json:"uid"`
+	// deprecated (only for backwards compatibility)
+	RepoOwnerID int64 `json:"uid"`
+	// Name of User or Organisation who will own Repo after migration
+	RepoOwner string `json:"repo_owner"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
