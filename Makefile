@@ -155,6 +155,7 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
@@ -315,6 +316,10 @@ lint-frontend: node_modules
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
+
+.PHONY: watch
+watch:
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules

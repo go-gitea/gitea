@@ -94,14 +94,10 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 
 ## Building continuously
 
-Both the `frontend` and `backend` targets can be ran continuously when source files change:
+To run and continously rebuild when source files change:
 
 ````bash
-# in your first terminal
-make watch-backend
-
-# in your second terminal
-make watch-frontend
+make watch
 ````
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
