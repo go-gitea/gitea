@@ -520,39 +520,40 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 }
 
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
+	templateCandidates := make([]string, 0, len(possibleFiles))
 	if ctx.Query("template") != "" {
 		for _, dirName := range possibleDirs {
-			templateContent, found := getFileContentFromDefaultBranch(ctx, path.Join(dirName, ctx.Query("template")))
-			if found {
-				var meta api.IssueTemplate
-				if templateBody, err := markdown.ExtractMetadata(templateContent, &meta); err == nil {
-					ctx.Data[issueTemplateTitleKey] = meta.Title
-					ctx.Data[ctxDataKey] = templateBody
-					labelIDs := make([]string, 0, len(meta.Labels))
-					if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
-						for _, labelName := range meta.Labels {
-							for _, repoLabel := range repoLabels {
-								if strings.EqualFold(repoLabel.Name, labelName) {
-									repoLabel.IsChecked = true
-									labelIDs = append(labelIDs, fmt.Sprintf("%d", repoLabel.ID))
-									break
-								}
-							}
-						}
-						ctx.Data["Labels"] = repoLabels
-					}
-					ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
-					ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-					return
-				}
-				// If err, fall back to default template if it exists?
-			}
+			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.Query("template")))
 		}
 	}
-	for _, filename := range possibleFiles {
-		content, found := getFileContentFromDefaultBranch(ctx, filename)
+	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
+	for _, filename := range templateCandidates {
+		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
 		if found {
-			ctx.Data[ctxDataKey] = content
+			var meta api.IssueTemplate
+			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
+			if err != nil {
+				log.Debug("could not extract metadata from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
+				ctx.Data[ctxDataKey] = templateContent
+				return
+			}
+			ctx.Data[issueTemplateTitleKey] = meta.Title
+			ctx.Data[ctxDataKey] = templateBody
+			labelIDs := make([]string, 0, len(meta.Labels))
+			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
+				for _, metaLabel := range meta.Labels {
+					for _, repoLabel := range repoLabels {
+						if strings.EqualFold(repoLabel.Name, metaLabel) {
+							repoLabel.IsChecked = true
+							labelIDs = append(labelIDs, fmt.Sprintf("%d", repoLabel.ID))
+							break
+						}
+					}
+				}
+				ctx.Data["Labels"] = repoLabels
+			}
+			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
+			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 			return
 		}
 	}

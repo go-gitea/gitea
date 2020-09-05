@@ -5,6 +5,7 @@
 package markdown
 
 import (
+	"errors"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -35,6 +36,10 @@ func ExtractMetadata(contents string, out interface{}) (string, error) {
 			seps++
 			continue
 		}
+	}
+
+	if len(front) == 0 && len(body) == 0 {
+		return "", errors.New("could not determine metadata")
 	}
 
 	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), out); err != nil {
