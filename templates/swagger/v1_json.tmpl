@@ -8672,6 +8672,23 @@
         }
       }
     },
+    "/settings/Attachment": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for Attachment",
+        "operationId": "getGeneralAttachmentSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAttachmentSettings"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -13021,6 +13038,31 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GeneralAttachmentSettings": {
+      "description": "GeneralAttachmentSettings contains global Attachment settings exposed by API",
+      "type": "object",
+      "properties": {
+        "allowed_types": {
+          "type": "string",
+          "x-go-name": "AllowedTypes"
+        },
+        "enabled": {
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        },
+        "max_files": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxFiles"
+        },
+        "max_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxSize"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GeneralRepoSettings": {
       "description": "GeneralRepoSettings contains global repository settings exposed by API",
       "type": "object",
@@ -15245,6 +15287,12 @@
       "description": "GeneralAPISettings",
       "schema": {
         "$ref": "#/definitions/GeneralAPISettings"
+      }
+    },
+    "GeneralAttachmentSettings": {
+      "description": "GeneralAttachmentSettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralAttachmentSettings"
       }
     },
     "GeneralRepoSettings": {
