@@ -357,21 +357,18 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		return sess.Where("uid=?", reviewer.ID).In("team_id", protectedBranch.ApprovalsWhitelistTeamIDs).Exist(new(TeamUser))
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `enable_whitelist` = ? WHERE enable_whitelist IS NULL", false); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `enable_whitelist` = ? WHERE enable_whitelist IS NULL", false); err != nil {
 		return err
 	}
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `can_push` = `enable_whitelist`"); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `can_push` = `enable_whitelist`"); err != nil {
 		return err
 	}
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `enable_approvals_whitelist` = ? WHERE `required_approvals` > ?", true, 0); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `enable_approvals_whitelist` = ? WHERE `required_approvals` > ?", true, 0); err != nil {
 		return err
 	}
 
 	var pageSize int64 = 20
-	qresult, err := sess.QueryInterface("SELECT max(id) as max_id FROM issue")
+	qresult, err := x.QueryInterface("SELECT max(id) as max_id FROM issue")
 	if err != nil {
 		return err
 	}
@@ -385,8 +382,15 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 	// Find latest review of each user in each pull request, and set official field if appropriate
 	reviews := []*Review{}
-	var page int64
-	for page = 0; page <= totalPages; page++ {
+
+	var executeBody = func(page, pageSize int64) error {
+		sess := x.NewSession()
+		defer sess.Close()
+
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+
 		if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
 			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
 			Find(&reviews); err != nil {
@@ -413,7 +417,15 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			}
 		}
 
+		return sess.Commit()
 	}
 
-	return sess.Commit()
+	var page int64
+	for page = 0; page <= totalPages; page++ {
+		if err := executeBody(page, pageSize); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
