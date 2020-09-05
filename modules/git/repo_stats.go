@@ -66,9 +66,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		args = append(args, "--first-parent", branch)
 	}
 
+	stderr := new(strings.Builder)
 	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
-		stdoutWriter, nil, nil,
+		stdoutWriter, stderr, nil,
 		func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 
@@ -145,7 +146,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			return nil
 		})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
 
 	return stats, nil
