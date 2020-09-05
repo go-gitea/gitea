@@ -26,7 +26,7 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.15.x
-MIN_GO_VERSION := 001012000
+MIN_GO_VERSION := 001013000
 MIN_NODE_VERSION := 010013000
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -155,6 +155,7 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
@@ -186,7 +187,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.13 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -315,6 +316,10 @@ lint-frontend: node_modules
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
+
+.PHONY: watch
+watch:
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
