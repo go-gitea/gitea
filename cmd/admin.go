@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -265,7 +266,7 @@ func runChangePassword(c *cli.Context) error {
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
-	pwned, err := pwd.IsPwned(c.String("password"))
+	pwned, err := pwd.IsPwned(context.Background(), c.String("password"))
 	if err != nil {
 		return err
 	}

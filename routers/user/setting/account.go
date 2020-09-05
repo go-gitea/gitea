@@ -54,7 +54,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
 		ctx.Flash.Error(password.BuildComplexityError(ctx))
-	} else if pwned, err := password.IsPwned(form.Password); pwned || err != nil {
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), form.Password); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
 			log.Error(err.Error())

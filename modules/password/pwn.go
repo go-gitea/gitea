@@ -5,6 +5,8 @@
 package password
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	"go.jolheiser.com/pwn"
@@ -12,12 +14,12 @@ import (
 
 // IsPwned checks whether a password has been pwned too many times
 // according to threshold
-func IsPwned(password string) (bool, error) {
+func IsPwned(ctx context.Context, password string) (bool, error) {
 	if !setting.PasswordCheckPwn {
 		return false, nil
 	}
 
-	client := pwn.New()
+	client := pwn.New(pwn.WithContext(ctx))
 	count, err := client.CheckPassword(password, true)
 	if err != nil {
 		return true, err

@@ -1110,7 +1110,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
 		return
 	}
-	pwned, err := password.IsPwned(form.Password)
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
 	if pwned {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
@@ -1420,7 +1420,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
-	} else if pwned, err := password.IsPwned(passwd); pwned || err != nil {
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
 			log.Error(err.Error())

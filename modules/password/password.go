@@ -6,6 +6,7 @@ package password
 
 import (
 	"bytes"
+	goContext "context"
 	"crypto/rand"
 	"math/big"
 	"strings"
@@ -101,7 +102,7 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		pwned, err := IsPwned(string(buffer))
+		pwned, err := IsPwned(goContext.Background(), string(buffer))
 		if err != nil {
 			return "", err
 		}
