@@ -51,14 +51,18 @@ type MatrixPayloadUnsafe struct {
 	AccessToken string `json:"access_token"`
 }
 
+var (
+	_ PayloadConvertor = &MatrixPayloadUnsafe{}
+)
+
 // safePayload "converts" a unsafe payload to a safe payload
-func (p *MatrixPayloadUnsafe) safePayload() *MatrixPayloadSafe {
+func (m *MatrixPayloadUnsafe) safePayload() *MatrixPayloadSafe {
 	return &MatrixPayloadSafe{
-		Body:          p.Body,
-		MsgType:       p.MsgType,
-		Format:        p.Format,
-		FormattedBody: p.FormattedBody,
-		Commits:       p.Commits,
+		Body:          m.Body,
+		MsgType:       m.MsgType,
+		Format:        m.Format,
+		FormattedBody: m.FormattedBody,
+		Commits:       m.Commits,
 	}
 }
 
@@ -72,11 +76,11 @@ type MatrixPayloadSafe struct {
 }
 
 // SetSecret sets the Matrix secret
-func (p *MatrixPayloadUnsafe) SetSecret(_ string) {}
+func (m *MatrixPayloadUnsafe) SetSecret(_ string) {}
 
 // JSONPayload Marshals the MatrixPayloadUnsafe to json
-func (p *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
@@ -101,51 +105,56 @@ func MatrixLinkToRef(repoURL, ref string) string {
 	}
 }
 
-func getMatrixCreatePayload(p *api.CreatePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Create implements PayloadConvertor Create method
+func (m *MatrixPayloadUnsafe) Create(p *api.CreatePayload) (api.Payloader, error) {
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	refLink := MatrixLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, p.Sender.UserName)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-// getMatrixDeletePayload composes Matrix payload for delete a branch or tag.
-func getMatrixDeletePayload(p *api.DeletePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Delete composes Matrix payload for delete a branch or tag.
+func (m *MatrixPayloadUnsafe) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-// getMatrixForkPayload composes Matrix payload for forked by a repository.
-func getMatrixForkPayload(p *api.ForkPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Fork composes Matrix payload for forked by a repository.
+func (m *MatrixPayloadUnsafe) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	baseLink := MatrixLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
 	forkLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixIssuesPayload(p *api.IssuePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Issue implements PayloadConvertor Issue method
+func (m *MatrixPayloadUnsafe) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, _, _ := getIssuesPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixIssueCommentPayload(p *api.IssueCommentPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (m *MatrixPayloadUnsafe) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, _, _ := getIssueCommentPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixReleasePayload(p *api.ReleasePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Release implements PayloadConvertor Release method
+func (m *MatrixPayloadUnsafe) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Push implements PayloadConvertor Push method
+func (m *MatrixPayloadUnsafe) Push(p *api.PushPayload) (api.Payloader, error) {
 	var commitDesc string
 
 	if len(p.Commits) == 1 {
@@ -168,16 +177,18 @@ func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloa
 
 	}
 
-	return getMatrixPayloadUnsafe(text, p.Commits, matrix), nil
+	return getMatrixPayloadUnsafe(text, p.Commits, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixPullRequestPayload(p *api.PullRequestPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (m *MatrixPayloadUnsafe) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, _, _, _ := getPullRequestPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixPullRequestApprovalPayload(p *api.PullRequestPayload, matrix *MatrixMeta, event models.HookEventType) (*MatrixPayloadUnsafe, error) {
+// Review implements PayloadConvertor Review method
+func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
@@ -194,10 +205,11 @@ func getMatrixPullRequestApprovalPayload(p *api.PullRequestPayload, matrix *Matr
 		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
 	}
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
-func getMatrixRepositoryPayload(p *api.RepositoryPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+// Repository implements PayloadConvertor Repository method
+func (m *MatrixPayloadUnsafe) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
@@ -209,11 +221,11 @@ func getMatrixRepositoryPayload(p *api.RepositoryPayload, matrix *MatrixMeta) (*
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
 	}
 
-	return getMatrixPayloadUnsafe(text, nil, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayloadUnsafe
-func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) (*MatrixPayloadUnsafe, error) {
+func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(MatrixPayloadUnsafe)
 
 	matrix := &MatrixMeta{}
@@ -221,44 +233,19 @@ func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) 
 		return s, errors.New("GetMatrixPayload meta json:" + err.Error())
 	}
 
-	switch event {
-	case models.HookEventCreate:
-		return getMatrixCreatePayload(p.(*api.CreatePayload), matrix)
-	case models.HookEventDelete:
-		return getMatrixDeletePayload(p.(*api.DeletePayload), matrix)
-	case models.HookEventFork:
-		return getMatrixForkPayload(p.(*api.ForkPayload), matrix)
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getMatrixIssuesPayload(p.(*api.IssuePayload), matrix)
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getMatrixIssueCommentPayload(pl, matrix)
-		}
-		return getMatrixPullRequestPayload(p.(*api.PullRequestPayload), matrix)
-	case models.HookEventPush:
-		return getMatrixPushPayload(p.(*api.PushPayload), matrix)
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getMatrixPullRequestPayload(p.(*api.PullRequestPayload), matrix)
-	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
-		return getMatrixPullRequestApprovalPayload(p.(*api.PullRequestPayload), matrix, event)
-	case models.HookEventRepository:
-		return getMatrixRepositoryPayload(p.(*api.RepositoryPayload), matrix)
-	case models.HookEventRelease:
-		return getMatrixReleasePayload(p.(*api.ReleasePayload), matrix)
-	}
+	s.AccessToken = matrix.AccessToken
+	s.MsgType = messageTypeText[matrix.MessageType]
 
-	return s, nil
+	return convertPayloader(s, p, event)
 }
 
-func getMatrixPayloadUnsafe(text string, commits []*api.PayloadCommit, matrix *MatrixMeta) *MatrixPayloadUnsafe {
+func getMatrixPayloadUnsafe(text string, commits []*api.PayloadCommit, accessToken, msgType string) *MatrixPayloadUnsafe {
 	p := MatrixPayloadUnsafe{}
-	p.AccessToken = matrix.AccessToken
+	p.AccessToken = accessToken
 	p.FormattedBody = text
 	p.Body = getMessageBody(text)
 	p.Format = "org.matrix.custom.html"
-	p.MsgType = messageTypeText[matrix.MessageType]
+	p.MsgType = msgType
 	p.Commits = commits
 	return &p
 }
