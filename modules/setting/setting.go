@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
-	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
@@ -486,12 +485,12 @@ func CheckLFSVersion() {
 		//Disable LFS client hooks if installed for the current OS user
 		//Needs at least git v2.1.2
 
-		binVersion, err := git.BinVersion()
+		err := git.LoadGitVersion()
 		if err != nil {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if !version.Compare(binVersion, "2.1.2", ">=") {
+		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
 			LFS.StartServer = false
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {
@@ -860,7 +859,7 @@ func NewContext() {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)

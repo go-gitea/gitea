@@ -21,51 +21,69 @@ import (
 	"github.com/go-swagger/go-swagger/generator"
 )
 
+type operationOptions struct {
+	Operations []string `long:"operation" short:"O" description:"specify an operation to include, repeat for multiple (defaults to all)"`
+	Tags       []string `long:"tags" description:"the tags to include, if not specified defaults to all" group:"operations"`
+	APIPackage string   `long:"api-package" short:"a" description:"the package to save the operations" default:"operations"`
+	WithEnumCI bool     `long:"with-enum-ci" description:"allow case-insensitive enumerations"`
+
+	// tags handling
+	SkipTagPackages bool `long:"skip-tag-packages" description:"skips the generation of tag-based operation packages, resulting in a flat generation"`
+}
+
+func (oo operationOptions) apply(opts *generator.GenOpts) {
+	opts.Operations = oo.Operations
+	opts.Tags = oo.Tags
+	opts.APIPackage = oo.APIPackage
+	opts.AllowEnumCI = oo.WithEnumCI
+	opts.SkipTagPackages = oo.SkipTagPackages
+}
+
+// WithOperations adds the operations options group
+type WithOperations struct {
+	Operations operationOptions `group:"Options for operation generation"`
+}
+
 // Operation the generate operation files command
 type Operation struct {
-	shared
-	Name           []string `long:"name" short:"n" required:"true" description:"the operations to generate, repeat for multiple"`
-	Tags           []string `long:"tags" description:"the tags to include, if not specified defaults to all"`
-	Principal      string   `short:"P" long:"principal" description:"the model to use for the security principal"`
-	DefaultScheme  string   `long:"default-scheme" description:"the default scheme for this API" default:"http"`
-	NoHandler      bool     `long:"skip-handler" description:"when present will not generate an operation handler"`
-	NoStruct       bool     `long:"skip-parameters" description:"when present will not generate the parameter model struct"`
-	NoResponses    bool     `long:"skip-responses" description:"when present will not generate the response model struct"`
-	NoURLBuilder   bool     `long:"skip-url-builder" description:"when present will not generate a URL builder"`
-	DumpData       bool     `long:"dump-data" description:"when present dumps the json for the template generator instead of generating files"`
-	SkipValidation bool     `long:"skip-validation" description:"skips validation of spec prior to generation"`
+	WithShared
+	WithOperations
+
+	clientOptions
+	serverOptions
+	schemeOptions
+	mediaOptions
+
+	ModelPackage string `long:"model-package" short:"m" description:"the package to save the models" default:"models"`
+
+	NoHandler    bool `long:"skip-handler" description:"when present will not generate an operation handler"`
+	NoStruct     bool `long:"skip-parameters" description:"when present will not generate the parameter model struct"`
+	NoResponses  bool `long:"skip-responses" description:"when present will not generate the response model struct"`
+	NoURLBuilder bool `long:"skip-url-builder" description:"when present will not generate a URL builder"`
+
+	Name []string `long:"name" short:"n" description:"the operations to generate, repeat for multiple (defaults to all). Same as --operations"`
 }
 
-func (o *Operation) getOpts() (*generator.GenOpts, error) {
-	return &generator.GenOpts{
-		Spec:              string(o.Spec),
-		Target:            string(o.Target),
-		APIPackage:        o.APIPackage,
-		ModelPackage:      o.ModelPackage,
-		ServerPackage:     o.ServerPackage,
-		ClientPackage:     o.ClientPackage,
-		Principal:         o.Principal,
-		DumpData:          o.DumpData,
-		DefaultScheme:     o.DefaultScheme,
-		TemplateDir:       string(o.TemplateDir),
-		IncludeHandler:    !o.NoHandler,
-		IncludeResponses:  !o.NoResponses,
-		IncludeParameters: !o.NoStruct,
-		IncludeURLBuilder: !o.NoURLBuilder,
-		Tags:              o.Tags,
-		ValidateSpec:      !o.SkipValidation,
-	}, nil
-}
+func (o Operation) apply(opts *generator.GenOpts) {
+	o.Shared.apply(opts)
+	o.Operations.apply(opts)
+	o.clientOptions.apply(opts)
+	o.serverOptions.apply(opts)
+	o.schemeOptions.apply(opts)
+	o.mediaOptions.apply(opts)
 
-func (o *Operation) getShared() *shared {
-	return &o.shared
+	opts.ModelPackage = o.ModelPackage
+	opts.IncludeHandler = !o.NoHandler
+	opts.IncludeResponses = !o.NoResponses
+	opts.IncludeParameters = !o.NoStruct
+	opts.IncludeURLBuilder = !o.NoURLBuilder
 }
 
 func (o *Operation) generate(opts *generator.GenOpts) error {
-	return generator.GenerateServerOperation(o.Name, opts)
+	return generator.GenerateServerOperation(append(o.Name, o.Operations.Operations...), opts)
 }
 
-func (o *Operation) log(rp string) {
+func (o Operation) log(rp string) {
 
 	log.Printf(`Generation completed!
 
@@ -79,7 +97,7 @@ You can get these now with: go get -u -f %s/...
 
 // Execute generates a model file
 func (o *Operation) Execute(args []string) error {
-	if o.DumpData && len(o.Name) > 1 {
+	if o.Shared.DumpData && len(append(o.Name, o.Operations.Operations...)) > 1 {
 		return errors.New("only 1 operation at a time is supported for dumping data")
 	}
 

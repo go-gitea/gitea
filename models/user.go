@@ -105,7 +105,7 @@ type User struct {
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
-	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.

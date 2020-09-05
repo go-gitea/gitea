@@ -123,6 +123,9 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 	if elemLength > len(src) {
 		return nil, src, false
 	}
+	if elemLength < 0 {
+		return nil, src, false
+	}
 	return src[:elemLength], src[elemLength:], true
 }
 
@@ -723,13 +726,18 @@ func appendi32(dst []byte, i32 int32) []byte {
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
 // there aren't enough bytes to read a valid length, src is returned unomdified and the returned
 // bool will be false.
-func ReadLength(src []byte) (int32, []byte, bool) { return readi32(src) }
+func ReadLength(src []byte) (int32, []byte, bool) {
+	ln, src, ok := readi32(src)
+	if ln < 0 {
+		return ln, src, false
+	}
+	return ln, src, ok
+}
 
 func readi32(src []byte) (int32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
-
 	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24), src[4:], true
 }
 
