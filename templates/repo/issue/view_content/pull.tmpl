@@ -27,7 +27,7 @@
 						</div>
 						<div class="review-item-right">
 							{{if .Stale}}
-							<span class="type-icon text grey">
+							<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
 								<i class="octicon icon fa-hourglass-end"></i>
 							</span>
 							{{end}}
