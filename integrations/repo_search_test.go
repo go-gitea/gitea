@@ -7,7 +7,6 @@ package integrations
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -47,9 +46,6 @@ func TestSearchRepo(t *testing.T) {
 
 	executeIndexer(t, repo, code_indexer.DeleteRepoFromIndexer)
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
-
-	// To wait the indexer done.
-	time.Sleep(5 * time.Second)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
