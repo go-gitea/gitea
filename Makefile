@@ -617,7 +617,7 @@ release-docs: | $(DIST_DIRS) docs
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/gohugoio/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
 
