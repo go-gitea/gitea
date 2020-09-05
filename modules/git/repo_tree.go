@@ -11,8 +11,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/mcuadros/go-version"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
@@ -65,7 +63,7 @@ type CommitTreeOpts struct {
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	binVersion, err := BinVersion()
+	err := LoadGitVersion()
 	if err != nil {
 		return SHA1{}, err
 	}
@@ -91,11 +89,11 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if version.Compare(binVersion, "1.7.9", ">=") && (opts.KeyID != "" || opts.AlwaysSign) {
+	if CheckGitVersionConstraint(">= 1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if version.Compare(binVersion, "2.0.0", ">=") && opts.NoGPGSign {
+	if CheckGitVersionConstraint(">= 2.0.0") == nil && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
