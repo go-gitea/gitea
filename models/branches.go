@@ -246,12 +246,13 @@ func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullReque
 }
 
 // GetPrChangedProtectedFiles returns protected files changed by pr
-func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest) (changs []string, err error) {
+func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest) ([]string, error) {
 	glob := protectBranch.GetProtectedFilePatterns()
 	if len(glob) == 0 {
 		return nil, nil
 	}
 
+	var err error
 	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
@@ -271,12 +272,13 @@ func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest
 		return nil, err
 	}
 
+	var changs []string
 	_, changs, err = checkFileProtection(true, pr.MergeBase, headCommitID, glob, gitRepo)
-	return
+	return changs, nil
 }
 
 // IsProtectedFile return if path is protected
-func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) (r bool) {
+func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) bool {
 	if len(patterns) == 0 {
 		patterns = protectBranch.GetProtectedFilePatterns()
 		if len(patterns) == 0 {
@@ -286,6 +288,7 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 
 	lpath := strings.ToLower(strings.TrimSpace(path))
 
+	r := false
 	for _, pat := range patterns {
 		if pat.Match(lpath) {
 			r = true
@@ -293,19 +296,21 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 		}
 	}
 
-	return
+	return r
 }
 
-func checkFileProtection(needFullResult bool, oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository) (result bool, changedFiles []string, err error) {
+func checkFileProtection(needFullResult bool, oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository) (bool, []string, error) {
 	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
 	if err != nil {
 		return false, nil, err
 	}
 
+	var changedFiles []string
 	if needFullResult {
 		changedFiles = make([]string, 0, 5)
 	}
 
+	result := false
 	for _, path := range strings.Split(stdout, "\n") {
 		lpath := strings.ToLower(strings.TrimSpace(path))
 		for _, pat := range patterns {
@@ -323,7 +328,7 @@ func checkFileProtection(needFullResult bool, oldCommitID, newCommitID string, p
 		}
 	}
 
-	return
+	return result, changedFiles, nil
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
