@@ -88,10 +88,10 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		return
 	}
 	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
-	if err != nil {
-		log.Error(err.Error())
-	}
 	if pwned {
+		if err != nil {
+			log.Error(err.Error())
+		}
 		ctx.Data["Err_Password"] = true
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
@@ -161,10 +161,10 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			return
 		}
 		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
-		if err != nil {
-			log.Error(err.Error())
-		}
 		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
 			ctx.Data["Err_Password"] = true
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
