@@ -33,8 +33,8 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	}
 }
 
-// ToCommit convert a git.Commit to api.PayloadCommit
-func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
+// ToPayloadCommit convert a git.Commit to api.PayloadCommit
+func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
@@ -68,7 +68,8 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	}
 }
 
-func ToCommitWithCache(repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
+// ToCommit convert a git.Commit to api.Commit
+func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
 
 	var apiAuthor, apiCommitter *api.User
 

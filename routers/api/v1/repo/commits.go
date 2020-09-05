@@ -73,7 +73,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	json, err := convert.ToCommitWithCache(ctx.Repo.Repository, commit, nil)
+	json, err := convert.ToCommit(ctx.Repo.Repository, commit, nil)
 	if err != nil {
 		ctx.ServerError("toCommit", err)
 		return
@@ -193,7 +193,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		commit := commitPointer.Value.(*git.Commit)
 
 		// Create json struct
-		apiCommits[i], err = convert.ToCommitWithCache(ctx.Repo.Repository, commit, userCache)
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return

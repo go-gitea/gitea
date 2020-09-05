@@ -42,7 +42,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 		return &api.Branch{
 			Name:                b.Name,
-			Commit:              ToCommit(repo, c),
+			Commit:              ToPayloadCommit(repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
@@ -54,7 +54,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 	branch := &api.Branch{
 		Name:                b.Name,
-		Commit:              ToCommit(repo, c),
+		Commit:              ToPayloadCommit(repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
