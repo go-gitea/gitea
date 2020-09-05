@@ -31,7 +31,7 @@ const apiURL = "api/siteverify"
 // Verify calls Google Recaptcha API to verify token
 func Verify(ctx context.Context, response string) (bool, error) {
 	post := url.Values{
-		"secret": {setting.Service.RecaptchaSecret},
+		"secret":   {setting.Service.RecaptchaSecret},
 		"response": {response},
 	}
 	// Basically a copy of http.PostForm, but with a context
