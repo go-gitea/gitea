@@ -16,7 +16,6 @@ require (
 	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
-	github.com/6543/go-version v1.2.3
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.4.23 // indirect
@@ -52,6 +51,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
+	github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1

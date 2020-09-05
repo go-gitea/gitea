@@ -48,9 +48,6 @@ gitea.com/macaron/session/redis
 # gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 ## explicit
 gitea.com/macaron/toolbox
-# github.com/6543/go-version v1.2.3
-## explicit
-github.com/6543/go-version
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
@@ -426,6 +423,9 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.6
 ## explicit
 github.com/hashicorp/go-retryablehttp
+# github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000 => github.com/6543/go-version v1.2.2
+## explicit
+github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
