@@ -373,7 +373,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 				ctx.ServerError("", err)
 				return
 			}
-			valid, err = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)
@@ -385,7 +385,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 			return
 		}
 		if err != nil {
-			log.Debug(err.Error())
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {

@@ -5,11 +5,13 @@
 package recaptcha
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -27,9 +29,20 @@ type Response struct {
 const apiURL = "api/siteverify"
 
 // Verify calls Google Recaptcha API to verify token
-func Verify(response string) (bool, error) {
-	resp, err := http.PostForm(util.URLJoin(setting.Service.RecaptchaURL, apiURL),
-		url.Values{"secret": {setting.Service.RecaptchaSecret}, "response": {response}})
+func Verify(ctx context.Context, response string) (bool, error) {
+	post := url.Values{
+		"secret": {setting.Service.RecaptchaSecret},
+		"response": {response},
+	}
+	// Basically a copy of http.PostForm, but with a context
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		util.URLJoin(setting.Service.RecaptchaURL, apiURL), strings.NewReader(post.Encode()))
+	if err != nil {
+		return false, fmt.Errorf("Failed to create CAPTCHA request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("Failed to send CAPTCHA response: %s", err)
 	}
