@@ -274,6 +274,10 @@ func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest
 
 	var changs []string
 	_, changs, err = checkFileProtection(true, pr.MergeBase, headCommitID, glob, gitRepo)
+	if err != nil {
+		return nil, err
+	}
+
 	return changs, nil
 }
 
