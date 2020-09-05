@@ -1250,10 +1250,10 @@ func (p *parser) scanBasicBackslash(scanOnly bool) (*regexNode, error) {
 			return nil, nil
 		}
 
-		if p.useOptionE() || p.isCaptureSlot(capnum) {
+		if p.isCaptureSlot(capnum) {
 			return newRegexNodeM(ntRef, p.options, capnum), nil
 		}
-		if capnum <= 9 {
+		if capnum <= 9 && !p.useOptionE() {
 			return nil, p.getErr(ErrUndefinedBackRef, capnum)
 		}
 
@@ -1808,11 +1808,11 @@ func (p *parser) scanOctal() rune {
 	i := 0
 	d := int(p.rightChar(0) - '0')
 	for c > 0 && d <= 7 {
-		i *= 8
-		i += d
-		if p.useOptionE() && i >= 0x20 {
+		if i >= 0x20 && p.useOptionE() {
 			break
 		}
+		i *= 8
+		i += d
 		c--
 
 		p.moveRight(1)
