@@ -155,6 +155,7 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
@@ -315,6 +316,10 @@ lint-frontend: node_modules
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
+
+.PHONY: watch
+watch:
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
@@ -612,7 +617,7 @@ release-docs: | $(DIST_DIRS) docs
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/gohugoio/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
 
