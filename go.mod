@@ -117,3 +117,5 @@ require (
 	xorm.io/builder v0.3.7
 	xorm.io/xorm v1.0.4
 )
+
+replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.2

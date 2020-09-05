@@ -15,7 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/6543/go-version"
+	"github.com/hashicorp/go-version"
 )
 
 var (
