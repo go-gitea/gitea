@@ -45,6 +45,7 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
@@ -125,6 +126,9 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(Project),
+		new(ProjectBoard),
+		new(ProjectIssue),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -145,13 +149,15 @@ func getEngine() (*xorm.Engine, error) {
 	}
 	if setting.Database.Type == "mysql" {
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
+	} else if setting.Database.Type == "mssql" {
+		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(x *xorm.Engine) (err error) {
+func NewTestEngine() (err error) {
 	x, err = getEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)

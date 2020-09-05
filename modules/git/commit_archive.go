@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -39,7 +40,7 @@ type CreateArchiveOpts struct {
 }
 
 // CreateArchive create archive content to the target path
-func (c *Commit) CreateArchive(target string, opts CreateArchiveOpts) error {
+func (c *Commit) CreateArchive(ctx context.Context, target string, opts CreateArchiveOpts) error {
 	if opts.Format.String() == "unknown" {
 		return fmt.Errorf("unknown format: %v", opts.Format)
 	}
@@ -58,6 +59,6 @@ func (c *Commit) CreateArchive(target string, opts CreateArchiveOpts) error {
 		c.ID.String(),
 	)
 
-	_, err := NewCommand(args...).RunInDir(c.repo.Path)
+	_, err := NewCommandContext(ctx, args...).RunInDir(c.repo.Path)
 	return err
 }

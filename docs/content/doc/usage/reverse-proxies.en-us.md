@@ -55,7 +55,7 @@ Nginx is optimized for serving static content, while the proxying of large respo
  (see https://serverfault.com/q/587386).
 
 Download a snapshot of the Gitea source repository to `/path/to/gitea/`.
-After this, run `make webpack` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
+After this, run `make frontend` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
 (You will need to have [Node with npm](https://nodejs.org/en/download/) and `make` installed to generate the static resources)
 
 Depending on the scale of your user base, you might want to split the traffic to two distinct servers,

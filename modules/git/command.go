@@ -12,10 +12,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
+	"github.com/mcuadros/go-version"
 )
 
 var (
@@ -130,7 +132,10 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
 
-	cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
+	// TODO: verify if this is still needed in golang 1.15
+	if version.Compare(runtime.Version(), "go1.15", "<") {
+		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
+	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr

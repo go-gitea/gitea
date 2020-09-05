@@ -9,13 +9,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +63,7 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 		// Setup the testing repository
 		dstPath, err := ioutil.TempDir("", "repo-tmp-deploy-key-empty-repo-1")
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 
 		t.Run("InitTestRepository", doGitInitTestRepository(dstPath))
 
@@ -109,7 +109,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 		t.Run("KeyCanOnlyBeUser", func(t *testing.T) {
 			dstPath, err := ioutil.TempDir("", ctx.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstPath)
+			defer util.RemoveAll(dstPath)
 
 			sshURL := createSSHUrl(ctx.GitPath(), u)
 
@@ -135,7 +135,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 		t.Run("KeyCanBeAnyDeployButNotUserAswell", func(t *testing.T) {
 			dstPath, err := ioutil.TempDir("", ctx.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstPath)
+			defer util.RemoveAll(dstPath)
 
 			sshURL := createSSHUrl(ctx.GitPath(), u)
 
@@ -153,7 +153,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath, err := ioutil.TempDir("", otherCtx.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstOtherPath)
+			defer util.RemoveAll(dstOtherPath)
 
 			t.Run("AddWriterDeployKeyToOther", doAPICreateDeployKey(otherCtx, keyname, keyFile, false))
 
@@ -170,7 +170,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath, err := ioutil.TempDir("", otherCtx.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstOtherPath)
+			defer util.RemoveAll(dstOtherPath)
 
 			t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
 
@@ -192,7 +192,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			dstPath, err := ioutil.TempDir("", ctx.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstPath)
+			defer util.RemoveAll(dstPath)
 
 			sshURL := createSSHUrl(ctx.GitPath(), u)
 

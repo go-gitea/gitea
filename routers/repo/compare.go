@@ -598,14 +598,15 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.Query("direction")
 	filePath := ctx.Query("path")
 	gitRepo := ctx.Repo.GitRepo
-	chunkSize := gitdiff.BlobExceprtChunkSize
+	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		ctx.Error(500, "GetCommit")
 		return
 	}
 	section := &gitdiff.DiffSection{
-		Name: filePath,
+		FileName: filePath,
+		Name:     filePath,
 	}
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize

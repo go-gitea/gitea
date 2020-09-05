@@ -4,6 +4,64 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.4](https://github.com/go-gitea/gitea/releases/tag/v1.12.4) - 2020-09-02
+
+* SECURITY
+  * Escape provider name in oauth2 provider redirect (#12648) (#12650)
+  * Escape Email on password reset page (#12610) (#12612)
+  * When reading expired sessions - expire them (#12686) (#12690)
+* ENHANCEMENTS
+  * StaticRootPath configurable at compile time (#12371) (#12652)
+* BUGFIXES
+  * Fix to show an issue that is related to a deleted issue (#12651) (#12692)
+  * Expire time acknowledged for cache (#12605) (#12611)
+  * Fix diff path unquoting (#12554) (#12575)
+  * Improve HTML escaping helper (#12562)
+  * models: break out of loop (#12386) (#12561)
+  * Default empty merger list to those with write permissions (#12535) (#12560)
+  * Skip SSPI authentication attempts for /api/internal (#12556) (#12559)
+  * Prevent NPE on commenting on lines with invalidated comments (#12549) (#12550)
+  * Remove hardcoded ES indexername (#12521) (#12526)
+  * Fix bug preventing transfer to private organization (#12497) (#12501)
+  * Keys should not verify revoked email addresses (#12486) (#12495)
+  * Do not add prefix on http/https submodule links (#12477) (#12479)
+  * Fix ignored login on compare (#12476) (#12478)
+  * Fix incorrect error logging in Stats indexer and OAuth2 (#12387) (#12422)
+  * Upgrade google/go-github to v32.1.0 (#12361) (#12390)
+  * Render emoji's of Commit message on feed-page (#12373)
+  * Fix handling of diff on unrelated branches when Git 2.28 used (#12370)
+
+## [1.12.3](https://github.com/go-gitea/gitea/releases/tag/v1.12.3) - 2020-07-28
+
+* BUGFIXES
+  * Don't change creation date when updating Release (#12343) (#12351)
+  * Show 404 page when release not found (#12328) (#12332)
+  * Fix emoji detection in certain cases (#12320) (#12327)
+  * Reduce emoji size (#12317) (#12327)
+  * Fix double-indirection bug in logging IDs (#12294) (#12308)
+  * Link to pull list page on sidebar when view pr (#12256) (#12263)
+  * Extend Notifications API and return pinned notifications by default (#12164) (#12232)
+
+## [1.12.2](https://github.com/go-gitea/gitea/releases/tag/v1.12.2) - 2020-07-11
+
+* BUGFIXES
+  * When deleting repository decrese user repository count in cache (#11954) (#12188)
+  * Return full commit message instead of summary in commits API (#12186) (#12187)
+  * Properly set HEAD when a repo is created with a default branch that is not named 'master' (#12135) (#12182)
+  * Ensure GPG Subkeys are verified (#12155) (#12168)
+  * Fix failing to cache last commit with key being to long (#12151) (#12161)
+  * Multiple small admin dashboard fixes (#12153) (#12156)
+  * Remove spurious logging of " Delete all repository archives" at startup (#12139) (#12148)
+  * Fix repository setup instructions when default branch is not named 'master' (#12122) (#12147)
+  * Move EventSource to SharedWorker (#12095) (#12130)
+  * Fix ui bug in wiki commit page (#12089) (#12125)
+  * Fix gitgraph branch continues after merge (#12044) (#12105)
+  * Set the base url when migrating from Gitlab using access token or username without password (#11852) (#12104)
+  * Ensure BlameReaders close at end of request (#12102) (#12103)
+  * Fix panic when adding review comment (#12058)
+* ENHANCEMENTS
+  * Disable dropzone's timeout for file uploads (#12024) (#12032)
+
 ## [1.12.1](https://github.com/go-gitea/gitea/releases/tag/v1.12.1) - 2020-06-21
 
 * BUGFIXES

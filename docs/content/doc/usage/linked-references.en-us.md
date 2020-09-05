@@ -42,7 +42,6 @@ Example:
 This is also valid for teams and organizations:
 
 > [@Documenters](#), we need to plan for this.
-
 > [@CoolCompanyInc](#), this issue concerns us all!
 
 Teams will receive mail notifications when appropriate, but whole organizations won't.
@@ -123,6 +122,33 @@ The default _keywords_ are:
 * **Closing**: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved
 * **Reopening**: reopen, reopens, reopened
 
+## Time tracking in Pull Requests and Commit Messages
+
+When commit or merging of pull request results in automatic closing of issue
+it is possible to also add spent time resolving this issue through commit message.
+
+To specify spent time on resolving issue you need to specify time in format
+`@<number><time-unit>` after issue number. In one commit message you can specify
+multiple fixed issues and spent time for each of them.
+
+Supported time units (`<time-unit>`):
+
+* `m` - minutes
+* `h` - hours
+* `d` - days (equals to 8 hours)
+* `w` - weeks (equals to 5 days)
+* `mo` - months (equals to 4 weeks)
+
+Numbers to specify time (`<number>`) can be also decimal numbers, ex. `@1.5h` would
+result in one and half hours. Multiple time units can be combined, ex. `@1h10m` would
+mean 1 hour and 10 minutes.
+
+Example of commit message:
+
+> Fixed #123 spent @1h, refs #102, fixes #124 @1.5h
+
+This would result in 1 hour added to issue #123 and 1 and half hours added to issue #124.
+
 ## External Trackers
 
 Gitea supports the use of external issue trackers, and references to issues
@@ -132,7 +158,6 @@ the pull requests hosted in Gitea. To address this, Gitea allows the use of
 the `!` marker to identify pull requests. For example:
 
 > This is issue [#1234](#), and links to the external tracker.
-
 > This is pull request [!1234](#), and links to a pull request in Gitea.
 
 The `!` and `#` can be used interchangeably for issues and pull request _except_

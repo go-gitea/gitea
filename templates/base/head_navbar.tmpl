@@ -90,7 +90,7 @@
 						<span class="fitted">{{svg "octicon-plus" 16}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
 					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{svg "octicon-repo-clone" 16}}</span> {{.i18n.Tr "new_migrate"}}
+						<span class="fitted">{{svg "octicon-repo-push" 16}}</span> {{.i18n.Tr "new_migrate"}}
 					</a>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
@@ -122,7 +122,7 @@
 						{{.i18n.Tr "your_starred"}}
 					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-						{{svg "octicon-settings" 16}}
+						{{svg "octicon-tools" 16}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
 					</a>
 					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">

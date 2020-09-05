@@ -1,4 +1,4 @@
-import {svg} from '../utils.js';
+import {svg} from '../svg.js';
 
 const {AppSubUrl} = window.config;
 

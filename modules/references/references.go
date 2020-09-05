@@ -37,12 +37,15 @@ var (
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// spaceTrimmedPattern let's us find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
+	// timeLogPattern matches string for time tracking
+	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueKeywordsOnce                             sync.Once
 
-	giteaHostInit sync.Once
-	giteaHost     string
+	giteaHostInit         sync.Once
+	giteaHost             string
+	giteaIssuePullPattern *regexp.Regexp
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -61,10 +64,11 @@ const (
 
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
-	Index  int64
-	Owner  string
-	Name   string
-	Action XRefAction
+	Index   int64
+	Owner   string
+	Name    string
+	Action  XRefAction
+	TimeLog string
 }
 
 // RenderizableReference contains an unverified cross-reference to with rendering information
@@ -90,16 +94,18 @@ type rawReference struct {
 	issue          string
 	refLocation    *RefSpan
 	actionLocation *RefSpan
+	timeLog        string
 }
 
 func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 	refarr := make([]IssueReference, len(reflist))
 	for i, r := range reflist {
 		refarr[i] = IssueReference{
-			Index:  r.index,
-			Owner:  r.owner,
-			Name:   r.name,
-			Action: r.action,
+			Index:   r.index,
+			Owner:   r.owner,
+			Name:    r.name,
+			Action:  r.action,
+			TimeLog: r.timeLog,
 		}
 	}
 	return refarr
@@ -152,11 +158,23 @@ func getGiteaHostName() string {
 	giteaHostInit.Do(func() {
 		if uapp, err := url.Parse(setting.AppURL); err == nil {
 			giteaHost = strings.ToLower(uapp.Host)
+			giteaIssuePullPattern = regexp.MustCompile(
+				`(\s|^|\(|\[)` +
+					regexp.QuoteMeta(strings.TrimSpace(setting.AppURL)) +
+					`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
+					`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 		} else {
 			giteaHost = ""
+			giteaIssuePullPattern = nil
 		}
 	})
 	return giteaHost
+}
+
+// getGiteaIssuePullPattern
+func getGiteaIssuePullPattern() *regexp.Regexp {
+	getGiteaHostName()
+	return giteaIssuePullPattern
 }
 
 // FindAllMentionsMarkdown matches mention patterns in given content and
@@ -219,7 +237,42 @@ func findAllIssueReferencesMarkdown(content string) []*rawReference {
 
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
 func FindAllIssueReferences(content string) []IssueReference {
-	return rawToIssueReferenceList(findAllIssueReferencesBytes([]byte(content), []string{}))
+	// Need to convert fully qualified html references to local system to #/! short codes
+	contentBytes := []byte(content)
+	if re := getGiteaIssuePullPattern(); re != nil {
+		pos := 0
+		for {
+			match := re.FindSubmatchIndex(contentBytes[pos:])
+			if match == nil {
+				break
+			}
+			// match[0]-match[1] is whole string
+			// match[2]-match[3] is preamble
+			pos += match[3]
+			// match[4]-match[5] is owner/repo
+			endPos := pos + match[5] - match[4]
+			copy(contentBytes[pos:endPos], contentBytes[match[4]:match[5]])
+			pos = endPos
+			// match[6]-match[7] == 'issues'
+			contentBytes[pos] = '#'
+			if string(contentBytes[match[6]:match[7]]) == "pulls" {
+				contentBytes[pos] = '!'
+			}
+			pos++
+			// match[8]-match[9] is the number
+			endPos = pos + match[9] - match[8]
+			copy(contentBytes[pos:endPos], contentBytes[match[8]:match[9]])
+			copy(contentBytes[endPos:], contentBytes[match[9]:])
+			// now we reset the length
+			// our new section has length endPos - match[3]
+			// our old section has length match[9] - match[3]
+			contentBytes = contentBytes[:len(contentBytes)-match[9]+endPos]
+			pos = endPos
+		}
+	} else {
+		log.Debug("No GiteaIssuePullPattern pattern")
+	}
+	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}))
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
@@ -335,6 +388,38 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 				ref.refLocation = nil
 				ret = append(ret, ref)
 			}
+		}
+	}
+
+	if len(ret) == 0 {
+		return ret
+	}
+
+	pos = 0
+
+	for {
+		match := timeLogPattern.FindSubmatchIndex(content[pos:])
+		if match == nil {
+			break
+		}
+
+		timeLogEntry := string(content[match[2]+pos+1 : match[3]+pos])
+
+		var f *rawReference
+		for _, ref := range ret {
+			if ref.refLocation != nil && ref.refLocation.End < match[2]+pos && (f == nil || f.refLocation.End < ref.refLocation.End) {
+				f = ref
+			}
+		}
+
+		pos = match[1] + pos
+
+		if f == nil {
+			f = ret[0]
+		}
+
+		if len(f.timeLog) == 0 {
+			f.timeLog = timeLogEntry
 		}
 	}
 

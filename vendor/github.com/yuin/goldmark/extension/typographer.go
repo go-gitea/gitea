@@ -223,7 +223,7 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 					if len(line) > 4 {
 						after = util.ToRune(line, 4)
 					}
-					if len(line) == 3 || unicode.IsSpace(after) || unicode.IsPunct(after) {
+					if len(line) == 3 || util.IsSpaceRune(after) || util.IsPunctRune(after) {
 						node := gast.NewString(s.Substitutions[Apostrophe])
 						node.SetCode(true)
 						block.Advance(1)
