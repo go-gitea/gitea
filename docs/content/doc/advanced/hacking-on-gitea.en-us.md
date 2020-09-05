@@ -15,13 +15,10 @@ menu:
 
 # Hacking on Gitea
 
-## Installing go and setting the GOPATH
+## Installing go
 
 You should [install go](https://golang.org/doc/install) and set up your go
-environment correctly. In particular, it is recommended to set the `$GOPATH`
-environment variable and to add the go bin directory or directories
-`${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
-[GOPATH](https://github.com/golang/go/wiki/GOPATH).
+environment correctly.
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
