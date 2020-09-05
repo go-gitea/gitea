@@ -176,6 +176,14 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewCommentList"
@@ -188,6 +196,19 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	}
 
 	apiComments, err := convert.ToPullReviewCommentList(review, ctx.User)
+
+	listOpts := utils.GetListOptions(ctx)
+	if listOpts.PageSize > 0 && listOpts.Page > 0 {
+		if len(apiComments) >= (listOpts.Page-1)*listOpts.PageSize {
+			apiComments = apiComments[(listOpts.Page-1)*listOpts.PageSize:]
+			if len(apiComments) > listOpts.PageSize {
+				apiComments = apiComments[listOpts.PageSize:]
+			}
+		} else {
+			ctx.JSON(http.StatusOK, []*api.PullReviewComment{})
+		}
+	}
+
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convertToPullReviewCommentList", err)
 		return
