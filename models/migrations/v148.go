@@ -5,21 +5,10 @@
 package migrations
 
 import (
-	"fmt"
-
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func addCreatedAndUpdatedToMilestones(x *xorm.Engine) error {
-	type Milestone struct {
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := x.Sync2(new(Milestone)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+func purgeInvalidDependenciesComments(x *xorm.Engine) error {
+	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id != 0 AND dependent_issue_id NOT IN (SELECT id FROM issue)")
+	return err
 }

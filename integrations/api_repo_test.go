@@ -321,7 +321,16 @@ func TestAPIRepoMigrate(t *testing.T) {
 			UID:       int(testCase.userID),
 			RepoName:  testCase.repoName,
 		})
-		session.MakeRequest(t, req, testCase.expectedStatus)
+		resp := MakeRequest(t, req, NoExpectedStatus)
+		if resp.Code == http.StatusUnprocessableEntity {
+			respJSON := map[string]string{}
+			DecodeJSON(t, resp, &respJSON)
+			if assert.Equal(t, respJSON["message"], "Remote visit addressed rate limitation.") {
+				t.Log("test hit github rate limitation")
+			}
+		} else {
+			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
+		}
 	}
 }
 
