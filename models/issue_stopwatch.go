@@ -201,9 +201,15 @@ func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
 	if err != nil {
 		return api.StopWatch{}, err
 	}
+	if err := issue.LoadRepo(); err != nil {
+		return api.StopWatch{}, err
+	}
 	return api.StopWatch{
-		Created:    sw.CreatedUnix.AsTime(),
-		IssueIndex: issue.Index,
+		Created:       sw.CreatedUnix.AsTime(),
+		IssueIndex:    issue.Index,
+		IssueTitle:    issue.Title,
+		RepoOwnerName: issue.Repo.OwnerName,
+		RepoName:      issue.Repo.Name,
 	}, nil
 }
 
