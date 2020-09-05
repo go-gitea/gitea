@@ -22,3 +22,11 @@ type GeneralAPISettings struct {
 	DefaultGitTreesPerPage int   `json:"default_git_trees_per_page"`
 	DefaultMaxBlobSize     int64 `json:"default_max_blob_size"`
 }
+
+// GeneralAttachmentSettings contains global Attachment settings exposed by API
+type GeneralAttachmentSettings struct {
+	Enabled      bool   `json:"enabled"`
+	AllowedTypes string `json:"allowed_types"`
+	MaxSize      int64  `json:"max_size"`
+	MaxFiles     int    `json:"max_files"`
+}
