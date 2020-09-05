@@ -5,14 +5,16 @@
 package hcaptcha
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	"go.jolheiser.com/hcaptcha"
 )
 
 // Verify calls hCaptcha API to verify token
-func Verify(response string) (bool, error) {
-	client, err := hcaptcha.New(setting.Service.RecaptchaSecret)
+func Verify(ctx context.Context, response string) (bool, error) {
+	client, err := hcaptcha.New(setting.Service.RecaptchaSecret, hcaptcha.WithContext(ctx))
 	if err != nil {
 		return false, err
 	}

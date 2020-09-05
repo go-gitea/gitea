@@ -904,7 +904,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		case setting.ReCaptcha:
 			valid, err = recaptcha.Verify(form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1087,7 +1087,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		case setting.ReCaptcha:
 			valid, err = recaptcha.Verify(form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
