@@ -423,6 +423,9 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.6
 ## explicit
 github.com/hashicorp/go-retryablehttp
+# github.com/hashicorp/go-version v1.2.1
+## explicit
+github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
@@ -547,9 +550,6 @@ github.com/mattn/go-runewidth
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
-## explicit
-github.com/mcuadros/go-version
 # github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 ## explicit
 github.com/mgechev/dots
