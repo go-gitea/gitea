@@ -183,6 +183,33 @@ func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
 	return err
 }
 
+// ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
+func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	m := &Milestone{
+		ID:     milestoneID,
+		RepoID: repoID,
+	}
+
+	has, err := sess.ID(milestoneID).Where("repo_id = ?", repoID).Get(m)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrMilestoneNotExist{ID: milestoneID, RepoID: repoID}
+	}
+
+	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	sess := x.NewSession()
@@ -191,20 +218,27 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 		return err
 	}
 
+	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func changeMilestoneStatus(e Engine, m *Milestone, isClosed bool) error {
 	m.IsClosed = isClosed
 	if isClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
-	if _, err := sess.ID(m.ID).Cols("is_closed", "closed_date_unix").Update(m); err != nil {
+	count, err := e.ID(m.ID).Where("repo_id = ? AND is_closed = ?", m.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
+	if err != nil {
 		return err
 	}
-
-	if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
-		return err
+	if count < 1 {
+		return nil
 	}
-
-	return sess.Commit()
+	return updateRepoMilestoneNum(e, m.RepoID)
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {

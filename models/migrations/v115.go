@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -110,8 +111,8 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	log.Info("Deleting %d old avatars ...", deleteCount)
 	i := 0
 	for file := range deleteList {
-		if err := os.Remove(file); err != nil {
-			log.Warn("os.Remove: %v", err)
+		if err := util.Remove(file); err != nil {
+			log.Warn("util.Remove: %v", err)
 		}
 		i++
 		select {

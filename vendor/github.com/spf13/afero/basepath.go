@@ -177,4 +177,30 @@ func (b *BasePathFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	return fi, false, err
 }
 
+func (b *BasePathFs) SymlinkIfPossible(oldname, newname string) error {
+	oldname, err := b.RealPath(oldname)
+	if err != nil {
+		return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: err}
+	}
+	newname, err = b.RealPath(newname)
+	if err != nil {
+		return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: err}
+	}
+	if linker, ok := b.source.(Linker); ok {
+		return linker.SymlinkIfPossible(oldname, newname)
+	}
+	return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: ErrNoSymlink}
+}
+
+func (b *BasePathFs) ReadlinkIfPossible(name string) (string, error) {
+	name, err := b.RealPath(name)
+	if err != nil {
+		return "", &os.PathError{Op: "readlink", Path: name, Err: err}
+	}
+	if reader, ok := b.source.(LinkReader); ok {
+		return reader.ReadlinkIfPossible(name)
+	}
+	return "", &os.PathError{Op: "readlink", Path: name, Err: ErrNoReadlink}
+}
+
 // vim: ts=4 sw=4 noexpandtab nolist syn=go

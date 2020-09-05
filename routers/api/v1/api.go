@@ -521,6 +521,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/api", settings.GetGeneralAPISettings)
+			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
@@ -934,6 +936,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 
 		m.Group("/admin", func() {
+			m.Group("/cron", func() {
+				m.Get("", admin.ListCronTasks)
+				m.Post("/:task", admin.PostCronTask)
+			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
 				m.Get("", admin.GetAllUsers)

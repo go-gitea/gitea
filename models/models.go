@@ -45,6 +45,7 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
@@ -125,6 +126,9 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(Project),
+		new(ProjectBoard),
+		new(ProjectIssue),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

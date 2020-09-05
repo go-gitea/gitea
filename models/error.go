@@ -1586,6 +1586,44 @@ func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
+// __________                   __               __
+// \______   \_______  ____    |__| ____   _____/  |_  ______
+//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
+//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
+//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
+//                         \______|    \/     \/          \/
+
+// ErrProjectNotExist represents a "ProjectNotExist" kind of error.
+type ErrProjectNotExist struct {
+	ID     int64
+	RepoID int64
+}
+
+// IsErrProjectNotExist checks if an error is a ErrProjectNotExist
+func IsErrProjectNotExist(err error) bool {
+	_, ok := err.(ErrProjectNotExist)
+	return ok
+}
+
+func (err ErrProjectNotExist) Error() string {
+	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
+}
+
+// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrProjectBoardNotExist struct {
+	BoardID int64
+}
+
+// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
+func IsErrProjectBoardNotExist(err error) bool {
+	_, ok := err.(ErrProjectBoardNotExist)
+	return ok
+}
+
+func (err ErrProjectBoardNotExist) Error() string {
+	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
