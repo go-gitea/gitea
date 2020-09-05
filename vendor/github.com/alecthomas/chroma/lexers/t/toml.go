@@ -22,7 +22,7 @@ var TOML = internal.Register(MustNewLexer(
 			{`[+-]?[0-9](_?\d)*`, LiteralNumberInteger, nil},
 			{`"(\\\\|\\"|[^"])*"`, StringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, StringSingle, nil},
-			{`[.,=\[\]]`, Punctuation, nil},
+			{`[.,=\[\]{}]`, Punctuation, nil},
 			{`[^\W\d]\w*`, NameOther, nil},
 		},
 	},

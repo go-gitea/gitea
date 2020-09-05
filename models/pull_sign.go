@@ -27,12 +27,13 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 	var gitRepo *git.Repository
 	var err error
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {

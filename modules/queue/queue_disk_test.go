@@ -7,11 +7,11 @@ package queue
 import (
 	"context"
 	"io/ioutil"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestLevelQueue(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir("", "level-queue-test-data")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer util.RemoveAll(tmpDir)
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
 		ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{

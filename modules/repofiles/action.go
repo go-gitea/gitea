@@ -8,7 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -18,6 +21,16 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+const (
+	secondsByMinute = float64(time.Minute / time.Second) // seconds in a minute
+	secondsByHour   = 60 * secondsByMinute               // seconds in an hour
+	secondsByDay    = 8 * secondsByHour                  // seconds in a day
+	secondsByWeek   = 5 * secondsByDay                   // seconds in a week
+	secondsByMonth  = 4 * secondsByWeek                  // seconds in a month
+)
+
+var reDuration = regexp.MustCompile(`(?i)^(?:(\d+([\.,]\d+)?)(?:mo))?(?:(\d+([\.,]\d+)?)(?:w))?(?:(\d+([\.,]\d+)?)(?:d))?(?:(\d+([\.,]\d+)?)(?:h))?(?:(\d+([\.,]\d+)?)(?:m))?$`)
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
@@ -30,6 +43,60 @@ func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error
 		return nil, err
 	}
 	return issue, nil
+}
+
+// timeLogToAmount parses time log string and returns amount in seconds
+func timeLogToAmount(str string) int64 {
+	matches := reDuration.FindAllStringSubmatch(str, -1)
+	if len(matches) == 0 {
+		return 0
+	}
+
+	match := matches[0]
+
+	var a int64
+
+	// months
+	if len(match[1]) > 0 {
+		mo, _ := strconv.ParseFloat(strings.Replace(match[1], ",", ".", 1), 64)
+		a += int64(mo * secondsByMonth)
+	}
+
+	// weeks
+	if len(match[3]) > 0 {
+		w, _ := strconv.ParseFloat(strings.Replace(match[3], ",", ".", 1), 64)
+		a += int64(w * secondsByWeek)
+	}
+
+	// days
+	if len(match[5]) > 0 {
+		d, _ := strconv.ParseFloat(strings.Replace(match[5], ",", ".", 1), 64)
+		a += int64(d * secondsByDay)
+	}
+
+	// hours
+	if len(match[7]) > 0 {
+		h, _ := strconv.ParseFloat(strings.Replace(match[7], ",", ".", 1), 64)
+		a += int64(h * secondsByHour)
+	}
+
+	// minutes
+	if len(match[9]) > 0 {
+		d, _ := strconv.ParseFloat(strings.Replace(match[9], ",", ".", 1), 64)
+		a += int64(d * secondsByMinute)
+	}
+
+	return a
+}
+
+func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLog string) error {
+	amount := timeLogToAmount(timeLog)
+	if amount == 0 {
+		return nil
+	}
+
+	_, err := models.AddTime(doer, issue, amount, time)
+	return err
 }
 
 func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, closed bool) error {
@@ -139,6 +206,11 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				}
 			}
 			close := (ref.Action == references.XRefActionCloses)
+			if close && len(ref.TimeLog) > 0 {
+				if err := issueAddTime(refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+					return err
+				}
+			}
 			if close != refIssue.IsClosed {
 				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
 					return err
