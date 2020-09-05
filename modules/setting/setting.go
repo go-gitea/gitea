@@ -819,12 +819,15 @@ func NewContext() {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
 		name := strings.ToLower(strings.Trim(name, `"`))

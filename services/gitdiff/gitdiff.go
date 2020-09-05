@@ -18,7 +18,6 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -89,8 +88,8 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 }
 
-// BlobExceprtChunkSize represent max lines of excerpt
-const BlobExceprtChunkSize = 20
+// BlobExcerptChunkSize represent max lines of excerpt
+const BlobExcerptChunkSize = 20
 
 // GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
@@ -139,7 +138,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return DiffLineExpandUp
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExceprtChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return DiffLineExpandUpDown
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return DiffLineExpandDown
@@ -570,40 +569,28 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				break
 			}
 
-			var middle int
-
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
 			// e.g. diff --git "a/xxx" "b/xxx"
-			hasQuote := line[len(cmdDiffHead)] == '"'
-			if hasQuote {
-				middle = strings.Index(line, ` "b/`)
+			var a string
+			var b string
+
+			rd := strings.NewReader(line[len(cmdDiffHead):])
+			char, _ := rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q ", &a)
 			} else {
-				middle = strings.Index(line, " b/")
+				fmt.Fscanf(rd, "%s ", &a)
 			}
-
-			beg := len(cmdDiffHead)
-			a := line[beg+2 : middle]
-			b := line[middle+3:]
-
-			if hasQuote {
-				// Keep the entire string in double quotes for now
-				a = line[beg:middle]
-				b = line[middle+1:]
-
-				var err error
-				a, err = strconv.Unquote(a)
-				if err != nil {
-					return nil, fmt.Errorf("Unquote: %v", err)
-				}
-				b, err = strconv.Unquote(b)
-				if err != nil {
-					return nil, fmt.Errorf("Unquote: %v", err)
-				}
-				// Now remove the /a /b
-				a = a[2:]
-				b = b[2:]
-
+			char, _ = rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q", &b)
+			} else {
+				fmt.Fscanf(rd, "%s", &b)
 			}
+			a = a[2:]
+			b = b[2:]
 
 			curFile = &DiffFile{
 				Name:      b,
