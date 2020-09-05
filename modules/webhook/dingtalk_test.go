@@ -14,18 +14,18 @@ import (
 
 func TestGetDingTalkIssuesPayload(t *testing.T) {
 	p := issueTestPayload()
-
+	d := new(DingtalkPayload)
 	p.Action = api.HookIssueOpened
-	pl, err := getDingtalkIssuesPayload(p)
+	pl, err := d.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "#2 crash", pl.ActionCard.Title)
-	assert.Equal(t, "[test/repo] Issue opened: #2 crash by user1\r\n\r\n", pl.ActionCard.Text)
+	assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
+	assert.Equal(t, "[test/repo] Issue opened: #2 crash by user1\r\n\r\n", pl.(*DingtalkPayload).ActionCard.Text)
 
 	p.Action = api.HookIssueClosed
-	pl, err = getDingtalkIssuesPayload(p)
+	pl, err = d.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "#2 crash", pl.ActionCard.Title)
-	assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1\r\n\r\n", pl.ActionCard.Text)
+	assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
+	assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1\r\n\r\n", pl.(*DingtalkPayload).ActionCard.Text)
 }
