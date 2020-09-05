@@ -1173,7 +1173,7 @@ func RewriteAllPrincipalKeys() error {
 }
 
 func rewriteAllPrincipalKeys(e Engine) error {
-	//Don't rewrite key if internal server
+	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
 		return nil
 	}
