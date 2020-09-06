@@ -1139,12 +1139,12 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if _, err = ctx.e.Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
-		return fmt.Errorf("increment user total_repos: %v", err)
-	}
-	u.NumRepos++
-
-	if repo.IsPrivate {
+	if !repo.IsPrivate {
+		if _, err = ctx.e.Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
+			return fmt.Errorf("increment user total_repos: %v", err)
+		}
+		u.NumRepos++
+	} else {
 		if _, err = ctx.e.Incr("num_private_repos").ID(u.ID).Update(new(User)); err != nil {
 			return fmt.Errorf("increment user total_private_repos: %v", err)
 		}
@@ -1316,9 +1316,15 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update repository count.
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
+	var colname string
+	if repo.IsPrivate {
+		colname = "num_private_repos"
+	} else {
+		colname = "num_repos"
+	}
+	if _, err = sess.Exec("UPDATE `user` SET ?=?+1 WHERE id=?", colname, colname, newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE `user` SET ?=?-1 WHERE id=?", colname, colname, oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
@@ -1654,12 +1660,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
-		return err
-	}
-
 	if repo.IsPrivate {
 		if _, err = sess.Exec("UPDATE `user` SET num_private_repos=num_private_repos-1 WHERE id=?", uid); err != nil {
+			return err
+		}
+	} else {
+		if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 			return err
 		}
 	}
@@ -2015,8 +2021,14 @@ func CheckRepoStats(ctx context.Context) error {
 		// User.NumRepos
 		{
 			"SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
-			"UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?",
+			"UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=? WHERE private=false",
 			"user count 'num_repos'",
+		},
+		// User.NumPrivateRepos
+		{
+			"SELECT `user`.id FROM `user` WHERE `user`.num_private_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
+			"UPDATE `user` SET num_private_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=? WHERE private=true",
+			"user count 'num_private_repos'",
 		},
 		// Issue.NumComments
 		{
