@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -122,7 +121,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	binVersion, err := git.BinVersion()
+	err = git.LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("Unable to get git version: %v", err)
 	}
@@ -132,7 +131,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		"-m", "Initial commit",
 	}
 
-	if version.Compare(binVersion, "1.7.9", ">=") {
+	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
 		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
@@ -142,7 +141,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 				committerName = signer.Name
 				committerEmail = signer.Email
 			}
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
