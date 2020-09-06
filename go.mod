@@ -75,7 +75,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
-	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v0.1.9
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.9

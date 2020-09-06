@@ -518,7 +518,7 @@ github.com/mschoch/smat
 # github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 ## explicit
 github.com/msteinert/pam
-# github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
+# github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 ## explicit
 github.com/nfnt/resize
 # github.com/niklasfasching/go-org v0.1.9
