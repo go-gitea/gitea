@@ -59,7 +59,6 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
-## explicit
 github.com/RoaringBitmap/roaring
 # github.com/alecthomas/chroma v0.8.0
 ## explicit
@@ -106,7 +105,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v1.0.7
+# github.com/blevesearch/bleve v1.0.10
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -156,10 +155,14 @@ github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.7
+# github.com/blevesearch/zap/v11 v11.0.10
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.7
+# github.com/blevesearch/zap/v12 v12.0.10
 github.com/blevesearch/zap/v12
+# github.com/blevesearch/zap/v13 v13.0.2
+github.com/blevesearch/zap/v13
+# github.com/blevesearch/zap/v14 v14.0.1
+github.com/blevesearch/zap/v14
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
@@ -175,7 +178,7 @@ github.com/couchbase/gomemcached/client
 # github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v1.0.1
+# github.com/couchbase/vellum v1.0.2
 github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
@@ -755,7 +758,7 @@ github.com/yuin/goldmark-highlighting
 # github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 ## explicit
 github.com/yuin/goldmark-meta
-# go.etcd.io/bbolt v1.3.4
+# go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
 # go.mongodb.org/mongo-driver v1.3.5
 go.mongodb.org/mongo-driver/bson
