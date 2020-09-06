@@ -384,16 +384,20 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	reviews := []*Review{}
 
 	var executeBody = func(page, pageSize int64) error {
+		if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
+			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
+			Find(&reviews); err != nil {
+			return err
+		}
+
+		if len(reviews) = 0 {
+			return nil
+		}
+
 		sess := x.NewSession()
 		defer sess.Close()
 
 		if err := sess.Begin(); err != nil {
-			return err
-		}
-
-		if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
-			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
-			Find(&reviews); err != nil {
 			return err
 		}
 
