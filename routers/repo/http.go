@@ -265,9 +265,9 @@ func HTTP(ctx *context.Context) {
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.EnvIsDeployKey + "=false",
+			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !authUser.KeepEmailPrivate {
