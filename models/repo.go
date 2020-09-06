@@ -235,7 +235,7 @@ func (repo *Repository) IsBeingCreated() bool {
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
 	if len(repo.DefaultBranch) == 0 {
-		repo.DefaultBranch = "master"
+		repo.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
