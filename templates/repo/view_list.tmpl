@@ -47,7 +47,7 @@
 					<span class="truncate">
 						{{if $entry.IsSubModule}}
 							{{svg "octicon-file-submodule" 16}}
-							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName}}
+							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
 							{{if $refURL}}
 								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
 							{{else}}
