@@ -60,3 +60,21 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 		HTTPGitDisabled: setting.Repository.DisableHTTPGit,
 	})
 }
+
+// GetGeneralAttachmentSettings returns instance's global settings for Attachment
+func GetGeneralAttachmentSettings(ctx *context.APIContext) {
+	// swagger:operation GET /settings/Attachment settings getGeneralAttachmentSettings
+	// ---
+	// summary: Get instance's global settings for Attachment
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GeneralAttachmentSettings"
+	ctx.JSON(http.StatusOK, api.GeneralAttachmentSettings{
+		Enabled:      setting.Attachment.Enabled,
+		AllowedTypes: setting.Attachment.AllowedTypes,
+		MaxFiles:     setting.Attachment.MaxFiles,
+		MaxSize:      setting.Attachment.MaxSize,
+	})
+}

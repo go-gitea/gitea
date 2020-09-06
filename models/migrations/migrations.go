@@ -231,6 +231,8 @@ var migrations = []Migration{
 	// v148 -> v149
 	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
 	// v149 -> v150
+	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
+	// v150 -> v151
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 }
 

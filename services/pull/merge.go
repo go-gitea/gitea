@@ -25,8 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/mcuadros/go-version"
 )
 
 // Merge merges pull request to base repository.
@@ -113,9 +111,9 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 // rawMerge perform the merge operation without changing any pull information in database
 func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (string, error) {
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
-		log.Error("git.BinVersion: %v", err)
+		log.Error("git.LoadGitVersion: %v", err)
 		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
 
@@ -157,7 +155,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	}
 
 	var gitConfigCommand func() *git.Command
-	if version.Compare(binVersion, "1.8.0", ">=") {
+	if git.CheckGitVersionConstraint(">= 1.8.0") == nil {
 		gitConfigCommand = func() *git.Command {
 			return git.NewCommand("config", "--local")
 		}
@@ -213,11 +211,11 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 
 	// Determine if we should sign
 	signArg := ""
-	if version.Compare(binVersion, "1.7.9", ">=") {
+	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
 		sign, keyID, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			signArg = "--no-gpg-sign"
 		}
 	}

@@ -7,15 +7,18 @@ package migrations
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
-func addChangedProtectedFilesPullRequestColumn(x *xorm.Engine) error {
-	type PullRequest struct {
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+func addCreatedAndUpdatedToMilestones(x *xorm.Engine) error {
+	type Milestone struct {
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
+	if err := x.Sync2(new(Milestone)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil

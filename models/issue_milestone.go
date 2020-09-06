@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,11 +32,14 @@ type Milestone struct {
 	Completeness    int  // Percentage(1-100).
 	IsOverdue       bool `xorm:"-"`
 
-	DeadlineString string `xorm:"-"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	DeadlineUnix   timeutil.TimeStamp
 	ClosedDateUnix timeutil.TimeStamp
+	DeadlineString string `xorm:"-"`
 
 	TotalTrackedTime int64 `xorm:"-"`
+	TimeSinceUpdate  int64 `xorm:"-"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -50,6 +54,9 @@ func (m *Milestone) BeforeUpdate() {
 // AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
 func (m *Milestone) AfterLoad() {
+	if !m.UpdatedUnix.IsZero() {
+		m.TimeSinceUpdate = time.Now().Unix() - m.UpdatedUnix.AsTime().Unix()
+	}
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
 	if m.DeadlineUnix.Year() == 9999 {
 		return
