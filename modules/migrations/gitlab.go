@@ -234,10 +234,10 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
-		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{
+		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{ListOptions: gitlab.ListOptions{
 			Page:    i,
 			PerPage: perPage,
-		}, nil, gitlab.WithContext(g.ctx))
+		}}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
 		}
