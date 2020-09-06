@@ -401,6 +401,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			return err
 		}
 
+		var updated int
 		for _, review := range reviews {
 			reviewer := new(User)
 			has, err := sess.ID(review.ReviewerID).Get(reviewer)
@@ -415,13 +416,16 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 				continue
 			}
 			review.Official = official
-
+			updated++
 			if _, err := sess.ID(review.ID).Cols("official").Update(review); err != nil {
 				return err
 			}
 		}
 
-		return sess.Commit()
+		if updated > 0 {
+			return sess.Commit()
+		}
+		return nil
 	}
 
 	var page int64
