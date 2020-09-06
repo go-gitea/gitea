@@ -420,7 +420,7 @@ github.com/gorilla/securecookie
 github.com/gorilla/sessions
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.6.6
+# github.com/hashicorp/go-retryablehttp v0.6.7
 ## explicit
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000 => github.com/6543/go-version v1.2.3
@@ -728,7 +728,7 @@ github.com/unknwon/paginater
 github.com/urfave/cli
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.31.0
+# github.com/xanzy/go-gitlab v0.37.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -846,10 +846,10 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200814230902-9882f1d1823d
+# golang.org/x/tools v0.0.0-20200825202427-b303f430e36d
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis

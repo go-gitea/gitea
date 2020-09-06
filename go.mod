@@ -50,7 +50,7 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
-	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
+	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
-	github.com/xanzy/go-gitlab v0.31.0
+	github.com/xanzy/go-gitlab v0.37.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
@@ -104,8 +104,8 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
-	golang.org/x/tools v0.0.0-20200814230902-9882f1d1823d
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	golang.org/x/tools v0.0.0-20200825202427-b303f430e36d
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
