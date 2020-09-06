@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"time"
 )
 
 // GroupsService handles communication with the group related methods of
@@ -32,38 +33,46 @@ type GroupsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html
 type Group struct {
-	ID                             int                        `json:"id"`
-	Name                           string                     `json:"name"`
-	Path                           string                     `json:"path"`
-	Description                    string                     `json:"description"`
-	MembershipLock                 bool                       `json:"membership_lock"`
-	Visibility                     VisibilityValue            `json:"visibility"`
-	LFSEnabled                     bool                       `json:"lfs_enabled"`
-	AvatarURL                      string                     `json:"avatar_url"`
-	WebURL                         string                     `json:"web_url"`
-	RequestAccessEnabled           bool                       `json:"request_access_enabled"`
-	FullName                       string                     `json:"full_name"`
-	FullPath                       string                     `json:"full_path"`
-	ParentID                       int                        `json:"parent_id"`
-	Projects                       []*Project                 `json:"projects"`
-	Statistics                     *StorageStatistics         `json:"statistics"`
-	CustomAttributes               []*CustomAttribute         `json:"custom_attributes"`
-	ShareWithGroupLock             bool                       `json:"share_with_group_lock"`
-	RequireTwoFactorAuth           bool                       `json:"require_two_factor_authentication"`
-	TwoFactorGracePeriod           int                        `json:"two_factor_grace_period"`
-	ProjectCreationLevel           ProjectCreationLevelValue  `json:"project_creation_level"`
-	AutoDevopsEnabled              bool                       `json:"auto_devops_enabled"`
-	SubGroupCreationLevel          SubGroupCreationLevelValue `json:"subgroup_creation_level"`
-	EmailsDisabled                 bool                       `json:"emails_disabled"`
-	MentionsDisabled               bool                       `json:"mentions_disabled"`
-	RunnersToken                   string                     `json:"runners_token"`
-	SharedProjects                 []*Project                 `json:"shared_projects"`
-	LDAPCN                         string                     `json:"ldap_cn"`
-	LDAPAccess                     AccessLevelValue           `json:"ldap_access"`
-	LDAPGroupLinks                 []*LDAPGroupLink           `json:"ldap_group_links"`
-	SharedRunnersMinutesLimit      int                        `json:"shared_runners_minutes_limit"`
-	ExtraSharedRunnersMinutesLimit int                        `json:"extra_shared_runners_minutes_limit"`
-	MarkedForDeletionOn            *ISOTime                   `json:"marked_for_deletion_on"`
+	ID                    int                        `json:"id"`
+	Name                  string                     `json:"name"`
+	Path                  string                     `json:"path"`
+	Description           string                     `json:"description"`
+	MembershipLock        bool                       `json:"membership_lock"`
+	Visibility            VisibilityValue            `json:"visibility"`
+	LFSEnabled            bool                       `json:"lfs_enabled"`
+	AvatarURL             string                     `json:"avatar_url"`
+	WebURL                string                     `json:"web_url"`
+	RequestAccessEnabled  bool                       `json:"request_access_enabled"`
+	FullName              string                     `json:"full_name"`
+	FullPath              string                     `json:"full_path"`
+	ParentID              int                        `json:"parent_id"`
+	Projects              []*Project                 `json:"projects"`
+	Statistics            *StorageStatistics         `json:"statistics"`
+	CustomAttributes      []*CustomAttribute         `json:"custom_attributes"`
+	ShareWithGroupLock    bool                       `json:"share_with_group_lock"`
+	RequireTwoFactorAuth  bool                       `json:"require_two_factor_authentication"`
+	TwoFactorGracePeriod  int                        `json:"two_factor_grace_period"`
+	ProjectCreationLevel  ProjectCreationLevelValue  `json:"project_creation_level"`
+	AutoDevopsEnabled     bool                       `json:"auto_devops_enabled"`
+	SubGroupCreationLevel SubGroupCreationLevelValue `json:"subgroup_creation_level"`
+	EmailsDisabled        bool                       `json:"emails_disabled"`
+	MentionsDisabled      bool                       `json:"mentions_disabled"`
+	RunnersToken          string                     `json:"runners_token"`
+	SharedProjects        []*Project                 `json:"shared_projects"`
+	SharedWithGroups      []struct {
+		GroupID          int      `json:"group_id"`
+		GroupName        string   `json:"group_name"`
+		GroupFullPath    string   `json:"group_full_path"`
+		GroupAccessLevel int      `json:"group_access_level"`
+		ExpiresAt        *ISOTime `json:"expires_at"`
+	} `json:"shared_with_groups"`
+	LDAPCN                         string           `json:"ldap_cn"`
+	LDAPAccess                     AccessLevelValue `json:"ldap_access"`
+	LDAPGroupLinks                 []*LDAPGroupLink `json:"ldap_group_links"`
+	SharedRunnersMinutesLimit      int              `json:"shared_runners_minutes_limit"`
+	ExtraSharedRunnersMinutesLimit int              `json:"extra_shared_runners_minutes_limit"`
+	MarkedForDeletionOn            *ISOTime         `json:"marked_for_deletion_on"`
+	CreatedAt                      *time.Time       `json:"created_at"`
 }
 
 type LDAPGroupLink struct {
@@ -85,6 +94,7 @@ type ListGroupsOptions struct {
 	SkipGroups           []int             `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
 	Sort                 *string           `url:"sort,omitempty" json:"sort,omitempty"`
 	Statistics           *bool             `url:"statistics,omitempty" json:"statistics,omitempty"`
+	TopLevelOnly         *bool             `url:"top_level_only,omitempty" json:"top_level_only,omitempty"`
 	WithCustomAttributes *bool             `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 }
 
@@ -388,7 +398,7 @@ func (s *GroupsService) ListGroupLDAPLinks(gid interface{}, options ...RequestOp
 type AddGroupLDAPLinkOptions struct {
 	CN          *string `url:"cn,omitempty" json:"cn,omitempty"`
 	GroupAccess *int    `url:"group_access,omitempty" json:"group_access,omitempty"`
-	Provider    *string `url:"provider,omitempty" json:"provider,ommitempty"`
+	Provider    *string `url:"provider,omitempty" json:"provider,omitempty"`
 }
 
 // AddGroupLDAPLink creates a new group LDAP link. Available only for users who
