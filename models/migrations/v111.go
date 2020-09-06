@@ -380,10 +380,10 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 	totalPages := totalIssues / pageSize
 
-	// Find latest review of each user in each pull request, and set official field if appropriate
-	reviews := []*Review{}
-
 	var executeBody = func(page, pageSize int64) error {
+		// Find latest review of each user in each pull request, and set official field if appropriate
+		reviews := []*Review{}
+
 		if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
 			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
 			Find(&reviews); err != nil {
