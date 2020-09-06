@@ -5,7 +5,6 @@
 package session
 
 import (
-	"container/list"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -37,7 +36,7 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	// This is only slightly more wrong than modules/setting/session.go:23
 	switch opts.Provider {
 	case "memory":
-		o.provider = &MemProvider{list: list.New(), data: make(map[string]*list.Element)}
+		o.provider = &session.MemProvider{}
 	case "file":
 		o.provider = &session.FileProvider{}
 	case "redis":

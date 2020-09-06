@@ -38,6 +38,7 @@ func NewSanitizer() {
 func ReplaceSanitizer() {
 	sanitizer.policy = bluemonday.UGCPolicy()
 	// For Chroma markdown plugin
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^is-loading$`)).OnElements("pre")
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes

@@ -41,7 +41,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: "/var/run/gitea.pid",
+			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
 	},
@@ -110,7 +110,8 @@ func runWeb(ctx *cli.Context) error {
 
 	// Set pid file setting
 	if ctx.IsSet("pid") {
-		setting.CustomPID = ctx.String("pid")
+		setting.PIDFile = ctx.String("pid")
+		setting.WritePIDFile = true
 	}
 
 	// Perform global initialization

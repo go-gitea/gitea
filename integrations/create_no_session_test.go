@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/routes"
 
 	"gitea.com/macaron/session"
@@ -72,7 +73,7 @@ func TestSessionFileCreation(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = os.RemoveAll(tmpDir)
+			_ = util.RemoveAll(tmpDir)
 		}
 	}()
 	config.ProviderConfig = tmpDir

@@ -23,6 +23,69 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/cron": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List cron tasks",
+        "operationId": "adminCronList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CronList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/cron/{task}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Run cron task",
+        "operationId": "adminCronRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "task to run",
+            "name": "task",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/orgs": {
       "get": {
         "produces": [
@@ -7285,6 +7348,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/update": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Merge PR's baseBranch into headBranch",
+        "operationId": "repoUpdatePullRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
@@ -8552,6 +8668,40 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/settings/Attachment": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for Attachment",
+        "operationId": "getGeneralAttachmentSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAttachmentSettings"
+          }
+        }
+      }
+    },
+    "/settings/api": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for api",
+        "operationId": "getGeneralAPISettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAPISettings"
           }
         }
       }
@@ -10519,9 +10669,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "token to be deleted",
+            "type": "string",
+            "description": "token to be deleted, identified by ID and if not available by name",
             "name": "token",
             "in": "path",
             "required": true
@@ -10530,6 +10679,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11878,6 +12030,36 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Cron": {
+      "description": "Cron represents a Cron task",
+      "type": "object",
+      "properties": {
+        "exec_times": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExecTimes"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "next": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Next"
+        },
+        "prev": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Prev"
+        },
+        "schedule": {
+          "type": "string",
+          "x-go-name": "Schedule"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "DeleteEmailOption": {
       "description": "DeleteEmailOption options when deleting email addresses",
       "type": "object",
@@ -12434,6 +12616,11 @@
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
+        "has_projects": {
+          "description": "either `true` to enable project unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasProjects"
+        },
         "has_pull_requests": {
           "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
           "type": "boolean",
@@ -12820,6 +13007,58 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GeneralAPISettings": {
+      "description": "GeneralAPISettings contains global api settings exposed by it",
+      "type": "object",
+      "properties": {
+        "default_git_trees_per_page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultGitTreesPerPage"
+        },
+        "default_max_blob_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultMaxBlobSize"
+        },
+        "default_paging_num": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultPagingNum"
+        },
+        "max_response_items": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxResponseItems"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GeneralAttachmentSettings": {
+      "description": "GeneralAttachmentSettings contains global Attachment settings exposed by API",
+      "type": "object",
+      "properties": {
+        "allowed_types": {
+          "type": "string",
+          "x-go-name": "AllowedTypes"
+        },
+        "enabled": {
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        },
+        "max_files": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxFiles"
+        },
+        "max_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxSize"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13295,6 +13534,10 @@
           "type": "string",
           "x-go-name": "AuthPassword"
         },
+        "auth_token": {
+          "type": "string",
+          "x-go-name": "AuthToken"
+        },
         "auth_username": {
           "type": "string",
           "x-go-name": "AuthUsername"
@@ -13339,6 +13582,11 @@
           "type": "string",
           "x-go-name": "RepoName"
         },
+        "service": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Service"
+        },
         "uid": {
           "type": "integer",
           "format": "int64",
@@ -13365,6 +13613,11 @@
           "format": "int64",
           "x-go-name": "ClosedIssues"
         },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -13390,6 +13643,11 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14218,6 +14476,10 @@
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
+        "has_projects": {
+          "type": "boolean",
+          "x-go-name": "HasProjects"
+        },
         "has_pull_requests": {
           "type": "boolean",
           "x-go-name": "HasPullRequests"
@@ -14446,6 +14708,18 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueIndex"
+        },
+        "issue_title": {
+          "type": "string",
+          "x-go-name": "IssueTitle"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        },
+        "repo_owner_name": {
+          "type": "string",
+          "x-go-name": "RepoOwnerName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14965,6 +15239,15 @@
         "$ref": "#/definitions/ContentsResponse"
       }
     },
+    "CronList": {
+      "description": "CronList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Cron"
+        }
+      }
+    },
     "DeployKey": {
       "description": "DeployKey",
       "schema": {
@@ -15020,6 +15303,18 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GeneralAPISettings": {
+      "description": "GeneralAPISettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralAPISettings"
+      }
+    },
+    "GeneralAttachmentSettings": {
+      "description": "GeneralAttachmentSettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralAttachmentSettings"
       }
     },
     "GeneralRepoSettings": {
@@ -15551,6 +15846,12 @@
       "name": "sudo",
       "in": "query"
     },
+    "TOTPHeader": {
+      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
+      "type": "apiKey",
+      "name": "X-GITEA-OTP",
+      "in": "header"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -15575,6 +15876,9 @@
     },
     {
       "SudoHeader": []
+    },
+    {
+      "TOTPHeader": []
     }
   ]
 }

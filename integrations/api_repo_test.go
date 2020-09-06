@@ -9,12 +9,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -321,7 +321,16 @@ func TestAPIRepoMigrate(t *testing.T) {
 			UID:       int(testCase.userID),
 			RepoName:  testCase.repoName,
 		})
-		session.MakeRequest(t, req, testCase.expectedStatus)
+		resp := MakeRequest(t, req, NoExpectedStatus)
+		if resp.Code == http.StatusUnprocessableEntity {
+			respJSON := map[string]string{}
+			DecodeJSON(t, resp, &respJSON)
+			if assert.Equal(t, respJSON["message"], "Remote visit addressed rate limitation.") {
+				t.Log("test hit github rate limitation")
+			}
+		} else {
+			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
+		}
 	}
 }
 
@@ -341,7 +350,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		user, err := models.GetUserByName(httpContext.Username)
@@ -404,7 +413,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+httpContext.Token,

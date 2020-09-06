@@ -44,18 +44,14 @@ var (
 // Scratch provides temporary storage for compression and decompression.
 type Scratch struct {
 	// Private
-	count          [maxSymbolValue + 1]uint32
-	norm           [maxSymbolValue + 1]int16
-	symbolLen      uint16 // Length of active part of the symbol table.
-	actualTableLog uint8  // Selected tablelog.
-	br             byteReader
-	bits           bitReader
-	bw             bitWriter
-	ct             cTable      // Compression tables.
-	decTable       []decSymbol // Decompression table.
-	zeroBits       bool        // no bits has prob > 50%.
-	clearCount     bool        // clear count
-	maxCount       int         // count of the most probable symbol
+	count    [maxSymbolValue + 1]uint32
+	norm     [maxSymbolValue + 1]int16
+	br       byteReader
+	bits     bitReader
+	bw       bitWriter
+	ct       cTable      // Compression tables.
+	decTable []decSymbol // Decompression table.
+	maxCount int         // count of the most probable symbol
 
 	// Per block parameters.
 	// These can be used to override compression parameters of the block.
@@ -68,17 +64,22 @@ type Scratch struct {
 	// and allocation will be avoided.
 	Out []byte
 
-	// MaxSymbolValue will override the maximum symbol value of the next block.
-	MaxSymbolValue uint8
-
-	// TableLog will attempt to override the tablelog for the next block.
-	TableLog uint8
-
 	// DecompressLimit limits the maximum decoded size acceptable.
 	// If > 0 decompression will stop when approximately this many bytes
 	// has been decoded.
 	// If 0, maximum size will be 2GB.
 	DecompressLimit int
+
+	symbolLen      uint16 // Length of active part of the symbol table.
+	actualTableLog uint8  // Selected tablelog.
+	zeroBits       bool   // no bits has prob > 50%.
+	clearCount     bool   // clear count
+
+	// MaxSymbolValue will override the maximum symbol value of the next block.
+	MaxSymbolValue uint8
+
+	// TableLog will attempt to override the tablelog for the next block.
+	TableLog uint8
 }
 
 // Histogram allows to populate the histogram and skip that step in the compression,

@@ -5,7 +5,7 @@
 package integrations
 
 import (
-	"fmt"
+	"net/http"
 	"net/url"
 	"testing"
 	"time"
@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPullUpdate(t *testing.T) {
+func TestAPIPullUpdate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
@@ -31,17 +31,19 @@ func TestPullUpdate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
+		assert.NoError(t, pr.LoadBaseRepo())
+		assert.NoError(t, pr.LoadIssue())
 
-		message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
-		err = pull_service.Update(pr, user, message)
-		assert.NoError(t, err)
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		//Test GetDiverging after update
 		diffCount, err = pull_service.GetDiverging(pr)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 2, diffCount.Ahead)
-
 	})
 }
 

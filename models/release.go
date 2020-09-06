@@ -35,6 +35,7 @@ type Release struct {
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
+	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`

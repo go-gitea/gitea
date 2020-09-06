@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
-	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
@@ -166,6 +165,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -207,6 +207,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -297,13 +298,6 @@ var (
 	AccessLogTemplate  string
 	EnableXORMLog      bool
 
-	// Attachment settings
-	AttachmentPath         string
-	AttachmentAllowedTypes string
-	AttachmentMaxSize      int64
-	AttachmentMaxFiles     int
-	AttachmentEnabled      bool
-
 	// Time settings
 	TimeFormat string
 	// UILocation is the location on the UI, so that we can display the time on UI.
@@ -380,7 +374,8 @@ var (
 	Cfg           *ini.File
 	CustomPath    string // Custom directory path
 	CustomConf    string
-	CustomPID     string
+	PIDFile       = "/run/gitea.pid"
+	WritePIDFile  bool
 	ProdMode      bool
 	RunUser       string
 	IsWindows     bool
@@ -483,12 +478,12 @@ func CheckLFSVersion() {
 		//Disable LFS client hooks if installed for the current OS user
 		//Needs at least git v2.1.2
 
-		binVersion, err := git.BinVersion()
+		err := git.LoadGitVersion()
 		if err != nil {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if !version.Compare(binVersion, "2.1.2", ">=") {
+		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
 			LFS.StartServer = false
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {
@@ -533,8 +528,8 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 func NewContext() {
 	Cfg = ini.Empty()
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if WritePIDFile && len(PIDFile) > 0 {
+		createPIDFile(PIDFile)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -652,7 +647,10 @@ func NewContext() {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
+	}
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
@@ -820,12 +818,15 @@ func NewContext() {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
 		name := strings.ToLower(strings.Trim(name, `"`))
@@ -834,15 +835,7 @@ func NewContext() {
 		}
 	}
 
-	sec = Cfg.Section("attachment")
-	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
-	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
-	}
-	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
-	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
-	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
+	newAttachmentService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -1118,4 +1111,5 @@ func NewServices() {
 	newIndexerService()
 	newTaskService()
 	NewQueueService()
+	newProject()
 }

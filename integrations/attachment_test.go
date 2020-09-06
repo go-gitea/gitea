@@ -9,14 +9,13 @@ import (
 	"image"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -123,10 +122,7 @@ func TestGetAttachment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			//Write empty file to be available for response
 			if tc.createFile {
-				localPath := models.AttachmentLocalPath(tc.uuid)
-				err := os.MkdirAll(path.Dir(localPath), os.ModePerm)
-				assert.NoError(t, err)
-				err = ioutil.WriteFile(localPath, []byte("hello world"), 0644)
+				_, err := storage.Attachments.Save(models.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"))
 				assert.NoError(t, err)
 			}
 			//Actual test
