@@ -380,10 +380,20 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 	totalPages := totalIssues / pageSize
 
-	// Find latest review of each user in each pull request, and set official field if appropriate
-	reviews := []*Review{}
-
 	var executeBody = func(page, pageSize int64) error {
+		// Find latest review of each user in each pull request, and set official field if appropriate
+		reviews := []*Review{}
+
+		if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
+			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
+			Find(&reviews); err != nil {
+			return err
+		}
+
+		if len(reviews) == 0 {
+			return nil
+		}
+
 		sess := x.NewSession()
 		defer sess.Close()
 
@@ -391,12 +401,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
-			page*pageSize, (page+1)*pageSize, ReviewTypeApprove, ReviewTypeReject).
-			Find(&reviews); err != nil {
-			return err
-		}
-
+		var updated int
 		for _, review := range reviews {
 			reviewer := new(User)
 			has, err := sess.ID(review.ReviewerID).Get(reviewer)
@@ -411,13 +416,16 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 				continue
 			}
 			review.Official = official
-
+			updated++
 			if _, err := sess.ID(review.ID).Cols("official").Update(review); err != nil {
 				return err
 			}
 		}
 
-		return sess.Commit()
+		if updated > 0 {
+			return sess.Commit()
+		}
+		return nil
 	}
 
 	var page int64

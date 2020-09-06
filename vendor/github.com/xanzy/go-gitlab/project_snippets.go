@@ -91,7 +91,7 @@ type CreateProjectSnippetOptions struct {
 	Title       *string          `url:"title,omitempty" json:"title,omitempty"`
 	FileName    *string          `url:"file_name,omitempty" json:"file_name,omitempty"`
 	Description *string          `url:"description,omitempty" json:"description,omitempty"`
-	Code        *string          `url:"code,omitempty" json:"code,omitempty"`
+	Content     *string          `url:"content,omitempty" json:"content,omitempty"`
 	Visibility  *VisibilityValue `url:"visibility,omitempty" json:"visibility,omitempty"`
 }
 
@@ -129,7 +129,7 @@ type UpdateProjectSnippetOptions struct {
 	Title       *string          `url:"title,omitempty" json:"title,omitempty"`
 	FileName    *string          `url:"file_name,omitempty" json:"file_name,omitempty"`
 	Description *string          `url:"description,omitempty" json:"description,omitempty"`
-	Code        *string          `url:"code,omitempty" json:"code,omitempty"`
+	Content     *string          `url:"content,omitempty" json:"content,omitempty"`
 	Visibility  *VisibilityValue `url:"visibility,omitempty" json:"visibility,omitempty"`
 }
 
