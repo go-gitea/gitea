@@ -6,13 +6,13 @@ package repository
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -71,7 +71,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 				}
 			} else if opts.OverwritePreExisting {
 				log.Warn("An already existing repository was deleted at %s", repoPath)
-				if err := os.RemoveAll(repoPath); err != nil {
+				if err := util.RemoveAll(repoPath); err != nil {
 					log.Error("Unable to remove already existing repository at %s: Error: %v", repoPath, err)
 					return fmt.Errorf(
 						"unable to delete repo directory %s/%s: %v", u.Name, repo.Name, err)
@@ -87,7 +87,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 		if shouldInit {
 			if err := initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-				if err2 := os.RemoveAll(repoPath); err2 != nil {
+				if err2 := util.RemoveAll(repoPath); err2 != nil {
 					log.Error("initRepository: %v", err)
 					return fmt.Errorf(
 						"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)

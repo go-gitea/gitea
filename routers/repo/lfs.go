@@ -11,7 +11,6 @@ import (
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -29,11 +28,11 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -356,7 +355,7 @@ func LFSDelete(ctx *context.Context) {
 	// Please note a similar condition happens in models/repo.go DeleteRepository
 	if count == 0 {
 		oidPath := filepath.Join(oid[0:2], oid[2:4], oid[4:])
-		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
+		err = util.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
 		if err != nil {
 			ctx.ServerError("LFSDelete", err)
 			return
@@ -541,7 +540,7 @@ func LFSPointerFiles(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
@@ -586,7 +585,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
-	if !version.Compare(binVersion, "2.6.0", ">=") {
+	if git.CheckGitVersionConstraint(">= 2.6.0") != nil {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)

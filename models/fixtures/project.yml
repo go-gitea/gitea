@@ -1,0 +1,26 @@
+-
+  id: 1
+  title: First project
+  repo_id: 1
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+
+-
+  id: 2
+  title: second project
+  repo_id: 3
+  is_closed: false
+  creator_id: 3
+  board_type: 1
+  type: 2
+
+-
+  id: 3
+  title: project on repo with disabled project
+  repo_id: 4
+  is_closed: true
+  creator_id: 5
+  board_type: 1
+  type: 2

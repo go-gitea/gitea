@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
 	"github.com/unknwon/com"
@@ -121,7 +122,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("git clone: %v", err)
 	}
 
-	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
+	if err := util.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %v", err)
 	}
 
@@ -132,7 +133,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 	}
 
 	if gt != nil {
-		if err := os.Remove(gt.Path); err != nil {
+		if err := util.Remove(gt.Path); err != nil {
 			return fmt.Errorf("remove .giteatemplate: %v", err)
 		}
 
@@ -193,7 +194,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 	}
 
 	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
+		if err := util.RemoveAll(tmpDir); err != nil {
 			log.Error("RemoveAll: %v", err)
 		}
 	}()
@@ -254,7 +255,7 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 	repoPath := generateRepo.RepoPath()
 	if com.IsExist(repoPath) {
 		if opts.OverwritePreExisting {
-			if err = os.RemoveAll(repoPath); err != nil {
+			if err = util.RemoveAll(repoPath); err != nil {
 				return nil, err
 			}
 		} else {

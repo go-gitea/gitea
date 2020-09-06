@@ -80,7 +80,7 @@ func ServCommand(ctx *macaron.Context) {
 		KeyID:     keyID,
 	}
 
-	// Now because we're not translating things properly let's just default some Engish strings here
+	// Now because we're not translating things properly let's just default some English strings here
 	modeString := "read"
 	if mode > models.AccessModeRead {
 		modeString = "write to"
@@ -217,6 +217,18 @@ func ServCommand(ctx *macaron.Context) {
 		// so for now use the owner of the repository
 		results.UserName = results.OwnerName
 		results.UserID = repo.OwnerID
+		if err = repo.GetOwner(); err != nil {
+			log.Error("Unable to get owner for repo %-v. Error: %v", repo, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get owner for repo: %s/%s.", results.OwnerName, results.RepoName),
+			})
+			return
+		}
+		if !repo.Owner.KeepEmailPrivate {
+			results.UserEmail = repo.Owner.Email
+		}
 	} else {
 		// Get the user represented by the Key
 		var err error
@@ -239,6 +251,9 @@ func ServCommand(ctx *macaron.Context) {
 			return
 		}
 		results.UserName = user.Name
+		if !user.KeepEmailPrivate {
+			results.UserEmail = user.Email
+		}
 	}
 
 	// Don't allow pushing if the repo is archived

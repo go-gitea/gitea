@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -121,7 +121,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	binVersion, err := git.BinVersion()
+	err = git.LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("Unable to get git version: %v", err)
 	}
@@ -131,11 +131,11 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		"-m", "Initial commit",
 	}
 
-	if version.Compare(binVersion, "1.7.9", ">=") {
+	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
 		sign, keyID, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
@@ -228,8 +228,11 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
-
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := util.RemoveAll(tmpDir); err != nil {
+				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
+			}
+		}()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)

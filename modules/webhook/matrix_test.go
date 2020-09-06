@@ -16,73 +16,69 @@ import (
 
 func TestMatrixIssuesPayloadOpened(t *testing.T) {
 	p := issueTestPayload()
-	sl := &MatrixMeta{}
+	m := new(MatrixPayloadUnsafe)
 
 	p.Action = api.HookIssueOpened
-	pl, err := getMatrixIssuesPayload(p, sl)
+	pl, err := m.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue opened: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue opened: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 
 	p.Action = api.HookIssueClosed
-	pl, err = getMatrixIssuesPayload(p, sl)
+	pl, err = m.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue closed: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue closed: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue closed: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue closed: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 }
 
 func TestMatrixIssueCommentPayload(t *testing.T) {
 	p := issueCommentTestPayload()
+	m := new(MatrixPayloadUnsafe)
 
-	sl := &MatrixMeta{}
-
-	pl, err := getMatrixIssueCommentPayload(p, sl)
+	pl, err := m.IssueComment(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on issue [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on issue <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on issue [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on issue <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 }
 
 func TestMatrixPullRequestCommentPayload(t *testing.T) {
 	p := pullRequestCommentTestPayload()
+	m := new(MatrixPayloadUnsafe)
 
-	sl := &MatrixMeta{}
-
-	pl, err := getMatrixIssueCommentPayload(p, sl)
+	pl, err := m.IssueComment(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on pull request [#2 Fix bug](http://localhost:3000/test/repo/pulls/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/2\">#2 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on pull request [#2 Fix bug](http://localhost:3000/test/repo/pulls/2) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/2\">#2 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 }
 
 func TestMatrixReleasePayload(t *testing.T) {
 	p := pullReleaseTestPayload()
+	m := new(MatrixPayloadUnsafe)
 
-	sl := &MatrixMeta{}
-
-	pl, err := getMatrixReleasePayload(p, sl)
+	pl, err := m.Release(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Release created: [v1.0](http://localhost:3000/test/repo/src/v1.0) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Release created: <a href=\"http://localhost:3000/test/repo/src/v1.0\">v1.0</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Release created: [v1.0](http://localhost:3000/test/repo/src/v1.0) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Release created: <a href=\"http://localhost:3000/test/repo/src/v1.0\">v1.0</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 }
 
 func TestMatrixPullRequestPayload(t *testing.T) {
 	p := pullRequestTestPayload()
+	m := new(MatrixPayloadUnsafe)
 
-	sl := &MatrixMeta{}
-
-	pl, err := getMatrixPullRequestPayload(p, sl)
+	pl, err := m.PullRequest(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#2 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#2 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#2 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#2 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.(*MatrixPayloadUnsafe).FormattedBody)
 }
 
 func TestMatrixHookRequest(t *testing.T) {

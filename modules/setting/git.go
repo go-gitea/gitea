@@ -9,8 +9,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-
-	version "github.com/mcuadros/go-version"
 )
 
 var (
@@ -71,20 +69,20 @@ func newGit() {
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
-	binVersion, err := git.BinVersion()
+	version, err := git.LocalVersion()
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
 
-	if version.Compare(binVersion, "2.9", ">=") {
+	if git.CheckGitVersionConstraint(">= 2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
 	}
 
 	var format = "Git Version: %s"
-	var args = []interface{}{binVersion}
+	var args = []interface{}{version.Original()}
 	// Since git wire protocol has been released from git v2.18
-	if Git.EnableAutoGitWireProtocol && version.Compare(binVersion, "2.18", ">=") {
+	if Git.EnableAutoGitWireProtocol && git.CheckGitVersionConstraint(">= 2.18") == nil {
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "protocol.version=2")
 		format += ", Wire Protocol %s Enabled"
 		args = append(args, "Version 2") // for focus color
