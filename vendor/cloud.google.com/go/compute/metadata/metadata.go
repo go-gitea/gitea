@@ -61,14 +61,25 @@ var (
 	instID  = &cachedValue{k: "instance/id", trim: true}
 )
 
-var defaultClient = &Client{hc: &http.Client{
-	Transport: &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   2 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-	},
-}}
+var (
+	defaultClient = &Client{hc: &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   2 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			ResponseHeaderTimeout: 2 * time.Second,
+		},
+	}}
+	subscribeClient = &Client{hc: &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   2 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+		},
+	}}
+)
 
 // NotDefinedError is returned when requested metadata is not defined.
 //
@@ -140,7 +151,7 @@ func testOnGCE() bool {
 	}()
 
 	go func() {
-		addrs, err := net.DefaultResolver.LookupHost(ctx, "metadata.google.internal")
+		addrs, err := net.LookupHost("metadata.google.internal")
 		if err != nil || len(addrs) == 0 {
 			resc <- false
 			return
@@ -195,9 +206,10 @@ func systemInfoSuggestsGCE() bool {
 	return name == "Google" || name == "Google Compute Engine"
 }
 
-// Subscribe calls Client.Subscribe on the default client.
+// Subscribe calls Client.Subscribe on a client designed for subscribing (one with no
+// ResponseHeaderTimeout).
 func Subscribe(suffix string, fn func(v string, ok bool) error) error {
-	return defaultClient.Subscribe(suffix, fn)
+	return subscribeClient.Subscribe(suffix, fn)
 }
 
 // Get calls Client.Get on the default client.
@@ -268,14 +280,9 @@ type Client struct {
 	hc *http.Client
 }
 
-// NewClient returns a Client that can be used to fetch metadata.
-// Returns the client that uses the specified http.Client for HTTP requests.
-// If nil is specified, returns the default client.
+// NewClient returns a Client that can be used to fetch metadata. All HTTP requests
+// will use the given http.Client instead of the default client.
 func NewClient(c *http.Client) *Client {
-	if c == nil {
-		return defaultClient
-	}
-
 	return &Client{hc: c}
 }
 
@@ -296,12 +303,8 @@ func (c *Client) getETag(suffix string) (value, etag string, err error) {
 		// being stable anyway.
 		host = metadataIP
 	}
-	suffix = strings.TrimLeft(suffix, "/")
 	u := "http://" + host + "/computeMetadata/v1/" + suffix
-	req, err := http.NewRequest("GET", u, nil)
-	if err != nil {
-		return "", "", err
-	}
+	req, _ := http.NewRequest("GET", u, nil)
 	req.Header.Set("Metadata-Flavor", "Google")
 	req.Header.Set("User-Agent", userAgent)
 	res, err := c.hc.Do(req)
@@ -404,7 +407,11 @@ func (c *Client) InstanceTags() ([]string, error) {
 
 // InstanceName returns the current VM's instance ID string.
 func (c *Client) InstanceName() (string, error) {
-	return c.getTrimmed("instance/name")
+	host, err := c.Hostname()
+	if err != nil {
+		return "", err
+	}
+	return strings.Split(host, ".")[0], nil
 }
 
 // Zone returns the current VM's zone, such as "us-central1-b".

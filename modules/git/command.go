@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,12 +12,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
-	"github.com/mcuadros/go-version"
 )
 
 var (
@@ -132,7 +131,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	// TODO: verify if this is still needed in golang 1.15
-	if version.Compare(runtime.Version(), "go1.15", "<") {
+	if goVersionLessThan115 {
 		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
 	cmd.Dir = dir

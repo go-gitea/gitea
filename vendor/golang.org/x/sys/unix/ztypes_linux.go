@@ -67,9 +67,7 @@ type Statx_t struct {
 	Rdev_minor      uint32
 	Dev_major       uint32
 	Dev_minor       uint32
-	Mnt_id          uint64
-	_               uint64
-	_               [12]uint64
+	_               [14]uint64
 }
 
 type Fsid struct {

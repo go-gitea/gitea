@@ -265,7 +265,6 @@ const (
 	CAP_AUDIT_READ                              = 0x25
 	CAP_AUDIT_WRITE                             = 0x1d
 	CAP_BLOCK_SUSPEND                           = 0x24
-	CAP_BPF                                     = 0x27
 	CAP_CHOWN                                   = 0x0
 	CAP_DAC_OVERRIDE                            = 0x1
 	CAP_DAC_READ_SEARCH                         = 0x2
@@ -274,7 +273,7 @@ const (
 	CAP_IPC_LOCK                                = 0xe
 	CAP_IPC_OWNER                               = 0xf
 	CAP_KILL                                    = 0x5
-	CAP_LAST_CAP                                = 0x27
+	CAP_LAST_CAP                                = 0x25
 	CAP_LEASE                                   = 0x1c
 	CAP_LINUX_IMMUTABLE                         = 0x9
 	CAP_MAC_ADMIN                               = 0x21
@@ -284,7 +283,6 @@ const (
 	CAP_NET_BIND_SERVICE                        = 0xa
 	CAP_NET_BROADCAST                           = 0xb
 	CAP_NET_RAW                                 = 0xd
-	CAP_PERFMON                                 = 0x26
 	CAP_SETFCAP                                 = 0x1f
 	CAP_SETGID                                  = 0x6
 	CAP_SETPCAP                                 = 0x8
@@ -374,7 +372,6 @@ const (
 	DEVLINK_GENL_NAME                           = "devlink"
 	DEVLINK_GENL_VERSION                        = 0x1
 	DEVLINK_SB_THRESHOLD_TO_ALPHA_MAX           = 0x14
-	DEVMEM_MAGIC                                = 0x454d444d
 	DEVPTS_SUPER_MAGIC                          = 0x1cd1
 	DMA_BUF_MAGIC                               = 0x444d4142
 	DT_BLK                                      = 0x6
@@ -478,7 +475,6 @@ const (
 	ETH_P_MOBITEX                               = 0x15
 	ETH_P_MPLS_MC                               = 0x8848
 	ETH_P_MPLS_UC                               = 0x8847
-	ETH_P_MRP                                   = 0x88e3
 	ETH_P_MVRP                                  = 0x88f5
 	ETH_P_NCSI                                  = 0x88f8
 	ETH_P_NSH                                   = 0x894f
@@ -606,9 +602,8 @@ const (
 	FSCRYPT_POLICY_FLAGS_PAD_4                  = 0x0
 	FSCRYPT_POLICY_FLAGS_PAD_8                  = 0x1
 	FSCRYPT_POLICY_FLAGS_PAD_MASK               = 0x3
-	FSCRYPT_POLICY_FLAGS_VALID                  = 0x1f
+	FSCRYPT_POLICY_FLAGS_VALID                  = 0xf
 	FSCRYPT_POLICY_FLAG_DIRECT_KEY              = 0x4
-	FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32          = 0x10
 	FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64          = 0x8
 	FSCRYPT_POLICY_V1                           = 0x0
 	FSCRYPT_POLICY_V2                           = 0x2
@@ -637,7 +632,7 @@ const (
 	FS_POLICY_FLAGS_PAD_4                       = 0x0
 	FS_POLICY_FLAGS_PAD_8                       = 0x1
 	FS_POLICY_FLAGS_PAD_MASK                    = 0x3
-	FS_POLICY_FLAGS_VALID                       = 0x1f
+	FS_POLICY_FLAGS_VALID                       = 0xf
 	FS_VERITY_FL                                = 0x100000
 	FS_VERITY_HASH_ALG_SHA256                   = 0x1
 	FS_VERITY_HASH_ALG_SHA512                   = 0x2
@@ -1021,7 +1016,6 @@ const (
 	KEYCTL_CAPS0_PERSISTENT_KEYRINGS            = 0x2
 	KEYCTL_CAPS0_PUBLIC_KEY                     = 0x8
 	KEYCTL_CAPS0_RESTRICT_KEYRING               = 0x40
-	KEYCTL_CAPS1_NOTIFICATIONS                  = 0x4
 	KEYCTL_CAPS1_NS_KEYRING_NAME                = 0x1
 	KEYCTL_CAPS1_NS_KEY_TAG                     = 0x2
 	KEYCTL_CHOWN                                = 0x4
@@ -1059,7 +1053,6 @@ const (
 	KEYCTL_SUPPORTS_VERIFY                      = 0x8
 	KEYCTL_UNLINK                               = 0x9
 	KEYCTL_UPDATE                               = 0x2
-	KEYCTL_WATCH_KEY                            = 0x20
 	KEY_REQKEY_DEFL_DEFAULT                     = 0x0
 	KEY_REQKEY_DEFL_GROUP_KEYRING               = 0x6
 	KEY_REQKEY_DEFL_NO_CHANGE                   = -0x1
@@ -1103,8 +1096,6 @@ const (
 	LOOP_SET_FD                                 = 0x4c00
 	LOOP_SET_STATUS                             = 0x4c02
 	LOOP_SET_STATUS64                           = 0x4c04
-	LOOP_SET_STATUS_CLEARABLE_FLAGS             = 0x4
-	LOOP_SET_STATUS_SETTABLE_FLAGS              = 0xc
 	LO_KEY_SIZE                                 = 0x20
 	LO_NAME_SIZE                                = 0x40
 	MADV_COLD                                   = 0x14
@@ -2001,10 +1992,8 @@ const (
 	STATX_ATTR_APPEND                           = 0x20
 	STATX_ATTR_AUTOMOUNT                        = 0x1000
 	STATX_ATTR_COMPRESSED                       = 0x4
-	STATX_ATTR_DAX                              = 0x2000
 	STATX_ATTR_ENCRYPTED                        = 0x800
 	STATX_ATTR_IMMUTABLE                        = 0x10
-	STATX_ATTR_MOUNT_ROOT                       = 0x2000
 	STATX_ATTR_NODUMP                           = 0x40
 	STATX_ATTR_VERITY                           = 0x100000
 	STATX_BASIC_STATS                           = 0x7ff
@@ -2013,7 +2002,6 @@ const (
 	STATX_CTIME                                 = 0x80
 	STATX_GID                                   = 0x10
 	STATX_INO                                   = 0x100
-	STATX_MNT_ID                                = 0x1000
 	STATX_MODE                                  = 0x2
 	STATX_MTIME                                 = 0x40
 	STATX_NLINK                                 = 0x4
