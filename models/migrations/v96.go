@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"path"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -14,19 +14,12 @@ import (
 )
 
 func deleteOrphanedAttachments(x *xorm.Engine) error {
-
 	type Attachment struct {
 		ID        int64  `xorm:"pk autoincr"`
 		UUID      string `xorm:"uuid UNIQUE"`
 		IssueID   int64  `xorm:"INDEX"`
 		ReleaseID int64  `xorm:"INDEX"`
 		CommentID int64
-	}
-
-	// AttachmentLocalPath returns where attachment is stored in local file
-	// system based on given UUID.
-	AttachmentLocalPath := func(uuid string) string {
-		return path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)
 	}
 
 	sess := x.NewSession()
@@ -53,12 +46,15 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		for _, attachment := range attachements {
 			ids = append(ids, attachment.ID)
 		}
-		if _, err := sess.In("id", ids).Delete(new(Attachment)); err != nil {
-			return err
+		if len(ids) > 0 {
+			if _, err := sess.In("id", ids).Delete(new(Attachment)); err != nil {
+				return err
+			}
 		}
 
 		for _, attachment := range attachements {
-			if err := util.RemoveAll(AttachmentLocalPath(attachment.UUID)); err != nil {
+			uuid := attachment.UUID
+			if err := util.RemoveAll(filepath.Join(setting.Attachment.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
 				return err
 			}
 		}

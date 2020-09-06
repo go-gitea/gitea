@@ -6,7 +6,7 @@ rules:
   color-hex-length: null
   comment-empty-line-before: null
   declaration-empty-line-before: null
-  indentation: 4
+  indentation: 2
   no-descending-specificity: null
   number-leading-zero: never
   rule-empty-line-before: null
