@@ -51,7 +51,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
-	github.com/hashicorp/go-version v1.2.1
+	github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1
@@ -117,3 +117,5 @@ require (
 	xorm.io/builder v0.3.7
 	xorm.io/xorm v1.0.4
 )
+
+replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3
