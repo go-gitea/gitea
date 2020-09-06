@@ -23,6 +23,7 @@ func Keys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	loadKeysData(ctx)
 
@@ -33,6 +34,9 @@ func Keys(ctx *context.Context) {
 func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	if ctx.HasError() {
 		loadKeysData(ctx)

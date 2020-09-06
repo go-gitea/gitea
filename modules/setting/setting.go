@@ -125,6 +125,7 @@ var (
 		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
 		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
 		AuthorizedPrincipalsAllow      []string          `ini:"SSH_AUTHORIZED_PRINCIPALS_ALLOW"`
+		AuthorizedPrincipalsEnabled    bool              `ini:"-"`
 		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
 		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
 		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
@@ -708,6 +709,24 @@ func NewContext() {
 		SSH.StartBuiltinServer = false
 	}
 
+	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+	for _, caKey := range trustedUserCaKeys {
+		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
+		if err != nil {
+			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+		}
+
+		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
+	}
+	if len(trustedUserCaKeys) > 0 {
+		// Set the default as email,username otherwise we can leave it empty
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
+	} else {
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
+	}
+
+	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
+
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
@@ -715,27 +734,13 @@ func NewContext() {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 
-		trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
-
-		for _, caKey := range trustedUserCaKeys {
-			_, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
-			if err != nil {
-				log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
-			}
-		}
-
-		if len(trustedUserCaKeys) > 0 {
+		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
 			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
 			if err := ioutil.WriteFile(fname,
 				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
 		}
-	}
-
-	SSH.AuthorizedPrincipalsAllow = sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(",")
-	if len(SSH.AuthorizedPrincipalsAllow) == 0 {
-		SSH.AuthorizedPrincipalsAllow = []string{"email", "username"}
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
@@ -747,21 +752,19 @@ func NewContext() {
 			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
+
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
-	SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
-	SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
-	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
-	for _, caKey := range trustedUserCaKeys {
-		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
-		if err != nil {
-			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
-		}
-
-		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
+	if SSH.AuthorizedPrincipalsEnabled {
+		SSH.AuthorizedPrincipalsBackup = false
+		SSH.CreateAuthorizedPrincipalsFile = false
+	} else {
+		SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
+		SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
 	}
+
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	sec = Cfg.Section("server")
 	if err = sec.MapTo(&LFS); err != nil {
@@ -1055,6 +1058,38 @@ func NewContext() {
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
 	}
+}
+
+func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
+	anything := false
+	email := false
+	username := false
+	for _, value := range values {
+		v := strings.ToLower(strings.TrimSpace(value))
+		switch v {
+		case "off":
+			return []string{"off"}, false
+		case "email":
+			email = true
+		case "username":
+			username = true
+		case "anything":
+			anything = true
+		}
+	}
+	if anything {
+		return []string{"anything"}, true
+	}
+
+	authorizedPrincipalsAllow := []string{}
+	if username {
+		authorizedPrincipalsAllow = append(authorizedPrincipalsAllow, "username")
+	}
+	if email {
+		authorizedPrincipalsAllow = append(authorizedPrincipalsAllow, "email")
+	}
+
+	return authorizedPrincipalsAllow, true
 }
 
 func loadInternalToken(sec *ini.Section) string {
