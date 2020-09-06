@@ -184,10 +184,31 @@ func TestPatch(pr *models.PullRequest) error {
 		if conflict {
 			pr.Status = models.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+
+			if pr.Index != 0 {
+				if err = pr.CheckPullFilesProtection(); err != nil {
+					return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+				}
+			}
+
+			if len(pr.ChangedProtectedFiles) > 0 {
+				log.Trace("Found %d protected files changed")
+			}
 			return nil
 		}
 		return fmt.Errorf("git apply --check: %v", err)
 	}
+
+	if pr.Index != 0 {
+		if err = pr.CheckPullFilesProtection(); err != nil {
+			return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+		}
+	}
+
+	if len(pr.ChangedProtectedFiles) > 0 {
+		log.Trace("Found %d protected files changed", len(pr.ChangedProtectedFiles))
+	}
+
 	pr.Status = models.PullRequestStatusMergeable
 
 	return nil

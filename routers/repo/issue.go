@@ -1200,16 +1200,9 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByOutdatedBranch"] = pull.ProtectedBranch.MergeBlockedByOutdatedBranch(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
-
-			var changedProtectedFiles []string
-
-			if changedProtectedFiles, err = pull.ProtectedBranch.GetPrChangedProtectedFiles(pull); err != nil {
-				ctx.ServerError("ProtectedBranch.GetPrChangedProtectedFiles", err)
-				return
-			}
-			ctx.Data["ChangedProtectedFiles"] = changedProtectedFiles
-			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(changedProtectedFiles) != 0
-			ctx.Data["ChangedProtectedFilesNum"] = len(changedProtectedFiles)
+			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
+			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
+			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {

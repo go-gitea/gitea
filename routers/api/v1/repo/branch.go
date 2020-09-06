@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // GetBranch get a branch of a repository
@@ -547,6 +548,11 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		return
 	}
 
+	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
+		return
+	}
+
 	// Reload from db to get all whitelists
 	bp, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, form.BranchName)
 	if err != nil {
@@ -767,6 +773,11 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
+		return
+	}
+
+	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 		return
 	}
 

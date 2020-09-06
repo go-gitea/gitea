@@ -217,68 +217,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullReque
 		return false
 	}
 
-	var err error
-
-	if err = pr.LoadBaseRepo(); err != nil {
-		log.Error("pr.loadBaseRepo: %v", err)
-		return true
-	}
-
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		log.Error("git.OpenRepository: %v", err)
-		return true
-	}
-
-	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		log.Error("git.GetRefCommitID: %v", err)
-		return true
-	}
-
-	result, _, err := checkFileProtection(false, pr.MergeBase, headCommitID, glob, gitRepo)
-	if err != nil {
-		log.Error("checkFileProtection: %v", err)
-		return true
-	}
-
-	return result
-}
-
-// GetPrChangedProtectedFiles returns protected files changed by pr
-func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest) ([]string, error) {
-	glob := protectBranch.GetProtectedFilePatterns()
-	if len(glob) == 0 {
-		return nil, nil
-	}
-
-	var err error
-	if err = pr.LoadBaseRepo(); err != nil {
-		return nil, err
-	}
-
-	var (
-		gitRepo      *git.Repository
-		headCommitID string
-	)
-
-	gitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-
-	headCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		return nil, err
-	}
-
-	var changs []string
-	_, changs, err = checkFileProtection(true, pr.MergeBase, headCommitID, glob, gitRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	return changs, nil
+	return len(pr.ChangedProtectedFiles) > 0
 }
 
 // IsProtectedFile return if path is protected
@@ -303,36 +242,69 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 	return r
 }
 
-func checkFileProtection(needFullResult bool, oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository) (bool, []string, error) {
+// CheckPullFilesProtection check if pr changed protected files and save results
+func (pr *PullRequest) CheckPullFilesProtection() (err error) {
+	if err = pr.LoadProtectedBranch(); err != nil {
+		return
+	}
+
+	if pr.ProtectedBranch == nil {
+		pr.ChangedProtectedFiles = nil
+		return nil
+	}
+
+	if err = pr.LoadBaseRepo(); err != nil {
+		return
+	}
+
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		return err
+	}
+
+	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, headCommitID, pr.ProtectedBranch.GetProtectedFilePatterns(), 10, gitRepo)
+	return
+}
+
+// CheckFileProtection check file Protection
+func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, repo *git.Repository) ([]string, error) {
 	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
 	if err != nil {
-		return false, nil, err
+		return nil, err
+	}
+
+	if len(patterns) == 0 {
+		return nil, nil
 	}
 
 	var changedFiles []string
-	if needFullResult {
-		changedFiles = make([]string, 0, 5)
+	if limit <= 10 {
+		changedFiles = make([]string, 0, limit)
+	} else {
+		changedFiles = make([]string, 0, 10)
 	}
 
-	result := false
 	for _, path := range strings.Split(stdout, "\n") {
 		lpath := strings.ToLower(strings.TrimSpace(path))
 		for _, pat := range patterns {
 			if pat.Match(lpath) {
-				result = true
-				if needFullResult {
-					changedFiles = append(changedFiles, path)
-				}
+				changedFiles = append(changedFiles, path)
 				break
 			}
 		}
 
-		if result && !needFullResult {
+		if len(changedFiles) >= limit {
 			break
 		}
 	}
 
-	return result, changedFiles, nil
+	return changedFiles, nil
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
