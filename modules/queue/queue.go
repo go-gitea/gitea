@@ -106,33 +106,31 @@ func (*DummyQueue) IsEmpty() bool {
 	return true
 }
 
-// NoQueueType is the type for no queue which just execute the function when push
-const NoQueueType Type = "noqueue"
+// ImmediateType is the type to execute the function when push
+const ImmediateType Type = "immediate"
 
-// NewNoQueue creates a new NoQueue
-func NewNoQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
-	return &NoQueue{
-		handler:  handler,
-		exemplar: exemplar,
+// NewImmediate creates a new false queue to execute the function when push
+func NewImmediate(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+	return &Immediate{
+		handler: handler,
 	}, nil
 }
 
-// NoQueue represents an direct execution queue
-type NoQueue struct {
-	handler  HandlerFunc
-	exemplar interface{}
+// Immediate represents an direct execution queue
+type Immediate struct {
+	handler HandlerFunc
 }
 
 // Run does nothing
-func (*NoQueue) Run(_, _ func(context.Context, func())) {}
+func (*Immediate) Run(_, _ func(context.Context, func())) {}
 
 // Push fakes a push of data to the queue
-func (q *NoQueue) Push(data Data) error {
+func (q *Immediate) Push(data Data) error {
 	return q.PushFunc(data, nil)
 }
 
 // PushFunc fakes a push of data to the queue with a function. The function is never run.
-func (q *NoQueue) PushFunc(data Data, f func() error) error {
+func (q *Immediate) PushFunc(data Data, f func() error) error {
 	if f != nil {
 		if err := f(); err != nil {
 			return err
@@ -143,28 +141,28 @@ func (q *NoQueue) PushFunc(data Data, f func() error) error {
 }
 
 // Has always returns false as this queue never does anything
-func (*NoQueue) Has(Data) (bool, error) {
+func (*Immediate) Has(Data) (bool, error) {
 	return false, nil
 }
 
 // Flush always returns nil
-func (*NoQueue) Flush(time.Duration) error {
+func (*Immediate) Flush(time.Duration) error {
 	return nil
 }
 
 // FlushWithContext always returns nil
-func (*NoQueue) FlushWithContext(context.Context) error {
+func (*Immediate) FlushWithContext(context.Context) error {
 	return nil
 }
 
 // IsEmpty asserts that the queue is empty
-func (*NoQueue) IsEmpty() bool {
+func (*Immediate) IsEmpty() bool {
 	return true
 }
 
 var queuesMap = map[Type]NewQueueFunc{
 	DummyQueueType: NewDummyQueue,
-	NoQueueType:    NewNoQueue,
+	ImmediateType:  NewImmediate,
 }
 
 // RegisteredTypes provides the list of requested types of queues
