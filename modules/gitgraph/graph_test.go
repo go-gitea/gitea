@@ -22,7 +22,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 	defer currentRepo.Close()
 
 	for i := 0; i < b.N; i++ {
-		graph, err := GetCommitGraph(currentRepo, 1, 0)
+		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}

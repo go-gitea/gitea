@@ -1,0 +1,48 @@
+<div id="rev-container">
+    <ul id="rev-list">
+        {{ range $commitI, $commit := .Graph.Commits }}
+            <li id="commit-{{$commit.Rev}}" data-flow="{{$commit.Flow}}">
+                {{ if $commit.OnlyRelation }}
+                    <span />
+                {{ else }}
+                    <code id="{{$commit.ShortRev}}">
+                        <a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}">{{ .ShortRev}}</a>
+                    </code>
+                    {{range $commit.Refs}}
+                        {{$refGroup := .RefGroup}}
+                        {{if eq $refGroup "pull"}}
+                            {{if $.HidePRRefs}}
+                                {{if (containGeneric $.SelectedBranches .Name) }}
+                                    <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/pulls/{{.ShortName|PathEscape}}">
+                                        <span class="emoji">{{svg "octicon-git-pull-request" 16}}</span> #{{.ShortName}}
+                                    </a>
+                                {{end}}
+                            {{else}}
+                                <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/pulls/{{.ShortName|PathEscape}}">
+                                    <span class="emoji">{{svg "octicon-git-pull-request" 16}}</span> #{{.ShortName}}
+                                </a>
+                            {{end}}
+                        {{else if eq $refGroup "tags"}}
+                            <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
+                                <span class="emoji">{{svg "octicon-tag" 16}}</span> {{.ShortName}}
+                            </a>
+                        {{else if eq $refGroup "remotes"}}
+                            <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev}}">
+                                <span class="emoji">{{svg "octicon-cross-reference" 16}}</span> {{.ShortName}}
+                            </a>
+                        {{else if eq $refGroup "heads"}}
+                            <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
+                                <span class="emoji">{{svg "octicon-git-branch" 16}}</span> {{.ShortName}}
+                            </a>
+                        {{else}}
+                            <!-- Unknown ref type {{.Name}} -->
+                        {{end}}
+                    {{end}}
+                    <span>{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span> by
+                    <span class="author">{{$commit.Author}}</span>
+                    <span class="time">{{$commit.Date}}</span>
+                {{ end }}
+            </li>
+        {{ end }}
+    </ul>
+</div>

@@ -3,6 +3,7 @@
   display: block;
   overflow-x: auto;
   width: 100%;
+  min-height: 350px;
 
   .color-buttons {
     margin-right: 0;
@@ -12,10 +13,36 @@
     padding-bottom: 10px;
   }
 
+  #flow-select-refs-dropdown {
+    vertical-align: top;
+    height: 36.8438px;
+    max-height: 36.8438px;
+    min-width: 250px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+
+    div.default.text {
+      padding-top: 6.715px;
+    }
+
+    .ui.label {
+      max-width: 180px;
+
+      .truncate {
+        display: inline-block;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+    }
+  }
+
   li {
     list-style-type: none;
-    height: 20px;
-    line-height: 20px;
+    height: 24px;
+    line-height: 24px;
     white-space: nowrap;
 
     .node-relation {
@@ -69,6 +96,13 @@
 
     li.highlight.hover {
       background-color: rgba(0, 0, 0, .1);
+    }
+
+    li a.button {
+      padding-top: 2px;
+      padding-bottom: 2px;
+      vertical-align: top;
+      margin-top: 2px;
     }
   }
 

@@ -7,6 +7,8 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/git"
 )
 
 // NewGraph creates a basic graph
@@ -150,7 +152,7 @@ func NewCommit(row, column int, line []byte) (*Commit, error) {
 		Row:    row,
 		Column: column,
 		// 0 matches git log --pretty=format:%d => ref names, like the --decorate option of git-log(1)
-		Branch: string(data[0]),
+		Refs: newRefsFromRefNames(data[0]),
 		// 1 matches git log --pretty=format:%H => commit hash
 		Rev: string(data[1]),
 		// 2 matches git log --pretty=format:%ad => author date (format respects --date= option)
@@ -166,12 +168,32 @@ func NewCommit(row, column int, line []byte) (*Commit, error) {
 	}, nil
 }
 
+func newRefsFromRefNames(refNames []byte) []git.Reference {
+	refBytes := bytes.Split(refNames, []byte{',', ' '})
+	refs := make([]git.Reference, 0, len(refBytes))
+	for _, refNameBytes := range refBytes {
+		if len(refNameBytes) == 0 {
+			continue
+		}
+		refName := string(refNameBytes)
+		if refName[0:5] == "tag: " {
+			refName = refName[5:]
+		} else if refName[0:8] == "HEAD -> " {
+			refName = refName[8:]
+		}
+		refs = append(refs, git.Reference{
+			Name: refName,
+		})
+	}
+	return refs
+}
+
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
 	Flow        int64
 	Row         int
 	Column      int
-	Branch      string
+	Refs        []git.Reference
 	Rev         string
 	Date        string
 	Author      string
