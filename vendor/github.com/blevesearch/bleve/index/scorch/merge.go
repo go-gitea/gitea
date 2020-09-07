@@ -15,6 +15,7 @@
 package scorch
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -29,12 +30,16 @@ import (
 
 func (s *Scorch) mergerLoop() {
 	var lastEpochMergePlanned uint64
+	var ctrlMsg *mergerCtrl
 	mergePlannerOptions, err := s.parseMergePlannerOptions()
 	if err != nil {
 		s.fireAsyncError(fmt.Errorf("mergePlannerOption json parsing err: %v", err))
 		s.asyncTasks.Done()
 		return
 	}
+	ctrlMsgDflt := &mergerCtrl{ctx: context.Background(),
+		options: mergePlannerOptions,
+		doneCh:  nil}
 
 OUTER:
 	for {
@@ -53,16 +58,30 @@ OUTER:
 			atomic.StoreUint64(&s.iStats.mergeEpoch, ourSnapshot.epoch)
 			s.rootLock.Unlock()
 
-			if ourSnapshot.epoch != lastEpochMergePlanned {
+			if ctrlMsg == nil && ourSnapshot.epoch != lastEpochMergePlanned {
+				ctrlMsg = ctrlMsgDflt
+			}
+			if ctrlMsg != nil {
 				startTime := time.Now()
 
 				// lets get started
-				err := s.planMergeAtSnapshot(ourSnapshot, mergePlannerOptions)
+				err := s.planMergeAtSnapshot(ctrlMsg.ctx, ctrlMsg.options,
+					ourSnapshot)
 				if err != nil {
 					atomic.StoreUint64(&s.iStats.mergeEpoch, 0)
 					if err == segment.ErrClosed {
 						// index has been closed
 						_ = ourSnapshot.DecRef()
+
+						// continue the workloop on a user triggered cancel
+						if ctrlMsg.doneCh != nil {
+							close(ctrlMsg.doneCh)
+							ctrlMsg = nil
+							continue OUTER
+						}
+
+						// exit the workloop on index closure
+						ctrlMsg = nil
 						break OUTER
 					}
 					s.fireAsyncError(fmt.Errorf("merging err: %v", err))
@@ -70,6 +89,12 @@ OUTER:
 					atomic.AddUint64(&s.stats.TotFileMergeLoopErr, 1)
 					continue OUTER
 				}
+
+				if ctrlMsg.doneCh != nil {
+					close(ctrlMsg.doneCh)
+				}
+				ctrlMsg = nil
+
 				lastEpochMergePlanned = ourSnapshot.epoch
 
 				atomic.StoreUint64(&s.stats.LastMergedEpoch, ourSnapshot.epoch)
@@ -90,6 +115,8 @@ OUTER:
 			case <-s.closeCh:
 				break OUTER
 			case s.persisterNotifier <- ew:
+			case ctrlMsg = <-s.forceMergeRequestCh:
+				continue OUTER
 			}
 
 			// now wait for persister (but also detect close)
@@ -97,6 +124,7 @@ OUTER:
 			case <-s.closeCh:
 				break OUTER
 			case <-ew.notifyCh:
+			case ctrlMsg = <-s.forceMergeRequestCh:
 			}
 		}
 
@@ -104,6 +132,58 @@ OUTER:
 	}
 
 	s.asyncTasks.Done()
+}
+
+type mergerCtrl struct {
+	ctx     context.Context
+	options *mergeplan.MergePlanOptions
+	doneCh  chan struct{}
+}
+
+// ForceMerge helps users trigger a merge operation on
+// an online scorch index.
+func (s *Scorch) ForceMerge(ctx context.Context,
+	mo *mergeplan.MergePlanOptions) error {
+	// check whether force merge is already under processing
+	s.rootLock.Lock()
+	if s.stats.TotFileMergeForceOpsStarted >
+		s.stats.TotFileMergeForceOpsCompleted {
+		s.rootLock.Unlock()
+		return fmt.Errorf("force merge already in progress")
+	}
+
+	s.stats.TotFileMergeForceOpsStarted++
+	s.rootLock.Unlock()
+
+	if mo != nil {
+		err := mergeplan.ValidateMergePlannerOptions(mo)
+		if err != nil {
+			return err
+		}
+	} else {
+		// assume the default single segment merge policy
+		mo = &mergeplan.SingleSegmentMergePlanOptions
+	}
+	msg := &mergerCtrl{options: mo,
+		doneCh: make(chan struct{}),
+		ctx:    ctx,
+	}
+
+	// request the merger perform a force merge
+	select {
+	case s.forceMergeRequestCh <- msg:
+	case <-s.closeCh:
+		return nil
+	}
+
+	// wait for the force merge operation completion
+	select {
+	case <-msg.doneCh:
+		atomic.AddUint64(&s.stats.TotFileMergeForceOpsCompleted, 1)
+	case <-s.closeCh:
+	}
+
+	return nil
 }
 
 func (s *Scorch) parseMergePlannerOptions() (*mergeplan.MergePlanOptions,
@@ -128,8 +208,39 @@ func (s *Scorch) parseMergePlannerOptions() (*mergeplan.MergePlanOptions,
 	return &mergePlannerOptions, nil
 }
 
-func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
-	options *mergeplan.MergePlanOptions) error {
+type closeChWrapper struct {
+	ch1     chan struct{}
+	ctx     context.Context
+	closeCh chan struct{}
+}
+
+func newCloseChWrapper(ch1 chan struct{},
+	ctx context.Context) *closeChWrapper {
+	return &closeChWrapper{ch1: ch1,
+		ctx:     ctx,
+		closeCh: make(chan struct{})}
+}
+
+func (w *closeChWrapper) close() {
+	select {
+	case <-w.closeCh:
+	default:
+		close(w.closeCh)
+	}
+}
+
+func (w *closeChWrapper) listen() {
+	select {
+	case <-w.ch1:
+		w.close()
+	case <-w.ctx.Done():
+		w.close()
+	case <-w.closeCh:
+	}
+}
+
+func (s *Scorch) planMergeAtSnapshot(ctx context.Context,
+	options *mergeplan.MergePlanOptions, ourSnapshot *IndexSnapshot) error {
 	// build list of persisted segments in this snapshot
 	var onlyPersistedSnapshots []mergeplan.Segment
 	for _, segmentSnapshot := range ourSnapshot.segment {
@@ -157,6 +268,11 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 
 	// process tasks in serial for now
 	var filenames []string
+
+	cw := newCloseChWrapper(s.closeCh, ctx)
+	defer cw.close()
+
+	go cw.listen()
 
 	for _, task := range resultMergePlan.Tasks {
 		if len(task.Segments) == 0 {
@@ -194,8 +310,9 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 
 		var oldNewDocNums map[uint64][]uint64
 		var seg segment.Segment
+		var filename string
 		if len(segmentsToMerge) > 0 {
-			filename := zapFileName(newSegmentID)
+			filename = zapFileName(newSegmentID)
 			s.markIneligibleForRemoval(filename)
 			path := s.path + string(os.PathSeparator) + filename
 
@@ -203,7 +320,7 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 
 			atomic.AddUint64(&s.stats.TotFileMergeZapBeg, 1)
 			newDocNums, _, err := s.segPlugin.Merge(segmentsToMerge, docsToDrop, path,
-				s.closeCh, s)
+				cw.closeCh, s)
 			atomic.AddUint64(&s.stats.TotFileMergeZapEnd, 1)
 
 			fileMergeZapTime := uint64(time.Since(fileMergeZapStartTime))
@@ -240,8 +357,10 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 			old:           oldMap,
 			oldNewDocNums: oldNewDocNums,
 			new:           seg,
-			notify:        make(chan *IndexSnapshot),
+			notifyCh:      make(chan *mergeTaskIntroStatus),
 		}
+
+		s.fireEvent(EventKindMergeTaskIntroductionStart, 0)
 
 		// give it to the introducer
 		select {
@@ -255,18 +374,25 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 		introStartTime := time.Now()
 		// it is safe to blockingly wait for the merge introduction
 		// here as the introducer is bound to handle the notify channel.
-		newSnapshot := <-sm.notify
+		introStatus := <-sm.notifyCh
 		introTime := uint64(time.Since(introStartTime))
 		atomic.AddUint64(&s.stats.TotFileMergeZapIntroductionTime, introTime)
 		if atomic.LoadUint64(&s.stats.MaxFileMergeZapIntroductionTime) < introTime {
 			atomic.StoreUint64(&s.stats.MaxFileMergeZapIntroductionTime, introTime)
 		}
 		atomic.AddUint64(&s.stats.TotFileMergeIntroductionsDone, 1)
-		if newSnapshot != nil {
-			_ = newSnapshot.DecRef()
+		if introStatus != nil && introStatus.indexSnapshot != nil {
+			_ = introStatus.indexSnapshot.DecRef()
+			if introStatus.skipped {
+				// close the segment on skipping introduction.
+				s.unmarkIneligibleForRemoval(filename)
+				_ = seg.Close()
+			}
 		}
 
 		atomic.AddUint64(&s.stats.TotFileMergePlanTasksDone, 1)
+
+		s.fireEvent(EventKindMergeTaskIntroduction, 0)
 	}
 
 	// once all the newly merged segment introductions are done,
@@ -279,12 +405,17 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 	return nil
 }
 
+type mergeTaskIntroStatus struct {
+	indexSnapshot *IndexSnapshot
+	skipped       bool
+}
+
 type segmentMerge struct {
 	id            uint64
 	old           map[uint64]*SegmentSnapshot
 	oldNewDocNums map[uint64][]uint64
 	new           segment.Segment
-	notify        chan *IndexSnapshot
+	notifyCh      chan *mergeTaskIntroStatus
 }
 
 // perform a merging of the given SegmentBase instances into a new,
@@ -334,7 +465,7 @@ func (s *Scorch) mergeSegmentBases(snapshot *IndexSnapshot,
 		old:           make(map[uint64]*SegmentSnapshot),
 		oldNewDocNums: make(map[uint64][]uint64),
 		new:           seg,
-		notify:        make(chan *IndexSnapshot),
+		notifyCh:      make(chan *mergeTaskIntroStatus),
 	}
 
 	for i, idx := range sbsIndexes {
@@ -351,11 +482,20 @@ func (s *Scorch) mergeSegmentBases(snapshot *IndexSnapshot,
 	}
 
 	// blockingly wait for the introduction to complete
-	newSnapshot := <-sm.notify
-	if newSnapshot != nil {
+	var newSnapshot *IndexSnapshot
+	introStatus := <-sm.notifyCh
+	if introStatus != nil && introStatus.indexSnapshot != nil {
+		newSnapshot = introStatus.indexSnapshot
 		atomic.AddUint64(&s.stats.TotMemMergeSegments, uint64(len(sbs)))
 		atomic.AddUint64(&s.stats.TotMemMergeDone, 1)
+		if introStatus.skipped {
+			// close the segment on skipping introduction.
+			_ = newSnapshot.DecRef()
+			_ = seg.Close()
+			newSnapshot = nil
+		}
 	}
+
 	return newSnapshot, newSegmentID, nil
 }
 
