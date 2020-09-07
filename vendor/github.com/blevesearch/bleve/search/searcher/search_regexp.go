@@ -110,7 +110,7 @@ func findRegexpCandidateTerms(indexReader index.IndexReader,
 		if matchPos != nil && matchPos[0] == 0 && matchPos[1] == len(tfd.Term) {
 			rv = append(rv, tfd.Term)
 			if tooManyClauses(len(rv)) {
-				return rv, tooManyClausesErr(len(rv))
+				return rv, tooManyClausesErr(field, len(rv))
 			}
 		}
 		tfd, err = fieldDict.Next()
