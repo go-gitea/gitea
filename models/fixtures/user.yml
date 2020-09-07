@@ -7,7 +7,8 @@
   full_name: User One
   email: user1@example.com
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: true
@@ -24,7 +25,8 @@
   email: user2@example.com
   keep_email_private: true
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -43,7 +45,8 @@
   full_name: " <<<< >> >> > >> > >>> >> "
   email: user3@example.com
   email_notifications_preference: onmention
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -60,7 +63,8 @@
   full_name: "          "
   email: user4@example.com
   email_notifications_preference: onmention
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -77,7 +81,8 @@
   full_name: User Five
   email: user5@example.com
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -95,7 +100,8 @@
   full_name: User Six
   email: user6@example.com
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -112,7 +118,8 @@
   full_name: User Seven
   email: user7@example.com
   email_notifications_preference: disabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -129,7 +136,8 @@
   full_name: User Eight
   email: user8@example.com
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -147,7 +155,8 @@
   full_name: User Nine
   email: user9@example.com
   email_notifications_preference: onmention
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -162,7 +171,8 @@
   name: user10
   full_name: User Ten
   email: user10@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -177,7 +187,8 @@
   name: user11
   full_name: User Eleven
   email: user11@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -192,7 +203,8 @@
   name: user12
   full_name: User 12
   email: user12@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -207,7 +219,8 @@
   name: user13
   full_name: User 13
   email: user13@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -222,7 +235,8 @@
   name: user14
   full_name: User 14
   email: user14@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -237,7 +251,8 @@
   name: user15
   full_name: User 15
   email: user15@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -252,7 +267,8 @@
   name: user16
   full_name: User 16
   email: user16@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -267,7 +283,8 @@
   name: user17
   full_name: User 17
   email: user17@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -284,7 +301,8 @@
   name: user18
   full_name: User 18
   email: user18@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -299,7 +317,8 @@
   name: user19
   full_name: User 19
   email: user19@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -316,7 +335,8 @@
   name: user20
   full_name: User 20
   email: user20@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -331,7 +351,8 @@
   name: user21
   full_name: User 21
   email: user21@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -346,7 +367,8 @@
   name: limited_org
   full_name: Limited Org
   email: limited_org@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -364,7 +386,8 @@
   name: privated_org
   full_name: Privated Org
   email: privated_org@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -383,7 +406,8 @@
   full_name: "user24"
   email: user24@example.com
   keep_email_private: true
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -401,7 +425,8 @@
   name: org25
   full_name: "org25"
   email: org25@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -418,7 +443,8 @@
   full_name: "Org26"
   email: org26@example.com
   email_notifications_preference: onmention
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
@@ -436,7 +462,8 @@
   full_name: User Twenty-Seven
   email: user27@example.com
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -451,7 +478,8 @@
   full_name: "user27"
   email: user28@example.com
   keep_email_private: true
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
@@ -469,7 +497,8 @@
   name: user29
   full_name: User 29
   email: user29@example.com
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false

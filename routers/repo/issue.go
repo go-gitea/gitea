@@ -1079,8 +1079,10 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
 			if err = comment.LoadDepIssueDetails(); err != nil {
-				ctx.ServerError("LoadDepIssueDetails", err)
-				return
+				if !models.IsErrIssueNotExist(err) {
+					ctx.ServerError("LoadDepIssueDetails", err)
+					return
+				}
 			}
 		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
@@ -1516,10 +1518,11 @@ func updatePullReviewRequest(ctx *context.Context) {
 	}
 
 	reviewID := ctx.QueryInt64("id")
-	event := ctx.Query("is_add")
+	action := ctx.Query("action")
 
-	if event != "add" && event != "remove" {
-		ctx.ServerError("updatePullReviewRequest", fmt.Errorf("is_add should not be \"%s\"", event))
+	// TODO: Not support 'clear' now
+	if action != "attach" && action != "detach" {
+		ctx.Status(403)
 		return
 	}
 
@@ -1532,19 +1535,20 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			err = isLegalReviewRequest(reviewer, ctx.User, action == "attach", issue)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
+			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 			if err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
 		} else {
-			ctx.ServerError("updatePullReviewRequest", fmt.Errorf("%d in %d is not Pull Request", issue.ID, issue.Repo.ID))
+			ctx.Status(403)
+			return
 		}
 	}
 
