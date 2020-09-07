@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -93,7 +94,7 @@ func GetAttachment(ctx *context.Context) {
 	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
 		}
@@ -141,6 +142,15 @@ func GetAttachment(ctx *context.Context) {
 	//If we have matched and access to release or issue
 	fr, err := storage.Attachments.Open(attach.RelativePath())
 	if err != nil {
+		// If the file is missing from the disk, it will return 404 and remove the db record.
+		if os.IsNotExist(err) {
+			log.Error("Attachment data is missing from the disk [uuid: %v, path: %v]", attach.UUID, attach.RelativePath())
+			if err2 := models.DeleteAttachment(attach, false); err2 != nil {
+				log.Error("DeleteAttachment: %v", err2)
+			}
+			ctx.Error(http.StatusNotFound)
+			return
+		}
 		ctx.ServerError("Open", err)
 		return
 	}
