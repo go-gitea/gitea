@@ -188,7 +188,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	if !setting.InstallLock {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
-		return fmt.Errorf("gitea is not initalized")
+		return fmt.Errorf("gitea is not initialized")
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
