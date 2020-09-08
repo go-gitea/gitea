@@ -122,6 +122,11 @@ func initPushQueue() error {
 	return nil
 }
 
+// PushUpdate is an alias of PushUpdates for single push update options
+func PushUpdate(opts *PushUpdateOptions) error {
+	return PushUpdates([]*PushUpdateOptions{opts})
+}
+
 // PushUpdates adds a push update to push queue
 func PushUpdates(opts []*PushUpdateOptions) error {
 	if len(opts) == 0 {
