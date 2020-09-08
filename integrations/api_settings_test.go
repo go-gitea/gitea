@@ -46,4 +46,16 @@ func TestAPIExposedSettings(t *testing.T) {
 		MirrorsDisabled: setting.Repository.DisableMirrors,
 		HTTPGitDisabled: setting.Repository.DisableHTTPGit,
 	}, repo)
+
+	attachment := new(api.GeneralAttachmentSettings)
+	req = NewRequest(t, "GET", "/api/v1/settings/attachment")
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &attachment)
+	assert.EqualValues(t, &api.GeneralAttachmentSettings{
+		Enabled:      setting.Attachment.Enabled,
+		AllowedTypes: setting.Attachment.AllowedTypes,
+		MaxFiles:     setting.Attachment.MaxFiles,
+		MaxSize:      setting.Attachment.MaxSize,
+	}, attachment)
 }

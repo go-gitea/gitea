@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -433,8 +434,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-		if !contentStore.Exists(lfsMetaObject) {
+		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		exist, err := contentStore.Exists(lfsMetaObject)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
 				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
