@@ -6,6 +6,8 @@
 package gitea
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -88,4 +90,42 @@ func (c *Client) DeleteRepoBranch(user, repo, branch string) (bool, error) {
 		return false, err
 	}
 	return status == 204, nil
+}
+
+// CreateBranchOption options when creating a branch in a repository
+type CreateBranchOption struct {
+	// Name of the branch to create
+	BranchName string `json:"new_branch_name"`
+	// Name of the old branch to create from (optional)
+	OldBranchName string `json:"old_branch_name"`
+}
+
+// Validate the CreateBranchOption struct
+func (opt CreateBranchOption) Validate() error {
+	if len(opt.BranchName) == 0 {
+		return fmt.Errorf("BranchName is empty")
+	}
+	if len(opt.BranchName) > 100 {
+		return fmt.Errorf("BranchName to long")
+	}
+	if len(opt.OldBranchName) > 100 {
+		return fmt.Errorf("OldBranchName to long")
+	}
+	return nil
+}
+
+// CreateBranch creates a branch for a user's repository
+func (c *Client) CreateBranch(owner, repo string, opt CreateBranchOption) (*Branch, error) {
+	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+		return nil, err
+	}
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return nil, err
+	}
+	branch := new(Branch)
+	return branch, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/branches", owner, repo), jsonHeader, bytes.NewReader(body), branch)
 }

@@ -640,7 +640,7 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 
 		for _, pr := range prl {
 
-			rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID, gitea_sdk.ListPullReviewsCommentsOptions{})
+			rcl, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, index, pr.ID)
 			if err != nil {
 				return nil, err
 			}

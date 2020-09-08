@@ -21,6 +21,8 @@ type Milestone struct {
 	State        StateType  `json:"state"`
 	OpenIssues   int        `json:"open_issues"`
 	ClosedIssues int        `json:"closed_issues"`
+	Created      time.Time  `json:"created_at"`
+	Updated      *time.Time `json:"updated_at"`
 	Closed       *time.Time `json:"closed_at"`
 	Deadline     *time.Time `json:"due_on"`
 }
@@ -30,6 +32,7 @@ type ListMilestoneOption struct {
 	ListOptions
 	// open, closed, all
 	State StateType
+	Name  string
 }
 
 // QueryEncode turns options into querystring argument
@@ -37,6 +40,9 @@ func (opt *ListMilestoneOption) QueryEncode() string {
 	query := opt.getURLQuery()
 	if opt.State != "" {
 		query.Add("state", string(opt.State))
+	}
+	if len(opt.Name) != 0 {
+		query.Add("name", opt.Name)
 	}
 	return query.Encode()
 }

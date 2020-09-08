@@ -154,21 +154,13 @@ func (c *Client) GetPullReview(owner, repo string, index, id int64) (*PullReview
 	return r, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/pulls/%d/reviews/%d", owner, repo, index, id), jsonHeader, nil, &r)
 }
 
-// ListPullReviewsCommentsOptions options for listing PullReviewsComments
-type ListPullReviewsCommentsOptions struct {
-	ListOptions
-}
-
 // ListPullReviewComments lists all comments of a pull request review
-func (c *Client) ListPullReviewComments(owner, repo string, index, id int64, opt ListPullReviewsCommentsOptions) ([]*PullReviewComment, error) {
+func (c *Client) ListPullReviewComments(owner, repo string, index, id int64) ([]*PullReviewComment, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
 		return nil, err
 	}
-	opt.setDefaults()
-	rcl := make([]*PullReviewComment, 0, opt.PageSize)
-
+	rcl := make([]*PullReviewComment, 0, 4)
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/pulls/%d/reviews/%d/comments", owner, repo, index, id))
-	link.RawQuery = opt.ListOptions.getURLQuery().Encode()
 
 	return rcl, c.getParsedResponse("GET", link.String(), jsonHeader, nil, &rcl)
 }

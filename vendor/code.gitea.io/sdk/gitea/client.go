@@ -74,6 +74,20 @@ func (c *Client) SetSudo(sudo string) {
 	c.sudo = sudo
 }
 
+func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, error) {
+	req, err := http.NewRequest(method, c.url+path, body)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
+
 func (c *Client) doRequest(method, path string, header http.Header, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, c.url+"/api/v1"+path, body)
 	if err != nil {

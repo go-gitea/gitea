@@ -38,14 +38,39 @@ func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, error) {
 
 // AddCollaboratorOption options when adding a user as a collaborator of a repository
 type AddCollaboratorOption struct {
-	Permission *string `json:"permission"`
+	Permission *AccessMode `json:"permission"`
 }
+
+// AccessMode represent the grade of access you have to something
+type AccessMode string
+
+const (
+	// AccessModeNone no access
+	AccessModeNone AccessMode = "none"
+	// AccessModeRead read access
+	AccessModeRead AccessMode = "read"
+	// AccessModeWrite write access
+	AccessModeWrite AccessMode = "write"
+	// AccessModeAdmin admin access
+	AccessModeAdmin AccessMode = "admin"
+	// AccessModeOwner owner
+	AccessModeOwner AccessMode = "owner"
+)
 
 // Validate the AddCollaboratorOption struct
 func (opt AddCollaboratorOption) Validate() error {
-	if opt.Permission != nil &&
-		*opt.Permission != "read" && *opt.Permission != "write" && *opt.Permission != "admin" {
-		return fmt.Errorf("permission mode invalid")
+	if opt.Permission != nil {
+		if *opt.Permission == AccessModeOwner {
+			*opt.Permission = AccessModeAdmin
+			return nil
+		}
+		if *opt.Permission == AccessModeNone {
+			opt.Permission = nil
+			return nil
+		}
+		if *opt.Permission != AccessModeRead && *opt.Permission != AccessModeWrite && *opt.Permission != AccessModeAdmin {
+			return fmt.Errorf("permission mode invalid")
+		}
 	}
 	return nil
 }

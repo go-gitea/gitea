@@ -12,12 +12,13 @@ import (
 
 // Team represents a team in an organization
 type Team struct {
-	ID           int64         `json:"id"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Organization *Organization `json:"organization"`
-	// enum: none,read,write,admin,owner
-	Permission string `json:"permission"`
+	ID                      int64         `json:"id"`
+	Name                    string        `json:"name"`
+	Description             string        `json:"description"`
+	Organization            *Organization `json:"organization"`
+	Permission              AccessMode    `json:"permission"`
+	CanCreateOrgRepo        bool          `json:"can_create_org_repo"`
+	IncludesAllRepositories bool          `json:"includes_all_repositories"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
@@ -49,16 +50,39 @@ func (c *Client) GetTeam(id int64) (*Team, error) {
 
 // CreateTeamOption options for creating a team
 type CreateTeamOption struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	// enum: read,write,admin
-	Permission string `json:"permission"`
+	Name                    string     `json:"name"`
+	Description             string     `json:"description"`
+	Permission              AccessMode `json:"permission"`
+	CanCreateOrgRepo        bool       `json:"can_create_org_repo"`
+	IncludesAllRepositories bool       `json:"includes_all_repositories"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
+// Validate the CreateTeamOption struct
+func (opt CreateTeamOption) Validate() error {
+	if opt.Permission == AccessModeOwner {
+		opt.Permission = AccessModeAdmin
+	} else if opt.Permission != AccessModeRead && opt.Permission != AccessModeWrite && opt.Permission != AccessModeAdmin {
+		return fmt.Errorf("permission mode invalid")
+	}
+	if len(opt.Name) == 0 {
+		return fmt.Errorf("name required")
+	}
+	if len(opt.Name) > 30 {
+		return fmt.Errorf("name to long")
+	}
+	if len(opt.Description) > 255 {
+		return fmt.Errorf("description to long")
+	}
+	return nil
+}
+
 // CreateTeam creates a team for an organization
 func (c *Client) CreateTeam(org string, opt CreateTeamOption) (*Team, error) {
+	if err := opt.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -69,16 +93,39 @@ func (c *Client) CreateTeam(org string, opt CreateTeamOption) (*Team, error) {
 
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	// enum: read,write,admin
-	Permission string `json:"permission"`
+	Name                    string     `json:"name"`
+	Description             *string    `json:"description"`
+	Permission              AccessMode `json:"permission"`
+	CanCreateOrgRepo        *bool      `json:"can_create_org_repo"`
+	IncludesAllRepositories *bool      `json:"includes_all_repositories"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
+// Validate the EditTeamOption struct
+func (opt EditTeamOption) Validate() error {
+	if opt.Permission == AccessModeOwner {
+		opt.Permission = AccessModeAdmin
+	} else if opt.Permission != AccessModeRead && opt.Permission != AccessModeWrite && opt.Permission != AccessModeAdmin {
+		return fmt.Errorf("permission mode invalid")
+	}
+	if len(opt.Name) == 0 {
+		return fmt.Errorf("name required")
+	}
+	if len(opt.Name) > 30 {
+		return fmt.Errorf("name to long")
+	}
+	if opt.Description != nil && len(*opt.Description) > 255 {
+		return fmt.Errorf("description to long")
+	}
+	return nil
+}
+
 // EditTeam edits a team of an organization
 func (c *Client) EditTeam(id int64, opt EditTeamOption) error {
+	if err := opt.Validate(); err != nil {
+		return err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return err
