@@ -18,9 +18,8 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/alecthomas/chroma v0.8.0
-	github.com/blevesearch/bleve v1.0.7
+	github.com/blevesearch/bleve v1.0.10
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -115,7 +114,7 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.4
+	xorm.io/xorm v1.0.5
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3

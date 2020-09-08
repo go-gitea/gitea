@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // env keys for git hooks need
@@ -23,6 +25,7 @@ const (
 	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
 	EnvPRID         = "GITEA_PR_ID"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
+	EnvAppURL       = "GITEA_ROOT_URL"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push
@@ -62,6 +65,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
 		EnvRepoID+"="+fmt.Sprintf("%d", repo.ID),
 		EnvPRID+"="+fmt.Sprintf("%d", prID),
+		EnvAppURL+"="+setting.AppURL,
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 
