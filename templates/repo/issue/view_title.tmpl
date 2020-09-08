@@ -19,7 +19,7 @@
 	{{if .HasMerged}}
 		<div class="ui purple large label">{{svg "octicon-git-merge" 16}} {{.i18n.Tr "repo.pulls.merged"}}</div>
 	{{else if .Issue.IsClosed}}
-		<div class="ui red large label">{{svg "octicon-issue-closed" 16}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
+		<div class="ui red large label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request" 16}}{{else}}{{svg "octicon-issue-closed" 16}}{{end}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
 		<div class="ui green large label">{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{else}}
