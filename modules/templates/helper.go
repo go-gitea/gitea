@@ -468,12 +468,22 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
 var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
-// SVG render icons
-func SVG(icon string, size int) template.HTML {
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	var size = others[0].(int)
+
+	class := ""
+	if len(others) > 1 && others[1].(string) != "" {
+		class = others[1].(string)
+	}
+
 	if svgStr, ok := svg.SVGs[icon]; ok {
 		if size != 16 {
 			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
 			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		if class != "" {
+			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
 		}
 		return template.HTML(svgStr)
 	}
