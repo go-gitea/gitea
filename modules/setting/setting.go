@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
-	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
@@ -479,12 +478,12 @@ func CheckLFSVersion() {
 		//Disable LFS client hooks if installed for the current OS user
 		//Needs at least git v2.1.2
 
-		binVersion, err := git.BinVersion()
+		err := git.LoadGitVersion()
 		if err != nil {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if !version.Compare(binVersion, "2.1.2", ">=") {
+		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
 			LFS.StartServer = false
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {

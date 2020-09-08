@@ -16,6 +16,9 @@ ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql/gitea-repositories
 

@@ -35,6 +35,7 @@ type Deployment struct {
 	Ref         string       `json:"ref"`
 	SHA         string       `json:"sha"`
 	CreatedAt   *time.Time   `json:"created_at"`
+	UpdatedAt   *time.Time   `json:"updated_at"`
 	User        *ProjectUser `json:"user"`
 	Environment *Environment `json:"environment"`
 	Deployable  struct {
