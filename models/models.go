@@ -264,6 +264,17 @@ func DumpDatabase(filePath string, dbType string) error {
 		}
 		tbs = append(tbs, t)
 	}
+
+	type Version struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Version int64
+	}
+	t, err := x.TableInfo(Version{})
+	if err != nil {
+		return err
+	}
+	tbs = append(tbs, t)
+
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}
