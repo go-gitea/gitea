@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func (m *MinioStorage) buildMinioPath(p string) string {
 }
 
 // Open open a file
-func (m *MinioStorage) Open(path string) (io.ReadCloser, error) {
+func (m *MinioStorage) Open(path string) (Object, error) {
 	var opts = minio.GetObjectOptions{}
 	object, err := m.client.GetObject(m.ctx, m.bucket, m.buildMinioPath(path), opts)
 	if err != nil {
@@ -85,6 +86,41 @@ func (m *MinioStorage) Save(path string, r io.Reader) (int64, error) {
 		return 0, err
 	}
 	return uploadInfo.Size, nil
+}
+
+type minioFileInfo struct {
+	minio.ObjectInfo
+}
+
+func (m minioFileInfo) Name() string {
+	return m.ObjectInfo.Key
+}
+
+func (m minioFileInfo) Size() int64 {
+	return m.ObjectInfo.Size
+}
+
+func (m minioFileInfo) ModTime() time.Time {
+	return m.LastModified
+}
+
+// Stat returns the stat information of the object
+func (m *MinioStorage) Stat(path string) (ObjectInfo, error) {
+	info, err := m.client.StatObject(
+		m.ctx,
+		m.bucket,
+		m.buildMinioPath(path),
+		minio.StatObjectOptions{},
+	)
+	if err != nil {
+		if errResp, ok := err.(minio.ErrorResponse); ok {
+			if errResp.Code == "NoSuchKey" {
+				return nil, os.ErrNotExist
+			}
+		}
+		return nil, err
+	}
+	return &minioFileInfo{info}, nil
 }
 
 // Delete delete a file
