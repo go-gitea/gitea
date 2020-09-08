@@ -78,7 +78,7 @@ func TestDiffToHTML(t *testing.T) {
 }
 
 func TestParsePatch(t *testing.T) {
-	var diff = `diff --git "a/README.md" "b/README.md"
+	var diff1 = `diff --git "a/README.md" "b/README.md"
 --- a/README.md
 +++ b/README.md
 @@ -1,3 +1,6 @@
@@ -89,9 +89,18 @@ func TestParsePatch(t *testing.T) {
  Docker Pulls
 + cut off
 + cut off`
-	result, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff1))
 	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
+		t.Errorf("ParsePatch failed [1]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [1]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "README.md" {
+		t.Errorf("ParsePatch failed [1]: OldName Wrong")
+	}
+	if result.Files[0].Name != "README.md" {
+		t.Errorf("ParsePatch failed [1]: Name Wrong")
 	}
 	println(result)
 
@@ -108,7 +117,16 @@ func TestParsePatch(t *testing.T) {
 + cut off`
 	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2))
 	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
+		t.Errorf("ParsePatch failed [2]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [2]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "A \\ B" {
+		t.Errorf("ParsePatch failed [2]: OldName Wrong")
+	}
+	if result.Files[0].Name != "A \\ B" {
+		t.Errorf("ParsePatch failed [2]: Name Wrong")
 	}
 	println(result)
 
@@ -125,7 +143,69 @@ func TestParsePatch(t *testing.T) {
 + cut off`
 	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a))
 	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
+		t.Errorf("ParsePatch failed [2a]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [2a]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "A \\ B" {
+		t.Errorf("ParsePatch failed [2a]: OldName Wrong")
+	}
+	if result.Files[0].Name != "A/B" {
+		t.Errorf("ParsePatch failed [2a]: Name Wrong")
+	}
+	println(result)
+
+	var diff2b = `diff --git a/A B "b/A \\ B"
+--- a/A B
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2b))
+	if err != nil {
+		t.Errorf("ParsePatch failed [2b]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [2b]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "A B" {
+		t.Errorf("ParsePatch failed [2b]: OldName Wrong")
+	}
+	if result.Files[0].Name != "A \\ B" {
+		t.Errorf("ParsePatch failed [2b]: Name Wrong")
+	}
+	println(result)
+
+	// test with blank in filename
+	var diff2c = `diff --git a/file x b/file x
+--- "a/file x"
++++ b/file x
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2c))
+	if err != nil {
+		t.Errorf("ParsePatch failed [2c]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [2c]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "file x" {
+		t.Errorf("ParsePatch failed [2c]: OldName Wrong")
+	}
+	if result.Files[0].Name != "file x" {
+		t.Errorf("ParsePatch failed [2c]: Name Wrong")
 	}
 	println(result)
 
@@ -142,7 +222,16 @@ func TestParsePatch(t *testing.T) {
 + cut off`
 	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3))
 	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
+		t.Errorf("ParsePatch failed [3]: %s", err)
+	}
+	if result.NumFiles != 1 {
+		t.Errorf("ParsePatch failed [3]: Num Files != 1")
+	}
+	if result.Files[0].OldName != "README.md" {
+		t.Errorf("ParsePatch failed [3]: OldName Wrong")
+	}
+	if result.Files[0].Name != "README.md" {
+		t.Errorf("ParsePatch failed [3]: Name Wrong")
 	}
 	println(result)
 }

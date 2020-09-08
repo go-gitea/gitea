@@ -571,24 +571,56 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
 			// e.g. diff --git "a/xxx" "b/xxx"
+			// but maybe not a and b are quoted
+
+			// FIXME: if first filename is not quoted and contains ' b/'
+			// Will NOT WORK: diff --git a/path b/filename b/path b/filename
+			// Will     WORK: diff --git "a/path b/filename" "b/path b/filename"
+
+			var middle int
 			var a string
 			var b string
-
-			rd := strings.NewReader(line[len(cmdDiffHead):])
+			beg := len(cmdDiffHead)
+			rd := strings.NewReader(line)
+			rd.Seek(int64(beg), 0)
 			char, _ := rd.ReadByte()
 			_ = rd.UnreadByte()
-			if char == '"' {
+
+			hasQuote := char == '"'
+			if hasQuote {
+				lenBefore := rd.Len()
 				fmt.Fscanf(rd, "%q ", &a)
+				middle = beg + lenBefore - rd.Len() - 1
 			} else {
-				fmt.Fscanf(rd, "%s ", &a)
+				middle = strings.Index(line, " \"b/")
+				if middle >= 0 {
+					// b is quoted
+					_, err := rd.Seek(int64(middle+1), 0)
+					if err != nil {
+						return nil, fmt.Errorf("Seek: %v", err)
+					}
+				} else {
+					// b is not quoted
+					middle = strings.Index(line, " b/")
+					_, err := rd.Seek(int64(middle), 0)
+					if err != nil {
+						return nil, fmt.Errorf("Seek: %v", err)
+					}
+				}
+				a = line[beg:middle]
 			}
+
 			char, _ = rd.ReadByte()
 			_ = rd.UnreadByte()
-			if char == '"' {
+			hasQuote = char == '"'
+			if hasQuote {
 				fmt.Fscanf(rd, "%q", &b)
 			} else {
-				fmt.Fscanf(rd, "%s", &b)
+				// read to end
+				b = line[middle+1:]
 			}
+
+			// strip a/ and b/
 			a = a[2:]
 			b = b[2:]
 
