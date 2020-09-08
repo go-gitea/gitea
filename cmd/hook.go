@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -211,8 +212,15 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		if len(fields) < 3 {
+			fmt.Fprintf(out, "Ignoring bad pre-receive line with less than 3 fields: %s", scanner.Text())
 			continue
+		} else if len(fields) > 3 {
+			if string(fields[4]) != "\r" && len(fields) == 4 {
+				fmt.Fprintf(out, "Ignoring bad post-receive line with greater than 4 fields: %s", scanner.Text())
+				continue
+			}
+			log.Debug("Tolerating terminal CR in violation of specification")
 		}
 
 		oldCommitID := string(fields[0])
@@ -346,8 +354,15 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		if len(fields) < 3 {
+			fmt.Fprintf(out, "Ignoring bad post-receive line with less than 3 fields: %s", scanner.Text())
 			continue
+		} else if len(fields) > 3 {
+			if string(fields[4]) != "\r" && len(fields) == 4 {
+				fmt.Fprintf(out, "Ignoring bad post-receive line with greater than 4 fields: %s", scanner.Text())
+				continue
+			}
+			log.Debug("Tolerating a final CR on pre-receive lines in violation of spec")
 		}
 
 		fmt.Fprintf(out, ".")
