@@ -582,7 +582,11 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			var b string
 			beg := len(cmdDiffHead)
 			rd := strings.NewReader(line)
-			rd.Seek(int64(beg), 0)
+			_, err := rd.Seek(int64(beg), 0)
+			if err != nil {
+				return nil, fmt.Errorf("Seek: %v", err)
+			}
+
 			char, _ := rd.ReadByte()
 			_ = rd.UnreadByte()
 
