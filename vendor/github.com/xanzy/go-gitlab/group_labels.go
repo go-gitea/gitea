@@ -51,6 +51,35 @@ func (s *GroupLabelsService) ListGroupLabels(gid interface{}, opt *ListGroupLabe
 	return l, resp, err
 }
 
+// GetGroupLabel get a single label for a given group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/group_labels.html#get-a-single-group-label
+func (s *GroupLabelsService) GetGroupLabel(gid interface{}, labelID interface{}, options ...RequestOptionFunc) (*GroupLabel, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	label, err := parseID(labelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/labels/%s", pathEscape(group), label)
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var l *GroupLabel
+	resp, err := s.client.Do(req, &l)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return l, resp, err
+}
+
 // CreateGroupLabelOptions represents the available CreateGroupLabel() options.
 //
 // GitLab API docs:
