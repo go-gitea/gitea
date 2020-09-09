@@ -233,6 +233,8 @@ var migrations = []Migration{
 	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
 	// v149 -> v150
 	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
+	// v150 -> v151
+	NewMigration("Set default password algorithm to Argon2", setDefaultPasswordToArgon2)
 }
 
 // GetCurrentDBVersion returns the current db version
