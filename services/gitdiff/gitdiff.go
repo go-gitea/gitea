@@ -510,6 +510,12 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				curFile.Name = curFile.Name[2:]
 			}
 			curFile.IsRenamed = (curFile.Name != curFile.OldName) && !(curFile.IsCreated || curFile.IsDeleted)
+			if curFile.IsDeleted {
+				curFile.Name = curFile.OldName
+				curFile.OldName = ""
+			} else if curFile.IsCreated {
+				curFile.OldName = ""
+			}
 			continue
 		} else if len(line) == 0 {
 			continue
