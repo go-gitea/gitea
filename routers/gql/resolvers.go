@@ -23,7 +23,7 @@ import (
 )
 
 // RepositoryByIdResolver resolves a repository by id
-func RepositoryByIdResolver(goCtx context.Context, id string) (interface{}, error)  {
+func RepositoryByIdResolver(goCtx context.Context, id string) (interface{}, error) {
 	var err error
 
 	internalID, err := strconv.ParseInt(id, 10, 64)
@@ -69,7 +69,7 @@ func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 
 		var (
 			repoOwner *models.User
-			err   error
+			err       error
 		)
 
 		// Check if the user is the same as the repository owner.
@@ -145,7 +145,7 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		users = append(users, user)
 	}
 
-	return GiteaRelayConnection(users, listOptions.Offset + 1, totalSize), nil
+	return GiteaRelayConnection(users, listOptions.Offset+1, totalSize), nil
 }
 
 // UserByIdResolver resolves a user by id
@@ -162,7 +162,7 @@ func UserByIdResolver(goCtx context.Context, id string) (interface{}, error) {
 }
 
 func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
-	if _, found :=  ctx.Data["IsApiToken"]; !found {
+	if _, found := ctx.Data["IsApiToken"]; !found {
 		return errors.New("Api token missing or invalid")
 	}
 	if !utils.IsAnyRepoReader(ctx) {
