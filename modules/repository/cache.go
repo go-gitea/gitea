@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
-	cgobject "github.com/go-git/go-git/plumbing/object/commitgraph"
+	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tree, treePath string, ca *cache.LastCommitCache, level int) error {
