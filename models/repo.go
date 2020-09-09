@@ -1316,16 +1316,18 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update repository count.
-	var colname string
-	if repo.IsPrivate {
-		colname = "num_private_repos"
+	if !repo.IsPrivate {
+		if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
+			return fmt.Errorf("increase new owner repository count: %v", err)
+		} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+			return fmt.Errorf("decrease old owner repository count: %v", err)
+		}
 	} else {
-		colname = "num_repos"
-	}
-	if _, err = sess.Exec("UPDATE `user` SET ?=?+1 WHERE id=?", colname, colname, newOwner.ID); err != nil {
-		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET ?=?-1 WHERE id=?", colname, colname, oldOwner.ID); err != nil {
-		return fmt.Errorf("decrease old owner repository count: %v", err)
+		if _, err = sess.Exec("UPDATE `user` SET num_private_repos=num_private_repos+1 WHERE id=?", newOwner.ID); err != nil {
+			return fmt.Errorf("increase new owner repository count: %v", err)
+		} else if _, err = sess.Exec("UPDATE `user` SET num_private_repos=num_private_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+			return fmt.Errorf("decrease old owner repository count: %v", err)
+		}
 	}
 
 	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
