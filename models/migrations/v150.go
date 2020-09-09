@@ -15,14 +15,56 @@ import (
 )
 
 func setDefaultPasswordToArgon2(x *xorm.Engine) error {
+	switch {
+	case setting.Database.UseMySQL:
+		_, err := x.Exec("ALTER TABLE `user` ALTER passwd_hash_algo SET DEFAULT 'argon2';")
+		return err
+	case setting.Database.UsePostgreSQL:
+		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN passwd_hash_algo SET DEFAULT 'argon2';")
+		return err
+	case setting.Database.UseMSSQL:
+		// need to find the constraint and drop it, then recreate it.
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+		res, err := sess.QueryString("SELECT [name] FROM sys.default_constraints WHERE parent_object_id=OBJECT_ID(?) AND COL_NAME(parent_object_id, parent_column_id)='?';", "user", "passwd_hash_algo")
+		if err != nil {
+			return err
+		}
+		if len(res) > 0 {
+			constraintName := res[0]["name"]
+			_, err := sess.Exec("ALTER TABLE ? DROP CONSTRAINT ?", "user", constraintName)
+			if err != nil {
+				return err
+			}
+			_, err = sess.Exec("ALTER TABLE ? ADD CONSTRAINT ? DEFAULT 'argon2' FOR ?", "user", constraintName, "passwd_hash_algo")
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err := sess.Exec("ALTER TABLE ? ADD DEFAULT('argon2') FOR ?", "user", "passwd_hash_algo")
+			if err != nil {
+				return err
+			}
+		}
+		return sess.Commit()
+
+	case setting.Database.UseSQLite3:
+		// drop through
+	default:
+		log.Fatal("Unrecognized DB")
+	}
+
 	tables, err := x.DBMetas()
 	if err != nil {
 		return err
 	}
 
+	// Now for SQLite we have to recreate the table
 	var table *schemas.Table
 	tableName := "user"
-	tempTableName := "tmp_recreate__user"
 
 	for _, table = range tables {
 		if table.Name == tableName {
@@ -42,15 +84,15 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		}
 		return x.Sync2(new(User))
 	}
-	column.Default = "argon2"
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	table.StoreEngine = "InnoDB"
+	tempTableName := "tmp_recreate__user"
+	column.Default = "argon2"
+
 	if _, err := sess.Exec(x.Dialect().CreateTableSQL(table, tempTableName)); err != nil {
 		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
 		return err
@@ -69,13 +111,6 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 	hasID := false
 	for _, column := range newTableColumns {
 		hasID = hasID || (column.IsPrimaryKey && column.IsAutoIncrement)
-	}
-
-	if hasID && setting.Database.UseMSSQL {
-		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
-			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
-			return err
-		}
 	}
 
 	sqlStringBuilder := &strings.Builder{}
@@ -125,97 +160,29 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		return err
 	}
 
-	if hasID && setting.Database.UseMSSQL {
-		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
-			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
+	// SQLite will drop all the constraints on the old table
+	if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+		log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+		return err
+	}
+
+	for _, index := range table.Indexes {
+		if _, err := sess.Exec(x.Dialect().DropIndexSQL(tempTableName, index)); err != nil {
+			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
 			return err
 		}
 	}
 
-	switch {
-	case setting.Database.UseSQLite3:
-		// SQLite will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+	if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+		log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+		return err
+	}
+
+	for _, index := range table.Indexes {
+		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tableName, index)); err != nil {
+			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
 			return err
 		}
-
-		for _, index := range table.Indexes {
-			if _, err := sess.Exec(x.Dialect().DropIndexSQL(tempTableName, index)); err != nil {
-				log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
-				return err
-			}
-		}
-
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-		for _, index := range table.Indexes {
-			if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tableName, index)); err != nil {
-				log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
-				return err
-			}
-		}
-
-	case setting.Database.UseMySQL:
-		// MySQL will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		// SQLite and MySQL will move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-	case setting.Database.UsePostgreSQL:
-		// CASCADE causes postgres to drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-		var indices []string
-		schema := sess.Engine().Dialect().URI().Schema
-		sess.Engine().SetSchema("")
-		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-		sess.Engine().SetSchema(schema)
-
-		for _, index := range indices {
-			newIndexName := strings.Replace(index, "tmp_recreate__", "", 1)
-			if _, err := sess.Exec(fmt.Sprintf("ALTER INDEX `%s` RENAME TO `%s`", index, newIndexName)); err != nil {
-				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
-				return err
-			}
-		}
-
-	case setting.Database.UseMSSQL:
-		// MSSQL will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-	default:
-		log.Fatal("Unrecognized DB")
 	}
 
 	return sess.Commit()
