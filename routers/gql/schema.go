@@ -102,7 +102,7 @@ func init() {
 	//user describes a user
 	user = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "user",
+			Name:        "user",
 			Description: "A user",
 			Fields: graphql.Fields{
 				"id": relay.GlobalIDField("user", nil),
@@ -338,45 +338,45 @@ func init() {
 	//branch a git branch on a repository
 	branch = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "branch",
+			Name:        "branch",
 			Description: "A git branch on a repository",
 			//TODO it would be best if branch provided an id and then we could make this a connection
 			//but at present there is no "id", but we could contrive one with the repo id/branch name
 			Fields: graphql.Fields{
 				"name": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "name of the branch",
 				},
 				"commit": &graphql.Field{
-					Type: payloadCommit,
+					Type:        payloadCommit,
 					Description: "",
 				},
 				"protected": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "is branch protection enabled",
 				},
 				"required_approvals": &graphql.Field{
-					Type: gqlInt64,
+					Type:        gqlInt64,
 					Description: "number of approvals required before a pull request can be merged",
 				},
 				"enable_status_check": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "status checks required before merge enabled",
 				},
 				"status_check_contexts": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
+					Type:        graphql.NewList(graphql.String),
 					Description: "list of status check contexts",
 				},
 				"user_can_push": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "anyone with write access will be allowed to push",
 				},
 				"user_can_merge": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "anyone with write access will be allowed to merge",
 				},
 				"effective_branch_protection_name": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "the effective branch protection name",
 				},
 			},
@@ -386,7 +386,7 @@ func init() {
 	// repository a gitea repository
 	repository = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "repository",
+			Name:        "repository",
 			Description: "A Gitea repository",
 			Fields: graphql.Fields{
 				"id": relay.GlobalIDField("repository", nil),
@@ -402,127 +402,127 @@ func init() {
 					Description: "Owner of the repository",
 				},
 				"name": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "Name of the repository",
 				},
 				"full_name": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "Full name of the repository",
 				},
 				"description": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "Description of the repository",
 				},
 				"empty": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Whether the repository is empty or not.",
 				},
 				"private": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Whether the repository is private or not",
 				},
 				"fork": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Whether the repository is a fork or not",
 				},
 				"template": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is this repository a template",
 				},
 				"mirror": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is this repository a mirror",
 				},
 				"archived": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is this repository archived",
 				},
 				"has_issues": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Does this repository contain issues",
 				},
 				"has_wiki": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Does this repository have a wiki",
 				},
 				"has_pull_requests": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Does this repository have pull requests",
 				},
 				"ignore_whitespace_conflicts": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Does this repository ignore whitespace for conflicts",
 				},
 				"allow_merge_commits": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is commit merging enabled",
 				},
 				"allow_rebase": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is rebasing enabled",
 				},
 				"allow_rebase_explicit": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is rebasing with explicit merge commits (--no-ff) enabled",
 				},
 				"allow_squash_merge": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is squashing to merge commits enabled",
 				},
 				"internal": &graphql.Field{
-					Type: graphql.Boolean,
+					Type:        graphql.Boolean,
 					Description: "Is visibility of repository set to private",
 				},
 				"size": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Repository size",
 				},
 				"stars_count": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of stars",
 				},
 				"forks_count": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of forks",
 				},
 				"watchers_count": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of watchers",
 				},
 				"open_issues_count": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of open issues",
 				},
 				"open_pr_counter": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of open pull requests",
 				},
 				"release_counter": &graphql.Field{
-					Type: graphql.Int,
+					Type:        graphql.Int,
 					Description: "Number of releases",
 				},
 				"html_url": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "HTML url of repository",
 				},
 				"ssh_url": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "SSH url of repository",
 				},
 				"clone_url": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "Clone url of repository",
 				},
 				"website": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "The repository's website address",
 				},
 				"default_branch": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "The default branch",
 				},
 				"avatar_url": &graphql.Field{
-					Type: graphql.String,
+					Type:        graphql.String,
 					Description: "Avatar url for repository",
 				},
 				"created_at": &graphql.Field{
@@ -550,15 +550,15 @@ func init() {
 					Description: "Repository permissions",
 				},
 				"branches": &graphql.Field{
-					Type: graphql.NewList(branch),
+					Type:        graphql.NewList(branch),
 					Description: "Branches contained within a repostory",
-					Resolve: BranchesResolver,
+					Resolve:     BranchesResolver,
 				},
 				"collaborators": &graphql.Field{
-					Type: userConnectionDefinition.ConnectionType,
-					Args: relay.ConnectionArgs,
+					Type:        userConnectionDefinition.ConnectionType,
+					Args:        relay.ConnectionArgs,
 					Description: "The repository's collaborators",
-					Resolve: CollaboratorsResolver,
+					Resolve:     CollaboratorsResolver,
 				},
 			},
 			Interfaces: []*graphql.Interface{
@@ -577,7 +577,7 @@ func init() {
 	var err error
 	rootQuery := NewRoot()
 	Schema, err = graphql.NewSchema(
-		graphql.SchemaConfig {
+		graphql.SchemaConfig{
 			Query: rootQuery.Query,
 		},
 	)
