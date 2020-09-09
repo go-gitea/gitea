@@ -391,18 +391,18 @@ func TestGetUserIDsByNames(t *testing.T) {
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
-	results, err := GetMaileableUsersByIDs([]int64{1, 3}, false)
+	results, err := GetMaileableUsersByIDs([]int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(results))
 	if len(results) > 1 {
 		assert.Equal(t, results[0].ID, 1)
 	}
 
-	results, err = GetMaileableUsersByIDs([]int64{1, 3}, true)
+	results, err = GetMaileableUsersByIDs([]int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(results))
 	if len(results) > 2 {
 		assert.Equal(t, results[0].ID, 1)
-		assert.Equal(t, results[1].ID, 3)
+		assert.Equal(t, results[1].ID, 4)
 	}
 }
