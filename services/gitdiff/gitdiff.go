@@ -487,6 +487,10 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				fmt.Sscanf(line[4:], "%q", &curFile.OldName)
 			} else {
 				curFile.OldName = line[4:]
+				if strings.Contains(curFile.OldName, " ") {
+					// Git adds a terminal \t if there is a space in the name
+					curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
+				}
 			}
 			if curFile.OldName[0:2] == "a/" {
 				curFile.OldName = curFile.OldName[2:]
@@ -497,6 +501,10 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				fmt.Sscanf(line[4:], "%q", &curFile.Name)
 			} else {
 				curFile.Name = line[4:]
+				if strings.Contains(curFile.Name, " ") {
+					// Git adds a terminal \t if there is a space in the name
+					curFile.Name = curFile.Name[:len(curFile.Name)-1]
+				}
 			}
 			if curFile.Name[0:2] == "b/" {
 				curFile.Name = curFile.Name[2:]
@@ -507,7 +515,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			continue
 		}
 
-		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") || len(line) == 0 {
+		if strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "---") || len(line) == 0 {
 			continue
 		}
 
@@ -644,12 +652,14 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 							fmt.Sscanf(line[12:], "%q", &curFile.OldName)
 						} else {
 							curFile.OldName = line[12:]
+							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
 						}
 					case strings.HasPrefix(line, "rename to "):
 						if line[10] == '"' {
 							fmt.Sscanf(line[10:], "%q", &curFile.Name)
 						} else {
 							curFile.Name = line[10:]
+							curFile.Name = curFile.Name[:len(curFile.Name)-1]
 						}
 						curFile.IsRenamed = true
 						break loop
@@ -658,12 +668,14 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 							fmt.Sscanf(line[10:], "%q", &curFile.OldName)
 						} else {
 							curFile.OldName = line[10:]
+							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
 						}
 					case strings.HasPrefix(line, "copy to "):
 						if line[8] == '"' {
 							fmt.Sscanf(line[8:], "%q", &curFile.Name)
 						} else {
 							curFile.Name = line[8:]
+							curFile.Name = curFile.Name[:len(curFile.Name)-1]
 						}
 						curFile.IsRenamed = true
 						curFile.Type = DiffFileCopy
