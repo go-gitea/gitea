@@ -91,7 +91,7 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 	}
 
 	tempTableName := "tmp_recreate__user"
-	column.Default = "argon2"
+	column.Default = "'argon2'"
 
 	if _, err := sess.Exec(x.Dialect().CreateTableSQL(table, tempTableName)); err != nil {
 		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
