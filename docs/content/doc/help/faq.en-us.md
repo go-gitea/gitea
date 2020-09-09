@@ -335,4 +335,4 @@ Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET u
 for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for each table in the database.
 
-You will also need to change the app.ini database charset to `CHARSET=utfmb4`.
+You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
