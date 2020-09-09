@@ -6,7 +6,7 @@
 				{{range .Services}}
 					<div class="ui card">
 						<a class="image" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">
-							<img src="{{StaticUrlPrefix}}/img/migrate/{{.Title}}.png">
+							{{svg (Printf "gitea-%s" .Name) 128}}
 						</a>
 						<div class="content">
 							<a class="header" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">{{.Title}}</a>
