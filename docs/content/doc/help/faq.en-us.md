@@ -322,7 +322,7 @@ The underlying problem is that the space allocated for indices by the default ro
 is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
-then you are attempting to run Gitea on tables which use the ISAM engine. This is unsupported and
+then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
 you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
 
 ## Why Are Emoji Broken On MySQL
