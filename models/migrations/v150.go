@@ -29,7 +29,7 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-		res, err := sess.QueryString("SELECT [name] FROM sys.default_constraints WHERE parent_object_id=OBJECT_ID(?) AND COL_NAME(parent_object_id, parent_column_id)='?';", "user", "passwd_hash_algo")
+		res, err := sess.QueryString("SELECT [name] FROM sys.default_constraints WHERE parent_object_id=OBJECT_ID(?) AND COL_NAME(parent_object_id, parent_column_id)=?;", "user", "passwd_hash_algo")
 		if err != nil {
 			return err
 		}
