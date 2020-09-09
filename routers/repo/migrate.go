@@ -144,7 +144,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
-		Comments:       true,
+		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 	}
