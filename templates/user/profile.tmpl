@@ -6,11 +6,11 @@
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
+							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
 						</a>
 					{{else}}
 						<span class="image">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
+							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
 						</span>
 					{{end}}
 					<div class="content wrap">

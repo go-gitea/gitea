@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -579,7 +578,7 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 		req.Sort.Reverse()
 		// resort using the original order
 		mhs := newSearchHitSorter(req.Sort, hits)
-		sort.Sort(mhs)
+		req.SortFunc()(mhs)
 		// reset request
 		req.SearchBefore = req.SearchAfter
 		req.SearchAfter = nil

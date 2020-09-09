@@ -8,12 +8,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func addUserPinnedRepoTable(x *xorm.Engine) error {
-
-	type UserPinnedRepo struct {
-		UID    int64 `xorm:"pk INDEX NOT NULL"`
-		RepoID int64 `xorm:"pk NOT NULL"`
-	}
-
-	return x.Sync2(new(UserPinnedRepo))
+func purgeInvalidDependenciesComments(x *xorm.Engine) error {
+	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id != 0 AND dependent_issue_id NOT IN (SELECT id FROM issue)")
+	return err
 }

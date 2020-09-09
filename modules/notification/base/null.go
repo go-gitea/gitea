@@ -102,6 +102,10 @@ func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Iss
 func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 }
 
+// NotifyIssueChangeRef places a place holder function
+func (*NullNotifier) NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldTitle string) {
+}
+
 // NotifyIssueChangeLabels places a place holder function
 func (*NullNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {

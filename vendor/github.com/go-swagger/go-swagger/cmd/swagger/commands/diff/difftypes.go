@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 // SpecChangeCode enumerates the various types of diffs from one spec to another
@@ -175,18 +176,18 @@ var toStringSpecChangeCode = map[SpecChangeCode]string{
 var toIDSpecChangeCode = map[string]SpecChangeCode{}
 
 // Description returns an english version of this error
-func (s *SpecChangeCode) Description() (result string) {
-	result, ok := toLongStringSpecChangeCode[*s]
+func (s SpecChangeCode) Description() (result string) {
+	result, ok := toLongStringSpecChangeCode[s]
 	if !ok {
-		fmt.Printf("WARNING: No description for %v", *s)
+		log.Printf("warning: No description for %v", s)
 		result = "UNDEFINED"
 	}
 	return
 }
 
 // MarshalJSON marshals the enum as a quoted json string
-func (s *SpecChangeCode) MarshalJSON() ([]byte, error) {
-	return stringAsQuotedBytes(toStringSpecChangeCode[*s])
+func (s SpecChangeCode) MarshalJSON() ([]byte, error) {
+	return stringAsQuotedBytes(toStringSpecChangeCode[s])
 }
 
 // UnmarshalJSON unmashalls a quoted json string to the enum value
@@ -228,8 +229,8 @@ var toStringCompatibility = map[Compatibility]string{
 var toIDCompatibility = map[string]Compatibility{}
 
 // MarshalJSON marshals the enum as a quoted json string
-func (s *Compatibility) MarshalJSON() ([]byte, error) {
-	return stringAsQuotedBytes(toStringCompatibility[*s])
+func (s Compatibility) MarshalJSON() ([]byte, error) {
+	return stringAsQuotedBytes(toStringCompatibility[s])
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
