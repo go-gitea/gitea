@@ -178,7 +178,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 				r.err = ErrSnappyCorrupt
 				return written, r.err
 			}
-			err = r.block.encode(false)
+			err = r.block.encode(false, false)
 			switch err {
 			case errIncompressible:
 				r.block.popOffsets()

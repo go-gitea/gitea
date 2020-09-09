@@ -233,7 +233,11 @@ func (so SortOrder) Compare(cachedScoring, cachedDesc []bool, i, j *DocumentMatc
 		} else {
 			iVal := i.Sort[x]
 			jVal := j.Sort[x]
-			c = strings.Compare(iVal, jVal)
+			if iVal < jVal {
+				c = -1
+			} else if iVal > jVal {
+				c = 1
+			}
 		}
 
 		if c == 0 {
@@ -423,7 +427,8 @@ func (s *SortField) filterTermsByType(terms [][]byte) [][]byte {
 				allTermsPrefixCoded = false
 			}
 		}
-		if allTermsPrefixCoded {
+		// reset the terms only when valid zero shift terms are found.
+		if allTermsPrefixCoded && len(termsWithShiftZero) > 0 {
 			terms = termsWithShiftZero
 			s.tmp = termsWithShiftZero[:0]
 		}

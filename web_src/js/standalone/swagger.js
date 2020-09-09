@@ -18,6 +18,7 @@ window.addEventListener('load', async () => {
     spec,
     dom_id: '#swagger-ui',
     deepLinking: true,
+    docExpansion: 'none',
     presets: [
       SwaggerUI.presets.apis
     ],

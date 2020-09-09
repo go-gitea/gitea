@@ -171,7 +171,7 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
 			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
-				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
+				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 				if err != nil {
 					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
 				}

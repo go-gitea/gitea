@@ -242,7 +242,7 @@
 						{{end}}
 
 						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+							<a class="milestone" href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}">
 								{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
 							</a>
 						{{end}}

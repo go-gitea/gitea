@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -319,7 +318,7 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 
 // FileCommitsCount return the number of files at a revison
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
-	return commitsCount(repo.Path, revision, file)
+	return commitsCount(repo.Path, []string{revision}, []string{file})
 }
 
 // CommitsByFileAndRange return the commits according revison file and the page
@@ -345,6 +344,11 @@ func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, pag
 // FilesCountBetween return the number of files changed between two commits
 func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
 	stdout, err := NewCommand("diff", "--name-only", startCommitID+"..."+endCommitID).RunInDir(repo.Path)
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
+		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
+		stdout, err = NewCommand("diff", "--name-only", startCommitID, endCommitID).RunInDir(repo.Path)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -359,6 +363,11 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 		stdout, err = NewCommand("rev-list", last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
 		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		if err != nil && strings.Contains(err.Error(), "no merge base") {
+			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+			// previously it would return the results of git rev-list before last so let's try that...
+			stdout, err = NewCommand("rev-list", before.ID.String(), last.ID.String()).RunInDirBytes(repo.Path)
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -374,6 +383,11 @@ func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit,
 		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
 		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		if err != nil && strings.Contains(err.Error(), "no merge base") {
+			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+			// previously it would return the results of git rev-list --max-count n before last so let's try that...
+			stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String(), last.ID.String()).RunInDirBytes(repo.Path)
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -399,7 +413,14 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	return commitsCount(repo.Path, start+"..."+end, "")
+	count, err := commitsCount(repo.Path, []string{start + "..." + end}, []string{})
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+		// previously it would return the results of git rev-list before last so let's try that...
+		return commitsCount(repo.Path, []string{start, end}, []string{})
+	}
+
+	return count, err
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
@@ -448,7 +469,7 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, err
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if version.Compare(gitVersion, "2.7.0", ">=") {
+	if CheckGitVersionConstraint(">= 2.7.0") == nil {
 		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
