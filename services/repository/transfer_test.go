@@ -32,6 +32,8 @@ func TestTransferOwnership(t *testing.T) {
 	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 	repo.Owner = models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	assert.EqualValues(t, 3, repo.OwnerID)
+
 	assert.NoError(t, TransferOwnership(doer, doer, repo, nil))
 
 	transferredRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
