@@ -20,15 +20,6 @@
 					</div>
 
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_username">{{.i18n.Tr "username"}}</label>
-						<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
-					</div>
-					<input class="fake" type="password">
-					<div class="inline field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_password">{{.i18n.Tr "password"}}</label>
-						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
-					</div>
-					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 					</div>
