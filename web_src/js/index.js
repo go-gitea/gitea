@@ -2603,7 +2603,7 @@ function linkAction(e) {
   });
 }
 
-function linkLanguageAction(e) {
+function linkLanguageAction() {
   const $this = $(this);
   $.post($this.data('url')).always(() => {
     window.location.reload();
