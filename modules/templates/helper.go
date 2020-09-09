@@ -619,7 +619,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 // DiffTypeToStr returns diff type name
 func DiffTypeToStr(diffType int) string {
 	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename",
+		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
 	}
 	return diffTypes[diffType]
 }
