@@ -94,7 +94,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	// Plain git should be first
-	ctx.Data["service"] = structs.PlainGitService
+	ctx.Data["service"] = form.Service
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 
 	ctxUser := checkContextUser(ctx, form.UID)
