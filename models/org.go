@@ -160,7 +160,8 @@ func CreateOrganization(org, owner *User) (err error) {
 		return err
 	}
 	org.UseCustomAvatar = true
-	org.MaxRepoCreation = -1
+	org.MaxPublicRepoCreation = -1
+	org.MaxPrivateRepoCreation = -1
 	org.NumTeams = 1
 	org.NumMembers = 1
 	org.Type = UserTypeOrganization
@@ -622,7 +623,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
-	repoIDs, err := env.RepoIDs(1, org.NumRepos)
+	repoIDs, err := env.RepoIDs(1, org.NumPublicRepos+org.NumPrivateRepos)
 	if err != nil {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
