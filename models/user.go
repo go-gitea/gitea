@@ -1242,6 +1242,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
+		&UserPinnedRepo{UID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

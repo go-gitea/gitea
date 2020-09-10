@@ -267,10 +267,8 @@ func Profile(ctx *context.Context) {
 
 			if !has {
 				repo, err := models.GetRepositoryByID(pinnedRepoID)
-				if err != nil {
-					if !models.IsErrRepoNotExist(err) {
-						ctx.ServerError("GetRepositoryByID", err)
-					}
+				if err != nil && !models.IsErrRepoNotExist(err) {
+					ctx.ServerError("GetRepositoryByID", err)
 					return
 				}
 
