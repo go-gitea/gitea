@@ -27,7 +27,7 @@ gitea.com/macaron/csrf
 # gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 ## explicit
 gitea.com/macaron/gzip
-# gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
+# gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
 ## explicit
 gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
@@ -59,7 +59,6 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
-## explicit
 github.com/RoaringBitmap/roaring
 # github.com/alecthomas/chroma v0.8.0
 ## explicit
@@ -106,7 +105,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v1.0.7
+# github.com/blevesearch/bleve v1.0.10
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -156,10 +155,14 @@ github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.7
+# github.com/blevesearch/zap/v11 v11.0.10
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.7
+# github.com/blevesearch/zap/v12 v12.0.10
 github.com/blevesearch/zap/v12
+# github.com/blevesearch/zap/v13 v13.0.2
+github.com/blevesearch/zap/v13
+# github.com/blevesearch/zap/v14 v14.0.1
+github.com/blevesearch/zap/v14
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
@@ -175,7 +178,7 @@ github.com/couchbase/gomemcached/client
 # github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v1.0.1
+# github.com/couchbase/vellum v1.0.2
 github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
@@ -201,7 +204,8 @@ github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 ## explicit
 github.com/dgrijalva/jwt-go
-# github.com/dlclark/regexp2 v1.2.0
+# github.com/dlclark/regexp2 v1.2.1
+## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
 # github.com/dsnet/compress v0.0.1
@@ -419,9 +423,12 @@ github.com/gorilla/securecookie
 github.com/gorilla/sessions
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.6.6
+# github.com/hashicorp/go-retryablehttp v0.6.7
 ## explicit
 github.com/hashicorp/go-retryablehttp
+# github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000 => github.com/6543/go-version v1.2.3
+## explicit
+github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
@@ -546,9 +553,6 @@ github.com/mattn/go-runewidth
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
-## explicit
-github.com/mcuadros/go-version
 # github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 ## explicit
 github.com/mgechev/dots
@@ -596,10 +600,10 @@ github.com/mschoch/smat
 # github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 ## explicit
 github.com/msteinert/pam
-# github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
+# github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 ## explicit
 github.com/nfnt/resize
-# github.com/niklasfasching/go-org v0.1.9
+# github.com/niklasfasching/go-org v1.3.2
 ## explicit
 github.com/niklasfasching/go-org/org
 # github.com/nwaples/rardecode v1.0.0
@@ -716,7 +720,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
-# github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
+# github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 ## explicit
 github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
@@ -727,7 +731,7 @@ github.com/unknwon/paginater
 github.com/urfave/cli
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.31.0
+# github.com/xanzy/go-gitlab v0.37.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -754,8 +758,11 @@ github.com/yuin/goldmark-highlighting
 # github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 ## explicit
 github.com/yuin/goldmark-meta
-# go.etcd.io/bbolt v1.3.4
+# go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
+# go.jolheiser.com/pwn v0.0.3
+## explicit
+go.jolheiser.com/pwn
 # go.mongodb.org/mongo-driver v1.3.5
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -795,7 +802,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20200707034311-ab3426394381
+# golang.org/x/net v0.0.0-20200904194848-62affa334b73
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -845,10 +852,10 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200814230902-9882f1d1823d
+# golang.org/x/tools v0.0.0-20200825202427-b303f430e36d
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis
@@ -927,7 +934,7 @@ gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 ## explicit
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.60.2
+# gopkg.in/ini.v1 v1.61.0
 ## explicit
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
@@ -949,7 +956,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.4
+# xorm.io/xorm v1.0.5
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches
@@ -964,3 +971,4 @@ xorm.io/xorm/log
 xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
+# github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3

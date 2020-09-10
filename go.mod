@@ -11,22 +11,22 @@ require (
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
+	gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/alecthomas/chroma v0.8.0
-	github.com/blevesearch/bleve v1.0.7
+	github.com/blevesearch/bleve v1.0.10
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dlclark/regexp2 v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 	github.com/emirpasic/gods v1.12.0
@@ -49,7 +49,8 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
-	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
+	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
+	github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1
@@ -64,7 +65,6 @@ require (
 	github.com/markbates/goth v1.61.2
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-sqlite3 v1.14.0
-	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.2
 	github.com/mholt/archiver/v3 v3.3.0
@@ -72,8 +72,8 @@ require (
 	github.com/minio/minio-go/v7 v7.0.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
-	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
-	github.com/niklasfasching/go-org v0.1.9
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.9
 	github.com/pkg/errors v0.9.1
@@ -90,29 +90,32 @@ require (
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/unknwon/com v1.0.1
-	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
+	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
-	github.com/xanzy/go-gitlab v0.31.0
+	github.com/xanzy/go-gitlab v0.37.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
+	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
-	golang.org/x/tools v0.0.0-20200814230902-9882f1d1823d
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	golang.org/x/tools v0.0.0-20200825202427-b303f430e36d
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.60.2
+	gopkg.in/ini.v1 v1.61.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/yaml.v2 v2.3.0
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.4
+	xorm.io/xorm v1.0.5
 )
+
+replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3

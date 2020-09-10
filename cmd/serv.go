@@ -218,6 +218,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvPRID, fmt.Sprintf("%d", 0))
 	os.Setenv(models.EnvIsDeployKey, fmt.Sprintf("%t", results.IsDeployKey))
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
+	os.Setenv(models.EnvAppURL, setting.AppURL)
 
 	//LFS token authentication
 	if verb == lfsAuthenticateVerb {
