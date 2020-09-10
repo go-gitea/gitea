@@ -8,6 +8,7 @@ package base
 import "code.gitea.io/gitea/modules/structs"
 
 // MigrateOptions defines the way a repository gets migrated
+// this is for internal usage by migrations module and func who interact with it
 type MigrateOptions struct {
 	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`

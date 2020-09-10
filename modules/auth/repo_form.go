@@ -53,6 +53,7 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 }
 
 // MigrateRepoForm form for migrating repository
+// this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`

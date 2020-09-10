@@ -227,6 +227,7 @@ func (gt GitServiceType) Title() string {
 }
 
 // MigrateRepoOptions options for migrating repository's
+// this is used to interact with api v1
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
