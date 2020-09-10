@@ -56,10 +56,10 @@ func (u *User) IsPinnedRepoExist(repoID int64) (isExist bool, err error) {
 	return x.Exist(&UserPinnedRepo{UID: u.ID, RepoID: repoID})
 }
 
-// GetPinnedRepos get pinned repos
-func (u *User) GetPinnedRepos(actor *User, excludeRepoIDs []int64, loadAttributes bool) (repos RepositoryList, err error) {
+// GetPinnedRepoIDs get repos id
+func (u *User) GetPinnedRepoIDs(actor *User) (results []int64, err error) {
 	var cond = builder.NewCond()
-	repos = make(RepositoryList, 0, 10)
+	results = make([]int64, 0, 10)
 
 	if actor == nil {
 		if u.IsOrganization() && u.Visibility != structs.VisibleTypePublic {
@@ -77,19 +77,6 @@ func (u *User) GetPinnedRepos(actor *User, excludeRepoIDs []int64, loadAttribute
 
 	cond = cond.And(builder.In("id", idBuilder))
 
-	if len(excludeRepoIDs) > 0 {
-		cond = cond.And(builder.NotIn("id", excludeRepoIDs))
-	}
-
-	if err = x.Where(cond).Find(&repos); err != nil {
-		return nil, err
-	}
-
-	if loadAttributes {
-		if err = repos.LoadAttributes(); err != nil {
-			return nil, err
-		}
-	}
-
+	err = x.Table("repository").Cols("id").Where(cond).Find(&results)
 	return
 }

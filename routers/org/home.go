@@ -120,17 +120,46 @@ func Home(ctx *context.Context) {
 	}
 
 	pinnedRepos := make([]*models.Repository, 0, 10)
-	has := false
-	for _, repo := range repos {
-		if has, err = org.IsPinnedRepoExist(repo.ID); err != nil {
-			ctx.ServerError("IsPinnedRepoExist", err)
-			return
+	pinnedRepoIDs, err := ctx.Org.Organization.GetPinnedRepoIDs(ctx.User)
+	if err != nil {
+		ctx.ServerError("GetPinnedRepos", err)
+		return
+	}
+
+	pinnedRepos2 := make(models.RepositoryList, 0, 5)
+	for _, pinnedRepoID := range pinnedRepoIDs {
+		has := false
+		for _, repo := range repos {
+			if repo.ID == pinnedRepoID {
+				has = true
+				repo.IsPinned = true
+				pinnedRepos = append(pinnedRepos, repo)
+				break
+			}
 		}
 
-		if has {
-			pinnedRepos = append(pinnedRepos, repo)
-			repo.IsPinned = true
+		if !has {
+			repo, err := models.GetRepositoryByID(pinnedRepoID)
+			if err != nil {
+				if !models.IsErrRepoNotExist(err) {
+					ctx.ServerError("GetRepositoryByID", err)
+				}
+				return
+			}
+
+			if repo != nil {
+				repo.IsPinned = true
+				pinnedRepos2 = append(pinnedRepos2, repo)
+			}
 		}
+	}
+
+	if len(pinnedRepos2) > 0 {
+		if err = pinnedRepos2.LoadAttributes(); err != nil {
+			ctx.ServerError("pinnedRepos2.LoadAttributes()", err)
+			return
+		}
+		pinnedRepos = append(pinnedRepos, pinnedRepos2...)
 	}
 
 	ctx.Data["PinnedRepos"] = pinnedRepos

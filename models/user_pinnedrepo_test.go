@@ -54,15 +54,11 @@ func TestGetPinnedRepos(t *testing.T) {
 
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	repos, err := user2.GetPinnedRepos(user2, nil, true)
+	repoIDs, err := user2.GetPinnedRepoIDs(user2)
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(repos))
+	assert.Equal(t, []int64{1, 4, 16}, repoIDs)
 
-	repos, err = user2.GetPinnedRepos(user2, []int64{1}, true)
+	repoIDs, err = user2.GetPinnedRepoIDs(nil)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(repos))
-
-	repos, err = user2.GetPinnedRepos(nil, []int64{1}, true)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(repos))
+	assert.Equal(t, []int64{1, 4}, repoIDs)
 }

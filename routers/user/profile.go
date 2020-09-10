@@ -247,35 +247,44 @@ func Profile(ctx *context.Context) {
 		}
 
 		pinnedRepos := make([]*models.Repository, 0, 10)
-		has := false
-		for _, repo := range repos {
-			if has, err = ctxUser.IsPinnedRepoExist(repo.ID); err != nil {
-				ctx.ServerError("IsPinnedRepoExist", err)
-				return
-			}
-
-			if has {
-				pinnedRepos = append(pinnedRepos, repo)
-				repo.IsPinned = true
-			}
-		}
-
-		exitsPinnedRepoIDs := make([]int64, 0, len(pinnedRepos))
-		for _, repo := range pinnedRepos {
-			exitsPinnedRepoIDs = append(exitsPinnedRepoIDs, repo.ID)
-		}
-
-		var pinnedRepos2 []*models.Repository
-
-		pinnedRepos2, err = ctxUser.GetPinnedRepos(ctx.User, exitsPinnedRepoIDs, true)
+		pinnedRepoIDs, err := ctxUser.GetPinnedRepoIDs(ctx.User)
 		if err != nil {
-			ctx.ServerError("GetPinnedRepos(true)", err)
+			ctx.ServerError("GetPinnedRepos", err)
 			return
 		}
 
+		pinnedRepos2 := make(models.RepositoryList, 0, 5)
+		for _, pinnedRepoID := range pinnedRepoIDs {
+			has := false
+			for _, repo := range repos {
+				if repo.ID == pinnedRepoID {
+					has = true
+					repo.IsPinned = true
+					pinnedRepos = append(pinnedRepos, repo)
+					break
+				}
+			}
+
+			if !has {
+				repo, err := models.GetRepositoryByID(pinnedRepoID)
+				if err != nil {
+					if !models.IsErrRepoNotExist(err) {
+						ctx.ServerError("GetRepositoryByID", err)
+					}
+					return
+				}
+
+				if repo != nil {
+					repo.IsPinned = true
+					pinnedRepos2 = append(pinnedRepos2, repo)
+				}
+			}
+		}
+
 		if len(pinnedRepos2) > 0 {
-			for _, repo := range pinnedRepos2 {
-				repo.IsPinned = true
+			if err = pinnedRepos2.LoadAttributes(); err != nil {
+				ctx.ServerError("pinnedRepos2.LoadAttributes()", err)
+				return
 			}
 			pinnedRepos = append(pinnedRepos, pinnedRepos2...)
 		}
