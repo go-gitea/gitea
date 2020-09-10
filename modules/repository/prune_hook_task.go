@@ -16,7 +16,7 @@ import (
 
 // PruneHookTaskTable deletes rows from hook_task as needed.
 func PruneHookTaskTable(ctx context.Context) error {
-	log.Error("Doing: PruneHookTaskTable")
+	log.Trace("Doing: PruneHookTaskTable")
 
 	if err := models.Iterate(
 		models.DefaultDBContext(),
@@ -44,6 +44,6 @@ func PruneHookTaskTable(ctx context.Context) error {
 		return err
 	}
 
-	log.Error("Finished: PruneHookTaskTable")
+	log.Trace("Finished: PruneHookTaskTable")
 	return nil
 }
