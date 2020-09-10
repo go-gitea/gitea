@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -41,7 +41,7 @@ func WikiRemoteURL(remote string) string {
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opts api.MigrateRepoOption) (*models.Repository, error) {
+func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opts migration.MigrateOptions) (*models.Repository, error) {
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
