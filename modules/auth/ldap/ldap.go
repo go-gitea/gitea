@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,7 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	ldap "gopkg.in/ldap.v3"
+	"gopkg.in/ldap.v3"
 )
 
 // SecurityProtocol protocol type
@@ -49,6 +50,11 @@ type Source struct {
 	RestrictedFilter      string // Query filter to check if user is restricted
 	Enabled               bool   // if this source is disabled
 	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
+	GroupsEnabled         bool   // if the group checking is enabled
+	GroupDN               string // Group Search Base
+	GroupFilter           string // Group Name Filter
+	GroupMemberUID        string // Group Attribute containing array of UserUID
+	UserUID               string // User Attribute listed in Group
 }
 
 // SearchResult : user data
@@ -82,6 +88,28 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 	}
 
 	return fmt.Sprintf(ls.UserDN, username), true
+}
+
+func (ls *Source) sanitizedGroupFilter(group string) (string, bool) {
+	// See http://tools.ietf.org/search/rfc4515
+	badCharacters := "\x00*\\"
+	if strings.ContainsAny(group, badCharacters) {
+		log.Trace("Group filter invalid query characters: %s", group)
+		return "", false
+	}
+
+	return group, true
+}
+
+func (ls *Source) sanitizedGroupDN(groupDn string) (string, bool) {
+	// See http://tools.ietf.org/search/rfc4514: "special characters"
+	badCharacters := "\x00()*\\'\"#+;<>"
+	if strings.ContainsAny(groupDn, badCharacters) || strings.HasPrefix(groupDn, " ") || strings.HasSuffix(groupDn, " ") {
+		log.Trace("Group DN contains invalid query characters: %s", groupDn)
+		return "", false
+	}
+
+	return groupDn, true
 }
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
@@ -279,11 +307,14 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if len(strings.TrimSpace(ls.UserUID)) > 0 {
+		attribs = append(attribs, ls.UserUID)
+	}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -308,6 +339,51 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
+	uid := sr.Entries[0].GetAttributeValue(ls.UserUID)
+
+	// Check group membership
+	if ls.GroupsEnabled {
+		groupFilter, ok := ls.sanitizedGroupFilter(ls.GroupFilter)
+		if !ok {
+			return nil
+		}
+		groupDN, ok := ls.sanitizedGroupDN(ls.GroupDN)
+		if !ok {
+			return nil
+		}
+
+		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", ls.GroupMemberUID, groupFilter, groupDN)
+		groupSearch := ldap.NewSearchRequest(
+			groupDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter,
+			[]string{ls.GroupMemberUID},
+			nil)
+
+		srg, err := l.Search(groupSearch)
+		if err != nil {
+			log.Error("LDAP group search failed: %v", err)
+			return nil
+		} else if len(srg.Entries) < 1 {
+			log.Error("LDAP group search failed: 0 entries")
+			return nil
+		}
+
+		isMember := false
+	Entries:
+		for _, group := range srg.Entries {
+			for _, member := range group.GetAttributeValues(ls.GroupMemberUID) {
+				if (ls.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
+					isMember = true
+					break Entries
+				}
+			}
+		}
+
+		if !isMember {
+			log.Error("LDAP group membership test failed")
+			return nil
+		}
+	}
+
 	if isAttributeSSHPublicKeySet {
 		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
 	}

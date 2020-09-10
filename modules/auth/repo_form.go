@@ -53,6 +53,7 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 }
 
 // MigrateRepoForm form for migrating repository
+// this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
@@ -84,9 +85,8 @@ func (f *MigrateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 // and returns composed URL with needed username and password.
 // It also checks if given user has permission when remote address
 // is actually a local path.
-func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
-	remoteAddr := strings.TrimSpace(f.CloneAddr)
-
+func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models.User) (string, error) {
+	remoteAddr = strings.TrimSpace(remoteAddr)
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	if strings.HasPrefix(remoteAddr, "http://") ||
 		strings.HasPrefix(remoteAddr, "https://") ||
@@ -95,8 +95,8 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 		if err != nil {
 			return "", models.ErrInvalidCloneAddr{IsURLError: true}
 		}
-		if len(f.AuthUsername)+len(f.AuthPassword) > 0 {
-			u.User = url.UserPassword(f.AuthUsername, f.AuthPassword)
+		if len(authUsername)+len(authPassword) > 0 {
+			u.User = url.UserPassword(authUsername, authPassword)
 		}
 		remoteAddr = u.String()
 	} else if !user.CanImportLocal() {
