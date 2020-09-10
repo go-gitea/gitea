@@ -119,12 +119,12 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 		calcOrgCounts := map[string]int{}
 
 		for _, org := range user.Orgs {
-			calcOrgCounts[org.LowerName] = org.NumRepos
+			calcOrgCounts[org.LowerName] = org.NumPublicRepos + org.NumPrivateRepos
 			count, ok := canonicalCounts[org.LowerName]
 			if ok {
-				assert.True(t, count == org.NumRepos, "Number of Repos in %s is %d when we expected %d", org.Name, org.NumRepos, count)
+				assert.True(t, count == org.NumPublicRepos+org.NumPrivateRepos, "Number of Repos in %s is %d when we expected %d", org.Name, org.NumPublicRepos+org.NumPrivateRepos, count)
 			} else {
-				assert.False(t, strict, "Did not expect to see %s with count %d", org.Name, org.NumRepos)
+				assert.False(t, strict, "Did not expect to see %s with count %d", org.Name, org.NumPublicRepos+org.NumPrivateRepos)
 			}
 		}
 
