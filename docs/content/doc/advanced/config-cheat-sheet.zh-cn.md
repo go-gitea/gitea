@@ -69,8 +69,18 @@ menu:
 - `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
+
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
+- `LFS_STORE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `LFS_SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
 - `LFS_CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 
 ## Database (`database`)

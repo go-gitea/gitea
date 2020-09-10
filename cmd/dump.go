@@ -186,6 +186,10 @@ func runDump(ctx *cli.Context) error {
 	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
+	if !setting.InstallLock {
+		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
+		return fmt.Errorf("gitea is not initialized")
+	}
 	setting.NewServices() // cannot access session settings otherwise
 
 	err := models.SetEngine()

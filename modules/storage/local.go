@@ -34,7 +34,7 @@ func NewLocalStorage(bucket string) (*LocalStorage, error) {
 }
 
 // Open a file
-func (l *LocalStorage) Open(path string) (io.ReadCloser, error) {
+func (l *LocalStorage) Open(path string) (Object, error) {
 	return os.Open(filepath.Join(l.dir, path))
 }
 
@@ -56,6 +56,11 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 	}
 	defer f.Close()
 	return io.Copy(f, r)
+}
+
+// Stat returns the info of the file
+func (l *LocalStorage) Stat(path string) (ObjectInfo, error) {
+	return os.Stat(filepath.Join(l.dir, path))
 }
 
 // Delete delete a file

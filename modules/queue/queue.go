@@ -106,7 +106,64 @@ func (*DummyQueue) IsEmpty() bool {
 	return true
 }
 
-var queuesMap = map[Type]NewQueueFunc{DummyQueueType: NewDummyQueue}
+// ImmediateType is the type to execute the function when push
+const ImmediateType Type = "immediate"
+
+// NewImmediate creates a new false queue to execute the function when push
+func NewImmediate(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+	return &Immediate{
+		handler: handler,
+	}, nil
+}
+
+// Immediate represents an direct execution queue
+type Immediate struct {
+	handler HandlerFunc
+}
+
+// Run does nothing
+func (*Immediate) Run(_, _ func(context.Context, func())) {}
+
+// Push fakes a push of data to the queue
+func (q *Immediate) Push(data Data) error {
+	return q.PushFunc(data, nil)
+}
+
+// PushFunc fakes a push of data to the queue with a function. The function is never run.
+func (q *Immediate) PushFunc(data Data, f func() error) error {
+	if f != nil {
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	q.handler(data)
+	return nil
+}
+
+// Has always returns false as this queue never does anything
+func (*Immediate) Has(Data) (bool, error) {
+	return false, nil
+}
+
+// Flush always returns nil
+func (*Immediate) Flush(time.Duration) error {
+	return nil
+}
+
+// FlushWithContext always returns nil
+func (*Immediate) FlushWithContext(context.Context) error {
+	return nil
+}
+
+// IsEmpty asserts that the queue is empty
+func (*Immediate) IsEmpty() bool {
+	return true
+}
+
+var queuesMap = map[Type]NewQueueFunc{
+	DummyQueueType: NewDummyQueue,
+	ImmediateType:  NewImmediate,
+}
 
 // RegisteredTypes provides the list of requested types of queues
 func RegisteredTypes() []Type {

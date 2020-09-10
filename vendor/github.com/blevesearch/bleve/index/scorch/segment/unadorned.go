@@ -24,7 +24,6 @@ var reflectStaticSizeUnadornedPostingsIteratorBitmap int
 var reflectStaticSizeUnadornedPostingsIterator1Hit int
 var reflectStaticSizeUnadornedPosting int
 
-
 func init() {
 	var pib UnadornedPostingsIteratorBitmap
 	reflectStaticSizeUnadornedPostingsIteratorBitmap = int(reflect.TypeOf(pib).Size())
@@ -34,7 +33,7 @@ func init() {
 	reflectStaticSizeUnadornedPosting = int(reflect.TypeOf(up).Size())
 }
 
-type UnadornedPostingsIteratorBitmap struct{
+type UnadornedPostingsIteratorBitmap struct {
 	actual   roaring.IntPeekable
 	actualBM *roaring.Bitmap
 }
@@ -72,16 +71,29 @@ func (i *UnadornedPostingsIteratorBitmap) Size() int {
 	return reflectStaticSizeUnadornedPostingsIteratorBitmap
 }
 
+func (i *UnadornedPostingsIteratorBitmap) ActualBitmap() *roaring.Bitmap {
+	return i.actualBM
+}
+
+func (i *UnadornedPostingsIteratorBitmap) DocNum1Hit() (uint64, bool) {
+	return 0, false
+}
+
+func (i *UnadornedPostingsIteratorBitmap) ReplaceActual(actual *roaring.Bitmap) {
+	i.actualBM = actual
+	i.actual = actual.Iterator()
+}
+
 func NewUnadornedPostingsIteratorFromBitmap(bm *roaring.Bitmap) PostingsIterator {
 	return &UnadornedPostingsIteratorBitmap{
 		actualBM: bm,
-		actual: bm.Iterator(),
+		actual:   bm.Iterator(),
 	}
 }
 
 const docNum1HitFinished = math.MaxUint64
 
-type UnadornedPostingsIterator1Hit struct{
+type UnadornedPostingsIterator1Hit struct {
 	docNum uint64
 }
 
