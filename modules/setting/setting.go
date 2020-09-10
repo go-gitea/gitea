@@ -147,6 +147,8 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	CamoServerURL                      string
+	CamoHMACKey                        string
 
 	// UI settings
 	UI = struct {
@@ -746,6 +748,8 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	CamoServerURL = sec.Key("CAMO_SERVER_URL").MustString("")
+	CamoHMACKey = sec.Key("CAMO_HMAC_KEY").MustString("")
 
 	InternalToken = loadInternalToken(sec)
 

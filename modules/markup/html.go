@@ -377,7 +377,16 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 
 					lnk := string(link)
 					lnk = util.URLJoin(prefix, lnk)
+
 					link = []byte(lnk)
+				}
+				if setting.CamoServerURL != "" {
+					lnk := string(link)
+					lnkURL, _ := url.Parse(lnk)
+					if lnkURL.IsAbs() && !strings.HasPrefix(lnk, setting.AppURL) {
+						// We should camo this url
+						link = CamoEncode(link)
+					}
 				}
 				node.Attr[idx].Val = string(link)
 			}
