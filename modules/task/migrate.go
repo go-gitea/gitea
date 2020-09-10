@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -89,7 +90,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return err
 	}
 
-	var opts *structs.MigrateRepoOption
+	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
 	if err != nil {
 		return err
