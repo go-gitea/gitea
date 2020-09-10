@@ -40,6 +40,15 @@
 					{{end}}
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
+								{{if gt .Issue.ShowTag 0}}
+									<div class="item tag">
+										{{if eq .Issue.ShowTag 2}}
+											{{$.i18n.Tr "repo.issues.collaborator"}}
+										{{else if eq .Issue.ShowTag 3}}
+											{{$.i18n.Tr "repo.issues.owner"}}
+										{{end}}
+									</div>
+								{{end}}
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							</div>
