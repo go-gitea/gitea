@@ -34,7 +34,7 @@ const (
 	tplRepoHome  base.TplName = "repo/home"
 	tplWatchers  base.TplName = "repo/watchers"
 	tplForks     base.TplName = "repo/forks"
-	tplMigrating base.TplName = "repo/migrating"
+	tplMigrating base.TplName = "repo/migrate/migrating"
 )
 
 type namedBlob struct {

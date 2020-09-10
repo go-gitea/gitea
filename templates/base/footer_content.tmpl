@@ -10,9 +10,9 @@
 			<div class="ui language bottom floating slide up dropdown link item">
 				<i class="world icon"></i>
 				<div class="text">{{.LangName}}</div>
-				<div class="menu">
+				<div class="menu language-menu">
 					{{range .AllLangs}}
-						<a lang="{{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}" href="{{if eq $.Lang .Lang}}#{{else}}{{$.Link}}?lang={{.Lang}}{{end}}">{{.Name}}</a>
+						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
