@@ -27,11 +27,14 @@
 				{{end}}
 					{{if not $.Repository.IsArchived}}
 						<div class="ui right actions">
+							{{if eq .PosterID .Issue.PosterID }}
+								<div class="item tag">
+									{{$.i18n.Tr "repo.issues.poster"}}
+								</div>
+							{{end}}
 							{{if gt .ShowTag 0}}
 								<div class="item tag">
-									{{if eq .ShowTag 1}}
-										{{$.i18n.Tr "repo.issues.poster"}}
-									{{else if eq .ShowTag 2}}
+									{{if eq .ShowTag 2}}
 										{{$.i18n.Tr "repo.issues.collaborator"}}
 									{{else if eq .ShowTag 3}}
 										{{$.i18n.Tr "repo.issues.owner"}}

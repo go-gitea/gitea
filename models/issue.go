@@ -67,6 +67,9 @@ type Issue struct {
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
+
+	// For view issue page.
+	ShowTag CommentTag `xorm:"-"`
 }
 
 var (
