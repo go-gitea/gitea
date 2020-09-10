@@ -258,7 +258,8 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.Email = form.Email
 	u.Website = form.Website
 	u.Location = form.Location
-	u.MaxRepoCreation = form.MaxRepoCreation
+	u.MaxPublicRepoCreation = form.MaxPublicRepoCreation
+	u.MaxPrivateRepoCreation = form.MaxPrivateRepoCreation
 	u.IsActive = form.Active
 	u.IsAdmin = form.Admin
 	u.IsRestricted = form.Restricted

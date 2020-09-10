@@ -146,8 +146,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
+	if !getRepoPrivate(ctx) && !ctx.User.CanCreatePublicRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxPublicCreationLimit()), tplCreate, nil)
+	} else if getRepoPrivate(ctx) && !ctx.User.CanCreatePrivateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxPrivateCreationLimit()), tplCreate, nil)
 	} else {
 		ctx.HTML(200, tplCreate)
 	}
@@ -156,7 +158,7 @@ func Create(ctx *context.Context) {
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", err.(models.ErrReachLimitOfRepo).Limit), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)

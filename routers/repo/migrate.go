@@ -63,7 +63,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", err.(models.ErrReachLimitOfRepo).Limit), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)

@@ -197,8 +197,11 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if form.AllowImportLocal != nil {
 		u.AllowImportLocal = *form.AllowImportLocal
 	}
-	if form.MaxRepoCreation != nil {
-		u.MaxRepoCreation = *form.MaxRepoCreation
+	if form.MaxPublicRepoCreation != nil {
+		u.MaxPublicRepoCreation = *form.MaxPublicRepoCreation
+	}
+	if form.MaxPrivateRepoCreation != nil {
+		u.MaxPrivateRepoCreation = *form.MaxPrivateRepoCreation
 	}
 	if form.AllowCreateOrganization != nil {
 		u.AllowCreateOrganization = *form.AllowCreateOrganization

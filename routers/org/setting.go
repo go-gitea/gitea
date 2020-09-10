@@ -78,7 +78,8 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.LowerName = strings.ToLower(form.Name)
 
 	if ctx.User.IsAdmin {
-		org.MaxRepoCreation = form.MaxRepoCreation
+		org.MaxPublicRepoCreation = form.MaxPublicRepoCreation
+		org.MaxPrivateRepoCreation = form.MaxPrivateRepoCreation
 	}
 
 	org.FullName = form.FullName
@@ -97,7 +98,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 
 	// update forks visibility
 	if visibilityChanged {
-		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumPublicRepos + org.NumPrivateRepos}); err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
 		}

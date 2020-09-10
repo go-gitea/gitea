@@ -112,6 +112,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		if visibilityChanged {
+			if !form.Private && !repo.Owner.CanCreatePublicRepo() {
+				ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", repo.Owner.MaxPublicCreationLimit()), tplSettingsOptions, &form)
+			} else if form.Private && !repo.Owner.CanCreatePrivateRepo() {
+				ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", repo.Owner.MaxPrivateCreationLimit()), tplSettingsOptions, &form)
+			}
+		}
+
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
@@ -388,8 +396,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if !ctx.Repo.Owner.CanCreateRepo() {
-			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+		if !repo.IsPrivate && !ctx.Repo.Owner.CanCreatePublicRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxPublicCreationLimit()))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+
+		if repo.IsPrivate && !ctx.Repo.Owner.CanCreatePrivateRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxPrivateCreationLimit()))
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
