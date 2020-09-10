@@ -35,16 +35,17 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		}
 		if len(res) > 0 {
 			constraintName := res[0]["name"]
-			_, err := sess.Exec("ALTER TABLE ? DROP CONSTRAINT ?", "user", constraintName)
+			log.Error("Results of select constraint: %s", constraintName)
+			_, err := sess.Exec("ALTER TABLE [user] DROP CONSTRAINT " + constraintName)
 			if err != nil {
 				return err
 			}
-			_, err = sess.Exec("ALTER TABLE ? ADD CONSTRAINT ? DEFAULT 'argon2' FOR ?", "user", constraintName, "passwd_hash_algo")
+			_, err = sess.Exec("ALTER TABLE [user] ADD CONSTRAINT " + constraintName + " DEFAULT 'argon2' FOR passwd_hash_algo")
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err := sess.Exec("ALTER TABLE ? ADD DEFAULT('argon2') FOR ?", "user", "passwd_hash_algo")
+			_, err := sess.Exec("ALTER TABLE [user] ADD DEFAULT('argon2') FOR passwd_hash_algo")
 			if err != nil {
 				return err
 			}
@@ -93,9 +94,12 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 	tempTableName := "tmp_recreate__user"
 	column.Default = "'argon2'"
 
-	if _, err := sess.Exec(x.Dialect().CreateTableSQL(table, tempTableName)); err != nil {
-		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
-		return err
+	createTableSQL, _ := x.Dialect().CreateTableSQL(table, tempTableName)
+	for _, sql := range createTableSQL {
+		if _, err := sess.Exec(sql); err != nil {
+			log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
+			return err
+		}
 	}
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tempTableName, index)); err != nil {
