@@ -229,7 +229,7 @@ func Repos(ctx *context.Context) {
 
 // PinnedRepoPost response pinned repo settings
 func PinnedRepoPost(ctx *context.Context, form auth.RepoPinnedForm) {
-	names := strings.Split(form.RepoFullName, "/")
+	names := strings.SplitN(form.RepoFullName, "/", 3)
 	var (
 		ownerName string
 		repoName  string
