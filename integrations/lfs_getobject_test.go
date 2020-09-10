@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"gitea.com/macaron/gzip"
 	gzipp "github.com/klauspost/compress/gzip"
@@ -49,8 +50,10 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	lfsID++
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
-	contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-	if !contentStore.Exists(lfsMetaObject) {
+	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+	exist, err := contentStore.Exists(lfsMetaObject)
+	assert.NoError(t, err)
+	if !exist {
 		err := contentStore.Put(lfsMetaObject, bytes.NewReader(*content))
 		assert.NoError(t, err)
 	}

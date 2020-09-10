@@ -1244,7 +1244,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
-	ctx.Data["ReadOnly"] = true
+	ctx.Data["ReadOnly"] = false
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
@@ -1341,6 +1341,30 @@ func UpdateIssueTitle(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
+	})
+}
+
+// UpdateIssueRef change issue's ref (branch)
+func UpdateIssueRef(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
+		ctx.Error(403)
+		return
+	}
+
+	ref := ctx.QueryTrim("ref")
+
+	if err := issue_service.ChangeIssueRef(issue, ctx.User, ref); err != nil {
+		ctx.ServerError("ChangeRef", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ref": ref,
 	})
 }
 

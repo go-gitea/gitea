@@ -2075,7 +2075,7 @@
           },
           {
             "type": "string",
-            "description": "archive to download, consisting of a git reference and archive",
+            "description": "the git reference for download with attached archive format (e.g. master.zip)",
             "name": "archive",
             "in": "path",
             "required": true
@@ -13613,6 +13613,11 @@
           "format": "int64",
           "x-go-name": "ClosedIssues"
         },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -13638,6 +13643,11 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14698,6 +14708,18 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueIndex"
+        },
+        "issue_title": {
+          "type": "string",
+          "x-go-name": "IssueTitle"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        },
+        "repo_owner_name": {
+          "type": "string",
+          "x-go-name": "RepoOwnerName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
