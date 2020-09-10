@@ -69,10 +69,15 @@
 						{{if .SignedUser.IsAdmin}}
 						<div class="ui divider"></div>
 
-						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-							<label for="max_repo_creation">{{.i18n.Tr "admin.users.max_repo_creation"}}</label>
-							<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.Org.MaxRepoCreation}}">
-							<p class="help">{{.i18n.Tr "admin.users.max_repo_creation_desc"}}</p>
+						<div class="inline field {{if .Err_MaxPublicRepoCreation}}error{{end}}">
+							<label for="max_public_repo_creation">{{.i18n.Tr "admin.users.max_public_repo_creation"}}</label>
+							<input id="max_public_repo_creation" name="max_public_repo_creation" type="number" value="{{.Org.MaxPublicRepoCreation}}">
+							<p class="help">{{.i18n.Tr "admin.users.max_public_repo_creation_desc"}}</p>
+						</div>
+						<div class="inline field {{if .Err_MaxPrivateRepoCreation}}error{{end}}">
+							<label for="max_private_repo_creation">{{.i18n.Tr "admin.users.max_private_repo_creation"}}</label>
+							<input id="max_private_repo_creation" name="max_private_repo_creation" type="number" value="{{.Org.MaxPrivateRepoCreation}}">
+							<p class="help">{{.i18n.Tr "admin.users.max_private_repo_creation_desc"}}</p>
 						</div>
 						{{end}}
 
