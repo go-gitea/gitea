@@ -744,8 +744,6 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	}
 	if perm.IsOwner() {
 		return models.CommentTagOwner, nil
-	} else if poster.ID == issue.PosterID {
-		return models.CommentTagPoster, nil
 	} else if perm.CanWrite(models.UnitTypeCode) {
 		return models.CommentTagWriter, nil
 	}
@@ -998,6 +996,12 @@ func ViewIssue(ctx *context.Context) {
 
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
+
+	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
+		ctx.ServerError("commentTag", err)
+		return
+	}
+	marked[issue.PosterID] = issue.ShowTag
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster

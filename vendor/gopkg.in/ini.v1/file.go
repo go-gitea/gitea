@@ -302,6 +302,9 @@ func (f *File) Reload() (err error) {
 			}
 			return err
 		}
+		if f.options.ShortCircuit {
+			return nil
+		}
 	}
 	return nil
 }

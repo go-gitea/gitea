@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/structs"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
-	opts := structs.MigrateRepoOption{
+	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
 		Private:     false,
