@@ -367,3 +367,10 @@ type OptimizableContext interface {
 type DocValueReader interface {
 	VisitDocValues(id IndexInternalID, visitor DocumentFieldTermVisitor) error
 }
+
+// IndexBuilder is an interface supported by some index schemes
+// to allow direct write-only index building
+type IndexBuilder interface {
+	Index(doc *document.Document) error
+	Close() error
+}

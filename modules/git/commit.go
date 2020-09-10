@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
 )
 
 // Commit represents a git commit.
@@ -470,7 +469,7 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	binVersion, err := BinVersion()
+	err := LoadGitVersion()
 	if err != nil {
 		return "", fmt.Errorf("Git version missing: %v", err)
 	}
@@ -478,7 +477,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	args := []string{
 		"name-rev",
 	}
-	if version.Compare(binVersion, "2.13.0", ">=") {
+	if CheckGitVersionConstraint(">= 2.13.0") == nil {
 		args = append(args, "--exclude", "refs/tags/*")
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())

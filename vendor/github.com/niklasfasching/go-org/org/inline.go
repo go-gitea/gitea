@@ -30,6 +30,12 @@ type Emphasis struct {
 	Content []Node
 }
 
+type InlineBlock struct {
+	Name       string
+	Parameters []string
+	Children   []Node
+}
+
 type LatexFragment struct {
 	OpeningPair string
 	ClosingPair string
@@ -48,6 +54,11 @@ type RegularLink struct {
 	AutoLink    bool
 }
 
+type Macro struct {
+	Name       string
+	Parameters []string
+}
+
 var validURLCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
 var autolinkProtocols = regexp.MustCompile(`^(https?|ftp|file)$`)
 var imageExtensionRegexp = regexp.MustCompile(`^[.](png|gif|jpe?g|svg|tiff?)$`)
@@ -58,6 +69,9 @@ var timestampRegexp = regexp.MustCompile(`^<(\d{4}-\d{2}-\d{2})( [A-Za-z]+)?( \d
 var footnoteRegexp = regexp.MustCompile(`^\[fn:([\w-]*?)(:(.*?))?\]`)
 var statisticsTokenRegexp = regexp.MustCompile(`^\[(\d+/\d+|\d+%)\]`)
 var latexFragmentRegexp = regexp.MustCompile(`(?s)^\\begin{(\w+)}(.*)\\end{(\w+)}`)
+var inlineBlockRegexp = regexp.MustCompile(`src_(\w+)(\[(.*)\])?{(.*)}`)
+var inlineExportBlockRegexp = regexp.MustCompile(`@@(\w+):(.*?)@@`)
+var macroRegexp = regexp.MustCompile(`{{{(.*)\((.*)\)}}}`)
 
 var timestampFormat = "2006-01-02 Mon 15:04"
 var datestampFormat = "2006-01-02 Mon"
@@ -66,6 +80,7 @@ var latexFragmentPairs = map[string]string{
 	`\(`: `\)`,
 	`\[`: `\]`,
 	`$$`: `$$`,
+	`$`:  `$`,
 }
 
 func (d *Document) parseInline(input string) (nodes []Node) {
@@ -76,25 +91,29 @@ func (d *Document) parseInline(input string) (nodes []Node) {
 		case '^':
 			consumed, node = d.parseSubOrSuperScript(input, current)
 		case '_':
-			consumed, node = d.parseSubScriptOrEmphasis(input, current)
+			rewind, consumed, node = d.parseSubScriptOrEmphasisOrInlineBlock(input, current)
+		case '@':
+			consumed, node = d.parseInlineExportBlock(input, current)
 		case '*', '/', '+':
 			consumed, node = d.parseEmphasis(input, current, false)
 		case '=', '~':
 			consumed, node = d.parseEmphasis(input, current, true)
 		case '[':
 			consumed, node = d.parseOpeningBracket(input, current)
+		case '{':
+			consumed, node = d.parseMacro(input, current)
 		case '<':
 			consumed, node = d.parseTimestamp(input, current)
 		case '\\':
 			consumed, node = d.parseExplicitLineBreakOrLatexFragment(input, current)
 		case '$':
-			consumed, node = d.parseLatexFragment(input, current)
+			consumed, node = d.parseLatexFragment(input, current, 1)
 		case '\n':
 			consumed, node = d.parseLineBreak(input, current)
 		case ':':
 			rewind, consumed, node = d.parseAutoLink(input, current)
-			current -= rewind
 		}
+		current -= rewind
 		if consumed != 0 {
 			if current > previous {
 				nodes = append(nodes, Text{input[previous:current], false})
@@ -143,6 +162,23 @@ func (d *Document) parseLineBreak(input string, start int) (int, Node) {
 	return i - start, LineBreak{i - start}
 }
 
+func (d *Document) parseInlineBlock(input string, start int) (int, int, Node) {
+	if !(strings.HasSuffix(input[:start], "src") && (start-4 < 0 || unicode.IsSpace(rune(input[start-4])))) {
+		return 0, 0, nil
+	}
+	if m := inlineBlockRegexp.FindStringSubmatch(input[start-3:]); m != nil {
+		return 3, len(m[0]), InlineBlock{"src", strings.Fields(m[1] + " " + m[3]), d.parseRawInline(m[4])}
+	}
+	return 0, 0, nil
+}
+
+func (d *Document) parseInlineExportBlock(input string, start int) (int, Node) {
+	if m := inlineExportBlockRegexp.FindStringSubmatch(input[start:]); m != nil {
+		return len(m[0]), InlineBlock{"export", m[1:2], d.parseRawInline(m[2])}
+	}
+	return 0, nil
+}
+
 func (d *Document) parseExplicitLineBreakOrLatexFragment(input string, start int) (int, Node) {
 	switch {
 	case start+2 >= len(input):
@@ -153,7 +189,7 @@ func (d *Document) parseExplicitLineBreakOrLatexFragment(input string, start int
 			}
 		}
 	case input[start+1] == '(' || input[start+1] == '[':
-		return d.parseLatexFragment(input, start)
+		return d.parseLatexFragment(input, start, 2)
 	case strings.Index(input[start:], `\begin{`) == 0:
 		if m := latexFragmentRegexp.FindStringSubmatch(input[start:]); m != nil {
 			if open, content, close := m[1], m[2], m[3]; open == close {
@@ -166,15 +202,18 @@ func (d *Document) parseExplicitLineBreakOrLatexFragment(input string, start int
 	return 0, nil
 }
 
-func (d *Document) parseLatexFragment(input string, start int) (int, Node) {
+func (d *Document) parseLatexFragment(input string, start int, pairLength int) (int, Node) {
 	if start+2 >= len(input) {
 		return 0, nil
 	}
-	openingPair := input[start : start+2]
+	if pairLength == 1 && input[start:start+2] == "$$" {
+		pairLength = 2
+	}
+	openingPair := input[start : start+pairLength]
 	closingPair := latexFragmentPairs[openingPair]
-	if i := strings.Index(input[start+2:], closingPair); i != -1 {
-		content := d.parseRawInline(input[start+2 : start+2+i])
-		return i + 2 + 2, LatexFragment{openingPair, closingPair, content}
+	if i := strings.Index(input[start+pairLength:], closingPair); i != -1 {
+		content := d.parseRawInline(input[start+pairLength : start+pairLength+i])
+		return i + pairLength + pairLength, LatexFragment{openingPair, closingPair, content}
 	}
 	return 0, nil
 }
@@ -186,11 +225,14 @@ func (d *Document) parseSubOrSuperScript(input string, start int) (int, Node) {
 	return 0, nil
 }
 
-func (d *Document) parseSubScriptOrEmphasis(input string, start int) (int, Node) {
-	if consumed, node := d.parseSubOrSuperScript(input, start); consumed != 0 {
-		return consumed, node
+func (d *Document) parseSubScriptOrEmphasisOrInlineBlock(input string, start int) (int, int, Node) {
+	if rewind, consumed, node := d.parseInlineBlock(input, start); consumed != 0 {
+		return rewind, consumed, node
+	} else if consumed, node := d.parseSubOrSuperScript(input, start); consumed != 0 {
+		return 0, consumed, node
 	}
-	return d.parseEmphasis(input, start, false)
+	consumed, node := d.parseEmphasis(input, start, false)
+	return 0, consumed, node
 }
 
 func (d *Document) parseOpeningBracket(input string, start int) (int, Node) {
@@ -200,6 +242,13 @@ func (d *Document) parseOpeningBracket(input string, start int) (int, Node) {
 		return d.parseFootnoteReference(input, start)
 	} else if statisticsTokenRegexp.MatchString(input[start:]) {
 		return d.parseStatisticToken(input, start)
+	}
+	return 0, nil
+}
+
+func (d *Document) parseMacro(input string, start int) (int, Node) {
+	if m := macroRegexp.FindStringSubmatch(input[start:]); m != nil {
+		return len(m[0]), Macro{m[1], strings.Split(m[2], ",")}
 	}
 	return 0, nil
 }
@@ -334,6 +383,14 @@ func isValidPostChar(r rune) bool {
 func isValidBorderChar(r rune) bool { return !unicode.IsSpace(r) }
 
 func (l RegularLink) Kind() string {
+	description := String(l.Description)
+	descProtocol, descExt := strings.SplitN(description, ":", 2)[0], path.Ext(description)
+	if ok := descProtocol == "file" || descProtocol == "http" || descProtocol == "https"; ok && imageExtensionRegexp.MatchString(descExt) {
+		return "image"
+	} else if ok && videoExtensionRegexp.MatchString(descExt) {
+		return "video"
+	}
+
 	if p := l.Protocol; l.Description != nil || (p != "" && p != "file" && p != "http" && p != "https") {
 		return "regular"
 	}
@@ -351,7 +408,9 @@ func (n LineBreak) String() string         { return orgWriter.WriteNodesAsString
 func (n ExplicitLineBreak) String() string { return orgWriter.WriteNodesAsString(n) }
 func (n StatisticToken) String() string    { return orgWriter.WriteNodesAsString(n) }
 func (n Emphasis) String() string          { return orgWriter.WriteNodesAsString(n) }
+func (n InlineBlock) String() string       { return orgWriter.WriteNodesAsString(n) }
 func (n LatexFragment) String() string     { return orgWriter.WriteNodesAsString(n) }
 func (n FootnoteLink) String() string      { return orgWriter.WriteNodesAsString(n) }
 func (n RegularLink) String() string       { return orgWriter.WriteNodesAsString(n) }
+func (n Macro) String() string             { return orgWriter.WriteNodesAsString(n) }
 func (n Timestamp) String() string         { return orgWriter.WriteNodesAsString(n) }

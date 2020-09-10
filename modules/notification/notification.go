@@ -178,6 +178,13 @@ func NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle str
 	}
 }
 
+// NotifyIssueChangeRef notifies change reference to notifiers
+func NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeRef(doer, issue, oldRef)
+	}
+}
+
 // NotifyIssueChangeLabels notifies change labels to notifiers
 func NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {

@@ -65,7 +65,7 @@ func TestLevelQueue(t *testing.T) {
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
 	go func() {
-		err = queue.Push(&test2)
+		err := queue.Push(&test2)
 		assert.NoError(t, err)
 	}()
 
