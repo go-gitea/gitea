@@ -27,7 +27,7 @@ func MailNewRelease(rel *models.Release) {
 		return
 	}
 
-	recipients, err := models.GetMaileableUsersByIDs(watcherIDList)
+	recipients, err := models.GetMaileableUsersByIDs(watcherIDList, false)
 	if err != nil {
 		log.Error("models.GetMaileableUsersByIDs: %v", err)
 		return
