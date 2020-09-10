@@ -2314,6 +2314,7 @@ $(document).ready(async () => {
   $('.delete-button').on('click', showDeletePopup);
   $('.add-all-button').on('click', showAddAllPopup);
   $('.link-action').on('click', linkAction);
+  $('.language-menu a[lang]').on('click', linkLanguageAction);
   $('.link-email-action').on('click', linkEmailAction);
 
   $('.delete-branch-button').on('click', showDeletePopup);
@@ -2599,6 +2600,13 @@ function linkAction(e) {
     } else {
       window.location.reload();
     }
+  });
+}
+
+function linkLanguageAction() {
+  const $this = $(this);
+  $.post($this.data('url')).always(() => {
+    window.location.reload();
   });
 }
 

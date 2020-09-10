@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -205,17 +206,7 @@ const (
 // Name represents the service type's name
 // WARNNING: the name have to be equal to that on goth's library
 func (gt GitServiceType) Name() string {
-	switch gt {
-	case GithubService:
-		return "github"
-	case GiteaService:
-		return "gitea"
-	case GitlabService:
-		return "gitlab"
-	case GogsService:
-		return "gogs"
-	}
-	return ""
+	return strings.ToLower(gt.Title())
 }
 
 // Title represents the service type's proper title
