@@ -744,8 +744,6 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	}
 	if perm.IsOwner() {
 		return models.CommentTagOwner, nil
-	} else if poster.ID == issue.PosterID {
-		return models.CommentTagPoster, nil
 	} else if perm.CanWrite(models.UnitTypeCode) {
 		return models.CommentTagWriter, nil
 	}
@@ -999,6 +997,12 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
+	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
+		ctx.ServerError("commentTag", err)
+		return
+	}
+	marked[issue.PosterID] = issue.ShowTag
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
@@ -1079,8 +1083,10 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
 			if err = comment.LoadDepIssueDetails(); err != nil {
-				ctx.ServerError("LoadDepIssueDetails", err)
-				return
+				if !models.IsErrIssueNotExist(err) {
+					ctx.ServerError("LoadDepIssueDetails", err)
+					return
+				}
 			}
 		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
@@ -1242,7 +1248,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
-	ctx.Data["ReadOnly"] = true
+	ctx.Data["ReadOnly"] = false
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
@@ -1339,6 +1345,30 @@ func UpdateIssueTitle(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
+	})
+}
+
+// UpdateIssueRef change issue's ref (branch)
+func UpdateIssueRef(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
+		ctx.Error(403)
+		return
+	}
+
+	ref := ctx.QueryTrim("ref")
+
+	if err := issue_service.ChangeIssueRef(issue, ctx.User, ref); err != nil {
+		ctx.ServerError("ChangeRef", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ref": ref,
 	})
 }
 
@@ -1516,10 +1546,11 @@ func updatePullReviewRequest(ctx *context.Context) {
 	}
 
 	reviewID := ctx.QueryInt64("id")
-	event := ctx.Query("is_add")
+	action := ctx.Query("action")
 
-	if event != "add" && event != "remove" {
-		ctx.ServerError("updatePullReviewRequest", fmt.Errorf("is_add should not be \"%s\"", event))
+	// TODO: Not support 'clear' now
+	if action != "attach" && action != "detach" {
+		ctx.Status(403)
 		return
 	}
 
@@ -1532,19 +1563,20 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			err = isLegalReviewRequest(reviewer, ctx.User, action == "attach", issue)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
+			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 			if err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
 		} else {
-			ctx.ServerError("updatePullReviewRequest", fmt.Errorf("%d in %d is not Pull Request", issue.ID, issue.Repo.ID))
+			ctx.Status(403)
+			return
 		}
 	}
 

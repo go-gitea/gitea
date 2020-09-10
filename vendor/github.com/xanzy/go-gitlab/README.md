@@ -44,6 +44,7 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] Group Milestones
 - [x] Group-Level Variables
 - [x] Groups
+- [x] Instance Clusters
 - [x] Issue Boards
 - [x] Issues
 - [x] Jobs
@@ -161,7 +162,7 @@ func main() {
 	s := &gitlab.CreateProjectSnippetOptions{
 		Title:           gitlab.String("Dummy Snippet"),
 		FileName:        gitlab.String("snippet.go"),
-		Code:            gitlab.String("package main...."),
+		Content:         gitlab.String("package main...."),
 		Visibility:      gitlab.Visibility(gitlab.PublicVisibility),
 	}
 	_, _, err = git.ProjectSnippets.CreateSnippet(project.ID, s)

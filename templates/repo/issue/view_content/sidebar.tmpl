@@ -12,7 +12,7 @@
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
-			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
 				{{if .Reviewers}}
 					<div class="ui icon search input">
@@ -44,7 +44,7 @@
 						{{$canChoose = true}}
 					{{end}}
 
-					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-can-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}} data-is-checked="{{if $checked}}add{{else}}remove{{end}}">
+					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}} {{if not $canChoose}}ban-change{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
@@ -78,7 +78,7 @@
 							{{end}}
 
 							{{if $canChoose}}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 									{{svg "octicon-sync" 16}}
 								</a>
 							{{end}}
@@ -244,7 +244,7 @@
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
-			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
 					<i class="search icon"></i>

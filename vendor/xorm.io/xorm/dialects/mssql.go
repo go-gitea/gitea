@@ -229,7 +229,7 @@ func (db *mssql) SetParams(params map[string]string) {
 		var t = strings.ToUpper(defaultVarchar)
 		switch t {
 		case "NVARCHAR", "VARCHAR":
-			db.defaultVarchar = defaultVarchar
+			db.defaultVarchar = t
 		default:
 			db.defaultVarchar = "VARCHAR"
 		}
@@ -242,7 +242,7 @@ func (db *mssql) SetParams(params map[string]string) {
 		var t = strings.ToUpper(defaultChar)
 		switch t {
 		case "NCHAR", "CHAR":
-			db.defaultChar = defaultChar
+			db.defaultChar = t
 		default:
 			db.defaultChar = "CHAR"
 		}
@@ -285,7 +285,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.MediumInt:
 		res = schemas.Int
 	case schemas.Text, schemas.MediumText, schemas.TinyText, schemas.LongText, schemas.Json:
-		res = schemas.Varchar + "(MAX)"
+		res = db.defaultVarchar + "(MAX)"
 	case schemas.Double:
 		res = schemas.Real
 	case schemas.Uuid:
@@ -297,10 +297,26 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.BigInt:
 		res = schemas.BigInt
 		c.Length = 0
+	case schemas.NVarchar:
+		res = t
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
 	case schemas.Varchar:
 		res = db.defaultVarchar
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
 	case schemas.Char:
 		res = db.defaultChar
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
+	case schemas.NChar:
+		res = t
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
 	default:
 		res = t
 	}
@@ -424,8 +440,18 @@ func (db *mssql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 			col.SQLType = schemas.SQLType{Name: schemas.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NVARCHAR":
 			col.SQLType = schemas.SQLType{Name: schemas.NVarchar, DefaultLength: 0, DefaultLength2: 0}
+			if col.Length > 0 {
+				col.Length /= 2
+				col.Length2 /= 2
+			}
 		case "IMAGE":
 			col.SQLType = schemas.SQLType{Name: schemas.VarBinary, DefaultLength: 0, DefaultLength2: 0}
+		case "NCHAR":
+			if col.Length > 0 {
+				col.Length /= 2
+				col.Length2 /= 2
+			}
+			fallthrough
 		default:
 			if _, ok := schemas.SqlTypes[ct]; ok {
 				col.SQLType = schemas.SQLType{Name: ct, DefaultLength: 0, DefaultLength2: 0}

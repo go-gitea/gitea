@@ -109,7 +109,7 @@ type ListProjectPipelinesOptions struct {
 	Name          *string          `url:"name,omitempty" json:"name,omitempty"`
 	Username      *string          `url:"username,omitempty" json:"username,omitempty"`
 	UpdatedAfter  *time.Time       `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore *time.Time       `url:"update_before,omitempty" json:"updated_before,omitempty"`
+	UpdatedBefore *time.Time       `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 	OrderBy       *string          `url:"order_by,omitempty" json:"order_by,omitempty"`
 	Sort          *string          `url:"sort,omitempty" json:"sort,omitempty"`
 }
