@@ -98,6 +98,7 @@ require (
 	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
+	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
@@ -114,7 +115,7 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.4
+	xorm.io/xorm v1.0.5
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3

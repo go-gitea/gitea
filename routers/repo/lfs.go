@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -619,7 +620,7 @@ type pointerResult struct {
 func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
-	contentStore := lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := lfs.ContentStore{ObjectStorage: storage.LFS}
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
@@ -673,7 +674,11 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			result.InRepo = true
 		}
 
-		result.Exists = contentStore.Exists(pointer)
+		result.Exists, err = contentStore.Exists(pointer)
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
 
 		if result.Exists {
 			if !result.InRepo {

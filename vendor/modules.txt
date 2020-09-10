@@ -760,6 +760,9 @@ github.com/yuin/goldmark-highlighting
 github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
+# go.jolheiser.com/pwn v0.0.3
+## explicit
+go.jolheiser.com/pwn
 # go.mongodb.org/mongo-driver v1.3.5
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -953,7 +956,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.4
+# xorm.io/xorm v1.0.5
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches

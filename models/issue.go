@@ -709,6 +709,22 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	return sess.Commit()
 }
 
+// ChangeRef changes the branch of this issue, as the given user.
+func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "ref"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
+	}
+
+	return sess.Commit()
+}
+
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
 func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branchName string) error {
 	issue, err := getIssueByID(x, issueID)
