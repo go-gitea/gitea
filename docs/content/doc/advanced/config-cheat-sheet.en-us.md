@@ -206,12 +206,23 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
+
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
+- `LFS_STORE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service.
+- `LFS_SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `LFS_STORE_TYPE` is `local`.
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `LFS_STORE_TYPE is` `minio`
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `LFS_STORE_TYPE` is `minio`
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCK_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
+
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
@@ -333,6 +344,7 @@ set name for unique queues. Individual queues will default to
     - digit - use one or more digits
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
+- `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 
 ## OpenID (`openid`)
 

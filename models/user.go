@@ -1419,11 +1419,21 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
+
+	if isMention {
+		return ous, x.In("id", ids).
+			Where("`type` = ?", UserTypeIndividual).
+			And("`prohibit_login` = ?", false).
+			And("`is_active` = ?", true).
+			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			Find(&ous)
+	}
+
 	return ous, x.In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).

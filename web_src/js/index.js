@@ -112,8 +112,23 @@ function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
-    $($(this).data('id-selector')).val($(this).data('id'));
-    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+    const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
+    $($(this).data('id-selector')).val(selectedValue);
+
+    if (editMode === 'true') {
+      const form = $('#update_issueref_form');
+
+      $.post(form.attr('action'), {
+        _csrf: csrf,
+        ref: selectedValue
+      },
+      () => {
+        window.location.reload();
+      });
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
+    }
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
@@ -2299,6 +2314,7 @@ $(document).ready(async () => {
   $('.delete-button').on('click', showDeletePopup);
   $('.add-all-button').on('click', showAddAllPopup);
   $('.link-action').on('click', linkAction);
+  $('.language-menu a[lang]').on('click', linkLanguageAction);
   $('.link-email-action').on('click', linkEmailAction);
 
   $('.delete-branch-button').on('click', showDeletePopup);
@@ -2584,6 +2600,13 @@ function linkAction(e) {
     } else {
       window.location.reload();
     }
+  });
+}
+
+function linkLanguageAction() {
+  const $this = $(this);
+  $.post($this.data('url')).always(() => {
+    window.location.reload();
   });
 }
 

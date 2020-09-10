@@ -522,6 +522,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
+			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
