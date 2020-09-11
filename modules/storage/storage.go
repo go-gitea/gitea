@@ -70,14 +70,15 @@ func Init() error {
 	return initLFS()
 }
 
-func initAttachments() error {
+func initStorage(storageCfg setting.Storage) (ObjectStorage, error) {
 	var err error
-	switch setting.Attachment.StoreType {
+	var s ObjectStorage
+	switch storageCfg.StoreType {
 	case "local":
-		Attachments, err = NewLocalStorage(setting.Attachment.Path)
+		s, err = NewLocalStorage(storageCfg.Path)
 	case "minio":
-		minio := setting.Attachment.Minio
-		Attachments, err = NewMinioStorage(
+		minio := storageCfg.Minio
+		s, err = NewMinioStorage(
 			context.Background(),
 			minio.Endpoint,
 			minio.AccessKeyID,
@@ -88,40 +89,22 @@ func initAttachments() error {
 			minio.UseSSL,
 		)
 	default:
-		return fmt.Errorf("Unsupported attachment store type: %s", setting.Attachment.StoreType)
+		return nil, fmt.Errorf("Unsupported attachment store type: %s", storageCfg.StoreType)
 	}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return s, nil
 }
 
-func initLFS() error {
-	var err error
-	switch setting.LFS.StoreType {
-	case "local":
-		LFS, err = NewLocalStorage(setting.LFS.ContentPath)
-	case "minio":
-		minio := setting.LFS.Minio
-		LFS, err = NewMinioStorage(
-			context.Background(),
-			minio.Endpoint,
-			minio.AccessKeyID,
-			minio.SecretAccessKey,
-			minio.Bucket,
-			minio.Location,
-			minio.BasePath,
-			minio.UseSSL,
-		)
-	default:
-		return fmt.Errorf("Unsupported LFS store type: %s", setting.LFS.StoreType)
-	}
+func initAttachments() (err error) {
+	Attachments, err = initStorage(setting.Attachment.Storage)
+	return
+}
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+func initLFS() (err error) {
+	LFS, err = initStorage(setting.LFS.Storage)
+	return
 }

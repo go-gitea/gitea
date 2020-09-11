@@ -15,7 +15,6 @@ var (
 	// Attachment settings
 	Attachment = struct {
 		Storage
-		Path         string
 		AllowedTypes string
 		MaxSize      int64
 		MaxFiles     int

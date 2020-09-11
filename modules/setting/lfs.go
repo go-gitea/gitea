@@ -56,9 +56,9 @@ func newLFSService() {
 	LFS.ServeDirect = sec.Key("LFS_SERVE_DIRECT").MustBool(Attachment.ServeDirect)
 	switch Attachment.StoreType {
 	case "local":
-		LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-		if !filepath.IsAbs(LFS.ContentPath) {
-			LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
+		LFS.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
+		if !filepath.IsAbs(LFS.Path) {
+			LFS.Path = filepath.Join(AppWorkPath, LFS.Path)
 		}
 	case "minio":
 		LFS.Minio.Endpoint = sec.Key("LFS_MINIO_ENDPOINT").MustString(LFS.Minio.Endpoint)

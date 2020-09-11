@@ -14,6 +14,7 @@ import (
 // Storage represents configuration of storages
 type Storage struct {
 	StoreType   string
+	Path        string
 	ServeDirect bool
 	Minio       struct {
 		Endpoint        string
