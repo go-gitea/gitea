@@ -98,3 +98,9 @@ issues:
     - path: models/update.go
       linters:
         - unused
+    - path: modules/setting/attachment.go
+      linters:
+        - dupl
+    - path: modules/setting/lfs.go
+      linters:
+        - dupl

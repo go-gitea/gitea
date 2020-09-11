@@ -761,6 +761,7 @@ func NewContext() {
 		}
 	}
 
+	newStorageService()
 	newAttachmentService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")

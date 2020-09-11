@@ -716,7 +716,7 @@ Default storage configuration for attachments, lfs, avatars and etc.
 - `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `LFS_STORE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `LFS_STORE_TYPE` is `minio`
 
-And you can also define a customerized storage like below:
+And you can also define a customize storage like below:
 
 ```ini
 [storage.my_minio]
