@@ -37,8 +37,8 @@
 				<div class="repo-buttons">
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" tabindex="0">
-							<button type="submit" class="ui compact basic button">
+						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
+							<button type="submit" class="ui compact basic button"{{if not $.IsSigned}} disabled{{end}}>
 								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye" 16}}{{$.i18n.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
@@ -48,8 +48,8 @@
 					</form>
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" tabindex="0">
-							<button type="submit" class="ui compact basic button">
+						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.star_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
+							<button type="submit" class="ui compact basic button"{{if not $.IsSigned}} disabled{{end}}>
 								{{if $.IsStaringRepo}}{{svg "octicon-star-fill" 16}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star" 16}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/stars">
