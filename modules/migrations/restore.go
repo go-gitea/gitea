@@ -61,7 +61,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	return nil, nil
 }
 
-func (r *RepositoryRestorer) GetAsset(tagName string, id int) (io.ReadCloser, error) {
+func (r *RepositoryRestorer) GetAsset(tagName string, id int64) (io.ReadCloser, error) {
 	return nil, nil
 }
 
