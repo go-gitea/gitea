@@ -18,7 +18,7 @@
 						</a>
 					</div>
 					<div class="ui eight wide column">
-						{{svg "octicon-shield-lock" 16}}
+						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 							<i class="dropdown icon"></i>
@@ -67,7 +67,7 @@
 						</a>
 					</div>
 					<div class="ui eight wide column poping up" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
-						{{svg "octicon-shield-lock" 16}}
+						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .Authorize 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Authorize 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Authorize 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .Authorize 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 						</div>

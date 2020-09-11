@@ -28,10 +28,10 @@
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
-				<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
+				<span class="text grey">{{svg "octicon-git-branch"}}{{.BranchName}}</span>
 			{{end}}
 			{{if .TagName}}
-				<span class="text grey">{{svg "octicon-tag" 16}}{{.TagName}}</span>
+				<span class="text grey">{{svg "octicon-tag"}}{{.TagName}}</span>
 			{{end}}
 		</div>
 		<div class="ui attached info segment {{$class}}">
@@ -51,7 +51,7 @@
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<div class="committed-by">
-							<span class="text grey">{{svg "octicon-git-commit" 16}}{{.i18n.Tr "repo.diff.committed_by"}}</span>
+							<span class="text grey">{{svg "octicon-git-commit"}}{{.i18n.Tr "repo.diff.committed_by"}}</span>
 							{{if ne .Verification.CommittingUser.ID 0}}
 								<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
 								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
@@ -90,7 +90,7 @@
 			<div class="ui bottom attached message {{$class}}">
 				{{if .Verification.Verified }}
 					{{if ne .Verification.SigningUser.ID 0}}
-						{{svg "gitea-lock" 16}}
+						{{svg "gitea-lock"}}
 						{{if eq .Verification.TrustStatus "trusted"}}
 							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						{{else if eq .Verification.TrustStatus "untrusted"}}
@@ -102,14 +102,14 @@
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong></a>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					{{else}}
-						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
+						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
 						<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						<img class="ui avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
 						<strong>{{.Verification.SigningUser.Name}}</strong>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
 					{{end}}
 				{{else if .Verification.Warning}}
-					{{svg "gitea-unlock" 16}}
+					{{svg "gitea-unlock"}}
 					<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
 					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				{{else}}
