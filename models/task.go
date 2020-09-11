@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -101,9 +102,9 @@ func (task *Task) UpdateCols(cols ...string) error {
 }
 
 // MigrateConfig returns task config when migrate repository
-func (task *Task) MigrateConfig() (*structs.MigrateRepoOption, error) {
+func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
-		var opts structs.MigrateRepoOption
+		var opts migration.MigrateOptions
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
