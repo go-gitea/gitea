@@ -231,9 +231,9 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if _, err := os.Stat(setting.LFS.ContentPath); !os.IsNotExist(err) {
-			log.Info("Dumping lfs... %s", setting.LFS.ContentPath)
-			if err := addRecursive(w, "lfs", setting.LFS.ContentPath, verbose); err != nil {
+		if _, err := os.Stat(setting.LFS.Path); !os.IsNotExist(err) {
+			log.Info("Dumping lfs... %s", setting.LFS.Path)
+			if err := addRecursive(w, "lfs", setting.LFS.Path, verbose); err != nil {
 				fatal("Failed to include lfs: %v", err)
 			}
 		}
@@ -302,7 +302,7 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.ContentPath)
+		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.LogRootPath)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)

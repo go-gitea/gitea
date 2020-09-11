@@ -21,7 +21,6 @@ import (
 // LFS represents the configuration for Git LFS
 var LFS = struct {
 	StartServer     bool          `ini:"LFS_START_SERVER"`
-	ContentPath     string        `ini:"LFS_CONTENT_PATH"`
 	JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
 	JWTSecretBytes  []byte        `ini:"-"`
 	HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
@@ -108,9 +107,9 @@ func newLFSService() {
 }
 
 func ensureLFSDirectory() {
-	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
+	if LFS.StartServer && LFS.StoreType == "local" {
+		if err := os.MkdirAll(LFS.Path, 0700); err != nil {
+			log.Fatal("Failed to create '%s': %v", LFS.Path, err)
 		}
 	}
 }
