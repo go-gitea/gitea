@@ -17,7 +17,7 @@
 				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
-						{{svg "octicon-git-commit" 16}}
+						{{svg "octicon-git-commit"}}
 						{{.i18n.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
 						{{if not .CanCommitToBranch.CanCommitToBranch}}
 						<div class="ui visible small warning message">
@@ -41,7 +41,7 @@
 						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{end}}
 					<label>
-						{{svg "octicon-git-pull-request" 16}}
+						{{svg "octicon-git-pull-request"}}
 						{{if $pullRequestEnabled}}
 							{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
 						{{else}}
@@ -52,7 +52,7 @@
 			</div>
 			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}hide{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
-					{{svg "octicon-git-branch" 16}}
+					{{svg "octicon-git-branch"}}
 					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.i18n.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}}>
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
