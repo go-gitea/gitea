@@ -90,6 +90,7 @@ const (
 				},
 				"content": {
 					"type": "text",
+					"term_vector": "with_positions_offsets",
 					"index": true
 				},
 				"commit_id": {
@@ -251,6 +252,32 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 	return err
 }
 
+func indexPos(content, start, end string) (int, int) {
+	if len(content) < len(start)+len(end) {
+		return -1, -1
+	}
+	startIdx, endIdx := -1, -1
+	for i := 0; i < len(content); i++ {
+		if startIdx > -1 {
+			if i+len(end) > len(content) {
+				return -1, -1
+			}
+			if content[i:i+len(end)] == end {
+				endIdx = i
+				return startIdx, endIdx + len(end)
+			}
+		} else {
+			if i+len(start) > len(content) {
+				return -1, -1
+			}
+			if content[i:i+len(start)] == start {
+				startIdx = i
+			}
+		}
+	}
+	return -1, -1
+}
+
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	hits := make([]*SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
@@ -260,18 +287,10 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		var startIndex, endIndex int = -1, -1
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
-			var subStr = make([]rune, 0, len(kw))
-			startIndex = strings.IndexFunc(c[0], func(r rune) bool {
-				if len(subStr) >= len(kw) {
-					subStr = subStr[1:]
-				}
-				subStr = append(subStr, r)
-				return strings.EqualFold(kw, string(subStr))
-			})
-			if startIndex > -1 {
-				endIndex = startIndex + len(kw)
-			} else {
-				panic(fmt.Sprintf("1===%#v", hit.Highlight))
+			// FIXME: how to avoid html content which contains the <em> and </em> tags?
+			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
+			if startIndex == -1 {
+				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
@@ -293,7 +312,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
 			Language:    language,
 			StartIndex:  startIndex,
-			EndIndex:    endIndex,
+			EndIndex:    endIndex - 9, // remove the length <em></em> since we give Content the original data
 			Color:       enry.GetColor(language),
 		})
 	}
@@ -347,7 +366,12 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 			Index(b.indexerAliasName).
 			Aggregation("language", aggregation).
 			Query(query).
-			Highlight(elastic.NewHighlight().Field("content")).
+			Highlight(
+				elastic.NewHighlight().
+					Field("content").
+					NumOfFragments(0). // return all highting content on fragments
+					HighlighterType("fvh"),
+			).
 			Sort("repo_id", true).
 			From(start).Size(pageSize).
 			Do(context.Background())
@@ -373,7 +397,12 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 	searchResult, err := b.client.Search().
 		Index(b.indexerAliasName).
 		Query(query).
-		Highlight(elastic.NewHighlight().Field("content")).
+		Highlight(
+			elastic.NewHighlight().
+				Field("content").
+				NumOfFragments(0). // return all highting content on fragments
+				HighlighterType("fvh"),
+		).
 		Sort("repo_id", true).
 		From(start).Size(pageSize).
 		Do(context.Background())
