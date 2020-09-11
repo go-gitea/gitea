@@ -27,11 +27,14 @@
 				{{end}}
 					{{if not $.Repository.IsArchived}}
 						<div class="ui right actions">
+							{{if eq .PosterID .Issue.PosterID }}
+								<div class="item tag">
+									{{$.i18n.Tr "repo.issues.poster"}}
+								</div>
+							{{end}}
 							{{if gt .ShowTag 0}}
 								<div class="item tag">
-									{{if eq .ShowTag 1}}
-										{{$.i18n.Tr "repo.issues.poster"}}
-									{{else if eq .ShowTag 2}}
+									{{if eq .ShowTag 2}}
 										{{$.i18n.Tr "repo.issues.collaborator"}}
 									{{else if eq .ShowTag 3}}
 										{{$.i18n.Tr "repo.issues.owner"}}
@@ -164,7 +167,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{end}}
+					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

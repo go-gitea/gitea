@@ -11,7 +11,7 @@ require (
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
+	gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
@@ -90,7 +90,7 @@ require (
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/unknwon/com v1.0.1
-	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
+	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
 	github.com/xanzy/go-gitlab v0.37.0
@@ -109,7 +109,7 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.60.2
+	gopkg.in/ini.v1 v1.61.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/yaml.v2 v2.3.0
 	mvdan.cc/xurls/v2 v2.1.0
