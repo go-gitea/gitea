@@ -191,7 +191,7 @@ func TestArchive_Basic(t *testing.T) {
 	ArchiveRepository(timedReq)
 
 	// Guaranteed to timeout; we haven't signalled the request to start..
-	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 2 * time.Second)
+	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	assert.Equal(t, false, completed)
 	assert.Equal(t, true, timedout)
 
@@ -200,7 +200,7 @@ func TestArchive_Basic(t *testing.T) {
 	queueMutex.Unlock()
 
 	// Shouldn't timeout, we've now signalled it and it's a small request.
-	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 15 * time.Second)
+	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 15*time.Second)
 	assert.Equal(t, true, completed)
 	assert.Equal(t, false, timedout)
 

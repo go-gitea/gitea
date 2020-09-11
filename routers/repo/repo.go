@@ -348,7 +348,7 @@ func InitiateDownload(ctx *context.Context) {
 	complete := aReq.IsComplete()
 	if !complete {
 		aReq = archiver_service.ArchiveRepository(aReq)
-		complete, _ = aReq.TimedWaitForCompletion(ctx, 2 * time.Second)
+		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
