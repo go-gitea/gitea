@@ -73,7 +73,7 @@
 		</div>
 	{{else if eq .Type 1}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-dot-fill" 16}}</span>
+			<span class="badge">{{svg "octicon-dot-fill"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -88,7 +88,7 @@
 		</div>
 	{{else if eq .Type 2}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-circle-slash" 16}}</span>
+			<span class="badge">{{svg "octicon-circle-slash"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -103,7 +103,7 @@
 		</div>
 	{{else if eq .Type 28}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge purple">{{svg "octicon-git-merge" 16}}</span>
+			<span class="badge purple">{{svg "octicon-git-merge"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -128,7 +128,7 @@
 		{{end}}
 		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-bookmark" 16}}</span>
+			<span class="badge">{{svg "octicon-bookmark"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -145,7 +145,7 @@
 		</div>
 	{{else if eq .Type 4}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-bookmark" 16}}</span>
+			<span class="badge">{{svg "octicon-bookmark"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -154,14 +154,14 @@
 				{{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
 			</span>
 			<div class="detail">
-				{{svg "octicon-git-commit" 16}}
+				{{svg "octicon-git-commit"}}
 				<span class="text grey">{{.Content | Str2html}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 7}}
 		{{if .Label}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-tag" 16}}</span>
+				<span class="badge">{{svg "octicon-tag"}}</span>
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
@@ -173,7 +173,7 @@
 		{{end}}
 	{{else if eq .Type 8}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-milestone" 16}}</span>
+			<span class="badge">{{svg "octicon-milestone"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -184,7 +184,7 @@
 		</div>
 	{{else if eq .Type 9}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-person" 16}}</span>
+			<span class="badge">{{svg "octicon-person"}}</span>
 			{{if gt .AssigneeID 0}}
 				{{if .RemovedAssignee}}
 					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
@@ -215,7 +215,7 @@
 		</div>
 	{{else if eq .Type 10}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-pencil" 16}}</span>
+			<span class="badge">{{svg "octicon-pencil"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -226,7 +226,7 @@
 		</div>
 	{{else if eq .Type 11}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-git-branch" 16}}</span>
+			<span class="badge">{{svg "octicon-git-branch"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -237,7 +237,7 @@
 		</div>
 	{{else if eq .Type 12}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -248,7 +248,7 @@
 		</div>
 	{{else if eq .Type 13}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -257,13 +257,13 @@
 				{{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
 			</span>
 			<div class="detail">
-				{{svg "octicon-clock" 16}}
+				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 14}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -272,13 +272,13 @@
 				{{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
 			</span>
 			<div class="detail">
-				{{svg "octicon-clock" 16}}
+				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 15}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -289,7 +289,7 @@
 		</div>
 	{{else if eq .Type 16}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -300,7 +300,7 @@
 		</div>
 	{{else if eq .Type 17}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -311,7 +311,7 @@
 		</div>
 	{{else if eq .Type 18}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -322,7 +322,7 @@
 		</div>
 	{{else if eq .Type 19}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-package-dependents" 16}}</span>
+			<span class="badge">{{svg "octicon-package-dependents"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -332,7 +332,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					{{svg "octicon-plus" 16}}
+					{{svg "octicon-plus"}}
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -347,7 +347,7 @@
 		</div>
 	{{else if eq .Type 20}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-package-dependents" 16}}</span>
+			<span class="badge">{{svg "octicon-package-dependents"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -357,7 +357,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					<span class="text grey">{{svg "octicon-trashcan" 16}}</span>
+					<span class="text grey">{{svg "octicon-trashcan"}}</span>
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -382,7 +382,7 @@
 				<span class="badge {{if eq .Review.Type 1}}green
 				{{- else if eq .Review.Type 2}}grey
 				{{- else if eq .Review.Type 3}}red
-				{{- else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
+				{{- else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 				<span class="text grey">
 					{{if .OriginalAuthor }}
 						<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
@@ -440,7 +440,7 @@
 									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 								{{if or $invalid $resolved}}
 									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
-										{{svg "octicon-unfold" 16}}
+										{{svg "octicon-unfold"}}
 										{{if $invalid }}
 											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
 										{{else}}
@@ -448,7 +448,7 @@
 										{{end}}
 									</button>
 									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
-										{{svg "octicon-fold" 16}}
+										{{svg "octicon-fold"}}
 										{{if $invalid}}
 											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 										{{else}}
@@ -532,7 +532,7 @@
 		</div>
 	{{else if eq .Type 23}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-lock" 16}}</span>
+			<span class="badge">{{svg "octicon-lock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -550,7 +550,7 @@
 		</div>
 	{{else if eq .Type 24}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-key" 16}}</span>
+			<span class="badge">{{svg "octicon-key"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -561,7 +561,7 @@
 		</div>
 	{{else if eq .Type 25}}
 		<div class="timeline-item event">
-			<span class="badge">{{svg "octicon-git-branch" 16}}</span>
+			<span class="badge">{{svg "octicon-git-branch"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -572,7 +572,7 @@
 		</div>
 	{{else if eq .Type 26}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-clock" 16}}</span>
+			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -581,13 +581,13 @@
 				{{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
 			</span>
 			<div class="detail">
-				{{svg "octicon-clock" 16}}
+				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 27}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-eye" 16}}</span>
+			<span class="badge">{{svg "octicon-eye"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -606,7 +606,7 @@
 		</div>
 	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-repo-push" 16}}</span>
+			<span class="badge">{{svg "octicon-repo-push"}}</span>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{ if .IsForcePush }}
@@ -622,7 +622,7 @@
 	{{else if eq .Type 30}}
 		{{if not $.UnitProjectsGlobalDisabled}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-project" 16}}</span>
+			<span class="badge">{{svg "octicon-project"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>

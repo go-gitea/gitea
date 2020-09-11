@@ -470,7 +470,10 @@ var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
 // SVG render icons - arguments icon name (string), size (int), class (string)
 func SVG(icon string, others ...interface{}) template.HTML {
-	var size = others[0].(int)
+	size := 16
+	if len(others) > 0 && others[0].(int) != 0 {
+		size = others[0].(int)
+	}
 
 	class := ""
 	if len(others) > 1 && others[1].(string) != "" {
