@@ -4,36 +4,59 @@
 
 package setting
 
-var (
-	// Storage settings
-	Storage = struct {
-		StoreType   string
-		ServeDirect bool
-		Minio       struct {
-			Endpoint        string
-			AccessKeyID     string
-			SecretAccessKey string
-			UseSSL          bool
-			Bucket          string
-			Location        string
-		}
-	}{
-		StoreType: "local",
-	}
+import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+	ini "gopkg.in/ini.v1"
 )
+
+// Storage represents configuration of storages
+type Storage struct {
+	StoreType   string
+	ServeDirect bool
+	Minio       struct {
+		Endpoint        string
+		AccessKeyID     string
+		SecretAccessKey string
+		UseSSL          bool
+		Bucket          string
+		Location        string
+		BasePath        string
+	}
+}
+
+var (
+	storages = make(map[string]Storage)
+)
+
+func getStorage(sec *ini.Section) Storage {
+	var storage Storage
+	storage.StoreType = sec.Key("STORE_TYPE").MustString("local")
+	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
+	switch storage.StoreType {
+	case "local":
+	case "minio":
+		storage.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
+		storage.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
+		storage.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
+		storage.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString("gitea")
+		storage.Minio.Location = sec.Key("MINIO_LOCATION").MustString("us-east-1")
+		storage.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(false)
+	}
+	return storage
+}
 
 func newStorageService() {
 	sec := Cfg.Section("storage")
-	Storage.StoreType = sec.Key("STORE_TYPE").MustString("local")
-	Storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
-	switch Attachment.StoreType {
-	case "local":
-	case "minio":
-		Storage.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-		Storage.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-		Storage.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-		Storage.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString("gitea")
-		Storage.Minio.Location = sec.Key("MINIO_LOCATION").MustString("us-east-1")
-		Storage.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(false)
+	storages["default"] = getStorage(sec)
+
+	for _, sec := range Cfg.Section("storage").ChildSections() {
+		name := strings.TrimPrefix(sec.Name(), "storage.")
+		if name == "default" || name == "local" || name == "minio" {
+			log.Error("storage name %s is system reserved!", name)
+			continue
+		}
+		storages[name] = getStorage(sec)
 	}
 }

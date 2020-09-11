@@ -309,6 +309,40 @@ IS_INPUT_FILE = false
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 
+## Storage (`storage`)
+
+Attachments, lfs, avatars and etc 的默认存储配置。
+
+- `STORE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORE_TYPE` 是 `minio` 时有效。
+
+你也可以自定义一个存储的名字如下：
+
+```ini
+[storage.my_minio]
+STORE_TYPE = minio
+; Minio endpoint to connect only available when STORE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORE_TYPE is `minio`
+MINIO_USE_SSL = false
+```
+
+然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORE_TYPE` 的值。
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
