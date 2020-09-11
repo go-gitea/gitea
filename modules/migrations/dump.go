@@ -503,7 +503,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	return MigrateRepositoryWithUploader(ctx, ownerName, opts, uploader)
 }
 
-// RestoreRepository restore a repository from the disk direcotry
+// RestoreRepository restore a repository from the disk directory
 func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string) error {
 	doer, err := models.GetAdminUser()
 	if err != nil {

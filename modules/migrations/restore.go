@@ -7,29 +7,16 @@ package migrations
 import (
 	"context"
 	"io"
-	"os"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
-	ctx                  context.Context
-	baseDir              string
-	repoOwner            string
-	repoName             string
-	milestoneFile        *os.File
-	labelFile            *os.File
-	releaseFile          *os.File
-	issueFile            *os.File
-	commentFile          *os.File
-	pullrequestFile      *os.File
-	reviewFile           *os.File
-	migrateReleaseAssets bool
-
-	gitRepo     *git.Repository
-	prHeadCache map[string]struct{}
+	ctx       context.Context
+	baseDir   string
+	repoOwner string
+	repoName  string
 }
 
 func NewRepositoryRestorer(ctx context.Context, baseDir string, owner, repoName string) *RepositoryRestorer {
