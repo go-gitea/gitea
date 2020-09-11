@@ -47,9 +47,7 @@ func newLFSService() {
 		if !ok {
 			log.Fatal("Failed to get attachment storage type: %s", Attachment.StoreType)
 		}
-		LFS.StoreType = storage.StoreType
-		LFS.ServeDirect = storage.ServeDirect
-		LFS.Minio = storage.Minio
+		LFS.Storage = storage
 	}
 
 	// Override

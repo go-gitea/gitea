@@ -43,9 +43,7 @@ func newAttachmentService() {
 		if !ok {
 			log.Fatal("Failed to get attachment storage type: %s", Attachment.StoreType)
 		}
-		Attachment.StoreType = storage.StoreType
-		Attachment.ServeDirect = storage.ServeDirect
-		Attachment.Minio = storage.Minio
+		Attachment.Storage = storage
 	}
 
 	// Override
