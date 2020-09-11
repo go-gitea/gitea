@@ -1798,7 +1798,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/MigrateRepoForm"
+              "$ref": "#/definitions/MigrateRepoOptions"
             }
           }
         ],
@@ -13522,7 +13522,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
     "MigrateRepoForm": {
-      "description": "MigrateRepoForm form for migrating repository",
+      "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
       "type": "object",
       "required": [
         "clone_addr",
@@ -13598,6 +13598,94 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/auth"
+    },
+    "MigrateRepoOptions": {
+      "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
+      "type": "object",
+      "required": [
+        "clone_addr",
+        "repo_name"
+      ],
+      "properties": {
+        "auth_password": {
+          "type": "string",
+          "x-go-name": "AuthPassword"
+        },
+        "auth_token": {
+          "type": "string",
+          "x-go-name": "AuthToken"
+        },
+        "auth_username": {
+          "type": "string",
+          "x-go-name": "AuthUsername"
+        },
+        "clone_addr": {
+          "type": "string",
+          "x-go-name": "CloneAddr"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
+        "mirror": {
+          "type": "boolean",
+          "x-go-name": "Mirror"
+        },
+        "private": {
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        },
+        "repo_owner": {
+          "description": "Name of User or Organisation who will own Repo after migration",
+          "type": "string",
+          "x-go-name": "RepoOwner"
+        },
+        "service": {
+          "type": "string",
+          "enum": [
+            "git",
+            "github",
+            "gitea",
+            "gitlab"
+          ],
+          "x-go-name": "Service"
+        },
+        "uid": {
+          "description": "deprecated (only for backwards compatibility)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoOwnerID"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Milestone": {
       "description": "Milestone milestone is a collection of issues on one repository",
@@ -15795,7 +15883,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/SubmitPullReviewOptions"
+        "$ref": "#/definitions/MigrateRepoOptions"
       }
     },
     "redirect": {

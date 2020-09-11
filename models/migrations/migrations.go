@@ -233,6 +233,8 @@ var migrations = []Migration{
 	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
 	// v149 -> v150
 	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
+	// v150 -> v151
+	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
 }
 
 // GetCurrentDBVersion returns the current db version
