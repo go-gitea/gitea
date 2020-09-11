@@ -159,7 +159,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	// Add an Expires header to the static content
 	if opt.ExpiresAfter > 0 {
 		ctx.Resp.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
-		tag := GenerateETag(fmt.Sprintf("%d", fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
+		tag := GenerateETag(fmt.Sprint(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
 		ctx.Resp.Header().Set("ETag", tag)
 		if ctx.Req.Header.Get("If-None-Match") == tag {
 			ctx.Resp.WriteHeader(304)

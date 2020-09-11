@@ -240,7 +240,7 @@ type ListProjectMergeRequestsOptions struct {
 	Sort            *string    `url:"sort,omitempty" json:"sort,omitempty"`
 	Milestone       *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
 	View            *string    `url:"view,omitempty" json:"view,omitempty"`
-	Labels          *Labels    `url:"labels,omitempty" json:"labels,omitempty"`
+	Labels          Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	CreatedAfter    *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
 	CreatedBefore   *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
 	UpdatedAfter    *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
@@ -399,6 +399,31 @@ func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequ
 	return m, resp, err
 }
 
+// GetMergeRequestParticipants gets a list of merge request participants.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/merge_requests.html#get-single-mr-participants
+func (s *MergeRequestsService) GetMergeRequestParticipants(pid interface{}, mergeRequest int, options ...RequestOptionFunc) ([]*BasicUser, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/merge_requests/%d/participants", pathEscape(project), mergeRequest)
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ps []*BasicUser
+	resp, err := s.client.Do(req, &ps)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return ps, resp, err
+}
+
 // ListMergeRequestPipelines gets all pipelines for the provided merge request.
 //
 // GitLab API docs:
@@ -417,6 +442,31 @@ func (s *MergeRequestsService) ListMergeRequestPipelines(pid interface{}, mergeR
 
 	var p []*PipelineInfo
 	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
+// CreateMergeRequestPipeline creates a new pipeline for a merge request.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/merge_requests.html#create-mr-pipeline
+func (s *MergeRequestsService) CreateMergeRequestPipeline(pid interface{}, mergeRequest int, options ...RequestOptionFunc) (*PipelineInfo, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/merge_requests/%d/pipelines", pathEscape(project), mergeRequest)
+
+	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p := new(PipelineInfo)
+	resp, err := s.client.Do(req, p)
 	if err != nil {
 		return nil, resp, err
 	}

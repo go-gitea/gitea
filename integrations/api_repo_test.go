@@ -316,12 +316,21 @@ func TestAPIRepoMigrate(t *testing.T) {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOption{
-			CloneAddr: testCase.cloneURL,
-			UID:       int(testCase.userID),
-			RepoName:  testCase.repoName,
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
+			CloneAddr:   testCase.cloneURL,
+			RepoOwnerID: testCase.userID,
+			RepoName:    testCase.repoName,
 		})
-		session.MakeRequest(t, req, testCase.expectedStatus)
+		resp := MakeRequest(t, req, NoExpectedStatus)
+		if resp.Code == http.StatusUnprocessableEntity {
+			respJSON := map[string]string{}
+			DecodeJSON(t, resp, &respJSON)
+			if assert.Equal(t, respJSON["message"], "Remote visit addressed rate limitation.") {
+				t.Log("test hit github rate limitation")
+			}
+		} else {
+			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
+		}
 	}
 }
 
@@ -351,10 +360,10 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		cloneURL := "https://github.com/go-gitea/test_repo.git"
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+httpContext.Token,
-			&api.MigrateRepoOption{
-				CloneAddr: cloneURL,
-				UID:       int(userID),
-				RepoName:  httpContext.Reponame,
+			&api.MigrateRepoOptions{
+				CloneAddr:   cloneURL,
+				RepoOwnerID: userID,
+				RepoName:    httpContext.Reponame,
 			})
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}

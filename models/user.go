@@ -105,7 +105,7 @@ type User struct {
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
-	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -610,12 +610,12 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
-// IsUserPartOfOrg returns true if user with userID is part of the u organisation.
-func (u *User) IsUserPartOfOrg(userID int64) bool {
-	return u.isUserPartOfOrg(x, userID)
+// HasMemberWithUserID returns true if user with userID is part of the u organisation.
+func (u *User) HasMemberWithUserID(userID int64) bool {
+	return u.hasMemberWithUserID(x, userID)
 }
 
-func (u *User) isUserPartOfOrg(e Engine, userID int64) bool {
+func (u *User) hasMemberWithUserID(e Engine, userID int64) bool {
 	isMember, err := isOrganizationMember(e, u.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
@@ -1419,11 +1419,21 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
+
+	if isMention {
+		return ous, x.In("id", ids).
+			Where("`type` = ?", UserTypeIndividual).
+			And("`prohibit_login` = ?", false).
+			And("`is_active` = ?", true).
+			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			Find(&ous)
+	}
+
 	return ous, x.In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).

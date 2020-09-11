@@ -28,12 +28,12 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -541,7 +541,7 @@ func LFSPointerFiles(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
@@ -586,7 +586,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
-	if !version.Compare(binVersion, "2.6.0", ">=") {
+	if git.CheckGitVersionConstraint(">= 2.6.0") != nil {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)
@@ -620,7 +620,7 @@ type pointerResult struct {
 func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
-	contentStore := lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := lfs.ContentStore{ObjectStorage: storage.LFS}
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
@@ -674,7 +674,11 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			result.InRepo = true
 		}
 
-		result.Exists = contentStore.Exists(pointer)
+		result.Exists, err = contentStore.Exists(pointer)
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
 
 		if result.Exists {
 			if !result.InRepo {

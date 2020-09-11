@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -16,18 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/task"
-	"code.gitea.io/gitea/modules/util"
 	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplCreate  base.TplName = "repo/create"
-	tplMigrate base.TplName = "repo/migrate"
+	tplCreate base.TplName = "repo/create"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -252,148 +246,6 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
-// Migrate render migration of repository page
-func Migrate(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
-	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
-	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
-	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
-	ctx.Data["labels"] = ctx.Query("labels") == "1"
-	ctx.Data["issues"] = ctx.Query("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.Query("releases") == "1"
-	ctx.Data["LFSActive"] = setting.LFS.StartServer
-
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["ContextUser"] = ctxUser
-
-	ctx.HTML(200, tplMigrate)
-}
-
-func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
-	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
-	case models.IsErrNameReserved(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
-	default:
-		remoteAddr, _ := form.ParseRemoteAddr(owner)
-		err = util.URLSanitizedError(err, remoteAddr)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
-		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
-		} else {
-			ctx.ServerError(name, err)
-		}
-	}
-}
-
-// MigratePost response for migrating from external git repository
-func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
-
-	ctxUser := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["ContextUser"] = ctxUser
-
-	if ctx.HasError() {
-		ctx.HTML(200, tplMigrate)
-		return
-	}
-
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
-	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			ctx.Data["Err_CloneAddr"] = true
-			addrErr := err.(models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tplMigrate, &form)
-			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplMigrate, &form)
-			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
-			default:
-				ctx.ServerError("Unknown error", err)
-			}
-		} else {
-			ctx.ServerError("ParseRemoteAddr", err)
-		}
-		return
-	}
-
-	var gitServiceType = structs.PlainGitService
-	u, err := url.Parse(form.CloneAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
-	}
-
-	var opts = migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       true,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
-	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
-
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
-	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
-		return
-	}
-
-	err = task.MigrateRepository(ctx.User, ctxUser, opts)
-	if err == nil {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.RepoName)
-		return
-	}
-
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
-}
-
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -471,7 +323,7 @@ func Download(ctx *context.Context) {
 	complete := aReq.IsComplete()
 	if !complete {
 		aReq = archiver_service.ArchiveRepository(aReq)
-		complete = aReq.WaitForCompletion()
+		complete = aReq.WaitForCompletion(ctx)
 	}
 
 	if complete {
@@ -496,7 +348,7 @@ func InitiateDownload(ctx *context.Context) {
 	complete := aReq.IsComplete()
 	if !complete {
 		aReq = archiver_service.ArchiveRepository(aReq)
-		complete, _ = aReq.TimedWaitForCompletion(2 * time.Second)
+		complete, _ = aReq.TimedWaitForCompletion(ctx, 2 * time.Second)
 	}
 
 	ctx.JSON(200, map[string]interface{}{

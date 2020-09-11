@@ -14,6 +14,12 @@ ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql8/gitea-repositories
 
@@ -80,3 +86,4 @@ LEVEL                = Debug
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+

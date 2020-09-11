@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func createTag(gitRepo *git.Repository, rel *models.Release) error {
@@ -168,7 +168,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 
 	for i := range rel.Attachments {
 		attachment := rel.Attachments[i]
-		if err := util.RemoveAll(attachment.LocalPath()); err != nil {
+		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
 			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
 		}
 	}

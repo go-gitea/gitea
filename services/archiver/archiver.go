@@ -74,10 +74,10 @@ func (aReq *ArchiveRequest) IsComplete() bool {
 // WaitForCompletion will wait for this request to complete, with no timeout.
 // It returns whether the archive was actually completed, as the channel could
 // have also been closed due to an error.
-func (aReq *ArchiveRequest) WaitForCompletion() bool {
+func (aReq *ArchiveRequest) WaitForCompletion(ctx *context.Context) bool {
 	select {
 	case <-aReq.cchan:
-	case <-graceful.GetManager().IsShutdown():
+	case <-ctx.Req.Context().Done():
 	}
 
 	return aReq.IsComplete()
@@ -87,13 +87,13 @@ func (aReq *ArchiveRequest) WaitForCompletion() bool {
 // happening after the specified Duration.  It returns whether the archive is
 // now complete and whether we hit the timeout or not.  The latter may not be
 // useful if the request is complete or we started to shutdown.
-func (aReq *ArchiveRequest) TimedWaitForCompletion(dur time.Duration) (bool, bool) {
+func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur time.Duration) (bool, bool) {
 	timeout := false
 	select {
 	case <-time.After(dur):
 		timeout = true
 	case <-aReq.cchan:
-	case <-graceful.GetManager().IsShutdown():
+	case <-ctx.Req.Context().Done():
 	}
 
 	return aReq.IsComplete(), timeout
@@ -216,7 +216,7 @@ func doArchive(r *ArchiveRequest) {
 		os.Remove(tmpArchive.Name())
 	}()
 
-	if err = r.commit.CreateArchive(tmpArchive.Name(), git.CreateArchiveOpts{
+	if err = r.commit.CreateArchive(graceful.GetManager().ShutdownContext(), tmpArchive.Name(), git.CreateArchiveOpts{
 		Format: r.archiveType,
 		Prefix: setting.Repository.PrefixArchiveFiles,
 	}); err != nil {

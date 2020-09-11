@@ -719,6 +719,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+	}
+
 	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
@@ -800,4 +811,29 @@ func Delete(ctx *context.APIContext) {
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetIssueTemplates returns the issue templates for a repository
+func GetIssueTemplates(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_templates repository repoGetIssueTemplates
+	// ---
+	// summary: Get available issue templates for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueTemplates"
+
+	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
 }

@@ -125,7 +125,7 @@ const (
 	HookPathUpdate = "hooks/update"
 )
 
-// SetUpdateHook writes given content to update hook of the reposiotry.
+// SetUpdateHook writes given content to update hook of the repository.
 func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
