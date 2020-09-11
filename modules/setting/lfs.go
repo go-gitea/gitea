@@ -45,14 +45,14 @@ func newLFSService() {
 	if LFS.StoreType != "local" && LFS.StoreType != "minio" {
 		storage, ok := storages[LFS.StoreType]
 		if !ok {
-			log.Fatal("Failed to get attachment storage type: %s", Attachment.StoreType)
+			log.Fatal("Failed to get lfs storage type: %s", LFS.StoreType)
 		}
 		LFS.Storage = storage
 	}
 
 	// Override
-	LFS.ServeDirect = sec.Key("LFS_SERVE_DIRECT").MustBool(Attachment.ServeDirect)
-	switch Attachment.StoreType {
+	LFS.ServeDirect = sec.Key("LFS_SERVE_DIRECT").MustBool(LFS.ServeDirect)
+	switch LFS.StoreType {
 	case "local":
 		LFS.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 		if !filepath.IsAbs(LFS.Path) {
