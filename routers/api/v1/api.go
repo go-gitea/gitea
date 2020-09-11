@@ -866,6 +866,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
+				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
