@@ -120,9 +120,9 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": base.FileSize,
+		"SizeFmt":   base.FileSize,
 		"NumberFmt": base.NumberFmt,
-		"List":    List,
+		"List":      List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
