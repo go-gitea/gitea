@@ -5,7 +5,6 @@
 package gql
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"context"
 	"errors"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	"github.com/graphql-go/graphql"
