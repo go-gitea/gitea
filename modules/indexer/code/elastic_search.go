@@ -257,29 +257,15 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 // first end following the start string.
 // If not found any of the positions, it will return -1, -1.
 func indexPos(content, start, end string) (int, int) {
-	if len(content) < len(start)+len(end) {
+	startIdx := strings.Index(content, start)
+	if startIdx == -1 {
 		return -1, -1
 	}
-	startIdx, endIdx := -1, -1
-	for i := 0; i < len(content); i++ {
-		if startIdx > -1 {
-			if i+len(end) > len(content) {
-				return -1, -1
-			}
-			if content[i:i+len(end)] == end {
-				endIdx = i
-				return startIdx, endIdx + len(end)
-			}
-		} else {
-			if i+len(start) > len(content) {
-				return -1, -1
-			}
-			if content[i:i+len(start)] == start {
-				startIdx = i
-			}
-		}
+	endIdx := strings.Index(content[startIdx:], end)
+	if endIdx == -1 {
+		return -1, -1
 	}
-	return -1, -1
+	return startIdx, startIdx + endIdx + len(end)
 }
 
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
