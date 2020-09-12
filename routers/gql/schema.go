@@ -29,6 +29,7 @@ var user *graphql.Object
 var payloadCommit *graphql.Object
 var payloadUser *graphql.Object
 var payloadCommitVerification *graphql.Object
+// Schema the graphqa schema
 var Schema graphql.Schema
 
 func init() {
