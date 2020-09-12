@@ -35,10 +35,7 @@ func ExtractMetadata(contents string, out interface{}) (string, error) {
 			continue
 		}
 		if isYAMLSeparator(line) {
-			front = lines[1:idx]
-			if len(lines) >= idx+1 {
-				body = lines[idx+1:]
-			}
+			front, body = lines[1:idx], lines[idx+1:]
 			break
 		}
 	}
