@@ -79,9 +79,9 @@ func init() {
 			// based on id and its type, return the object
 			switch resolvedID.Type {
 			case "repository":
-				return RepositoryByIdResolver(ctx, resolvedID.ID)
+				return RepositoryByIDResolver(ctx, resolvedID.ID)
 			case "user":
-				return UserByIdResolver(ctx, resolvedID.ID)
+				return UserByIDResolver(ctx, resolvedID.ID)
 			default:
 				return nil, errors.New("Unknown node type")
 			}
@@ -288,16 +288,13 @@ func init() {
 		graphql.ObjectConfig{
 			Name: "payload_commit",
 			Fields: graphql.Fields{
-				//TODO we should make this id field a relay global id to enable re-fetching
-				//but would first need to create a contrived id with the repo id and sha commit...
-				//there isn't currently a method to fetch the commit with just the sha
 				"id": &graphql.Field{
 					Type:        graphql.String,
-					Description: "",
+					Description: "sha1 hash of the commit",
 				},
 				"message": &graphql.Field{
 					Type:        graphql.String,
-					Description: "",
+					Description: "Commit message",
 				},
 				"url": &graphql.Field{
 					Type:        graphql.String,
@@ -305,7 +302,7 @@ func init() {
 				},
 				"author": &graphql.Field{
 					Type:        payloadUser,
-					Description: "",
+					Description: "Commit author",
 				},
 				"committer": &graphql.Field{
 					Type:        payloadUser,
@@ -313,7 +310,7 @@ func init() {
 				},
 				"verification": &graphql.Field{
 					Type:        payloadCommitVerification,
-					Description: "",
+					Description: "The GPG verification of a commit",
 				},
 				"timestamp": &graphql.Field{
 					Type:        graphql.DateTime,
@@ -340,8 +337,6 @@ func init() {
 		graphql.ObjectConfig{
 			Name:        "branch",
 			Description: "A git branch on a repository",
-			//TODO it would be best if branch provided an id and then we could make this a connection
-			//but at present there is no "id", but we could contrive one with the repo id/branch name
 			Fields: graphql.Fields{
 				"name": &graphql.Field{
 					Type:        graphql.String,

@@ -22,8 +22,8 @@ import (
 	"github.com/seripap/relay"
 )
 
-// RepositoryByIdResolver resolves a repository by id
-func RepositoryByIdResolver(goCtx context.Context, id string) (interface{}, error) {
+// RepositoryByIDResolver resolves a repository by id
+func RepositoryByIDResolver(goCtx context.Context, id string) (interface{}, error) {
 	var err error
 
 	internalID, err := strconv.ParseInt(id, 10, 64)
@@ -148,8 +148,8 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 	return GiteaRelayConnection(users, listOptions.Offset+1, totalSize), nil
 }
 
-// UserByIdResolver resolves a user by id
-func UserByIdResolver(goCtx context.Context, id string) (interface{}, error) {
+// UserByIDResolver resolves a user by id
+func UserByIDResolver(goCtx context.Context, id string) (interface{}, error) {
 	internalID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, errors.New("Unable to parse id")
