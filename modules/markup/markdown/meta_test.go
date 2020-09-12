@@ -46,14 +46,14 @@ func TestExtractMetadata(t *testing.T) {
 }
 
 var (
-	sepTest = "-----"
+	sepTest   = "-----"
 	frontTest = `name: Test
 about: "A Test"
 title: "Test Title"
 labels:
   - bug
   - "test label"`
-	bodyTest    = "This is the body"
+	bodyTest = "This is the body"
 	metaTest = structs.IssueTemplate{
 		Name:   "Test",
 		About:  "A Test",
