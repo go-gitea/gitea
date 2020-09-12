@@ -468,12 +468,25 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
 var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
-// SVG render icons
-func SVG(icon string, size int) template.HTML {
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	size := 16
+	if len(others) > 0 && others[0].(int) != 0 {
+		size = others[0].(int)
+	}
+
+	class := ""
+	if len(others) > 1 && others[1].(string) != "" {
+		class = others[1].(string)
+	}
+
 	if svgStr, ok := svg.SVGs[icon]; ok {
 		if size != 16 {
 			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
 			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		if class != "" {
+			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
 		}
 		return template.HTML(svgStr)
 	}
@@ -684,7 +697,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 // DiffTypeToStr returns diff type name
 func DiffTypeToStr(diffType int) string {
 	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename",
+		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
 	}
 	return diffTypes[diffType]
 }

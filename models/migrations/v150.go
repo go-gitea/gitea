@@ -5,18 +5,35 @@
 package migrations
 
 import (
-	"fmt"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addChangedProtectedFilesPullRequestColumn(x *xorm.Engine) error {
-	type PullRequest struct {
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+func addPrimaryKeyToRepoTopic(x *xorm.Engine) error {
+	// Topic represents a topic of repositories
+	type Topic struct {
+		ID          int64  `xorm:"pk autoincr"`
+		Name        string `xorm:"UNIQUE VARCHAR(25)"`
+		RepoCount   int
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	// RepoTopic represents associated repositories and topics
+	type RepoTopic struct {
+		RepoID  int64 `xorm:"pk"`
+		TopicID int64 `xorm:"pk"`
 	}
-	return nil
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	recreateTable(sess, &Topic{})
+	recreateTable(sess, &RepoTopic{})
+
+	return sess.Commit()
 }
