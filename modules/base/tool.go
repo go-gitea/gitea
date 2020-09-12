@@ -420,3 +420,27 @@ func SetupGiteaRoot() string {
 	}
 	return giteaRoot
 }
+
+// NumberFmt format a number
+func NumberFmt(data interface{}) string {
+	var num int64
+	if num1, ok := data.(int64); ok {
+		num = num1
+	} else if num1, ok := data.(int); ok {
+		num = int64(num1)
+	} else {
+		return ""
+	}
+
+	if num < 1000 {
+		return fmt.Sprintf("%d", num)
+	} else if num < 1000000 {
+		num2 := float32(num) / float32(1000.0)
+		return fmt.Sprintf("%.1fK", num2)
+	} else if num < 1000000000 {
+		num2 := float32(num) / float32(1000000.0)
+		return fmt.Sprintf("%.1fM", num2)
+	}
+	num2 := float32(num) / float32(1000000000.0)
+	return fmt.Sprintf("%.1fG", num2)
+}
