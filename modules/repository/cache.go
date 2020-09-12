@@ -27,8 +27,10 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 	}
 
 	entryPaths := make([]string, len(entries), len(entries))
+	entryMap := make(map[string]*git.TreeEntry)
 	for i, entry := range entries {
 		entryPaths[i] = entry.Name()
+		entryMap[entry.Name()] = entry
 	}
 
 	commits, err := git.GetLastCommitForPaths(c, treePath, entryPaths)
@@ -38,13 +40,14 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 
 	for entry, cm := range commits {
 		ca.Put(c.ID().String(), path.Join(treePath, entry), cm.ID().String())
-
-		subTree, err := tree.SubTree(entry)
-		if err != nil {
-			return err
-		}
-		if err := recusiveCache(gitRepo, c, subTree, entry, ca, level-1); err != nil {
-			return err
+		if entryMap[entry].IsDir() {
+			subTree, err := tree.SubTree(entry)
+			if err != nil {
+				return err
+			}
+			if err := recusiveCache(gitRepo, c, subTree, entry, ca, level-1); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -58,17 +61,6 @@ func getRefName(fullRefName string) string {
 		return fullRefName[len(git.BranchPrefix):]
 	}
 	return ""
-}
-
-// CacheCommits cache the commits
-func CacheCommits(repo *models.Repository, gitRepo *git.Repository, fullRefName, commitID string, entries []string) error {
-	ca := cache.NewLastCommitCache(repo.RepoPath(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
-	for _, entry := range entries {
-		if err := ca.Put(fullRefName, entry, commitID); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // CacheRef cachhe last commit information of the branch or the tag
@@ -99,7 +91,7 @@ func CacheRef(repo *models.Repository, gitRepo *git.Repository, fullRefName stri
 		return err
 	}
 
-	ca := cache.NewLastCommitCache(repo.RepoPath(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	ca := cache.NewLastCommitCache(repo.FullName(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
 
-	return recusiveCache(gitRepo, c, &commit.Tree, "", ca, 3)
+	return recusiveCache(gitRepo, c, &commit.Tree, "", ca, 1)
 }

@@ -257,6 +257,7 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				} else {
 					// FIXME: update the commit count cache but not remove
+					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				}
 
 				// Cache for big repository
@@ -264,7 +265,7 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
+				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 			} else {
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
