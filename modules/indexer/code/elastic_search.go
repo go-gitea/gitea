@@ -265,7 +265,7 @@ func indexPos(content, start, end string) (int, int) {
 	if endIdx < 0 {
 		return -1, -1
 	}
-	return startIdx, startIdx + endIdx + len(end)
+	return startIdx, startIdx + len(start) + endIdx + len(end)
 }
 
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
