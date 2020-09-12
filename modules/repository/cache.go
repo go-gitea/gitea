@@ -39,7 +39,9 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 	}
 
 	for entry, cm := range commits {
-		ca.Put(c.ID().String(), path.Join(treePath, entry), cm.ID().String())
+		if err := ca.Put(c.ID().String(), path.Join(treePath, entry), cm.ID().String()); err != nil {
+			return err
+		}
 		if entryMap[entry].IsDir() {
 			subTree, err := tree.SubTree(entry)
 			if err != nil {

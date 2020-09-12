@@ -256,15 +256,16 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				} else {
-					// FIXME: update the commit count cache but not remove
+					// TODO: increment update the commit count cache but not remove
 					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				}
 
 				// Cache for big repository
-				repo_module.CacheRef(repo, gitRepo, opts.RefFullName)
+				if err := repo_module.CacheRef(repo, gitRepo, opts.RefFullName); err != nil {
+					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
+				}
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-
 				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 			} else {
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
