@@ -21,17 +21,17 @@ import (
  arrayconnection implementation in github.com/seripap/relay implementation.
 */
 
-const PREFIX = "giteaconnection:"
+const prefix = "giteaconnection:"
 
 // GetListOptions get the gitea list options for pagination based on the graphql pagination args and the total size of the data
 func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize int) models.ListOptions {
 	var (
-		offset   int = 0
-		pageSize int = 0
-		first    int = args.First
-		last     int = args.Last
-		before   int = getOffsetWithDefault(args.Before, -1)
-		after    int = getOffsetWithDefault(args.After, -1)
+		offset   int
+		pageSize int
+		first    = args.First
+		last     = args.Last
+		before   = getOffsetWithDefault(args.Before, -1)
+		after    = getOffsetWithDefault(args.After, -1)
 	)
 
 	if first > -1 {
@@ -134,7 +134,7 @@ func GiteaRelayConnection(data []interface{}, startPosition int, totalSize int) 
 }
 
 func offsetToCursor(offset int) relay.ConnectionCursor {
-	str := fmt.Sprintf("%v%v", PREFIX, offset)
+	str := fmt.Sprintf("%v%v", prefix, offset)
 	return relay.ConnectionCursor(base64.StdEncoding.EncodeToString([]byte(str)))
 }
 
@@ -144,7 +144,7 @@ func cursorToOffset(cursor relay.ConnectionCursor) (int, error) {
 	if err == nil {
 		str = string(b)
 	}
-	str = strings.Replace(str, PREFIX, "", -1)
+	str = strings.Replace(str, prefix, "", -1)
 	offset, err := strconv.Atoi(str)
 	if err != nil {
 		return 0, errors.New("Invalid cursor")
