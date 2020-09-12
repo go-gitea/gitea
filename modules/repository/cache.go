@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -59,8 +60,19 @@ func getRefName(fullRefName string) string {
 	return ""
 }
 
+// CacheCommits cache the commits
+func CacheCommits(repo *models.Repository, gitRepo *git.Repository, fullRefName, commitID string, entries []string) error {
+	ca := cache.NewLastCommitCache(repo.RepoPath(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	for _, entry := range entries {
+		if err := ca.Put(fullRefName, entry, commitID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CacheRef cachhe last commit information of the branch or the tag
-func CacheRef(gitRepo *git.Repository, fullRefName string) error {
+func CacheRef(repo *models.Repository, gitRepo *git.Repository, fullRefName string) error {
 	if !setting.CacheService.LastCommit.Enabled {
 		return nil
 	}
@@ -70,7 +82,7 @@ func CacheRef(gitRepo *git.Repository, fullRefName string) error {
 		return err
 	}
 
-	commitsCount, err := cache.GetInt64(r.Repository.GetCommitsCountCacheKey(getRefName(fullRefName), true), func() (int64, error) {
+	commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), func() (int64, error) {
 		return commit.CommitsCount()
 	})
 	if err != nil {
@@ -87,7 +99,7 @@ func CacheRef(gitRepo *git.Repository, fullRefName string) error {
 		return err
 	}
 
-	ca := cache.NewLastCommitCache("", gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	ca := cache.NewLastCommitCache(repo.RepoPath(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
 
 	return recusiveCache(gitRepo, c, &commit.Tree, "", ca, 3)
 }

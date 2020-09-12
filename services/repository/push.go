@@ -95,18 +95,28 @@ func (opts PushUpdateOptions) BranchName() string {
 	return opts.RefFullName[len(git.BranchPrefix):]
 }
 
+// RefName returns simple name for ref
+func (opts PushUpdateOptions) RefName() string {
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		return opts.RefFullName[len(git.TagPrefix):]
+	} else if strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
+		return opts.RefFullName[len(git.BranchPrefix):]
+	}
+	return ""
+}
+
 // RepoFullName returns repo full name
 func (opts PushUpdateOptions) RepoFullName() string {
 	return opts.RepoUserName + "/" + opts.RepoName
 }
 
 // isForcePush detect if a push is a force push
-func isForcePush(repoPath string, opts PushUpdateOptions) (bool, error) {
+func isForcePush(repoPath string, opts *PushUpdateOptions) (bool, error) {
 	if !opts.IsUpdateBranch() {
 		return false, nil
 	}
 
-	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repo.RepoPath())
+	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repoPath)
 	if err != nil {
 		return false, err
 	} else if len(output) > 0 {
@@ -199,7 +209,6 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 			if opts.IsDelRef() {
 				delTags = append(delTags, tagName)
 			} else { // is new tag
-				cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
 				addTags = append(addTags, tagName)
 			}
 		} else if opts.IsBranch() { // If is branch reference
@@ -212,9 +221,6 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 			branch := opts.BranchName()
 			if !opts.IsDelRef() {
-				// Clear cache for branch commit count
-				cache.Remove(repo.GetCommitsCountCacheKey(opts.BranchName(), true))
-
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
 					return fmt.Errorf("gitRepo.GetCommit: %v", err)
@@ -246,16 +252,15 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 				}
 
 				if isForce {
-					// Cache for big repository
-					repo_module.CacheRef(gitRepo, opts.RefFullName)
+					log.Trace("Push %s is a force push", opts.NewCommitID)
+
+					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				} else {
-					// only add submit
-					for _, commit := range commits {
-						repo_module.CacheRef(gitRepo *git.Repository, fullRefName string)
-					}
+					// FIXME: update the commit count cache but not remove
 				}
 
-				
+				// Cache for big repository
+				repo_module.CacheRef(repo, gitRepo, opts.RefFullName)
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
