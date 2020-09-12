@@ -25,7 +25,7 @@
 					</div>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						{{svg "octicon-plus" 16}}&nbsp;&nbsp;&nbsp;{{.i18n.Tr "new_org"}}
+						{{svg "octicon-plus"}}&nbsp;&nbsp;&nbsp;{{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div>
@@ -35,17 +35,17 @@
 		{{if .ContextUser.IsOrganization}}
 			<div class="right stackable menu">
 				<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard">
-					{{svg "octicon-rss" 16}}&nbsp;{{.i18n.Tr "activities"}}
+					{{svg "octicon-rss"}}&nbsp;{{.i18n.Tr "activities"}}
 				</a>
 				<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues">
-					{{svg "octicon-issue-opened" 16}}&nbsp;{{.i18n.Tr "issues"}}
+					{{svg "octicon-issue-opened"}}&nbsp;{{.i18n.Tr "issues"}}
 				</a>
 				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls">
-					{{svg "octicon-git-pull-request" 16}}&nbsp;{{.i18n.Tr "pull_requests"}}
+					{{svg "octicon-git-pull-request"}}&nbsp;{{.i18n.Tr "pull_requests"}}
 				</a>
 				{{if .ShowMilestonesDashboardPage}}
 					<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
-						{{svg "octicon-milestone" 16}}&nbsp;{{.i18n.Tr "milestones"}}
+						{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
 					</a>
 				{{end}}
 				<div class="item">

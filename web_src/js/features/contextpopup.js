@@ -65,7 +65,7 @@ function issuePopup(owner, repo, index, $element) {
       html: `
 <div>
   <p><small>${issue.repository.full_name} on ${createdAt}</small></p>
-  <p><span class="${color}">${svg(octicon, 16)}</span> <strong>${issue.title}</strong> #${index}</p>
+  <p><span class="${color}">${svg(octicon)}</span> <strong>${issue.title}</strong> #${index}</p>
   <p>${body}</p>
   ${labels}
 </div>
