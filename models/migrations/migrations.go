@@ -234,6 +234,8 @@ var migrations = []Migration{
 	// v149 -> v150
 	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
 	// v150 -> v151
+	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
+	// v151 -> v152
 	NewMigration("Add IsHookTaskPurgeEnabled and NumberWebhookDeliveriesToKeep columns to Repository table", addHookTaskPurge),
 }
 

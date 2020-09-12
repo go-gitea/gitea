@@ -5,23 +5,35 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addHookTaskPurge(x *xorm.Engine) error {
-	type Repository struct {
-		ID                            int64 `xorm:"pk autoincr"`
-		IsHookTaskPurgeEnabled        bool  `xorm:"NOT NULL DEFAULT true"`
-		NumberWebhookDeliveriesToKeep int64 `xorm:"NOT NULL DEFAULT 10"`
+func addPrimaryKeyToRepoTopic(x *xorm.Engine) error {
+	// Topic represents a topic of repositories
+	type Topic struct {
+		ID          int64  `xorm:"pk autoincr"`
+		Name        string `xorm:"UNIQUE VARCHAR(25)"`
+		RepoCount   int
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	// RepoTopic represents associated repositories and topics
+	type RepoTopic struct {
+		RepoID  int64 `xorm:"pk"`
+		TopicID int64 `xorm:"pk"`
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE repository SET is_hook_task_purge_enabled = ?, number_webhook_deliveries_to_keep = ?",
-		setting.Repository.DefaultIsHookTaskPurgeEnabled, setting.Repository.DefaultNumberWebhookDeliveriesToKeep)
-	return err
+	recreateTable(sess, &Topic{})
+	recreateTable(sess, &RepoTopic{})
+
+	return sess.Commit()
 }

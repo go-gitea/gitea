@@ -45,14 +45,14 @@
 				</div>
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
-						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span></a>
+						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
 					{{else}}
-						<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span>
+						<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span></a>
+						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span></a>
 					{{else}}
-						<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span>
+						<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span>
 					{{end}}
 				{{end}}
 			</div>
