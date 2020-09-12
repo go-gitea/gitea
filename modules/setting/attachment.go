@@ -21,7 +21,7 @@ var (
 		Enabled      bool
 	}{
 		Storage: Storage{
-			StoreType:   "local",
+			Type:        "local",
 			ServeDirect: false,
 		},
 		AllowedTypes: "image/jpeg,image/png,application/zip,application/gzip",
@@ -33,15 +33,15 @@ var (
 
 func newAttachmentService() {
 	sec := Cfg.Section("attachment")
-	Attachment.StoreType = sec.Key("STORE_TYPE").MustString("")
-	if Attachment.StoreType == "" {
-		Attachment.StoreType = "default"
+	Attachment.Storage.Type = sec.Key("STORAGE_TYPE").MustString("")
+	if Attachment.Storage.Type == "" {
+		Attachment.Storage.Type = "default"
 	}
 
-	if Attachment.StoreType != "local" && Attachment.StoreType != "minio" {
-		storage, ok := storages[Attachment.StoreType]
+	if Attachment.Storage.Type != "local" && Attachment.Storage.Type != "minio" {
+		storage, ok := storages[Attachment.Storage.Type]
 		if !ok {
-			log.Fatal("Failed to get attachment storage type: %s", Attachment.StoreType)
+			log.Fatal("Failed to get attachment storage type: %s", Attachment.Storage.Type)
 		}
 		Attachment.Storage = storage
 	}
@@ -49,7 +49,7 @@ func newAttachmentService() {
 	// Override
 	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(Attachment.ServeDirect)
 
-	switch Attachment.StoreType {
+	switch Attachment.Storage.Type {
 	case "local":
 		Attachment.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "attachments"))
 		if !filepath.IsAbs(Attachment.Path) {

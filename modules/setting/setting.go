@@ -1018,7 +1018,6 @@ func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
-	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()

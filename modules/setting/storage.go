@@ -13,7 +13,7 @@ import (
 
 // Storage represents configuration of storages
 type Storage struct {
-	StoreType   string
+	Type        string
 	Path        string
 	ServeDirect bool
 	Minio       struct {
@@ -33,9 +33,9 @@ var (
 
 func getStorage(sec *ini.Section) Storage {
 	var storage Storage
-	storage.StoreType = sec.Key("STORE_TYPE").MustString("local")
+	storage.Type = sec.Key("STORAGE_TYPE").MustString("local")
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
-	switch storage.StoreType {
+	switch storage.Type {
 	case "local":
 	case "minio":
 		storage.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")

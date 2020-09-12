@@ -71,16 +71,16 @@ menu:
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
 
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
-- `LFS_STORE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `LFS_STORAGE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
 - `LFS_SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
 - `LFS_CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
-- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
-- `LFS_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 
 ## Database (`database`)
@@ -197,15 +197,15 @@ menu:
 - `ALLOWED_TYPES`: 允许上传的附件类型。比如：`image/jpeg|image/png`，用 `*/*` 表示允许任何类型。
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
-- `STORE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
-- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORE_TYPE` 为 `local` 时有效。
-- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORAGE_TYPE` 为 `local` 时有效。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
 关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
 
@@ -313,35 +313,35 @@ IS_INPUT_FILE = false
 
 Attachments, lfs, avatars and etc 的默认存储配置。
 
-- `STORE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
 - `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
-- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORE_TYPE` 是 `minio` 时有效。
-- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORE_TYPE` 是 `minio` 时有效。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
 你也可以自定义一个存储的名字如下：
 
 ```ini
 [storage.my_minio]
-STORE_TYPE = minio
-; Minio endpoint to connect only available when STORE_TYPE is `minio`
+STORAGE_TYPE = minio
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
 MINIO_ENDPOINT = localhost:9000
-; Minio accessKeyID to connect only available when STORE_TYPE is `minio`
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
 MINIO_ACCESS_KEY_ID =
-; Minio secretAccessKey to connect only available when STORE_TYPE is `minio`
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
 MINIO_SECRET_ACCESS_KEY =
-; Minio bucket to store the attachments only available when STORE_TYPE is `minio`
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
 MINIO_BUCKET = gitea
-; Minio location to create bucket only available when STORE_TYPE is `minio`
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
 MINIO_LOCATION = us-east-1
-; Minio enabled ssl only available when STORE_TYPE is `minio`
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
 MINIO_USE_SSL = false
 ```
 
-然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORE_TYPE` 的值。
+然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
 
 ## Other (`other`)
 

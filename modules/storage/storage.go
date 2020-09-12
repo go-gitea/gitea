@@ -73,7 +73,7 @@ func Init() error {
 func initStorage(storageCfg setting.Storage) (ObjectStorage, error) {
 	var err error
 	var s ObjectStorage
-	switch storageCfg.StoreType {
+	switch storageCfg.Type {
 	case "local":
 		s, err = NewLocalStorage(storageCfg.Path)
 	case "minio":
@@ -89,7 +89,7 @@ func initStorage(storageCfg setting.Storage) (ObjectStorage, error) {
 			minio.UseSSL,
 		)
 	default:
-		return nil, fmt.Errorf("Unsupported attachment store type: %s", storageCfg.StoreType)
+		return nil, fmt.Errorf("Unsupported attachment store type: %s", storageCfg.Type)
 	}
 
 	if err != nil {
