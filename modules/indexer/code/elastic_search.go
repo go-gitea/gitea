@@ -258,11 +258,11 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 // If not found any of the positions, it will return -1, -1.
 func indexPos(content, start, end string) (int, int) {
 	startIdx := strings.Index(content, start)
-	if startIdx == -1 {
+	if startIdx < 0 {
 		return -1, -1
 	}
-	endIdx := strings.Index(content[startIdx:], end)
-	if endIdx == -1 {
+	endIdx := strings.Index(content[startIdx+len(start):], end)
+	if endIdx < 0 {
 		return -1, -1
 	}
 	return startIdx, startIdx + endIdx + len(end)
