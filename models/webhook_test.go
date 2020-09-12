@@ -7,6 +7,7 @@ package models
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -279,5 +280,24 @@ func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
 	AssertExistsAndLoadBean(t, hookTask)
 
 	assert.NoError(t, DeleteDeliveredHookTasks(3, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
+
+func TestDeleteDeliveredHookTasks_LeavesMostRecentTask(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, DeleteDeliveredHookTasks(3, 1))
 	AssertExistsAndLoadBean(t, hookTask)
 }
