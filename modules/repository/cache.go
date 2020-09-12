@@ -26,7 +26,7 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 		return err
 	}
 
-	entryPaths := make([]string, len(entries), len(entries))
+	entryPaths := make([]string, len(entries))
 	entryMap := make(map[string]*git.TreeEntry)
 	for i, entry := range entries {
 		entryPaths[i] = entry.Name()
@@ -76,9 +76,7 @@ func CacheRef(repo *models.Repository, gitRepo *git.Repository, fullRefName stri
 		return err
 	}
 
-	commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), func() (int64, error) {
-		return commit.CommitsCount()
-	})
+	commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), commit.CommitsCount)
 	if err != nil {
 		return err
 	}

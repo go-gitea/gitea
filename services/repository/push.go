@@ -267,11 +267,9 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
-			} else {
-				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
-					// close all related pulls
-					log.Error("close related pull request failed: %v", err)
-				}
+			} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+				// close all related pulls
+				log.Error("close related pull request failed: %v", err)
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
