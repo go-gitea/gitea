@@ -6,6 +6,7 @@ package repository
 
 import (
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -49,6 +50,15 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 	return nil
 }
 
+func getRefName(fullRefName string) string {
+	if strings.HasPrefix(fullRefName, git.TagPrefix) {
+		return fullRefName[len(git.TagPrefix):]
+	} else if strings.HasPrefix(fullRefName, git.BranchPrefix) {
+		return fullRefName[len(git.BranchPrefix):]
+	}
+	return ""
+}
+
 // CacheRef cachhe last commit information of the branch or the tag
 func CacheRef(gitRepo *git.Repository, fullRefName string) error {
 	if !setting.CacheService.LastCommit.Enabled {
@@ -60,7 +70,9 @@ func CacheRef(gitRepo *git.Repository, fullRefName string) error {
 		return err
 	}
 
-	commitsCount, err := commit.CommitsCount()
+	commitsCount, err := cache.GetInt64(r.Repository.GetCommitsCountCacheKey(getRefName(fullRefName), true), func() (int64, error) {
+		return commit.CommitsCount()
+	})
 	if err != nil {
 		return err
 	}

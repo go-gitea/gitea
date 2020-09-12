@@ -30,7 +30,7 @@ type PushUpdateOptions struct {
 	PusherName   string
 	RepoUserName string
 	RepoName     string
-	RefFullName  string
+	RefFullName  string // branch, tag or other name to push
 	OldCommitID  string
 	NewCommitID  string
 }
@@ -98,6 +98,21 @@ func (opts PushUpdateOptions) BranchName() string {
 // RepoFullName returns repo full name
 func (opts PushUpdateOptions) RepoFullName() string {
 	return opts.RepoUserName + "/" + opts.RepoName
+}
+
+// isForcePush detect if a push is a force push
+func isForcePush(repoPath string, opts PushUpdateOptions) (bool, error) {
+	if !opts.IsUpdateBranch() {
+		return false, nil
+	}
+
+	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repo.RepoPath())
+	if err != nil {
+		return false, err
+	} else if len(output) > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 // pushQueue represents a queue to handle update pull request tests
@@ -225,15 +240,31 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
-				// Cache for big repository
-				repo_module.CacheRef(gitRepo, opts.RefFullName)
+				isForce, err := isForcePush(repo.RepoPath(), opts)
+				if err != nil {
+					log.Error("isForcePush %s/%s failed: %v", repo.ID, branch, err)
+				}
+
+				if isForce {
+					// Cache for big repository
+					repo_module.CacheRef(gitRepo, opts.RefFullName)
+				} else {
+					// only add submit
+					for _, commit := range commits {
+						repo_module.CacheRef(gitRepo *git.Repository, fullRefName string)
+					}
+				}
+
+				
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
-			} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
-				// close all related pulls
-				log.Error("close related pull request failed: %v", err)
+			} else {
+				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+					// close all related pulls
+					log.Error("close related pull request failed: %v", err)
+				}
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
