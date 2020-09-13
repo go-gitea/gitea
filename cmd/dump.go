@@ -200,6 +200,10 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
+	if err := storage.Init(); err != nil {
+		return err
+	}
+
 	if file == nil {
 		file, err = os.Create(fileName)
 		if err != nil {
@@ -258,7 +262,7 @@ func runDump(ctx *cli.Context) error {
 				return w.Write(archiver.File{
 					FileInfo: archiver.FileInfo{
 						FileInfo:   info,
-						CustomName: mo.RelativePath(),
+						CustomName: path.Join("data", "lfs", mo.RelativePath()),
 					},
 					ReadCloser: f,
 				})
@@ -334,10 +338,47 @@ func runDump(ctx *cli.Context) error {
 
 		excludes = append(excludes, setting.RepoRootPath)
 		excludes = append(excludes, setting.LFS.Path)
+		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.LogRootPath)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
+	}
+
+	// attachment default should be under data directory but not always there.
+	switch setting.Attachment.Storage.Type {
+	case setting.LocalStorageType:
+		if _, err := os.Stat(setting.Attachment.Path); !os.IsNotExist(err) {
+			log.Info("Dumping lfs... %s", setting.LFS.Path)
+			if err := addRecursive(w, "attachments", setting.Attachment.Path, verbose); err != nil {
+				fatal("Failed to include attachment: %v", err)
+			}
+		}
+	case setting.MinioStorageType:
+		if err := models.IterateAttachment(func(attach *models.Attachment) error {
+			f, err := storage.Attachments.Open(attach.RelativePath())
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			info, err := f.Stat()
+			if err != nil {
+				return err
+			}
+
+			return w.Write(archiver.File{
+				FileInfo: archiver.FileInfo{
+					FileInfo:   info,
+					CustomName: path.Join("data", "attachments", attach.RelativePath()),
+				},
+				ReadCloser: f,
+			})
+		}); err != nil {
+			fatal("Dump Attachment failed: %v", err)
+		}
+	default:
+		fatal("Unknow Attachment storage type: %s", setting.Attachment.Storage.Type)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
