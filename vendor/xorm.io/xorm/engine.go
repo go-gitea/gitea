@@ -143,10 +143,10 @@ func (engine *Engine) Logger() log.ContextLogger {
 func (engine *Engine) SetLogger(logger interface{}) {
 	var realLogger log.ContextLogger
 	switch t := logger.(type) {
-	case log.Logger:
-		realLogger = log.NewLoggerAdapter(t)
 	case log.ContextLogger:
 		realLogger = t
+	case log.Logger:
+		realLogger = log.NewLoggerAdapter(t)
 	}
 	engine.logger = realLogger
 	engine.DB().Logger = realLogger
@@ -412,6 +412,82 @@ func (engine *Engine) DumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 	return engine.dumpTables(tables, w, tp...)
 }
 
+func formatColumnValue(dstDialect dialects.Dialect, d interface{}, col *schemas.Column) string {
+	if d == nil {
+		return "NULL"
+	}
+
+	if dq, ok := d.(bool); ok && (dstDialect.URI().DBType == schemas.SQLITE ||
+		dstDialect.URI().DBType == schemas.MSSQL) {
+		if dq {
+			return "1"
+		}
+		return "0"
+	}
+
+	if col.SQLType.IsText() {
+		var v = fmt.Sprintf("%s", d)
+		return "'" + strings.Replace(v, "'", "''", -1) + "'"
+	} else if col.SQLType.IsTime() {
+		var v = fmt.Sprintf("%s", d)
+		if strings.HasSuffix(v, " +0000 UTC") {
+			return fmt.Sprintf("'%s'", v[0:len(v)-len(" +0000 UTC")])
+		} else if strings.HasSuffix(v, " +0000 +0000") {
+			return fmt.Sprintf("'%s'", v[0:len(v)-len(" +0000 +0000")])
+		}
+		return "'" + strings.Replace(v, "'", "''", -1) + "'"
+	} else if col.SQLType.IsBlob() {
+		if reflect.TypeOf(d).Kind() == reflect.Slice {
+			return fmt.Sprintf("%s", dstDialect.FormatBytes(d.([]byte)))
+		} else if reflect.TypeOf(d).Kind() == reflect.String {
+			return fmt.Sprintf("'%s'", d.(string))
+		}
+	} else if col.SQLType.IsNumeric() {
+		switch reflect.TypeOf(d).Kind() {
+		case reflect.Slice:
+			if col.SQLType.Name == schemas.Bool {
+				return fmt.Sprintf("%v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
+			}
+			return fmt.Sprintf("%s", string(d.([]byte)))
+		case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
+			if col.SQLType.Name == schemas.Bool {
+				v := reflect.ValueOf(d).Int() > 0
+				if dstDialect.URI().DBType == schemas.SQLITE {
+					if v {
+						return "1"
+					}
+					return "0"
+				}
+				return fmt.Sprintf("%v", strconv.FormatBool(v))
+			}
+			return fmt.Sprintf("%v", d)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if col.SQLType.Name == schemas.Bool {
+				v := reflect.ValueOf(d).Uint() > 0
+				if dstDialect.URI().DBType == schemas.SQLITE {
+					if v {
+						return "1"
+					}
+					return "0"
+				}
+				return fmt.Sprintf("%v", strconv.FormatBool(v))
+			}
+			return fmt.Sprintf("%v", d)
+		default:
+			return fmt.Sprintf("%v", d)
+		}
+	}
+
+	s := fmt.Sprintf("%v", d)
+	if strings.Contains(s, ":") || strings.Contains(s, "-") {
+		if strings.HasSuffix(s, " +0000 UTC") {
+			return fmt.Sprintf("'%s'", s[0:len(s)-len(" +0000 UTC")])
+		}
+		return fmt.Sprintf("'%s'", s)
+	}
+	return s
+}
+
 // dumpTables dump database all table structs and data to w with specify db type
 func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) error {
 	var dstDialect dialects.Dialect
@@ -424,7 +500,10 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		}
 
 		uri := engine.dialect.URI()
-		destURI := *uri
+		destURI := dialects.URI{
+			DBType: tp[0],
+			DBName: uri.DBName,
+		}
 		dstDialect.Init(&destURI)
 	}
 
@@ -495,59 +574,9 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 				if col == nil {
 					return errors.New("unknow column error")
 				}
-
-				if d == nil {
-					temp += ", NULL"
-				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
-					var v = fmt.Sprintf("%s", d)
-					if strings.HasSuffix(v, " +0000 UTC") {
-						temp += fmt.Sprintf(", '%s'", v[0:len(v)-len(" +0000 UTC")])
-					} else {
-						temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
-					}
-				} else if col.SQLType.IsBlob() {
-					if reflect.TypeOf(d).Kind() == reflect.Slice {
-						temp += fmt.Sprintf(", %s", dstDialect.FormatBytes(d.([]byte)))
-					} else if reflect.TypeOf(d).Kind() == reflect.String {
-						temp += fmt.Sprintf(", '%s'", d.(string))
-					}
-				} else if col.SQLType.IsNumeric() {
-					switch reflect.TypeOf(d).Kind() {
-					case reflect.Slice:
-						if col.SQLType.Name == schemas.Bool {
-							temp += fmt.Sprintf(", %v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
-						} else {
-							temp += fmt.Sprintf(", %s", string(d.([]byte)))
-						}
-					case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
-						if col.SQLType.Name == schemas.Bool {
-							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Int() > 0))
-						} else {
-							temp += fmt.Sprintf(", %v", d)
-						}
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-						if col.SQLType.Name == schemas.Bool {
-							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Uint() > 0))
-						} else {
-							temp += fmt.Sprintf(", %v", d)
-						}
-					default:
-						temp += fmt.Sprintf(", %v", d)
-					}
-				} else {
-					s := fmt.Sprintf("%v", d)
-					if strings.Contains(s, ":") || strings.Contains(s, "-") {
-						if strings.HasSuffix(s, " +0000 UTC") {
-							temp += fmt.Sprintf(", '%s'", s[0:len(s)-len(" +0000 UTC")])
-						} else {
-							temp += fmt.Sprintf(", '%s'", s)
-						}
-					} else {
-						temp += fmt.Sprintf(", %s", s)
-					}
-				}
+				temp += "," + formatColumnValue(dstDialect, d, col)
 			}
-			_, err = io.WriteString(w, temp[2:]+");\n")
+			_, err = io.WriteString(w, temp[1:]+");\n")
 			if err != nil {
 				return err
 			}
@@ -1263,11 +1292,11 @@ func (engine *Engine) Transaction(f func(*Session) (interface{}, error)) (interf
 
 	result, err := f(session)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	if err := session.Commit(); err != nil {
-		return nil, err
+		return result, err
 	}
 
 	return result, nil

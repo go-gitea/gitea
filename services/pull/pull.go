@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/unknwon/com"
@@ -436,7 +436,7 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	// Remove head in case there is a conflict.
 	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
 
-	_ = os.Remove(file)
+	_ = util.Remove(file)
 
 	if err = pr.LoadIssue(); err != nil {
 		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)

@@ -187,3 +187,9 @@ func TestDeleteAvatar(t *testing.T) {
 
 	assert.Equal(t, "", repo.Avatar)
 }
+
+func TestDoctorUserStarNum(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	assert.NoError(t, DoctorUserStarNum())
+}

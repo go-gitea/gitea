@@ -11,12 +11,9 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
-  - eslint-plugin-sonarjs
 
 env:
-  browser: true
-  es6: true
-  jquery: true
+  es2021: true
   node: true
 
 globals:
@@ -25,12 +22,22 @@ globals:
   Dropzone: false
   SimpleMDE: false
   u2fApi: false
-  Tribute: false
 
 overrides:
-  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
+  - files: ["web_src/**/*.js"]
+    env:
+      browser: true
+      jquery: true
+      node: false
+  - files: ["web_src/**/*worker.js"]
     env:
       worker: true
+    rules:
+      no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
+  - files: ["build/generate-images.js"]
+    rules:
+      import/no-unresolved: [0]
+      import/no-extraneous-dependencies: [0]
 
 rules:
   accessor-pairs: [2]
@@ -116,7 +123,7 @@ rules:
   import/order: [0]
   import/prefer-default-export: [0]
   import/unambiguous: [0]
-  indent: [2, 2, {ignoreComments: true, SwitchCase: 1}]
+  indent: [2, 2, {SwitchCase: 1}]
   init-declarations: [0]
   key-spacing: [2]
   keyword-spacing: [2]
@@ -165,7 +172,7 @@ rules:
   no-dupe-keys: [2]
   no-duplicate-case: [2]
   no-duplicate-imports: [2]
-  no-else-return: [0]
+  no-else-return: [2]
   no-empty-character-class: [2]
   no-empty-function: [0]
   no-empty-pattern: [2]
@@ -218,12 +225,13 @@ rules:
   no-octal: [2]
   no-param-reassign: [0]
   no-plusplus: [0]
+  no-promise-executor-return: [0]
   no-proto: [2]
   no-prototype-builtins: [2]
   no-redeclare: [2]
   no-regex-spaces: [2]
   no-restricted-exports: [0]
-  no-restricted-globals: [0]
+  no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top]
   no-restricted-imports: [0]
   no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement]
   no-return-assign: [0]
@@ -249,6 +257,7 @@ rules:
   no-unexpected-multiline: [2]
   no-unmodified-loop-condition: [2]
   no-unneeded-ternary: [0]
+  no-unreachable-loop: [2]
   no-unreachable: [2]
   no-unsafe-finally: [2]
   no-unsafe-negation: [2]
@@ -264,7 +273,7 @@ rules:
   no-useless-constructor: [2]
   no-useless-escape: [2]
   no-useless-rename: [2]
-  no-useless-return: [0]
+  no-useless-return: [2]
   no-var: [2]
   no-void: [2]
   no-warning-comments: [0]
@@ -303,31 +312,6 @@ rules:
   semi-spacing: [2, {before: false, after: true}]
   semi-style: [2, last]
   semi: [2, always, {omitLastInOneLineBlock: true}]
-  sonarjs/cognitive-complexity: [0]
-  sonarjs/max-switch-cases: [0]
-  sonarjs/no-all-duplicated-branches: [2]
-  sonarjs/no-collapsible-if: [0]
-  sonarjs/no-collection-size-mischeck: [2]
-  sonarjs/no-duplicate-string: [0]
-  sonarjs/no-duplicated-branches: [0]
-  sonarjs/no-element-overwrite: [2]
-  sonarjs/no-extra-arguments: [0]
-  sonarjs/no-identical-conditions: [2]
-  sonarjs/no-identical-expressions: [0]
-  sonarjs/no-identical-functions: [0]
-  sonarjs/no-inverted-boolean-check: [2]
-  sonarjs/no-one-iteration-loop: [2]
-  sonarjs/no-redundant-boolean: [2]
-  sonarjs/no-redundant-jump: [0]
-  sonarjs/no-same-line-conditional: [2]
-  sonarjs/no-small-switch: [0]
-  sonarjs/no-unused-collection: [2]
-  sonarjs/no-use-of-empty-return-value: [2]
-  sonarjs/no-useless-catch: [0]
-  sonarjs/prefer-immediate-return: [0]
-  sonarjs/prefer-object-literal: [2]
-  sonarjs/prefer-single-boolean-return: [0]
-  sonarjs/prefer-while: [2]
   sort-imports: [0]
   sort-keys: [0]
   sort-vars: [0]
@@ -363,6 +347,7 @@ rules:
   unicorn/no-nested-ternary: [0]
   unicorn/no-new-buffer: [0]
   unicorn/no-null: [0]
+  unicorn/no-object-as-default-parameter: [2]
   unicorn/no-process-exit: [0]
   unicorn/no-reduce: [2]
   unicorn/no-unreadable-array-destructuring: [0]
@@ -372,6 +357,7 @@ rules:
   unicorn/no-zero-fractions: [2]
   unicorn/number-literal-case: [0]
   unicorn/prefer-add-event-listener: [2]
+  unicorn/prefer-array-find: [2]
   unicorn/prefer-dataset: [2]
   unicorn/prefer-event-key: [2]
   unicorn/prefer-includes: [2]

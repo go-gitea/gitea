@@ -30,7 +30,7 @@
 				</div>
 				<div class="required field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
-					<input id="user_name" name="user_name" value="{{.user_name}}" autofocus required>
+					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "email"}}</label>

@@ -22,6 +22,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
+		OrderBy:     "id ASC",
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
@@ -42,6 +43,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
@@ -128,6 +130,7 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &results)
 }
 

@@ -50,7 +50,7 @@
 					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
-					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down" 16}}</span>
+					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
@@ -59,7 +59,7 @@
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
-						{{svg "octicon-sign-out" 16}}
+						{{svg "octicon-sign-out"}}
 						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
@@ -69,7 +69,7 @@
 		<div class="right stackable menu">
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
-					<span class="fitted">{{svg "octicon-bell" 16}}</span>
+					<span class="fitted">{{svg "octicon-bell"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
 					{{$notificationUnreadCount := 0}}
 					{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
@@ -81,20 +81,20 @@
 
 			<div class="ui dropdown jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
 				<span class="text">
-					<span class="fitted">{{svg "octicon-plus" 16}}</span>
+					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
-					<span class="fitted not-mobile">{{svg "octicon-triangle-down" 16}}</span>
+					<span class="fitted not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						<span class="fitted">{{svg "octicon-plus" 16}}</span> {{.i18n.Tr "new_repo"}}
+						<span class="fitted">{{svg "octicon-plus"}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
 					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{svg "octicon-repo-clone" 16}}</span> {{.i18n.Tr "new_migrate"}}
+						<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
 					</a>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<span class="fitted">{{svg "octicon-organization" 16}}</span> {{.i18n.Tr "new_org"}}
+						<span class="fitted">{{svg "octicon-organization"}}</span> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
@@ -105,7 +105,7 @@
 					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
-					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down" 16}}</span>
+					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
@@ -114,19 +114,19 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
-						{{svg "octicon-person" 16}}
+						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{svg "octicon-star" 16}}
+						{{svg "octicon-star"}}
 						{{.i18n.Tr "your_starred"}}
 					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-						{{svg "octicon-settings" 16}}
+						{{svg "octicon-tools"}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
 					</a>
 					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
-						{{svg "octicon-question" 16}}
+						{{svg "octicon-question"}}
 						{{.i18n.Tr "help"}}<!-- Help -->
 					</a>
 					{{if .IsAdmin}}
@@ -140,7 +140,7 @@
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
-						{{svg "octicon-sign-out" 16}}
+						{{svg "octicon-sign-out"}}
 						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
@@ -151,11 +151,11 @@
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{svg "octicon-person" 16}} {{.i18n.Tr "register"}}
+					{{svg "octicon-person"}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.CurrentURL}}">
-				{{svg "octicon-sign-in" 16}} {{.i18n.Tr "sign_in"}}
+				{{svg "octicon-sign-in"}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
 	{{end}}

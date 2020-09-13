@@ -24,7 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 
 	"github.com/urfave/cli"
 )
@@ -61,6 +63,27 @@ var CmdDoctor = cli.Command{
 			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
 		},
 	},
+	Subcommands: []cli.Command{
+		cmdRecreateTable,
+	},
+}
+
+var cmdRecreateTable = cli.Command{
+	Name:      "recreate-table",
+	Usage:     "Recreate tables from XORM definitions and copy the data.",
+	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "Print SQL commands sent",
+		},
+	},
+	Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
+
+This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
+
+You should back-up your database before doing this and ensure that your database is up-to-date first.`,
+	Action: runRecreateTable,
 }
 
 type check struct {
@@ -120,7 +143,60 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
 	},
+	{
+		title:     "Recalculate Stars number for all user",
+		name:      "recalculate_stars_number",
+		isDefault: false,
+		f:         runDoctorUserStarNum,
+	},
+	{
+		title:     "Enable push options",
+		name:      "enable-push-options",
+		isDefault: false,
+		f:         runDoctorEnablePushOptions,
+	},
 	// more checks please append here
+}
+
+func runRecreateTable(ctx *cli.Context) error {
+	// Redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+
+	setting.NewContext()
+	setting.InitDBConfig()
+
+	setting.EnableXORMLog = ctx.Bool("debug")
+	setting.Database.LogSQL = ctx.Bool("debug")
+	setting.Cfg.Section("log").Key("XORM").SetValue(",")
+
+	setting.NewXORMLogService(!ctx.Bool("debug"))
+	if err := models.SetEngine(); err != nil {
+		fmt.Println(err)
+		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
+		return nil
+	}
+
+	args := ctx.Args()
+	names := make([]string, 0, ctx.NArg())
+	for i := 0; i < ctx.NArg(); i++ {
+		names = append(names, args.Get(i))
+	}
+
+	beans, err := models.NamesToBean(names...)
+	if err != nil {
+		return err
+	}
+	recreateTables := migrations.RecreateTables(beans...)
+
+	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		if err := migrations.EnsureUpToDate(x); err != nil {
+			return err
+		}
+		return recreateTables(x)
+	})
+
 }
 
 func runDoctor(ctx *cli.Context) error {
@@ -306,7 +382,7 @@ func runDoctorWritableDir(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(tmpFile.Name()); err != nil {
+	if err := util.Remove(tmpFile.Name()); err != nil {
 		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
 	}
 	tmpFile.Close()
@@ -494,6 +570,10 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	return results, err
 }
 
+func runDoctorUserStarNum(ctx *cli.Context) ([]string, error) {
+	return nil, models.DoctorUserStarNum()
+}
+
 func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
@@ -593,4 +673,29 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	//ToDo: function to recalc all counters
 
 	return results, nil
+}
+
+func runDoctorEnablePushOptions(ctx *cli.Context) ([]string, error) {
+	numRepos := 0
+	_, err := iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		numRepos++
+		r, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+
+		if ctx.Bool("fix") {
+			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	var prefix string
+	if !ctx.Bool("fix") {
+		prefix = "DRY RUN: "
+	}
+	return []string{fmt.Sprintf("%sEnabled push options for %d repositories.", prefix, numRepos)}, err
 }

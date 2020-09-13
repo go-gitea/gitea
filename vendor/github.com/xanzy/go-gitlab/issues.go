@@ -17,6 +17,7 @@
 package gitlab
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -60,6 +61,16 @@ type IssueReferences struct {
 	Full     string `json:"full"`
 }
 
+// IssueCloser represents a closer of the issue.
+type IssueCloser struct {
+	ID        int    `json:"id"`
+	State     string `json:"state"`
+	WebURL    string `json:"web_url"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+	Username  string `json:"username"`
+}
+
 // IssueLinks represents links of the issue.
 type IssueLinks struct {
 	Self       string `json:"self"`
@@ -83,9 +94,11 @@ type Issue struct {
 	Assignee             *IssueAssignee   `json:"assignee"`
 	UpdatedAt            *time.Time       `json:"updated_at"`
 	ClosedAt             *time.Time       `json:"closed_at"`
+	ClosedBy             *IssueCloser     `json:"closed_by"`
 	Title                string           `json:"title"`
 	CreatedAt            *time.Time       `json:"created_at"`
 	Labels               Labels           `json:"labels"`
+	LabelDetails         []*LabelDetails  `json:"label_details"`
 	Upvotes              int              `json:"upvotes"`
 	Downvotes            int              `json:"downvotes"`
 	DueDate              *ISOTime         `json:"due_date"`
@@ -100,6 +113,8 @@ type Issue struct {
 	Links                *IssueLinks      `json:"_links"`
 	IssueLinkID          int              `json:"issue_link_id"`
 	MergeRequestCount    int              `json:"merge_requests_count"`
+	EpicIssueID          int              `json:"epic_issue_id"`
+	Epic                 *Epic            `json:"epic"`
 	TaskCompletionStatus struct {
 		Count          int `json:"count"`
 		CompletedCount int `json:"completed_count"`
@@ -110,12 +125,58 @@ func (i Issue) String() string {
 	return Stringify(i)
 }
 
+func (i *Issue) UnmarshalJSON(data []byte) error {
+	type alias Issue
+
+	raw := make(map[string]interface{})
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		return err
+	}
+
+	labelDetails, ok := raw["labels"].([]interface{})
+	if ok && len(labelDetails) > 0 {
+		// We only want to change anything if we got label details.
+		if _, ok := labelDetails[0].(map[string]interface{}); !ok {
+			return json.Unmarshal(data, (*alias)(i))
+		}
+
+		labels := make([]interface{}, len(labelDetails))
+		for i, details := range labelDetails {
+			labels[i] = details.(map[string]interface{})["name"]
+		}
+
+		// Set the correct values
+		raw["labels"] = labels
+		raw["label_details"] = labelDetails
+
+		data, err = json.Marshal(raw)
+		if err != nil {
+			return err
+		}
+	}
+
+	return json.Unmarshal(data, (*alias)(i))
+}
+
 // Labels is a custom type with specific marshaling characteristics.
 type Labels []string
 
 // MarshalJSON implements the json.Marshaler interface.
 func (l *Labels) MarshalJSON() ([]byte, error) {
+	if *l == nil {
+		return []byte(`null`), nil
+	}
 	return json.Marshal(strings.Join(*l, ","))
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (l *Labels) UnmarshalJSON(data []byte) error {
+	type alias Labels
+	if !bytes.HasPrefix(data, []byte("[")) {
+		data = []byte(fmt.Sprintf("[%s]", string(data)))
+	}
+	return json.Unmarshal(data, (*alias)(l))
 }
 
 // EncodeValues implements the query.EncodeValues interface
@@ -124,28 +185,44 @@ func (l *Labels) EncodeValues(key string, v *url.Values) error {
 	return nil
 }
 
+// LabelDetails represents detailed label information.
+type LabelDetails struct {
+	ID              int    `json:"id"`
+	Name            string `json:"name"`
+	Color           string `json:"color"`
+	Description     string `json:"description"`
+	DescriptionHTML string `json:"description_html"`
+	TextColor       string `json:"text_color"`
+}
+
 // ListIssuesOptions represents the available ListIssues() options.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
 type ListIssuesOptions struct {
 	ListOptions
-	State            *string    `url:"state,omitempty" json:"state,omitempty"`
-	Labels           Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
-	WithLabelDetails *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
-	Milestone        *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
-	Scope            *string    `url:"scope,omitempty" json:"scope,omitempty"`
-	AuthorID         *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
-	AssigneeID       *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
-	MyReactionEmoji  *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
-	IIDs             []int      `url:"iids[],omitempty" json:"iids,omitempty"`
-	OrderBy          *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort             *string    `url:"sort,omitempty" json:"sort,omitempty"`
-	Search           *string    `url:"search,omitempty" json:"search,omitempty"`
-	CreatedAfter     *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
-	CreatedBefore    *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
-	UpdatedAfter     *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore    *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
-	Confidential     *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
+	State              *string    `url:"state,omitempty" json:"state,omitempty"`
+	Labels             Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	NotLabels          Labels     `url:"not[labels],comma,omitempty" json:"not[labels],omitempty"`
+	WithLabelDetails   *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
+	Milestone          *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
+	NotMilestone       *string    `url:"not[milestone],omitempty" json:"not[milestone],omitempty"`
+	Scope              *string    `url:"scope,omitempty" json:"scope,omitempty"`
+	AuthorID           *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
+	NotAuthorID        []int      `url:"not[author_id],omitempty" json:"not[author_id],omitempty"`
+	AssigneeID         *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	NotAssigneeID      []int      `url:"not[assignee_id],omitempty" json:"not[assignee_id],omitempty"`
+	AssigneeUsername   *string    `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
+	MyReactionEmoji    *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
+	NotMyReactionEmoji []string   `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
+	IIDs               []int      `url:"iids[],omitempty" json:"iids,omitempty"`
+	OrderBy            *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort               *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	Search             *string    `url:"search,omitempty" json:"search,omitempty"`
+	CreatedAfter       *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
+	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
+	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
+	Confidential       *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
 }
 
 // ListIssues gets all issues created by authenticated user. This function
@@ -172,22 +249,30 @@ func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...RequestOpt
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-group-issues
 type ListGroupIssuesOptions struct {
 	ListOptions
-	State           *string    `url:"state,omitempty" json:"state,omitempty"`
-	Labels          Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
-	IIDs            []int      `url:"iids[],omitempty" json:"iids,omitempty"`
-	Milestone       *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
-	Scope           *string    `url:"scope,omitempty" json:"scope,omitempty"`
-	AuthorID        *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
-	AssigneeID      *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
-	MyReactionEmoji *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
-	OrderBy         *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort            *string    `url:"sort,omitempty" json:"sort,omitempty"`
-	Search          *string    `url:"search,omitempty" json:"search,omitempty"`
-	In              *string    `url:"in,omitempty" json:"in,omitempty"`
-	CreatedAfter    *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
-	CreatedBefore   *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
-	UpdatedAfter    *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore   *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
+	State              *string    `url:"state,omitempty" json:"state,omitempty"`
+	Labels             Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	NotLabels          Labels     `url:"not[labels],comma,omitempty" json:"not[labels],omitempty"`
+	WithLabelDetails   *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
+	IIDs               []int      `url:"iids[],omitempty" json:"iids,omitempty"`
+	Milestone          *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
+	NotMilestone       *string    `url:"not[milestone],omitempty" json:"not[milestone],omitempty"`
+	Scope              *string    `url:"scope,omitempty" json:"scope,omitempty"`
+	AuthorID           *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
+	NotAuthorID        []int      `url:"not[author_id],omitempty" json:"not[author_id],omitempty"`
+	AuthorUsername     *string    `url:"author_username,omitempty" json:"author_username,omitempty"`
+	AssigneeID         *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	NotAssigneeID      []int      `url:"not[assignee_id],omitempty" json:"not[assignee_id],omitempty"`
+	AssigneeUsername   *string    `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
+	MyReactionEmoji    *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
+	NotMyReactionEmoji []string   `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
+	OrderBy            *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort               *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	Search             *string    `url:"search,omitempty" json:"search,omitempty"`
+	In                 *string    `url:"in,omitempty" json:"in,omitempty"`
+	CreatedAfter       *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
+	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
+	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 }
 
 // ListGroupIssues gets a list of group issues. This function accepts
@@ -220,24 +305,30 @@ func (s *IssuesService) ListGroupIssues(pid interface{}, opt *ListGroupIssuesOpt
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-project-issues
 type ListProjectIssuesOptions struct {
 	ListOptions
-	IIDs             []int      `url:"iids[],omitempty" json:"iids,omitempty"`
-	State            *string    `url:"state,omitempty" json:"state,omitempty"`
-	Labels           Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
-	WithLabelDetails *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
-	Milestone        *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
-	Scope            *string    `url:"scope,omitempty" json:"scope,omitempty"`
-	AuthorID         *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
-	AssigneeID       *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
-	MyReactionEmoji  *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
-	OrderBy          *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort             *string    `url:"sort,omitempty" json:"sort,omitempty"`
-	Search           *string    `url:"search,omitempty" json:"search,omitempty"`
-	In               *string    `url:"in,omitempty" json:"in,omitempty"`
-	CreatedAfter     *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
-	CreatedBefore    *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
-	UpdatedAfter     *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore    *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
-	Confidential     *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
+	IIDs               []int      `url:"iids[],omitempty" json:"iids,omitempty"`
+	State              *string    `url:"state,omitempty" json:"state,omitempty"`
+	Labels             Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	NotLabels          Labels     `url:"not[labels],comma,omitempty" json:"not[labels],omitempty"`
+	WithLabelDetails   *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
+	Milestone          *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
+	NotMilestone       []string   `url:"not[milestone],omitempty" json:"not[milestone],omitempty"`
+	Scope              *string    `url:"scope,omitempty" json:"scope,omitempty"`
+	AuthorID           *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
+	NotAuthorID        []int      `url:"not[author_id],omitempty" json:"not[author_id],omitempty"`
+	AssigneeID         *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	NotAssigneeID      []int      `url:"not[assignee_id],omitempty" json:"not[assignee_id],omitempty"`
+	AssigneeUsername   *string    `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
+	MyReactionEmoji    *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
+	NotMyReactionEmoji []string   `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
+	OrderBy            *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort               *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	Search             *string    `url:"search,omitempty" json:"search,omitempty"`
+	In                 *string    `url:"in,omitempty" json:"in,omitempty"`
+	CreatedAfter       *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
+	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
+	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
+	Confidential       *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
 }
 
 // ListProjectIssues gets a list of project issues. This function accepts
@@ -341,6 +432,8 @@ type UpdateIssueOptions struct {
 	AssigneeIDs      []int      `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
 	MilestoneID      *int       `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
 	Labels           *Labels    `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	AddLabels        *Labels    `url:"add_labels,comma,omitempty" json:"add_labels,omitempty"`
+	RemoveLabels     *Labels    `url:"remove_labels,comma,omitempty" json:"remove_labels,omitempty"`
 	StateEvent       *string    `url:"state_event,omitempty" json:"state_event,omitempty"`
 	UpdatedAt        *time.Time `url:"updated_at,omitempty" json:"updated_at,omitempty"`
 	DueDate          *ISOTime   `url:"due_date,omitempty" json:"due_date,omitempty"`
@@ -584,4 +677,29 @@ func (s *IssuesService) ResetSpentTime(pid interface{}, issue int, options ...Re
 // https://docs.gitlab.com/ce/api/issues.html#get-time-tracking-stats
 func (s *IssuesService) GetTimeSpent(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.getTimeSpent(pid, "issues", issue, options...)
+}
+
+// GetParticipants gets a list of issue participants.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/issues.html#participants-on-issues
+func (s *IssuesService) GetParticipants(pid interface{}, issue int, options ...RequestOptionFunc) ([]*BasicUser, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/issues/%d/participants", pathEscape(project), issue)
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var bu []*BasicUser
+	resp, err := s.client.Do(req, &bu)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return bu, resp, err
 }

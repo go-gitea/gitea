@@ -1,5 +1,10 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
+<input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}">
+<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
+	{{$.CsrfTokenHtml}}
+</form>
+
 <div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
@@ -15,7 +20,7 @@
 				<div class="two column row">
 					<a class="reference column" href="#" data-target="#branch-list">
 						<span class="text black">
-							{{svg "octicon-git-branch" 16}} {{.i18n.Tr "repo.branches"}}
+							{{svg "octicon-git-branch"}} {{.i18n.Tr "repo.branches"}}
 						</span>
 					</a>
 					<a class="reference column" href="#" data-target="#tag-list">
@@ -27,14 +32,20 @@
 			</div>
 		</div>
 		<div id="branch-list" class="scrolling menu reference-list-menu">
-		{{range .Branches}}
-			<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
-		{{end}}
+			{{if .Issue.Ref}}
+				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{$.i18n.Tr "repo.clear_ref"}}</a></strong></div>
+			{{end}}	
+			{{range .Branches}}
+				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+			{{end}}
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu" style="display: none">
-		{{range .Tags}}
-			<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
-		{{end}}
+			{{if .Issue.Ref}}
+				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.i18n.Tr "repo.clear_ref"}}</a></strong></div>
+			{{end}}	
+			{{range .Tags}}
+				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+			{{end}}
 		</div>
 	</div>
 </div>

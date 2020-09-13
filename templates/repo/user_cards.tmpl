@@ -14,11 +14,11 @@
 
 				<div class="meta">
 					{{if .Website}}
-						{{svg "octicon-link" 16}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
-						{{svg "octicon-location" 16}} {{.Location}}
+						{{svg "octicon-location"}} {{.Location}}
 					{{else}}
-						{{svg "octicon-clock" 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>

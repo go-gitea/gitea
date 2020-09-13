@@ -5,6 +5,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -190,6 +191,42 @@ func FatalWithSkip(skip int, format string, v ...interface{}) {
 // IsFatal returns true if at least one logger is FATAL
 func IsFatal() bool {
 	return GetLevel() <= FATAL
+}
+
+// Pause pauses all the loggers
+func Pause() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		logger.Pause()
+		logger.Flush()
+		return true
+	})
+}
+
+// Resume resumes all the loggers
+func Resume() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		logger.Resume()
+		return true
+	})
+}
+
+// ReleaseReopen releases and reopens logging files
+func ReleaseReopen() error {
+	var accumulatedErr error
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		if err := logger.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+			} else {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+			}
+		}
+		return true
+	})
+	return accumulatedErr
 }
 
 // Close closes all the loggers

@@ -303,9 +303,12 @@ func (i *IndexSnapshot) newDocIDReader(results chan *asynchSegmentResult) (index
 	var err error
 	for count := 0; count < len(i.segment); count++ {
 		asr := <-results
-		if asr.err != nil && err != nil {
-			err = asr.err
-		} else {
+		if asr.err != nil {
+			if err == nil {
+				// returns the first error encountered
+				err = asr.err
+			}
+		} else if err == nil {
 			rv.iterators[asr.index] = asr.docs.Iterator()
 		}
 	}
@@ -511,10 +514,20 @@ func (i *IndexSnapshot) allocTermFieldReaderDicts(field string) (tfr *IndexSnaps
 		}
 	}
 	i.m2.Unlock()
-	return &IndexSnapshotTermFieldReader{}
+	return &IndexSnapshotTermFieldReader{
+		recycle: true,
+	}
 }
 
 func (i *IndexSnapshot) recycleTermFieldReader(tfr *IndexSnapshotTermFieldReader) {
+	if !tfr.recycle {
+		// Do not recycle an optimized unadorned term field reader (used for
+		// ConjunctionUnadorned or DisjunctionUnadorned), during when a fresh
+		// roaring.Bitmap is built by AND-ing or OR-ing individual bitmaps,
+		// and we'll need to release them for GC. (See MB-40916)
+		return
+	}
+
 	i.parent.rootLock.RLock()
 	obsolete := i.parent.root != i
 	i.parent.rootLock.RUnlock()

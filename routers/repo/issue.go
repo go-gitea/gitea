@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
@@ -36,13 +37,15 @@ import (
 const (
 	tplAttachment base.TplName = "repo/issue/view_content/attachments"
 
-	tplIssues    base.TplName = "repo/issue/list"
-	tplIssueNew  base.TplName = "repo/issue/new"
-	tplIssueView base.TplName = "repo/issue/view"
+	tplIssues      base.TplName = "repo/issue/list"
+	tplIssueNew    base.TplName = "repo/issue/new"
+	tplIssueChoose base.TplName = "repo/issue/choose"
+	tplIssueView   base.TplName = "repo/issue/view"
 
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
-	issueTemplateKey = "IssueTemplate"
+	issueTemplateKey      = "IssueTemplate"
+	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
 var (
@@ -104,7 +107,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
@@ -139,7 +142,6 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
-	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
@@ -177,6 +179,13 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
+
+	isShowClosed := ctx.Query("state") == "closed"
+	// if open issues are zero and close don't, use closed as default
+	if len(ctx.Query("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+		isShowClosed = true
+	}
+
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -209,6 +218,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PosterID:     posterID,
 			MentionedID:  mentionedID,
 			MilestoneIDs: mileIDs,
+			ProjectID:    projectID,
 			IsClosed:     util.OptionalBoolOf(isShowClosed),
 			IsPull:       isPullOption,
 			LabelIDs:     labelIDs,
@@ -349,13 +359,17 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
+		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
-	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.QueryInt64("milestone"), ctx.QueryInt64("project"), util.OptionalBoolOf(isPullList))
 
 	var err error
-	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), models.ListOptions{})
+	// Get milestones
+	ctx.Data["Milestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: ctx.Repo.Repository.ID,
+		State:  api.StateType(ctx.Query("state")),
+	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -369,12 +383,18 @@ func Issues(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false, "")
+	ctx.Data["OpenMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateOpen,
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true, "")
+	ctx.Data["ClosedMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateClosed,
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
@@ -383,6 +403,33 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+}
+
+func retrieveProjects(ctx *context.Context, repo *models.Repository) {
+
+	var err error
+
+	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     models.ProjectTypeRepository,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     models.ProjectTypeRepository,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
 		return
 	}
 }
@@ -420,6 +467,11 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 	}
 
 	RetrieveRepoMilestonesAndAssignees(ctx, repo)
+	if ctx.Written() {
+		return nil
+	}
+
+	retrieveProjects(ctx, repo)
 	if ctx.Written() {
 		return nil
 	}
@@ -467,11 +519,41 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	return string(bytes), true
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) {
-	for _, filename := range possibleFiles {
-		content, found := getFileContentFromDefaultBranch(ctx, filename)
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
+	templateCandidates := make([]string, 0, len(possibleFiles))
+	if ctx.Query("template") != "" {
+		for _, dirName := range possibleDirs {
+			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.Query("template")))
+		}
+	}
+	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
+	for _, filename := range templateCandidates {
+		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
 		if found {
-			ctx.Data[ctxDataKey] = content
+			var meta api.IssueTemplate
+			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
+			if err != nil {
+				log.Debug("could not extract metadata from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
+				ctx.Data[ctxDataKey] = templateContent
+				return
+			}
+			ctx.Data[issueTemplateTitleKey] = meta.Title
+			ctx.Data[ctxDataKey] = templateBody
+			labelIDs := make([]string, 0, len(meta.Labels))
+			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
+				for _, metaLabel := range meta.Labels {
+					for _, repoLabel := range repoLabels {
+						if strings.EqualFold(repoLabel.Name, metaLabel) {
+							repoLabel.IsChecked = true
+							labelIDs = append(labelIDs, fmt.Sprintf("%d", repoLabel.ID))
+							break
+						}
+					}
+				}
+				ctx.Data["Labels"] = repoLabels
+			}
+			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
+			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 			return
 		}
 	}
@@ -481,12 +563,16 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	title := ctx.Query("title")
+	ctx.Data["TitleQuery"] = title
 	body := ctx.Query("body")
 	ctx.Data["BodyQuery"] = body
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
 
 	milestoneID := ctx.QueryInt64("milestone")
 	if milestoneID > 0 {
@@ -499,10 +585,24 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	projectID := ctx.QueryInt64("project")
+	if projectID > 0 {
+		project, err := models.GetProjectByID(projectID)
+		if err != nil {
+			log.Error("GetProjectByID: %d: %v", projectID, err)
+		} else if project.RepoID != ctx.Repo.Repository.ID {
+			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
+		} else {
+			ctx.Data["project_id"] = projectID
+			ctx.Data["Project"] = project
+		}
+
+	}
+
 	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
+	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
 	if ctx.Written() {
 		return
 	}
@@ -512,8 +612,21 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(200, tplIssueNew)
 }
 
+// NewIssueChooseTemplate render creating issue from template page
+func NewIssueChooseTemplate(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
+	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["milestone"] = ctx.QueryInt64("milestone")
+
+	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
+	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
+	ctx.Data["IssueTemplates"] = issueTemplates
+
+	ctx.HTML(200, tplIssueChoose)
+}
+
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -521,7 +634,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
-		return nil, nil, 0
+		return nil, nil, 0, 0
 	}
 
 	var labelIDs []int64
@@ -530,7 +643,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 		labelIDMark := base.Int64sToMap(labelIDs)
 
@@ -552,9 +665,24 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 		ctx.Data["milestone_id"] = milestoneID
+	}
+
+	if form.ProjectID > 0 {
+		p, err := models.GetProjectByID(form.ProjectID)
+		if err != nil {
+			ctx.ServerError("GetProjectByID", err)
+			return nil, nil, 0, 0
+		}
+		if p.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("", nil)
+			return nil, nil, 0, 0
+		}
+
+		ctx.Data["Project"] = p
+		ctx.Data["project_id"] = form.ProjectID
 	}
 
 	// Check assignees
@@ -562,7 +690,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 	if len(form.AssigneeIDs) > 0 {
 		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			return nil, nil, 0
+			return nil, nil, 0, 0
 		}
 
 		// Check if the passed assignees actually exists and is assignable
@@ -570,17 +698,18 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 			assignee, err := models.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, 0
+				return nil, nil, 0, 0
 			}
 
 			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("canBeAssigned", err)
-				return nil, nil, 0
+				ctx.ServerError("CanBeAssigned", err)
+				return nil, nil, 0, 0
 			}
+
 			if !valid {
 				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, 0
+				return nil, nil, 0, 0
 			}
 		}
 	}
@@ -590,13 +719,14 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID
+	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
 }
 
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["ReadOnly"] = false
@@ -608,12 +738,12 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, false)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, form, false)
 	if ctx.Written() {
 		return
 	}
 
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
 
@@ -646,6 +776,13 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
+	if projectID > 0 {
+		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
+	}
+
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
@@ -658,8 +795,6 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	}
 	if perm.IsOwner() {
 		return models.CommentTagOwner, nil
-	} else if poster.ID == issue.PosterID {
-		return models.CommentTagPoster, nil
 	} else if perm.CanWrite(models.UnitTypeCode) {
 		return models.CommentTagWriter, nil
 	}
@@ -730,6 +865,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
+		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
@@ -743,6 +879,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
+
 	renderAttachmentSettings(ctx)
 
 	if err = issue.LoadAttributes(); err != nil {
@@ -824,6 +962,8 @@ func ViewIssue(ctx *context.Context) {
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
+		retrieveProjects(ctx, repo)
+
 		if ctx.Written() {
 			return
 		}
@@ -909,6 +1049,12 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
+	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
+		ctx.ServerError("commentTag", err)
+		return
+	}
+	marked[issue.PosterID] = issue.ShowTag
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
@@ -962,6 +1108,26 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
+		} else if comment.Type == models.CommentTypeProject {
+
+			if err = comment.LoadProject(); err != nil {
+				ctx.ServerError("LoadProject", err)
+				return
+			}
+
+			ghostProject := &models.Project{
+				ID:    -1,
+				Title: ctx.Tr("repo.issues.deleted_project"),
+			}
+
+			if comment.OldProjectID > 0 && comment.OldProject == nil {
+				comment.OldProject = ghostProject
+			}
+
+			if comment.ProjectID > 0 && comment.Project == nil {
+				comment.Project = ghostProject
+			}
+
 		} else if comment.Type == models.CommentTypeAssignees || comment.Type == models.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUser(); err != nil {
 				ctx.ServerError("LoadAssigneeUser", err)
@@ -969,8 +1135,10 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
 			if err = comment.LoadDepIssueDetails(); err != nil {
-				ctx.ServerError("LoadDepIssueDetails", err)
-				return
+				if !models.IsErrIssueNotExist(err) {
+					ctx.ServerError("LoadDepIssueDetails", err)
+					return
+				}
 			}
 		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
@@ -1102,6 +1270,8 @@ func ViewIssue(ctx *context.Context) {
 					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
 				}
 			}
+		} else {
+			ctx.Data["WontSignReason"] = "not_signed_in"
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete &&
 			pull.HeadRepo != nil &&
@@ -1130,10 +1300,11 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
-	ctx.Data["ReadOnly"] = true
+	ctx.Data["ReadOnly"] = false
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
@@ -1226,6 +1397,30 @@ func UpdateIssueTitle(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
+	})
+}
+
+// UpdateIssueRef change issue's ref (branch)
+func UpdateIssueRef(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
+		ctx.Error(403)
+		return
+	}
+
+	ref := ctx.QueryTrim("ref")
+
+	if err := issue_service.ChangeIssueRef(issue, ctx.User, ref); err != nil {
+		ctx.ServerError("ChangeRef", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ref": ref,
 	})
 }
 
@@ -1443,10 +1638,11 @@ func updatePullReviewRequest(ctx *context.Context) {
 	}
 
 	reviewID := ctx.QueryInt64("id")
-	event := ctx.Query("is_add")
+	action := ctx.Query("action")
 
-	if event != "add" && event != "remove" {
-		ctx.ServerError("updatePullReviewRequest", fmt.Errorf("is_add should not be \"%s\"", event))
+	// TODO: Not support 'clear' now
+	if action != "attach" && action != "detach" {
+		ctx.Status(403)
 		return
 	}
 
@@ -1498,19 +1694,20 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			err = isLegalReviewRequest(reviewer, ctx.User, action == "attach", issue)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
+			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 			if err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
 		} else {
-			ctx.ServerError("updatePullReviewRequest", fmt.Errorf("%d in %d is not Pull Request", issue.ID, issue.Repo.ID))
+			ctx.Status(403)
+			return
 		}
 	}
 
@@ -1601,7 +1798,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 	}
 
 	var attachments []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
 
@@ -2039,7 +2236,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		attachments = content.Attachments
 	default:
-		return fmt.Errorf("Unknow Type")
+		return fmt.Errorf("Unknown Type: %T", content)
 	}
 	for i := 0; i < len(attachments); i++ {
 		if util.IsStringInSlice(attachments[i].UUID, files) {
@@ -2057,7 +2254,7 @@ func updateAttachments(item interface{}, files []string) error {
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
-			return fmt.Errorf("Unknow Type")
+			return fmt.Errorf("Unknown Type: %T", content)
 		}
 		if err != nil {
 			return err
@@ -2069,7 +2266,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		content.Attachments, err = models.GetAttachmentsByCommentID(content.ID)
 	default:
-		return fmt.Errorf("Unknow Type")
+		return fmt.Errorf("Unknown Type: %T", content)
 	}
 	return err
 }

@@ -211,6 +211,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
@@ -298,7 +299,7 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 				},
 				Date: commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Summary(),
+			Message: commit.Message(),
 			Tree: &api.CommitMeta{
 				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),

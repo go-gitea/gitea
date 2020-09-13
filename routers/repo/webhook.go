@@ -454,6 +454,7 @@ func MatrixHooksNewPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 		RepoID:          orCtx.RepoID,
 		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID),
 		ContentType:     models.ContentTypeJSON,
+		HTTPMethod:      "PUT",
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
 		HookTaskType:    models.MATRIX,

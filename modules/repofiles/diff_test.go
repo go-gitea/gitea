@@ -47,7 +47,8 @@ func TestGetDiffPreview(t *testing.T) {
 				IsSubmodule: false,
 				Sections: []*gitdiff.DiffSection{
 					{
-						Name: "",
+						FileName: "README.md",
+						Name:     "",
 						Lines: []*gitdiff.DiffLine{
 							{
 								LeftIdx:  0,
@@ -112,13 +113,13 @@ func TestGetDiffPreview(t *testing.T) {
 
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.EqualValues(t, expectedDiff, diff)
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.EqualValues(t, expectedDiff, diff)
 	})
 }

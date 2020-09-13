@@ -8,19 +8,24 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // env keys for git hooks need
 const (
 	EnvRepoName     = "GITEA_REPO_NAME"
 	EnvRepoUsername = "GITEA_REPO_USER_NAME"
+	EnvRepoID       = "GITEA_REPO_ID"
 	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
 	EnvKeyID        = "GITEA_KEY_ID"
 	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
+	EnvPRID         = "GITEA_PR_ID"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
+	EnvAppURL       = "GITEA_ROOT_URL"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push
@@ -48,9 +53,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
-	// once we have hook and pushing infrastructure working correctly
-	return append(os.Environ(),
+	environ := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_COMMITTER_NAME="+committerSig.Name,
@@ -60,9 +63,16 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
-		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
-		ProtectedBranchPRID+"="+fmt.Sprintf("%d", prID),
+		EnvRepoID+"="+fmt.Sprintf("%d", repo.ID),
+		EnvPRID+"="+fmt.Sprintf("%d", prID),
+		EnvAppURL+"="+setting.AppURL,
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
+
+	if !committer.KeepEmailPrivate {
+		environ = append(environ, EnvPusherEmail+"="+committer.Email)
+	}
+
+	return environ
 
 }

@@ -59,7 +59,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	var apiNL []api.NotificationThread
 
 	// -- mark notifications as read --
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiNL)
@@ -69,7 +69,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
 	resp = session.MakeRequest(t, req, http.StatusResetContent)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s&status-types=unread", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 1)

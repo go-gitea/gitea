@@ -68,6 +68,20 @@ func (log *ConsoleLogger) Init(config string) error {
 func (log *ConsoleLogger) Flush() {
 }
 
+// ReleaseReopen causes the console logger to reconnect to os.Stdout
+func (log *ConsoleLogger) ReleaseReopen() error {
+	if log.Stderr {
+		log.NewWriterLogger(&nopWriteCloser{
+			w: os.Stderr,
+		})
+	} else {
+		log.NewWriterLogger(&nopWriteCloser{
+			w: os.Stdout,
+		})
+	}
+	return nil
+}
+
 // GetName returns the default name for this implementation
 func (log *ConsoleLogger) GetName() string {
 	return "console"

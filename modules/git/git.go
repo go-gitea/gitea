@@ -15,13 +15,8 @@ import (
 
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/mcuadros/go-version"
+	"github.com/hashicorp/go-version"
 )
-
-// Version return this package's current version
-func Version() string {
-	return "0.4.2"
-}
 
 var (
 	// Debug enables verbose logging on everything.
@@ -39,7 +34,10 @@ var (
 	// DefaultContext is the default context to run git commands in
 	DefaultContext = context.Background()
 
-	gitVersion string
+	gitVersion *version.Version
+
+	// will be checked on Init
+	goVersionLessThan115 = true
 )
 
 func log(format string, args ...interface{}) {
@@ -55,31 +53,43 @@ func log(format string, args ...interface{}) {
 	}
 }
 
-// BinVersion returns current Git version from shell.
-func BinVersion() (string, error) {
-	if len(gitVersion) > 0 {
-		return gitVersion, nil
+// LocalVersion returns current Git version from shell.
+func LocalVersion() (*version.Version, error) {
+	if err := LoadGitVersion(); err != nil {
+		return nil, err
+	}
+	return gitVersion, nil
+}
+
+// LoadGitVersion returns current Git version from shell.
+func LoadGitVersion() error {
+	// doesn't need RWMutex because its exec by Init()
+	if gitVersion != nil {
+		return nil
 	}
 
 	stdout, err := NewCommand("version").Run()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	fields := strings.Fields(stdout)
 	if len(fields) < 3 {
-		return "", fmt.Errorf("not enough output: %s", stdout)
+		return fmt.Errorf("not enough output: %s", stdout)
 	}
+
+	var versionString string
 
 	// Handle special case on Windows.
 	i := strings.Index(fields[2], "windows")
 	if i >= 1 {
-		gitVersion = fields[2][:i-1]
-		return gitVersion, nil
+		versionString = fields[2][:i-1]
+	} else {
+		versionString = fields[2]
 	}
 
-	gitVersion = fields[2]
-	return gitVersion, nil
+	gitVersion, err = version.NewVersion(versionString)
+	return err
 }
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
@@ -94,11 +104,17 @@ func SetExecutablePath(path string) error {
 	}
 	GitExecutable = absPath
 
-	gitVersion, err := BinVersion()
+	err = LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("Git version missing: %v", err)
 	}
-	if version.Compare(gitVersion, GitVersionRequired, "<") {
+
+	versionRequired, err := version.NewVersion(GitVersionRequired)
+	if err != nil {
+		return err
+	}
+
+	if gitVersion.LessThan(versionRequired) {
 		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
 	}
 
@@ -108,6 +124,20 @@ func SetExecutablePath(path string) error {
 // Init initializes git module
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
+
+	// Save current git version on init to gitVersion otherwise it would require an RWMutex
+	if err := LoadGitVersion(); err != nil {
+		return err
+	}
+
+	// Save if the go version used to compile gitea is greater or equal 1.15
+	runtimeVersion, err := version.NewVersion(strings.TrimPrefix(runtime.Version(), "go"))
+	if err != nil {
+		return err
+	}
+	version115, _ := version.NewVersion("1.15")
+	goVersionLessThan115 = runtimeVersion.LessThan(version115)
+
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if err := checkAndSetConfig(configKey, defaultValue, false); err != nil {
@@ -120,7 +150,13 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	if version.Compare(gitVersion, "2.18", ">=") {
+	if CheckGitVersionConstraint(">= 2.10") == nil {
+		if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
+			return err
+		}
+	}
+
+	if CheckGitVersionConstraint(">= 2.18") == nil {
 		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
 			return err
 		}
@@ -133,6 +169,21 @@ func Init(ctx context.Context) error {
 		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// CheckGitVersionConstraint check version constrain against local installed git version
+func CheckGitVersionConstraint(constraint string) error {
+	if err := LoadGitVersion(); err != nil {
+		return err
+	}
+	check, err := version.NewConstraint(constraint)
+	if err != nil {
+		return err
+	}
+	if !check.Check(gitVersion) {
+		return fmt.Errorf("installed git binary  %s does not satisfy version constraint %s", gitVersion.Original(), constraint)
 	}
 	return nil
 }
