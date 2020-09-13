@@ -270,7 +270,7 @@ func runDump(ctx *cli.Context) error {
 				fatal("Dump LFS failed: %v", err)
 			}
 		default:
-			fatal("Unknow LFS storage type: %s", setting.LFS.Storage.Type)
+			fatal("Unknown LFS storage type: %s", setting.LFS.Storage.Type)
 		}
 	}
 
@@ -378,7 +378,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Dump Attachment failed: %v", err)
 		}
 	default:
-		fatal("Unknow Attachment storage type: %s", setting.Attachment.Storage.Type)
+		fatal("Unknown Attachment storage type: %s", setting.Attachment.Storage.Type)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,

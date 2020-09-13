@@ -104,3 +104,6 @@ issues:
     - path: modules/setting/lfs.go
       linters:
         - dupl
+    - path: cmd/dump.go
+      linters:
+        - dupl
