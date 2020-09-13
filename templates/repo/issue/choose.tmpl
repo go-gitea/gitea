@@ -19,7 +19,11 @@
 				</div>
 			</div>
 		{{end}}
-		<a href="{{.RepoLink}}/issues/new{{if .milestone}}?milestone={{.milestone}}{{end}}">{{.i18n.Tr "repo.issues.choose.blank"}}</a>
+		<div class="ui attached segment">
+			<div class="column aligned">
+				<a href="{{.RepoLink}}/issues/new{{if .milestone}}?milestone={{.milestone}}{{end}}" class="ui green button">{{.i18n.Tr "repo.issues.choose.blank"}}</a>
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
