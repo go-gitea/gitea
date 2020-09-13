@@ -22,6 +22,19 @@ var (
 	quoteEscaper               = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 )
 
+type minioObject struct {
+	*minio.Object
+}
+
+func (m *minioObject) Stat() (os.FileInfo, error) {
+	oi, err := m.Object.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	return &minioFileInfo{oi}, nil
+}
+
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
 	ctx      context.Context
@@ -69,7 +82,7 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return object, nil
+	return &minioObject{object}, nil
 }
 
 // Save save a file to minio
@@ -104,8 +117,20 @@ func (m minioFileInfo) ModTime() time.Time {
 	return m.LastModified
 }
 
+func (m minioFileInfo) IsDir() bool {
+	return strings.HasSuffix(m.ObjectInfo.Key, "/")
+}
+
+func (m minioFileInfo) Mode() os.FileMode {
+	return os.ModePerm
+}
+
+func (m minioFileInfo) Sys() interface{} {
+	return nil
+}
+
 // Stat returns the stat information of the object
-func (m *MinioStorage) Stat(path string) (ObjectInfo, error) {
+func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
 		m.ctx,
 		m.bucket,

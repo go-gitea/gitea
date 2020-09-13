@@ -59,7 +59,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 }
 
 // Stat returns the info of the file
-func (l *LocalStorage) Stat(path string) (ObjectInfo, error) {
+func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(filepath.Join(l.dir, path))
 }
 

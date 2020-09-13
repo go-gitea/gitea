@@ -11,6 +11,12 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
+// enumerate all storage types
+const (
+	LocalStorageType = "local"
+	MinioStorageType = "minio"
+)
+
 // Storage represents configuration of storages
 type Storage struct {
 	Type        string
@@ -33,11 +39,11 @@ var (
 
 func getStorage(sec *ini.Section) Storage {
 	var storage Storage
-	storage.Type = sec.Key("STORAGE_TYPE").MustString("local")
+	storage.Type = sec.Key("STORAGE_TYPE").MustString(LocalStorageType)
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 	switch storage.Type {
-	case "local":
-	case "minio":
+	case LocalStorageType:
+	case MinioStorageType:
 		storage.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
 		storage.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
 		storage.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
@@ -54,7 +60,7 @@ func newStorageService() {
 
 	for _, sec := range Cfg.Section("storage").ChildSections() {
 		name := strings.TrimPrefix(sec.Name(), "storage.")
-		if name == "default" || name == "local" || name == "minio" {
+		if name == "default" || name == LocalStorageType || name == MinioStorageType {
 			log.Error("storage name %s is system reserved!", name)
 			continue
 		}

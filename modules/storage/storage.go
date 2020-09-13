@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"time"
+	"os"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -24,20 +24,14 @@ var (
 type Object interface {
 	io.ReadCloser
 	io.Seeker
-}
-
-// ObjectInfo represents the object info on the storage
-type ObjectInfo interface {
-	Name() string
-	Size() int64
-	ModTime() time.Time
+	Stat() (os.FileInfo, error)
 }
 
 // ObjectStorage represents an object storage to handle a bucket and files
 type ObjectStorage interface {
 	Open(path string) (Object, error)
 	Save(path string, r io.Reader) (int64, error)
-	Stat(path string) (ObjectInfo, error)
+	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
 }
@@ -74,9 +68,9 @@ func initStorage(storageCfg setting.Storage) (ObjectStorage, error) {
 	var err error
 	var s ObjectStorage
 	switch storageCfg.Type {
-	case "local":
+	case setting.LocalStorageType:
 		s, err = NewLocalStorage(storageCfg.Path)
-	case "minio":
+	case setting.MinioStorageType:
 		minio := storageCfg.Minio
 		s, err = NewMinioStorage(
 			context.Background(),

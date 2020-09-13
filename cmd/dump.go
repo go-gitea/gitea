@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/session"
@@ -57,6 +58,8 @@ func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose boo
 	if err != nil {
 		return fmt.Errorf("Could not open directory %s: %s", absPath, err)
 	}
+	defer dir.Close()
+
 	files, err := dir.Readdir(0)
 	if err != nil {
 		return fmt.Errorf("Unable to list files in %s: %s", absPath, err)
@@ -231,11 +234,39 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if _, err := os.Stat(setting.LFS.Path); !os.IsNotExist(err) {
-			log.Info("Dumping lfs... %s", setting.LFS.Path)
-			if err := addRecursive(w, "lfs", setting.LFS.Path, verbose); err != nil {
-				fatal("Failed to include lfs: %v", err)
+		switch setting.LFS.Storage.Type {
+		case setting.LocalStorageType:
+			if _, err := os.Stat(setting.LFS.Path); !os.IsNotExist(err) {
+				log.Info("Dumping lfs... %s", setting.LFS.Path)
+				if err := addRecursive(w, "lfs", setting.LFS.Path, verbose); err != nil {
+					fatal("Failed to include lfs: %v", err)
+				}
 			}
+		case setting.MinioStorageType:
+			if err := models.IterateLFS(func(mo *models.LFSMetaObject) error {
+				f, err := storage.LFS.Open(mo.RelativePath())
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+
+				info, err := f.Stat()
+				if err != nil {
+					return err
+				}
+
+				return w.Write(archiver.File{
+					FileInfo: archiver.FileInfo{
+						FileInfo:   info,
+						CustomName: mo.RelativePath(),
+					},
+					ReadCloser: f,
+				})
+			}); err != nil {
+				fatal("Dump LFS failed: %v", err)
+			}
+		default:
+			fatal("Unknow LFS storage type: %s", setting.LFS.Storage.Type)
 		}
 	}
 

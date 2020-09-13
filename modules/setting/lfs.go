@@ -42,7 +42,7 @@ func newLFSService() {
 		LFS.Storage.Type = "default"
 	}
 
-	if LFS.Storage.Type != "local" && LFS.Storage.Type != "minio" {
+	if LFS.Storage.Type != LocalStorageType && LFS.Storage.Type != MinioStorageType {
 		storage, ok := storages[LFS.Storage.Type]
 		if !ok {
 			log.Fatal("Failed to get lfs storage type: %s", LFS.Storage.Type)
@@ -53,15 +53,15 @@ func newLFSService() {
 	// Override
 	LFS.ServeDirect = lfsSec.Key("SERVE_DIRECT").MustBool(LFS.ServeDirect)
 	switch LFS.Storage.Type {
-	case "local":
-		// keep compitable
+	case LocalStorageType:
+		// keep compatible
 		LFS.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 		LFS.Path = lfsSec.Key("PATH").MustString(LFS.Path)
 		if !filepath.IsAbs(LFS.Path) {
 			LFS.Path = filepath.Join(AppWorkPath, LFS.Path)
 		}
 
-	case "minio":
+	case MinioStorageType:
 		LFS.Minio.Endpoint = lfsSec.Key("MINIO_ENDPOINT").MustString(LFS.Minio.Endpoint)
 		LFS.Minio.AccessKeyID = lfsSec.Key("MINIO_ACCESS_KEY_ID").MustString(LFS.Minio.AccessKeyID)
 		LFS.Minio.SecretAccessKey = lfsSec.Key("MINIO_SECRET_ACCESS_KEY").MustString(LFS.Minio.SecretAccessKey)

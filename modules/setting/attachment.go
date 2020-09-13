@@ -21,7 +21,7 @@ var (
 		Enabled      bool
 	}{
 		Storage: Storage{
-			Type:        "local",
+			Type:        LocalStorageType,
 			ServeDirect: false,
 		},
 		AllowedTypes: "image/jpeg,image/png,application/zip,application/gzip",
@@ -38,7 +38,7 @@ func newAttachmentService() {
 		Attachment.Storage.Type = "default"
 	}
 
-	if Attachment.Storage.Type != "local" && Attachment.Storage.Type != "minio" {
+	if Attachment.Storage.Type != LocalStorageType && Attachment.Storage.Type != MinioStorageType {
 		storage, ok := storages[Attachment.Storage.Type]
 		if !ok {
 			log.Fatal("Failed to get attachment storage type: %s", Attachment.Storage.Type)
@@ -50,12 +50,12 @@ func newAttachmentService() {
 	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(Attachment.ServeDirect)
 
 	switch Attachment.Storage.Type {
-	case "local":
+	case LocalStorageType:
 		Attachment.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "attachments"))
 		if !filepath.IsAbs(Attachment.Path) {
 			Attachment.Path = filepath.Join(AppWorkPath, Attachment.Path)
 		}
-	case "minio":
+	case MinioStorageType:
 		Attachment.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString(Attachment.Minio.Endpoint)
 		Attachment.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString(Attachment.Minio.AccessKeyID)
 		Attachment.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString(Attachment.Minio.SecretAccessKey)
