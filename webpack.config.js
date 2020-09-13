@@ -5,19 +5,12 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
 const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
-
-const postCssPresetEnvConfig = {
-  features: {
-    'system-ui-font-family': false,
-  }
-};
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
@@ -133,6 +126,7 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              sourceMaps: true,
               cacheDirectory: true,
               cacheCompression: false,
               cacheIdentifier: [
@@ -140,7 +134,6 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -174,19 +167,28 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
+              sourceMap: true,
               importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
             },
           },
           {
             loader: 'postcss-loader',
             options: {
-              plugins: () => [
-                PostCSSPresetEnv(postCssPresetEnvConfig),
-              ],
               sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-preset-env',
+                    {
+                      features: {
+                        'system-ui-font-family': false,
+                      },
+                    },
+                  ],
+                ],
+              },
             },
           },
         ],
@@ -200,19 +202,28 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
+              sourceMap: true,
               importLoaders: 2,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
             },
           },
           {
             loader: 'postcss-loader',
             options: {
-              plugins: () => [
-                PostCSSPresetEnv(postCssPresetEnvConfig),
-              ],
               sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-preset-env',
+                    {
+                      features: {
+                        'system-ui-font-family': false,
+                      },
+                    },
+                  ],
+                ],
+              },
             },
           },
           {

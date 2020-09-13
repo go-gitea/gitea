@@ -234,7 +234,9 @@ var migrations = []Migration{
 	// v149 -> v150
 	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
 	// v150 -> v151
-	NewMigration("Set default password algorithm to Argon2", setDefaultPasswordToArgon2),
+	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
+	// v151 -> v152
+	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
 }
 
 // GetCurrentDBVersion returns the current db version

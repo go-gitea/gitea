@@ -47,7 +47,7 @@ func (f *GitlabDownloaderFactory) New(ctx context.Context, opts base.MigrateOpti
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGitlabDownloader(ctx, baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
+	return NewGitlabDownloader(ctx, baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken)
 }
 
 // GitServiceType returns the type of git service
@@ -73,7 +73,7 @@ type GitlabDownloader struct {
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
-func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) *GitlabDownloader {
+func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
 	var gitlabClient *gitlab.Client
 	var err error
 	if token != "" {
@@ -84,19 +84,19 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
-		return nil
+		return nil, err
 	}
 
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		log.Trace("Error retrieving project: %v", err)
-		return nil
+		return nil, err
 	}
 
 	if gr == nil {
 		log.Trace("Error getting project, project is nil")
-		return nil
+		return nil, errors.New("Error getting project, project is nil")
 	}
 
 	return &GitlabDownloader{
@@ -104,7 +104,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 		client:   gitlabClient,
 		repoID:   gr.ID,
 		repoName: gr.Name,
-	}
+	}, nil
 }
 
 // SetContext set context
@@ -114,10 +114,6 @@ func (g *GitlabDownloader) SetContext(ctx context.Context) {
 
 // GetRepoInfo returns a repository information
 func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
-	if g == nil {
-		return nil, errors.New("error: GitlabDownloader is nil")
-	}
-
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
@@ -154,10 +150,6 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return gitlab topics
 func (g *GitlabDownloader) GetTopics() ([]string, error) {
-	if g == nil {
-		return nil, errors.New("error: GitlabDownloader is nil")
-	}
-
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
@@ -167,9 +159,6 @@ func (g *GitlabDownloader) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
-	if g == nil {
-		return nil, errors.New("error: GitlabDownloader is nil")
-	}
 	var perPage = 100
 	var state = "all"
 	var milestones = make([]*base.Milestone, 0, perPage)
@@ -226,11 +215,21 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
+func (g *GitlabDownloader) normalizeColor(val string) string {
+	val = strings.TrimLeft(val, "#")
+	val = strings.ToLower(val)
+	if len(val) == 3 {
+		c := []rune(val)
+		val = fmt.Sprintf("%c%c%c%c%c%c", c[0], c[0], c[1], c[1], c[2], c[2])
+	}
+	if len(val) != 6 {
+		return ""
+	}
+	return val
+}
+
 // GetLabels returns labels
 func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
-	if g == nil {
-		return nil, errors.New("error: GitlabDownloader is nil")
-	}
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
@@ -244,7 +243,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 		for _, label := range ls {
 			baseLabel := &base.Label{
 				Name:        label.Name,
-				Color:       strings.TrimLeft(label.Color, "#)"),
+				Color:       g.normalizeColor(label.Color),
 				Description: label.Description,
 			}
 			labels = append(labels, baseLabel)
@@ -466,7 +465,6 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
-
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
@@ -576,7 +574,6 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-
 	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err

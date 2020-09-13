@@ -2,7 +2,7 @@
 	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.CanCreateBranch}}" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text">
-				{{svg "octicon-git-branch" 16}}
+				{{svg "octicon-git-branch"}}
 				{{if .IsViewBranch}}{{.i18n.Tr "repo.branch"}}{{else}}{{.i18n.Tr "repo.tree"}}{{end}}:
 				<strong>{{if .IsViewBranch}}{{.BranchName}}{{else}}{{ShortSha .BranchName}}{{end}}</strong>
 			</span>
@@ -26,7 +26,7 @@
 					<div class="two column row">
 						<a class="reference column" href="#" @click="mode = 'branches'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'branches'}">
-								{{svg "octicon-git-branch" 16}} {{.i18n.Tr "repo.branches"}}
+								{{svg "octicon-git-branch"}} {{.i18n.Tr "repo.branches"}}
 							</span>
 						</a>
 						<a class="reference column" href="#" @click="mode = 'tags'; focusSearchField()">
@@ -42,7 +42,7 @@
 				<div class="item" v-if="showCreateNewBranch" :class="{active: active == filteredItems.length}" :ref="'listItem' + filteredItems.length">
 					<a href="#" @click="createNewBranch()">
 						<div>
-							{{svg "octicon-git-branch" 16}}
+							{{svg "octicon-git-branch"}}
 							{{.i18n.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
 						</div>
 						<div class="text small">

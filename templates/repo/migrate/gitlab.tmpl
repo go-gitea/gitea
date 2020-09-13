@@ -22,7 +22,7 @@
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
-						<a  target=”_blank” href="https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html">{{svg "octicon-question" 16}}</a>
+						<a  target=”_blank” href="https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html">{{svg "octicon-question"}}</a>
 					</div>
 
 					<div class="inline field">
