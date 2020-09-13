@@ -436,12 +436,21 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 
 // RetrieveRepoReviewers find all reviewers of a repository
 func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issuePosterID int64) {
-	var err error
-	ctx.Data["Reviewers"], ctx.Data["TeamReviewers"], err = repo.GetReviewers(ctx.User.ID, issuePosterID)
+	var (
+		err           error
+		teamReviewers []*models.Team
+	)
+	ctx.Data["Reviewers"], teamReviewers, err = repo.GetReviewers(ctx.User.ID, issuePosterID)
 	if err != nil {
 		ctx.ServerError("GetReviewers", err)
 		return
 	}
+
+	for _, team := range teamReviewers {
+		team.ID = -team.ID
+	}
+
+	ctx.Data["TeamReviewers"] = teamReviewers
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
@@ -1672,13 +1681,13 @@ func updatePullReviewRequest(ctx *context.Context) {
 						return
 					}
 
-					err = isLegalTeamReviewRequest(team, ctx.User, event == "add", issue)
+					err = isLegalTeamReviewRequest(team, ctx.User, action == "attach", issue)
 					if err != nil {
 						ctx.ServerError("isLegalTeamReviewRequest", err)
 						return
 					}
 
-					err = issue_service.TeamReviewRequest(issue, ctx.User, team, event == "add")
+					err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
 					if err != nil {
 						ctx.ServerError("ReviewRequest", err)
 						return

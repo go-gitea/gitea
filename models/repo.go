@@ -706,10 +706,6 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) (users []
 		if err != nil {
 			return nil, nil, err
 		}
-
-		for _, team := range teams {
-			team.ID = -team.ID
-		}
 	}
 
 	return
