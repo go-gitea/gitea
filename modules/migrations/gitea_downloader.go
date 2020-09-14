@@ -100,8 +100,11 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	// (default would be 50 but this can differ)
 	maxPerPage := 10
 	// new gitea instances can tell us what maximum they have
-	apiConf, _, err := giteaClient.GetGlobalAPISettings()
-	if err == nil {
+	if giteaClient.CheckServerVersionConstraint(">=1.13.0") == nil {
+		apiConf, _, err := giteaClient.GetGlobalAPISettings()
+		if err != nil {
+			return nil, err
+		}
 		maxPerPage = apiConf.MaxResponseItems
 	}
 
