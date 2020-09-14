@@ -96,10 +96,14 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		paginationSupport = false
 	}
 
-	// set small maxPerPage since we can only guess (default would be 50 but this can differ)
-	// safest value would be 1 but this is really inefficient
-	// TODO https://github.com/go-gitea/gitea/issues/12664
+	// set small maxPerPage since we can only guess
+	// (default would be 50 but this can differ)
 	maxPerPage := 10
+	// new gitea instances can tell us what maximum they have
+	apiConf, _, err := giteaClient.GetGlobalAPISettings()
+	if err == nil {
+		maxPerPage = apiConf.MaxResponseItems
+	}
 
 	return &GiteaDownloader{
 		ctx:        ctx,
@@ -167,13 +171,20 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 		}
 
 		for i := range ms {
-			// TODO: expose this info
-			// https://github.com/go-gitea/gitea/issues/12655
+			// old gitea instances dont have this information
 			createdAT := time.Now()
 			var updatedAT *time.Time
 			if ms[i].Closed != nil {
 				createdAT = *ms[i].Closed
 				updatedAT = ms[i].Closed
+			}
+
+			// new gitea instances (>=1.13) do
+			if !ms[i].Created.IsZero() {
+				createdAT = ms[i].Created
+			}
+			if ms[i].Updated != nil && !ms[i].Updated.IsZero() {
+				updatedAT = ms[i].Updated
 			}
 
 			milestones = append(milestones, &base.Milestone{
