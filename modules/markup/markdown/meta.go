@@ -25,20 +25,22 @@ func isYAMLSeparator(line string) bool {
 // and returns the frontmatter metadata separated from the markdown content
 func ExtractMetadata(contents string, out interface{}) (string, error) {
 	var front, body []string
-	var seps int
 	lines := strings.Split(contents, "\n")
 	for idx, line := range lines {
-		if seps == 2 {
-			front, body = lines[:idx], lines[idx:]
-			break
+		if idx == 0 {
+			// First line has to be a separator
+			if !isYAMLSeparator(line) {
+				return "", errors.New("frontmatter must start with a separator line")
+			}
+			continue
 		}
 		if isYAMLSeparator(line) {
-			seps++
-			continue
+			front, body = lines[1:idx], lines[idx+1:]
+			break
 		}
 	}
 
-	if len(front) == 0 && len(body) == 0 {
+	if len(front) == 0 {
 		return "", errors.New("could not determine metadata")
 	}
 
