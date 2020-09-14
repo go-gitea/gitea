@@ -114,74 +114,76 @@ type FileDeleteResponse struct {
 
 // GetFile downloads a file of repository, ref can be branch/tag/commit.
 // e.g.: ref -> master, tree -> macaron.go(no leading slash)
-func (c *Client) GetFile(user, repo, ref, tree string) ([]byte, error) {
+func (c *Client) GetFile(user, repo, ref, tree string) ([]byte, *Response, error) {
 	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/raw/%s/%s", user, repo, ref, tree), nil, nil)
 }
 
 // GetContents get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 // ref is optional
-func (c *Client) GetContents(owner, repo, ref, filepath string) (*ContentsResponse, error) {
+func (c *Client) GetContents(owner, repo, ref, filepath string) (*ContentsResponse, *Response, error) {
 	cr := new(ContentsResponse)
-	return cr, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, filepath, ref), jsonHeader, nil, cr)
-
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, filepath, ref), jsonHeader, nil, cr)
+	return cr, resp, err
 }
 
 // CreateFile create a file in a repository
-func (c *Client) CreateFile(owner, repo, filepath string, opt CreateFileOptions) (*FileResponse, error) {
+func (c *Client) CreateFile(owner, repo, filepath string, opt CreateFileOptions) (*FileResponse, *Response, error) {
 	var err error
 	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fr := new(FileResponse)
-	return fr, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body), fr)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body), fr)
+	return fr, resp, err
 }
 
 // UpdateFile update a file in a repository
-func (c *Client) UpdateFile(owner, repo, filepath string, opt UpdateFileOptions) (*FileResponse, error) {
+func (c *Client) UpdateFile(owner, repo, filepath string, opt UpdateFileOptions) (*FileResponse, *Response, error) {
 	var err error
 	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fr := new(FileResponse)
-	return fr, c.getParsedResponse("PUT", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body), fr)
+	resp, err := c.getParsedResponse("PUT", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body), fr)
+	return fr, resp, err
 }
 
 // DeleteFile delete a file from repository
-func (c *Client) DeleteFile(owner, repo, filepath string, opt DeleteFileOptions) error {
+func (c *Client) DeleteFile(owner, repo, filepath string, opt DeleteFileOptions) (*Response, error) {
 	var err error
 	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
-		return err
+		return nil, err
 	}
 
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	status, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body))
+	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filepath), jsonHeader, bytes.NewReader(body))
 	if err != nil {
-		return err
+		return resp, err
 	}
 	if status != 200 && status != 204 {
-		return fmt.Errorf("unexpected Status: %d", status)
+		return resp, fmt.Errorf("unexpected Status: %d", status)
 	}
-	return nil
+	return resp, nil
 }
 
 func (c *Client) setDefaultBranchForOldVersions(owner, repo, branch string) (string, error) {
 	if len(branch) == 0 {
 		// Gitea >= 1.12.0 Use DefaultBranch on "", mimic this for older versions
-		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-			r, err := c.GetRepo(owner, repo)
+		if c.CheckServerVersionConstraint(">=1.12.0") != nil {
+			r, _, err := c.GetRepo(owner, repo)
 			if err != nil {
 				return "", err
 			}

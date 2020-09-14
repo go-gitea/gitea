@@ -18,7 +18,8 @@ type GitBlobResponse struct {
 }
 
 // GetBlob get the blob of a repository file
-func (c *Client) GetBlob(user, repo, sha string) (*GitBlobResponse, error) {
+func (c *Client) GetBlob(user, repo, sha string) (*GitBlobResponse, *Response, error) {
 	blob := new(GitBlobResponse)
-	return blob, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/blobs/%s", user, repo, sha), nil, nil, blob)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/blobs/%s", user, repo, sha), nil, nil, blob)
+	return blob, resp, err
 }

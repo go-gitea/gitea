@@ -114,13 +114,13 @@ func (opt *ListIssueOption) QueryEncode() string {
 }
 
 // ListIssues returns all issues assigned the authenticated user
-func (c *Client) ListIssues(opt ListIssueOption) ([]*Issue, error) {
+func (c *Client) ListIssues(opt ListIssueOption) ([]*Issue, *Response, error) {
 	opt.setDefaults()
 	issues := make([]*Issue, 0, opt.PageSize)
 
 	link, _ := url.Parse("/repos/issues/search")
 	link.RawQuery = opt.QueryEncode()
-	err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
+	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
 	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil {
 		for i := 0; i < len(issues); i++ {
 			if issues[i].Repository != nil {
@@ -128,17 +128,17 @@ func (c *Client) ListIssues(opt ListIssueOption) ([]*Issue, error) {
 			}
 		}
 	}
-	return issues, err
+	return issues, resp, err
 }
 
 // ListRepoIssues returns all issues for a given repository
-func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Issue, error) {
+func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Issue, *Response, error) {
 	opt.setDefaults()
 	issues := make([]*Issue, 0, opt.PageSize)
 
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/issues", owner, repo))
 	link.RawQuery = opt.QueryEncode()
-	err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
+	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
 	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil {
 		for i := 0; i < len(issues); i++ {
 			if issues[i].Repository != nil {
@@ -146,17 +146,17 @@ func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Iss
 			}
 		}
 	}
-	return issues, err
+	return issues, resp, err
 }
 
 // GetIssue returns a single issue for a given repository
-func (c *Client) GetIssue(owner, repo string, index int64) (*Issue, error) {
+func (c *Client) GetIssue(owner, repo string, index int64) (*Issue, *Response, error) {
 	issue := new(Issue)
-	err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index), nil, nil, issue)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index), nil, nil, issue)
 	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil && issue.Repository != nil {
 		issue.Repository.Owner = strings.Split(issue.Repository.FullName, "/")[0]
 	}
-	return issue, err
+	return issue, resp, err
 }
 
 // CreateIssueOption options to create one issue
@@ -183,17 +183,18 @@ func (opt CreateIssueOption) Validate() error {
 }
 
 // CreateIssue create a new issue for a given repository
-func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, error) {
+func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	issue := new(Issue)
-	return issue, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues", owner, repo),
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues", owner, repo),
 		jsonHeader, bytes.NewReader(body), issue)
+	return issue, resp, err
 }
 
 // EditIssueOption options for editing an issue
@@ -216,15 +217,17 @@ func (opt EditIssueOption) Validate() error {
 }
 
 // EditIssue modify an existing issue for a given repository
-func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, error) {
+func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	issue := new(Issue)
-	return issue, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index),
+	resp, err := c.getParsedResponse("PATCH",
+		fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index),
 		jsonHeader, bytes.NewReader(body), issue)
+	return issue, resp, err
 }

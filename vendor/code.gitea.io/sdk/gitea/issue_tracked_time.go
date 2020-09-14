@@ -26,21 +26,33 @@ type TrackedTime struct {
 }
 
 // GetUserTrackedTimes list tracked times of a user
-func (c *Client) GetUserTrackedTimes(owner, repo, user string) ([]*TrackedTime, error) {
+func (c *Client) GetUserTrackedTimes(owner, repo, user string) ([]*TrackedTime, *Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, nil, err
+	}
 	times := make([]*TrackedTime, 0, 10)
-	return times, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times/%s", owner, repo, user), nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times/%s", owner, repo, user), nil, nil, &times)
+	return times, resp, err
 }
 
 // GetRepoTrackedTimes list tracked times of a repository
-func (c *Client) GetRepoTrackedTimes(owner, repo string) ([]*TrackedTime, error) {
+func (c *Client) GetRepoTrackedTimes(owner, repo string) ([]*TrackedTime, *Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, nil, err
+	}
 	times := make([]*TrackedTime, 0, 10)
-	return times, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times", owner, repo), nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times", owner, repo), nil, nil, &times)
+	return times, resp, err
 }
 
 // GetMyTrackedTimes list tracked times of the current user
-func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, error) {
+func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, *Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, nil, err
+	}
 	times := make([]*TrackedTime, 0, 10)
-	return times, c.getParsedResponse("GET", "/user/times", nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", "/user/times", nil, nil, &times)
+	return times, resp, err
 }
 
 // AddTimeOption options for adding time to an issue
@@ -62,17 +74,22 @@ func (opt AddTimeOption) Validate() error {
 }
 
 // AddTime adds time to issue with the given index
-func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*TrackedTime, error) {
+func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*TrackedTime, *Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	t := new(TrackedTime)
-	return t, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index),
+	resp, err := c.getParsedResponse("POST",
+		fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index),
 		jsonHeader, bytes.NewReader(body), t)
+	return t, resp, err
 }
 
 // ListTrackedTimesOptions options for listing repository's tracked times
@@ -81,20 +98,30 @@ type ListTrackedTimesOptions struct {
 }
 
 // ListTrackedTimes list tracked times of a single issue for a given repository
-func (c *Client) ListTrackedTimes(owner, repo string, index int64, opt ListTrackedTimesOptions) ([]*TrackedTime, error) {
+func (c *Client) ListTrackedTimes(owner, repo string, index int64, opt ListTrackedTimesOptions) ([]*TrackedTime, *Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	times := make([]*TrackedTime, 0, opt.PageSize)
-	return times, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/times?%s", owner, repo, index, opt.getURLQuery().Encode()), nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/times?%s", owner, repo, index, opt.getURLQuery().Encode()), nil, nil, &times)
+	return times, resp, err
 }
 
 // ResetIssueTime reset tracked time of a single issue for a given repository
-func (c *Client) ResetIssueTime(owner, repo string, index int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index), nil, nil)
-	return err
+func (c *Client) ResetIssueTime(owner, repo string, index int64) (*Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, err
+	}
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index), nil, nil)
+	return resp, err
 }
 
 // DeleteTime delete a specific tracked time by id of a single issue for a given repository
-func (c *Client) DeleteTime(owner, repo string, index, timeID int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times/%d", owner, repo, index, timeID), nil, nil)
-	return err
+func (c *Client) DeleteTime(owner, repo string, index, timeID int64) (*Response, error) {
+	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+		return nil, err
+	}
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times/%d", owner, repo, index, timeID), nil, nil)
+	return resp, err
 }

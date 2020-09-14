@@ -30,23 +30,26 @@ type ListPublicKeysOptions struct {
 }
 
 // ListPublicKeys list all the public keys of the user
-func (c *Client) ListPublicKeys(user string, opt ListPublicKeysOptions) ([]*PublicKey, error) {
+func (c *Client) ListPublicKeys(user string, opt ListPublicKeysOptions) ([]*PublicKey, *Response, error) {
 	opt.setDefaults()
 	keys := make([]*PublicKey, 0, opt.PageSize)
-	return keys, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/keys?%s", user, opt.getURLQuery().Encode()), nil, nil, &keys)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/keys?%s", user, opt.getURLQuery().Encode()), nil, nil, &keys)
+	return keys, resp, err
 }
 
 // ListMyPublicKeys list all the public keys of current user
-func (c *Client) ListMyPublicKeys(opt ListPublicKeysOptions) ([]*PublicKey, error) {
+func (c *Client) ListMyPublicKeys(opt ListPublicKeysOptions) ([]*PublicKey, *Response, error) {
 	opt.setDefaults()
 	keys := make([]*PublicKey, 0, opt.PageSize)
-	return keys, c.getParsedResponse("GET", fmt.Sprintf("/user/keys?%s", opt.getURLQuery().Encode()), nil, nil, &keys)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/keys?%s", opt.getURLQuery().Encode()), nil, nil, &keys)
+	return keys, resp, err
 }
 
 // GetPublicKey get current user's public key by key id
-func (c *Client) GetPublicKey(keyID int64) (*PublicKey, error) {
+func (c *Client) GetPublicKey(keyID int64) (*PublicKey, *Response, error) {
 	key := new(PublicKey)
-	return key, c.getParsedResponse("GET", fmt.Sprintf("/user/keys/%d", keyID), nil, nil, &key)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/keys/%d", keyID), nil, nil, &key)
+	return key, resp, err
 }
 
 // CreateKeyOption options when creating a key
@@ -60,17 +63,18 @@ type CreateKeyOption struct {
 }
 
 // CreatePublicKey create public key with options
-func (c *Client) CreatePublicKey(opt CreateKeyOption) (*PublicKey, error) {
+func (c *Client) CreatePublicKey(opt CreateKeyOption) (*PublicKey, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	key := new(PublicKey)
-	return key, c.getParsedResponse("POST", "/user/keys", jsonHeader, bytes.NewReader(body), key)
+	resp, err := c.getParsedResponse("POST", "/user/keys", jsonHeader, bytes.NewReader(body), key)
+	return key, resp, err
 }
 
 // DeletePublicKey delete public key with key id
-func (c *Client) DeletePublicKey(keyID int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/user/keys/%d", keyID), nil, nil)
-	return err
+func (c *Client) DeletePublicKey(keyID int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/user/keys/%d", keyID), nil, nil)
+	return resp, err
 }

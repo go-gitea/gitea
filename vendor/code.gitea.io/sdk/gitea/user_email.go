@@ -23,10 +23,11 @@ type ListEmailsOptions struct {
 }
 
 // ListEmails all the email addresses of user
-func (c *Client) ListEmails(opt ListEmailsOptions) ([]*Email, error) {
+func (c *Client) ListEmails(opt ListEmailsOptions) ([]*Email, *Response, error) {
 	opt.setDefaults()
 	emails := make([]*Email, 0, opt.PageSize)
-	return emails, c.getParsedResponse("GET", fmt.Sprintf("/user/emails?%s", opt.getURLQuery().Encode()), nil, nil, &emails)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/emails?%s", opt.getURLQuery().Encode()), nil, nil, &emails)
+	return emails, resp, err
 }
 
 // CreateEmailOption options when creating email addresses
@@ -36,13 +37,14 @@ type CreateEmailOption struct {
 }
 
 // AddEmail add one email to current user with options
-func (c *Client) AddEmail(opt CreateEmailOption) ([]*Email, error) {
+func (c *Client) AddEmail(opt CreateEmailOption) ([]*Email, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	emails := make([]*Email, 0, 3)
-	return emails, c.getParsedResponse("POST", "/user/emails", jsonHeader, bytes.NewReader(body), &emails)
+	resp, err := c.getParsedResponse("POST", "/user/emails", jsonHeader, bytes.NewReader(body), &emails)
+	return emails, resp, err
 }
 
 // DeleteEmailOption options when deleting email addresses
@@ -52,11 +54,11 @@ type DeleteEmailOption struct {
 }
 
 // DeleteEmail delete one email of current users'
-func (c *Client) DeleteEmail(opt DeleteEmailOption) error {
+func (c *Client) DeleteEmail(opt DeleteEmailOption) (*Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("DELETE", "/user/emails", jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("DELETE", "/user/emails", jsonHeader, bytes.NewReader(body))
+	return resp, err
 }

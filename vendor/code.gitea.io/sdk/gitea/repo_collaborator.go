@@ -16,24 +16,25 @@ type ListCollaboratorsOptions struct {
 }
 
 // ListCollaborators list a repository's collaborators
-func (c *Client) ListCollaborators(user, repo string, opt ListCollaboratorsOptions) ([]*User, error) {
+func (c *Client) ListCollaborators(user, repo string, opt ListCollaboratorsOptions) ([]*User, *Response, error) {
 	opt.setDefaults()
 	collaborators := make([]*User, 0, opt.PageSize)
-	return collaborators, c.getParsedResponse("GET",
+	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/collaborators?%s", user, repo, opt.getURLQuery().Encode()),
 		nil, nil, &collaborators)
+	return collaborators, resp, err
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
-func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, error) {
-	status, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
+func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, *Response, error) {
+	status, resp, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
 	if err != nil {
-		return false, err
+		return false, resp, err
 	}
 	if status == 204 {
-		return true, nil
+		return true, resp, nil
 	}
-	return false, nil
+	return false, resp, nil
 }
 
 // AddCollaboratorOption options when adding a user as a collaborator of a repository
@@ -76,21 +77,21 @@ func (opt AddCollaboratorOption) Validate() error {
 }
 
 // AddCollaborator add some user as a collaborator of a repository
-func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollaboratorOption) error {
+func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollaboratorOption) (*Response, error) {
 	if err := opt.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // DeleteCollaborator remove a collaborator from a repository
-func (c *Client) DeleteCollaborator(user, repo, collaborator string) error {
-	_, err := c.getResponse("DELETE",
+func (c *Client) DeleteCollaborator(user, repo, collaborator string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE",
 		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
-	return err
+	return resp, err
 }

@@ -30,29 +30,33 @@ type ListHooksOptions struct {
 }
 
 // ListOrgHooks list all the hooks of one organization
-func (c *Client) ListOrgHooks(org string, opt ListHooksOptions) ([]*Hook, error) {
+func (c *Client) ListOrgHooks(org string, opt ListHooksOptions) ([]*Hook, *Response, error) {
 	opt.setDefaults()
 	hooks := make([]*Hook, 0, opt.PageSize)
-	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks?%s", org, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks?%s", org, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	return hooks, resp, err
 }
 
 // ListRepoHooks list all the hooks of one repository
-func (c *Client) ListRepoHooks(user, repo string, opt ListHooksOptions) ([]*Hook, error) {
+func (c *Client) ListRepoHooks(user, repo string, opt ListHooksOptions) ([]*Hook, *Response, error) {
 	opt.setDefaults()
 	hooks := make([]*Hook, 0, opt.PageSize)
-	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	return hooks, resp, err
 }
 
 // GetOrgHook get a hook of an organization
-func (c *Client) GetOrgHook(org string, id int64) (*Hook, error) {
+func (c *Client) GetOrgHook(org string, id int64) (*Hook, *Response, error) {
 	h := new(Hook)
-	return h, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), nil, nil, h)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), nil, nil, h)
+	return h, resp, err
 }
 
 // GetRepoHook get a hook of a repository
-func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, error) {
+func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, *Response, error) {
 	h := new(Hook)
-	return h, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil, h)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil, h)
+	return h, resp, err
 }
 
 // CreateHookOption options when create a hook
@@ -73,26 +77,28 @@ func (opt CreateHookOption) Validate() error {
 }
 
 // CreateOrgHook create one hook for an organization, with options
-func (c *Client) CreateOrgHook(org string, opt CreateHookOption) (*Hook, error) {
+func (c *Client) CreateOrgHook(org string, opt CreateHookOption) (*Hook, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	h := new(Hook)
-	return h, c.getParsedResponse("POST", fmt.Sprintf("/orgs/%s/hooks", org), jsonHeader, bytes.NewReader(body), h)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/orgs/%s/hooks", org), jsonHeader, bytes.NewReader(body), h)
+	return h, resp, err
 }
 
 // CreateRepoHook create one hook for a repository, with options
-func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook, error) {
+func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	h := new(Hook)
-	return h, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/hooks", user, repo), jsonHeader, bytes.NewReader(body), h)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/hooks", user, repo), jsonHeader, bytes.NewReader(body), h)
+	return h, resp, err
 }
 
 // EditHookOption options when modify one hook
@@ -104,33 +110,33 @@ type EditHookOption struct {
 }
 
 // EditOrgHook modify one hook of an organization, with hook id and options
-func (c *Client) EditOrgHook(org string, id int64, opt EditHookOption) error {
+func (c *Client) EditOrgHook(org string, id int64, opt EditHookOption) (*Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PATCH", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PATCH", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // EditRepoHook modify one hook of a repository, with hook id and options
-func (c *Client) EditRepoHook(user, repo string, id int64, opt EditHookOption) error {
+func (c *Client) EditRepoHook(user, repo string, id int64, opt EditHookOption) (*Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // DeleteOrgHook delete one hook from an organization, with hook id
-func (c *Client) DeleteOrgHook(org string, id int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), nil, nil)
-	return err
+func (c *Client) DeleteOrgHook(org string, id int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), nil, nil)
+	return resp, err
 }
 
 // DeleteRepoHook delete one hook from a repository, with hook id
-func (c *Client) DeleteRepoHook(user, repo string, id int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil)
-	return err
+func (c *Client) DeleteRepoHook(user, repo string, id int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil)
+	return resp, err
 }

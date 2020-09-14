@@ -35,10 +35,10 @@ func (opt *SearchUsersOption) QueryEncode() string {
 }
 
 // SearchUsers finds users by query
-func (c *Client) SearchUsers(opt SearchUsersOption) ([]*User, error) {
+func (c *Client) SearchUsers(opt SearchUsersOption) ([]*User, *Response, error) {
 	link, _ := url.Parse("/users/search")
 	link.RawQuery = opt.QueryEncode()
-	resp := new(searchUsersResponse)
-	err := c.getParsedResponse("GET", link.String(), nil, nil, &resp)
-	return resp.Users, err
+	userResp := new(searchUsersResponse)
+	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &userResp)
+	return userResp.Users, resp, err
 }

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -78,17 +79,19 @@ type ListReposOptions struct {
 }
 
 // ListMyRepos lists all repositories for the authenticated user that has access to.
-func (c *Client) ListMyRepos(opt ListReposOptions) ([]*Repository, error) {
+func (c *Client) ListMyRepos(opt ListReposOptions) ([]*Repository, *Response, error) {
 	opt.setDefaults()
 	repos := make([]*Repository, 0, opt.PageSize)
-	return repos, c.getParsedResponse("GET", fmt.Sprintf("/user/repos?%s", opt.getURLQuery().Encode()), nil, nil, &repos)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/repos?%s", opt.getURLQuery().Encode()), nil, nil, &repos)
+	return repos, resp, err
 }
 
 // ListUserRepos list all repositories of one user by user's name
-func (c *Client) ListUserRepos(user string, opt ListReposOptions) ([]*Repository, error) {
+func (c *Client) ListUserRepos(user string, opt ListReposOptions) ([]*Repository, *Response, error) {
 	opt.setDefaults()
 	repos := make([]*Repository, 0, opt.PageSize)
-	return repos, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/repos?%s", user, opt.getURLQuery().Encode()), nil, nil, &repos)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/repos?%s", user, opt.getURLQuery().Encode()), nil, nil, &repos)
+	return repos, resp, err
 }
 
 // ListOrgReposOptions options for a organization's repositories
@@ -97,10 +100,11 @@ type ListOrgReposOptions struct {
 }
 
 // ListOrgRepos list all repositories of one organization by organization's name
-func (c *Client) ListOrgRepos(org string, opt ListOrgReposOptions) ([]*Repository, error) {
+func (c *Client) ListOrgRepos(org string, opt ListOrgReposOptions) ([]*Repository, *Response, error) {
 	opt.setDefaults()
 	repos := make([]*Repository, 0, opt.PageSize)
-	return repos, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/repos?%s", org, opt.getURLQuery().Encode()), nil, nil, &repos)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/repos?%s", org, opt.getURLQuery().Encode()), nil, nil, &repos)
+	return repos, resp, err
 }
 
 // SearchRepoOptions options for searching repositories
@@ -209,9 +213,9 @@ type searchRepoResponse struct {
 }
 
 // SearchRepos searches for repositories matching the given filters
-func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, error) {
+func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, *Response, error) {
 	opt.setDefaults()
-	resp := new(searchRepoResponse)
+	repos := new(searchRepoResponse)
 
 	link, _ := url.Parse("/repos/search")
 
@@ -223,14 +227,14 @@ func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, error) {
 		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil && opt.IsPrivate != nil {
 			if *opt.IsPrivate {
 				// private repos only not supported on gitea <= 1.11.x
-				return nil, err
+				return nil, nil, err
 			}
 			link.Query().Add("private", "false")
 		}
 	}
 
-	err := c.getParsedResponse("GET", link.String(), nil, nil, &resp)
-	return resp.Repos, err
+	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &repos)
+	return repos.Repos, resp, err
 }
 
 // CreateRepoOption options when creating repository
@@ -264,35 +268,38 @@ func (opt CreateRepoOption) Validate() error {
 }
 
 // CreateRepo creates a repository for authenticated user.
-func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, error) {
+func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	repo := new(Repository)
-	return repo, c.getParsedResponse("POST", "/user/repos", jsonHeader, bytes.NewReader(body), repo)
+	resp, err := c.getParsedResponse("POST", "/user/repos", jsonHeader, bytes.NewReader(body), repo)
+	return repo, resp, err
 }
 
 // CreateOrgRepo creates an organization repository for authenticated user.
-func (c *Client) CreateOrgRepo(org string, opt CreateRepoOption) (*Repository, error) {
+func (c *Client) CreateOrgRepo(org string, opt CreateRepoOption) (*Repository, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	repo := new(Repository)
-	return repo, c.getParsedResponse("POST", fmt.Sprintf("/org/%s/repos", org), jsonHeader, bytes.NewReader(body), repo)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/org/%s/repos", org), jsonHeader, bytes.NewReader(body), repo)
+	return repo, resp, err
 }
 
 // GetRepo returns information of a repository of given owner.
-func (c *Client) GetRepo(owner, reponame string) (*Repository, error) {
+func (c *Client) GetRepo(owner, reponame string) (*Repository, *Response, error) {
 	repo := new(Repository)
-	return repo, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s", owner, reponame), nil, nil, repo)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s", owner, reponame), nil, nil, repo)
+	return repo, resp, err
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -330,65 +337,40 @@ type EditRepoOption struct {
 }
 
 // EditRepo edit the properties of a repository
-func (c *Client) EditRepo(owner, reponame string, opt EditRepoOption) (*Repository, error) {
+func (c *Client) EditRepo(owner, reponame string, opt EditRepoOption) (*Repository, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	repo := new(Repository)
-	return repo, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s", owner, reponame), jsonHeader, bytes.NewReader(body), repo)
+	resp, err := c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s", owner, reponame), jsonHeader, bytes.NewReader(body), repo)
+	return repo, resp, err
 }
 
 // DeleteRepo deletes a repository of user or organization.
-func (c *Client) DeleteRepo(owner, repo string) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s", owner, repo), nil, nil)
-	return err
-}
-
-// MigrateRepoOption options for migrating a repository from an external service
-type MigrateRepoOption struct {
-	CloneAddr    string `json:"clone_addr"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
-	UID          int    `json:"uid"`
-	RepoName     string `json:"repo_name"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description"`
-}
-
-// MigrateRepo migrates a repository from other Git hosting sources for the
-// authenticated user.
-//
-// To migrate a repository for a organization, the authenticated user must be a
-// owner of the specified organization.
-func (c *Client) MigrateRepo(opt MigrateRepoOption) (*Repository, error) {
-	body, err := json.Marshal(&opt)
-	if err != nil {
-		return nil, err
-	}
-	repo := new(Repository)
-	return repo, c.getParsedResponse("POST", "/repos/migrate", jsonHeader, bytes.NewReader(body), repo)
+func (c *Client) DeleteRepo(owner, repo string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s", owner, repo), nil, nil)
+	return resp, err
 }
 
 // MirrorSync adds a mirrored repository to the mirror sync queue.
-func (c *Client) MirrorSync(owner, repo string) error {
-	_, err := c.getResponse("POST", fmt.Sprintf("/repos/%s/%s/mirror-sync", owner, repo), nil, nil)
-	return err
+func (c *Client) MirrorSync(owner, repo string) (*Response, error) {
+	_, resp, err := c.getResponse("POST", fmt.Sprintf("/repos/%s/%s/mirror-sync", owner, repo), nil, nil)
+	return resp, err
 }
 
 // GetRepoLanguages return language stats of a repo
-func (c *Client) GetRepoLanguages(owner, repo string) (map[string]int64, error) {
+func (c *Client) GetRepoLanguages(owner, repo string) (map[string]int64, *Response, error) {
 	langMap := make(map[string]int64)
 
-	data, err := c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/languages", owner, repo), jsonHeader, nil)
+	data, resp, err := c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/languages", owner, repo), jsonHeader, nil)
 	if err != nil {
-		return nil, err
+		return nil, resp, err
 	}
 	if err = json.Unmarshal(data, &langMap); err != nil {
-		return nil, err
+		return nil, resp, err
 	}
-	return langMap, nil
+	return langMap, resp, nil
 }
 
 // ArchiveType represent supported archive formats by gitea
@@ -403,6 +385,6 @@ const (
 
 // GetArchive get an archive of a repository by git reference
 // e.g.: ref -> master, 70b7c74b33, v1.2.1, ...
-func (c *Client) GetArchive(owner, repo, ref string, ext ArchiveType) ([]byte, error) {
+func (c *Client) GetArchive(owner, repo, ref string, ext ArchiveType) ([]byte, *Response, error) {
 	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/archive/%s%s", owner, repo, url.PathEscape(ref), ext), nil, nil)
 }

@@ -38,6 +38,11 @@ type Client struct {
 	versionLock   sync.RWMutex
 }
 
+// Response represents the gitea response
+type Response struct {
+	*http.Response
+}
+
 // NewClient initializes and returns a API client.
 func NewClient(url, token string) *Client {
 	return &Client{
@@ -74,21 +79,22 @@ func (c *Client) SetSudo(sudo string) {
 	c.sudo = sudo
 }
 
-func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, error) {
+func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, *Response, error) {
 	req, err := http.NewRequest(method, c.url+path, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(resp.Body)
+	return data, &Response{resp}, nil
 }
 
-func (c *Client) doRequest(method, path string, header http.Header, body io.Reader) (*http.Response, error) {
+func (c *Client) doRequest(method, path string, header http.Header, body io.Reader) (*Response, error) {
 	req, err := http.NewRequest(method, c.url+"/api/v1"+path, body)
 	if err != nil {
 		return nil, err
@@ -109,30 +115,34 @@ func (c *Client) doRequest(method, path string, header http.Header, body io.Read
 		req.Header[k] = v
 	}
 
-	return c.client.Do(req)
-}
-
-func (c *Client) getResponse(method, path string, header http.Header, body io.Reader) ([]byte, error) {
-	resp, err := c.doRequest(method, path, header, body)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	return &Response{resp}, nil
+}
+
+func (c *Client) getResponse(method, path string, header http.Header, body io.Reader) ([]byte, *Response, error) {
+	resp, err := c.doRequest(method, path, header, body)
+	if err != nil {
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, resp, err
 	}
 
 	switch resp.StatusCode {
 	case 403:
-		return nil, errors.New("403 Forbidden")
+		return data, resp, errors.New("403 Forbidden")
 	case 404:
-		return nil, errors.New("404 Not Found")
+		return data, resp, errors.New("404 Not Found")
 	case 409:
-		return nil, errors.New("409 Conflict")
+		return data, resp, errors.New("409 Conflict")
 	case 422:
-		return nil, fmt.Errorf("422 Unprocessable Entity: %s", string(data))
+		return data, resp, fmt.Errorf("422 Unprocessable Entity: %s", string(data))
 	}
 
 	if resp.StatusCode/100 != 2 {
@@ -140,28 +150,28 @@ func (c *Client) getResponse(method, path string, header http.Header, body io.Re
 		if err = json.Unmarshal(data, &errMap); err != nil {
 			// when the JSON can't be parsed, data was probably empty or a plain string,
 			// so we try to return a helpful error anyway
-			return nil, fmt.Errorf("Unknown API Error: %d\nRequest: '%s' with '%s' method '%s' header and '%s' body", resp.StatusCode, path, method, header, string(data))
+			return data, resp, fmt.Errorf("Unknown API Error: %d\nRequest: '%s' with '%s' method '%s' header and '%s' body", resp.StatusCode, path, method, header, string(data))
 		}
-		return nil, errors.New(errMap["message"].(string))
+		return data, resp, errors.New(errMap["message"].(string))
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
-func (c *Client) getParsedResponse(method, path string, header http.Header, body io.Reader, obj interface{}) error {
-	data, err := c.getResponse(method, path, header, body)
+func (c *Client) getParsedResponse(method, path string, header http.Header, body io.Reader, obj interface{}) (*Response, error) {
+	data, resp, err := c.getResponse(method, path, header, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return json.Unmarshal(data, obj)
+	return resp, json.Unmarshal(data, obj)
 }
 
-func (c *Client) getStatusCode(method, path string, header http.Header, body io.Reader) (int, error) {
+func (c *Client) getStatusCode(method, path string, header http.Header, body io.Reader) (int, *Response, error) {
 	resp, err := c.doRequest(method, path, header, body)
 	if err != nil {
-		return -1, err
+		return -1, resp, err
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode, nil
+	return resp.StatusCode, resp, nil
 }

@@ -16,12 +16,13 @@ type ListForksOptions struct {
 }
 
 // ListForks list a repository's forks
-func (c *Client) ListForks(user string, repo string, opt ListForksOptions) ([]*Repository, error) {
+func (c *Client) ListForks(user string, repo string, opt ListForksOptions) ([]*Repository, *Response, error) {
 	opt.setDefaults()
 	forks := make([]*Repository, opt.PageSize)
-	return forks, c.getParsedResponse("GET",
+	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/forks?%s", user, repo, opt.getURLQuery().Encode()),
 		nil, nil, &forks)
+	return forks, resp, err
 }
 
 // CreateForkOption options for creating a fork
@@ -31,11 +32,12 @@ type CreateForkOption struct {
 }
 
 // CreateFork create a fork of a repository
-func (c *Client) CreateFork(user, repo string, form CreateForkOption) (*Repository, error) {
+func (c *Client) CreateFork(user, repo string, form CreateForkOption) (*Repository, *Response, error) {
 	body, err := json.Marshal(form)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fork := new(Repository)
-	return fork, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/forks", user, repo), jsonHeader, bytes.NewReader(body), &fork)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/forks", user, repo), jsonHeader, bytes.NewReader(body), &fork)
+	return fork, resp, err
 }

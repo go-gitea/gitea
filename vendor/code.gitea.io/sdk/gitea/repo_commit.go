@@ -55,9 +55,10 @@ type CommitDateOptions struct {
 }
 
 // GetSingleCommit returns a single commit
-func (c *Client) GetSingleCommit(user, repo, commitID string) (*Commit, error) {
+func (c *Client) GetSingleCommit(user, repo, commitID string) (*Commit, *Response, error) {
 	commit := new(Commit)
-	return commit, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/commits/%s", user, repo, commitID), nil, nil, &commit)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/commits/%s", user, repo, commitID), nil, nil, &commit)
+	return commit, resp, err
 }
 
 // ListCommitOptions list commit options
@@ -77,10 +78,11 @@ func (opt *ListCommitOptions) QueryEncode() string {
 }
 
 // ListRepoCommits return list of commits from a repo
-func (c *Client) ListRepoCommits(user, repo string, opt ListCommitOptions) ([]*Commit, error) {
+func (c *Client) ListRepoCommits(user, repo string, opt ListCommitOptions) ([]*Commit, *Response, error) {
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/commits", user, repo))
 	opt.setDefaults()
 	commits := make([]*Commit, 0, opt.PageSize)
 	link.RawQuery = opt.QueryEncode()
-	return commits, c.getParsedResponse("GET", link.String(), nil, nil, &commits)
+	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &commits)
+	return commits, resp, err
 }

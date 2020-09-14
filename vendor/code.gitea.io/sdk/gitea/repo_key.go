@@ -45,32 +45,35 @@ func (opt *ListDeployKeysOptions) QueryEncode() string {
 }
 
 // ListDeployKeys list all the deploy keys of one repository
-func (c *Client) ListDeployKeys(user, repo string, opt ListDeployKeysOptions) ([]*DeployKey, error) {
+func (c *Client) ListDeployKeys(user, repo string, opt ListDeployKeysOptions) ([]*DeployKey, *Response, error) {
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/keys", user, repo))
 	opt.setDefaults()
 	link.RawQuery = opt.QueryEncode()
 	keys := make([]*DeployKey, 0, opt.PageSize)
-	return keys, c.getParsedResponse("GET", link.String(), nil, nil, &keys)
+	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &keys)
+	return keys, resp, err
 }
 
 // GetDeployKey get one deploy key with key id
-func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, error) {
+func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, *Response, error) {
 	key := new(DeployKey)
-	return key, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/keys/%d", user, repo, keyID), nil, nil, &key)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/keys/%d", user, repo, keyID), nil, nil, &key)
+	return key, resp, err
 }
 
 // CreateDeployKey options when create one deploy key
-func (c *Client) CreateDeployKey(user, repo string, opt CreateKeyOption) (*DeployKey, error) {
+func (c *Client) CreateDeployKey(user, repo string, opt CreateKeyOption) (*DeployKey, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	key := new(DeployKey)
-	return key, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/keys", user, repo), jsonHeader, bytes.NewReader(body), key)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/keys", user, repo), jsonHeader, bytes.NewReader(body), key)
+	return key, resp, err
 }
 
 // DeleteDeployKey delete deploy key with key id
-func (c *Client) DeleteDeployKey(owner, repo string, keyID int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/keys/%d", owner, repo, keyID), nil, nil)
-	return err
+func (c *Client) DeleteDeployKey(owner, repo string, keyID int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/keys/%d", owner, repo, keyID), nil, nil)
+	return resp, err
 }

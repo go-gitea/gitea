@@ -28,16 +28,18 @@ type ListLabelsOptions struct {
 }
 
 // ListRepoLabels list labels of one repository
-func (c *Client) ListRepoLabels(owner, repo string, opt ListLabelsOptions) ([]*Label, error) {
+func (c *Client) ListRepoLabels(owner, repo string, opt ListLabelsOptions) ([]*Label, *Response, error) {
 	opt.setDefaults()
 	labels := make([]*Label, 0, opt.PageSize)
-	return labels, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels?%s", owner, repo, opt.getURLQuery().Encode()), nil, nil, &labels)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels?%s", owner, repo, opt.getURLQuery().Encode()), nil, nil, &labels)
+	return labels, resp, err
 }
 
 // GetRepoLabel get one label of repository by repo it
-func (c *Client) GetRepoLabel(owner, repo string, id int64) (*Label, error) {
+func (c *Client) GetRepoLabel(owner, repo string, id int64) (*Label, *Response, error) {
 	label := new(Label)
-	return label, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil, label)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil, label)
+	return label, resp, err
 }
 
 // CreateLabelOption options for creating a label
@@ -64,9 +66,9 @@ func (opt CreateLabelOption) Validate() error {
 }
 
 // CreateLabel create one label of repository
-func (c *Client) CreateLabel(owner, repo string, opt CreateLabelOption) (*Label, error) {
+func (c *Client) CreateLabel(owner, repo string, opt CreateLabelOption) (*Label, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(opt.Color) == 6 {
 		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
@@ -75,11 +77,13 @@ func (c *Client) CreateLabel(owner, repo string, opt CreateLabelOption) (*Label,
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	label := new(Label)
-	return label, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/labels", owner, repo),
+	resp, err := c.getParsedResponse("POST",
+		fmt.Sprintf("/repos/%s/%s/labels", owner, repo),
 		jsonHeader, bytes.NewReader(body), label)
+	return label, resp, err
 }
 
 // EditLabelOption options for editing a label
@@ -109,28 +113,30 @@ func (opt EditLabelOption) Validate() error {
 }
 
 // EditLabel modify one label with options
-func (c *Client) EditLabel(owner, repo string, id int64, opt EditLabelOption) (*Label, error) {
+func (c *Client) EditLabel(owner, repo string, id int64, opt EditLabelOption) (*Label, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	label := new(Label)
-	return label, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), jsonHeader, bytes.NewReader(body), label)
+	resp, err := c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), jsonHeader, bytes.NewReader(body), label)
+	return label, resp, err
 }
 
 // DeleteLabel delete one label of repository by id
-func (c *Client) DeleteLabel(owner, repo string, id int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil)
-	return err
+func (c *Client) DeleteLabel(owner, repo string, id int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil)
+	return resp, err
 }
 
 // GetIssueLabels get labels of one issue via issue id
-func (c *Client) GetIssueLabels(owner, repo string, index int64, opts ListLabelsOptions) ([]*Label, error) {
+func (c *Client) GetIssueLabels(owner, repo string, index int64, opts ListLabelsOptions) ([]*Label, *Response, error) {
 	labels := make([]*Label, 0, 5)
-	return labels, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/labels?%s", owner, repo, index, opts.getURLQuery().Encode()), nil, nil, &labels)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/labels?%s", owner, repo, index, opts.getURLQuery().Encode()), nil, nil, &labels)
+	return labels, resp, err
 }
 
 // IssueLabelsOption a collection of labels
@@ -140,34 +146,36 @@ type IssueLabelsOption struct {
 }
 
 // AddIssueLabels add one or more labels to one issue
-func (c *Client) AddIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, error) {
+func (c *Client) AddIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var labels []*Label
-	return labels, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), jsonHeader, bytes.NewReader(body), &labels)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), jsonHeader, bytes.NewReader(body), &labels)
+	return labels, resp, err
 }
 
 // ReplaceIssueLabels replace old labels of issue with new labels
-func (c *Client) ReplaceIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, error) {
+func (c *Client) ReplaceIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, *Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var labels []*Label
-	return labels, c.getParsedResponse("PUT", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), jsonHeader, bytes.NewReader(body), &labels)
+	resp, err := c.getParsedResponse("PUT", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), jsonHeader, bytes.NewReader(body), &labels)
+	return labels, resp, err
 }
 
 // DeleteIssueLabel delete one label of one issue by issue id and label id
 // TODO: maybe we need delete by label name and issue id
-func (c *Client) DeleteIssueLabel(owner, repo string, index, label int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels/%d", owner, repo, index, label), nil, nil)
-	return err
+func (c *Client) DeleteIssueLabel(owner, repo string, index, label int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels/%d", owner, repo, index, label), nil, nil)
+	return resp, err
 }
 
 // ClearIssueLabels delete all the labels of one issue.
-func (c *Client) ClearIssueLabels(owner, repo string, index int64) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), nil, nil)
-	return err
+func (c *Client) ClearIssueLabels(owner, repo string, index int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), nil, nil)
+	return resp, err
 }

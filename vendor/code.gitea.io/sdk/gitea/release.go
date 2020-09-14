@@ -36,22 +36,22 @@ type ListReleasesOptions struct {
 }
 
 // ListReleases list releases of a repository
-func (c *Client) ListReleases(user, repo string, opt ListReleasesOptions) ([]*Release, error) {
+func (c *Client) ListReleases(user, repo string, opt ListReleasesOptions) ([]*Release, *Response, error) {
 	opt.setDefaults()
 	releases := make([]*Release, 0, opt.PageSize)
-	err := c.getParsedResponse("GET",
+	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/releases?%s", user, repo, opt.getURLQuery().Encode()),
 		nil, nil, &releases)
-	return releases, err
+	return releases, resp, err
 }
 
 // GetRelease get a release of a repository
-func (c *Client) GetRelease(user, repo string, id int64) (*Release, error) {
+func (c *Client) GetRelease(user, repo string, id int64) (*Release, *Response, error) {
 	r := new(Release)
-	err := c.getParsedResponse("GET",
+	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/releases/%d", user, repo, id),
 		nil, nil, &r)
-	return r, err
+	return r, resp, err
 }
 
 // CreateReleaseOption options when creating a release
@@ -73,19 +73,19 @@ func (opt CreateReleaseOption) Validate() error {
 }
 
 // CreateRelease create a release
-func (c *Client) CreateRelease(user, repo string, opt CreateReleaseOption) (*Release, error) {
+func (c *Client) CreateRelease(user, repo string, opt CreateReleaseOption) (*Release, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r := new(Release)
-	err = c.getParsedResponse("POST",
+	resp, err := c.getParsedResponse("POST",
 		fmt.Sprintf("/repos/%s/%s/releases", user, repo),
 		jsonHeader, bytes.NewReader(body), r)
-	return r, err
+	return r, resp, err
 }
 
 // EditReleaseOption options when editing a release
@@ -99,22 +99,22 @@ type EditReleaseOption struct {
 }
 
 // EditRelease edit a release
-func (c *Client) EditRelease(user, repo string, id int64, form EditReleaseOption) (*Release, error) {
+func (c *Client) EditRelease(user, repo string, id int64, form EditReleaseOption) (*Release, *Response, error) {
 	body, err := json.Marshal(form)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r := new(Release)
-	err = c.getParsedResponse("PATCH",
+	resp, err := c.getParsedResponse("PATCH",
 		fmt.Sprintf("/repos/%s/%s/releases/%d", user, repo, id),
 		jsonHeader, bytes.NewReader(body), r)
-	return r, err
+	return r, resp, err
 }
 
 // DeleteRelease delete a release from a repository
-func (c *Client) DeleteRelease(user, repo string, id int64) error {
-	_, err := c.getResponse("DELETE",
+func (c *Client) DeleteRelease(user, repo string, id int64) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE",
 		fmt.Sprintf("/repos/%s/%s/releases/%d", user, repo, id),
 		nil, nil)
-	return err
+	return resp, err
 }

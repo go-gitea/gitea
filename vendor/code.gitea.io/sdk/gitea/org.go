@@ -43,23 +43,26 @@ type ListOrgsOptions struct {
 }
 
 // ListMyOrgs list all of current user's organizations
-func (c *Client) ListMyOrgs(opt ListOrgsOptions) ([]*Organization, error) {
+func (c *Client) ListMyOrgs(opt ListOrgsOptions) ([]*Organization, *Response, error) {
 	opt.setDefaults()
 	orgs := make([]*Organization, 0, opt.PageSize)
-	return orgs, c.getParsedResponse("GET", fmt.Sprintf("/user/orgs?%s", opt.getURLQuery().Encode()), nil, nil, &orgs)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/orgs?%s", opt.getURLQuery().Encode()), nil, nil, &orgs)
+	return orgs, resp, err
 }
 
 // ListUserOrgs list all of some user's organizations
-func (c *Client) ListUserOrgs(user string, opt ListOrgsOptions) ([]*Organization, error) {
+func (c *Client) ListUserOrgs(user string, opt ListOrgsOptions) ([]*Organization, *Response, error) {
 	opt.setDefaults()
 	orgs := make([]*Organization, 0, opt.PageSize)
-	return orgs, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/orgs?%s", user, opt.getURLQuery().Encode()), nil, nil, &orgs)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/orgs?%s", user, opt.getURLQuery().Encode()), nil, nil, &orgs)
+	return orgs, resp, err
 }
 
 // GetOrg get one organization by name
-func (c *Client) GetOrg(orgname string) (*Organization, error) {
+func (c *Client) GetOrg(orgname string) (*Organization, *Response, error) {
 	org := new(Organization)
-	return org, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s", orgname), nil, nil, org)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s", orgname), nil, nil, org)
+	return org, resp, err
 }
 
 // CreateOrgOption options for creating an organization
@@ -89,16 +92,17 @@ func (opt CreateOrgOption) Validate() error {
 }
 
 // CreateOrg creates an organization
-func (c *Client) CreateOrg(opt CreateOrgOption) (*Organization, error) {
+func (c *Client) CreateOrg(opt CreateOrgOption) (*Organization, *Response, error) {
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	org := new(Organization)
-	return org, c.getParsedResponse("POST", "/orgs", jsonHeader, bytes.NewReader(body), org)
+	resp, err := c.getParsedResponse("POST", "/orgs", jsonHeader, bytes.NewReader(body), org)
+	return org, resp, err
 }
 
 // EditOrgOption options for editing an organization
@@ -119,20 +123,20 @@ func (opt EditOrgOption) Validate() error {
 }
 
 // EditOrg modify one organization via options
-func (c *Client) EditOrg(orgname string, opt EditOrgOption) error {
+func (c *Client) EditOrg(orgname string, opt EditOrgOption) (*Response, error) {
 	if err := opt.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PATCH", fmt.Sprintf("/orgs/%s", orgname), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PATCH", fmt.Sprintf("/orgs/%s", orgname), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // DeleteOrg deletes an organization
-func (c *Client) DeleteOrg(orgname string) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/orgs/%s", orgname), jsonHeader, nil)
-	return err
+func (c *Client) DeleteOrg(orgname string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/orgs/%s", orgname), jsonHeader, nil)
+	return resp, err
 }

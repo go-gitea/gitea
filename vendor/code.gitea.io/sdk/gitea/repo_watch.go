@@ -21,53 +21,55 @@ type WatchInfo struct {
 }
 
 // GetWatchedRepos list all the watched repos of user
-func (c *Client) GetWatchedRepos(user string) ([]*Repository, error) {
+func (c *Client) GetWatchedRepos(user string) ([]*Repository, *Response, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/subscriptions", user), nil, nil, &repos)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/subscriptions", user), nil, nil, &repos)
+	return repos, resp, err
 }
 
 // GetMyWatchedRepos list repositories watched by the authenticated user
-func (c *Client) GetMyWatchedRepos() ([]*Repository, error) {
+func (c *Client) GetMyWatchedRepos() ([]*Repository, *Response, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, c.getParsedResponse("GET", fmt.Sprintf("/user/subscriptions"), nil, nil, &repos)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/subscriptions"), nil, nil, &repos)
+	return repos, resp, err
 }
 
 // CheckRepoWatch check if the current user is watching a repo
-func (c *Client) CheckRepoWatch(repoUser, repoName string) (bool, error) {
-	status, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) CheckRepoWatch(repoUser, repoName string) (bool, *Response, error) {
+	status, resp, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
 	if err != nil {
-		return false, err
+		return false, resp, err
 	}
 	switch status {
 	case http.StatusNotFound:
-		return false, nil
+		return false, resp, nil
 	case http.StatusOK:
-		return true, nil
+		return true, resp, nil
 	default:
-		return false, fmt.Errorf("unexpected Status: %d", status)
+		return false, resp, fmt.Errorf("unexpected Status: %d", status)
 	}
 }
 
 // WatchRepo start to watch a repository
-func (c *Client) WatchRepo(repoUser, repoName string) error {
-	status, err := c.getStatusCode("PUT", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) WatchRepo(repoUser, repoName string) (*Response, error) {
+	status, resp, err := c.getStatusCode("PUT", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
 	if err != nil {
-		return err
+		return resp, err
 	}
 	if status == http.StatusOK {
-		return nil
+		return resp, nil
 	}
-	return fmt.Errorf("unexpected Status: %d", status)
+	return resp, fmt.Errorf("unexpected Status: %d", status)
 }
 
 // UnWatchRepo stop to watch a repository
-func (c *Client) UnWatchRepo(repoUser, repoName string) error {
-	status, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) UnWatchRepo(repoUser, repoName string) (*Response, error) {
+	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
 	if err != nil {
-		return err
+		return resp, err
 	}
 	if status == http.StatusNoContent {
-		return nil
+		return resp, nil
 	}
-	return fmt.Errorf("unexpected Status: %d", status)
+	return resp, fmt.Errorf("unexpected Status: %d", status)
 }

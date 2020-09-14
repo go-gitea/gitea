@@ -29,15 +29,15 @@ type User struct {
 }
 
 // GetUserInfo get user info by user's name
-func (c *Client) GetUserInfo(user string) (*User, error) {
+func (c *Client) GetUserInfo(user string) (*User, *Response, error) {
 	u := new(User)
-	err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)
-	return u, err
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)
+	return u, resp, err
 }
 
 // GetMyUserInfo get user info of current user
-func (c *Client) GetMyUserInfo() (*User, error) {
+func (c *Client) GetMyUserInfo() (*User, *Response, error) {
 	u := new(User)
-	err := c.getParsedResponse("GET", "/user", nil, nil, u)
-	return u, err
+	resp, err := c.getParsedResponse("GET", "/user", nil, nil, u)
+	return u, resp, err
 }

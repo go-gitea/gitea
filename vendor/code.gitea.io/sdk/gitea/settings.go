@@ -32,37 +32,41 @@ type GlobalAttachmentSettings struct {
 }
 
 // GetGlobalUISettings get global ui settings witch are exposed by API
-func (c *Client) GetGlobalUISettings() (settings *GlobalUISettings, err error) {
+func (c *Client) GetGlobalUISettings() (*GlobalUISettings, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	conf := new(GlobalUISettings)
-	return conf, c.getParsedResponse("GET", "/settings/ui", jsonHeader, nil, &conf)
+	resp, err := c.getParsedResponse("GET", "/settings/ui", jsonHeader, nil, &conf)
+	return conf, resp, err
 }
 
 // GetGlobalRepoSettings get global repository settings witch are exposed by API
-func (c *Client) GetGlobalRepoSettings() (settings *GlobalRepoSettings, err error) {
+func (c *Client) GetGlobalRepoSettings() (*GlobalRepoSettings, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	conf := new(GlobalRepoSettings)
-	return conf, c.getParsedResponse("GET", "/settings/repository", jsonHeader, nil, &conf)
+	resp, err := c.getParsedResponse("GET", "/settings/repository", jsonHeader, nil, &conf)
+	return conf, resp, err
 }
 
 // GetGlobalAPISettings get global api settings witch are exposed by it
-func (c *Client) GetGlobalAPISettings() (settings *GlobalAPISettings, err error) {
+func (c *Client) GetGlobalAPISettings() (*GlobalAPISettings, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	conf := new(GlobalAPISettings)
-	return conf, c.getParsedResponse("GET", "/settings/api", jsonHeader, nil, &conf)
+	resp, err := c.getParsedResponse("GET", "/settings/api", jsonHeader, nil, &conf)
+	return conf, resp, err
 }
 
 // GetGlobalAttachmentSettings get global repository settings witch are exposed by API
-func (c *Client) GetGlobalAttachmentSettings() (settings *GlobalAttachmentSettings, err error) {
+func (c *Client) GetGlobalAttachmentSettings() (*GlobalAttachmentSettings, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	conf := new(GlobalAttachmentSettings)
-	return conf, c.getParsedResponse("GET", "/settings/attachment", jsonHeader, nil, &conf)
+	resp, err := c.getParsedResponse("GET", "/settings/attachment", jsonHeader, nil, &conf)
+	return conf, resp, err
 }

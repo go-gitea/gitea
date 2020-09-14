@@ -65,31 +65,33 @@ type ListRepoBranchesOptions struct {
 }
 
 // ListRepoBranches list all the branches of one repository
-func (c *Client) ListRepoBranches(user, repo string, opt ListRepoBranchesOptions) ([]*Branch, error) {
+func (c *Client) ListRepoBranches(user, repo string, opt ListRepoBranchesOptions) ([]*Branch, *Response, error) {
 	opt.setDefaults()
 	branches := make([]*Branch, 0, opt.PageSize)
-	return branches, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branches?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &branches)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branches?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &branches)
+	return branches, resp, err
 }
 
 // GetRepoBranch get one branch's information of one repository
-func (c *Client) GetRepoBranch(user, repo, branch string) (*Branch, error) {
+func (c *Client) GetRepoBranch(user, repo, branch string) (*Branch, *Response, error) {
 	b := new(Branch)
-	if err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branches/%s", user, repo, branch), nil, nil, &b); err != nil {
-		return nil, err
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branches/%s", user, repo, branch), nil, nil, &b)
+	if err != nil {
+		return nil, resp, err
 	}
-	return b, nil
+	return b, resp, nil
 }
 
 // DeleteRepoBranch delete a branch in a repository
-func (c *Client) DeleteRepoBranch(user, repo, branch string) (bool, error) {
+func (c *Client) DeleteRepoBranch(user, repo, branch string) (bool, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return false, err
+		return false, nil, err
 	}
-	status, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/branches/%s", user, repo, branch), nil, nil)
+	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/branches/%s", user, repo, branch), nil, nil)
 	if err != nil {
-		return false, err
+		return false, resp, err
 	}
-	return status == 204, nil
+	return status == 204, resp, nil
 }
 
 // CreateBranchOption options when creating a branch in a repository
@@ -115,17 +117,18 @@ func (opt CreateBranchOption) Validate() error {
 }
 
 // CreateBranch creates a branch for a user's repository
-func (c *Client) CreateBranch(owner, repo string, opt CreateBranchOption) (*Branch, error) {
+func (c *Client) CreateBranch(owner, repo string, opt CreateBranchOption) (*Branch, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	branch := new(Branch)
-	return branch, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/branches", owner, repo), jsonHeader, bytes.NewReader(body), branch)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/branches", owner, repo), jsonHeader, bytes.NewReader(body), branch)
+	return branch, resp, err
 }

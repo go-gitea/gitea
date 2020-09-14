@@ -24,20 +24,21 @@ type ListCronTaskOptions struct {
 }
 
 // ListCronTasks list available cron tasks
-func (c *Client) ListCronTasks(opt ListCronTaskOptions) ([]*CronTask, error) {
+func (c *Client) ListCronTasks(opt ListCronTaskOptions) ([]*CronTask, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	opt.setDefaults()
 	ct := make([]*CronTask, 0, opt.PageSize)
-	return ct, c.getParsedResponse("GET", fmt.Sprintf("/admin/cron?%s", opt.getURLQuery().Encode()), jsonHeader, nil, &ct)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/admin/cron?%s", opt.getURLQuery().Encode()), jsonHeader, nil, &ct)
+	return ct, resp, err
 }
 
 // RunCronTasks run a cron task
-func (c *Client) RunCronTasks(task string) error {
+func (c *Client) RunCronTasks(task string) (*Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
-		return err
+		return nil, err
 	}
-	_, err := c.getResponse("POST", fmt.Sprintf("/admin/cron/%s", task), jsonHeader, nil)
-	return err
+	_, resp, err := c.getResponse("POST", fmt.Sprintf("/admin/cron/%s", task), jsonHeader, nil)
+	return resp, err
 }

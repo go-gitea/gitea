@@ -23,16 +23,18 @@ type ListRepoGitHooksOptions struct {
 }
 
 // ListRepoGitHooks list all the Git hooks of one repository
-func (c *Client) ListRepoGitHooks(user, repo string, opt ListRepoGitHooksOptions) ([]*GitHook, error) {
+func (c *Client) ListRepoGitHooks(user, repo string, opt ListRepoGitHooksOptions) ([]*GitHook, *Response, error) {
 	opt.setDefaults()
 	hooks := make([]*GitHook, 0, opt.PageSize)
-	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &hooks)
+	return hooks, resp, err
 }
 
 // GetRepoGitHook get a Git hook of a repository
-func (c *Client) GetRepoGitHook(user, repo, id string) (*GitHook, error) {
+func (c *Client) GetRepoGitHook(user, repo, id string) (*GitHook, *Response, error) {
 	h := new(GitHook)
-	return h, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil, h)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil, h)
+	return h, resp, err
 }
 
 // EditGitHookOption options when modifying one Git hook
@@ -41,17 +43,17 @@ type EditGitHookOption struct {
 }
 
 // EditRepoGitHook modify one Git hook of a repository
-func (c *Client) EditRepoGitHook(user, repo, id string, opt EditGitHookOption) error {
+func (c *Client) EditRepoGitHook(user, repo, id string, opt EditGitHookOption) (*Response, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // DeleteRepoGitHook delete one Git hook from a repository
-func (c *Client) DeleteRepoGitHook(user, repo, id string) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil)
-	return err
+func (c *Client) DeleteRepoGitHook(user, repo, id string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil)
+	return resp, err
 }

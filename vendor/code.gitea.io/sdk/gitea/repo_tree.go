@@ -30,11 +30,12 @@ type GitTreeResponse struct {
 
 // GetTrees downloads a file of repository, ref can be branch/tag/commit.
 // e.g.: ref -> master, tree -> macaron.go(no leading slash)
-func (c *Client) GetTrees(user, repo, ref string, recursive bool) (*GitTreeResponse, error) {
+func (c *Client) GetTrees(user, repo, ref string, recursive bool) (*GitTreeResponse, *Response, error) {
 	trees := new(GitTreeResponse)
 	var path = fmt.Sprintf("/repos/%s/%s/git/trees/%s", user, repo, ref)
 	if recursive {
 		path += "?recursive=1"
 	}
-	return trees, c.getParsedResponse("GET", path, nil, nil, trees)
+	resp, err := c.getParsedResponse("GET", path, nil, nil, trees)
+	return trees, resp, err
 }

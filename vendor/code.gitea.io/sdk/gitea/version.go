@@ -11,11 +11,12 @@ import (
 )
 
 // ServerVersion returns the version of the server
-func (c *Client) ServerVersion() (string, error) {
+func (c *Client) ServerVersion() (string, *Response, error) {
 	var v = struct {
 		Version string `json:"version"`
 	}{}
-	return v.Version, c.getParsedResponse("GET", "/version", nil, nil, &v)
+	resp, err := c.getParsedResponse("GET", "/version", nil, nil, &v)
+	return v.Version, resp, err
 }
 
 // CheckServerVersionConstraint validates that the login's server satisfies a
@@ -46,7 +47,7 @@ func (c *Client) loadClientServerVersion() error {
 	c.versionLock.Lock()
 	defer c.versionLock.Unlock()
 
-	raw, err := c.ServerVersion()
+	raw, _, err := c.ServerVersion()
 	if err != nil {
 		return err
 	}

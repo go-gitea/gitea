@@ -12,17 +12,19 @@ type ListFollowersOptions struct {
 }
 
 // ListMyFollowers list all the followers of current user
-func (c *Client) ListMyFollowers(opt ListFollowersOptions) ([]*User, error) {
+func (c *Client) ListMyFollowers(opt ListFollowersOptions) ([]*User, *Response, error) {
 	opt.setDefaults()
 	users := make([]*User, 0, opt.PageSize)
-	return users, c.getParsedResponse("GET", fmt.Sprintf("/user/followers?%s", opt.getURLQuery().Encode()), nil, nil, &users)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/followers?%s", opt.getURLQuery().Encode()), nil, nil, &users)
+	return users, resp, err
 }
 
 // ListFollowers list all the followers of one user
-func (c *Client) ListFollowers(user string, opt ListFollowersOptions) ([]*User, error) {
+func (c *Client) ListFollowers(user string, opt ListFollowersOptions) ([]*User, *Response, error) {
 	opt.setDefaults()
 	users := make([]*User, 0, opt.PageSize)
-	return users, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/followers?%s", user, opt.getURLQuery().Encode()), nil, nil, &users)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/followers?%s", user, opt.getURLQuery().Encode()), nil, nil, &users)
+	return users, resp, err
 }
 
 // ListFollowingOptions options for listing a user's users being followed
@@ -31,39 +33,41 @@ type ListFollowingOptions struct {
 }
 
 // ListMyFollowing list all the users current user followed
-func (c *Client) ListMyFollowing(opt ListFollowingOptions) ([]*User, error) {
+func (c *Client) ListMyFollowing(opt ListFollowingOptions) ([]*User, *Response, error) {
 	opt.setDefaults()
 	users := make([]*User, 0, opt.PageSize)
-	return users, c.getParsedResponse("GET", fmt.Sprintf("/user/following?%s", opt.getURLQuery().Encode()), nil, nil, &users)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/user/following?%s", opt.getURLQuery().Encode()), nil, nil, &users)
+	return users, resp, err
 }
 
 // ListFollowing list all the users the user followed
-func (c *Client) ListFollowing(user string, opt ListFollowingOptions) ([]*User, error) {
+func (c *Client) ListFollowing(user string, opt ListFollowingOptions) ([]*User, *Response, error) {
 	opt.setDefaults()
 	users := make([]*User, 0, opt.PageSize)
-	return users, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/following?%s", user, opt.getURLQuery().Encode()), nil, nil, &users)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/following?%s", user, opt.getURLQuery().Encode()), nil, nil, &users)
+	return users, resp, err
 }
 
 // IsFollowing if current user followed the target
-func (c *Client) IsFollowing(target string) bool {
-	_, err := c.getResponse("GET", fmt.Sprintf("/user/following/%s", target), nil, nil)
-	return err == nil
+func (c *Client) IsFollowing(target string) (bool, *Response) {
+	_, resp, err := c.getResponse("GET", fmt.Sprintf("/user/following/%s", target), nil, nil)
+	return err == nil, resp
 }
 
 // IsUserFollowing if the user followed the target
-func (c *Client) IsUserFollowing(user, target string) bool {
-	_, err := c.getResponse("GET", fmt.Sprintf("/users/%s/following/%s", user, target), nil, nil)
-	return err == nil
+func (c *Client) IsUserFollowing(user, target string) (bool, *Response) {
+	_, resp, err := c.getResponse("GET", fmt.Sprintf("/users/%s/following/%s", user, target), nil, nil)
+	return err == nil, resp
 }
 
 // Follow set current user follow the target
-func (c *Client) Follow(target string) error {
-	_, err := c.getResponse("PUT", fmt.Sprintf("/user/following/%s", target), nil, nil)
-	return err
+func (c *Client) Follow(target string) (*Response, error) {
+	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/user/following/%s", target), nil, nil)
+	return resp, err
 }
 
 // Unfollow set current user unfollow the target
-func (c *Client) Unfollow(target string) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/user/following/%s", target), nil, nil)
-	return err
+func (c *Client) Unfollow(target string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/user/following/%s", target), nil, nil)
+	return resp, err
 }

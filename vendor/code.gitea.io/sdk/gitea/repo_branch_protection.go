@@ -91,56 +91,60 @@ type ListBranchProtectionsOptions struct {
 }
 
 // ListBranchProtections list branch protections for a repo
-func (c *Client) ListBranchProtections(owner, repo string, opt ListBranchProtectionsOptions) ([]*BranchProtection, error) {
+func (c *Client) ListBranchProtections(owner, repo string, opt ListBranchProtectionsOptions) ([]*BranchProtection, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	bps := make([]*BranchProtection, 0, 5)
+	bps := make([]*BranchProtection, 0, opt.PageSize)
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/branch_protections", owner, repo))
 	link.RawQuery = opt.getURLQuery().Encode()
-	return bps, c.getParsedResponse("GET", link.String(), jsonHeader, nil, &bps)
+	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &bps)
+	return bps, resp, err
 }
 
 // GetBranchProtection gets a branch protection
-func (c *Client) GetBranchProtection(owner, repo, name string) (*BranchProtection, error) {
+func (c *Client) GetBranchProtection(owner, repo, name string) (*BranchProtection, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	bp := new(BranchProtection)
-	return bp, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, nil, bp)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, nil, bp)
+	return bp, resp, err
 }
 
 // CreateBranchProtection creates a branch protection for a repo
-func (c *Client) CreateBranchProtection(owner, repo string, opt CreateBranchProtectionOption) (*BranchProtection, error) {
+func (c *Client) CreateBranchProtection(owner, repo string, opt CreateBranchProtectionOption) (*BranchProtection, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	bp := new(BranchProtection)
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return bp, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/branch_protections", owner, repo), jsonHeader, bytes.NewReader(body), bp)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/branch_protections", owner, repo), jsonHeader, bytes.NewReader(body), bp)
+	return bp, resp, err
 }
 
 // EditBranchProtection edits a branch protection for a repo
-func (c *Client) EditBranchProtection(owner, repo, name string, opt EditBranchProtectionOption) (*BranchProtection, error) {
+func (c *Client) EditBranchProtection(owner, repo, name string, opt EditBranchProtectionOption) (*BranchProtection, *Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	bp := new(BranchProtection)
 	body, err := json.Marshal(&opt)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return bp, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, bytes.NewReader(body), bp)
+	resp, err := c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, bytes.NewReader(body), bp)
+	return bp, resp, err
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo
-func (c *Client) DeleteBranchProtection(owner, repo, name string) error {
+func (c *Client) DeleteBranchProtection(owner, repo, name string) (*Response, error) {
 	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
-		return err
+		return nil, err
 	}
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, nil)
-	return err
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name), jsonHeader, nil)
+	return resp, err
 }

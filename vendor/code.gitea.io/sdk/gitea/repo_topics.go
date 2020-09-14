@@ -21,38 +21,38 @@ type topicsList struct {
 }
 
 // ListRepoTopics list all repository's topics
-func (c *Client) ListRepoTopics(user, repo string, opt ListRepoTopicsOptions) ([]string, error) {
+func (c *Client) ListRepoTopics(user, repo string, opt ListRepoTopicsOptions) ([]string, *Response, error) {
 	opt.setDefaults()
 
 	list := new(topicsList)
-	err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/topics?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, list)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/topics?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, list)
 	if err != nil {
-		return nil, err
+		return nil, resp, err
 	}
-	return list.Topics, nil
+	return list.Topics, resp, nil
 }
 
 // SetRepoTopics replaces the list of repo's topics
-func (c *Client) SetRepoTopics(user, repo string, list []string) error {
+func (c *Client) SetRepoTopics(user, repo string, list []string) (*Response, error) {
 
 	l := topicsList{Topics: list}
 
 	body, err := json.Marshal(&l)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/topics", user, repo), jsonHeader, bytes.NewReader(body))
-	return err
+	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/topics", user, repo), jsonHeader, bytes.NewReader(body))
+	return resp, err
 }
 
 // AddRepoTopic adds a topic to a repo's topics list
-func (c *Client) AddRepoTopic(user, repo, topic string) error {
-	_, err := c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
-	return err
+func (c *Client) AddRepoTopic(user, repo, topic string) (*Response, error) {
+	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
+	return resp, err
 }
 
 // DeleteRepoTopic deletes a topic from repo's topics list
-func (c *Client) DeleteRepoTopic(user, repo, topic string) error {
-	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
-	return err
+func (c *Client) DeleteRepoTopic(user, repo, topic string) (*Response, error) {
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
+	return resp, err
 }
