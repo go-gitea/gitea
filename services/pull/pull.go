@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -20,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/unknwon/com"
@@ -402,16 +400,9 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
 	}
 
-	headFile := pr.GetGitRefName()
-
-	// Remove head in case there is a conflict.
-	file := filepath.Join(pr.BaseRepo.RepoPath(), headFile)
-
-	_ = util.Remove(file)
-
 	if err := git.Push(headRepoPath, git.PushOptions{
 		Remote: baseRepoPath,
-		Branch: pr.HeadBranch + ":" + headFile,
+		Branch: pr.HeadBranch + ":" + pr.GetGitRefName(),
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
