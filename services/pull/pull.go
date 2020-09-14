@@ -10,7 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -421,6 +421,7 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
 
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
@@ -429,12 +430,11 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
 		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
 	}
-	defer gitRepo.Close()
 
 	headFile := pr.GetGitRefName()
 
 	// Remove head in case there is a conflict.
-	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
+	file := filepath.Join(pr.BaseRepo.RepoPath(), headFile)
 
 	_ = util.Remove(file)
 
