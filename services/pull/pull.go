@@ -215,18 +215,6 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 	return nil
 }
 
-func addHeadRepoTasks(prs []*models.PullRequest) {
-	for _, pr := range prs {
-		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := PushToBaseRepo(pr); err != nil {
-			log.Error("PushToBaseRepo: %v", err)
-			continue
-		}
-
-		AddToTaskQueue(pr)
-	}
-}
-
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
 func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
@@ -283,8 +271,14 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 		}
 
-		addHeadRepoTasks(prs)
 		for _, pr := range prs {
+			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			if err := PushToBaseRepo(pr); err != nil {
+				log.Error("PushToBaseRepo: %v", err)
+				continue
+			}
+
+			AddToTaskQueue(pr)
 			comment, err := models.CreatePushPullComment(doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(doer, pr, comment)
@@ -389,46 +383,23 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
-	// Clone base repo.
-	tmpBasePath, err := models.CreateTemporaryPath("pull")
-	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
-		return err
-	}
-	defer func() {
-		err := models.RemoveTemporaryPath(tmpBasePath)
-		if err != nil {
-			log.Error("Error whilst removing temporary path: %s Error: %v", tmpBasePath, err)
-		}
-	}()
-
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
-	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
-		Bare:   true,
-		Shared: true,
-		Branch: pr.HeadBranch,
-		Quiet:  true,
-	}); err != nil {
-		log.Error("git clone tmpBasePath: %v", err)
-		return err
-	}
-	gitRepo, err := git.OpenRepository(tmpBasePath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer gitRepo.Close()
-
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
-		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
+	baseRepoPath := pr.BaseRepo.RepoPath()
+
+	if err = pr.LoadIssue(); err != nil {
+		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
+	}
+	if err = pr.Issue.LoadPoster(); err != nil {
+		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
 	}
 
 	headFile := pr.GetGitRefName()
@@ -438,16 +409,9 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	_ = util.Remove(file)
 
-	if err = pr.LoadIssue(); err != nil {
-		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
-	}
-	if err = pr.Issue.LoadPoster(); err != nil {
-		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
-	}
-
-	if err = git.Push(tmpBasePath, git.PushOptions{
-		Remote: "base",
-		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+	if err := git.Push(headRepoPath, git.PushOptions{
+		Remote: baseRepoPath,
+		Branch: pr.HeadBranch + ":" + headFile,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
