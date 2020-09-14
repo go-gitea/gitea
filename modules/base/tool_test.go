@@ -223,12 +223,12 @@ func TestIsTextFile(t *testing.T) {
 	assert.True(t, IsTextFile([]byte("lorem ipsum")))
 }
 
-func TestNumberFmt(t *testing.T) {
-	assert.Equal(t, "125", NumberFmt(int(125)))
-	assert.Equal(t, "1.3K", NumberFmt(int64(1317)))
-	assert.Equal(t, "21.3M", NumberFmt(21317675))
-	assert.Equal(t, "45.7G", NumberFmt(45721317675))
-	assert.Equal(t, "", NumberFmt("test"))
+func TestFormatNumberSI(t *testing.T) {
+	assert.Equal(t, "125", FormatNumberSI(int(125)))
+	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
+	assert.Equal(t, "21.3M", FormatNumberSI(21317675))
+	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
+	assert.Equal(t, "", FormatNumberSI("test"))
 }
 
 // TODO: IsImageFile(), currently no idea how to test
