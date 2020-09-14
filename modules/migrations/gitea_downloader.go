@@ -50,12 +50,12 @@ func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptio
 		return nil, fmt.Errorf("invalid path")
 	}
 
-	//ToDo handle gitea installed in subpath ...
+	//TODO handle gitea installed in subpath ...
 	repoPath := repoNameSpace
 
 	log.Trace("Create gitea downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGiteaDownloader(ctx, baseURL, repoPath, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
+	return NewGiteaDownloader(ctx, baseURL, repoPath, opts.AuthUsername, opts.AuthPassword, opts.AuthToken)
 }
 
 // GitServiceType returns the type of git service
@@ -76,7 +76,7 @@ type GiteaDownloader struct {
 // NewGiteaDownloader creates a gitea Downloader via gitea API
 //   Use either a username/password or personal token. token is preferred
 //   Note: Public access only allows very basic access
-func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) *GiteaDownloader {
+func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
 	giteaClient := gitea_sdk.NewClient(baseURL, token)
 	if token == "" {
 		giteaClient.SetBasicAuth(username, password)
@@ -86,7 +86,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	// because gitea v1.10.0 first got the needed pull & release endpoints
 	if err := giteaClient.CheckServerVersionConstraint(">=1.10"); err != nil {
 		log.Error(fmt.Sprintf("NewGiteaDownloader: %s", err.Error()))
-		return nil
+		return nil, err
 	}
 
 	path := strings.Split(repoPath, "/")
@@ -98,7 +98,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 
 	// set small maxPerPage since we can only guess (default would be 50 but this can differ)
 	// safest value would be 1 but this is really inefficient
-	// ToDo https://github.com/go-gitea/gitea/issues/12664
+	// TODO https://github.com/go-gitea/gitea/issues/12664
 	maxPerPage := 10
 
 	return &GiteaDownloader{
@@ -108,7 +108,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		repoName:   path[1],
 		pagination: paginationSupport,
 		maxPerPage: maxPerPage,
-	}
+	}, nil
 }
 
 // SetContext set context
@@ -139,18 +139,11 @@ func (g *GiteaDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return gitea topics
 func (g *GiteaDownloader) GetTopics() ([]string, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
-
 	return g.client.ListRepoTopics(g.repoOwner, g.repoName, gitea_sdk.ListRepoTopicsOptions{})
 }
 
 // GetMilestones returns milestones
 func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
 	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
@@ -173,7 +166,7 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 		}
 
 		for i := range ms {
-			// ToDo: expose this info
+			// TODO: expose this info
 			// https://github.com/go-gitea/gitea/issues/12655
 			createdAT := time.Now()
 			var updatedAT *time.Time
@@ -209,10 +202,6 @@ func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label 
 
 // GetLabels returns labels
 func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
-
 	var labels = make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
@@ -273,11 +262,8 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 
 // GetReleases returns releases
 func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
-
 	var releases = make([]*base.Release, 0, g.maxPerPage)
+
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
@@ -306,10 +292,6 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 
 // GetAsset returns an asset
 func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
-
 	asset, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, relID, id)
 	if err != nil {
 		return nil, err
@@ -367,10 +349,6 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 
 // GetIssues returns issues according start and limit
 func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-	if g == nil {
-		return nil, true, errors.New("error: GiteaDownloader is nil")
-	}
-
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -434,10 +412,6 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
-
 	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
 	// for i := 1; ; i++ {
@@ -474,7 +448,7 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 		})
 	}
 
-	// ToDo enable pagination vor (gitea >= 1.13) when it got implemented
+	// TODO enable pagination vor (gitea >= 1.14) when it got implemented
 	// 	if !g.pagination || len(comments) < g.maxPerPage {
 	//		break
 	//	}
@@ -484,10 +458,6 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
-	if g == nil {
-		return nil, false, errors.New("error: GiteaDownloader is nil")
-	}
-
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -612,9 +582,6 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
-	if g == nil {
-		return nil, errors.New("error: GiteaDownloader is nil")
-	}
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, nil

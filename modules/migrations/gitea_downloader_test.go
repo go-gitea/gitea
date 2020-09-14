@@ -53,9 +53,12 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
 
-	downloader := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
+	downloader, err := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	if downloader == nil {
 		t.Fatal("NewGitlabDownloader is nil")
+	}
+	if !assert.NoError(t, err) {
+		t.Fatal("NewGitlabDownloader error occur")
 	}
 
 	repo, err := downloader.GetRepoInfo()
@@ -63,7 +66,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	assert.EqualValues(t, &base.Repository{
 		Name:        "test_repo",
 		Owner:       "gitea",
-		IsPrivate:   false, // ToDo: set test repo private
+		IsPrivate:   false, // TODO: set test repo private
 		Description: "Test repository for testing migration from gitea to gitea",
 		CloneURL:    "https://gitea.com/gitea/test_repo.git",
 		OriginalURL: "https://gitea.com/gitea/test_repo",
