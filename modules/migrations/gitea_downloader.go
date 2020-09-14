@@ -135,12 +135,13 @@ func (g *GiteaDownloader) GetRepoInfo() (*base.Repository, error) {
 	}
 
 	return &base.Repository{
-		Name:        repo.Name,
-		Owner:       repo.Owner.UserName,
-		IsPrivate:   repo.Private,
-		Description: repo.Description,
-		CloneURL:    repo.CloneURL,
-		OriginalURL: repo.HTMLURL,
+		Name:          repo.Name,
+		Owner:         repo.Owner.UserName,
+		IsPrivate:     repo.Private,
+		Description:   repo.Description,
+		CloneURL:      repo.CloneURL,
+		OriginalURL:   repo.HTMLURL,
+		DefaultBranch: repo.DefaultBranch,
 	}, nil
 }
 

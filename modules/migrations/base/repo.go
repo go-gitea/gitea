@@ -7,11 +7,12 @@ package base
 
 // Repository defines a standard repository information
 type Repository struct {
-	Name        string
-	Owner       string
-	IsPrivate   bool
-	IsMirror    bool
-	Description string
-	CloneURL    string
-	OriginalURL string
+	Name          string
+	Owner         string
+	IsPrivate     bool
+	IsMirror      bool
+	Description   string
+	CloneURL      string
+	OriginalURL   string
+	DefaultBranch string
 }
