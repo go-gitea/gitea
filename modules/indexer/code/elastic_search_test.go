@@ -34,3 +34,9 @@ func TestESIndexAndSearch(t *testing.T) {
 
 	testIndexer("elastic_search", t, indexer)
 }
+
+func TestIndexPos(t *testing.T) {
+	startIdx, endIdx := indexPos("test index start and end", "start", "end")
+	assert.EqualValues(t, 11, startIdx)
+	assert.EqualValues(t, 24, endIdx)
+}
