@@ -80,14 +80,13 @@ type GiteaDownloader struct {
 //   Use either a username/password or personal token. token is preferred
 //   Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
-	giteaClient := gitea_sdk.NewClient(baseURL, token)
-	if token == "" {
-		giteaClient.SetBasicAuth(username, password)
-	}
-
-	// do not support gitea instances older that 1.10
-	// because gitea v1.10.0 first got the needed pull & release endpoints
-	if err := giteaClient.CheckServerVersionConstraint(">=1.10"); err != nil {
+	giteaClient, err := gitea_sdk.NewClient(
+		baseURL,
+		gitea_sdk.SetToken(token),
+		gitea_sdk.SetBasicAuth(username, password),
+		gitea_sdk.SetContext(ctx),
+	)
+	if err != nil {
 		log.Error(fmt.Sprintf("NewGiteaDownloader: %s", err.Error()))
 		return nil, err
 	}
