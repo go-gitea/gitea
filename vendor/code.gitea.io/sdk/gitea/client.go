@@ -6,6 +6,7 @@
 package gitea
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ type Client struct {
 	otp           string
 	sudo          string
 	client        *http.Client
+	ctx           context.Context
 	serverVersion *version.Version
 	versionLock   sync.RWMutex
 }
@@ -44,24 +46,59 @@ type Response struct {
 }
 
 // NewClient initializes and returns a API client.
-func NewClient(url, token string) *Client {
-	return &Client{
-		url:         strings.TrimSuffix(url, "/"),
-		accessToken: token,
-		client:      &http.Client{},
+func NewClient(url string, options ...func(*Client)) (*Client, error) {
+	client := &Client{
+		url:    strings.TrimSuffix(url, "/"),
+		client: &http.Client{},
+		ctx:    context.Background(),
 	}
+	for _, opt := range options {
+		opt(client)
+	}
+	if err := client.CheckServerVersionConstraint(">=1.10"); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 // NewClientWithHTTP creates an API client with a custom http client
+// Deprecated use SetHTTPClient option
 func NewClientWithHTTP(url string, httpClient *http.Client) *Client {
-	client := NewClient(url, "")
-	client.client = httpClient
+	client, _ := NewClient(url, SetHTTPClient(httpClient))
 	return client
 }
 
-// SetBasicAuth sets basicauth
+// SetHTTPClient is an option for NewClient to set custom http client
+func SetHTTPClient(httpClient *http.Client) func(client *Client) {
+	return func(client *Client) {
+		client.client = httpClient
+	}
+}
+
+// SetToken is an option for NewClient to set token
+func SetToken(token string) func(client *Client) {
+	return func(client *Client) {
+		client.accessToken = token
+	}
+}
+
+// SetBasicAuth is an option for NewClient to set username and password
+func SetBasicAuth(username, password string) func(client *Client) {
+	return func(client *Client) {
+		client.SetBasicAuth(username, password)
+	}
+}
+
+// SetBasicAuth sets username and password
 func (c *Client) SetBasicAuth(username, password string) {
 	c.username, c.password = username, password
+}
+
+// SetOTP is an option for NewClient to set OTP for 2FA
+func SetOTP(otp string) func(client *Client) {
+	return func(client *Client) {
+		client.SetOTP(otp)
+	}
 }
 
 // SetOTP sets OTP for 2FA
@@ -69,9 +106,28 @@ func (c *Client) SetOTP(otp string) {
 	c.otp = otp
 }
 
+// SetContext is an option for NewClient to set context
+func SetContext(ctx context.Context) func(client *Client) {
+	return func(client *Client) {
+		client.SetContext(ctx)
+	}
+}
+
+// SetContext set context witch is used for http requests
+func (c *Client) SetContext(ctx context.Context) {
+	c.ctx = ctx
+}
+
 // SetHTTPClient replaces default http.Client with user given one.
 func (c *Client) SetHTTPClient(client *http.Client) {
 	c.client = client
+}
+
+// SetSudo is an option for NewClient to set sudo header
+func SetSudo(sudo string) func(client *Client) {
+	return func(client *Client) {
+		client.SetSudo(sudo)
+	}
 }
 
 // SetSudo sets username to impersonate.
@@ -80,7 +136,7 @@ func (c *Client) SetSudo(sudo string) {
 }
 
 func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, *Response, error) {
-	req, err := http.NewRequest(method, c.url+path, body)
+	req, err := http.NewRequestWithContext(c.ctx, method, c.url+path, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +151,7 @@ func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, *R
 }
 
 func (c *Client) doRequest(method, path string, header http.Header, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(method, c.url+"/api/v1"+path, body)
+	req, err := http.NewRequestWithContext(c.ctx, method, c.url+"/api/v1"+path, body)
 	if err != nil {
 		return nil, err
 	}

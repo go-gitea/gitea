@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	code.gitea.io/gitea-vet v0.2.1
-	code.gitea.io/sdk/gitea v0.12.1-0.20200914023709-688ee1978edd
+	code.gitea.io/sdk/gitea v0.13.0
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76

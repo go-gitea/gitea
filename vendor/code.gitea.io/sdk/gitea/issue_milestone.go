@@ -65,6 +65,18 @@ func (c *Client) GetMilestone(owner, repo string, id int64) (*Milestone, *Respon
 	return milestone, resp, err
 }
 
+// GetMilestoneByName get one milestone by repo and milestone name
+func (c *Client) GetMilestoneByName(owner, repo string, name string) (*Milestone, *Response, error) {
+	if c.CheckServerVersionConstraint(">=1.13") != nil {
+		// backwards compatibility mode
+		m, resp, err := c.resolveMilestoneByName(owner, repo, name)
+		return m, resp, err
+	}
+	milestone := new(Milestone)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones/%s", owner, repo, name), nil, nil, milestone)
+	return milestone, resp, err
+}
+
 // CreateMilestoneOption options for creating a milestone
 type CreateMilestoneOption struct {
 	Title       string     `json:"title"`
@@ -135,8 +147,67 @@ func (c *Client) EditMilestone(owner, repo string, id int64, opt EditMilestoneOp
 	return milestone, resp, err
 }
 
-// DeleteMilestone delete one milestone by milestone id
+// EditMilestoneByName modify milestone with options
+func (c *Client) EditMilestoneByName(owner, repo string, name string, opt EditMilestoneOption) (*Milestone, *Response, error) {
+	if c.CheckServerVersionConstraint(">=1.13") != nil {
+		// backwards compatibility mode
+		m, _, err := c.resolveMilestoneByName(owner, repo, name)
+		if err != nil {
+			return nil, nil, err
+		}
+		return c.EditMilestone(owner, repo, m.ID, opt)
+	}
+	if err := opt.Validate(); err != nil {
+		return nil, nil, err
+	}
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return nil, nil, err
+	}
+	milestone := new(Milestone)
+	resp, err := c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/milestones/%s", owner, repo, name), jsonHeader, bytes.NewReader(body), milestone)
+	return milestone, resp, err
+}
+
+// DeleteMilestone delete one milestone by id
 func (c *Client) DeleteMilestone(owner, repo string, id int64) (*Response, error) {
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil)
 	return resp, err
+}
+
+// DeleteMilestoneByName delete one milestone by name
+func (c *Client) DeleteMilestoneByName(owner, repo string, name string) (*Response, error) {
+	if c.CheckServerVersionConstraint(">=1.13") != nil {
+		// backwards compatibility mode
+		m, _, err := c.resolveMilestoneByName(owner, repo, name)
+		if err != nil {
+			return nil, err
+		}
+		return c.DeleteMilestone(owner, repo, m.ID)
+	}
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/milestones/%s", owner, repo, name), nil, nil)
+	return resp, err
+}
+
+// resolveMilestoneByName is a fallback method to find milestone id by name
+func (c *Client) resolveMilestoneByName(owner, repo, name string) (*Milestone, *Response, error) {
+	for i := 1; ; i++ {
+		miles, resp, err := c.ListRepoMilestones(owner, repo, ListMilestoneOption{
+			ListOptions: ListOptions{
+				Page: i,
+			},
+			State: "all",
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(miles) == 0 {
+			return nil, nil, fmt.Errorf("milestone '%s' do not exist", name)
+		}
+		for _, m := range miles {
+			if strings.ToLower(strings.TrimSpace(m.Title)) == strings.ToLower(strings.TrimSpace(name)) {
+				return m, resp, nil
+			}
+		}
+	}
 }
