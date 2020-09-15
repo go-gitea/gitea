@@ -64,12 +64,13 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "gitea",
-		IsPrivate:   false, // TODO: set test repo private
-		Description: "Test repository for testing migration from gitea to gitea",
-		CloneURL:    "https://gitea.com/gitea/test_repo.git",
-		OriginalURL: "https://gitea.com/gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "gitea",
+		IsPrivate:     false,
+		Description:   "Test repository for testing migration from gitea to gitea",
+		CloneURL:      "https://gitea.com/gitea/test_repo.git",
+		OriginalURL:   "https://gitea.com/gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
