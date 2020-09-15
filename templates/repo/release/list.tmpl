@@ -14,6 +14,7 @@
 		{{end}}
 		{{if .PageIsTagList}}
 		<div class="ui divider"></div>
+		{{if gt .ReleasesNum 0}}
 		<h4 class="ui top attached header">
 			<div class="five wide column">
 				{{.i18n.Tr "repo.release.tags"}}
@@ -51,6 +52,7 @@
 				</tbody>
 			</table>
 		</div>
+		{{end}}
 		{{else}}
 		<ul id="release-list">
 			{{range $idx, $release := .Releases}}
