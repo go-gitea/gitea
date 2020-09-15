@@ -642,7 +642,7 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 					Content:   rcl[i].Body,
 					TreePath:  rcl[i].Path,
 					DiffHunk:  rcl[i].DiffHunk,
-					Position:  line,
+					Line:      line,
 					CommitID:  rcl[i].CommitID,
 					PosterID:  rcl[i].Reviewer.ID,
 					CreatedAt: rcl[i].Created,
