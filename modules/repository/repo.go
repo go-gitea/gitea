@@ -102,18 +102,22 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
-	if !opts.Releases && !repo.IsEmpty {
-		// Try to get HEAD branch and set it as default branch.
-		headBranch, err := gitRepo.GetHEADBranch()
-		if err != nil {
-			return repo, fmt.Errorf("GetHEADBranch: %v", err)
-		}
-		if headBranch != nil {
-			repo.DefaultBranch = headBranch.Name
+	if !repo.IsEmpty {
+		if len(repo.DefaultBranch) == 0 {
+			// Try to get HEAD branch and set it as default branch.
+			headBranch, err := gitRepo.GetHEADBranch()
+			if err != nil {
+				return repo, fmt.Errorf("GetHEADBranch: %v", err)
+			}
+			if headBranch != nil {
+				repo.DefaultBranch = headBranch.Name
+			}
 		}
 
-		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Error("Failed to synchronize tags to releases for repository: %v", err)
+		if !opts.Releases {
+			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Error("Failed to synchronize tags to releases for repository: %v", err)
+			}
 		}
 	}
 
