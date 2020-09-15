@@ -154,9 +154,11 @@
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
-						{{range .ChangedProtectedFiles}}
-							<div>{{.}}</div>
-						{{end}}
+						<div class="ui ordered list">
+							{{range .ChangedProtectedFiles}}
+								<div data-value="-" class="item">{{.}}</div>
+							{{end}}
+						</div>
 					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
@@ -377,9 +379,11 @@
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
-						{{range .ChangedProtectedFiles}}
-							<div>{{.}}</div>
-						{{end}}
+						<div class="ui ordered list">
+							{{range .ChangedProtectedFiles}}
+								<div data-value="-" class="item">{{.}}</div>
+							{{end}}
+						</div>
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
