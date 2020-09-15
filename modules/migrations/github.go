@@ -143,7 +143,7 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}
 	g.rate = &resp.Rate
 
-	defaultBranch := "master"
+	defaultBranch := ""
 	if gr.DefaultBranch != nil {
 		defaultBranch = *gr.DefaultBranch
 	}

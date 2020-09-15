@@ -12,6 +12,8 @@ type Repository struct {
 	IsPrivate     bool
 	IsMirror      bool
 	Description   string
+	AuthUsername  string
+	AuthPassword  string
 	CloneURL      string
 	OriginalURL   string
 	DefaultBranch string
