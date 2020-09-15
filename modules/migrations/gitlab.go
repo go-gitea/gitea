@@ -77,9 +77,9 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	var gitlabClient *gitlab.Client
 	var err error
 	gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
-	// Only use basic auth if token is blank and username is NOT
+	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
-	if token == "" && username != "" {
+	if token == "" && password != "" {
 		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
