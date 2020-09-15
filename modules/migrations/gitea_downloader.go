@@ -50,8 +50,11 @@ func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptio
 		return nil, fmt.Errorf("invalid path")
 	}
 
-	//TODO handle gitea installed in subpath ...
-	repoPath := repoNameSpace
+	repoPath := strings.Join(path[len(path)-2:], "/")
+	if len(path) > 2 {
+		subPath := strings.Join(path[:len(path)-2], "/")
+		baseURL += "/" + subPath
+	}
 
 	log.Trace("Create gitea downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
