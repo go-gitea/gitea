@@ -106,7 +106,7 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
