@@ -51,12 +51,16 @@ func filenameIndexerID(repoID int64, filename string) string {
 	return indexerID(repoID) + "_" + filename
 }
 
+func indexerID(id int64) string {
+	return strconv.FormatInt(id, 36)
+}
+
 func parseIndexerID(indexerID string) (int64, string) {
 	index := strings.IndexByte(indexerID, '_')
 	if index == -1 {
 		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
-	repoID, _ := strconv.ParseInt(indexerID[:index], 10, 64)
+	repoID, _ := strconv.ParseInt(indexerID[:index], 36, 64)
 	return repoID, indexerID[index+1:]
 }
 
