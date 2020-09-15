@@ -252,15 +252,10 @@ func doMigrationTest(t *testing.T, version string) {
 	}
 
 	setting.NewXORMLogService(false)
-	err := models.SetEngine()
-	assert.NoError(t, err)
 
-	err = models.NewEngine(context.Background(), wrappedMigrate)
+	err := models.NewEngine(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
-
-	err = models.SetEngine()
-	assert.NoError(t, err)
 
 	beans, _ := models.NamesToBean()
 
@@ -272,9 +267,6 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = models.SetEngine()
-	assert.NoError(t, err)
-
 	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
