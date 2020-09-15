@@ -296,6 +296,41 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		MergeCommitSHA: "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
+
+	reviews, err := downloader.GetReviews(7)
+	assert.NoError(t, err)
+	if assert.Len(t, reviews, 3) {
+		assert.EqualValues(t, 689, reviews[0].ReviewerID)
+		assert.EqualValues(t, "6543", reviews[0].ReviewerName)
+		assert.EqualValues(t, "techknowlogick", reviews[1].ReviewerName)
+		assert.EqualValues(t, "techknowlogick", reviews[2].ReviewerName)
+		assert.False(t, reviews[1].Official)
+		assert.EqualValues(t, "I think this needs some changes", reviews[1].Content)
+		assert.EqualValues(t, "REQUEST_CHANGES", reviews[1].State)
+		assert.True(t, reviews[2].Official)
+		assert.EqualValues(t, "looks good", reviews[2].Content)
+		assert.EqualValues(t, "APPROVED", reviews[2].State)
+
+		// TODO: https://github.com/go-gitea/gitea/issues/12846
+		// assert.EqualValues(t, 9, reviews[1].ReviewerID)
+		// assert.EqualValues(t, 9, reviews[2].ReviewerID)
+
+		assert.Len(t, reviews[0].Comments, 1)
+		assert.EqualValues(t, &base.ReviewComment{
+			ID:        116561,
+			InReplyTo: 0,
+			Content:   "is one `\\newline` to less?",
+			TreePath:  "README.md",
+			DiffHunk:  "@@ -2,3 +2,3 @@\n \n-Test repository for testing migration from gitea 2 gitea\n\\ No newline at end of file\n+Test repository for testing migration from gitea 2 gitea",
+			Position:  0,
+			Line:      4,
+			CommitID:  "187ece0cb6631e2858a6872e5733433bb3ca3b03",
+			PosterID:  689,
+			Reactions: nil,
+			CreatedAt: time.Date(2020, 9, 1, 16, 12, 58, 0, time.UTC),
+			UpdatedAt: time.Date(2020, 9, 1, 16, 12, 58, 0, time.UTC),
+		}, reviews[0].Comments[0])
+	}
 }
 
 func assertEqualPulls(t *testing.T, pullExp, pullGet *base.PullRequest) {
@@ -328,8 +363,3 @@ func pull2issue(pull *base.PullRequest) *base.Issue {
 		Assignees:   pull.Assignees,
 	}
 }
-
-/*
-	ToDo:
-	GetReviews(pullRequestNumber int64) ([]*Review, error)
-*/
