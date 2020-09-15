@@ -256,6 +256,12 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
+	// reload repo from db to get a real state after creation
+	repo, err = models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+	}
+
 	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
 }
 
