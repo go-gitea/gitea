@@ -257,6 +257,11 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
+	repo, err = models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+	}
+
 	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
 }
 
