@@ -37,11 +37,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	// Repo Owner is blank in Gitlab Group repos
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "",
-		Description: "Test repository for testing migration from gitlab to gitea",
-		CloneURL:    "https://gitlab.com/gitea/test_repo.git",
-		OriginalURL: "https://gitlab.com/gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "",
+		Description:   "Test repository for testing migration from gitlab to gitea",
+		CloneURL:      "https://gitlab.com/gitea/test_repo.git",
+		OriginalURL:   "https://gitlab.com/gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
