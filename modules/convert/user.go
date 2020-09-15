@@ -14,6 +14,7 @@ import (
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
+		ID:        user.ID,
 		UserName:  user.Name,
 		AvatarURL: user.AvatarLink(),
 		FullName:  markup.Sanitize(user.FullName),
@@ -25,7 +26,6 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 	}
 	// only site admin will get these information and possibly user himself
 	if authed {
-		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
