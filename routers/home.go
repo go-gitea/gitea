@@ -299,7 +299,9 @@ func ExploreCode(ctx *context.Context) {
 		page = 1
 	}
 
-	isMatch := false
+	queryType := strings.TrimSpace(ctx.Query("t"))
+	isMatch := queryType == "match"
+
 	var (
 		repoIDs []int64
 		err     error

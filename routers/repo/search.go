@@ -28,7 +28,9 @@ func Search(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	isMatch := false
+	queryType := strings.TrimSpace(ctx.Query("t"))
+	isMatch := queryType == "match"
+
 	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
 		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 	if err != nil {
