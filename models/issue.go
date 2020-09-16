@@ -1276,7 +1276,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 		return 0, fmt.Errorf("Find: %v", err)
 	}
 	if len(countsSlice) < 1 {
-		return 0, fmt.Errorf("No result.")
+		return 0, fmt.Errorf("Find: No result.")
 	}
 	return countsSlice[0].Count, nil
 }
