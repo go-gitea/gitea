@@ -43,7 +43,7 @@ type SearchResultLanguages struct {
 type Indexer interface {
 	Index(repo *models.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 

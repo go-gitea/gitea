@@ -280,7 +280,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 	phraseQuery.FieldVal = "Content"
 	phraseQuery.Analyzer = repoIndexerAnalyzer

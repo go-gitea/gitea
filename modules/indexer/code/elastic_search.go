@@ -330,8 +330,13 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
+func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	searchType := "best_fields"
+	if isMatch {
+		searchType = "phrase_prefix"
+	}
+
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
