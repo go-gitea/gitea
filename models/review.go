@@ -110,7 +110,8 @@ func (r *Review) LoadReviewer() error {
 	return r.loadReviewer(x)
 }
 
-func (r *Review) loadAttributes(e Engine) (err error) {
+// LoadAttributesX loads all attributes except CodeComments with an Engine parameter
+func (r *Review) LoadAttributesX(e Engine) (err error) {
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
@@ -125,7 +126,7 @@ func (r *Review) loadAttributes(e Engine) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes() error {
-	return r.loadAttributes(x)
+	return r.LoadAttributesX(x)
 }
 
 func getReviewByID(e Engine, id int64) (*Review, error) {
@@ -200,6 +201,12 @@ type CreateReviewOptions struct {
 
 // IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewer(issue *Issue, reviewer *User) (bool, error) {
+	return isOfficialReviewer(x, issue, reviewer)
+}
+
+// IsOfficialReviewerX check if reviewer can make official reviews in issue (counts towards required approvals)
+// with an Engine parameter
+func IsOfficialReviewerX(e Engine, issue *Issue, reviewer *User) (bool, error) {
 	return isOfficialReviewer(x, issue, reviewer)
 }
 
