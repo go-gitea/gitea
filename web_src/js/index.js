@@ -2005,14 +2005,24 @@ function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);

@@ -469,7 +469,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 
 .PHONY: test-mssql-migration
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite

@@ -76,9 +76,10 @@ type GitlabDownloader struct {
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
 	var gitlabClient *gitlab.Client
 	var err error
-	if token != "" {
-		gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
-	} else {
+	gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	// Only use basic auth if token is blank and password is NOT
+	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
+	if token == "" && password != "" {
 		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
@@ -139,12 +140,13 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 
 	// convert gitlab repo to stand Repo
 	return &base.Repository{
-		Owner:       owner,
-		Name:        gr.Name,
-		IsPrivate:   private,
-		Description: gr.Description,
-		OriginalURL: gr.WebURL,
-		CloneURL:    gr.HTTPURLToRepo,
+		Owner:         owner,
+		Name:          gr.Name,
+		IsPrivate:     private,
+		Description:   gr.Description,
+		OriginalURL:   gr.WebURL,
+		CloneURL:      gr.HTTPURLToRepo,
+		DefaultBranch: gr.DefaultBranch,
 	}, nil
 }
 
