@@ -1265,22 +1265,20 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	var cnt int64
 	countsSlice := make([]*struct {
 		RepoID int64
 		Count  int64
-	}, 0, len(opts.RepoIDs))
+	}, 0, 1)
 
 	sess.Select("COUNT(issue.id) AS count").Table("issue")
 	opts.setupSession(sess)
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("Find: %v", err)
 	}
-
-	for _, c := range countsSlice {
-		cnt += c.Count
+	if len(countsSlice) < 1 {
+		return 0, fmt.Errorf("No result.")
 	}
-	return cnt, nil
+	return countsSlice[0].Count, nil
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
