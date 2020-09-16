@@ -1271,8 +1271,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 		Count  int64
 	}, 0, len(opts.RepoIDs))
 
-	sess.GroupBy("issue.repo_id").
-		Select("issue.repo_id AS repo_id, COUNT(*) AS count").Table("issue")
+	sess.Select("COUNT(issue.id) AS count").Table("issue")
 	opts.setupSession(sess)
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("Find: %v", err)
