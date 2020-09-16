@@ -199,10 +199,18 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 	// notify
 	for userID := range toNotify {
 		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
+		user, err := getUserByID(e, userID)
+		if err != nil {
+			if IsErrUserNotExist(err) {
+				continue
+			}
+
+			return err
+		}
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypeIssues) {
 			continue
 		}
 
