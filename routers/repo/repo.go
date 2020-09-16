@@ -140,7 +140,7 @@ func Create(ctx *context.Context) {
 	templateID := ctx.QueryInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser.ID, ctxUser.IsAdmin, models.UnitTypeCode) {
+		if err == nil && templateRepo.CheckUnitUser(ctxUser, models.UnitTypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
