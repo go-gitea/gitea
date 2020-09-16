@@ -11,7 +11,6 @@ import (
 )
 
 func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
-
 	type ProtectedBranch struct {
 		CanPush                  bool  `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist bool  `xorm:"NOT NULL DEFAULT false"`
@@ -23,29 +22,26 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		Official bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Sync2(new(ProtectedBranch)); err != nil {
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
 		return err
 	}
 
-	if err := sess.Sync2(new(Review)); err != nil {
+	if err := x.Sync2(new(Review)); err != nil {
 		return err
 	}
 
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `enable_whitelist` = ? WHERE enable_whitelist IS NULL", false); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `enable_whitelist` = ? WHERE enable_whitelist IS NULL", false); err != nil {
 		return err
 	}
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `can_push` = `enable_whitelist`"); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `can_push` = `enable_whitelist`"); err != nil {
 		return err
 	}
-	if _, err := sess.Exec("UPDATE `protected_branch` SET `enable_approvals_whitelist` = ? WHERE `required_approvals` > ?", true, 0); err != nil {
+	if _, err := x.Exec("UPDATE `protected_branch` SET `enable_approvals_whitelist` = ? WHERE `required_approvals` > ?", true, 0); err != nil {
 		return err
 	}
 
 	var pageSize int64 = 20
-	qresult, err := sess.QueryInterface("SELECT max(id) as max_id FROM issue")
+	qresult, err := x.QueryInterface("SELECT max(id) as max_id FROM issue")
 	if err != nil {
 		return err
 	}
@@ -57,10 +53,19 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 	totalPages := totalIssues / pageSize
 
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	// Find latest review of each user in each pull request, and set official field if appropriate
-	reviews := []*models.Review{}
+
 	var page int64
+	var count int
 	for page = 0; page <= totalPages; page++ {
+		reviews := []*models.Review{}
 		if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
 			page*pageSize, (page+1)*pageSize, models.ReviewTypeApprove, models.ReviewTypeReject).
 			Find(&reviews); err != nil {
@@ -68,23 +73,37 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		}
 
 		for _, review := range reviews {
-			if err := review.LoadAttributes(); err != nil {
+			if err := review.LoadAttributesX(sess); err != nil {
 				// Error might occur if user or issue doesn't exist, ignore it.
 				continue
 			}
-			official, err := models.IsOfficialReviewer(review.Issue, review.Reviewer)
+			official, err := models.IsOfficialReviewerX(sess, review.Issue, review.Reviewer)
 			if err != nil {
 				// Branch might not be proteced or other error, ignore it.
 				continue
 			}
 			review.Official = official
 
+			count++
+
 			if _, err := sess.ID(review.ID).Cols("official").Update(review); err != nil {
 				return err
 			}
-		}
 
+			if count == 100 {
+				if err := sess.Commit(); err != nil {
+					return err
+				}
+				count = 0
+				if err := sess.Begin(); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
-	return sess.Commit()
+	if count > 0 {
+		return sess.Commit()
+	}
+	return nil
 }
