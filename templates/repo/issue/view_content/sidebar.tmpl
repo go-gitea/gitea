@@ -9,10 +9,10 @@
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
 				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16}}
+					{{svg "octicon-gear"}}
 				{{end}}
 			</span>
-			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
 				{{if .Reviewers}}
 					<div class="ui icon search input">
@@ -44,8 +44,8 @@
 						{{$canChoose = true}}
 					{{end}}
 
-					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-can-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}} data-is-checked="{{if $checked}}add{{else}}remove{{end}}">
-						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}} {{if not $canChoose}}ban-change{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 						</span>
@@ -78,11 +78,11 @@
 							{{end}}
 
 							{{if $canChoose}}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{svg "octicon-sync" 16}}
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									{{svg "octicon-sync"}}
 								</a>
 							{{end}}
-							{{svg (printf "octicon-%s" .Type.Icon) 16}}
+							{{svg (printf "octicon-%s" .Type.Icon)}}
 						</span>
 					</div>
 				{{end}}
@@ -95,7 +95,7 @@
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16}}
+					{{svg "octicon-gear"}}
 				{{end}}
 			</span>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
@@ -109,12 +109,12 @@
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
@@ -143,7 +143,7 @@
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16}}
+					{{svg "octicon-gear"}}
 				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
@@ -163,7 +163,7 @@
 					{{if .OpenMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							{{svg "octicon-milestone" 16}}
+							{{svg "octicon-milestone"}}
 							{{.i18n.Tr "repo.issues.new.open_milestone"}}
 						</div>
 						{{range .OpenMilestones}}
@@ -173,7 +173,7 @@
 					{{if .ClosedMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							{{svg "octicon-milestone" 16}}
+							{{svg "octicon-milestone"}}
 							{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 						</div>
 						{{range .ClosedMilestones}}
@@ -198,28 +198,28 @@
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{svg "octicon-gear"}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
 				{{if .OpenProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						{{svg "octicon-project" 16}}
+						{{svg "octicon-project"}}
 						{{.i18n.Tr "repo.issues.new.open_projects"}}
 					</div>
 					{{range .OpenProjects}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</div>
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project"}} {{.Title}}</div>
 					{{end}}
 				{{end}}
 				{{if .ClosedProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						{{svg "octicon-project" 16}}
+						{{svg "octicon-project"}}
 						{{.i18n.Tr "repo.issues.new.closed_projects"}}
 					</div>
 					{{range .ClosedProjects}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</a>
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project"}} {{.Title}}</a>
 					{{end}}
 				{{end}}
 			</div>
@@ -228,7 +228,7 @@
 			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.ProjectID}}
-					<a class="item" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">{{svg "octicon-project" 16}} {{.Issue.Project.Title}}</a>
+					<a class="item" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">{{svg "octicon-project"}} {{.Issue.Project.Title}}</a>
 				{{end}}
 			</div>
 		</div>
@@ -241,10 +241,10 @@
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16}}
+					{{svg "octicon-gear"}}
 				{{end}}
 			</span>
-			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
 					<i class="search icon"></i>
@@ -265,7 +265,7 @@
 								{{$checked = true}}
 							{{end}}
 						{{end}}
-						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 						</span>
@@ -308,10 +308,10 @@
 						{{$.CsrfTokenHtml}}
 						<button class="fluid ui button">
 							{{if $.IssueWatch.IsWatching}}
-								{{svg "octicon-mute" 16}}
+								{{svg "octicon-mute"}}
 								{{.i18n.Tr "repo.issues.unsubscribe"}}
 							{{else}}
-								{{svg "octicon-unmute" 16}}
+								{{svg "octicon-unmute"}}
 								{{.i18n.Tr "repo.issues.subscribe"}}
 							{{end}}
 						</button>
@@ -396,7 +396,7 @@
 			</div>
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
-					{{svg "octicon-calendar" 16}}
+					{{svg "octicon-calendar"}}
 					{{.Issue.DeadlineUnix.FormatDate}}
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
@@ -522,10 +522,10 @@
 				<div>
 					<button class="fluid ui  show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
 							{{if .Issue.IsLocked}}
-								{{svg "octicon-key" 16}}
+								{{svg "octicon-key"}}
 								{{.i18n.Tr "repo.issues.unlock"}}
 							{{else}}
-								{{svg "octicon-lock" 16}}
+								{{svg "octicon-lock"}}
 								{{.i18n.Tr "repo.issues.lock"}}
 							{{end}}
 						</button>

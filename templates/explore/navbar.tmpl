@@ -1,16 +1,16 @@
 <div class="ui secondary pointing tabular top attached borderless stackable menu navbar">
 	<a class="{{if .PageIsExploreRepositories}}active{{end}} item" href="{{AppSubUrl}}/explore/repos">
-		{{svg "octicon-repo" 16}} {{.i18n.Tr "explore.repos"}}
+		{{svg "octicon-repo"}} {{.i18n.Tr "explore.repos"}}
 	</a>
 	<a class="{{if .PageIsExploreUsers}}active{{end}} item" href="{{AppSubUrl}}/explore/users">
-		{{svg "octicon-person" 16}} {{.i18n.Tr "explore.users"}}
+		{{svg "octicon-person"}} {{.i18n.Tr "explore.users"}}
 	</a>
 	<a class="{{if .PageIsExploreOrganizations}}active{{end}} item" href="{{AppSubUrl}}/explore/organizations">
-		{{svg "octicon-organization" 16}} {{.i18n.Tr "explore.organizations"}}
+		{{svg "octicon-organization"}} {{.i18n.Tr "explore.organizations"}}
 	</a>
 	{{if .IsRepoIndexerEnabled}}
 	<a class="{{if .PageIsExploreCode}}active{{end}} item" href="{{AppSubUrl}}/explore/code">
-		{{svg "octicon-code" 16}} {{.i18n.Tr "explore.code"}}
+		{{svg "octicon-code"}} {{.i18n.Tr "explore.code"}}
 	</a>
 	{{end}}
 </div>

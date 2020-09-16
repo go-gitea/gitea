@@ -36,12 +36,12 @@ FROM gitea/gitea:{{< version >}}
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip py3-pyzmq
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev python-dev py-pip python3-dev py3-pip py3-pyzmq
 # install any other package you need for your external renderers
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -U setuptools
-RUN pip3 install jupyter matplotlib docutils 
+RUN pip3 install jupyter docutils 
 # add above any other python package you may need to install
 ```
 
@@ -53,7 +53,7 @@ add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 [markup.asciidoc]
 ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoctor -e -a leveloffset=-1 --out-file=- -"
+RENDER_COMMAND = "asciidoctor -s -a showtitle --out-file=- -"
 ; Input is not a standard input but a file
 IS_INPUT_FILE = false
 
