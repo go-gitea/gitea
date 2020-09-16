@@ -5,10 +5,20 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
-					<button class="ui button" type="submit">
-						<i class="search icon"></i>
-					</button>
+					<div class="twelve wide field">
+						<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+					</div>
+					<div class="two wide field">
+						<select name="t">
+							<option value="" selected>{{.i18n.Tr "repo.search.fuzzy"}}</option>
+							<option value="match">{{.i18n.Tr "repo.search.match"}}</option>
+						</select>
+					</div>
+					<div class="three field">
+						<button class="ui button" type="submit">
+							<i class="search icon"></i>
+						</button>
+					</div>
 				</div>
 			</form>
 		</div>
