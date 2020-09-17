@@ -132,7 +132,7 @@ func SingleRelease(ctx *context.Context) {
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
