@@ -425,20 +425,17 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitType) bool {
-	return repo.checkUnitUser(x, userID, isAdmin, unitType)
+func (repo *Repository) CheckUnitUser(user *User, unitType UnitType) bool {
+	return repo.checkUnitUser(x, user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
-	if isAdmin {
+func (repo *Repository) checkUnitUser(e Engine, user *User, unitType UnitType) bool {
+	if user.IsAdmin {
 		return true
-	}
-	user, err := getUserByID(e, userID)
-	if err != nil {
-		return false
 	}
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
+		log.Error("getUserRepoPermission(): %v", err)
 		return false
 	}
 
