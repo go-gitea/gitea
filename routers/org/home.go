@@ -32,6 +32,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy models.SearchOrderBy
@@ -119,6 +120,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount

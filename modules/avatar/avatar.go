@@ -89,6 +89,6 @@ func Prepare(data []byte) (*image.Image, error) {
 		}
 	}
 
-	img = resize.Resize(AvatarSize, AvatarSize, img, resize.NearestNeighbor)
+	img = resize.Resize(AvatarSize, AvatarSize, img, resize.Bilinear)
 	return &img, nil
 }

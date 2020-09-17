@@ -81,6 +81,8 @@ type LoadOptions struct {
 	IgnoreInlineComment bool
 	// SkipUnrecognizableLines indicates whether to skip unrecognizable lines that do not conform to key/value pairs.
 	SkipUnrecognizableLines bool
+	// ShortCircuit indicates whether to ignore other configuration sources after loaded the first available configuration source.
+	ShortCircuit bool
 	// AllowBooleanKeys indicates whether to allow boolean type keys or treat as value is missing.
 	// This type of keys are mostly used in my.cnf.
 	AllowBooleanKeys bool

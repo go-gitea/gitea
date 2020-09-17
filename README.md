@@ -45,7 +45,7 @@ The `build` target is split into two sub-targets:
 
 If pre-built frontend files are present it is possible to only build the backend:
 
-		TAGS="bindata" make backend
+    TAGS="bindata" make backend
 
 Parallelism is not supported for these targets, so please don't include `-j <num>`.
 
