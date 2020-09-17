@@ -10958,6 +10958,13 @@
           },
           "x-go-name": "Parents"
         },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "#/definitions/CommitAffectedFiles"
+          },
+          "x-go-name": "Files"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
@@ -10999,6 +11006,16 @@
           "x-go-name": "URL"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CommitAffectedFiles": {
+      "type": "object",
+      "title": "CommitAffectedFiles contains the list of files affected by the commit",
+      "properties": {
+        "filename": {
+          "type": "string",
+          "x-go-name": "Filename"
+        },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CommitUser": {

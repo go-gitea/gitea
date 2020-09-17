@@ -278,11 +278,17 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 
 	// Retrieve files affected by the commit
 	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
-		if err != nil {
-			return nil, err
-		}
-	affectedFiles :=  append(fileStatus.Added, fileStatus.Removed...)
+	if err != nil {
+		return nil, err
+	}
+	affectedFiles := append(fileStatus.Added, fileStatus.Removed...)
 	affectedFiles = append(affectedFiles, fileStatus.Modified...)
+	affectedFileList := make([]*api.CommitAffectedFiles, len(affectedFiles))
+	for i := 0; i < len(affectedFiles); i++ {
+		affectedFileList[i] = &api.CommitAffectedFiles{
+			Filename: affectedFiles[i],
+		}
+	}
 
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
@@ -315,6 +321,6 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
-		Files: affectedFiles,
+		Files:     affectedFiles,
 	}, nil
 }

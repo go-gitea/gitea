@@ -55,3 +55,7 @@ type CommitDateOptions struct {
 	// swagger:strfmt date-time
 	Committer time.Time `json:"committer"`
 }
+
+type CommitAffectedFiles struct {
+	Filename string `json:"filename"`
+}
