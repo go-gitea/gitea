@@ -25,6 +25,10 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		}
 	}
 
+	if len(opts.DefaultBranch) == 0 {
+		opts.DefaultBranch = setting.Repository.DefaultBranch
+	}
+
 	repo := &models.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,

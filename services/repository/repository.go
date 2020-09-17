@@ -81,3 +81,8 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 
 	return repo, nil
 }
+
+// NewContext start repository service
+func NewContext() error {
+	return initPushQueue()
+}

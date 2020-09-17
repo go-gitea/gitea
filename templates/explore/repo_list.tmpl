@@ -27,16 +27,16 @@
 					{{end}}
 				{{end}}
 				{{if .IsFork}}
-					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
+					<span class="middle">{{svg "octicon-repo-forked"}}</span>
 				{{else if .IsMirror}}
-					<span class="middle">{{svg "octicon-mirror" 16}}</span>
+					<span class="middle">{{svg "octicon-mirror"}}</span>
 				{{end}}
 				<div class="ui right metas">
 					{{if .PrimaryLanguage }}
 					<span class="text grey"><i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
 					{{end}}
-					<span class="text grey">{{svg "octicon-star" 16}} {{.NumStars}}</span>
-					<span class="text grey">{{svg "octicon-git-branch" 16}} {{.NumForks}}</span>
+					<span class="text grey">{{svg "octicon-star"}} {{.NumStars}}</span>
+					<span class="text grey">{{svg "octicon-git-branch"}} {{.NumForks}}</span>
 				</div>
 			</div>
 			<div class="description">

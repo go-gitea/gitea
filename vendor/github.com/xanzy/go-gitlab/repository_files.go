@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // RepositoryFilesService handles communication with the repository files
@@ -35,15 +36,16 @@ type RepositoryFilesService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/repository_files.html
 type File struct {
-	FileName string `json:"file_name"`
-	FilePath string `json:"file_path"`
-	Size     int    `json:"size"`
-	Encoding string `json:"encoding"`
-	Content  string `json:"content"`
-	Ref      string `json:"ref"`
-	BlobID   string `json:"blob_id"`
-	CommitID string `json:"commit_id"`
-	SHA256   string `json:"content_sha256"`
+	FileName     string `json:"file_name"`
+	FilePath     string `json:"file_path"`
+	Size         int    `json:"size"`
+	Encoding     string `json:"encoding"`
+	Content      string `json:"content"`
+	Ref          string `json:"ref"`
+	BlobID       string `json:"blob_id"`
+	CommitID     string `json:"commit_id"`
+	SHA256       string `json:"content_sha256"`
+	LastCommitID string `json:"last_commit_id"`
 }
 
 func (r File) String() string {
@@ -123,13 +125,14 @@ func (s *RepositoryFilesService) GetFileMetaData(pid interface{}, fileName strin
 	}
 
 	f := &File{
-		BlobID:   resp.Header.Get("X-Gitlab-Blob-Id"),
-		CommitID: resp.Header.Get("X-Gitlab-Last-Commit-Id"),
-		Encoding: resp.Header.Get("X-Gitlab-Encoding"),
-		FileName: resp.Header.Get("X-Gitlab-File-Name"),
-		FilePath: resp.Header.Get("X-Gitlab-File-Path"),
-		Ref:      resp.Header.Get("X-Gitlab-Ref"),
-		SHA256:   resp.Header.Get("X-Gitlab-Content-Sha256"),
+		BlobID:       resp.Header.Get("X-Gitlab-Blob-Id"),
+		CommitID:     resp.Header.Get("X-Gitlab-Last-Commit-Id"),
+		Encoding:     resp.Header.Get("X-Gitlab-Encoding"),
+		FileName:     resp.Header.Get("X-Gitlab-File-Name"),
+		FilePath:     resp.Header.Get("X-Gitlab-File-Path"),
+		Ref:          resp.Header.Get("X-Gitlab-Ref"),
+		SHA256:       resp.Header.Get("X-Gitlab-Content-Sha256"),
+		LastCommitID: resp.Header.Get("X-Gitlab-Last-Commit-Id"),
 	}
 
 	if sizeString := resp.Header.Get("X-Gitlab-Size"); sizeString != "" {
@@ -140,6 +143,66 @@ func (s *RepositoryFilesService) GetFileMetaData(pid interface{}, fileName strin
 	}
 
 	return f, resp, err
+}
+
+// FileBlameRange represents one item of blame information.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/repository_files.html
+type FileBlameRange struct {
+	Commit struct {
+		ID             string     `json:"id"`
+		ParentIDs      []string   `json:"parent_ids"`
+		Message        string     `json:"message"`
+		AuthoredDate   *time.Time `json:"authored_date"`
+		AuthorName     string     `json:"author_name"`
+		AuthorEmail    string     `json:"author_email"`
+		CommittedDate  *time.Time `json:"committed_date"`
+		CommitterName  string     `json:"committer_name"`
+		CommitterEmail string     `json:"committer_email"`
+	} `json:"commit"`
+	Lines []string `json:"lines"`
+}
+
+func (b FileBlameRange) String() string {
+	return Stringify(b)
+}
+
+// GetFileBlameOptions represents the available GetFileBlame() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/repository_files.html#get-file-blame-from-repository
+type GetFileBlameOptions struct {
+	Ref *string `url:"ref,omitempty" json:"ref,omitempty"`
+}
+
+// GetFileBlame allows you to receive blame information. Each blame range
+// contains lines and corresponding commit info.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/repository_files.html#get-file-blame-from-repository
+func (s *RepositoryFilesService) GetFileBlame(pid interface{}, file string, opt *GetFileBlameOptions, options ...RequestOptionFunc) ([]*FileBlameRange, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf(
+		"projects/%s/repository/files/%s/blame",
+		pathEscape(project),
+		url.PathEscape(file),
+	)
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var br []*FileBlameRange
+	resp, err := s.client.Do(req, &br)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return br, resp, err
 }
 
 // GetRawFileOptions represents the available GetRawFile() options.
@@ -282,9 +345,11 @@ func (s *RepositoryFilesService) UpdateFile(pid interface{}, fileName string, op
 // https://docs.gitlab.com/ce/api/repository_files.html#delete-existing-file-in-repository
 type DeleteFileOptions struct {
 	Branch        *string `url:"branch,omitempty" json:"branch,omitempty"`
+	StartBranch   *string `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	AuthorEmail   *string `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string `url:"author_name,omitempty" json:"author_name,omitempty"`
 	CommitMessage *string `url:"commit_message,omitempty" json:"commit_message,omitempty"`
+	LastCommitID  *string `url:"last_commit_id,omitempty" json:"last_commit_id,omitempty"`
 }
 
 // DeleteFile deletes an existing file in a repository

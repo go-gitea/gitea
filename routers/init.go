@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/services/repository"
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
@@ -57,6 +58,9 @@ func NewServices() {
 	setting.NewServices()
 	if err := storage.Init(); err != nil {
 		log.Fatal("storage init failed: %v", err)
+	}
+	if err := repository.NewContext(); err != nil {
+		log.Fatal("repository init failed: %v", err)
 	}
 	mailer.NewContext()
 	_ = cache.NewContext()
