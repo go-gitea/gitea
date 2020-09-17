@@ -1138,8 +1138,8 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 		} else if comment.Type == models.CommentTypeAssignees || comment.Type == models.CommentTypeReviewRequest {
-			if err = comment.LoadAssigneeUser(); err != nil {
-				ctx.ServerError("LoadAssigneeUser", err)
+			if err = comment.LoadAssigneeUserAndTeam(); err != nil {
+				ctx.ServerError("LoadAssigneeUserAndTeam", err)
 				return
 			}
 		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {

@@ -605,9 +605,9 @@
 					{{end}}
 				{{else}}
 					{{if .RemovedAssignee}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.TeamAssignee.Name|Escape) $createdStr | Safe}}
+						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.review.add_review_request" (.TeamAssignee.Name|Escape) $createdStr | Safe}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
 					{{end}}
 				{{end}}
 			</span>
