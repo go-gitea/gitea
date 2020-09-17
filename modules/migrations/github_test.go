@@ -72,11 +72,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "go-gitea",
-		Description: "Test repository for testing migration from github to gitea",
-		CloneURL:    "https://github.com/go-gitea/test_repo.git",
-		OriginalURL: "https://github.com/go-gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "go-gitea",
+		Description:   "Test repository for testing migration from github to gitea",
+		CloneURL:      "https://github.com/go-gitea/test_repo.git",
+		OriginalURL:   "https://github.com/go-gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
