@@ -34,7 +34,7 @@ func CleanValue(value []byte) []byte {
 	needsDash := false
 	for _, r := range rs {
 		switch {
-		case unicode.IsLetter(r) || unicode.IsNumber(r):
+		case unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_':
 			if needsDash && len(result) > 0 {
 				result = append(result, '-')
 			}

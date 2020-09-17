@@ -10,6 +10,12 @@ ISSUE_INDEXER_PATH   = integrations/indexers-sqlite/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH    = integrations/indexers-sqlite/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-sqlite/gitea-repositories
 

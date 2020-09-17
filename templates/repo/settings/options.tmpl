@@ -269,7 +269,22 @@
 					</div>
 				</div>
 
-				{{if .Repository.CanEnablePulls}}
+				<div class="ui divider"></div>
+
+				{{$isProjectsEnabled := .Repository.UnitEnabled $.UnitTypeProjects}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.project_board"}}</label>
+					{{if .UnitTypeProjects.UnitGlobalDisabled}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.projects_desc"}}</label>
+					</div>
+				</div>
+
+				{{if and (not .IsMirror) (.Repository.UnitEnabled $.UnitTypePullRequests)}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}

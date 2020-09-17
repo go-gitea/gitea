@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"gitea.com/macaron/macaron"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -376,7 +376,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]*repofiles.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repo_service.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
@@ -403,7 +403,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repofiles.PushUpdateOptions{
+			option := repo_service.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
@@ -422,7 +422,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	}
 
 	if repo != nil && len(updates) > 0 {
-		if err := repofiles.PushUpdates(repo, updates); err != nil {
+		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
 				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.BranchName())
@@ -433,6 +433,18 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
+		}
+	}
+
+	// Push Options
+	if repo != nil && len(opts.GitPushOptions) > 0 {
+		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
+		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
+		if err := models.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
 		}
 	}
 
@@ -557,7 +569,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 		if !git.IsErrUnsupportedVersion(err) {
 			gitRepo.Close()
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+				"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
 		}
@@ -566,7 +578,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 
 	if err := repo.UpdateDefaultBranch(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+			"Err": fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
 		return
 	}

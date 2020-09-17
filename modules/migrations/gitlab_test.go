@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -27,19 +29,20 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
-	downloader := NewGitlabDownloader("https://gitlab.com", "gitea/test_repo", gitlabPersonalAccessToken, "")
-	if downloader == nil {
-		t.Fatal("NewGitlabDownloader is nil")
+	downloader, err := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("NewGitlabDownloader is nil: %v", err))
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	// Repo Owner is blank in Gitlab Group repos
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "",
-		Description: "Test repository for testing migration from gitlab to gitea",
-		CloneURL:    "https://gitlab.com/gitea/test_repo.git",
-		OriginalURL: "https://gitlab.com/gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "",
+		Description:   "Test repository for testing migration from gitlab to gitea",
+		CloneURL:      "https://gitlab.com/gitea/test_repo.git",
+		OriginalURL:   "https://gitlab.com/gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
@@ -129,7 +132,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterName: "lafriks",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 28, 8, 43, 35, 459000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 8, 46, 23, 304000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
@@ -138,8 +141,18 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "discussion",
 				},
 			},
-			Reactions: nil,
-			Closed:    &closed1,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsup",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "open_mouth",
+				}},
+			Closed: &closed1,
 		},
 		{
 			Number:     2,
@@ -156,8 +169,38 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "duplicate",
 				},
 			},
-			Reactions: nil,
-			Closed:    &closed2,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsup",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "thumbsdown",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "laughing",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "tada",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "confused",
+				},
+				{
+					UserID:   1241334,
+					UserName: "lafriks",
+					Content:  "hearts",
+				}},
+			Closed: &closed2,
 		},
 	}, issues)
 
@@ -170,7 +213,6 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterID:   1241334,
 			PosterName: "lafriks",
 			Created:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
 			Content:    "This is a comment",
 			Reactions:  nil,
 		},
@@ -206,20 +248,29 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	assert.EqualValues(t, []*base.PullRequest{
 		{
-			Number:     4,
-			Title:      "Test branch",
-			Content:    "do not merge this PR",
-			Milestone:  "1.0.0",
-			PosterID:   1241334,
-			PosterName: "lafriks",
-			State:      "opened",
-			Created:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
-			Updated:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
+			Number:         4,
+			OriginalNumber: 2,
+			Title:          "Test branch",
+			Content:        "do not merge this PR",
+			Milestone:      "1.0.0",
+			PosterID:       1241334,
+			PosterName:     "lafriks",
+			State:          "opened",
+			Created:        time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
 				},
 			},
+			Reactions: []*base.Reaction{{
+				UserID:   4575606,
+				UserName: "real6543",
+				Content:  "thumbsup",
+			}, {
+				UserID:   4575606,
+				UserName: "real6543",
+				Content:  "tada",
+			}},
 			PatchURL: "https://gitlab.com/gitea/test_repo/-/merge_requests/2.patch",
 			Head: base.PullRequestBranch{
 				Ref:       "feat/test",
@@ -243,13 +294,20 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	rvs, err := downloader.GetReviews(1)
 	assert.NoError(t, err)
-	if assert.Len(t, prs, 2) {
-		assert.EqualValues(t, 527793, rvs[0].ReviewerID)
-		assert.EqualValues(t, "axifive", rvs[0].ReviewerName)
-		assert.EqualValues(t, "APPROVED", rvs[0].State)
-		assert.EqualValues(t, 4102996, rvs[1].ReviewerID)
-		assert.EqualValues(t, "zeripath", rvs[1].ReviewerName)
-		assert.EqualValues(t, "APPROVED", rvs[1].State)
+	if assert.Len(t, rvs, 2) {
+		for i := range rvs {
+			switch rvs[i].ReviewerID {
+			case 4102996:
+				assert.EqualValues(t, "zeripath", rvs[i].ReviewerName)
+				assert.EqualValues(t, "APPROVED", rvs[i].State)
+			case 527793:
+				assert.EqualValues(t, "axifive", rvs[i].ReviewerName)
+				assert.EqualValues(t, "APPROVED", rvs[i].State)
+			default:
+				t.Errorf("Unexpected Reviewer ID: %d", rvs[i].ReviewerID)
+
+			}
+		}
 	}
 	rvs, err = downloader.GetReviews(2)
 	assert.NoError(t, err)

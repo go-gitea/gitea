@@ -201,21 +201,54 @@ func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
 	if err != nil {
 		return api.StopWatch{}, err
 	}
+	if err := issue.LoadRepo(); err != nil {
+		return api.StopWatch{}, err
+	}
 	return api.StopWatch{
-		Created:    sw.CreatedUnix.AsTime(),
-		IssueIndex: issue.Index,
+		Created:       sw.CreatedUnix.AsTime(),
+		IssueIndex:    issue.Index,
+		IssueTitle:    issue.Title,
+		RepoOwnerName: issue.Repo.OwnerName,
+		RepoName:      issue.Repo.Name,
 	}, nil
 }
 
 // APIFormat convert Stopwatches type to api.StopWatches type
 func (sws Stopwatches) APIFormat() (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
+
+	issueCache := make(map[int64]*Issue)
+	repoCache := make(map[int64]*Repository)
+	var (
+		issue *Issue
+		repo  *Repository
+		ok    bool
+		err   error
+	)
+
 	for _, sw := range sws {
-		apiSW, err := sw.APIFormat()
-		if err != nil {
-			return nil, err
+		issue, ok = issueCache[sw.IssueID]
+		if !ok {
+			issue, err = GetIssueByID(sw.IssueID)
+			if err != nil {
+				return nil, err
+			}
 		}
-		result = append(result, apiSW)
+		repo, ok = repoCache[issue.RepoID]
+		if !ok {
+			repo, err = GetRepositoryByID(issue.RepoID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		result = append(result, api.StopWatch{
+			Created:       sw.CreatedUnix.AsTime(),
+			IssueIndex:    issue.Index,
+			IssueTitle:    issue.Title,
+			RepoOwnerName: repo.OwnerName,
+			RepoName:      repo.Name,
+		})
 	}
 	return result, nil
 }

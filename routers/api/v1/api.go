@@ -521,6 +521,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/api", settings.GetGeneralAPISettings)
+			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
@@ -634,7 +636,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Get("/issues/search", repo.SearchIssues)
 
-			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
@@ -806,6 +808,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".diff", repo.DownloadPullDiff)
 						m.Get(".patch", repo.DownloadPullPatch)
+						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {
@@ -863,6 +866,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
+				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
@@ -933,6 +937,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 
 		m.Group("/admin", func() {
+			m.Group("/cron", func() {
+				m.Get("", admin.ListCronTasks)
+				m.Post("/:task", admin.PostCronTask)
+			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
 				m.Get("", admin.GetAllUsers)

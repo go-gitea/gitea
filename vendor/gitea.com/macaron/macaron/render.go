@@ -36,7 +36,6 @@ import (
 
 const (
 	_CONTENT_TYPE    = "Content-Type"
-	_CONTENT_LENGTH  = "Content-Length"
 	_CONTENT_BINARY  = "application/octet-stream"
 	_CONTENT_JSON    = "application/json"
 	_CONTENT_HTML    = "text/html"
@@ -200,7 +199,7 @@ func NewTemplateFileSystem(opt RenderOptions, omitData bool) TplFileSystem {
 	lastDir := dirs[len(dirs)-1]
 
 	// We still walk the last (original) directory because it's non-sense we load templates not exist in original directory.
-	if err = filepath.Walk(lastDir, func(path string, info os.FileInfo, err error) error {
+	if err = filepath.Walk(lastDir, func(path string, info os.FileInfo, _ error) error {
 		r, err := filepath.Rel(lastDir, path)
 		if err != nil {
 			return err
@@ -458,9 +457,9 @@ func (r *TplRender) JSON(status int, v interface{}) {
 	r.Header().Set(_CONTENT_TYPE, _CONTENT_JSON+r.CompiledCharset)
 	r.WriteHeader(status)
 	if len(r.Opt.PrefixJSON) > 0 {
-		r.Write(r.Opt.PrefixJSON)
+		_, _ = r.Write(r.Opt.PrefixJSON)
 	}
-	r.Write(result)
+	_, _ = r.Write(result)
 }
 
 func (r *TplRender) JSONString(v interface{}) (string, error) {
@@ -494,9 +493,9 @@ func (r *TplRender) XML(status int, v interface{}) {
 	r.Header().Set(_CONTENT_TYPE, _CONTENT_XML+r.CompiledCharset)
 	r.WriteHeader(status)
 	if len(r.Opt.PrefixXML) > 0 {
-		r.Write(r.Opt.PrefixXML)
+		_, _ = r.Write(r.Opt.PrefixXML)
 	}
-	r.Write(result)
+	_, _ = r.Write(result)
 }
 
 func (r *TplRender) data(status int, contentType string, v []byte) {
@@ -504,7 +503,7 @@ func (r *TplRender) data(status int, contentType string, v []byte) {
 		r.Header().Set(_CONTENT_TYPE, contentType)
 	}
 	r.WriteHeader(status)
-	r.Write(v)
+	_, _ = r.Write(v)
 }
 
 func (r *TplRender) RawData(status int, v []byte) {
@@ -612,7 +611,7 @@ func (r *TplRender) HTMLString(name string, data interface{}, htmlOpt ...HTMLOpt
 func (r *TplRender) Error(status int, message ...string) {
 	r.WriteHeader(status)
 	if len(message) > 0 {
-		r.Write([]byte(message[0]))
+		_, _ = r.Write([]byte(message[0]))
 	}
 }
 

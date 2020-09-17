@@ -27,7 +27,7 @@
 						</div>
 						<div class="review-item-right">
 							{{if .Stale}}
-							<span class="type-icon text grey">
+							<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
 								<i class="octicon icon fa-hourglass-end"></i>
 							</span>
 							{{end}}
@@ -49,11 +49,11 @@
 								{{end}}
 
 								{{if $canChoose }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{svg "octicon-sync" 16}}
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{svg "octicon-sync"}}
 									</a>
 								{{end}}
-								{{svg (printf "octicon-%s" .Type.Icon) 16}}
+								{{svg (printf "octicon-%s" .Type.Icon)}}
 							</span>
 						</div>
 					</div>
@@ -73,7 +73,7 @@
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
 	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
-	{{- else if and .RequireSigned (not .WillSign)}}red
+	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
@@ -112,7 +112,7 @@
 				{{end}}
 			{{else if .IsPullFilesConflicted}}
 				<div class="item text grey">
-					{{svg "octicon-x" 16}}
+					{{svg "octicon-x"}}
 					{{$.i18n.Tr "repo.pulls.files_conflicted"}}
 					{{range .ConflictedFiles}}
 						<div>{{.}}</div>
@@ -120,48 +120,48 @@
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item text red">
-					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
-					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
+					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
-					<i class="icon icon-octicon">{{svg "octicon-sync" 16}}</i>
+					<i class="icon icon-octicon">{{svg "octicon-sync"}}</i>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_missing"}}
 					</div>
-				{{else if and .RequireSigned (not .WillSign)}}
+				{{else if and .AllowMerge .RequireSigned (not .WillSign)}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item text yellow">
@@ -170,15 +170,15 @@
 					</div>
 				{{end}}
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
-							<i class="icon icon-octicon">{{svg "octicon-dot-fill" 16}}</i>
+							<i class="icon icon-octicon">{{svg "octicon-dot-fill"}}</i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
 						<div class="item text green">
-							<i class="icon icon-octicon">{{svg "octicon-check" 16}}</i>
+							<i class="icon icon-octicon">{{svg "octicon-check"}}</i>
 							{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
 						</div>
 					{{end}}
@@ -200,7 +200,7 @@
 					<div class="ui divider"></div>
 					<div class="item item-section text grey">
 						<div class="item-section-left">
-							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+							<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 						</div>
 						<div class="item-section-right">
@@ -216,7 +216,7 @@
 					</div>
 				{{end}}
 
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
@@ -294,7 +294,7 @@
 							{{end}}
 							<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
-									{{svg "octicon-git-merge" 16}}
+									{{svg "octicon-git-merge"}}
 									<span class="button-text">
 									{{if eq .MergeStyle "merge"}}
 										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
@@ -331,18 +331,18 @@
 						{{else}}
 							<div class="ui divider"></div>
 							<div class="item text red">
-								{{svg "octicon-x" 16}}
+								{{svg "octicon-x"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
 							</div>
 							<div class="item text grey">
-								{{svg "octicon-info" 16}}
+								{{svg "octicon-info"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
 					{{else}}
 						<div class="ui divider"></div>
 						<div class="item text grey">
-							{{svg "octicon-info" 16}}
+							{{svg "octicon-info"}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
 					{{end}}
@@ -351,36 +351,36 @@
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
-						{{svg "octicon-x" 16}}
+						{{svg "octicon-x"}}
 					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
-						{{svg "octicon-x" 16}}
+						{{svg "octicon-x"}}
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
-						{{svg "octicon-x" 16}}
+						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .RequireSigned (not .WillSign)}}
 					<div class="item text red">
-						{{svg "octicon-x" 16}}
+						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 				{{else}}
 					<div class="item text red">
-						{{svg "octicon-x" 16}}
+						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>
 					<div class="item text grey">
-						{{svg "octicon-info" 16}}
+						{{svg "octicon-info"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
@@ -388,7 +388,7 @@
 
 			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
 				<div class="item text grey">
-					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 					{{if .UpdateAllowed}}
 						<form action="{{.Link}}/update" method="post" class="ui floating right">

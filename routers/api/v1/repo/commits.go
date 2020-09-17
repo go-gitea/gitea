@@ -211,6 +211,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
