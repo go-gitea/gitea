@@ -42,7 +42,7 @@
 								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{$.i18n.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
-								{{.NumWatches}}
+								{{CountFmt .NumWatches}}
 							</a>
 						</div>
 					</form>
@@ -53,7 +53,7 @@
 								{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/stars">
-								{{.NumStars}}
+								{{CountFmt .NumStars}}
 							</a>
 						</div>
 					</form>
@@ -63,7 +63,7 @@
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
-								{{.NumForks}}
+								{{CountFmt .NumForks}}
 							</a>
 						</div>
 					{{end}}
@@ -83,7 +83,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
+						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 					</a>
 				{{end}}
 
@@ -95,7 +95,7 @@
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
-						{{svg "octicon-git-pull-request"}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
+						{{svg "octicon-git-pull-request"}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{CountFmt .Repository.NumOpenPulls}}</span>
 					</a>
 				{{end}}
 
@@ -103,14 +103,14 @@
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}
 						<span class="ui {{if not .Repository.NumOpenProjects}}gray{{else}}blue{{end}} small label">
-							{{.Repository.NumOpenProjects}}
+							{{CountFmt .Repository.NumOpenProjects}}
 						</span>
 					</a>
 				{{ end }}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-					{{svg "octicon-tag"}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{.NumReleases}}</span>
+					{{svg "octicon-tag"}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{CountFmt .NumReleases}}</span>
 				</a>
 				{{end}}
 
