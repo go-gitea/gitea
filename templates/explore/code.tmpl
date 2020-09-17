@@ -10,8 +10,8 @@
 		</div>
 		<div class="two wide field">
 			<select name="t">
-				<option value="" selected>{{.i18n.Tr "explore.search.fuzzy"}}</option>
-				<option value="match">{{.i18n.Tr "explore.search.match"}}</option>
+				<option value="">{{.i18n.Tr "explore.search.fuzzy"}}</option>
+				<option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "explore.search.match"}}</option>
                 	</select>
 		</div>
 		<div class="three field">
