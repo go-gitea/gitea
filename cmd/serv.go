@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
@@ -50,21 +51,14 @@ var CmdServ = cli.Command{
 }
 
 func setup(logPath string, debug bool) {
-	if !debug {
-		_ = log.DelLogger("console")
+	_ = log.DelLogger("console")
+	if debug {
+		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
 	}
 	setting.NewContext()
 	if debug {
 		setting.ProdMode = false
 	}
-}
-
-func parseCmd(cmd string) (string, string) {
-	ss := strings.SplitN(cmd, " ", 2)
-	if len(ss) != 2 {
-		return "", ""
-	}
-	return ss[0], strings.Replace(ss[1], "'/", "'", 1)
 }
 
 var (
@@ -124,9 +118,24 @@ func runServ(c *cli.Context) error {
 		}
 		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
+	} else if c.Bool("debug") {
+		log.Debug("SSH_ORIGINAL_COMMAND: %s", os.Getenv("SSH_ORIGINAL_COMMAND"))
 	}
 
-	verb, args := parseCmd(cmd)
+	words, err := shellquote.Split(cmd)
+	if err != nil {
+		fail("Error parsing arguments", "Failed to parse arguments: %v", err)
+	}
+
+	if len(words) < 2 {
+		fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
+	}
+
+	verb := words[0]
+	repoPath := words[1]
+	if repoPath[0] == '/' {
+		repoPath = repoPath[1:]
+	}
 
 	var lfsVerb string
 	if verb == lfsAuthenticateVerb {
@@ -134,17 +143,17 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 
-		argsSplit := strings.Split(args, " ")
-		if len(argsSplit) >= 2 {
-			args = strings.TrimSpace(argsSplit[0])
-			lfsVerb = strings.TrimSpace(argsSplit[1])
+		if len(words) > 2 {
+			lfsVerb = words[2]
 		}
 	}
 
-	repoPath := strings.ToLower(strings.Trim(args, "'"))
+	// LowerCase and trim the repoPath as that's how they are stored.
+	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
+
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
-		fail("Invalid repository path", "Invalid repository path: %v", args)
+		fail("Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
 	username := strings.ToLower(rr[0])
@@ -203,11 +212,13 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvRepoName, results.RepoName)
 	os.Setenv(models.EnvRepoUsername, results.OwnerName)
 	os.Setenv(models.EnvPusherName, results.UserName)
+	os.Setenv(models.EnvPusherEmail, results.UserEmail)
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
-	os.Setenv(models.ProtectedBranchRepoID, strconv.FormatInt(results.RepoID, 10))
-	os.Setenv(models.ProtectedBranchPRID, fmt.Sprintf("%d", 0))
+	os.Setenv(models.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
+	os.Setenv(models.EnvPRID, fmt.Sprintf("%d", 0))
 	os.Setenv(models.EnvIsDeployKey, fmt.Sprintf("%t", results.IsDeployKey))
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
+	os.Setenv(models.EnvAppURL, setting.AppURL)
 
 	//LFS token authentication
 	if verb == lfsAuthenticateVerb {

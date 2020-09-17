@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -173,7 +174,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	}
 
 	// make a fresh listener
-	if err := os.Remove(address.Name); err != nil && !os.IsNotExist(err) {
+	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("Failed to remove unix socket %s: %v", address.Name, err)
 	}
 

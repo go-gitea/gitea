@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -28,7 +29,7 @@ func TestGPGGit(t *testing.T) {
 	// OK Set a new GPG home
 	tmpDir, err := ioutil.TempDir("", "temp-gpg")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer util.RemoveAll(tmpDir)
 
 	err = os.Chmod(tmpDir, 0700)
 	assert.NoError(t, err)

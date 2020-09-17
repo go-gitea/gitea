@@ -7,12 +7,12 @@
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
-				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear" 16}}</a>{{end}}
+				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear"}}</a>{{end}}
 			</div>
 			{{if .Org.Description}}<p class="desc">{{.Org.Description}}</p>{{end}}
 			<div class="text grey meta">
-				{{if .Org.Location}}<div class="item">{{svg "octicon-location" 16}} <span>{{.Org.Location}}</span></div>{{end}}
-				{{if .Org.Website}}<div class="item">{{svg "octicon-link" 16}} <a target="_blank" rel="noopener noreferrer" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
+				{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
+				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			</div>
 		</div>
 	</div>
@@ -38,7 +38,7 @@
 					<strong>{{.i18n.Tr "org.people"}}</strong>
 					{{if .IsOrganizationMember}}
 						<div class="ui right">
-							<a class="text grey" href="{{.OrgLink}}/members">{{.Org.NumMembers}} {{svg "octicon-chevron-right" 16}}</a>
+							<a class="text grey" href="{{.OrgLink}}/members">{{.Org.NumMembers}} {{svg "octicon-chevron-right"}}</a>
 						</div>
 					{{end}}
 				</h4>
@@ -55,7 +55,7 @@
 					<div class="ui top attached header">
 						<strong>{{.i18n.Tr "org.teams"}}</strong>
 						<div class="ui right">
-							<a class="text grey" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right" 16}}</a>
+							<a class="text grey" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 						</div>
 					</div>
 					<div class="ui attached table segment teams">

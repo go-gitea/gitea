@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
@@ -98,11 +99,11 @@ func TestMain(m *testing.M) {
 
 	writerCloser.t = nil
 
-	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+		fmt.Printf("util.RemoveAll: %v\n", err)
 		os.Exit(1)
 	}
-	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
 		fmt.Printf("Unable to remove repo indexer: %v\n", err)
 		os.Exit(1)
 	}
@@ -138,7 +139,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
-	os.RemoveAll(models.LocalCopyPath())
+	util.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 
@@ -197,16 +198,6 @@ func initIntegrationTest() {
 			}
 		}
 
-		// Make the user's default search path the created schema; this will affect new connections
-		if _, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
-		}
-
-		// Make the current connection's search the created schema
-		if _, err = db.Exec(fmt.Sprintf(`SET search_path = %s`, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
-		}
-
 	case setting.Database.UseMSSQL:
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
@@ -230,7 +221,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
@@ -473,7 +464,7 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
 }

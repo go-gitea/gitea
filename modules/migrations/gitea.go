@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -93,12 +93,15 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	var remoteAddr = repo.CloneURL
-	if len(opts.AuthUsername) > 0 {
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(repo.CloneURL)
 		if err != nil {
 			return err
 		}
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
 		remoteAddr = u.String()
 	}
 
@@ -119,8 +122,9 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
+	r.DefaultBranch = repo.DefaultBranch
 
-	r, err = repository.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
+	r, err = repository.MigrateRepositoryGitData(g.doer, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -210,7 +214,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
@@ -269,24 +273,11 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 			// download attachment
 			err = func() error {
-				resp, err := http.Get(asset.URL)
+				rc, err := downloader.GetAsset(rel.TagName, asset.ID)
 				if err != nil {
 					return err
 				}
-				defer resp.Body.Close()
-
-				localPath := attach.LocalPath()
-				if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-					return fmt.Errorf("MkdirAll: %v", err)
-				}
-
-				fw, err := os.Create(localPath)
-				if err != nil {
-					return fmt.Errorf("Create: %v", err)
-				}
-				defer fw.Close()
-
-				_, err = io.Copy(fw, resp.Body)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
 				return err
 			}()
 			if err != nil {

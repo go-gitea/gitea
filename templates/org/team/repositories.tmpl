@@ -42,13 +42,13 @@
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
 								{{if .IsPrivate}}
-									{{svg "octicon-lock" 16}}
+									{{svg "octicon-lock"}}
 								{{else if .IsFork}}
-									{{svg "octicon-repo-forked" 16}}
+									{{svg "octicon-repo-forked"}}
 								{{else if .IsMirror}}
-									{{svg "octicon-mirror" 16}}
+									{{svg "octicon-mirror"}}
 								{{else}}
-									{{svg "octicon-repo" 16}}
+									{{svg "octicon-repo"}}
 								{{end}}
 								<strong>{{$.Org.Name}}/{{.Name}}</strong>
 							</a>

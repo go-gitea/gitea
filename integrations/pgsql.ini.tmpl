@@ -15,6 +15,12 @@ ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-pgsql/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-pgsql/gitea-repositories
 

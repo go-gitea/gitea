@@ -28,6 +28,7 @@ type Notifier interface {
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
 	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
+	NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string)
 	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 		addedLabels []*models.Label, removedLabels []*models.Label)
 

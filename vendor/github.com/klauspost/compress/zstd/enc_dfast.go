@@ -80,10 +80,7 @@ func (e *doubleFastEncoder) Encode(blk *blockEnc, src []byte) {
 	sLimit := int32(len(src)) - inputMargin
 	// stepSize is the number of bytes to skip on every main loop iteration.
 	// It should be >= 1.
-	stepSize := int32(e.o.targetLength)
-	if stepSize == 0 {
-		stepSize++
-	}
+	const stepSize = 1
 
 	const kSearchStrength = 8
 
@@ -170,55 +167,6 @@ encodeLoop:
 						break encodeLoop
 					}
 					cv = load6432(src, s)
-					continue
-				}
-				const repOff2 = 1
-				// We deviate from the reference encoder and also check offset 2.
-				// Slower and not consistently better, so disabled.
-				// repIndex = s - offset2 + repOff2
-				if false && repIndex >= 0 && load3232(src, repIndex) == uint32(cv>>(repOff2*8)) {
-					// Consider history as well.
-					var seq seq
-					lenght := 4 + e.matchlen(s+4+repOff2, repIndex+4, src)
-
-					seq.matchLen = uint32(lenght - zstdMinMatch)
-
-					// We might be able to match backwards.
-					// Extend as long as we can.
-					start := s + repOff2
-					// We end the search early, so we don't risk 0 literals
-					// and have to do special offset treatment.
-					startLimit := nextEmit + 1
-
-					tMin := s - e.maxMatchOff
-					if tMin < 0 {
-						tMin = 0
-					}
-					for repIndex > tMin && start > startLimit && src[repIndex-1] == src[start-1] && seq.matchLen < maxMatchLength-zstdMinMatch-1 {
-						repIndex--
-						start--
-						seq.matchLen++
-					}
-					addLiterals(&seq, start)
-
-					// rep 2
-					seq.offset = 2
-					if debugSequences {
-						println("repeat sequence 2", seq, "next s:", s)
-					}
-					blk.sequences = append(blk.sequences, seq)
-					s += lenght + repOff2
-					nextEmit = s
-					if s >= sLimit {
-						if debug {
-							println("repeat ended", s, lenght)
-
-						}
-						break encodeLoop
-					}
-					cv = load6432(src, s)
-					// Swap offsets
-					offset1, offset2 = offset2, offset1
 					continue
 				}
 			}
@@ -372,7 +320,7 @@ encodeLoop:
 			}
 
 			// Store this, since we have it.
-			nextHashS := hash5(cv1>>8, dFastShortTableBits)
+			nextHashS := hash5(cv, dFastShortTableBits)
 			nextHashL := hash8(cv, dFastLongTableBits)
 
 			// We have at least 4 byte match.
@@ -450,10 +398,7 @@ func (e *doubleFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 	sLimit := int32(len(src)) - inputMargin
 	// stepSize is the number of bytes to skip on every main loop iteration.
 	// It should be >= 1.
-	stepSize := int32(e.o.targetLength)
-	if stepSize == 0 {
-		stepSize++
-	}
+	const stepSize = 1
 
 	const kSearchStrength = 8
 
@@ -726,4 +671,8 @@ encodeLoop:
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 
+	// We do not store history, so we must offset e.cur to avoid false matches for next user.
+	if e.cur < bufferReset {
+		e.cur += int32(len(src))
+	}
 }
