@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -329,29 +329,6 @@ func ToTeam(team *models.Team) *api.Team {
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}
-}
-
-// ToUser convert models.User to api.User
-// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func ToUser(user *models.User, signed, authed bool) *api.User {
-	result := &api.User{
-		UserName:  user.Name,
-		AvatarURL: user.AvatarLink(),
-		FullName:  markup.Sanitize(user.FullName),
-		Created:   user.CreatedUnix.AsTime(),
-	}
-	// hide primary email if API caller is anonymous or user keep email private
-	if signed && (!user.KeepEmailPrivate || authed) {
-		result.Email = user.Email
-	}
-	// only site admin will get these information and possibly user himself
-	if authed {
-		result.ID = user.ID
-		result.IsAdmin = user.IsAdmin
-		result.LastLogin = user.LastLoginUnix.AsTime()
-		result.Language = user.Language
-	}
-	return result
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
