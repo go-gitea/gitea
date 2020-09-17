@@ -37,6 +37,8 @@
 										<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz">{{svg "octicon-file-zip" 16}}&nbsp;TAR.GZ</a>
 										{{if (and $.CanCreateRelease $release.IsTag)}}
 											<a href="{{$.RepoLink}}/releases/new?tag={{.TagName | EscapePound}}">{{svg "octicon-tag" 16}}&nbsp;{{$.i18n.Tr "repo.release.new_release"}}</a>
+										{{end}}
+										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
 											<a class="ui red delete-button" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
 												<i class="trash icon"></i>&nbsp;{{$.i18n.Tr "repo.release.delete_tag"}}
 											</a>
@@ -153,7 +155,7 @@
 	</div>
 </div>
 
-{{if (and .CanCreateRelease .PageIsTagList)}}
+{{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
 			<i class="trash icon"></i>

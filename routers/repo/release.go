@@ -375,6 +375,11 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 func DeleteRelease(ctx *context.Context) {
 	isDelTag := ctx.Params(":type") == "tags"
 
+	if isDelTag && !ctx.Repo.CanWrite(models.UnitTypeCode) {
+		ctx.Status(403)
+		return
+	}
+
 	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
