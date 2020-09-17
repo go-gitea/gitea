@@ -321,6 +321,6 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
-		Files:     affectedFiles,
+		Files:     affectedFileList,
 	}, nil
 }
