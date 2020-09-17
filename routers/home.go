@@ -383,6 +383,7 @@ func ExploreCode(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true
