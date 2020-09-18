@@ -282,18 +282,16 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 // Returns the matching file-paths
 func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	var (
-		phraseQuery  *query.MatchPhraseQuery
-		prefixQuery  *query.PrefixQuery
 		indexerQuery query.Query
 		keywordQuery query.Query
 	)
 
 	if isMatch {
-		prefixQuery = bleve.NewPrefixQuery(keyword)
+		prefixQuery := bleve.NewPrefixQuery(keyword)
 		prefixQuery.FieldVal = "Content"
 		keywordQuery = prefixQuery
 	} else {
-		phraseQuery = bleve.NewMatchPhraseQuery(keyword)
+		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 		phraseQuery.FieldVal = "Content"
 		phraseQuery.Analyzer = repoIndexerAnalyzer
 		keywordQuery = phraseQuery
