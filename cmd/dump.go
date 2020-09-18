@@ -349,7 +349,7 @@ func runDump(ctx *cli.Context) error {
 	switch setting.Attachment.Storage.Type {
 	case setting.LocalStorageType:
 		if _, err := os.Stat(setting.Attachment.Path); !os.IsNotExist(err) {
-			log.Info("Dumping lfs... %s", setting.LFS.Path)
+			log.Info("Dumping attachment... %s", setting.Attachment.Path)
 			if err := addRecursive(w, "attachments", setting.Attachment.Path, verbose); err != nil {
 				fatal("Failed to include attachment: %v", err)
 			}
