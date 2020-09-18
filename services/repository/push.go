@@ -221,6 +221,9 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 			branch := opts.BranchName()
 			if !opts.IsDelRef() {
+				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
+
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
 					return fmt.Errorf("gitRepo.GetCommit: %v", err)
@@ -264,9 +267,6 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 				if err := repo_module.CacheRef(repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
-
-				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 			} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 				// close all related pulls
 				log.Error("close related pull request failed: %v", err)
