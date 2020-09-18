@@ -204,6 +204,7 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 		if err != nil {
 			return fmt.Errorf("openRepository: %v", err)
 		}
+		defer gitRepo.Close()
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %v", err)
 		}
