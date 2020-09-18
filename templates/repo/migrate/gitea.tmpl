@@ -22,7 +22,7 @@
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
-						<a  target=”_blank” href="/user/settings/applications">{{svg "octicon-question"}}</a>
+						<a  target=”_blank” href="https://docs.gitea.io/en-us/api-usage">{{svg "octicon-question"}}</a>
 					</div>
 
 					<div class="inline field">
