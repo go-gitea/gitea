@@ -102,7 +102,7 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	content := ""
 
 	if len(comment.Content) > 200 {
-		content = content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
+		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
 	} else {
 		content = comment.Content
 	}
