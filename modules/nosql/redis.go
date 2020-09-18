@@ -37,6 +37,7 @@ func ToRedisURI(connection string) *url.URL {
 	// Let's set a nice default
 	uri, _ = url.Parse("redis://127.0.0.1:6379/0")
 	network := "tcp"
+	query := uri.Query()
 
 	// OK so there are two types: Space delimited and Comma delimited
 	// Let's assume that we have a space delimited string - as this is the most common
@@ -79,22 +80,23 @@ func ToRedisURI(connection string) *url.URL {
 		case "idle_timeout":
 			_, err := strconv.Atoi(items[1])
 			if err == nil {
-				uri.Query().Add("idle_timeout", items[1]+"s")
+				query.Add("idle_timeout", items[1]+"s")
 			} else {
-				uri.Query().Add("idle_timeout", items[1])
+				query.Add("idle_timeout", items[1])
 			}
 		default:
 			// Other options become query params
-			uri.Query().Add(items[0], items[1])
+			query.Add(items[0], items[1])
 		}
 	}
 
 	// Finally we need to fix up the Host if we have a unix port
 	if uri.Scheme == "redis+socket" {
-		uri.Query().Set("db", uri.Path)
+		query.Set("db", uri.Path)
 		uri.Path = uri.Host
 		uri.Host = ""
 	}
+	uri.RawQuery = query.Encode()
 
 	return uri
 }
