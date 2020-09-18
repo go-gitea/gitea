@@ -121,7 +121,7 @@
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
 					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">

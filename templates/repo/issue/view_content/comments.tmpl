@@ -106,7 +106,7 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
@@ -163,7 +163,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{end}}
+					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

@@ -157,12 +157,13 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 
 	// convert gitlab repo to stand Repo
 	return &base.Repository{
-		Owner:       owner,
-		Name:        gr.Name,
-		IsPrivate:   private,
-		Description: gr.Description,
-		OriginalURL: gr.WebURL,
-		CloneURL:    gr.HTTPURLToRepo,
+		Owner:         owner,
+		Name:          gr.Name,
+		IsPrivate:     private,
+		Description:   gr.Description,
+		OriginalURL:   gr.WebURL,
+		CloneURL:      gr.HTTPURLToRepo,
+		DefaultBranch: gr.DefaultBranch,
 	}, nil
 }
 

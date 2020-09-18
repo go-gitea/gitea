@@ -50,17 +50,17 @@
 							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 16}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_tag" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 17}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_branch" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_branch" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 18}}
 							{{ $branchLink := .GetBranch | EscapePound}}
-							{{$.i18n.Tr "action.mirror_sync_push" .GetRepoLink $branchLink .GetBranch .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.mirror_sync_push" .GetRepoLink $branchLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 19}}
-							{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 20}}
-							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 21}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.approve_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
