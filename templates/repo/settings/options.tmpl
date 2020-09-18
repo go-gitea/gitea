@@ -284,7 +284,7 @@
 					</div>
 				</div>
 
-				{{if .Repository.CanEnablePulls}}
+				{{if and (not .IsMirror) (.Repository.UnitEnabled $.UnitTypePullRequests)}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}

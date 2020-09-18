@@ -82,9 +82,7 @@ func (q Quoter) JoinWrite(b *strings.Builder, a []string, sep string) error {
 				return err
 			}
 		}
-		if s != "*" {
-			q.QuoteTo(b, strings.TrimSpace(s))
-		}
+		q.QuoteTo(b, strings.TrimSpace(s))
 	}
 	return nil
 }
@@ -143,7 +141,7 @@ func (q Quoter) quoteWordTo(buf *strings.Builder, word string) error {
 	}
 
 	isReserved := q.IsReserved(realWord)
-	if isReserved {
+	if isReserved && realWord != "*" {
 		if err := buf.WriteByte(q.Prefix); err != nil {
 			return err
 		}
@@ -151,7 +149,7 @@ func (q Quoter) quoteWordTo(buf *strings.Builder, word string) error {
 	if _, err := buf.WriteString(realWord); err != nil {
 		return err
 	}
-	if isReserved {
+	if isReserved && realWord != "*" {
 		return buf.WriteByte(q.Suffix)
 	}
 

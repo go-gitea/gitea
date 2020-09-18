@@ -99,6 +99,31 @@
 					    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 					    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
 					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="groups_enabled"><strong>{{.i18n.Tr "admin.auths.verify_group_membership"}}</strong></label>
+							<input id="groups_enabled" name="groups_enabled" type="checkbox" {{if $cfg.GroupsEnabled}}checked{{end}}>
+						</div>
+					</div>
+					<div id="groups_enabled_change">
+						<div class="field">
+							<label for="group_dn">{{.i18n.Tr "admin.auths.group_search_base"}}</label>
+							<input id="group_dn" name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
+						</div>
+						<div class="field">
+							<label for="group_filter">{{.i18n.Tr "admin.auths.valid_groups_filter"}}</label>
+							<input id="group_filter" name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="e.g. (|(cn=gitea_users)(cn=admins))">
+						</div>
+						<div class="field">
+							<label for="group_member_uid">{{.i18n.Tr "admin.auths.group_attribute_list_users"}}</label>
+							<input id="group_member_uid" name="group_member_uid" value="{{$cfg.GroupMemberUID}}" placeholder="e.g. memberUid">
+						</div>
+						<div class="field">
+							<label for="user_uid">{{.i18n.Tr "admin.auths.user_attribute_in_group"}}</label>
+							<input id="user_uid" name="user_uid" value="{{$cfg.UserUID}}" placeholder="e.g. uid">
+						</div>
+						<br/>
+					</div>
 					{{if .Source.IsLDAP}}
 						<div class="inline field">
 							<div class="ui checkbox">

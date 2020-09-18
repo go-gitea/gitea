@@ -148,3 +148,7 @@ func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
+
+func (r *indexerNotifier) NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
+	issue_indexer.UpdateIssueIndexer(issue)
+}

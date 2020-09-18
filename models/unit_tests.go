@@ -69,6 +69,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	}
 
 	setting.Attachment.Path = filepath.Join(setting.AppDataPath, "attachments")
+	setting.LFS.ContentPath = filepath.Join(setting.AppDataPath, "lfs")
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -20,9 +19,6 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
-// Stopwatches is a List ful of Stopwatch
-type Stopwatches []Stopwatch
-
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
 	exists, err = e.
@@ -33,14 +29,14 @@ func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, 
 }
 
 // GetUserStopwatches return list of all stopwatches of a user
-func GetUserStopwatches(userID int64, listOptions ListOptions) (*Stopwatches, error) {
-	sws := new(Stopwatches)
+func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, error) {
+	sws := make([]*Stopwatch, 0, 8)
 	sess := x.Where("stopwatch.user_id = ?", userID)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 	}
 
-	err := sess.Find(sws)
+	err := sess.Find(&sws)
 	if err != nil {
 		return nil, err
 	}
@@ -193,29 +189,4 @@ func SecToTime(duration int64) string {
 	}
 
 	return hrs
-}
-
-// APIFormat convert Stopwatch type to api.StopWatch type
-func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
-	issue, err := getIssueByID(x, sw.IssueID)
-	if err != nil {
-		return api.StopWatch{}, err
-	}
-	return api.StopWatch{
-		Created:    sw.CreatedUnix.AsTime(),
-		IssueIndex: issue.Index,
-	}, nil
-}
-
-// APIFormat convert Stopwatches type to api.StopWatches type
-func (sws Stopwatches) APIFormat() (api.StopWatches, error) {
-	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
-	for _, sw := range sws {
-		apiSW, err := sw.APIFormat()
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, apiSW)
-	}
-	return result, nil
 }

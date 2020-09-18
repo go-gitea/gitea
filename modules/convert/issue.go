@@ -115,6 +115,46 @@ func ToTrackedTime(t *models.TrackedTime) (apiT *api.TrackedTime) {
 	return
 }
 
+// ToStopWatches convert Stopwatch list to api.StopWatches
+func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
+	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
+
+	issueCache := make(map[int64]*models.Issue)
+	repoCache := make(map[int64]*models.Repository)
+	var (
+		issue *models.Issue
+		repo  *models.Repository
+		ok    bool
+		err   error
+	)
+
+	for _, sw := range sws {
+		issue, ok = issueCache[sw.IssueID]
+		if !ok {
+			issue, err = models.GetIssueByID(sw.IssueID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		repo, ok = repoCache[issue.RepoID]
+		if !ok {
+			repo, err = models.GetRepositoryByID(issue.RepoID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		result = append(result, api.StopWatch{
+			Created:       sw.CreatedUnix.AsTime(),
+			IssueIndex:    issue.Index,
+			IssueTitle:    issue.Title,
+			RepoOwnerName: repo.OwnerName,
+			RepoName:      repo.Name,
+		})
+	}
+	return result, nil
+}
+
 // ToTrackedTimeList converts TrackedTimeList to API format
 func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
@@ -152,6 +192,8 @@ func ToAPIMilestone(m *models.Milestone) *api.Milestone {
 		Description:  m.Content,
 		OpenIssues:   m.NumOpenIssues,
 		ClosedIssues: m.NumClosedIssues,
+		Created:      m.CreatedUnix.AsTime(),
+		Updated:      m.UpdatedUnix.AsTimePtr(),
 	}
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
