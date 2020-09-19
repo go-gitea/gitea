@@ -245,6 +245,7 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
+		TrustModel:    templateRepo.TrustModel,
 	}
 	overwriteOrAdopt := opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories)
 

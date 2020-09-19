@@ -244,6 +244,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		IsPrivate:            opt.Private,
 		AutoInit:             opt.AutoInit,
 		DefaultBranch:        opt.DefaultBranch,
+		TrustModel:           models.ToTrustModel(opt.TrustModel),
 		AdoptPreExisting:     opt.AdoptPreExisting && setting.Repository.AllowAdoptionOfUnadoptedRepositories,
 		OverwritePreExisting: opt.OverwritePreExisting && (ctx.User.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
 	})

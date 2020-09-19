@@ -256,6 +256,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:            form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch:        form.DefaultBranch,
 			AutoInit:             form.AutoInit,
+			TrustModel:           models.ToTrustModel(form.TrustModel),
 			AdoptPreExisting:     form.AdoptPreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories),
 			OverwritePreExisting: form.OverwritePreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
 		})

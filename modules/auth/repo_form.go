@@ -46,6 +46,8 @@ type CreateRepoForm struct {
 	Avatar       bool
 	Labels       bool
 
+	TrustModel string
+
 	AdoptPreExisting     bool
 	OverwritePreExisting bool
 }
@@ -145,6 +147,9 @@ type RepoSettingForm struct {
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
 	IsArchived                       bool
+
+	// Signing Settings
+	TrustModel string
 
 	// Admin settings
 	EnableHealthCheck                     bool
