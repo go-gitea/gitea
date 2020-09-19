@@ -143,6 +143,47 @@ const (
 	RepositoryBeingMigrated                         // repository is migrating
 )
 
+// TrustModelType defines the types of trust model for this repository
+type TrustModelType int
+
+// kinds of TrustModel
+const (
+	DefaultTrustModel TrustModelType = iota // default trust model
+	CommitterTrustModel
+	CollaboratorTrustModel
+	CollaboratorCommitterTrustModel
+)
+
+// String converts a TrustModelType to a string
+func (t TrustModelType) String() string {
+	switch t {
+	case DefaultTrustModel:
+		return "default"
+	case CommitterTrustModel:
+		return "committer"
+	case CollaboratorTrustModel:
+		return "collaborator"
+	case CollaboratorCommitterTrustModel:
+		return "collaboratorcommitter"
+	}
+	return "default"
+}
+
+// ToTrustModel converts a string to a TrustModelType
+func ToTrustModel(model string) TrustModelType {
+	switch strings.ToLower(strings.TrimSpace(model)) {
+	case "default":
+		return DefaultTrustModel
+	case "collaborator":
+		return CollaboratorTrustModel
+	case "committer":
+		return CommitterTrustModel
+	case "collaboratorcommitter":
+		return CollaboratorCommitterTrustModel
+	}
+	return DefaultTrustModel
+}
+
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
@@ -197,6 +238,8 @@ type Repository struct {
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
+
+	TrustModel TrustModelType
 
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
@@ -1038,6 +1081,7 @@ type CreateRepoOptions struct {
 	IsMirror       bool
 	AutoInit       bool
 	Status         RepositoryStatus
+	TrustModel     TrustModelType
 }
 
 // GetRepoInitFile returns repository init files
@@ -2381,6 +2425,18 @@ func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
 	return updateRepositoryCols(x, repo, cols...)
+}
+
+// GetTrustModel will get the TrustModel for the repo or the default trust model
+func (repo *Repository) GetTrustModel() TrustModelType {
+	trustModel := repo.TrustModel
+	if trustModel == DefaultTrustModel {
+		trustModel = ToTrustModel(setting.Repository.Signing.DefaultTrustModel)
+		if trustModel == DefaultTrustModel {
+			return CollaboratorTrustModel
+		}
+	}
+	return trustModel
 }
 
 // DoctorUserStarNum recalculate Stars number for all user
