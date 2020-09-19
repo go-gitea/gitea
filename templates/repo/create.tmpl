@@ -188,7 +188,7 @@
 								<div class="item" data-value="collaboratorcommitter">{{.i18n.Tr "repo.settings.trust_model.collaboratorcommitter"}}</div>
 							</div>
 						</div>
-						{{if $.allowAdoption}}
+						{{if and $.allowAdoption .Err_AdoptOrDelete}}
 							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
 								<label>{{.i18n.Tr "repo.adopt_preexisting_label" }}</label>
 								<div class="ui checkbox" id="adopt-pre-existing">
@@ -197,7 +197,7 @@
 								</div>
 							</div>
 						{{end}}
-						{{if $.allowOverwrite}}
+						{{if and $.allowOverwrite .Err_AdoptOrDelete}}
 							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
 								<div class="ui checkbox" id="overwrite-pre-existing">
 									<input class="hidden" name="overwrite_pre_existing" type="checkbox" tabindex="0" {{if .overwrite_pre_existing}}checked{{end}}>

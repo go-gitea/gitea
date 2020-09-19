@@ -121,7 +121,7 @@
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
 						<textarea id="description" name="description">{{.description}}</textarea>
 					</div>
-					{{if $.allowOverwrite}}
+					{{if and $.allowOverwrite .Err_AdoptOrDelete}}
 						<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
 							<label>{{.i18n.Tr "repo.overwrite_preexisting_label"}}</label>
 							<div class="ui checkbox" id="overwrite-pre-existing">
