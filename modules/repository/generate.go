@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
@@ -246,23 +245,16 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
 	}
-	overwriteOrAdopt := opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories)
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo, overwriteOrAdopt); err != nil {
+	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
 		return nil, err
 	}
 
 	repoPath := generateRepo.RepoPath()
 	if com.IsExist(repoPath) {
-		if opts.OverwritePreExisting {
-			if err = util.RemoveAll(repoPath); err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, models.ErrRepoFilesAlreadyExist{
-				Uname: generateRepo.OwnerName,
-				Name:  generateRepo.Name,
-			}
+		return nil, models.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
 		}
 	}
 

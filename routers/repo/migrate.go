@@ -46,7 +46,6 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	// Plain git should be first
 	ctx.Data["service"] = structs.GitServiceType(serviceType)
-	ctx.Data["allowOverwrite"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -70,14 +69,13 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case models.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.Data["Err_AdoptOrDelete"] = true
 		switch {
-		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowOverwriteOfUnadoptedRepositories):
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_overwrite"), tpl, form)
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
 		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
-		case setting.Repository.AllowOverwriteOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.overwrite"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
 		default:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
@@ -110,7 +108,6 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	// Plain git should be first
 	ctx.Data["service"] = form.Service
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
-	ctx.Data["allowOverwrite"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -145,24 +142,23 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
-		OriginalURL:          form.CloneAddr,
-		GitServiceType:       structs.GitServiceType(form.Service),
-		CloneAddr:            remoteAddr,
-		RepoName:             form.RepoName,
-		Description:          form.Description,
-		Private:              form.Private || setting.Repository.ForcePrivate,
-		Mirror:               form.Mirror && !setting.Repository.DisableMirrors,
-		AuthUsername:         form.AuthUsername,
-		AuthPassword:         form.AuthPassword,
-		AuthToken:            form.AuthToken,
-		Wiki:                 form.Wiki,
-		Issues:               form.Issues,
-		Milestones:           form.Milestones,
-		Labels:               form.Labels,
-		Comments:             form.Issues || form.PullRequests,
-		PullRequests:         form.PullRequests,
-		Releases:             form.Releases,
-		OverwritePreExisting: form.OverwritePreExisting,
+		OriginalURL:    form.CloneAddr,
+		GitServiceType: structs.GitServiceType(form.Service),
+		CloneAddr:      remoteAddr,
+		RepoName:       form.RepoName,
+		Description:    form.Description,
+		Private:        form.Private || setting.Repository.ForcePrivate,
+		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
+		AuthUsername:   form.AuthUsername,
+		AuthPassword:   form.AuthPassword,
+		AuthToken:      form.AuthToken,
+		Wiki:           form.Wiki,
+		Issues:         form.Issues,
+		Milestones:     form.Milestones,
+		Labels:         form.Labels,
+		Comments:       form.Issues || form.PullRequests,
+		PullRequests:   form.PullRequests,
+		Releases:       form.Releases,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -173,7 +169,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, form.OverwritePreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories))
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 		return

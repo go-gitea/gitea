@@ -117,10 +117,6 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
-	// AdoptPreExisting adopt pre-existing file-system repository if it exists and this installation permits this
-	AdoptPreExisting bool `json:"adopt_if_exists"`
-	// DeleteIfExists delete pre-exisiting file-system repository if it exists and this installation permist this
-	OverwritePreExisting bool `json:"delete_if_exists"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -248,16 +244,15 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror               bool   `json:"mirror"`
-	Private              bool   `json:"private"`
-	Description          string `json:"description" binding:"MaxSize(255)"`
-	Wiki                 bool   `json:"wiki"`
-	Milestones           bool   `json:"milestones"`
-	Labels               bool   `json:"labels"`
-	Issues               bool   `json:"issues"`
-	PullRequests         bool   `json:"pull_requests"`
-	Releases             bool   `json:"releases"`
-	OverwritePreExisting bool   `json:"overwrite_pre_existing"`
+	Mirror       bool   `json:"mirror"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(255)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth

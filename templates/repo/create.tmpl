@@ -100,14 +100,6 @@
 								<label>{{.i18n.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
-						{{if $.allowOverwrite}}
-							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
-								<div class="ui checkbox" id="overwrite-pre-existing">
-									<input class="hidden" name="overwrite_pre_existing" type="checkbox" tabindex="0" {{if .overwrite_pre_existing}}checked{{end}}>
-									<label>{{.i18n.Tr "repo.overwrite_preexisting" }}</label>
-								</div>
-							</div>
-						{{end}}
 					</div>
 
 					<div id="non_template">
@@ -175,23 +167,6 @@
 							<label for="default_branch">{{.i18n.Tr "repo.default_branch"}}</label>
 							<input id="default_branch" name="default_branch" value="{{.default_branch}}" placeholder="{{.default_branch}}">
 						</div>
-						{{if $.allowAdoption}}
-							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
-								<label>{{.i18n.Tr "repo.adopt_preexisting_label" }}</label>
-								<div class="ui checkbox" id="adopt-pre-existing">
-									<input class="hidden" name="adopt_pre_existing" type="checkbox" tabindex="0" {{if .adopt_pre_exisiting}}checked{{end}}>
-									<label>{{.i18n.Tr "repo.adopt_preexisting" }}</label>
-								</div>
-							</div>
-						{{end}}
-						{{if $.allowOverwrite}}
-							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
-								<div class="ui checkbox" id="overwrite-pre-existing">
-									<input class="hidden" name="overwrite_pre_existing" type="checkbox" tabindex="0" {{if .overwrite_pre_existing}}checked{{end}}>
-									<label>{{.i18n.Tr "repo.overwrite_preexisting" }}</label>
-								</div>
-							</div>
-						{{end}}
 					</div>
 
 					<br/>

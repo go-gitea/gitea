@@ -1029,21 +1029,19 @@ func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) er
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name                 string
-	Description          string
-	OriginalURL          string
-	GitServiceType       api.GitServiceType
-	Gitignores           string
-	IssueLabels          string
-	License              string
-	Readme               string
-	DefaultBranch        string
-	IsPrivate            bool
-	IsMirror             bool
-	AutoInit             bool
-	Status               RepositoryStatus
-	AdoptPreExisting     bool
-	OverwritePreExisting bool
+	Name           string
+	Description    string
+	OriginalURL    string
+	GitServiceType api.GitServiceType
+	Gitignores     string
+	IssueLabels    string
+	License        string
+	Readme         string
+	DefaultBranch  string
+	IsPrivate      bool
+	IsMirror       bool
+	AutoInit       bool
+	Status         RepositoryStatus
 }
 
 // GetRepoInitFile returns repository init files
@@ -1078,6 +1076,10 @@ var (
 
 // IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
+	if alphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return ErrNameCharsNotAllowed{Name: name}
+	}
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
@@ -1825,6 +1827,10 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
+	}
+
+	if opts.LowerNames != nil && len(opts.LowerNames) > 0 {
+		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := x.NewSession()

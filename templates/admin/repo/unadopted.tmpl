@@ -1,0 +1,43 @@
+{{template "base/head" .}}
+<div class="admin user">
+	{{template "admin/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.repos.unadopted"}}
+            <div class="ui right">
+                <a class="ui blue tiny button" href="{{AppSubUrl}}/admin/repos">{{.i18n.Tr "admin.repos.repo_manage_panel"}}</a>
+            </div>
+		</h4>
+		<div class="ui attached segment settings">
+            {{if .Dirs}}
+                <div class="ui middle aligned divided list">
+                    {{range $dirI, $dir := .Dirs}}
+                        <div class="item">
+                            <div class="content">
+                                <span class="icon">{{svg "octicon-file-directory"}}</span>
+                                <span class="name">{{$dir}}</span>
+                                <div class="right floated content">
+                                    <form method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
+                                        {{$.CsrfTokenHtml}}
+                                        <input type="hidden" name="name" value="{{$dir}}">
+                                        <button class="ui button submit tiny green adopt" type="submit" name="action" value="adopt"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.i18n.Tr "repo.adopt_preexisting_label"}}</span></button>
+                                        <button class="ui button submit tiny red delete" type="submit" name="action" value="delete"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.i18n.Tr "repo.delete_preexisting_label"}}</span></button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{end}}
+                </div>
+                {{template "base/paginate" .}}
+            {{else}}
+                <div class="item">
+                    {{.i18n.Tr "admin.repos.unadopted.no_more"}}
+                </div>
+                {{template "base/paginate" .}}
+            {{end}}
+        </div>
+    </div>
+</div>
+
+{{template "base/footer" .}}

@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -84,14 +83,13 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 	}
 
 	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
-		Name:                 opts.RepoName,
-		Description:          opts.Description,
-		OriginalURL:          opts.OriginalURL,
-		GitServiceType:       opts.GitServiceType,
-		IsPrivate:            opts.Private,
-		IsMirror:             opts.Mirror,
-		Status:               models.RepositoryBeingMigrated,
-		OverwritePreExisting: opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
+		Name:           opts.RepoName,
+		Description:    opts.Description,
+		OriginalURL:    opts.OriginalURL,
+		GitServiceType: opts.GitServiceType,
+		IsPrivate:      opts.Private,
+		IsMirror:       opts.Mirror,
+		Status:         models.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

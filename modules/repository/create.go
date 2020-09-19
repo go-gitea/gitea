@@ -45,11 +45,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	overwriteOrAdopt := (!opts.IsMirror && opts.AdoptPreExisting && (doer.IsAdmin || setting.Repository.AllowAdoptionOfUnadoptedRepositories)) ||
-		(opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories))
-
 	if err := models.WithTx(func(ctx models.DBContext) error {
-		if err := models.CreateRepository(ctx, doer, u, repo, overwriteOrAdopt); err != nil {
+		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
 
@@ -57,8 +54,6 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		if opts.IsMirror {
 			return nil
 		}
-
-		shouldInit := true
 
 		repoPath := models.RepoPath(u.Name, repo.Name)
 		if com.IsExist(repoPath) {
@@ -68,45 +63,41 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			// 3. We delete it and start afresh
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
-			if opts.AdoptPreExisting {
-				shouldInit = false
-				if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
-					return fmt.Errorf("createDelegateHooks: %v", err)
-				}
-			} else if opts.OverwritePreExisting {
-				log.Warn("An already existing repository was deleted at %s", repoPath)
-				if err := util.RemoveAll(repoPath); err != nil {
-					log.Error("Unable to remove already existing repository at %s: Error: %v", repoPath, err)
-					return fmt.Errorf(
-						"unable to delete repo directory %s/%s: %v", u.Name, repo.Name, err)
-				}
-			} else {
-				log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
-				return models.ErrRepoFilesAlreadyExist{
-					Uname: u.Name,
-					Name:  repo.Name,
-				}
+			// if opts.AdoptPreExisting {
+			// 	shouldInit = false
+			// 	if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
+			// 		return fmt.Errorf("createDelegateHooks: %v", err)
+			// 	}
+			// } else if opts.OverwritePreExisting {
+			// 	log.Warn("An already existing repository was deleted at %s", repoPath)
+			// 	if err := util.RemoveAll(repoPath); err != nil {
+			// 		log.Error("Unable to remove already existing repository at %s: Error: %v", repoPath, err)
+			// 		return fmt.Errorf(
+			// 			"unable to delete repo directory %s/%s: %v", u.Name, repo.Name, err)
+			// 	}
+			// } else {
+			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+			return models.ErrRepoFilesAlreadyExist{
+				Uname: u.Name,
+				Name:  repo.Name,
 			}
+			// }
 		}
 
-		if shouldInit {
-			if err := initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-				if err2 := util.RemoveAll(repoPath); err2 != nil {
-					log.Error("initRepository: %v", err)
-					return fmt.Errorf(
-						"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
-				}
-				return fmt.Errorf("initRepository: %v", err)
+		if err := initRepository(ctx, repoPath, doer, repo, opts); err != nil {
+			if err2 := util.RemoveAll(repoPath); err2 != nil {
+				log.Error("initRepository: %v", err)
+				return fmt.Errorf(
+					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
+			return fmt.Errorf("initRepository: %v", err)
 		}
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
 			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				if shouldInit {
-					if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-						log.Error("Rollback deleteRepository: %v", errDelete)
-					}
+				if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
+					log.Error("Rollback deleteRepository: %v", errDelete)
 				}
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
@@ -116,10 +107,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			if shouldInit {
-				if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-					log.Error("Rollback deleteRepository: %v", errDelete)
-				}
+			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}

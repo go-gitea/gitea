@@ -108,14 +108,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
-			Name:                 g.repoName,
-			Description:          repo.Description,
-			OriginalURL:          repo.OriginalURL,
-			GitServiceType:       opts.GitServiceType,
-			IsPrivate:            opts.Private,
-			IsMirror:             opts.Mirror,
-			Status:               models.RepositoryBeingMigrated,
-			OverwritePreExisting: opts.OverwritePreExisting && (g.doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
+			Name:           g.repoName,
+			Description:    repo.Description,
+			OriginalURL:    repo.OriginalURL,
+			GitServiceType: opts.GitServiceType,
+			IsPrivate:      opts.Private,
+			IsMirror:       opts.Mirror,
+			Status:         models.RepositoryBeingMigrated,
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)

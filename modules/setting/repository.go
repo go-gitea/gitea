@@ -45,7 +45,7 @@ var (
 		DisableMirrors                          bool
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
-		AllowOverwriteOfUnadoptedRepositories   bool
+		AllowDeleteOfUnadoptedRepositories      bool
 
 		// Repository editor settings
 		Editor struct {

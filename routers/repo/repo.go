@@ -129,8 +129,6 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
-	ctx.Data["allowAdoption"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
-	ctx.Data["allowOverwrite"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -164,14 +162,13 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case models.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.Data["Err_AdoptOrDelete"] = true
 		switch {
-		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowOverwriteOfUnadoptedRepositories):
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_overwrite"), tpl, form)
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
 		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
-		case setting.Repository.AllowOverwriteOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.overwrite"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
 		default:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
@@ -194,8 +191,6 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
-	ctx.Data["allowAdoption"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
-	ctx.Data["allowOverwrite"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -212,16 +207,15 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
-			Name:                 form.RepoName,
-			Description:          form.Description,
-			Private:              form.Private,
-			GitContent:           form.GitContent,
-			Topics:               form.Topics,
-			GitHooks:             form.GitHooks,
-			Webhooks:             form.Webhooks,
-			Avatar:               form.Avatar,
-			IssueLabels:          form.Labels,
-			OverwritePreExisting: form.OverwritePreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
+			Name:        form.RepoName,
+			Description: form.Description,
+			Private:     form.Private,
+			GitContent:  form.GitContent,
+			Topics:      form.Topics,
+			GitHooks:    form.GitHooks,
+			Webhooks:    form.Webhooks,
+			Avatar:      form.Avatar,
+			IssueLabels: form.Labels,
 		}
 
 		if !opts.IsValid() {
@@ -247,17 +241,15 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-			Name:                 form.RepoName,
-			Description:          form.Description,
-			Gitignores:           form.Gitignores,
-			IssueLabels:          form.IssueLabels,
-			License:              form.License,
-			Readme:               form.Readme,
-			IsPrivate:            form.Private || setting.Repository.ForcePrivate,
-			DefaultBranch:        form.DefaultBranch,
-			AutoInit:             form.AutoInit,
-			AdoptPreExisting:     form.AdoptPreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories),
-			OverwritePreExisting: form.OverwritePreExisting && (ctx.IsUserSiteAdmin() || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
+			Name:          form.RepoName,
+			Description:   form.Description,
+			Gitignores:    form.Gitignores,
+			IssueLabels:   form.IssueLabels,
+			License:       form.License,
+			Readme:        form.Readme,
+			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch: form.DefaultBranch,
+			AutoInit:      form.AutoInit,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
