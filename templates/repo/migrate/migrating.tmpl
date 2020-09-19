@@ -29,6 +29,17 @@
 							</div>
 						</div>
 					</div>
+					{{if .Permission.IsAdmin}}
+						<div class="ui divider"></div>
+						<div class="item center">
+							<form action="{{.Link}}/migrate/cancel" method="post">
+								{{.CsrfTokenHtml}}
+								<button class="ui button" data-do="delete">
+									<span class="item text">{{.i18n.Tr "cancel"}}</span>
+								</button>
+							</form>
+						</div>
+					{{end}}
 				</div>
 			</div>
 		</div>

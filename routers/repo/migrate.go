@@ -6,17 +6,20 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -187,4 +190,26 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
+}
+
+// CancelMigration cancels a running migration
+func CancelMigration(ctx *context.Context) {
+	if !ctx.Repo.IsOwner() {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
+	if ctx.Repo.Repository.Status != models.RepositoryBeingMigrated {
+		ctx.Error(http.StatusConflict, "repo already migrated")
+		return
+	}
+
+	if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("DeleteRepository", err)
+		return
+	}
+	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
+	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
 }

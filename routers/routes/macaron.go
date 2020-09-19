@@ -529,6 +529,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
 
 	m.Group("/:username/:reponame", func() {
+		m.Post("/migrate/cancel", repo.CancelMigration)
 		m.Group("/settings", func() {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(auth.RepoSettingForm{}), repo.SettingsPost)
