@@ -161,7 +161,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				}
 			}
 			if protectedBranch.RequireSignedCommits {
-				_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
 				if err != nil {
 					if !models.IsErrWontSign(err) {
 						return nil, err

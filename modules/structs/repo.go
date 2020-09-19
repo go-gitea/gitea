@@ -117,6 +117,9 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// TrustModel of the repository
+	// enum: default,collaborator,committer,collaboratorcommitter
+	TrustModel string `json:"trust_model"`
 }
 
 // EditRepoOption options when editing a repository's properties
