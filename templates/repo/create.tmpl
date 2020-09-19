@@ -100,7 +100,7 @@
 								<label>{{.i18n.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
-						{{if $.allowOverwrite}}
+						{{if and $.allowOverwrite .Err_AdoptOrDelete}}
 							<div class="inline field{{if .Err_AdoptOrDelete}} error{{end}}">
 								<div class="ui checkbox" id="overwrite-pre-existing">
 									<input class="hidden" name="overwrite_pre_existing" type="checkbox" tabindex="0" {{if .overwrite_pre_existing}}checked{{end}}>
