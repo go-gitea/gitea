@@ -9,7 +9,7 @@
 					<div class="ui stackable middle very relaxed page grid">
 						<div id="repo_migrating" class="sixteen wide center aligned centered column" repo="{{.Repo.Repository.FullName}}">
 							<div>
-								<img src="{{StaticUrlPrefix}}/img/loading.png"/>
+								<img src="{{StaticUrlPrefix}}/img/loading.png" />
 							</div>
 						</div>
 					</div>
@@ -23,6 +23,19 @@
 							</div>
 						</div>
 					</div>
+
+					{{if .Permission.IsAdmin}}
+					<div class="ui divider"></div>
+					<div class="item center">
+						<form action="{{.Link}}/migrate_cancel" method="post">
+							{{.CsrfTokenHtml}}
+							<button class="ui button" data-do="delete">
+								<span class="item text">{{.i18n.Tr "cancel"}}</span>
+							</button>
+						</form>
+					</div>
+					{{end}}
+
 				</div>
 			</div>
 		</div>

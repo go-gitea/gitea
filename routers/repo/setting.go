@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -52,6 +53,28 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.HTML(200, tplSettingsOptions)
+}
+
+// CancelMigration cancel a running migration
+func CancelMigration(ctx *context.Context) {
+	if !ctx.Repo.IsOwner() {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
+	if ctx.Repo.Repository.Status != models.RepositoryBeingMigrated {
+		ctx.Error(http.StatusConflict, "repo already migrated")
+		return
+	}
+
+	if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("DeleteRepository", err)
+		return
+	}
+	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
+	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
 }
 
 // SettingsPost response for changes of a repository
