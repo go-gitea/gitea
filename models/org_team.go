@@ -628,7 +628,7 @@ func NewTeam(t *Team) (err error) {
 		}
 
 		for _, repo := range t.ParentTeam.Repos {
-			if addTeamRepo(sess, t, t.OrgID, repo.ID, true); err != nil {
+			if err = addTeamRepo(sess, t, t.OrgID, repo.ID, true); err != nil {
 				errRollback := sess.Rollback()
 				if errRollback != nil {
 					log.Error("NewTeam sess.Rollback: %v", errRollback)
@@ -1319,10 +1319,12 @@ func removeTeamRepo(e Engine, team *Team, repoID int64, inherited bool) (err err
 		return
 	}
 
-	_, err = e.Delete(&TeamRepo{
+	if _, err = e.Delete(&TeamRepo{
 		TeamID: team.ID,
 		RepoID: repoID,
-	})
+	}); err != nil {
+		return err
+	}
 
 	if err = team.loadSubTeams(e); err != nil {
 		return err
