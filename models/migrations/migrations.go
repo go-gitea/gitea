@@ -238,6 +238,8 @@ var migrations = []Migration{
 	// v151 -> v152
 	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
 	// v152 -> v153
+	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	// v153 -> v154
 	NewMigration("Add IsHookTaskPurgeEnabled and NumberWebhookDeliveriesToKeep columns to Repository table", addHookTaskPurge),
 }
 

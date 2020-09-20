@@ -233,18 +233,17 @@ func GenerateGitContent(ctx models.DBContext, templateRepo, generateRepo *models
 // GenerateRepository generates a repository from a template
 func GenerateRepository(ctx models.DBContext, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
 	generateRepo := &models.Repository{
-		OwnerID:                       owner.ID,
-		Owner:                         owner,
-		OwnerName:                     owner.Name,
-		Name:                          opts.Name,
-		LowerName:                     strings.ToLower(opts.Name),
-		Description:                   opts.Description,
-		IsPrivate:                     opts.Private,
-		IsEmpty:                       !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled:                 templateRepo.IsFsckEnabled,
-		IsHookTaskPurgeEnabled:        templateRepo.IsHookTaskPurgeEnabled,
-		NumberWebhookDeliveriesToKeep: templateRepo.NumberWebhookDeliveriesToKeep,
-		TemplateID:                    templateRepo.ID,
+		OwnerID:       owner.ID,
+		Owner:         owner,
+		OwnerName:     owner.Name,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.Private,
+		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
+		IsFsckEnabled: templateRepo.IsFsckEnabled,
+		TemplateID:    templateRepo.ID,
+		TrustModel:    templateRepo.TrustModel,
 	}
 
 	if err = models.CreateRepository(ctx, doer, owner, generateRepo); err != nil {
