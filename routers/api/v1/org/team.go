@@ -164,6 +164,25 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
+	if len(form.ParentTeamName) > 0 {
+		var err error
+		if team.ParentTeam, err = models.GetTeam(ctx.Org.Organization.ID, form.ParentTeamName); err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusNotFound, "", err)
+				return
+			}
+
+			ctx.Error(http.StatusInternalServerError, "NewTeam", err)
+			return
+		}
+
+		team.ParentTeamID = team.ParentTeam.ID
+		team.FullName = team.ParentTeam.FullName + "/" + team.Name
+	} else {
+		team.ParentTeamID = -1
+		team.FullName = team.Name
+	}
+
 	unitTypes := models.FindUnitTypes(form.Units...)
 
 	if team.Authorize < models.AccessModeOwner {
@@ -222,6 +241,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
 	}
 
+	isNameChanged := team.Name != form.Name
 	if len(form.Name) > 0 {
 		team.Name = form.Name
 	}
@@ -261,7 +281,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		}
 	}
 
-	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged, isNameChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}

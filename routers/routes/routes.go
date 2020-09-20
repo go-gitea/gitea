@@ -555,18 +555,19 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.OrgAssignment(true))
 
 		m.Group("/:org", func() {
-			m.Get("/teams/:team", org.TeamMembers)
-			m.Get("/teams/:team/repositories", org.TeamRepositories)
-			m.Post("/teams/:team/action/:action", org.TeamsAction)
-			m.Post("/teams/:team/action/repo/:action", org.TeamsRepoAction)
+			m.Get("/teams/*", org.TeamMembers)
+			m.Get("/teams/repositories/*", org.TeamRepositories)
+			m.Get("/teams/sub_teams/*", org.TeamSubTeams)
+			m.Post("/teams/action/:action/*", org.TeamsAction)
+			m.Post("/teams/action/repo/:action/*", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
 		m.Group("/:org", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(auth.CreateTeamForm{}), org.NewTeamPost)
-			m.Get("/teams/:team/edit", org.EditTeam)
-			m.Post("/teams/:team/edit", bindIgnErr(auth.CreateTeamForm{}), org.EditTeamPost)
-			m.Post("/teams/:team/delete", org.DeleteTeam)
+			m.Get("/teams/edit/*", org.EditTeam)
+			m.Post("/teams/edit/*", bindIgnErr(auth.CreateTeamForm{}), org.EditTeamPost)
+			m.Post("/teams/delete/*", org.DeleteTeam)
 
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).

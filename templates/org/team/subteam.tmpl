@@ -1,0 +1,48 @@
+{{template "base/head" .}}
+<div class="organization teams">
+	{{template "org/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="ui grid">
+			{{template "org/team/sidebar" .}}
+			<div class="ui ten wide column">
+				{{template "org/team/navbar" .}}
+				{{if $.IsOrganizationOwner}}
+					<div class="ui attached segment" id="repo-top-segment">
+						<div class="inline ui field left">
+							<a class="ui green button" href="{{.OrgLink}}/teams/new?parent_team_name={{EscapePound $.Team.LowerName}}">{{svg "octicon-plus"}} {{.i18n.Tr "org.teams.add_sub_team"}}</a>
+						</div>
+					</div>
+				{{end}}
+				{{if gt .Team.NumSubTeams 0}}
+					<div class="ui bottom attached table segment repositories">
+						{{range .Teams}}
+							{{if eq .ParentTeamID $.Team.ID}}
+							<div class="item">
+								<a class="member" href="{{$.AppSubUrl}}/org/{{$.Org.Name}}/teams/{{.LowerName}}">
+									<strong>{{.Name}}</strong>
+								</a>
+								<div class="ui right">
+									{{if .IsMember $.SignedUser.ID}}
+										<form method="post" action="{{$.OrgLink}}/teams/action/leave/{{.LowerName}}">
+											{{$.CsrfTokenHtml}}
+											<button type="submit" class="ui red small button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
+										</form>
+									{{else if $.IsOrganizationOwner}}
+										<form method="post" action="{{$.OrgLink}}/teams/action/join/{{.LowerName}}">
+											{{$.CsrfTokenHtml}}
+											<button type="submit" class="ui blue small button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
+										</form>
+									{{end}}
+								</div>
+							</div>
+							{{end}}
+						{{end}}
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+
+{{template "base/footer" .}}

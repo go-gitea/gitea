@@ -29,6 +29,8 @@ const (
 	tplTeamMembers base.TplName = "org/team/members"
 	// tplTeamRepositories template path for showing team repositories page
 	tplTeamRepositories base.TplName = "org/team/repositories"
+	// tplTeamSubTeams template path for showing team subTeams page
+	tplTeamSubTeams base.TplName = "org/team/subteam"
 )
 
 // Teams render teams list page
@@ -147,7 +149,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		if err != nil {
 			if models.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
-				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
+				ctx.Redirect(ctx.Org.OrgLink + "/teams/repositories" + ctx.Org.Team.LowerName)
 				return
 			}
 			ctx.ServerError("GetRepositoryByName", err)
@@ -170,11 +172,11 @@ func TeamsRepoAction(ctx *context.Context) {
 
 	if action == "addall" || action == "removeall" {
 		ctx.JSON(200, map[string]interface{}{
-			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+			"redirect": ctx.Org.OrgLink + "/teams/repositories/" + ctx.Org.Team.LowerName,
 		})
 		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/repositories/" + ctx.Org.Team.LowerName)
 }
 
 // NewTeam render create new team page
@@ -182,6 +184,16 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
+	name := ctx.Query("parent_team_name")
+	if _, err := models.GetTeam(ctx.Org.Organization.ID, name); err != nil {
+		if models.IsErrTeamNotExist(err) {
+			ctx.NotFound("NewTeam", err)
+			return
+		}
+		ctx.ServerError("GetTeam", err)
+		return
+	}
+	ctx.Data["ParentTeamName"] = name
 	ctx.Data["Team"] = &models.Team{}
 	ctx.Data["Units"] = models.Units
 	ctx.HTML(200, tplTeamNew)
@@ -202,6 +214,26 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+	}
+
+	if len(form.ParentTeamName) > 0 {
+		var err error
+		if t.ParentTeam, err = models.GetTeam(ctx.Org.Organization.ID, form.ParentTeamName); err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Data["Err_TeamName"] = true
+				ctx.RenderWithErr(ctx.Tr("form.parent_team_wrong"), tplTeamNew, &form)
+				return
+			}
+
+			ctx.ServerError("GetTeam", err)
+			return
+		}
+
+		t.ParentTeamID = t.ParentTeam.ID
+		t.FullName = t.ParentTeam.FullName + "/" + t.Name
+	} else {
+		t.ParentTeamID = -1
+		t.FullName = t.Name
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -265,11 +297,20 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.HTML(200, tplTeamRepositories)
 }
 
+// TeamSubTeams show the subTeams of team
+func TeamSubTeams(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Org.Team.Name
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamSubTeams"] = true
+	ctx.Data["Teams"] = ctx.Org.Organization.Teams
+	ctx.HTML(200, tplTeamSubTeams)
+}
+
 // EditTeam render team edit page
 func EditTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["team_name"] = ctx.Org.Team.Name
+	ctx.Data["team_name"] = ctx.Org.Team.LowerName
 	ctx.Data["desc"] = ctx.Org.Team.Description
 	ctx.Data["Units"] = models.Units
 	ctx.HTML(200, tplTeamNew)
@@ -285,6 +326,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
+	isNameChanged := t.Name != form.TeamName
 	var includesAllRepositories = (form.RepoAccess == "all")
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
@@ -329,7 +371,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		return
 	}
 
-	if err := models.UpdateTeam(t, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := models.UpdateTeam(t, isAuthChanged, isIncludeAllChanged, isNameChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case models.IsErrTeamAlreadyExist(err):

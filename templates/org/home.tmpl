@@ -60,13 +60,15 @@
 					</div>
 					<div class="ui attached table segment teams">
 						{{range .Teams}}
+							{{if eq .ParentTeamID -1}}
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
 									<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong>{{.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
-									<a href="{{$.OrgLink}}/teams/{{.LowerName}}/repositories"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
+									<a href="{{$.OrgLink}}/teams/repositories/{{.LowerName}}"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
+							{{end}}
 						{{end}}
 					</div>
 					{{if .IsOrganizationOwner}}

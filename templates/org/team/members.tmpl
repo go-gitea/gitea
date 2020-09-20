@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/add" method="post">
+						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/action/add/{{$.Team.LowerName}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div class="inline field ui left">
@@ -27,7 +27,7 @@
 					{{range .Team.Members}}
 						<div class="item">
 							{{if $.IsOrganizationOwner}}
-								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove">
+								<form method="post" action="{{$.OrgLink}}/teams/action/remove/{{$.Team.LowerName}}">
 									{{$.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button right" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.remove"}}</button>
 								</form>

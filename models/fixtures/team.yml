@@ -105,6 +105,7 @@
   authorize: 3 # admin
   num_repos: 0
   num_members: 1
+  num_sub_teams: 1
   can_create_org_repo: true
 
 -
@@ -113,6 +114,31 @@
   lower_name: team13notcreators
   name: team13NotCreators
   authorize: 3 # admin
+  num_repos: 0
+  num_members: 1
+  can_create_org_repo: false
+
+-
+  id: 14
+  org_id: 3
+  lower_name: team12creators/test_sub_team
+  name: test_sub_team
+  full_name: team12creators/test_sub_team
+  parent_team_id: 12
+  authorize: 2 # write
+  num_repos: 1
+  num_members: 1
+  num_sub_teams: 1
+  can_create_org_repo: false
+
+-
+  id: 15
+  org_id: 3
+  lower_name: team12creators/test_sub_team/test_sub_team2
+  name: Test_sub_team2
+  full_name: team12creators/test_sub_team/Test_sub_team2
+  parent_team_id: 14
+  authorize: 1 # read
   num_repos: 0
   num_members: 1
   can_create_org_repo: false

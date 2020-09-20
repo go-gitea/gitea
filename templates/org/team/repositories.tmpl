@@ -11,7 +11,7 @@
 				{{if $canAddRemove}}
 					<div class="ui attached segment" id="repo-top-segment">
 						<div class="inline ui field left">
-							<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
+							<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/action/repo/add/{{$.Team.LowerName}}" method="post">
 								{{.CsrfTokenHtml}}
 								<div class="inline field ui left">
 									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
@@ -24,9 +24,9 @@
 							</form>
 						</div>
 						<div class="inline ui field right">
-							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">{{.i18n.Tr "remove_all"}}</button>
-								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">{{.i18n.Tr "add_all"}}</button>
+							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/repositories/{{$.Team.LowerName}}" method="post">
+								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/action/repo/removeall/{{$.Team.LowerName}}">{{.i18n.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/action/repo/addall/{{$.Team.LowerName}}">{{.i18n.Tr "add_all"}}</button>
 							</form>
 						</div>
 					</div>
@@ -34,8 +34,8 @@
 				<div class="ui bottom attached table segment repositories">
 					{{range .Team.Repos}}
 						<div class="item">
-							{{if $canAddRemove}}
-								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove">
+							{{if (and $canAddRemove (not .Inherited))}}
+								<form method="post" action="{{$.OrgLink}}/teams/action/repo/remove/{{$.Team.LowerName}}">
 									{{$.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.i18n.Tr "remove"}}</button>
 								</form>

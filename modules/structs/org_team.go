@@ -23,6 +23,7 @@ type Team struct {
 type CreateTeamOption struct {
 	// required: true
 	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	ParentTeamName          string `json:"parent_team"`
 	Description             string `json:"description" binding:"MaxSize(255)"`
 	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin

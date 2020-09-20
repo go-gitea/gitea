@@ -22,16 +22,21 @@ const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID                      int64 `xorm:"pk autoincr"`
-	OrgID                   int64 `xorm:"INDEX"`
-	LowerName               string
+	ID                      int64  `xorm:"pk autoincr"`
+	OrgID                   int64  `xorm:"INDEX"`
+	LowerName               string // It's full name bow
+	FullName                string `xorm:"NOT NULL  DEFAULT ''"`
 	Name                    string
 	Description             string
+	ParentTeamID            int64 `xorm:"NOT NULL DEFAULT -1"`
+	ParentTeam              *Team `xorm:"-"`
 	Authorize               AccessMode
 	Repos                   []*Repository `xorm:"-"`
 	Members                 []*User       `xorm:"-"`
+	SubTeams                []*Team       `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
+	NumSubTeams             int         `xorm:"NOT NULL DEFAULT 0"`
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
@@ -40,10 +45,11 @@ type Team struct {
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	ListOptions
-	UserID      int64
-	Keyword     string
-	OrgID       int64
-	IncludeDesc bool
+	UserID         int64
+	Keyword        string
+	OrgID          int64
+	IncludeDesc    bool
+	IncludeSubTeam bool
 }
 
 // SearchMembersOptions holds the search options
@@ -73,6 +79,10 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	}
 
 	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+
+	if opts.IncludeSubTeam {
+		cond = cond.And(builder.Eq{"parent_team_id": -1})
+	}
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -106,7 +116,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 func (t *Team) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
 		log.NewColoredIDValue(t.ID),
-		t.Name,
+		t.FullName,
 		log.NewColoredIDValue(t.OrgID),
 		t.Authorize)
 
@@ -144,6 +154,62 @@ func (t *Team) IsOwnerTeam() bool {
 	return t.Name == ownerTeamName
 }
 
+// GetParentTeams get all parent teams
+func (t *Team) GetParentTeams() (teams []*Team, err error) {
+	return t.getParentTeams(x)
+}
+
+func (t *Team) getParentTeams(e Engine) (teams []*Team, err error) {
+	if t.ParentTeamID <= 0 {
+		return nil, nil
+	}
+
+	teams = make([]*Team, 0, 5)
+
+	var team *Team
+	if team, err = getTeamByID(e, t.ParentTeamID); err != nil {
+		return nil, err
+	}
+
+	count := 100 // Prevent dead circulation
+
+	for count > 0 {
+		teams = append(teams, team)
+		if team.ParentTeamID <= 0 {
+			return
+		}
+
+		if team, err = getTeamByID(e, t.ParentTeamID); err != nil {
+			return nil, err
+		}
+
+		count--
+	}
+
+	return
+}
+
+// LoadSubTeams load sub teams of this team
+func (t *Team) LoadSubTeams() error {
+	return t.loadSubTeams(x)
+}
+
+func (t *Team) loadSubTeams(e Engine) (err error) {
+	if t.SubTeams != nil {
+		return
+	}
+
+	t.SubTeams = make([]*Team, 0, 10)
+
+	err = e.Where("parent_team_id = ?", t.ID).Find(&t.SubTeams)
+	return
+}
+
+// HasSubTeams if has sub Teams
+func (t *Team) HasSubTeams() (r bool) {
+	return t.NumSubTeams > 0
+}
+
 // IsMember returns true if given user is a member of team.
 func (t *Team) IsMember(userID int64) bool {
 	isMember, err := IsTeamMember(t.OrgID, t.ID, userID)
@@ -158,10 +224,30 @@ func (t *Team) getRepositories(e Engine) error {
 	if t.Repos != nil {
 		return nil
 	}
-	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
+
+	teamRepos := make([]*TeamRepo, 0, 10)
+	err := e.Join("INNER", "repository", "team_repo.repo_id = repository.id").
 		Where("team_repo.team_id=?", t.ID).
 		OrderBy("repository.name").
-		Find(&t.Repos)
+		Find(&teamRepos)
+	if err != nil {
+		return err
+	}
+
+	t.Repos = make([]*Repository, 0, len(teamRepos))
+	for _, teamRepo := range teamRepos {
+		var repo *Repository
+		if repo, err = getRepositoryByID(e, teamRepo.RepoID); err != nil {
+			if IsErrRepoNotExist(err) {
+				continue
+			}
+			return err
+		}
+		repo.Inherited = teamRepo.Inherited
+		t.Repos = append(t.Repos, repo)
+	}
+
+	return nil
 }
 
 // GetRepositories returns paginated repositories in team of organization.
@@ -208,30 +294,12 @@ func (t *Team) HasRepository(repoID int64) bool {
 }
 
 func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
-	if err = addTeamRepo(e, t.OrgID, t.ID, repo.ID); err != nil {
+	if err = addTeamRepo(e, t, t.OrgID, repo.ID, false); err != nil {
 		return err
 	}
 
-	if _, err = e.Incr("num_repos").ID(t.ID).Update(new(Team)); err != nil {
-		return fmt.Errorf("update team: %v", err)
-	}
-
-	t.NumRepos++
-
 	if err = repo.recalculateTeamAccesses(e, 0); err != nil {
 		return fmt.Errorf("recalculateAccesses: %v", err)
-	}
-
-	// Make all team members watch this repo if enabled in global settings
-	if setting.Service.AutoWatchNewRepos {
-		if err = t.getMembers(e); err != nil {
-			return fmt.Errorf("getMembers: %v", err)
-		}
-		for _, u := range t.Members {
-			if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
-				return fmt.Errorf("watchRepo: %v", err)
-			}
-		}
 	}
 
 	return nil
@@ -246,10 +314,8 @@ func (t *Team) addAllRepositories(e Engine) error {
 	}
 
 	for _, repo := range orgRepos {
-		if !t.hasRepository(e, repo.ID) {
-			if err := t.addRepository(e, &repo); err != nil {
-				return fmt.Errorf("addRepository: %v", err)
-			}
+		if err := t.addRepository(e, &repo); err != nil {
+			return fmt.Errorf("addRepository: %v", err)
 		}
 	}
 
@@ -314,37 +380,41 @@ func (t *Team) RemoveAllRepositories() (err error) {
 // removeAllRepositories removes all repositories from team and recalculates access
 // Note: Shall not be called if team includes all repositories
 func (t *Team) removeAllRepositories(e Engine) (err error) {
+	teamUsers, err := getTeamUsersByTeamID(e, t.ID)
+	if err != nil {
+		return fmt.Errorf("getTeamUsersByTeamID: %v", err)
+	}
+
 	// Delete all accesses.
 	for _, repo := range t.Repos {
-		if err := repo.recalculateTeamAccesses(e, t.ID); err != nil {
+		if err = removeTeamRepo(e, t, repo.ID, false); err != nil {
+			if IsErrTeamRepoNotExist(err) {
+				continue
+			}
 			return err
 		}
 
-		// Remove watches from all users and now unaccessible repos
-		for _, user := range t.Members {
-			has, err := hasAccess(e, user.ID, repo)
+		if err = repo.recalculateTeamAccesses(e, t.ID); err != nil {
+			return err
+		}
+
+		for _, teamUser := range teamUsers {
+			has, err := hasAccess(e, teamUser.UID, repo)
 			if err != nil {
 				return err
 			} else if has {
 				continue
 			}
 
-			if err = watchRepo(e, user.ID, repo.ID, false); err != nil {
+			if err = watchRepo(e, teamUser.UID, repo.ID, false); err != nil {
 				return err
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+			if err = removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
 				return err
 			}
 		}
-	}
-
-	// Delete team-repo
-	if _, err := e.
-		Where("team_id=?", t.ID).
-		Delete(new(TeamRepo)); err != nil {
-		return err
 	}
 
 	t.NumRepos = 0
@@ -358,7 +428,10 @@ func (t *Team) removeAllRepositories(e Engine) (err error) {
 // removeRepository removes a repository from a team and recalculates access
 // Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
 func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (err error) {
-	if err = removeTeamRepo(e, t.ID, repo.ID); err != nil {
+	if err = removeTeamRepo(e, t, repo.ID, false); err != nil {
+		if IsErrTeamRepoNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -402,10 +475,6 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 // RemoveRepository removes repository from team of organization.
 // If the team shall include all repositories the request is ignored.
 func (t *Team) RemoveRepository(repoID int64) error {
-	if !t.HasRepository(repoID) {
-		return nil
-	}
-
 	if t.IncludesAllRepositories {
 		return nil
 	}
@@ -446,6 +515,15 @@ func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
 	return false
 }
 
+func (t *Team) loadParentTeam(e Engine) (err error) {
+	if t.ParentTeamID <= 0 || t.ParentTeam != nil {
+		return nil
+	}
+
+	t.ParentTeam, err = getTeamByID(e, t.ParentTeamID)
+	return
+}
+
 // IsUsableTeamName tests if a name could be as team name
 func IsUsableTeamName(name string) error {
 	switch name {
@@ -475,7 +553,7 @@ func NewTeam(t *Team) (err error) {
 		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
-	t.LowerName = strings.ToLower(t.Name)
+	t.LowerName = strings.ToLower(t.FullName)
 	has, err = x.
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
@@ -515,12 +593,53 @@ func NewTeam(t *Team) (err error) {
 		}
 	}
 
+	// Update num_sub_teams for parent team
+	if t.ParentTeamID > 0 {
+		if err = t.loadParentTeam(sess); err != nil {
+			if err2 := sess.Rollback(); err2 != nil {
+				log.Error("sess.Rollback(): %v", err)
+			}
+			return err
+		}
+
+		if _, err = sess.Incr("num_sub_teams").ID(t.ParentTeam.ID).Update(t.ParentTeam); err != nil {
+			if err2 := sess.Rollback(); err2 != nil {
+				log.Error("sess.Rollback(): %v", err)
+			}
+			return err
+		}
+		t.ParentTeam.NumSubTeams++
+	}
+
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
 		err = t.addAllRepositories(sess)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %v", err)
 		}
+	} else if t.ParentTeamID > 0 {
+		// handle team_repo inherited
+		if err = t.ParentTeam.getRepositories(sess); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("NewTeam sess.Rollback: %v", errRollback)
+			}
+			return err
+		}
+
+		for _, repo := range t.ParentTeam.Repos {
+			if addTeamRepo(sess, t, t.OrgID, repo.ID, true); err != nil {
+				errRollback := sess.Rollback()
+				if errRollback != nil {
+					log.Error("NewTeam sess.Rollback: %v", errRollback)
+				}
+				return err
+			}
+		}
+	}
+
+	if t.ParentTeamID >= 0 {
+		return sess.Commit()
 	}
 
 	// Update organization number of teams.
@@ -534,23 +653,23 @@ func NewTeam(t *Team) (err error) {
 	return sess.Commit()
 }
 
-func getTeam(e Engine, orgID int64, name string) (*Team, error) {
+func getTeam(e Engine, orgID int64, fullName string) (*Team, error) {
 	t := &Team{
 		OrgID:     orgID,
-		LowerName: strings.ToLower(name),
+		LowerName: strings.ToLower(fullName),
 	}
 	has, err := e.Get(t)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist{orgID, 0, name}
+		return nil, ErrTeamNotExist{orgID, 0, fullName}
 	}
 	return t, nil
 }
 
 // GetTeam returns team by given team name and organization.
-func GetTeam(orgID int64, name string) (*Team, error) {
-	return getTeam(x, orgID, name)
+func GetTeam(orgID int64, fullName string) (*Team, error) {
+	return getTeam(x, orgID, fullName)
 }
 
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
@@ -601,14 +720,14 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	err := x.Table("team").
 		Select("lower_name").
 		In("id", teamIDs).
-		Asc("name").
+		Asc("full_name").
 		Find(&teamNames)
 
 	return teamNames, err
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
+func UpdateTeam(t *Team, authChanged, includeAllChanged, nameChanged bool) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
 	}
@@ -623,7 +742,16 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		return err
 	}
 
-	t.LowerName = strings.ToLower(t.Name)
+	if err = t.loadParentTeam(sess); err != nil {
+		return err
+	}
+
+	if t.ParentTeamID > 0 {
+		t.FullName = t.ParentTeam.FullName + "/" + t.Name
+	} else {
+		t.FullName = t.Name
+	}
+	t.LowerName = strings.ToLower(t.FullName)
 	has, err := sess.
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
@@ -635,7 +763,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
+	if _, err = sess.ID(t.ID).Cols("full_name", "name", "lower_name", "description",
 		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
@@ -681,12 +809,57 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		}
 	}
 
+	if nameChanged {
+		if err = t.loadSubTeams(sess); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
+			}
+			return err
+		}
+
+		for _, subTeam := range t.SubTeams {
+			if err = handleChangeSubTeamName(sess, subTeam, t); err != nil {
+				errRollback := sess.Rollback()
+				if errRollback != nil {
+					log.Error("UpdateTeam sess.Rollback: %v", errRollback)
+				}
+				return err
+			}
+		}
+	}
+
 	return sess.Commit()
+}
+
+func handleChangeSubTeamName(e Engine, t, parent *Team) (err error) {
+	t.FullName = parent.FullName + "/" + t.Name
+	t.LowerName = strings.ToLower(t.FullName)
+
+	if _, err = e.ID(t.ID).Cols("full_name", "lower_name").Update(t); err != nil {
+		return fmt.Errorf("update: %v", err)
+	}
+
+	if err = t.loadSubTeams(e); err != nil {
+		return err
+	}
+
+	for _, subTeam := range t.SubTeams {
+		if err = handleChangeSubTeamName(e, subTeam, t); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *Team) error {
+	if t.HasSubTeams() {
+		return ErrTeamHasSubTeam{OrgID: t.OrgID, TeamID: t.ID}
+	}
+
 	if err := t.GetRepositories(&SearchTeamOptions{}); err != nil {
 		return err
 	}
@@ -724,6 +897,26 @@ func DeleteTeam(t *Team) error {
 	if _, err := sess.ID(t.ID).Delete(new(Team)); err != nil {
 		return err
 	}
+
+	if t.ParentTeamID > 0 {
+		if err := t.loadParentTeam(sess); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("DeleteTeam sess.Rollback: %v", errRollback)
+			}
+			return err
+		}
+
+		if _, err := sess.Decr("num_sub_teams").ID(t.ParentTeam.ID).Update(t.ParentTeam); err != nil {
+			if err2 := sess.Rollback(); err2 != nil {
+				log.Error("sess.Rollback(): %v", err)
+			}
+			return err
+		}
+		t.ParentTeam.NumSubTeams--
+		return sess.Commit()
+	}
+
 	// Update organization number of teams.
 	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
@@ -986,6 +1179,32 @@ type TeamRepo struct {
 	OrgID  int64 `xorm:"INDEX"`
 	TeamID int64 `xorm:"UNIQUE(s)"`
 	RepoID int64 `xorm:"UNIQUE(s)"`
+
+	Inherited bool `xorm:"NOT NULL DEFAULT false"`
+}
+
+// GetTeamRepo get TeamRepo message
+func GetTeamRepo(orgID, teamID, repoID int64) (r *TeamRepo, err error) {
+	return getTeamRepo(x, orgID, teamID, repoID)
+}
+
+func getTeamRepo(e Engine, orgID, teamID, repoID int64) (r *TeamRepo, err error) {
+	r = new(TeamRepo)
+	has := false
+
+	if has, err = e.
+		Where("org_id=?", orgID).
+		And("team_id=?", teamID).
+		And("repo_id=?", repoID).
+		Get(r); err != nil {
+		return nil, err
+	}
+
+	if !has {
+		return nil, ErrTeamRepoNotExist{OrgID: orgID, TeamID: teamID, RepoID: repoID}
+	}
+
+	return
 }
 
 func hasTeamRepo(e Engine, orgID, teamID, repoID int64) bool {
@@ -1002,21 +1221,120 @@ func HasTeamRepo(orgID, teamID, repoID int64) bool {
 	return hasTeamRepo(x, orgID, teamID, repoID)
 }
 
-func addTeamRepo(e Engine, orgID, teamID, repoID int64) error {
-	_, err := e.InsertOne(&TeamRepo{
-		OrgID:  orgID,
-		TeamID: teamID,
-		RepoID: repoID,
-	})
-	return err
+func addTeamRepo(e Engine, team *Team, orgID, repoID int64, inherited bool) (err error) {
+	var teamRepo *TeamRepo
+	if teamRepo, err = getTeamRepo(e, orgID, team.ID, repoID); err != nil && !IsErrTeamRepoNotExist(err) {
+		return
+	}
+
+	if teamRepo == nil {
+		if _, err = e.InsertOne(&TeamRepo{
+			OrgID:     orgID,
+			TeamID:    team.ID,
+			RepoID:    repoID,
+			Inherited: inherited,
+		}); err != nil {
+			return
+		}
+
+		// Make all team members watch this repo if enabled in global settings
+		if setting.Service.AutoWatchNewRepos {
+			if err = team.getMembers(e); err != nil {
+				return fmt.Errorf("getMembers: %v", err)
+			}
+			for _, u := range team.Members {
+				if err = watchRepo(e, u.ID, repoID, true); err != nil {
+					return fmt.Errorf("watchRepo: %v", err)
+				}
+			}
+		}
+
+		if !inherited {
+			if _, err = e.Incr("num_repos").ID(team.ID).Update(new(Team)); err != nil {
+				return fmt.Errorf("update team: %v", err)
+			}
+			team.NumRepos++
+		}
+
+		if err = team.loadSubTeams(e); err != nil {
+			return err
+		}
+
+		for _, subTeam := range team.SubTeams {
+			if err = addTeamRepo(e, subTeam, orgID, repoID, true); err != nil {
+				return err
+			}
+		}
+
+	} else if !inherited && teamRepo.Inherited {
+		if _, err = e.ID(teamRepo.ID).Cols("inherited").Update(teamRepo); err != nil {
+			return err
+		}
+		if _, err = e.Incr("num_repos").ID(team.ID).Update(new(Team)); err != nil {
+			return fmt.Errorf("update team: %v", err)
+		}
+		team.NumRepos++
+	}
+
+	return nil
 }
 
-func removeTeamRepo(e Engine, teamID, repoID int64) error {
-	_, err := e.Delete(&TeamRepo{
-		TeamID: teamID,
+func removeTeamRepo(e Engine, team *Team, repoID int64, inherited bool) (err error) {
+	var teamRepo *TeamRepo
+	if teamRepo, err = getTeamRepo(e, team.OrgID, team.ID, repoID); err != nil {
+		return
+	}
+
+	if inherited {
+		if !teamRepo.Inherited {
+			return nil
+		}
+
+		if _, err = e.Delete(&TeamRepo{
+			TeamID: team.ID,
+			RepoID: repoID,
+		}); err != nil {
+			return err
+		}
+
+		if err = team.loadSubTeams(e); err != nil {
+			return err
+		}
+
+		for _, subTeam := range team.SubTeams {
+			if err = removeTeamRepo(e, subTeam, repoID, true); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if teamRepo.Inherited {
+		return ErrTeamRepoNotExist{OrgID: team.OrgID, TeamID: team.ID, RepoID: repoID}
+	}
+
+	if has := hasTeamRepo(e, team.OrgID, team.ParentTeamID, repoID); has {
+		teamRepo.Inherited = true
+		_, err = e.ID(teamRepo.ID).Cols("inherited").Update(teamRepo)
+		return
+	}
+
+	_, err = e.Delete(&TeamRepo{
+		TeamID: team.ID,
 		RepoID: repoID,
 	})
-	return err
+
+	if err = team.loadSubTeams(e); err != nil {
+		return err
+	}
+
+	for _, subTeam := range team.SubTeams {
+		if err = removeTeamRepo(e, subTeam, repoID, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.

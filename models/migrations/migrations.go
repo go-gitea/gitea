@@ -237,6 +237,8 @@ var migrations = []Migration{
 	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
 	// v151 -> v152
 	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
+	// v152 -> v153
+	NewMigration("Add SubTeam support", addSubTeamSupport),
 }
 
 // GetCurrentDBVersion returns the current db version

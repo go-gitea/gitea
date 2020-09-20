@@ -322,7 +322,7 @@ func ToOrganization(org *models.User) *api.Organization {
 func ToTeam(team *models.Team) *api.Team {
 	return &api.Team{
 		ID:                      team.ID,
-		Name:                    team.Name,
+		Name:                    team.FullName,
 		Description:             team.Description,
 		IncludesAllRepositories: team.IncludesAllRepositories,
 		CanCreateOrgRepo:        team.CanCreateOrgRepo,

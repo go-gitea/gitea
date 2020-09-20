@@ -696,6 +696,7 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
+
 	return teams, e.
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").

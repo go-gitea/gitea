@@ -63,3 +63,16 @@
   org_id: 17
   team_id: 9
   repo_id: 24
+
+-
+  id: 12
+  org_id: 3
+  team_id: 14
+  repo_id: 3
+
+-
+  id: 13
+  org_id: 3
+  team_id: 15
+  repo_id: 3
+  inherited: true

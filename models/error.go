@@ -1751,9 +1751,9 @@ func (err ErrTeamAlreadyExist) Error() string {
 
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
-	OrgID  int64
-	TeamID int64
-	Name   string
+	OrgID    int64
+	TeamID   int64
+	FullName string
 }
 
 // IsErrTeamNotExist checks if an error is a ErrTeamNotExist.
@@ -1763,7 +1763,57 @@ func IsErrTeamNotExist(err error) bool {
 }
 
 func (err ErrTeamNotExist) Error() string {
-	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, full_name: %s]", err.OrgID, err.TeamID, err.FullName)
+}
+
+// ErrTeamUserNotExist represents a "ErrTeamUserNotExist" error
+type ErrTeamUserNotExist struct {
+	OrgID  int64
+	TeamID int64
+	UID    int64
+}
+
+func (err ErrTeamUserNotExist) Error() string {
+	return fmt.Sprintf("this user is not in team [org_id %d, team_id %d, uid: %d]", err.OrgID, err.TeamID, err.UID)
+}
+
+// IsErrTeamUserNotExist checks if an error is a ErrTeamUserNotExist.
+func IsErrTeamUserNotExist(err error) bool {
+	_, ok := err.(ErrTeamUserNotExist)
+	return ok
+}
+
+// ErrTeamRepoNotExist represents a "ErrTeamRepoNotExist" error
+type ErrTeamRepoNotExist struct {
+	OrgID  int64
+	TeamID int64
+	RepoID int64
+}
+
+func (err ErrTeamRepoNotExist) Error() string {
+	return fmt.Sprintf("this repo is not in team [org_id %d, team_id %d, repo_id: %d]", err.OrgID, err.TeamID, err.RepoID)
+}
+
+// IsErrTeamRepoNotExist checks if an error is a ErrTeamRepoNotExist.
+func IsErrTeamRepoNotExist(err error) bool {
+	_, ok := err.(ErrTeamRepoNotExist)
+	return ok
+}
+
+// ErrTeamHasSubTeam represents a "ErrTeamHasSubTeam" error
+type ErrTeamHasSubTeam struct {
+	OrgID  int64
+	TeamID int64
+}
+
+func (err ErrTeamHasSubTeam) Error() string {
+	return fmt.Sprintf("this has sub team [org_id %d, team_id %d ]", err.OrgID, err.TeamID)
+}
+
+// IsErrTeamHasSubTeam checks if an error is a ErrTeamHasSubTeam.
+func IsErrTeamHasSubTeam(err error) bool {
+	_, ok := err.(ErrTeamHasSubTeam)
+	return ok
 }
 
 //

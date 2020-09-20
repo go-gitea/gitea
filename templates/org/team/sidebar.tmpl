@@ -1,15 +1,15 @@
 <div class="ui six wide column">
 	<h4 class="ui top attached header">
-		<strong>{{.Team.Name}}</strong>
+		<strong>{{.Team.FullName}}</strong>
 		<div class="ui right">
 			{{if .Team.IsMember $.SignedUser.ID}}
-				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave">
+				<form method="post" action="{{.OrgLink}}/teams/action/leave/{{.Team.LowerName}}">
 					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="home"/>
 					<button type="submit" class="ui red tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
 				</form>
 			{{else if .IsOrganizationOwner}}
-				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join">
+				<form method="post" action="{{.OrgLink}}/teams/action/join/{{.Team.LowerName}}">
 					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="team"/>
 					<button type="submit" class="ui blue tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
@@ -55,7 +55,7 @@
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
+			<a class="ui teal small button" href="{{.OrgLink}}/teams/edit/{{.Team.LowerName}}">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>

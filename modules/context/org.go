@@ -132,11 +132,11 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 	}
 
-	teamName := ctx.Params(":team")
+	teamName := strings.ToLower(ctx.Params("*"))
 	if len(teamName) > 0 {
 		teamExists := false
 		for _, team := range org.Teams {
-			if team.LowerName == strings.ToLower(teamName) {
+			if team.LowerName == teamName {
 				teamExists = true
 				ctx.Org.Team = team
 				ctx.Org.IsTeamMember = true

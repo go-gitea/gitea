@@ -87,3 +87,16 @@
   org_id: 17
   team_id: 9
   uid: 29
+
+-
+  id: 16
+  org_id: 3
+  team_id: 14
+  uid: 24
+
+-
+  id: 18
+  org_id: 3
+  team_id: 15
+  uid: 25
+  inherited: false

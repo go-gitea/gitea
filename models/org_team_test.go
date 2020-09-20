@@ -206,7 +206,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.Authorize = AccessModeAdmin
-	assert.NoError(t, UpdateTeam(team, true, false))
+	assert.NoError(t, UpdateTeam(team, true, false, true))
 
 	team = AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -225,7 +225,7 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(team, true, false)
+	err := UpdateTeam(team, true, false, true)
 	assert.True(t, IsErrTeamAlreadyExist(err))
 
 	CheckConsistencyFor(t, &Team{ID: team.ID})
