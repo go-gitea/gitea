@@ -185,16 +185,22 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		Message: message,
 	}
 
-	sign, signingKey, _ := repo.SignWikiCommit(doer)
+	committer := doer.NewGitSig()
+
+	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
+		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			committer = signer
+		}
 	} else {
 		commitTreeOpts.NoGPGSign = true
 	}
 	if hasMasterBranch {
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		log.Error("%v", err)
 		return err
@@ -302,14 +308,19 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		Parents: []string{"HEAD"},
 	}
 
-	sign, signingKey, _ := repo.SignWikiCommit(doer)
+	committer := doer.NewGitSig()
+
+	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
+		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			committer = signer
+		}
 	} else {
 		commitTreeOpts.NoGPGSign = true
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}
