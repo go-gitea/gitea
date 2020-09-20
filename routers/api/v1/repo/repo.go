@@ -373,7 +373,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	if !ctx.User.IsAdmin {
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
 		} else if !canCreate {
 			ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")
