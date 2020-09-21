@@ -12,6 +12,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// GpgEmptyResponse return it when user not has gpg public key.
+const GpgEmptyResponse = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Note: This user hasn't uploaded any GPG keys.
+
+
+=twTO
+-----END PGP PUBLIC KEY BLOCK-----`
+
 // SigningKey returns the public key of the default signing key if it exists
 func SigningKey(ctx *context.APIContext) {
 	// swagger:operation GET /signing-key.gpg miscellaneous getSigningKey
@@ -24,8 +32,6 @@ func SigningKey(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
-	//   "404":
-	//     "$ref": "#/responses/empty"
 
 	// swagger:operation GET /repos/{owner}/{repo}/signing-key.gpg repository repoSigningKey
 	// ---
@@ -48,8 +54,6 @@ func SigningKey(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
-	//   "404":
-	//     "$ref": "#/responses/empty"
 
 	path := ""
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
@@ -63,11 +67,10 @@ func SigningKey(ctx *context.APIContext) {
 	}
 
 	if len(content) == 0 {
-		ctx.Status(http.StatusNotFound)
-		return
+		_, err = ctx.Write([]byte(GpgEmptyResponse))
+	} else {
+		_, err = ctx.Write([]byte(content))
 	}
-
-	_, err = ctx.Write([]byte(content))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %v", err))
 	}
