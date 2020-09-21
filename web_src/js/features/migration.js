@@ -2,6 +2,7 @@ const $service = $('#service_type');
 const $user = $('#auth_username');
 const $pass = $('#auth_password');
 const $token = $('#auth_token');
+const $mirror = $('#mirror');
 const $items = $('#migrate_items').find('.field');
 
 export default function initMigration() {
@@ -10,6 +11,7 @@ export default function initMigration() {
   $user.on('keyup', () => {checkItems(false)});
   $pass.on('keyup', () => {checkItems(false)});
   $token.on('keyup', () => {checkItems(true)});
+  $mirror.on('change', () => {checkItems(true)});
 
   const $cloneAddr = $('#clone_addr');
   $cloneAddr.on('change', () => {
@@ -27,6 +29,11 @@ function checkAuth() {
 }
 
 function checkItems(tokenAuth) {
+  if ($mirror.is(':checked')) {
+    $items.addClass('disabled');
+    return;
+  }
+
   let enableItems;
   if (tokenAuth) {
     enableItems = $token.val() !== '';
