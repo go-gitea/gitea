@@ -57,8 +57,6 @@ supported:
 	* sslkey - Key file location. The file must contain PEM encoded data.
 	* sslrootcert - The location of the root certificate file. The file
 	  must contain PEM encoded data.
-	* spn - Configures GSS (Kerberos) SPN.
-	* service - GSS (Kerberos) service name to use when constructing the SPN (default is `postgres`).
 
 Valid values for sslmode are:
 
@@ -259,5 +257,12 @@ package:
 This package is in a separate module so that users who don't need Kerberos
 don't have to download unnecessary dependencies.
 
+When imported, additional connection string parameters are supported:
+
+	* krbsrvname - GSS (Kerberos) service name when constructing the
+	  SPN (default is `postgres`). This will be combined with the host
+	  to form the full SPN: `krbsrvname/host`.
+	* krbspn - GSS (Kerberos) SPN. This takes priority over
+	  `krbsrvname` if present.
 */
 package pq
