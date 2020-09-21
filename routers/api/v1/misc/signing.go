@@ -24,6 +24,8 @@ func SigningKey(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// swagger:operation GET /repos/{owner}/{repo}/signing-key.gpg repository repoSigningKey
 	// ---
@@ -46,6 +48,8 @@ func SigningKey(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	path := ""
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
@@ -57,6 +61,12 @@ func SigningKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "gpg export", err)
 		return
 	}
+
+	if len(content) == 0 {
+		ctx.NotFound()
+		return
+	}
+
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %v", err))
