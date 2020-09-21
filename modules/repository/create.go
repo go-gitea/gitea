@@ -43,6 +43,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
+		TrustModel:                      opts.TrustModel,
 	}
 
 	if err := models.WithTx(func(ctx models.DBContext) error {

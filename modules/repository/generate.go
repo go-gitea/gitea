@@ -244,6 +244,7 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
+		TrustModel:    templateRepo.TrustModel,
 	}
 
 	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
