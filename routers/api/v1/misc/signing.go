@@ -25,7 +25,7 @@ func SigningKey(ctx *context.APIContext) {
 	//     schema:
 	//       type: string
 	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//     "$ref": "#/responses/empty"
 
 	// swagger:operation GET /repos/{owner}/{repo}/signing-key.gpg repository repoSigningKey
 	// ---
@@ -49,7 +49,7 @@ func SigningKey(ctx *context.APIContext) {
 	//     schema:
 	//       type: string
 	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//     "$ref": "#/responses/empty"
 
 	path := ""
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
@@ -63,7 +63,7 @@ func SigningKey(ctx *context.APIContext) {
 	}
 
 	if len(content) == 0 {
-		ctx.NotFound()
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
