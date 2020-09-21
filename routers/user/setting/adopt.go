@@ -51,5 +51,4 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/repos")
-	return
 }
