@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -176,7 +177,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 			var err error
 			if repo != nil {
 				// Change repository empty status and update last updated time.
-				if err := models.UpdateRepository(repo, false); err != nil {
+				if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 					return fmt.Errorf("UpdateRepository: %v", err)
 				}
 			}
@@ -203,6 +204,10 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 					}
 				}
 				gitRepo.Close()
+			}
+			// Update the is empty and default_branch columns
+			if err := models.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+				return fmt.Errorf("UpdateRepositoryCols: %v", err)
 			}
 		}
 
@@ -274,7 +279,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 
 	if repo != nil {
 		// Change repository empty status and update last updated time.
-		if err := models.UpdateRepository(repo, false); err != nil {
+		if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 			return fmt.Errorf("UpdateRepository: %v", err)
 		}
 	}
