@@ -3,7 +3,7 @@ const $user = $('#auth_username');
 const $pass = $('#auth_password');
 const $token = $('#auth_token');
 const $mirror = $('#mirror');
-const $items = $('#migrate_items').find('.field');
+const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
   checkAuth();
@@ -29,11 +29,6 @@ function checkAuth() {
 }
 
 function checkItems(tokenAuth) {
-  if ($mirror.is(':checked')) {
-    $items.addClass('disabled');
-    return;
-  }
-
   let enableItems;
   if (tokenAuth) {
     enableItems = $token.val() !== '';
@@ -41,8 +36,13 @@ function checkItems(tokenAuth) {
     enableItems = $user.val() !== '' || $pass.val() !== '';
   }
   if (enableItems && $service.val() > 1) {
-    $items.removeClass('disabled');
+    if ($mirror.is(':checked')) {
+      $items.not('[name="wiki"]').attr('disabled', true);
+      $items.filter('[name="wiki"]').attr('disabled', false);
+      return;
+    }
+    $items.attr('disabled', false);
   } else {
-    $items.addClass('disabled');
+    $items.attr('disabled', true);
   }
 }
