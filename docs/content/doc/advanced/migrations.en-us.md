@@ -17,10 +17,10 @@ menu:
 
 The new migration features were introduced in Gitea 1.9.0. It defines two interfaces to support migrating
 repositories data from other git host platforms to gitea or, in the future migrating gitea data to other
-git host platforms. Currently, only the migrations from github via APIv3 to Gitea is implemented.
+git host platforms. Currently, migrations from Github, Gitlab and Gitea to Gitea is implemented.
 
 First of all, Gitea defines some standard objects in packages `modules/migrations/base`. They are
- `Repository`, `Milestone`, `Release`, `Label`, `Issue`, `Comment`, `PullRequest`, `Reaction`, `Review`, `ReviewComment`.
+ `Repository`, `Milestone`, `Release`, `ReleaseAsset`, `Label`, `Issue`, `Comment`, `PullRequest`, `Reaction`, `Review`, `ReviewComment`.
 
 ## Downloader Interfaces
 
@@ -33,6 +33,7 @@ create a Downloader.
 
 ```Go
 type Downloader interface {
+	GetAsset(relTag string, relID, id int64) (io.ReadCloser, error)
 	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
@@ -41,15 +42,15 @@ type Downloader interface {
 	GetLabels() ([]*Label, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
-	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 ```
 
 ```Go
 type DownloaderFactory interface {
-	Match(opts MigrateOptions) (bool, error)
-	New(opts MigrateOptions) (Downloader, error)
+	New(ctx context.Context, opts MigrateOptions) (Downloader, error)
+	GitServiceType() structs.GitServiceType
 }
 ```
 
@@ -66,7 +67,7 @@ type Uploader interface {
 	CreateRepo(repo *Repository, opts MigrateOptions) error
 	CreateTopics(topic ...string) error
 	CreateMilestones(milestones ...*Milestone) error
-	CreateReleases(releases ...*Release) error
+	CreateReleases(downloader Downloader, releases ...*Release) error
 	SyncTags() error
 	CreateLabels(labels ...*Label) error
 	CreateIssues(issues ...*Issue) error
