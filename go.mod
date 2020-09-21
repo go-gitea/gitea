@@ -60,7 +60,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.10.11
 	github.com/lafriks/xormstore v1.3.2
-	github.com/lib/pq v1.7.0
+	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.61.2
 	github.com/mattn/go-isatty v0.0.12

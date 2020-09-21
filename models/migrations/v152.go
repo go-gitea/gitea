@@ -4,19 +4,11 @@
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addChangedProtectedFilesPullRequestColumn(x *xorm.Engine) error {
-	type PullRequest struct {
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+func addTrustModelToRepository(x *xorm.Engine) error {
+	type Repository struct {
+		TrustModel int
 	}
-
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(Repository))
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -291,6 +292,10 @@ func commitRepoAction(repo *models.Repository, gitRepo *git.Repository, optsList
 					}
 				}
 			}
+			// Update the is empty and default_branch columns
+			if err := models.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+				return fmt.Errorf("UpdateRepositoryCols: %v", err)
+			}
 		}
 
 		opType := models.ActionCommitRepo
@@ -359,9 +364,9 @@ func commitRepoAction(repo *models.Repository, gitRepo *git.Repository, optsList
 		}
 	}
 
-	// Change repository empty status and update last updated time.
-	if err := models.UpdateRepository(repo, false); err != nil {
-		return fmt.Errorf("UpdateRepository: %v", err)
+	// Change repository last updated time.
+	if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
+		return fmt.Errorf("UpdateRepositoryUpdatedTime: %v", err)
 	}
 
 	if err := models.NotifyWatchers(actions...); err != nil {

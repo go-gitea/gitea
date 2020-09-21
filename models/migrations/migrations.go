@@ -236,9 +236,11 @@ var migrations = []Migration{
 	// v150 -> v151
 	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
 	// v151 -> v152
-	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
-	// v152 -> v153
 	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
+	// v152 -> v153
+	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	// v153 -> v154
+	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
