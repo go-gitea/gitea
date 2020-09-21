@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -240,71 +239,6 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 	}
 
 	return r
-}
-
-// CheckPullFilesProtection check if pr changed protected files and save results
-func (pr *PullRequest) CheckPullFilesProtection() (err error) {
-	if err = pr.LoadProtectedBranch(); err != nil {
-		return
-	}
-
-	if pr.ProtectedBranch == nil {
-		pr.ChangedProtectedFiles = nil
-		return nil
-	}
-
-	if err = pr.LoadBaseRepo(); err != nil {
-		return
-	}
-
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
-	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		return err
-	}
-
-	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, headCommitID, pr.ProtectedBranch.GetProtectedFilePatterns(), 10, gitRepo)
-	return
-}
-
-// CheckFileProtection check file Protection
-func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, repo *git.Repository) ([]string, error) {
-	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(patterns) == 0 {
-		return nil, nil
-	}
-
-	var changedFiles []string
-	if limit <= 10 {
-		changedFiles = make([]string, 0, limit)
-	} else {
-		changedFiles = make([]string, 0, 10)
-	}
-
-	for _, path := range strings.Split(stdout, "\n") {
-		lpath := strings.ToLower(strings.TrimSpace(path))
-		for _, pat := range patterns {
-			if pat.Match(lpath) {
-				changedFiles = append(changedFiles, path)
-				break
-			}
-		}
-
-		if len(changedFiles) >= limit {
-			break
-		}
-	}
-
-	return changedFiles, nil
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID

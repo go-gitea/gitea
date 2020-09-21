@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/gobwas/glob"
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
@@ -185,22 +187,13 @@ func TestPatch(pr *models.PullRequest) error {
 			pr.Status = models.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 
-			if pr.Index != 0 {
-				if err = pr.CheckPullFilesProtection(); err != nil {
-					return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
-				}
-			}
-
-			if len(pr.ChangedProtectedFiles) > 0 {
-				log.Trace("Found %d protected files changed")
-			}
 			return nil
 		}
 		return fmt.Errorf("git apply --check: %v", err)
 	}
 
 	if pr.Index != 0 {
-		if err = pr.CheckPullFilesProtection(); err != nil {
+		if err = CheckPullFilesProtection(pr); err != nil {
 			return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 		}
 	}
@@ -212,4 +205,69 @@ func TestPatch(pr *models.PullRequest) error {
 	pr.Status = models.PullRequestStatusMergeable
 
 	return nil
+}
+
+// CheckFileProtection check file Protection
+func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, repo *git.Repository) ([]string, error) {
+	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(patterns) == 0 {
+		return nil, nil
+	}
+
+	var changedFiles []string
+	if limit <= 10 {
+		changedFiles = make([]string, 0, limit)
+	} else {
+		changedFiles = make([]string, 0, 10)
+	}
+
+	for _, path := range strings.Split(stdout, "\n") {
+		lpath := strings.ToLower(strings.TrimSpace(path))
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				changedFiles = append(changedFiles, path)
+				break
+			}
+		}
+
+		if len(changedFiles) >= limit {
+			break
+		}
+	}
+
+	return changedFiles, nil
+}
+
+// CheckPullFilesProtection check if pr changed protected files and save results
+func CheckPullFilesProtection(pr *models.PullRequest) (err error) {
+	if err = pr.LoadProtectedBranch(); err != nil {
+		return
+	}
+
+	if pr.ProtectedBranch == nil {
+		pr.ChangedProtectedFiles = nil
+		return nil
+	}
+
+	if err = pr.LoadBaseRepo(); err != nil {
+		return
+	}
+
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		return err
+	}
+
+	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, headCommitID, pr.ProtectedBranch.GetProtectedFilePatterns(), 10, gitRepo)
+	return
 }
