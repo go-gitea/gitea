@@ -215,7 +215,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	}
 
 	if err := models.UpdateMilestone(milestone, oldIsClosed); err != nil {
-		ctx.ServerError("UpdateMilestone", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateMilestone", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))

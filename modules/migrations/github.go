@@ -47,13 +47,14 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 		return nil, err
 	}
 
+	baseURL := u.Scheme + "://" + u.Host
 	fields := strings.Split(u.Path, "/")
 	oldOwner := fields[1]
 	oldName := strings.TrimSuffix(fields[2], ".git")
 
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
-	return NewGithubDownloaderV3(ctx, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -74,7 +75,7 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(ctx context.Context, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
 		userName:  userName,
 		password:  password,
@@ -98,6 +99,9 @@ func NewGithubDownloaderV3(ctx context.Context, userName, password, token, repoO
 		client = oauth2.NewClient(downloader.ctx, ts)
 	}
 	downloader.client = github.NewClient(client)
+	if baseURL != "https://github.com" {
+		downloader.client, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+	}
 	return &downloader
 }
 
