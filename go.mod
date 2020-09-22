@@ -16,7 +16,6 @@ require (
 	gitea.com/macaron/macaron v1.5.0
 	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
-	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/alecthomas/chroma v0.8.0
 	github.com/blevesearch/bleve v1.0.10
@@ -78,6 +77,7 @@ require (
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.9
+	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/prometheus/client_golang v1.1.0
