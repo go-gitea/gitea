@@ -16,12 +16,26 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
 )
+
+// IssueTemplateDirCandidates issue templates directory
+var IssueTemplateDirCandidates = []string{
+	"ISSUE_TEMPLATE",
+	"issue_template",
+	".gitea/ISSUE_TEMPLATE",
+	".gitea/issue_template",
+	".github/ISSUE_TEMPLATE",
+	".github/issue_template",
+	".gitlab/ISSUE_TEMPLATE",
+	".gitlab/issue_template",
+}
 
 // PullRequest contains informations to make a pull request
 type PullRequest struct {
@@ -100,7 +114,7 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
@@ -820,4 +834,61 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
+}
+
+// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+	var issueTemplates []api.IssueTemplate
+	if ctx.Repo.Commit == nil {
+		var err error
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			return issueTemplates
+		}
+	}
+
+	for _, dirName := range IssueTemplateDirCandidates {
+		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		if err != nil {
+			continue
+		}
+		entries, err := tree.ListEntries()
+		if err != nil {
+			return issueTemplates
+		}
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".md") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue template is too large: %s", entry.Name())
+					continue
+				}
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Debug("DataAsync: %v", err)
+					continue
+				}
+				defer r.Close()
+				data, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Debug("ReadAll: %v", err)
+					continue
+				}
+				var it api.IssueTemplate
+				content, err := markdown.ExtractMetadata(string(data), &it)
+				if err != nil {
+					log.Debug("ExtractMetadata: %v", err)
+					continue
+				}
+				it.Content = content
+				it.FileName = entry.Name()
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			}
+		}
+		if len(issueTemplates) > 0 {
+			return issueTemplates
+		}
+	}
+	return issueTemplates
 }

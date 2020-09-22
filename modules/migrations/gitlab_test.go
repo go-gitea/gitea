@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -28,19 +29,20 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
-	downloader := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
-	if downloader == nil {
-		t.Fatal("NewGitlabDownloader is nil")
+	downloader, err := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("NewGitlabDownloader is nil: %v", err))
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	// Repo Owner is blank in Gitlab Group repos
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "",
-		Description: "Test repository for testing migration from gitlab to gitea",
-		CloneURL:    "https://gitlab.com/gitea/test_repo.git",
-		OriginalURL: "https://gitlab.com/gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "",
+		Description:   "Test repository for testing migration from gitlab to gitea",
+		CloneURL:      "https://gitlab.com/gitea/test_repo.git",
+		OriginalURL:   "https://gitlab.com/gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()

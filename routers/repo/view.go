@@ -34,7 +34,7 @@ const (
 	tplRepoHome  base.TplName = "repo/home"
 	tplWatchers  base.TplName = "repo/watchers"
 	tplForks     base.TplName = "repo/forks"
-	tplMigrating base.TplName = "repo/migrating"
+	tplMigrating base.TplName = "repo/migrate/migrating"
 )
 
 type namedBlob struct {
@@ -365,6 +365,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
+
+	ctx.Data["SSHDomain"] = setting.SSH.Domain
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {

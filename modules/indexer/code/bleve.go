@@ -37,11 +37,6 @@ import (
 const unicodeNormalizeName = "unicodeNormalize"
 const maxBatchSize = 16
 
-// indexerID a bleve-compatible unique identifier for an integer id
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
-}
-
 // numericEqualityQuery a numeric equality query for the given value and field
 func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
 	f := float64(value)

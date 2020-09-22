@@ -93,13 +93,13 @@ func (s *GroupClustersService) GetCluster(pid interface{}, cluster int, options 
 		return nil, nil, err
 	}
 
-	pc := new(GroupCluster)
-	resp, err := s.client.Do(req, &pc)
+	gc := new(GroupCluster)
+	resp, err := s.client.Do(req, &gc)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return pc, resp, err
+	return gc, resp, err
 }
 
 // AddGroupClusterOptions represents the available AddCluster() options.
@@ -141,13 +141,13 @@ func (s *GroupClustersService) AddCluster(pid interface{}, opt *AddGroupClusterO
 		return nil, nil, err
 	}
 
-	pc := new(GroupCluster)
-	resp, err := s.client.Do(req, pc)
+	gc := new(GroupCluster)
+	resp, err := s.client.Do(req, gc)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return pc, resp, err
+	return gc, resp, err
 }
 
 // EditGroupClusterOptions represents the available EditCluster() options.
@@ -185,13 +185,13 @@ func (s *GroupClustersService) EditCluster(pid interface{}, cluster int, opt *Ed
 		return nil, nil, err
 	}
 
-	pc := new(GroupCluster)
-	resp, err := s.client.Do(req, pc)
+	gc := new(GroupCluster)
+	resp, err := s.client.Do(req, gc)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return pc, resp, err
+	return gc, resp, err
 }
 
 // DeleteCluster deletes an existing group cluster.

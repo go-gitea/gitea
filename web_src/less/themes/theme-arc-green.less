@@ -1490,7 +1490,8 @@ a.ui.labels .label:hover {
 }
 
 .repository #commits-table td.sha .sha.label.isSigned .detail.icon,
-.repository #repo-files-table .sha.label.isSigned .detail.icon {
+.repository #repo-files-table .sha.label.isSigned .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon {
   background: none;
   border-left-color: #888;
 }
@@ -1993,4 +1994,20 @@ footer .container .links > * {
 .markdown-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
+}
+
+.migrate .cards .card {
+  text-align: center;
+}
+
+.migrate .cards .card .content a {
+  color: rgb(158, 158, 158) !important;
+}
+
+.migrate .cards .card .content a:hover {
+  color: rgb(255, 255, 255) !important;
+}
+
+.migrate .cards .card .content .description {
+  color: rgb(158, 158, 158);
 }

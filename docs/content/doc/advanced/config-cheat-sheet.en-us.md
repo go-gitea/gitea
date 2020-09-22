@@ -101,6 +101,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   - `twofa`: Only sign if the user is logged in with twofa
   - `always`: Always sign
   - Options other than `never` and `always` can be combined as a comma separated list.
+- `DEFAULT_TRUST_MODEL`: **collaborator**: \[collaborator, committer, collaboratorcommitter\]: The default trust model used for verifying commits.
+   - `collaborator`: Trust signatures signed by keys of collaborators.
+   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the commmitter).
+   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the commiter.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
@@ -206,12 +210,23 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
+
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
+- `LFS_STORE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service.
+- `LFS_SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `LFS_STORE_TYPE` is `local`.
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `LFS_STORE_TYPE is` `minio`
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `LFS_STORE_TYPE` is `minio`
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCK_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
+
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
@@ -325,7 +340,7 @@ set name for unique queues. Individual queues will default to
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
-- `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
+- `PASSWORD_HASH_ALGO`: **argon2**: The hash algorithm to use \[argon2, pbkdf2, scrypt, bcrypt\].
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
     - lower - use one or more lower latin characters
@@ -333,6 +348,7 @@ set name for unique queues. Individual queues will default to
     - digit - use one or more digits
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
+- `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 
 ## OpenID (`openid`)
 

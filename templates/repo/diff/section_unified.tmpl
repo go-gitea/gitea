@@ -7,17 +7,17 @@
 					<td colspan="2" class="lines-num">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold-down" 16}}
+								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold-up" 16}}
+								{{svg "octicon-fold-up"}}
 							</a>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold" 16}}
+								{{svg "octicon-fold"}}
 							</a>
 						{{end}}
 					</td>
@@ -43,11 +43,11 @@
 							<div class = "ui attached header">
 								<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 								<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
-									{{svg "octicon-unfold" 16}}
+									{{svg "octicon-unfold"}}
 									{{$.root.i18n.Tr "repo.issues.review.show_resolved"}}
 								</button>
 								<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
-									{{svg "octicon-fold" 16}}
+									{{svg "octicon-fold"}}
 									{{$.root.i18n.Tr "repo.issues.review.hide_resolved"}}
 								</button>
 							</div>

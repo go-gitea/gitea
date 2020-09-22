@@ -23,6 +23,10 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		}
 	}
 
+	if len(opts.DefaultBranch) == 0 {
+		opts.DefaultBranch = setting.Repository.DefaultBranch
+	}
+
 	repo := &models.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -37,6 +41,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
+		TrustModel:                      opts.TrustModel,
 	}
 
 	err = models.WithTx(func(ctx models.DBContext) error {

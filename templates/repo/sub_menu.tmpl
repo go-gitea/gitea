@@ -3,15 +3,15 @@
 		<div class="ui two horizontal center link list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 				<div class="item{{if .PageIsCommits}} active{{end}}">
-					<a class="ui" href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}">{{svg "octicon-history" 16}} <b>{{.CommitsCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .CommitsCount "repo.commit" "repo.commits") }}</a>
+					<a class="ui" href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}">{{svg "octicon-history"}} <b>{{.CommitsCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .CommitsCount "repo.commit" "repo.commits") }}</a>
 				</div>
 			{{end}}
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) }}
 				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a class="ui" href="{{.RepoLink}}/branches/">{{svg "octicon-git-branch" 16}} <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
+					<a class="ui" href="{{.RepoLink}}/branches/">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
 				</div>
 				<div class="item">
-					<span class="ui">{{svg "octicon-database" 16}} <b>{{SizeFmt .Repository.Size}}</b></span>
+					<span class="ui">{{svg "octicon-database"}} <b>{{SizeFmt .Repository.Size}}</b></span>
 				</div>
 			{{end}}
 		</div>
