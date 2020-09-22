@@ -831,7 +831,7 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 		newCommits = list.New()
 		e          = oldCommits.Front()
 	)
-	memberMap := map[int64]bool{}
+	keyMap := map[string]bool{}
 
 	for e != nil {
 		c := e.Value.(UserCommit)
@@ -840,7 +840,7 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
-		_ = CalculateTrustStatus(signCommit.Verification, repository, &memberMap)
+		_ = CalculateTrustStatus(signCommit.Verification, repository, &keyMap)
 
 		newCommits.PushBack(signCommit)
 		e = e.Next()
@@ -849,31 +849,70 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 }
 
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
-func CalculateTrustStatus(verification *CommitVerification, repository *Repository, memberMap *map[int64]bool) (err error) {
-	if verification.Verified {
-		verification.TrustStatus = "trusted"
-		if verification.SigningUser.ID != 0 {
-			var isMember bool
-			if memberMap != nil {
-				var has bool
-				isMember, has = (*memberMap)[verification.SigningUser.ID]
-				if !has {
-					isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-					(*memberMap)[verification.SigningUser.ID] = isMember
-				}
-			} else {
-				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-			}
-
-			if !isMember {
-				verification.TrustStatus = "untrusted"
-				if verification.CommittingUser.ID != verification.SigningUser.ID {
-					// The committing user and the signing user are not the same and are not the default key
-					// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-					verification.TrustStatus = "unmatched"
-				}
-			}
-		}
+func CalculateTrustStatus(verification *CommitVerification, repository *Repository, keyMap *map[string]bool) (err error) {
+	if !verification.Verified {
+		return
 	}
+
+	// There are several trust models in Gitea
+	trustModel := repository.GetTrustModel()
+
+	// In the Committer trust model a signature is trusted if it matches the committer
+	// - it doesn't matter if they're a collaborator, the owner, Gitea or Github
+	// NB: This model is commit verification only
+	if trustModel == CommitterTrustModel {
+		// default to "unmatched"
+		verification.TrustStatus = "unmatched"
+
+		// We can only verify against users in our database but the default key will match
+		// against by email if it is not in the db.
+		if (verification.SigningUser.ID != 0 &&
+			verification.CommittingUser.ID == verification.SigningUser.ID) ||
+			(verification.SigningUser.ID == 0 && verification.CommittingUser.ID == 0 &&
+				verification.SigningUser.Email == verification.CommittingUser.Email) {
+			verification.TrustStatus = "trusted"
+		}
+		return
+	}
+
+	// Now we drop to the more nuanced trust models...
+	verification.TrustStatus = "trusted"
+
+	if verification.SigningUser.ID == 0 {
+		// This commit is signed by the default key - but this key is not assigned to a user in the DB.
+
+		// However in the CollaboratorCommitterTrustModel we cannot mark this as trusted
+		// unless the default key matches the email of a non-user.
+		if trustModel == CollaboratorCommitterTrustModel && (verification.CommittingUser.ID != 0 ||
+			verification.SigningUser.Email != verification.CommittingUser.Email) {
+			verification.TrustStatus = "untrusted"
+		}
+		return
+	}
+
+	var isMember bool
+	if keyMap != nil {
+		var has bool
+		isMember, has = (*keyMap)[verification.SigningKey.KeyID]
+		if !has {
+			isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+			(*keyMap)[verification.SigningKey.KeyID] = isMember
+		}
+	} else {
+		isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+	}
+
+	if !isMember {
+		verification.TrustStatus = "untrusted"
+		if verification.CommittingUser.ID != verification.SigningUser.ID {
+			// The committing user and the signing user are not the same
+			// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+			verification.TrustStatus = "unmatched"
+		}
+	} else if trustModel == CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
+		// The committing user and the signing user are not the same and our trustmodel states that they must match
+		verification.TrustStatus = "unmatched"
+	}
+
 	return
 }

@@ -83,13 +83,14 @@ var (
 		} `ini:"repository.issue"`
 
 		Signing struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -209,21 +210,23 @@ var (
 
 		// Signing settings
 		Signing: struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		}{
-			SigningKey:    "default",
-			SigningName:   "",
-			SigningEmail:  "",
-			InitialCommit: []string{"always"},
-			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
-			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},
-			Wiki:          []string{"never"},
+			SigningKey:        "default",
+			SigningName:       "",
+			SigningEmail:      "",
+			InitialCommit:     []string{"always"},
+			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
+			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
+			Wiki:              []string{"never"},
+			DefaultTrustModel: "collaborator",
 		},
 	}
 	RepoRootPath string
@@ -268,6 +271,13 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
+	// Handle default trustmodel settings
+	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
+	if Repository.Signing.DefaultTrustModel == "default" {
+		Repository.Signing.DefaultTrustModel = "collaborator"
+	}
+
+	// Handle preferred charset orders
 	preferred := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {
 		canonicalCharset := strings.ToLower(strings.TrimSpace(charset))

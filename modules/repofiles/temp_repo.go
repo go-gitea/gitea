@@ -204,8 +204,6 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
-		"GIT_COMMITTER_NAME="+committerSig.Name,
-		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
@@ -217,13 +215,31 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 
 	// Determine if we should sign
 	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
-		sign, keyID, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
+			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
+					// Add trailers
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Authored-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Committed-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+				}
+				committerSig = signer
+			}
 		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
+
+	env = append(env,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
+	)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
