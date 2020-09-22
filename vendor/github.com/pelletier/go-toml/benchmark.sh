@@ -20,11 +20,15 @@ git clone ${reference_git} ${ref_tempdir} >/dev/null 2>/dev/null
 pushd ${ref_tempdir} >/dev/null
 git checkout ${reference_ref} >/dev/null 2>/dev/null
 go test -bench=. -benchmem | tee ${ref_benchmark}
+cd benchmark
+go test -bench=. -benchmem | tee -a ${ref_benchmark}
 popd >/dev/null
 
 echo ""
 echo "=== local"
 go test -bench=. -benchmem  | tee ${local_benchmark}
+cd benchmark
+go test -bench=. -benchmem | tee -a ${local_benchmark}
 
 echo ""
 echo "=== diff"
