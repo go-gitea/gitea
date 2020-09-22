@@ -1,5 +1,6 @@
-# Правила соучастников
 [English](CONTRIBUTING.md)
+
+# Правила соучастников
 
 ## Оглавление
 
@@ -26,7 +27,7 @@
 
 В этом документе объясняется, как внести изменения в проект Gitea.
 Предполагается, что вы следовали
-[installation instructions](https://docs.gitea.io/en-us/).
+[installation instructions](https://docs.gitea.io/ru-ru/).
 Sensitive security-related issues should be reported to
 [security@gitea.io](mailto:security@gitea.io).
 
