@@ -120,6 +120,7 @@ type EngineInterface interface {
 	TableInfo(bean interface{}) (*schemas.Table, error)
 	TableName(interface{}, ...bool) string
 	UnMapType(reflect.Type)
+	EnableSessionID(bool)
 }
 
 var (

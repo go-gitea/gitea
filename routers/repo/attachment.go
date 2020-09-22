@@ -7,26 +7,27 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["IsAttachmentEnabled"] = setting.AttachmentEnabled
-	ctx.Data["AttachmentAllowedTypes"] = setting.AttachmentAllowedTypes
-	ctx.Data["AttachmentMaxSize"] = setting.AttachmentMaxSize
-	ctx.Data["AttachmentMaxFiles"] = setting.AttachmentMaxFiles
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AttachmentStoreType"] = setting.Attachment.StoreType
+	ctx.Data["AttachmentAllowedTypes"] = setting.Attachment.AllowedTypes
+	ctx.Data["AttachmentMaxSize"] = setting.Attachment.MaxSize
+	ctx.Data["AttachmentMaxFiles"] = setting.Attachment.MaxFiles
 }
 
 // UploadAttachment response for uploading issue's attachment
 func UploadAttachment(ctx *context.Context) {
-	if !setting.AttachmentEnabled {
+	if !setting.Attachment.Enabled {
 		ctx.Error(404, "attachment is not enabled")
 		return
 	}
@@ -44,7 +45,7 @@ func UploadAttachment(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.Attachment.AllowedTypes, ","))
 	if err != nil {
 		ctx.Error(400, err.Error())
 		return
@@ -122,8 +123,23 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
+	if setting.Attachment.ServeDirect {
+		//If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
+
+		if u != nil && err == nil {
+			if err := attach.IncreaseDownloadCount(); err != nil {
+				ctx.ServerError("Update", err)
+				return
+			}
+
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
 	//If we have matched and access to release or issue
-	fr, err := os.Open(attach.LocalPath())
+	fr, err := storage.Attachments.Open(attach.RelativePath())
 	if err != nil {
 		ctx.ServerError("Open", err)
 		return

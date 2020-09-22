@@ -2,14 +2,14 @@
 	{{if .verification.Verified}}
 		<div title="{{if eq .verification.TrustStatus "trusted"}}{{else if eq .verification.TrustStatus "untrusted"}}{{$.root.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{$.root.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.verification.Reason}}">
 		{{if ne .verification.SigningUser.ID 0}}
-			{{svg "gitea-lock" 16}}
+			{{svg "gitea-lock"}}
 			<img class="ui signature avatar image" src="{{.verification.SigningUser.RelAvatarLink}}" />
 		{{else}}
-			<span title="{{$.root.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
+			<span title="{{$.root.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
 			<img class="ui signature avatar image" src="{{AvatarLink .verification.SigningEmail}}" />
 		{{end}}
 		</div>
 	{{else}}
-		<span title="{{$.root.i18n.Tr .verification.Reason}}">{{svg "gitea-unlock" 16}}</span>
+		<span title="{{$.root.i18n.Tr .verification.Reason}}">{{svg "gitea-unlock"}}</span>
 	{{end}}
 </div>

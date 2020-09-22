@@ -18,6 +18,8 @@ type Writer interface {
 	WriteNodeWithName(NodeWithName)
 	WriteHeadline(Headline)
 	WriteBlock(Block)
+	WriteResult(Result)
+	WriteInlineBlock(InlineBlock)
 	WriteExample(Example)
 	WriteDrawer(Drawer)
 	WritePropertyDrawer(PropertyDrawer)
@@ -34,6 +36,7 @@ type Writer interface {
 	WriteExplicitLineBreak(ExplicitLineBreak)
 	WriteLineBreak(LineBreak)
 	WriteRegularLink(RegularLink)
+	WriteMacro(Macro)
 	WriteTimestamp(Timestamp)
 	WriteFootnoteLink(FootnoteLink)
 	WriteFootnoteDefinition(FootnoteDefinition)
@@ -57,6 +60,10 @@ func WriteNodes(w Writer, nodes ...Node) {
 			w.WriteHeadline(n)
 		case Block:
 			w.WriteBlock(n)
+		case Result:
+			w.WriteResult(n)
+		case InlineBlock:
+			w.WriteInlineBlock(n)
 		case Example:
 			w.WriteExample(n)
 		case Drawer:
@@ -89,6 +96,8 @@ func WriteNodes(w Writer, nodes ...Node) {
 			w.WriteLineBreak(n)
 		case RegularLink:
 			w.WriteRegularLink(n)
+		case Macro:
+			w.WriteMacro(n)
 		case Timestamp:
 			w.WriteTimestamp(n)
 		case FootnoteLink:

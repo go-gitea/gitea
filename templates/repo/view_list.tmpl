@@ -36,32 +36,28 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply" 16}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
+				<td colspan="3">{{svg "octicon-reply"}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
 			{{$entry := index $item 0}}
 			{{$commit := index $item 1}}
 			<tr>
-				{{if $entry.IsSubModule}}
-					<td>
-						<span class="truncate">
-							{{svg "octicon-file-submodule" 16}}
-							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName}}
+				<td class="name four wide">
+					<span class="truncate">
+						{{if $entry.IsSubModule}}
+							{{svg "octicon-file-submodule"}}
+							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
 							{{if $refURL}}
-								<a href="{{$refURL}}">{{$entry.Name}}</a> @ <a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
+								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
 							{{else}}
-								{{$entry.Name}} @ {{ShortSha $commit.RefID}}
+								{{$entry.Name}}<span class="at">@</span>{{ShortSha $commit.RefID}}
 							{{end}}
-						</span>
-					</td>
-				{{else}}
-					<td class="name four wide">
-						<span class="truncate">
+						{{else}}
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-								{{svg "octicon-file-directory" 16}}
+								{{svg "octicon-file-directory"}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
@@ -70,12 +66,12 @@
 									{{end}}
 								</a>
 							{{else}}
-								{{svg (printf "octicon-%s" (EntryIcon $entry)) 16}}
+								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
-						</span>
-					</td>
-				{{end}}
+						{{end}}
+					</span>
+				</td>
 				<td class="message nine wide">
 					<span class="truncate">
 						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>

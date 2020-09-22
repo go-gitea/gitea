@@ -29,7 +29,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	// - Comments that are part of a review
 	// - Comments that reply to an existing review
 
-	if !isReview {
+	if !isReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
 		if existsReview, err = models.ReviewExists(issue, treePath, line); err != nil {

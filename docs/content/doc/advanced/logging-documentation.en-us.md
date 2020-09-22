@@ -421,3 +421,14 @@ func newNewoneLogService() {
 
 You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`
+
+## Using `logrotate` instead of built-in log rotation
+
+Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` utility:
+
+-  Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
+-  Install `logrotate`.
+-  Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10`,  or run `gitea manager logging release-and-reopen` (with the appropriate environment).  Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
+-  Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
+
+The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.

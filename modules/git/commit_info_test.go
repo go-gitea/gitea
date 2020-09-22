@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,7 +88,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestEntries_GetCommitsInfo")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 	clonedRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
 	defer clonedRepo1.Close()

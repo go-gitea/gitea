@@ -237,7 +237,7 @@
 						{{.CsrfTokenHtml}}
 						<div class="inline field ui left">
 							<div class="ui input">
-								<input type="email" name="email" required>
+								<input type="email" name="email" placeholder="{{.i18n.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
 						</div>
 						<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>

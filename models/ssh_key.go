@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/ssh"
@@ -227,7 +228,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	if err != nil {
 		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
 	}
-	defer os.Remove(tmpName)
+	defer func() {
+		if err := util.Remove(tmpName); err != nil {
+			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpName, err)
+		}
+	}()
 
 	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", setting.SSH.KeygenPath, "-lf", tmpName)
 	if err != nil {
@@ -423,7 +428,11 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmpPath)
+	defer func() {
+		if err := util.Remove(tmpPath); err != nil {
+			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpPath, err)
+		}
+	}()
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
 		if strings.Contains(stderr, "is not a public key file") {
@@ -692,7 +701,9 @@ func rewriteAllPublicKeys(e Engine) error {
 	}
 	defer func() {
 		t.Close()
-		os.Remove(tmpPath)
+		if err := util.Remove(tmpPath); err != nil {
+			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %v", tmpPath, err)
+		}
 	}()
 
 	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {

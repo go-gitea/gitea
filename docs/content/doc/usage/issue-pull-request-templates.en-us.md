@@ -41,4 +41,39 @@ Possible file names for PR templates:
 * .github/pull_request_template.md
 
 
-Additionally, the New Issue page URL can be suffixed with `?body=Issue+Text` and the form will be populated with that string. This string will be used instead of the template if there is one.
+Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
+
+# Issue Template Directory
+
+Alternatively, users can create multiple issue templates inside a special directory and allow users to choose one that more specifically 
+addresses their problem.
+
+Possible directory names for issue templates:
+
+* ISSUE_TEMPLATE
+* issue_template
+* .gitea/ISSUE_TEMPLATE
+* .gitea/issue_template
+* .github/ISSUE_TEMPLATE
+* .github/issue_template
+* .gitlab/ISSUE_TEMPLATE
+* .gitlab/issue_template
+
+Inside the directory can be multiple issue templates with the form
+
+```markdown
+-----
+name: "Template Name"
+about: "This template is for testing!"
+title: "[TEST] "
+labels:
+  - bug
+  - "help needed"
+-----
+This is the template!
+```
+
+In the above example, when a user is presented with the list of issues they can submit, this would show as `Template Name` with the description
+`This template is for testing!`. When submitting an issue with the above example, the issue title would be pre-populated with 
+`[TEST] ` while the issue body would be pre-populated with `This is the template!`. The issue would also be assigned two labels,
+`bug` and `help needed`.

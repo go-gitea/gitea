@@ -199,10 +199,18 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 	// notify
 	for userID := range toNotify {
 		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
+		user, err := getUserByID(e, userID)
+		if err != nil {
+			if IsErrUserNotExist(err) {
+				continue
+			}
+
+			return err
+		}
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypeIssues) {
 			continue
 		}
 
@@ -346,6 +354,7 @@ func (n *Notification) APIFormat() *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
@@ -356,6 +365,7 @@ func (n *Notification) APIFormat() *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()

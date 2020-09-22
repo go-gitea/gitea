@@ -35,7 +35,7 @@ type Include struct {
 }
 
 var keywordRegexp = regexp.MustCompile(`^(\s*)#\+([^:]+):(\s+(.*)|$)`)
-var commentRegexp = regexp.MustCompile(`^(\s*)#(.*)`)
+var commentRegexp = regexp.MustCompile(`^(\s*)#\s(.*)`)
 
 var includeFileRegexp = regexp.MustCompile(`(?i)^"([^"]+)" (src|example|export) (\w+)$`)
 var attributeRegexp = regexp.MustCompile(`(?:^|\s+)(:[-\w]+)\s+(.*)$`)
@@ -62,6 +62,16 @@ func (d *Document) parseKeyword(i int, stop stopFn) (int, Node) {
 		return d.loadSetupFile(k)
 	case "INCLUDE":
 		return d.parseInclude(k)
+	case "LINK":
+		if parts := strings.Split(k.Value, " "); len(parts) >= 2 {
+			d.Links[parts[0]] = parts[1]
+		}
+		return 1, k
+	case "MACRO":
+		if parts := strings.Split(k.Value, " "); len(parts) >= 2 {
+			d.Macros[parts[0]] = parts[1]
+		}
+		return 1, k
 	case "CAPTION", "ATTR_HTML":
 		consumed, node := d.parseAffiliated(i, stop)
 		if consumed != 0 {
@@ -150,7 +160,7 @@ func (d *Document) parseInclude(k Keyword) (int, Node) {
 				d.Log.Printf("Bad include %#v: %s", k, err)
 				return k
 			}
-			return Block{strings.ToUpper(kind), []string{lang}, d.parseRawInline(string(bs))}
+			return Block{strings.ToUpper(kind), []string{lang}, d.parseRawInline(string(bs)), nil}
 		}
 	}
 	return 1, Include{k, resolve}

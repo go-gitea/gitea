@@ -151,7 +151,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
-			ctx.ServerError("GetRelease", err)
+			ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 			return
 		}
 		// If target is not provided use default branch
@@ -194,8 +194,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-			ctx.ServerError("UpdateRelease", err)
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, true); err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -266,8 +266,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
+	if err := releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, false); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
 		return
 	}
 

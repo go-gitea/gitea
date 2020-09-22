@@ -4,7 +4,7 @@ go:
   - "1.13.x"
 script:
   - go test -v ./...
-  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s v1.22.2
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s v1.26.0
   - ./bin/golangci-lint run
   - git clean -fdx .
 after_success:

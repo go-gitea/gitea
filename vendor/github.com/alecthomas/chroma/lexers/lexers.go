@@ -32,6 +32,7 @@ import (
 	_ "github.com/alecthomas/chroma/lexers/w"
 	_ "github.com/alecthomas/chroma/lexers/x"
 	_ "github.com/alecthomas/chroma/lexers/y"
+	_ "github.com/alecthomas/chroma/lexers/z"
 )
 
 // Registry of Lexers.

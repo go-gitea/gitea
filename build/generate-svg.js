@@ -15,7 +15,9 @@ function exit(err) {
 }
 
 async function processFile(file, {prefix = ''} = {}) {
-  const name = `${prefix}${parse(file).name}`;
+  let name = parse(file).name;
+  if (prefix) name = `${prefix}-${name}`;
+  if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
 
   const svgo = new Svgo({
     plugins: [
@@ -50,8 +52,8 @@ async function main() {
     await mkdir(outputDir);
   } catch {}
 
-  for (const file of glob('../node_modules/@primer/octicons/build/svg/*.svg')) {
-    await processFile(file, {prefix: 'octicon-'});
+  for (const file of glob('../node_modules/@primer/octicons/build/svg/*-16.svg')) {
+    await processFile(file, {prefix: 'octicon'});
   }
 
   for (const file of glob('../web_src/svg/*.svg')) {
