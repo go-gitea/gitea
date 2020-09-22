@@ -90,94 +90,93 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 В зависимости от требований могут быть включены следующие теги сборки.
 
-* `bindata`: Build a single monolithic binary, with all assets included.
-* `sqlite sqlite_unlock_notify`: Enable support for a
-  [SQLite3](https://sqlite.org/) database. Suggested only for tiny
-  installations.
-* `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
-  be used to authenticate local users or extend authentication to methods
-  available to PAM.
+* `bindata`: Создайте единый монолитный двоичный файл со всеми активами.
+* `sqlite sqlite_unlock_notify`: Включить поддержку для базы данных
+  [SQLite3](https://sqlite.org/). Предлагается только для крошечных
+   установок.
+* `pam`: Включить поддержку для PAM (Linux Pluggable Authentication Modules). Может
+   использоваться для аутентификации локальных пользователей или расширения аутентификации для методов
+   доступных для PAM.
 
-Bundling assets into the binary using the `bindata` build tag is recommended for
-production deployments. It is possible to serve the static assets directly via a reverse proxy,
-but in most cases it is not necessary, and assets should still be bundled in the binary.
-You may want to exclude bindata while developing/testing Gitea.
-To include assets, add the `bindata` tag:
+Объединение активов в двоичный файл с помощью тега сборки `bindata` рекомендуется для
+производственных развёртываний. Статические активы можно обслуживать напрямую через обратный прокси,
+но в большинстве случаев в этом нет необходимости, и активы всё равно должны быть объединены в двоичный файл.
+Вы можете исключить bindata при разработке/тестировании Gitea.
+Чтобы включить активы, добавьте тег `bindata`:
 
 ```bash
 TAGS="bindata" make build
 ```
 
-In the default release build of our continuous integration system, the build
-tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
-recommended way to build from source is therefore:
+В сборке релиза по умолчанию нашей системы непрерывной интеграции сборки
+тега: `TAGS="bindata sqlite sqlite_unlock_notify"`. Простейший
+поэтому рекомендуемый способ сборки из исходного кода:
 
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-The `build` target is split into two sub-targets:
+Цель `build` разделена на две подцели:
 
-- `make backend` which requires [Go {{< min-go-version >}}](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js {{< min-node-version >}}](https://nodejs.org/en/download/) or greater.
+- `make backend` что требует [Go {{< min-go-version >}}](https://golang.org/dl/) или лучше.
+- `make frontend` что требует [Node.js {{< min-node-version >}}](https://nodejs.org/en/download/) или лучше.
 
-If pre-built frontend files are present it is possible to only build the backend:
+Если присутствуют предварительно созданные файлы внешнего интерфейса, можно создать только серверную часть:
 
 ```bash
 TAGS="bindata" make backend
 ```
 
-## Test
+## Тест
 
-After following the steps above, a `gitea` binary will be available in the working directory.
-It can be tested from this directory or moved to a directory with test data. When Gitea is
-launched manually from command line, it can be killed by pressing `Ctrl + C`.
+После выполнения описанных выше шагов, двоичный файл `gitea` будет доступен в рабочем каталоге.
+Его можно протестировать из этого каталога или переместить в каталог с тестовыми данными. Когда Gitea
+запускается вручную из командной строки, его можно вырубить, нажав `Ctrl + C`.
 
 ```bash
 ./gitea web
 ```
 
-## Changing default paths
+## Изменение путей по умолчанию
 
-Gitea will search for a number of things from the `CustomPath`. By default this is
-the `custom/` directory in the current working directory when running Gitea. It will also
-look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
-current working directory as the relative base path `AppWorkPath` for a number configurable
-values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
+Gitea будет искать ряд вещей в `CustomPath`. По умолчанию это
+каталог `custom/` в текущем рабочем каталоге при запуске Gitea. Это также будет
+искать его файл конфигурации `CustomConf` в `$CustomPath/conf/app.ini`, и будет использовать
+текущий рабочий каталог как относительный базовый путь `AppWorkPath` для настраиваемого числа
+чисел. Наконец, статические файлы будут обслуживаться из `StaticRootPath` который по умолчанию `AppWorkPath`.
 
-These values, although useful when developing, may conflict with downstream users preferences.
+Эти значения, хотя и полезны при разработке, могут конфликтовать с предпочтениями нижестоящих пользователей.
 
-One option is to use a script file to shadow the `gitea` binary and create an appropriate
-environment before running Gitea. However, when building you can change these defaults
-using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
+Один из вариантов - использовать файл сценария для теневого копирования двоичного файла `gitea` и создание соответствующего
+окружения перед запуском Gitea. Однако при сборке вы можете изменить эти значения по умолчанию
+используя переменную среду `LDFLAGS` для `make`. Соответствующие настройки следующие
 
-* To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-* For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-* For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-* To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+* Чтобы установить `CustomPath` используйте `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+* Для `CustomConf` вы должны использовать `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+* Для `AppWorkPath` вы должны использовать `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+* Для `StaticRootPath` вы должны использовать`-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+* Чтобы изменить расположение файла PID по умолчанию, используйте `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
 
-Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
-with the appropriate `TAGS` as above.
+Добавьте столько же строк с их предыдущими `-X` в переменную `LDFLAGS` и запустите `make build`
+с соответствующими `TAGS` как указано выше.
 
-Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+Запуск `gitea help` позволит вам просмотреть, какими будут вычисленные настройки для вашего `gitea`.
 
-## Cross Build
+## Перекрёстная сборка
+Инструментальная цепочка компилятора `go` поддерживает кросс-компиляцию для различных целей архитектуры, которые поддерживаются этой инструментальной цепочкой. Просмотрите [переменные окружения `GOOS` и `GOARCH`](https://golang.org/doc/install/source#environment) для списка поддерживаемых целей. Кросс-компиляция полезна, если вы хотите собрать Gitea для менее мощных систем (таких как Raspberry Pi).
 
-The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+Перекрестная сборка Gitea с тегами сборки (`TAGS`), вам также понадобится кросс-компилятор C, ориентированный на ту же архитектуру, которая выбрана у переменных `GOOS` и `GOARCH`. Например, чтобы построить кросс для Linux ARM64 (`GOOS=linux` и `GOARCH=arm64`), вам нужен кросс-компилятор `aarch64-unknown-linux-gnu-gcc`. Это необходимо, поскольку теги сборки Gitea используют `cgo` foreign-function interface (FFI).
 
-To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
-
-Cross-build Gitea for Linux ARM64, without any tags:
+Кросс-сборка Gitea для Linux ARM64, без тегов:
 
 ```
 GOOS=linux GOARCH=arm64 make build
 ```
 
-Cross-build Gitea for Linux ARM64, with recommended build tags:
+Кросс-сборка Gitea для Linux ARM64 с рекомендованными тегами сборки:
 
 ```
 CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
+Замените `CC`, `GOOS`, и `GOARCH` в зависимости от цели вашей архитектуры.

@@ -1,6 +1,6 @@
 ---
 date: "2017-06-19T12:00:00+02:00"
-title: "Installation from binary"
+title: "Установка из двоичного файла"
 slug: "install-from-binary"
 weight: 10
 toc: true
@@ -8,17 +8,17 @@ draft: false
 menu:
   sidebar:
     parent: "installation"
-    name: "From binary"
+    name: "Из двоичного файла"
     weight: 20
     identifier: "install-from-binary"
 ---
 
-# Installation from binary
+# Установка из двоичного файла
 
-All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
-the URL and replace the URL within the commands below:
+Все загрузки идут с поддержкой SQLite, MySQL и PostgreSQL и созданы с использованием
+встроенных активов. Они могут отличаться от более старых выпусков. Выберите соответствующий файл
+платформы назначения из [страницы скачивания](https://dl.gitea.io/gitea/), скопируйте
+URL-адрес и замените URL-адрес в командах ниже:
 
 ```sh
 wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
