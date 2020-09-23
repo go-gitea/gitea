@@ -23,7 +23,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	allowDelete := ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = allowDelete
 
-	dir := ctx.Query("name")
+	dir := ctx.Query("id")
 	action := ctx.Query("action")
 
 	ctxUser := ctx.User
@@ -43,11 +43,13 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
+		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" && allowDelete {
 		if err := repository.DeleteUnadoptedRepository(ctxUser, ctxUser, dir); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
+		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/repos")

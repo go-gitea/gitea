@@ -219,7 +219,7 @@ func UnadoptedRepos(ctx *context.Context) {
 
 // AdoptOrDeleteRepository adopts or deletes a repository
 func AdoptOrDeleteRepository(ctx *context.Context) {
-	dir := ctx.Query("name")
+	dir := ctx.Query("id")
 	action := ctx.Query("action")
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {
@@ -255,11 +255,13 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
+		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" {
 		if err := repository.DeleteUnadoptedRepository(ctx.User, ctxUser, dirSplit[1]); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
+		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
 	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted")
 }
