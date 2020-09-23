@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -73,6 +74,40 @@ func UnadoptedRepos(ctx *context.Context) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
+
+	doSearch := ctx.QueryBool("search")
+
+	ctx.Data["search"] = doSearch
+	q := ctx.Query("q")
+
+	if !doSearch {
+		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
+		pager.SetDefaultParams(ctx)
+		ctx.Data["Page"] = pager
+		ctx.HTML(200, tplUnadoptedRepos)
+		return
+	}
+
+	ctx.Data["Keyword"] = q
+	qsplit := strings.SplitN(q, "/", 2)
+
+	globUser, _ := glob.Compile("*")
+	globRepo, _ := glob.Compile("*")
+
+	if len(qsplit) > 0 && len(q) > 0 {
+		var err error
+		globUser, err = glob.Compile(qsplit[0])
+		if err != nil {
+			log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[0], err)
+		}
+		if len(qsplit) > 1 {
+			globRepo, err = glob.Compile(qsplit[1])
+			if err != nil {
+				log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[1], err)
+			}
+		}
+	}
+
 	start := (opts.Page - 1) * opts.PageSize
 	end := start + opts.PageSize
 
@@ -125,6 +160,10 @@ func UnadoptedRepos(ctx *context.Context) {
 				repoNamesToCheck = repoNamesToCheck[:0]
 			}
 
+			if !globUser.Match(info.Name()) {
+				return filepath.SkipDir
+			}
+
 			ctxUser, err = models.GetUserByName(info.Name())
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
@@ -142,7 +181,7 @@ func UnadoptedRepos(ctx *context.Context) {
 			return filepath.SkipDir
 		}
 		name = name[:len(name)-4]
-		if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name {
+		if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
 			return filepath.SkipDir
 		}
 		if count < end {
