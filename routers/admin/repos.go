@@ -124,7 +124,6 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	} else if has || !com.IsDir(models.RepoPath(ctxUser.Name, repoName)) {
-		log.Debug("has: %t, notDir: %s", has, models.RepoPath(ctxUser.Name, repoName))
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
 		if _, err := repository.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
