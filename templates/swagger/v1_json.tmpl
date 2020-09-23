@@ -13231,6 +13231,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitServiceType": {
+      "description": "GitServiceType represents a git service",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -13658,9 +13664,7 @@
           "x-go-name": "RepoName"
         },
         "service": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Service"
+          "$ref": "#/definitions/GitServiceType"
         },
         "uid": {
           "type": "integer",
