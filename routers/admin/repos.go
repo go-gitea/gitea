@@ -5,9 +5,6 @@
 package admin
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -89,165 +85,9 @@ func UnadoptedRepos(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = q
-	qsplit := strings.SplitN(q, "/", 2)
-
-	globUser, _ := glob.Compile("*")
-	globRepo, _ := glob.Compile("*")
-
-	if len(qsplit) > 0 && len(q) > 0 {
-		var err error
-		globUser, err = glob.Compile(qsplit[0])
-		if err != nil {
-			log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[0], err)
-		}
-		if len(qsplit) > 1 {
-			globRepo, err = glob.Compile(qsplit[1])
-			if err != nil {
-				log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[1], err)
-			}
-		}
-	}
-
-	start := (opts.Page - 1) * opts.PageSize
-	end := start + opts.PageSize
-
-	repoNamesToCheck := make([]string, 0, opts.PageSize)
-
-	repoNames := make([]string, 0, opts.PageSize)
-	var ctxUser *models.User
-
-	count := 0
-
-	// We're going to iterate by pagesize.
-	root := filepath.Join(setting.RepoRootPath)
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() || path == root {
-			return nil
-		}
-
-		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
-			// Got a new user
-
-			// Clean up old repoNamesToCheck
-			if len(repoNamesToCheck) > 0 {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-					Page:     1,
-					PageSize: opts.PageSize,
-				}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoopCatchup:
-					for i, repo := range repos {
-						if repo.LowerName == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoopCatchup
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
-			}
-
-			if !globUser.Match(info.Name()) {
-				return filepath.SkipDir
-			}
-
-			ctxUser, err = models.GetUserByName(info.Name())
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					log.Debug("Missing user: %s", info.Name())
-					return filepath.SkipDir
-				}
-				return err
-			}
-			return nil
-		}
-
-		name := info.Name()
-
-		if !strings.HasSuffix(name, ".git") {
-			return filepath.SkipDir
-		}
-		name = name[:len(name)-4]
-		if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
-			return filepath.SkipDir
-		}
-		if count < end {
-			repoNamesToCheck = append(repoNamesToCheck, name)
-			if len(repoNamesToCheck) >= opts.PageSize {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-					Page:     1,
-					PageSize: opts.PageSize,
-				}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoop:
-					for i, repo := range repos {
-						if repo.Name == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoop
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
-			}
-			return filepath.SkipDir
-		}
-		count++
-		return filepath.SkipDir
-	}); err != nil {
-		ctx.ServerError("filepath.Walk", err)
-		return
-	}
-
-	if len(repoNamesToCheck) > 0 {
-		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-			Page:     1,
-			PageSize: opts.PageSize,
-		}, LowerNames: repoNamesToCheck})
-		if err != nil {
-			ctx.ServerError("filepath.Walk", err)
-			return
-		}
-		for _, name := range repoNamesToCheck {
-			found := false
-		repoLoop:
-			for i, repo := range repos {
-				if repo.LowerName == name {
-					found = true
-					repos = append(repos[:i], repos[i+1:]...)
-					break repoLoop
-				}
-			}
-			if !found {
-				if count >= start && count < end {
-					repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-				}
-				count++
-			}
-		}
+	repoNames, count, err := repository.ListUnadoptedRepositories(q, &opts)
+	if err != nil {
+		ctx.ServerError("ListUnadoptedRepositories", err)
 	}
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
