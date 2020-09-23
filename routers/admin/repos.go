@@ -93,7 +93,7 @@ func UnadoptedRepos(ctx *context.Context) {
 			return nil
 		}
 
-		if strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
+		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
 
 			// Clean up old repoNamesToCheck
@@ -222,7 +222,6 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.Query("name")
 	action := ctx.Query("action")
 	dirSplit := strings.SplitN(dir, "/", 2)
-	log.Debug("dir: %s action %s %s", dir, action, dirSplit)
 	if len(dirSplit) != 2 {
 		ctx.Redirect(setting.AppSubURL + "/admin/repos")
 		return
