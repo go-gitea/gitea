@@ -49,7 +49,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".comments .merge .delete-button").Attr("data-url")
+	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
@@ -105,8 +105,6 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
-
 		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -129,8 +127,6 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
-
 		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -154,10 +150,9 @@ func TestPullSquash(t *testing.T) {
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
 		resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
 
@@ -190,7 +185,6 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -200,7 +194,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		req := NewRequest(t, "GET", resp.Header().Get("Location"))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		text := strings.TrimSpace(htmlDoc.doc.Find(".attached.header > .text.grey").Last().Text())
+		text := strings.TrimSpace(htmlDoc.doc.Find(".attached.merge-section.no-header > .text.grey").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
 		// remove <strong /> from lang
@@ -212,7 +206,6 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -258,7 +251,6 @@ func TestCantMergeConflict(t *testing.T) {
 
 func TestCantMergeUnrelated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")

@@ -62,6 +62,12 @@ func ReadThread(ctx *context.APIContext) {
 	//   description: id of notification thread
 	//   type: string
 	//   required: true
+	// - name: to-status
+	//   in: query
+	//   description: Status to mark notifications as
+	//   type: string
+	//   default: read
+	//   required: false
 	// responses:
 	//   "205":
 	//     "$ref": "#/responses/empty"
@@ -75,7 +81,12 @@ func ReadThread(ctx *context.APIContext) {
 		return
 	}
 
-	err := models.SetNotificationStatus(n.ID, ctx.User, models.NotificationStatusRead)
+	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	if targetStatus == 0 {
+		targetStatus = models.NotificationStatusRead
+	}
+
+	err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

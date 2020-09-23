@@ -7,6 +7,8 @@ package code
 import (
 	"fmt"
 	"sync"
+
+	"code.gitea.io/gitea/models"
 )
 
 var (
@@ -55,12 +57,12 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
-func (w *wrappedIndexer) Index(repoID int64) error {
+func (w *wrappedIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	indexer, err := w.get()
 	if err != nil {
 		return err
 	}
-	return indexer.Index(repoID)
+	return indexer.Index(repo, sha, changes)
 }
 
 func (w *wrappedIndexer) Delete(repoID int64) error {
@@ -71,12 +73,12 @@ func (w *wrappedIndexer) Delete(repoID int64) error {
 	return indexer.Delete(repoID)
 }
 
-func (w *wrappedIndexer) Search(repoIDs []int64, keyword string, page, pageSize int) (int64, []*SearchResult, error) {
+func (w *wrappedIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	indexer, err := w.get()
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
-	return indexer.Search(repoIDs, keyword, page, pageSize)
+	return indexer.Search(repoIDs, language, keyword, page, pageSize)
 
 }
 

@@ -142,8 +142,8 @@ func UpdateTwoFactor(t *TwoFactor) error {
 // GetTwoFactorByUID returns the two-factor authentication token associated with
 // the user, if any.
 func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
-	twofa := &TwoFactor{UID: uid}
-	has, err := x.Get(twofa)
+	twofa := &TwoFactor{}
+	has, err := x.Where("uid=?", uid).Get(twofa)
 	if err != nil {
 		return nil, err
 	} else if !has {

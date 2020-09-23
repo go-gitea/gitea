@@ -16,7 +16,7 @@ import (
 
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
-	Page        int
+	ListOptions
 	State       string
 	SortType    string
 	Labels      []string
@@ -94,14 +94,14 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		return nil, maxResults, err
 	}
 
-	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
-	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
+	findSession = opts.setSessionPagination(findSession)
+	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
 }
 

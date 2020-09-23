@@ -7,6 +7,7 @@ package charset
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/log"
@@ -137,16 +138,42 @@ func DetectEncoding(content []byte) (string, error) {
 	} else {
 		detectContent = content
 	}
-	result, err := textDetector.DetectBest(detectContent)
+
+	// Now we can't use DetectBest or just results[0] because the result isn't stable - so we need a tie break
+	results, err := textDetector.DetectAll(detectContent)
 	if err != nil {
+		if err == chardet.NotDetectedError && len(setting.Repository.AnsiCharset) > 0 {
+			log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
+			return setting.Repository.AnsiCharset, nil
+		}
 		return "", err
 	}
+
+	topConfidence := results[0].Confidence
+	topResult := results[0]
+	priority, has := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(topResult.Charset))]
+	for _, result := range results {
+		// As results are sorted in confidence order - if we have a different confidence
+		// we know it's less than the current confidence and can break out of the loop early
+		if result.Confidence != topConfidence {
+			break
+		}
+
+		// Otherwise check if this results is earlier in the DetectedCharsetOrder than our current top guesss
+		resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
+		if resultHas && (!has || resultPriority < priority) {
+			topResult = result
+			priority = resultPriority
+			has = true
+		}
+	}
+
 	// FIXME: to properly decouple this function the fallback ANSI charset should be passed as an argument
-	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
+	if topResult.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
 		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
 		return setting.Repository.AnsiCharset, err
 	}
 
-	log.Debug("Detected encoding: %s", result.Charset)
-	return result.Charset, err
+	log.Debug("Detected encoding: %s", topResult.Charset)
+	return topResult.Charset, err
 }

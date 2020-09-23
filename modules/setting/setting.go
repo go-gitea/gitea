@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -22,13 +23,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
-	version "github.com/mcuadros/go-version"
-	"github.com/unknwon/cae/zip"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
@@ -134,14 +132,6 @@ var (
 		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
 	}
 
-	LFS struct {
-		StartServer     bool          `ini:"LFS_START_SERVER"`
-		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes  []byte        `ini:"-"`
-		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
-	}
-
 	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
@@ -156,6 +146,7 @@ var (
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
+	PasswordCheckPwn                   bool
 
 	// UI settings
 	UI = struct {
@@ -164,6 +155,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -177,6 +169,13 @@ var (
 		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
 		UseServiceWorker      bool
+
+		Notification struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		} `ini:"ui.notification"`
 
 		Admin struct {
 			UserPagingNum   int
@@ -198,6 +197,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -206,6 +206,17 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		Notification: struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		}{
+			MinTimeout:            10 * time.Second,
+			TimeoutStep:           10 * time.Second,
+			MaxTimeout:            60 * time.Second,
+			EventSourceUpdateTime: 10 * time.Second,
+		},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -235,12 +246,14 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak bool
-		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions      []string
+		EnableHardLineBreakInComments  bool
+		EnableHardLineBreakInDocuments bool
+		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions                 []string
 	}{
-		EnableHardLineBreak: false,
-		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableHardLineBreakInComments:  true,
+		EnableHardLineBreakInDocuments: false,
+		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Admin settings
@@ -267,7 +280,6 @@ var (
 	LogLevel           string
 	StacktraceLogLevel string
 	LogRootPath        string
-	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
@@ -275,13 +287,6 @@ var (
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
-
-	// Attachment settings
-	AttachmentPath         string
-	AttachmentAllowedTypes string
-	AttachmentMaxSize      int64
-	AttachmentMaxFiles     int
-	AttachmentEnabled      bool
 
 	// Time settings
 	TimeFormat string
@@ -321,11 +326,13 @@ var (
 		InvalidateRefreshTokens    bool
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
+		MaxTokenLength             int
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 		InvalidateRefreshTokens:    false,
+		MaxTokenLength:             math.MaxInt16,
 	}
 
 	U2F = struct {
@@ -343,9 +350,8 @@ var (
 	}
 
 	// I18n settings
-	Langs     []string
-	Names     []string
-	dateLangs map[string]string
+	Langs []string
+	Names []string
 
 	// Highlight settings are loaded in modules/template/highlight.go
 
@@ -358,7 +364,8 @@ var (
 	Cfg           *ini.File
 	CustomPath    string // Custom directory path
 	CustomConf    string
-	CustomPID     string
+	PIDFile       = "/run/gitea.pid"
+	WritePIDFile  bool
 	ProdMode      bool
 	RunUser       string
 	IsWindows     bool
@@ -369,15 +376,6 @@ var (
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
 )
-
-// DateLang transforms standard language locale name to corresponding value in datetime plugin.
-func DateLang(lang string) string {
-	name, ok := dateLangs[lang]
-	if ok {
-		return name
-	}
-	return "en"
-}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -464,27 +462,6 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
-func CheckLFSVersion() {
-	if LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			log.Fatal("Error retrieving git version: %v", err)
-		}
-
-		if !version.Compare(binVersion, "2.1.2", ">=") {
-			LFS.StartServer = false
-			log.Error("LFS server support needs at least Git v2.1.2")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-		}
-	}
-}
-
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
@@ -511,6 +488,7 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+		log.Warn("Using 'custom' directory as relative origin for configuration file: '%s'", CustomConf)
 	}
 }
 
@@ -519,8 +497,8 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 func NewContext() {
 	Cfg = ini.Empty()
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if WritePIDFile && len(PIDFile) > 0 {
+		createPIDFile(PIDFile)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -554,6 +532,12 @@ func NewContext() {
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
+		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+			CertFile = filepath.Join(CustomPath, CertFile)
+		}
+		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
+			KeyFile = filepath.Join(CustomPath, KeyFile)
+		}
 	case "fcgi":
 		Protocol = FCGI
 	case "fcgi+unix":
@@ -606,9 +590,8 @@ func NewContext() {
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
+	urlHostname := appURL.Hostname()
+	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
 		Domain = urlHostname
 	}
 
@@ -623,18 +606,20 @@ func NewContext() {
 	default:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
-			defaultLocalURL += "localhost"
+			defaultLocalURL += net.JoinHostPort("localhost", HTTPPort) + "/"
 		} else {
-			defaultLocalURL += HTTPAddr
+			defaultLocalURL += net.JoinHostPort(HTTPAddr, HTTPPort) + "/"
 		}
-		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
+	}
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
@@ -698,58 +683,15 @@ func NewContext() {
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	sec = Cfg.Section("server")
-	if err = sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
-	}
-	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
-	}
-
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
-
-	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
-		}
-
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
-			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
-			}
-
-			// Save secret
-			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
-				// Keeps custom settings if there is already something.
-				if err := cfg.Append(CustomConf); err != nil {
-					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-				}
-			}
-
-			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-
-			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal("Failed to create '%s': %v", CustomConf, err)
-			}
-			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
-				return
-			}
-		}
-	}
+	newLFSService()
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
@@ -801,12 +743,16 @@ func NewContext() {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 
 	InternalToken = loadInternalToken(sec)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
 		name := strings.ToLower(strings.Trim(name, `"`))
@@ -815,15 +761,7 @@ func NewContext() {
 		}
 	}
 
-	sec = Cfg.Section("attachment")
-	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
-	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
-	}
-	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
-	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
-	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
+	newAttachmentService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -952,7 +890,6 @@ func NewContext() {
 	u.Path = path.Join(u.Path, "api", "swagger")
 	API.SwaggerURL = u.String()
 
-	newCron()
 	newGit()
 
 	sec = Cfg.Section("mirror")
@@ -971,17 +908,16 @@ func NewContext() {
 	if len(Langs) == 0 {
 		Langs = []string{
 			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
-			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pl-PL", "bg-BG", "it-IT",
-			"fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
+			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
+			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
 			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
-			"español", "português do Brasil", "polski", "български", "italiano",
-			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"español", "português do Brasil", "Português de Portugal", "polski", "български",
+			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
 	}
-	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
@@ -999,8 +935,6 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
-
-	zip.Verbose = false
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
@@ -1041,7 +975,7 @@ func loadInternalToken(sec *ini.Section) string {
 			return token
 		}
 
-		return string(buf)
+		return strings.TrimSpace(string(buf))
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
@@ -1083,6 +1017,7 @@ func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
+	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()
@@ -1094,4 +1029,5 @@ func NewServices() {
 	newIndexerService()
 	newTaskService()
 	NewQueueService()
+	newProject()
 }

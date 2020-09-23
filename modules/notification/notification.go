@@ -6,7 +6,6 @@ package notification
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
@@ -61,9 +60,9 @@ func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComme
 }
 
 // NotifyMergePullRequest notifies merge pull request to notifiers
-func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
+func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyMergePullRequest(pr, doer, baseGitRepo)
+		notifier.NotifyMergePullRequest(pr, doer)
 	}
 }
 
@@ -92,6 +91,13 @@ func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comm
 func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
+	}
+}
+
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestPushCommits(doer, pr, comment)
 	}
 }
 
@@ -151,6 +157,13 @@ func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee 
 	}
 }
 
+// NotifyPullReviewRequest notifies Request Review change
+func NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
+	}
+}
+
 // NotifyIssueClearLabels notifies clear labels to notifiers
 func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 	for _, notifier := range notifiers {
@@ -162,6 +175,13 @@ func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 func NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeTitle(doer, issue, oldTitle)
+	}
+}
+
+// NotifyIssueChangeRef notifies change reference to notifiers
+func NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeRef(doer, issue, oldRef)
 	}
 }
 

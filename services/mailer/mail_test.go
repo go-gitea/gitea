@@ -61,11 +61,11 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment}, tos, false, "issue comment")
 	assert.Len(t, msgs, 2)
-
-	mailto := msgs[0].GetHeader("To")
-	subject := msgs[0].GetHeader("Subject")
-	inreplyTo := msgs[0].GetHeader("In-Reply-To")
-	references := msgs[0].GetHeader("References")
+	gomailMsg := msgs[0].ToMessage()
+	mailto := gomailMsg.GetHeader("To")
+	subject := gomailMsg.GetHeader("Subject")
+	inreplyTo := gomailMsg.GetHeader("In-Reply-To")
+	references := gomailMsg.GetHeader("References")
 
 	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "Re: ", subject[0][:4], "Comment reply subject should contain Re:")
@@ -96,14 +96,15 @@ func TestComposeIssueMessage(t *testing.T) {
 		Content: "test body"}, tos, false, "issue create")
 	assert.Len(t, msgs, 2)
 
-	mailto := msgs[0].GetHeader("To")
-	subject := msgs[0].GetHeader("Subject")
-	messageID := msgs[0].GetHeader("Message-ID")
+	gomailMsg := msgs[0].ToMessage()
+	mailto := gomailMsg.GetHeader("To")
+	subject := gomailMsg.GetHeader("Subject")
+	messageID := gomailMsg.GetHeader("Message-ID")
 
 	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "[user2/repo1] @user2 #1 - issue1", subject[0])
-	assert.Nil(t, msgs[0].GetHeader("In-Reply-To"))
-	assert.Nil(t, msgs[0].GetHeader("References"))
+	assert.Nil(t, gomailMsg.GetHeader("In-Reply-To"))
+	assert.Nil(t, gomailMsg.GetHeader("References"))
 	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "Message-ID header doesn't match")
 }
 
@@ -134,9 +135,9 @@ func TestTemplateSelection(t *testing.T) {
 	InitMailRender(stpl, btpl)
 
 	expect := func(t *testing.T, msg *Message, expSubject, expBody string) {
-		subject := msg.GetHeader("Subject")
+		subject := msg.ToMessage().GetHeader("Subject")
 		msgbuf := new(bytes.Buffer)
-		_, _ = msg.WriteTo(msgbuf)
+		_, _ = msg.ToMessage().WriteTo(msgbuf)
 		wholemsg := msgbuf.String()
 		assert.Equal(t, []string{expSubject}, subject)
 		assert.Contains(t, wholemsg, expBody)
@@ -188,9 +189,9 @@ func TestTemplateServices(t *testing.T) {
 		msg := testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: actionType,
 			Content: "test body", Comment: comment}, tos, fromMention, "TestTemplateServices")
 
-		subject := msg.GetHeader("Subject")
+		subject := msg.ToMessage().GetHeader("Subject")
 		msgbuf := new(bytes.Buffer)
-		_, _ = msg.WriteTo(msgbuf)
+		_, _ = msg.ToMessage().WriteTo(msgbuf)
 		wholemsg := msgbuf.String()
 
 		assert.Equal(t, []string{expSubject}, subject)

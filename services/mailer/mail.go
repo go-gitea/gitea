@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -51,7 +52,7 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // SendUserMail sends a mail to the user
@@ -233,6 +234,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	if subject == "" {
 		subject = fallback
 	}
+
+	subject = emoji.ReplaceAliases(subject)
+
 	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
@@ -315,6 +319,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
+		case models.CommentTypePullPush:
+			name = "push"
 		default:
 			name = "default"
 		}

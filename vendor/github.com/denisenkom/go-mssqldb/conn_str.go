@@ -37,6 +37,7 @@ type connectParams struct {
 	failOverPartner           string
 	failOverPort              uint64
 	packetSize                uint16
+	fedAuthAccessToken        string
 }
 
 func parseConnectParams(dsn string) (connectParams, error) {

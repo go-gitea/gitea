@@ -87,6 +87,14 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	}
 }
 
+func issuesHook(events []string, event string) bool {
+	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventIssues))
+}
+
+func pullHook(events []string, event string) bool {
+	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventPullRequest))
+}
+
 // addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
 // an error, write to `ctx` accordingly. Return (webhook, ok)
 func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID int64) (*models.Webhook, bool) {
@@ -103,15 +111,24 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
-				Create:       com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
-				Delete:       com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
-				Fork:         com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
-				Issues:       com.IsSliceContainsStr(form.Events, string(models.HookEventIssues)),
-				IssueComment: com.IsSliceContainsStr(form.Events, string(models.HookEventIssueComment)),
-				Push:         com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
-				PullRequest:  com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest)),
-				Repository:   com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
-				Release:      com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
+				Create:               com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
+				Delete:               com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
+				Fork:                 com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
+				Issues:               issuesHook(form.Events, "issues_only"),
+				IssueAssign:          issuesHook(form.Events, string(models.HookEventIssueAssign)),
+				IssueLabel:           issuesHook(form.Events, string(models.HookEventIssueLabel)),
+				IssueMilestone:       issuesHook(form.Events, string(models.HookEventIssueMilestone)),
+				IssueComment:         issuesHook(form.Events, string(models.HookEventIssueComment)),
+				Push:                 com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
+				PullRequest:          pullHook(form.Events, "pull_request_only"),
+				PullRequestAssign:    pullHook(form.Events, string(models.HookEventPullRequestAssign)),
+				PullRequestLabel:     pullHook(form.Events, string(models.HookEventPullRequestLabel)),
+				PullRequestMilestone: pullHook(form.Events, string(models.HookEventPullRequestMilestone)),
+				PullRequestComment:   pullHook(form.Events, string(models.HookEventPullRequestComment)),
+				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
+				PullRequestSync:      pullHook(form.Events, string(models.HookEventPullRequestSync)),
+				Repository:           com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
+				Release:              com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
 			},
 			BranchFilter: form.BranchFilter,
 		},

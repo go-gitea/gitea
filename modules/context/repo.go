@@ -16,12 +16,26 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
 )
+
+// IssueTemplateDirCandidates issue templates directory
+var IssueTemplateDirCandidates = []string{
+	"ISSUE_TEMPLATE",
+	"issue_template",
+	".gitea/ISSUE_TEMPLATE",
+	".gitea/issue_template",
+	".github/ISSUE_TEMPLATE",
+	".github/issue_template",
+	".gitlab/ISSUE_TEMPLATE",
+	".gitlab/issue_template",
+}
 
 // PullRequest contains informations to make a pull request
 type PullRequest struct {
@@ -74,14 +88,57 @@ func RepoMustNotBeArchived() macaron.Handler {
 	}
 }
 
+// CanCommitToBranchResults represents the results of CanCommitToBranch
+type CanCommitToBranchResults struct {
+	CanCommitToBranch bool
+	EditorEnabled     bool
+	UserCanPush       bool
+	RequireSigned     bool
+	WillSign          bool
+	SigningKey        string
+	WontSignReason    string
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
+func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+
 	if err != nil {
-		return false, err
+		return CanCommitToBranchResults{}, err
 	}
-	return r.CanEnableEditor() && !protectedBranch, nil
+	userCanPush := true
+	requireSigned := false
+	if protectedBranch != nil {
+		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		requireSigned = protectedBranch.RequireSignedCommits
+	}
+
+	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+
+	canCommit := r.CanEnableEditor() && userCanPush
+	if requireSigned {
+		canCommit = canCommit && sign
+	}
+	wontSignReason := ""
+	if err != nil {
+		if models.IsErrWontSign(err) {
+			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+			err = nil
+		} else {
+			wontSignReason = "error"
+		}
+	}
+
+	return CanCommitToBranchResults{
+		CanCommitToBranch: canCommit,
+		EditorEnabled:     r.CanEnableEditor(),
+		UserCanPush:       userCanPush,
+		RequireSigned:     requireSigned,
+		WillSign:          sign,
+		SigningKey:        keyID,
+		WontSignReason:    wontSignReason,
+	}, err
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
@@ -91,12 +148,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
+func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -396,7 +453,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
 			IncludeTags:   true,
 		})
@@ -404,7 +461,6 @@ func RepoAssignment() macaron.Handler {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
-		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
@@ -505,23 +561,27 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 		// People who have push access or have forked repository can propose a new pull request.
-		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
-			// Pull request is allowed if this is a fork repository
-			// and base repository accepts pull requests.
-			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
-				ctx.Data["BaseRepo"] = repo.BaseRepo
-				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-			} else if repo.AllowsPulls() {
-				// Or, this is repository accepts pull requests between branches.
-				ctx.Data["BaseRepo"] = repo
-				ctx.Repo.PullRequest.BaseRepo = repo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.SameRepo = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
-			}
+		canPush := ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+		canCompare := false
+
+		// Pull request is allowed if this is a fork repository
+		// and base repository accepts pull requests.
+		if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo.BaseRepo
+			ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
+		} else if repo.AllowsPulls() {
+			// Or, this is repository accepts pull requests between branches.
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo
+			ctx.Repo.PullRequest.BaseRepo = repo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.SameRepo = true
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 		}
+		ctx.Data["CanCompareOrPull"] = canCompare
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 		if ctx.Query("go-get") == "1" {
@@ -772,5 +832,63 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
+}
+
+// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+	var issueTemplates []api.IssueTemplate
+	if ctx.Repo.Commit == nil {
+		var err error
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			return issueTemplates
+		}
+	}
+
+	for _, dirName := range IssueTemplateDirCandidates {
+		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		if err != nil {
+			continue
+		}
+		entries, err := tree.ListEntries()
+		if err != nil {
+			return issueTemplates
+		}
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".md") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue template is too large: %s", entry.Name())
+					continue
+				}
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Debug("DataAsync: %v", err)
+					continue
+				}
+				defer r.Close()
+				data, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Debug("ReadAll: %v", err)
+					continue
+				}
+				var it api.IssueTemplate
+				content, err := markdown.ExtractMetadata(string(data), &it)
+				if err != nil {
+					log.Debug("ExtractMetadata: %v", err)
+					continue
+				}
+				it.Content = content
+				it.FileName = entry.Name()
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			}
+		}
+		if len(issueTemplates) > 0 {
+			return issueTemplates
+		}
+	}
+	return issueTemplates
 }

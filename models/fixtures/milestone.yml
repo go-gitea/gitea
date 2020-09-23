@@ -20,7 +20,7 @@
   name: milestone3
   content: content3
   is_closed: true
-  num_issues: 0
+  num_issues: 1
 
 -
   id: 4

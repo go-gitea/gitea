@@ -13,6 +13,7 @@ import (
 // PullRequest defines a standard pull request information
 type PullRequest struct {
 	Number         int64
+	OriginalNumber int64
 	Title          string
 	PosterName     string
 	PosterID       int64
@@ -21,6 +22,7 @@ type PullRequest struct {
 	Milestone      string
 	State          string
 	Created        time.Time
+	Updated        time.Time
 	Closed         *time.Time
 	Labels         []*Label
 	PatchURL       string
@@ -32,6 +34,7 @@ type PullRequest struct {
 	Assignee       string
 	Assignees      []string
 	IsLocked       bool
+	Reactions      []*Reaction
 }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository

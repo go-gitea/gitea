@@ -26,6 +26,14 @@ import (
 
 // Deliver deliver hook task
 func Deliver(t *models.HookTask) error {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst delivering a hook...
+		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, t.URL, err, log.Stack(2))
+	}()
 	t.IsDelivered = true
 
 	var req *http.Request
@@ -69,18 +77,28 @@ func Deliver(t *models.HookTask) error {
 		if err != nil {
 			return err
 		}
+	case http.MethodPut:
+		switch t.Type {
+		case models.MATRIX:
+			req, err = getMatrixHookRequest(t)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+		}
 	default:
 		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
 	}
 
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
-	req.Header.Add("X-Gitea-Event", string(t.EventType))
+	req.Header.Add("X-Gitea-Event", t.EventType.Event())
 	req.Header.Add("X-Gitea-Signature", t.Signature)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
-	req.Header.Add("X-Gogs-Event", string(t.EventType))
+	req.Header.Add("X-Gogs-Event", t.EventType.Event())
 	req.Header.Add("X-Gogs-Signature", t.Signature)
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
-	req.Header["X-GitHub-Event"] = []string{string(t.EventType)}
+	req.Header["X-GitHub-Event"] = []string{t.EventType.Event()}
 
 	// Record delivery information.
 	t.RequestInfo = &models.HookRequest{

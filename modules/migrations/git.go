@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"io"
 
 	"code.gitea.io/gitea/modules/migrations/base"
 )
@@ -64,6 +65,11 @@ func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
 	return nil, ErrNotSupported
 }
 
+// GetAsset returns an asset
+func (g *PlainGitDownloader) GetAsset(_ string, _ int64) (io.ReadCloser, error) {
+	return nil, ErrNotSupported
+}
+
 // GetIssues returns issues according page and perPage
 func (g *PlainGitDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	return nil, false, ErrNotSupported
@@ -76,5 +82,10 @@ func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, er
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
+	return nil, ErrNotSupported
+}
+
+// GetReviews returns reviews according issue number
+func (g *PlainGitDownloader) GetReviews(issueNumber int64) ([]*base.Review, error) {
 	return nil, ErrNotSupported
 }

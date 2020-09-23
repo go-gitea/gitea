@@ -105,8 +105,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 <p>Ideas and codes</p>
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">ocornut/imgui#786</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
@@ -133,13 +133,19 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 `,
 		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
 <ol>
-<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
+<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a><br/>
 <a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" title="1.png" alt="images/1.png"/></a></li>
-<li>Perform a test run by hitting the Run! button.
+<li>Perform a test run by hitting the Run! button.<br/>
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
 <h2 id="user-content-custom-id">More tests</h2>
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
+<h3 id="user-content-checkboxes">Checkboxes</h3>
+<ul>
+<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span></li>
+<li class="task-list-item"><span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"/><label>checked</label></span></li>
+<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>still unchecked</label></span></li>
+</ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
 <dt>First Term</dt>
@@ -206,6 +212,12 @@ Here are some links to the most important topics. You can find the full list of 
 ## More tests {#custom-id}
 
 (from https://www.markdownguide.org/extended-syntax/)
+
+### Checkboxes
+
+- [ ] unchecked
+- [x] checked
+- [ ] still unchecked
 
 ### Definition list
 

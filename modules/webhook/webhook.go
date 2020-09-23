@@ -76,6 +76,14 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		}
 	}
 
+	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
+	// Integration webhooks (e.g. drone) still receive the required data.
+	if pushEvent, ok := p.(*api.PushPayload); ok &&
+		w.HookTaskType != models.GITEA && w.HookTaskType != models.GOGS &&
+		len(pushEvent.Commits) == 0 {
+		return nil
+	}
+
 	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
 	// branch filter has no effect.
 	if branch := getPayloadBranch(p); branch != "" {
@@ -113,6 +121,16 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetMSTeamsPayload: %v", err)
+		}
+	case models.FEISHU:
+		payloader, err = GetFeishuPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetFeishuPayload: %v", err)
+		}
+	case models.MATRIX:
+		payloader, err = GetMatrixPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetMatrixPayload: %v", err)
 		}
 	case models.WORKWECHAT:
 		payloader, err = GetWorkwechatPayload(p, event, w.Meta)
@@ -180,6 +198,13 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 		}
 		ws = append(ws, orgHooks...)
 	}
+
+	// Add any admin-defined system webhooks
+	systemHooks, err := models.GetSystemWebhooks()
+	if err != nil {
+		return fmt.Errorf("GetSystemWebhooks: %v", err)
+	}
+	ws = append(ws, systemHooks...)
 
 	if len(ws) == 0 {
 		return nil

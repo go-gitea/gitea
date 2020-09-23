@@ -19,52 +19,19 @@ import (
 	"xorm.io/xorm"
 )
 
-// CommitStatusState holds the state of a Status
-// It can be "pending", "success", "error", "failure", and "warning"
-type CommitStatusState string
-
-// IsWorseThan returns true if this State is worse than the given State
-func (css CommitStatusState) IsWorseThan(css2 CommitStatusState) bool {
-	switch css {
-	case CommitStatusError:
-		return true
-	case CommitStatusFailure:
-		return css2 != CommitStatusError
-	case CommitStatusWarning:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure
-	case CommitStatusSuccess:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning
-	default:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning && css2 != CommitStatusSuccess
-	}
-}
-
-const (
-	// CommitStatusPending is for when the Status is Pending
-	CommitStatusPending CommitStatusState = "pending"
-	// CommitStatusSuccess is for when the Status is Success
-	CommitStatusSuccess CommitStatusState = "success"
-	// CommitStatusError is for when the Status is Error
-	CommitStatusError CommitStatusState = "error"
-	// CommitStatusFailure is for when the Status is Failure
-	CommitStatusFailure CommitStatusState = "failure"
-	// CommitStatusWarning is for when the Status is Warning
-	CommitStatusWarning CommitStatusState = "warning"
-)
-
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
-	ID          int64             `xorm:"pk autoincr"`
-	Index       int64             `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64             `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo        *Repository       `xorm:"-"`
-	State       CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string            `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string            `xorm:"TEXT"`
-	Description string            `xorm:"TEXT"`
-	ContextHash string            `xorm:"char(40) index"`
-	Context     string            `xorm:"TEXT"`
-	Creator     *User             `xorm:"-"`
+	ID          int64                 `xorm:"pk autoincr"`
+	Index       int64                 `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	RepoID      int64                 `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Repo        *Repository           `xorm:"-"`
+	State       api.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	SHA         string                `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+	TargetURL   string                `xorm:"TEXT"`
+	Description string                `xorm:"TEXT"`
+	ContextHash string                `xorm:"char(40) index"`
+	Context     string                `xorm:"TEXT"`
+	Creator     *User                 `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -118,9 +85,9 @@ func (status *CommitStatus) APIFormat() *api.Status {
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
-	var state CommitStatusState
+	var state api.CommitStatusState
 	for _, status := range statuses {
-		if status.State.IsWorseThan(state) {
+		if status.State.NoBetterThan(state) {
 			state = status.State
 			lastStatus = status
 		}
@@ -137,7 +104,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
-	Page     int
+	ListOptions
 	State    string
 	SortType string
 }
@@ -147,18 +114,22 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
+	if opts.PageSize <= 0 {
+		opts.Page = ItemsPerPage
+	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
+	countSession = opts.setSessionPagination(countSession)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
 	}
 
-	statuses := make([]*CommitStatus, 0, ItemsPerPage)
+	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
+	findSession = opts.setSessionPagination(findSession)
 	sortCommitStatusesSession(findSession, opts.SortType)
-	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
 

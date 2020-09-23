@@ -7,6 +7,7 @@ package user
 import (
 	"encoding/base64"
 	"fmt"
+	"html"
 	"net/url"
 	"strings"
 
@@ -229,6 +230,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			}, form.RedirectURI)
 			return
 		}
+		// Here we're just going to try to release the session early
+		if err := ctx.Session.Release(); err != nil {
+			// we'll tolerate errors here as they *should* get saved elsewhere
+			log.Error("Unable to save changes to the session: %v", err)
+		}
 	case "":
 		break
 	default:
@@ -266,8 +272,8 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.AppURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
-	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(app.User.LowerName)) + "\">@" + html.EscapeString(app.User.Name) + "</a>"
+	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
 	if err != nil {
@@ -286,6 +292,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		log.Error(err.Error())
 		return
+	}
+	// Here we're just going to try to release the session early
+	if err := ctx.Session.Release(); err != nil {
+		// we'll tolerate errors here as they *should* get saved elsewhere
+		log.Error("Unable to save changes to the session: %v", err)
 	}
 	ctx.HTML(200, tplGrantAccess)
 }

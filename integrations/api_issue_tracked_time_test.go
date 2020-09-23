@@ -72,17 +72,17 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	//Deletion not allowed
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
 	session.MakeRequest(t, req, http.StatusForbidden)
-	/* Delete own time <-- ToDo: timout without reason
+
 	time3 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 3}).(*models.TrackedTime)
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 	//Delete non existing time
-	session.MakeRequest(t, req, http.StatusInternalServerError) */
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	//Reset time of user 2 on issue 2
 	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(3662), trackedSeconds)
+	assert.Equal(t, int64(3661), trackedSeconds)
 
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
 	session.MakeRequest(t, req, http.StatusNoContent)

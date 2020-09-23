@@ -4,14 +4,17 @@
   owner_name: user2
   lower_name: repo1
   name: repo1
+  is_empty: false
   is_private: false
   num_issues: 2
   num_closed_issues: 1
-  num_pulls: 2
+  num_pulls: 3
   num_closed_pulls: 0
   num_milestones: 3
   num_closed_milestones: 1
   num_watches: 4
+  num_projects: 1
+  num_closed_projects: 0
   status: 0
 
 -
@@ -41,6 +44,8 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_watches: 0
+  num_projects: 1
+  num_closed_projects: 0
   status: 0
 
 -
@@ -55,6 +60,8 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  num_projects: 0
+  num_closed_projects: 1
   status: 0
 
 -

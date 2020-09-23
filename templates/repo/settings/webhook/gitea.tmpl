@@ -21,7 +21,7 @@
 		<div class="field">
 			<label>{{.i18n.Tr "repo.settings.content_type"}}</label>
 			<div class="ui selection dropdown">
-				<input type="hidden" id="content_type" name="content_type" value="{{if .Webhook.ContentType}}{{.Webhook.ContentType}}{{else}}application/json{{end}}">
+				<input type="hidden" id="content_type" name="content_type" value="{{if .Webhook.ContentType}}{{.Webhook.ContentType}}{{else}}1{{end}}">
 				<div class="default text"></div>
 				<i class="dropdown icon"></i>
 				<div class="menu">

@@ -6,6 +6,8 @@ package repository
 
 import (
 	"container/list"
+	"crypto/md5"
+	"fmt"
 	"testing"
 	"time"
 
@@ -114,7 +116,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154?d=identicon",
+		"/avatar/"+fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com"))),
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 

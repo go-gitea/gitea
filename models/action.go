@@ -49,6 +49,7 @@ const (
 	ActionApprovePullRequest                       // 21
 	ActionRejectPullRequest                        // 22
 	ActionCommentPull                              // 23
+	ActionPublishRelease                           // 24
 )
 
 // Action represents user operation type and other information to
@@ -120,10 +121,13 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
-// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
 func (a *Action) GetDisplayName() string {
 	if setting.UI.DefaultShowFullName {
-		return a.GetActFullName()
+		trimmedFullName := strings.TrimSpace(a.GetActFullName())
+		if len(trimmedFullName) > 0 {
+			return trimmedFullName
+		}
 	}
 	return a.ShortActUserName()
 }
@@ -210,7 +214,7 @@ func (a *Action) getCommentLink(e Engine) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(a.CommentID)
+		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -284,11 +288,11 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser    *User
-	RequestingUserID int64
-	IncludePrivate   bool // include private actions
-	OnlyPerformedBy  bool // only actions performed by requested user
-	IncludeDeleted   bool // include deleted actions
+	RequestedUser   *User // the user we want activity for
+	Actor           *User // the user viewing the activity
+	IncludePrivate  bool  // include private actions
+	OnlyPerformedBy bool  // only actions performed by requested user
+	IncludeDeleted  bool  // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -296,8 +300,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	cond := builder.NewCond()
 
 	var repoIDs []int64
+	var actorID int64
+
+	if opts.Actor != nil {
+		actorID = opts.Actor.ID
+	}
+
 	if opts.RequestedUser.IsOrganization() {
-		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
+		env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -306,6 +316,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		}
 
 		cond = cond.And(builder.In("repo_id", repoIDs))
+	} else {
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+	}
+
+	if opts.Actor == nil || !opts.Actor.IsAdmin {
+		if opts.RequestedUser.KeepActivityPrivate && actorID != opts.RequestedUser.ID {
+			return make([]*Action, 0), nil
+		}
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
@@ -321,9 +339,9 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	actions := make([]*Action, 0, 20)
+	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(20).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 

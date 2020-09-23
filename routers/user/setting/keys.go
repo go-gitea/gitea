@@ -41,7 +41,7 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	}
 	switch form.Type {
 	case "gpg":
-		key, err := models.AddGPGKey(ctx.User.ID, form.Content)
+		keys, err := models.AddGPGKey(ctx.User.ID, form.Content)
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
 			switch {
@@ -63,7 +63,15 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			}
 			return
 		}
-		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", key.KeyID))
+		keyIDs := ""
+		for _, key := range keys {
+			keyIDs += key.KeyID
+			keyIDs += ", "
+		}
+		if len(keyIDs) > 0 {
+			keyIDs = keyIDs[:len(keyIDs)-2]
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", keyIDs))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
 		content, err := models.CheckPublicKeyString(form.Content)
@@ -92,6 +100,9 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 				ctx.Data["Err_Title"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
+			case models.IsErrKeyUnableVerify(err):
+				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			default:
 				ctx.ServerError("AddPublicKey", err)
 			}
@@ -133,14 +144,14 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := models.ListPublicKeys(ctx.User.ID)
+	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

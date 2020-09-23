@@ -18,11 +18,11 @@ import (
 	"time"
 
 	gitealog "code.gitea.io/gitea/modules/log"
+	"github.com/go-git/go-billy/v5/osfs"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/unknwon/com"
-	"gopkg.in/src-d/go-billy.v4/osfs"
-	gogit "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/cache"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 // Repository represents a Git repository.
@@ -255,7 +255,31 @@ func Push(repoPath string, opts PushOptions) error {
 		cmd.AddArguments("-f")
 	}
 	cmd.AddArguments("--", opts.Remote, opts.Branch)
-	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
+	var outbuf, errbuf strings.Builder
+
+	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, -1, repoPath, &outbuf, &errbuf)
+	if err != nil {
+		if strings.Contains(errbuf.String(), "non-fast-forward") {
+			return &ErrPushOutOfDate{
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
+			err := &ErrPushRejected{
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+			err.GenerateMessage()
+			return err
+		}
+	}
+
+	if errbuf.Len() > 0 && err != nil {
+		return fmt.Errorf("%v - %s", err, errbuf.String())
+	}
+
 	return err
 }
 

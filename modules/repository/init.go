@@ -16,8 +16,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -55,6 +56,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 		"Description":    repo.Description,
 		"CloneURL.SSH":   cloneLink.SSH,
 		"CloneURL.HTTPS": cloneLink.HTTPS,
+		"OwnerName":      repo.OwnerName,
 	}
 	if err = ioutil.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(com.Expand(string(data), match)), 0644); err != nil {
@@ -98,7 +100,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (err error) {
+func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, defaultBranch string) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -107,10 +109,10 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
+	committerName := sig.Name
+	committerEmail := sig.Email
 
 	if stdout, err := git.NewCommand("add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
@@ -119,7 +121,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	binVersion, err := git.BinVersion()
+	err = git.LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("Unable to get git version: %v", err)
 	}
@@ -129,14 +131,25 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 		"-m", "Initial commit",
 	}
 
-	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := models.SignInitialCommit(tmpPath, u)
+	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+
+			if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				// need to set the committer to the KeyID owner
+				committerName = signer.Name
+				committerEmail = signer.Email
+			}
+		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
+
+	env = append(env,
+		"GIT_COMMITTER_NAME="+committerName,
+		"GIT_COMMITTER_EMAIL="+committerEmail,
+	)
 
 	if stdout, err := git.NewCommand(args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
@@ -145,7 +158,11 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 		return fmt.Errorf("git commit: %v", err)
 	}
 
-	if stdout, err := git.NewCommand("push", "origin", "master").
+	if len(defaultBranch) == 0 {
+		defaultBranch = setting.Repository.DefaultBranch
+	}
+
+	if stdout, err := git.NewCommand("push", "origin", "master:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
@@ -164,7 +181,7 @@ func checkInitRepository(repoPath string) (err error) {
 	// Init git bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("git.InitRepository: %v", err)
-	} else if err = models.CreateDelegateHooks(repoPath); err != nil {
+	} else if err = createDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil
@@ -182,15 +199,18 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
-
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := util.RemoveAll(tmpDir); err != nil {
+				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
+			}
+		}()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, repo, u); err != nil {
+		if err = initRepoCommit(tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
@@ -206,6 +226,17 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 	}
 
 	repo.DefaultBranch = "master"
+	if len(opts.DefaultBranch) > 0 {
+		repo.DefaultBranch = opts.DefaultBranch
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("openRepository: %v", err)
+		}
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
+		}
+	}
+
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}

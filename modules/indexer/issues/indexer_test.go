@@ -6,7 +6,6 @@ package issues
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -14,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1"
 
@@ -40,7 +40,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	defer func() {
 		setting.Indexer.IssueQueueDir = oldQueueDir
 		setting.Indexer.IssuePath = oldIssuePath
-		os.RemoveAll(tmpIndexerDir)
+		util.RemoveAll(tmpIndexerDir)
 	}()
 
 	setting.Indexer.IssueType = "bleve"
@@ -65,7 +65,7 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
@@ -89,7 +89,7 @@ func TestDBSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)

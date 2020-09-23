@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -45,18 +46,33 @@ var (
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookUpdate = cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookPostReceive = cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 )
 
@@ -113,15 +129,8 @@ func (d *delayWriter) Close() error {
 	if d == nil {
 		return nil
 	}
-	stopped := d.timer.Stop()
-	if stopped {
-		return nil
-	}
-	select {
-	case <-d.timer.C:
-	default:
-	}
-	if d.buf == nil {
+	stopped := util.StopTimer(d.timer)
+	if stopped || d.buf == nil {
 		return nil
 	}
 	_, err := d.internal.Write(d.buf.Bytes())
@@ -144,7 +153,7 @@ func runHookPreReceive(c *cli.Context) error {
 		return nil
 	}
 
-	setup("hooks/pre-receive.log", false)
+	setup("hooks/pre-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -161,7 +170,7 @@ Gitea or set your environment appropriately.`, "")
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(models.EnvPRID), 10, 64)
 	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
 	hookOptions := private.HookOptions{
@@ -169,6 +178,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 		ProtectedBranchID:               prID,
 		IsDeployKey:                     isDeployKey,
 	}
@@ -279,7 +289,7 @@ func runHookPostReceive(c *cli.Context) error {
 		return nil
 	}
 
-	setup("hooks/post-receive.log", false)
+	setup("hooks/post-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -317,6 +327,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -428,4 +439,18 @@ func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 		fmt.Fprintln(os.Stderr, "")
 		os.Stderr.Sync()
 	}
+}
+
+func pushOptions() map[string]string {
+	opts := make(map[string]string)
+	if pushCount, err := strconv.Atoi(os.Getenv(private.GitPushOptionCount)); err == nil {
+		for idx := 0; idx < pushCount; idx++ {
+			opt := os.Getenv(fmt.Sprintf("GIT_PUSH_OPTION_%d", idx))
+			kv := strings.SplitN(opt, "=", 2)
+			if len(kv) == 2 {
+				opts[kv[0]] = kv[1]
+			}
+		}
+	}
+	return opts
 }

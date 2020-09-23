@@ -32,6 +32,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy models.SearchOrderBy
@@ -76,15 +77,15 @@ func Home(ctx *context.Context) {
 		err   error
 	)
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		},
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
-		UserIsAdmin:        ctx.IsUserSiteAdmin(),
-		UserID:             ctx.Data["SignedUserID"].(int64),
-		Page:               page,
-		IsProfile:          true,
-		PageSize:           setting.UI.User.RepoPagingNum,
+		Actor:              ctx.User,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
@@ -93,9 +94,9 @@ func Home(ctx *context.Context) {
 	}
 
 	var opts = models.FindOrgMembersOpts{
-		OrgID:      org.ID,
-		PublicOnly: true,
-		Limit:      25,
+		OrgID:       org.ID,
+		PublicOnly:  true,
+		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	if ctx.User != nil {
@@ -107,7 +108,7 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(opts)
+	members, _, err := models.FindOrgMembers(&opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
@@ -119,6 +120,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount

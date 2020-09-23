@@ -31,7 +31,7 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.EqualValues(t, 10, code.Additions)
 	assert.EqualValues(t, 1, code.Deletions)
 	assert.Len(t, code.Authors, 3)
-	assert.Contains(t, code.Authors, "tris.git@shoddynet.org")
-	assert.EqualValues(t, 3, code.Authors["tris.git@shoddynet.org"])
-	assert.EqualValues(t, 5, code.Authors[""])
+	assert.EqualValues(t, "tris.git@shoddynet.org", code.Authors[1].Email)
+	assert.EqualValues(t, 3, code.Authors[1].Commits)
+	assert.EqualValues(t, 5, code.Authors[0].Commits)
 }

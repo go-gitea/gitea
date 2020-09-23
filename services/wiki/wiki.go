@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 
@@ -74,7 +75,7 @@ func InitWiki(repo *models.Repository) error {
 
 	if err := git.InitRepository(repo.WikiPath(), true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = models.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil
@@ -184,16 +185,22 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		Message: message,
 	}
 
-	sign, signingKey := repo.SignWikiCommit(doer)
+	committer := doer.NewGitSig()
+
+	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
+		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			committer = signer
+		}
 	} else {
 		commitTreeOpts.NoGPGSign = true
 	}
 	if hasMasterBranch {
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		log.Error("%v", err)
 		return err
@@ -211,6 +218,9 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		),
 	}); err != nil {
 		log.Error("%v", err)
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -298,14 +308,19 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		Parents: []string{"HEAD"},
 	}
 
-	sign, signingKey := repo.SignWikiCommit(doer)
+	committer := doer.NewGitSig()
+
+	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
+		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			committer = signer
+		}
 	} else {
 		commitTreeOpts.NoGPGSign = true
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}
@@ -315,6 +330,9 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 

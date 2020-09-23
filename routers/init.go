@@ -15,22 +15,29 @@ import (
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/services/repository"
 
+	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 )
 
@@ -49,6 +56,12 @@ func checkRunMode() {
 // NewServices init new services
 func NewServices() {
 	setting.NewServices()
+	if err := storage.Init(); err != nil {
+		log.Fatal("storage init failed: %v", err)
+	}
+	if err := repository.NewContext(); err != nil {
+		log.Fatal("repository init failed: %v", err)
+	}
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
@@ -77,6 +90,33 @@ func initDBEngine(ctx context.Context) (err error) {
 	return nil
 }
 
+// InitLocales loads the locales
+func InitLocales() {
+	localeNames, err := options.Dir("locale")
+
+	if err != nil {
+		log.Fatal("Failed to list locale files: %v", err)
+	}
+	localFiles := make(map[string][]byte)
+
+	for _, name := range localeNames {
+		localFiles[name], err = options.Locale(name)
+
+		if err != nil {
+			log.Fatal("Failed to load %s locale file. %v", name, err)
+		}
+	}
+	i18n.I18n(i18n.Options{
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
+	})
+}
+
 // GlobalInit is for global configuration reload-able.
 func GlobalInit(ctx context.Context) {
 	setting.NewContext()
@@ -88,6 +128,9 @@ func GlobalInit(ctx context.Context) {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
+
+	// Setup i18n
+	InitLocales()
 
 	NewServices()
 
@@ -111,12 +154,18 @@ func GlobalInit(ctx context.Context) {
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
 		code_indexer.Init()
+		if err := stats_indexer.Init(); err != nil {
+			log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
+		}
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
-		pull_service.Init()
+		if err := pull_service.Init(); err != nil {
+			log.Fatal("Failed to initialize test pull requests queue: %v", err)
+		}
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
+		eventsource.GetManager().Init()
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
@@ -138,4 +187,6 @@ func GlobalInit(ctx context.Context) {
 	if setting.InstallLock {
 		sso.Init()
 	}
+
+	svg.Init()
 }

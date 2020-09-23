@@ -212,11 +212,14 @@ var (
 	procResumeThread                                         = modkernel32.NewProc("ResumeThread")
 	procSetPriorityClass                                     = modkernel32.NewProc("SetPriorityClass")
 	procGetPriorityClass                                     = modkernel32.NewProc("GetPriorityClass")
+	procQueryInformationJobObject                            = modkernel32.NewProc("QueryInformationJobObject")
 	procSetInformationJobObject                              = modkernel32.NewProc("SetInformationJobObject")
 	procGenerateConsoleCtrlEvent                             = modkernel32.NewProc("GenerateConsoleCtrlEvent")
 	procGetProcessId                                         = modkernel32.NewProc("GetProcessId")
 	procOpenThread                                           = modkernel32.NewProc("OpenThread")
 	procSetProcessPriorityBoost                              = modkernel32.NewProc("SetProcessPriorityBoost")
+	procGetProcessWorkingSetSizeEx                           = modkernel32.NewProc("GetProcessWorkingSetSizeEx")
+	procSetProcessWorkingSetSizeEx                           = modkernel32.NewProc("SetProcessWorkingSetSizeEx")
 	procDefineDosDeviceW                                     = modkernel32.NewProc("DefineDosDeviceW")
 	procDeleteVolumeMountPointW                              = modkernel32.NewProc("DeleteVolumeMountPointW")
 	procFindFirstVolumeW                                     = modkernel32.NewProc("FindFirstVolumeW")
@@ -257,6 +260,8 @@ var (
 	procWSACleanup                                           = modws2_32.NewProc("WSACleanup")
 	procWSAIoctl                                             = modws2_32.NewProc("WSAIoctl")
 	procsocket                                               = modws2_32.NewProc("socket")
+	procsendto                                               = modws2_32.NewProc("sendto")
+	procrecvfrom                                             = modws2_32.NewProc("recvfrom")
 	procsetsockopt                                           = modws2_32.NewProc("setsockopt")
 	procgetsockopt                                           = modws2_32.NewProc("getsockopt")
 	procbind                                                 = modws2_32.NewProc("bind")
@@ -2337,6 +2342,18 @@ func GetPriorityClass(process Handle) (ret uint32, err error) {
 	return
 }
 
+func QueryInformationJobObject(job Handle, JobObjectInformationClass int32, JobObjectInformation uintptr, JobObjectInformationLength uint32, retlen *uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procQueryInformationJobObject.Addr(), 5, uintptr(job), uintptr(JobObjectInformationClass), uintptr(JobObjectInformation), uintptr(JobObjectInformationLength), uintptr(unsafe.Pointer(retlen)), 0)
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
 func SetInformationJobObject(job Handle, JobObjectInformationClass uint32, JobObjectInformation uintptr, JobObjectInformationLength uint32) (ret int, err error) {
 	r0, _, e1 := syscall.Syscall6(procSetInformationJobObject.Addr(), 4, uintptr(job), uintptr(JobObjectInformationClass), uintptr(JobObjectInformation), uintptr(JobObjectInformationLength), 0, 0)
 	ret = int(r0)
@@ -2402,6 +2419,23 @@ func SetProcessPriorityBoost(process Handle, disable bool) (err error) {
 		_p0 = 0
 	}
 	r1, _, e1 := syscall.Syscall(procSetProcessPriorityBoost.Addr(), 2, uintptr(process), uintptr(_p0), 0)
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func GetProcessWorkingSetSizeEx(hProcess Handle, lpMinimumWorkingSetSize *uintptr, lpMaximumWorkingSetSize *uintptr, flags *uint32) {
+	syscall.Syscall6(procGetProcessWorkingSetSizeEx.Addr(), 4, uintptr(hProcess), uintptr(unsafe.Pointer(lpMinimumWorkingSetSize)), uintptr(unsafe.Pointer(lpMaximumWorkingSetSize)), uintptr(unsafe.Pointer(flags)), 0, 0)
+	return
+}
+
+func SetProcessWorkingSetSizeEx(hProcess Handle, dwMinimumWorkingSetSize uintptr, dwMaximumWorkingSetSize uintptr, flags uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procSetProcessWorkingSetSizeEx.Addr(), 4, uintptr(hProcess), uintptr(dwMinimumWorkingSetSize), uintptr(dwMaximumWorkingSetSize), uintptr(flags), 0, 0)
 	if r1 == 0 {
 		if e1 != 0 {
 			err = errnoErr(e1)
@@ -2864,6 +2898,39 @@ func socket(af int32, typ int32, protocol int32) (handle Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procsocket.Addr(), 3, uintptr(af), uintptr(typ), uintptr(protocol))
 	handle = Handle(r0)
 	if handle == InvalidHandle {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func sendto(s Handle, buf []byte, flags int32, to unsafe.Pointer, tolen int32) (err error) {
+	var _p0 *byte
+	if len(buf) > 0 {
+		_p0 = &buf[0]
+	}
+	r1, _, e1 := syscall.Syscall6(procsendto.Addr(), 6, uintptr(s), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), uintptr(flags), uintptr(to), uintptr(tolen))
+	if r1 == socket_error {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func recvfrom(s Handle, buf []byte, flags int32, from *RawSockaddrAny, fromlen *int32) (n int32, err error) {
+	var _p0 *byte
+	if len(buf) > 0 {
+		_p0 = &buf[0]
+	}
+	r0, _, e1 := syscall.Syscall6(procrecvfrom.Addr(), 6, uintptr(s), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), uintptr(flags), uintptr(unsafe.Pointer(from)), uintptr(unsafe.Pointer(fromlen)))
+	n = int32(r0)
+	if n == -1 {
 		if e1 != 0 {
 			err = errnoErr(e1)
 		} else {

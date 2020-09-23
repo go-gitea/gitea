@@ -1,0 +1,32 @@
+sudo: required
+language: go
+go:
+- "1.12.x"
+- "1.13.x"
+- tip
+matrix:
+  allow_failures:
+  - go: tip
+env:
+- GO111MODULE=on
+- GO111MODULE=off
+addons:
+  apt:
+    update: true
+    packages:
+    - docker-ce
+services:
+- docker
+before_install:
+- if [[ "$TRAVIS_OS_NAME" == "linux" && ! $(which nc) ]] ; then sudo apt-get install -y netcat ; fi
+- sudo sysctl -w vm.max_map_count=262144
+- docker-compose pull
+- docker-compose up -d
+- go get -u github.com/google/go-cmp/cmp
+- go get -u github.com/fortytw2/leaktest
+- go get . ./aws/... ./config/... ./trace/... ./uritemplates/...
+- while ! nc -z localhost 9200; do sleep 1; done
+- while ! nc -z localhost 9210; do sleep 1; done
+install: true # ignore the go get -t -v ./...
+script:
+- go test -race -deprecations -strict-decoder -v . ./aws/... ./config/... ./trace/... ./uritemplates/...

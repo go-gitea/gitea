@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,7 @@ type PullRequestMeta struct {
 type RepositoryMeta struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
+	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
 
@@ -54,6 +56,7 @@ type Issue struct {
 	// type: string
 	// enum: open,closed
 	State    StateType `json:"state"`
+	IsLocked bool      `json:"is_locked"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
@@ -116,4 +119,20 @@ type EditDeadlineOption struct {
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueTemplate represents an issue template for a repository
+// swagger:model
+type IssueTemplate struct {
+	Name     string   `json:"name" yaml:"name"`
+	Title    string   `json:"title" yaml:"title"`
+	About    string   `json:"about" yaml:"about"`
+	Labels   []string `json:"labels" yaml:"labels"`
+	Content  string   `json:"content" yaml:"-"`
+	FileName string   `json:"file_name" yaml:"-"`
+}
+
+// Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
+func (it IssueTemplate) Valid() bool {
+	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
 }

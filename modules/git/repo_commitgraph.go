@@ -11,8 +11,8 @@ import (
 
 	gitealog "code.gitea.io/gitea/modules/log"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph"
-	cgobject "gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph"
+	"github.com/go-git/go-git/v5/plumbing/format/commitgraph"
+	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 // CommitNodeIndex returns the index for walking commit graph

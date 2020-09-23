@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -105,7 +104,9 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
 	}
 
-	response, err := p.Client().Get(p.profileURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	req, err := http.NewRequest("GET", p.profileURL, nil)
+	req.Header.Add("Authorization", "Bearer "+sess.AccessToken)
+	response, err := p.Client().Do(req)
 	if err != nil {
 		return user, err
 	}
@@ -172,7 +173,9 @@ func userFromReader(reader io.Reader, user *goth.User) error {
 }
 
 func getPrivateMail(p *Provider, sess *Session) (email string, err error) {
-	response, err := p.Client().Get(p.emailURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	req, err := http.NewRequest("GET", p.emailURL, nil)
+	req.Header.Add("Authorization", "Bearer "+sess.AccessToken)
+	response, err := p.Client().Do(req)
 	if err != nil {
 		if response != nil {
 			response.Body.Close()

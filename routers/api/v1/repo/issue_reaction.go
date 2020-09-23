@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // GetIssueCommentReactions list reactions of a comment from an issue
@@ -65,7 +66,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers()
+	_, err = reactions.LoadUsers(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
@@ -179,7 +180,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
@@ -245,6 +246,14 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionList"
@@ -266,12 +275,12 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, err := models.FindIssueReactions(issue)
+	reactions, err := models.FindIssueReactions(issue, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers()
+	_, err = reactions.LoadUsers(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
@@ -380,7 +389,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}

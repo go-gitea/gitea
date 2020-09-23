@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package git
 
 import (
@@ -6,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,7 +88,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestEntries_GetCommitsInfo")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 	clonedRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
 	defer clonedRepo1.Close()

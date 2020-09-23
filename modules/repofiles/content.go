@@ -159,7 +159,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	}
 
 	// Now populate the rest of the ContentsResponse based on entry type
-	if entry.IsRegular() {
+	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
 		if blobResponse, err := GetBlobBySHA(repo, entry.ID.String()); err != nil {
 			return nil, err

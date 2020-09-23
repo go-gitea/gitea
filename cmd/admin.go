@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -14,9 +15,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -145,6 +147,32 @@ var (
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
+		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:  "min-width",
+				Usage: "Minimal cell width including any padding for the formatted table",
+				Value: 0,
+			},
+			cli.IntFlag{
+				Name:  "tab-width",
+				Usage: "width of tab characters in formatted table (equivalent number of spaces)",
+				Value: 8,
+			},
+			cli.IntFlag{
+				Name:  "padding",
+				Usage: "padding added to a cell before computing its width",
+				Value: 1,
+			},
+			cli.StringFlag{
+				Name:  "pad-char",
+				Usage: `ASCII char used for padding if padchar == '\\t', the Writer will assume that the width of a '\\t' in the formatted output is tabwidth, and cells are left-aligned independent of align_left (for correct-looking results, tabwidth must correspond to the tab width in the viewer displaying the result)`,
+				Value: "\t",
+			},
+			cli.BoolFlag{
+				Name:  "vertical-bars",
+				Usage: "Set to true to print vertical bars between columns",
+			},
+		},
 	}
 
 	idFlag = cli.Int64Flag{
@@ -237,6 +265,13 @@ func runChangePassword(c *cli.Context) error {
 	}
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
+	}
+	pwned, err := pwd.IsPwned(context.Background(), c.String("password"))
+	if err != nil {
+		return err
+	}
+	if pwned {
+		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
@@ -350,9 +385,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)
@@ -375,7 +412,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repository.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -410,7 +447,7 @@ func runRegenerateHooks(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return models.SyncRepositoryHooks()
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {
@@ -532,8 +569,18 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
+	flags := tabwriter.AlignRight
+	if c.Bool("vertical-bars") {
+		flags |= tabwriter.Debug
+	}
+
+	padChar := byte('\t')
+	if len(c.String("pad-char")) > 0 {
+		padChar = c.String("pad-char")[0]
+	}
+
 	// loop through each source and print
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
 		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)

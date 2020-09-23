@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -93,13 +92,22 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, comment.Content),
 		RepoID:    issue.Repo.ID,
 		Repo:      issue.Repo,
 		Comment:   comment,
 		CommentID: comment.ID,
 		IsPrivate: issue.Repo.IsPrivate,
 	}
+
+	content := ""
+
+	if len(comment.Content) > 200 {
+		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
+	} else {
+		content = comment.Content
+	}
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+
 	if issue.IsPull {
 		act.OpType = models.ActionCommentPull
 	} else {
@@ -253,7 +261,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -311,6 +319,25 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyNewRelease(rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("NotifyNewRelease: %v", err)
+		return
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: rel.PublisherID,
+		ActUser:   rel.Publisher,
+		OpType:    models.ActionPublishRelease,
+		RepoID:    rel.RepoID,
+		Repo:      rel.Repo,
+		IsPrivate: rel.Repo.IsPrivate,
+		Content:   rel.Title,
+		RefName:   rel.TagName,
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)
 	}

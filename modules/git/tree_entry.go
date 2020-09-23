@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // EntryMode the type of the object in the git tree
@@ -165,6 +165,38 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 		return nil, err
 	}
 	return target, nil
+}
+
+// FollowLinks returns the entry ultimately pointed to by a symlink
+func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+	if !te.IsLink() {
+		return nil, ErrBadLink{te.Name(), "not a symlink"}
+	}
+	entry := te
+	for i := 0; i < 999; i++ {
+		if entry.IsLink() {
+			next, err := entry.FollowLink()
+			if err != nil {
+				return nil, err
+			}
+			if next.ID == entry.ID {
+				return nil, ErrBadLink{
+					entry.Name(),
+					"recursive link",
+				}
+			}
+			entry = next
+		} else {
+			break
+		}
+	}
+	if entry.IsLink() {
+		return nil, ErrBadLink{
+			te.Name(),
+			"too many levels of symbolic links",
+		}
+	}
+	return entry, nil
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )

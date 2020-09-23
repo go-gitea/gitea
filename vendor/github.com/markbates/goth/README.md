@@ -17,6 +17,7 @@ $ go get github.com/markbates/goth
 ## Supported Providers
 
 * Amazon
+* Apple
 * Auth0
 * Azure AD
 * Battle.net

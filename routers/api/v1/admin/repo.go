@@ -15,7 +15,7 @@ import (
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	// swagger:operation POST /admin/users/{username}/repos admin adminCreateRepo
 	// ---
-	// summary: Create a repository on behalf a user
+	// summary: Create a repository on behalf of a user
 	// consumes:
 	// - application/json
 	// produces:

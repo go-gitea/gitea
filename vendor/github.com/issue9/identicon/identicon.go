@@ -25,11 +25,10 @@ type Identicon struct {
 	rect       image.Rectangle
 }
 
-// 声明一个Identicon实例。
-// size表示整个头像的大小。
-// back表示前景色。
-// fore表示所有可能的前景色，会为每个图像随机挑选一个作为其前景色。
-// NOTE:前景色不要与背景色太相近。
+// New 声明一个 Identicon 实例。
+// size 表示整个头像的大小；
+// back 表示前景色；
+// fore 表示所有可能的前景色，会为每个图像随机挑选一个作为其前景色。
 func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 	if len(fore) == 0 || len(fore) > maxForeColors {
 		return nil, fmt.Errorf("前景色数量必须介于[1]~[%v]之间，当前为[%v]", maxForeColors, len(fore))
@@ -49,7 +48,7 @@ func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 	}, nil
 }
 
-// 根据data数据产生一张唯一性的头像图片。
+// Make 根据 data 数据产生一张唯一性的头像图片。
 func (i *Identicon) Make(data []byte) image.Image {
 	h := md5.New()
 	h.Write(data)
@@ -78,7 +77,7 @@ func (i *Identicon) Make(data []byte) image.Image {
 	return p
 }
 
-// 根据data数据产生一张唯一性的头像图片。
+// Make 根据 data 数据产生一张唯一性的头像图片。
 // size 头像的大小。
 // back, fore头像的背景和前景色。
 func Make(size int, back, fore color.Color, data []byte) (image.Image, error) {
@@ -112,16 +111,16 @@ func Make(size int, back, fore color.Color, data []byte) (image.Image, error) {
 }
 
 // 将九个方格都填上内容。
-// p为画板。
-// c为中间方格的填充函数。
-// b1,b2为边上8格的填充函数。
-// angle为b1,b2的起始旋转角度。
+// p 为画板；
+// c 为中间方格的填充函数；
+// b1、b2 为边上 8 格的填充函数；
+// angle 为 b1、b2 的起始旋转角度。
 func drawBlocks(p *image.Paletted, size int, c, b1, b2 blockFunc, angle int) {
-	// 每个格子的长宽。先转换成float，再计算！
+	// 每个格子的长宽。先转换成 float，再计算！
 	blockSize := float64(size) / 3
 	twoBlockSize := 2 * blockSize
 
-	incr := func() { // 增加angle的值，但不会大于3
+	incr := func() { // 增加 angle 的值，但不会大于 3
 		angle++
 		if angle > 3 {
 			angle = 0

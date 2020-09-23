@@ -332,7 +332,11 @@ func (r *blockReader) PrecendingCharacter() rune {
 	if r.pos.Padding != 0 {
 		return rune(' ')
 	}
-	if r.pos.Start <= 0 {
+	if r.segments.Len() < 1 {
+		return rune('\n')
+	}
+	firstSegment := r.segments.At(0)
+	if r.line == 0 && r.pos.Start <= firstSegment.Start {
 		return rune('\n')
 	}
 	l := len(r.source)

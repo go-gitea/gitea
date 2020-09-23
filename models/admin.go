@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,10 +7,11 @@ package models
 
 import (
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -20,6 +22,8 @@ type NoticeType int
 const (
 	//NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
+	// NoticeTask type
+	NoticeTask
 )
 
 // Notice represents a system notice for admin.
@@ -36,11 +40,14 @@ func (n *Notice) TrStr() string {
 }
 
 // CreateNotice creates new system notice.
-func CreateNotice(tp NoticeType, desc string) error {
-	return createNotice(x, tp, desc)
+func CreateNotice(tp NoticeType, desc string, args ...interface{}) error {
+	return createNotice(x, tp, desc, args...)
 }
 
-func createNotice(e Engine, tp NoticeType, desc string) error {
+func createNotice(e Engine, tp NoticeType, desc string, args ...interface{}) error {
+	if len(args) > 0 {
+		desc = fmt.Sprintf(desc, args...)
+	}
 	n := &Notice{
 		Type:        tp,
 		Description: desc,
@@ -50,8 +57,8 @@ func createNotice(e Engine, tp NoticeType, desc string) error {
 }
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
-func CreateRepositoryNotice(desc string) error {
-	return createNotice(x, NoticeRepository, desc)
+func CreateRepositoryNotice(desc string, args ...interface{}) error {
+	return createNotice(x, NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
@@ -60,8 +67,20 @@ func RemoveAllWithNotice(title, path string) {
 	removeAllWithNotice(x, title, path)
 }
 
+// RemoveStorageWithNotice removes a file from the storage and
+// creates a system notice when error occurs.
+func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
+	if err := bucket.Delete(path); err != nil {
+		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
+		log.Warn(title+" [%s]: %v", path, err)
+		if err = createNotice(x, NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
+}
+
 func removeAllWithNotice(e Engine, title, path string) {
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {
