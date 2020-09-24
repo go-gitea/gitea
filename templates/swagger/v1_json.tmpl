@@ -7577,7 +7577,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a release by tagname",
+        "summary": "Get a release by tag name",
         "operationId": "repoGetReleaseTag",
         "parameters": [
           {
@@ -7605,6 +7605,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
