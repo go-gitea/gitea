@@ -207,15 +207,54 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 	}
 
 	repo.IsEmpty = false
-
-	repo.DefaultBranch = setting.Repository.DefaultBranch
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("openRepository: %v", err)
+
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
 		}
-		defer gitRepo.Close()
+	} else {
+		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
+		if err != nil {
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+				return fmt.Errorf("setDefaultBranch: %v", err)
+			}
+		} else if strings.HasPrefix(repo.DefaultBranch, git.BranchPrefix) {
+			repo.DefaultBranch = repo.DefaultBranch[len(git.BranchPrefix):]
+		}
+	}
+	branches, _ := gitRepo.GetBranches()
+	found := false
+	hasDefault := false
+	hasMaster := false
+	for _, branch := range branches {
+		if branch == repo.DefaultBranch {
+			found = true
+			break
+		} else if branch == setting.Repository.DefaultBranch {
+			hasDefault = true
+		} else if branch == "master" {
+			hasMaster = true
+		}
+	}
+	if !found {
+		if hasDefault {
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+		} else if hasMaster {
+			repo.DefaultBranch = "master"
+		} else if len(branches) > 0 {
+			repo.DefaultBranch = branches[0]
+		} else {
+			repo.IsEmpty = true
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+		}
+
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %v", err)
 		}
