@@ -109,10 +109,10 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
+	committerName := sig.Name
+	committerEmail := sig.Email
 
 	if stdout, err := git.NewCommand("add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
@@ -132,13 +132,24 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	}
 
 	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
-		sign, keyID, _ := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
+
+			if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				// need to set the committer to the KeyID owner
+				committerName = signer.Name
+				committerEmail = signer.Email
+			}
 		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
+
+	env = append(env,
+		"GIT_COMMITTER_NAME="+committerName,
+		"GIT_COMMITTER_EMAIL="+committerEmail,
+	)
 
 	if stdout, err := git.NewCommand(args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).

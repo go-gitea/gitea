@@ -7563,6 +7563,9 @@
           "201": {
             "$ref": "#/responses/Release"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "409": {
             "$ref": "#/responses/error"
           }
@@ -7606,6 +7609,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7642,6 +7648,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7691,6 +7700,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11937,6 +11949,17 @@
           "description": "Readme of the repository to create",
           "type": "string",
           "x-go-name": "Readme"
+        },
+        "trust_model": {
+          "description": "TrustModel of the repository",
+          "type": "string",
+          "enum": [
+            "default",
+            "collaborator",
+            "committer",
+            "collaboratorcommitter"
+          ],
+          "x-go-name": "TrustModel"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13220,6 +13243,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitServiceType": {
+      "description": "GitServiceType represents a git service",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -13647,9 +13676,7 @@
           "x-go-name": "RepoName"
         },
         "service": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Service"
+          "$ref": "#/definitions/GitServiceType"
         },
         "uid": {
           "type": "integer",
@@ -13823,6 +13850,9 @@
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
+        },
+        "state": {
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "type": "string",
