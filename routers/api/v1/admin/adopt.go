@@ -55,7 +55,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 
 // AdoptRepository will adopt an unadopted repository
 func AdoptRepository(ctx *context.APIContext) {
-	// swagger:operation POST /admin/unadopted/* admin adminAdoptRepository
+	// swagger:operation POST /admin/unadopted/{owner}/{repo} admin adminAdoptRepository
 	// ---
 	// summary: Adopt unadopted files as a repository
 	// produces:
@@ -73,7 +73,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     "$ref": "#/responses/Empty"
+	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "403":
@@ -112,7 +112,7 @@ func AdoptRepository(ctx *context.APIContext) {
 
 // DeleteUnadoptedRepository will delete an unadopted repository
 func DeleteUnadoptedRepository(ctx *context.APIContext) {
-	// swagger:operation DELETE /admin/unadopted/* admin adminDeleteUnadoptedRepository
+	// swagger:operation DELETE /admin/unadopted/{owner}/{repo} admin adminDeleteUnadoptedRepository
 	// ---
 	// summary: Delete unadopted files
 	// produces:
@@ -130,7 +130,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     "$ref": "#/responses/Empty"
+	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	ownerName := ctx.Params(":username")

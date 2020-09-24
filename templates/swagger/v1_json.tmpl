@@ -160,7 +160,7 @@
         }
       }
     },
-    "/admin/unadopted/*": {
+    "/admin/unadopted/{owner}/{repo}": {
       "post": {
         "produces": [
           "application/json"
@@ -188,7 +188,7 @@
         ],
         "responses": {
           "204": {
-            "$ref": "#/responses/Empty"
+            "$ref": "#/responses/empty"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -225,7 +225,7 @@
         ],
         "responses": {
           "204": {
-            "$ref": "#/responses/Empty"
+            "$ref": "#/responses/empty"
           },
           "403": {
             "$ref": "#/responses/forbidden"
