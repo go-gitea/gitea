@@ -756,10 +756,9 @@ func NewContext() {
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 
+	SSH.AuthorizedPrincipalsBackup = false
+	SSH.CreateAuthorizedPrincipalsFile = false
 	if SSH.AuthorizedPrincipalsEnabled {
-		SSH.AuthorizedPrincipalsBackup = false
-		SSH.CreateAuthorizedPrincipalsFile = false
-	} else {
 		SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
 		SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
 	}
