@@ -225,9 +225,9 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 				return fmt.Errorf("setDefaultBranch: %v", err)
 			}
-		} else if strings.HasPrefix(repo.DefaultBranch, git.BranchPrefix) {
-			repo.DefaultBranch = repo.DefaultBranch[len(git.BranchPrefix):]
 		}
+
+		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
 	}
 	branches, _ := gitRepo.GetBranches()
 	found := false
