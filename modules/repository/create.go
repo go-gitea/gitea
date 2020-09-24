@@ -64,25 +64,12 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			// 3. We delete it and start afresh
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
-			// if opts.AdoptPreExisting {
-			// 	shouldInit = false
-			// 	if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			// 		return fmt.Errorf("createDelegateHooks: %v", err)
-			// 	}
-			// } else if opts.OverwritePreExisting {
-			// 	log.Warn("An already existing repository was deleted at %s", repoPath)
-			// 	if err := util.RemoveAll(repoPath); err != nil {
-			// 		log.Error("Unable to remove already existing repository at %s: Error: %v", repoPath, err)
-			// 		return fmt.Errorf(
-			// 			"unable to delete repo directory %s/%s: %v", u.Name, repo.Name, err)
-			// 	}
-			// } else {
+			// So we will now fail and delegate to other functionality to adopt or delete
 			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
 			return models.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
-			// }
 		}
 
 		if err := initRepository(ctx, repoPath, doer, repo, opts); err != nil {
