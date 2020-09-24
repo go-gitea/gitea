@@ -29,7 +29,7 @@ var (
 		AnsiCharset                             string
 		ForcePrivate                            bool
 		DefaultPrivate                          string
-    DefaultPushCreatePrivate                bool
+		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
 		MirrorQueueLength                       int
 		PullRequestQueueLength                  int
@@ -133,7 +133,7 @@ var (
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
-    DefaultPushCreatePrivate:                true,
+		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
