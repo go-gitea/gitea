@@ -15,7 +15,7 @@ import (
 func GetReleaseTag(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseTag
 	// ---
-	// summary: Get a release by tagname
+	// summary: Get a release by tag name
 	// produces:
 	// - application/json
 	// parameters:
@@ -37,6 +37,8 @@ func GetReleaseTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	tag := ctx.Params(":tag")
 
