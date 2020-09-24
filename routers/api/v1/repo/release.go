@@ -44,14 +44,16 @@ func GetRelease(ctx *context.APIContext) {
 
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
-	if err != nil {
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
 	}
+
 	if err := release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
