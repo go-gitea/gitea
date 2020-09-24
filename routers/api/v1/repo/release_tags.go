@@ -42,7 +42,7 @@ func GetReleaseTag(ctx *context.APIContext) {
 
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		ctx.Error(http.StatusNotFound, "GetRelease", err)
 		return
 	}
 
