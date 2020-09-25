@@ -278,7 +278,7 @@ func (repo *Repository) IsBeingCreated() bool {
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
 	if len(repo.DefaultBranch) == 0 {
-		repo.DefaultBranch = "master"
+		repo.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
@@ -1048,7 +1048,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string) error {
+func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -1062,6 +1062,10 @@ func CheckCreateRepository(doer, u *User, name string) error {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, name}
+	}
+
+	if !overwriteOrAdopt && com.IsExist(RepoPath(u.Name, name)) {
+		return ErrRepoFilesAlreadyExist{u.Name, name}
 	}
 	return nil
 }
@@ -1116,11 +1120,15 @@ var (
 
 // IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
+	if alphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return ErrNameCharsNotAllowed{Name: name}
+	}
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error) {
+func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteOrAdopt bool) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1130,6 +1138,15 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, repo.Name}
+	}
+
+	repoPath := RepoPath(u.Name, repo.Name)
+	if !overwriteOrAdopt && com.IsExist(repoPath) {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+		return ErrRepoFilesAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
 	}
 
 	if _, err = ctx.e.Insert(repo); err != nil {
@@ -1854,6 +1871,10 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
+	}
+
+	if opts.LowerNames != nil && len(opts.LowerNames) > 0 {
+		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := x.NewSession()

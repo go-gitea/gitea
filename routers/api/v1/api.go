@@ -957,6 +957,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})
 			})
+			m.Group("/unadopted", func() {
+				m.Get("", admin.ListUnadoptedRepositories)
+				m.Post("/:username/:reponame", admin.AdoptRepository)
+				m.Delete("/:username/:reponame", admin.DeleteUnadoptedRepository)
+			})
 		}, reqToken(), reqSiteAdmin())
 
 		m.Group("/topics", func() {
