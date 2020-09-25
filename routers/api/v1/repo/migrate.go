@@ -198,6 +198,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):

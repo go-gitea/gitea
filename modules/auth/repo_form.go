@@ -38,6 +38,7 @@ type CreateRepoForm struct {
 	IssueLabels   string
 	License       string
 	Readme        string
+	Template      bool
 
 	RepoTemplate int64
 	GitContent   bool
