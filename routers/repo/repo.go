@@ -250,6 +250,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
+			IsTemplate:    form.Template,
 			TrustModel:    models.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
