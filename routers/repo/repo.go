@@ -160,6 +160,18 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -238,6 +250,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
+			IsTemplate:    form.Template,
+			TrustModel:    models.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

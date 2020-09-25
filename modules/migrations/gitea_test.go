@@ -28,7 +28,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	var (
-		downloader = NewGithubDownloaderV3(context.Background(), "", "", "", "go-xorm", "builder")
+		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)

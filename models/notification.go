@@ -354,6 +354,7 @@ func (n *Notification) APIFormat() *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
@@ -364,6 +365,7 @@ func (n *Notification) APIFormat() *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
