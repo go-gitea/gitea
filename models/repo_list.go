@@ -175,6 +175,8 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones util.OptionalBool
+	// LowerNames represents valid lower names to restrict to
+	LowerNames []string
 }
 
 //SearchOrderBy is used to sort the result
