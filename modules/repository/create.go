@@ -38,6 +38,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		OriginalServiceType:             opts.GitServiceType,
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
+		IsTemplate:                      opts.IsTemplate,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,

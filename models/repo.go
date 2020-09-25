@@ -1079,6 +1079,7 @@ type CreateRepoOptions struct {
 	DefaultBranch  string
 	IsPrivate      bool
 	IsMirror       bool
+	IsTemplate     bool
 	AutoInit       bool
 	Status         RepositoryStatus
 	TrustModel     TrustModelType
