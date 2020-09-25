@@ -44,6 +44,8 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
 		DefaultBranch                           string
+		AllowAdoptionOfUnadoptedRepositories    bool
+		AllowDeleteOfUnadoptedRepositories      bool
 
 		// Repository editor settings
 		Editor struct {
@@ -146,6 +148,7 @@ var (
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMirrors:                          false,
+		DefaultBranch:                           "master",
 
 		// Repository editor settings
 		Editor: struct {
@@ -245,7 +248,7 @@ func newRepository() {
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
-	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString("master")
+	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
