@@ -4,8 +4,8 @@
 
 ## Оглавление
 
-- [Правила соучастников](#contribution-guidelines)
-  - [Введение](#introduction)
+- [Правила соучастников](#правила-соучастников)
+  - [Введение](#введение)
   - [Bug reports](#bug-reports)
   - [Discuss your design](#discuss-your-design)
   - [Testing redux](#testing-redux)
