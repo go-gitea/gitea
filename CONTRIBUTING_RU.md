@@ -5,7 +5,7 @@
 ## Оглавление
 
 - [Правила соучастников](#contribution-guidelines)
-  - [Introduction](#introduction)
+  - [Введение](#introduction)
   - [Bug reports](#bug-reports)
   - [Discuss your design](#discuss-your-design)
   - [Testing redux](#testing-redux)
@@ -27,8 +27,8 @@
 
 В этом документе объясняется, как внести изменения в проект Gitea.
 Предполагается, что вы следовали
-[installation instructions](https://docs.gitea.io/ru-ru/).
-Sensitive security-related issues should be reported to
+[Установке](https://docs.gitea.io/ru-ru/installation/).
+О чувствительных проблемах, связанных с безопасностью, следует сообщать
 [security@gitea.io](mailto:security@gitea.io).
 
 For configuring IDE or code editor to develop Gitea see [IDE and code editor configuration](contrib/ide/)
