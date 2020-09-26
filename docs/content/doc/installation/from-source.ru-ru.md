@@ -33,8 +33,7 @@ menu:
 
 **Примечание 2**: Go версии {{< min-go-version >}} или выше требуется. Однако рекомендуется
 иметь ту же версию, что и наша непрерывная интеграция, см. совет, данный в
-<a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
-Gitea</a>
+<a href='{{< relref "doc/advanced/hacking-on-gitea.ru-ru.md" >}}'>взлом Gitea</a>
 
 ## Скачивание
 
@@ -83,7 +82,7 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 - `go` {{< min-go-version >}} или лучше, просмотрите [тут](https://golang.org/dl/)
 - `node` {{< min-node-version >}} или лучше с `npm`, просмотрите [тут](https://nodejs.org/en/download/)
-- `make`, просмотрите <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>тут</a>
+- `make`, просмотрите <a href='{{< relref "doc/advanced/make.ru-ru.md" >}}'>тут</a>
 
 Различные [задачи](https://github.com/go-gitea/gitea/blob/master/Makefile)
 предоставлены, чтобы максимально упростить процесс сборки.

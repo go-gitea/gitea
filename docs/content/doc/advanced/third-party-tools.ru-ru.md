@@ -21,7 +21,7 @@ menu:
 
 ### Непрерывная интеграция
 
-Проверьте нашу [страницу CI/CD]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
+Проверьте нашу [страницу CI/CD]({{< relref "doc/advanced/ci-cd.ru-ru.md" >}})
 
 ### Интернационализация 
 - [Weblate](https://docs.weblate.org/en/latest/admin/continuous.html#gitea-setup)

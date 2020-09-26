@@ -21,7 +21,7 @@ menu:
 ## Блокировать индексацию поисковыми системами с помощью robots.txt
 
 Чтобы Gitea обслуживала специальный файл `robots.txt` (по умолчанию: пустой 404) для установок верхнего уровня,
-создайте файл с именем` robots.txt` в [папке `custom` или `CustomPath`]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}})
+создайте файл с именем` robots.txt` в [папке `custom` или `CustomPath`]({{< relref "doc/advanced/customizing-gitea.ru-ru.md" >}})
 
 Примеры того, как настроить `robots.txt`, можно найти на [https://moz.com/learn/seo/robotstxt](https://moz.com/learn/seo/robotstxt).
 

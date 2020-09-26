@@ -25,27 +25,27 @@ wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-li
 chmod +x gitea
 ```
 
-## Verify GPG signature
-Gitea signs all binaries with a [GPG key](https://keys.openpgp.org/search?q=teabot%40gitea.io) to prevent against unwanted modification of binaries. To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+## Проверить подпись GPG
+Gitea подписывает все двоичные файлы [ключом GPG](https://keys.openpgp.org/search?q=teabot%40gitea.io) для предотвращения нежелательной модификации двоичных файлов. Чтобы проверить двоичный файл, загрузите файл подписи, который заканчивается на `.asc` для загруженного двоичного файла, и используйте инструмент командной строки gpg.
 
 ```sh
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-amd64
 ```
 
-## Recommended server configuration
+## Рекомендуемая конфигурация сервера
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!
-Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
+**ПРИМЕЧАНИЕ:** Многие из следующих каталогов также можно настроить с помощью [Особые переменные]({{< relref "doc/advanced/specific-variables.ru-ru.md" >}})!
+Следует отметить, что настройка `GITEA_WORK_DIR` сообщит Gitea, где разместить его рабочий каталог, а также упростит установку.
 
-### Prepare environment
+### Подготовка среды
 
-Check that Git is installed on the server. If it is not, install it first.
+Убедитесь, что на сервере установлен Git. Если это не так, сначала установите его.
 ```sh
 git --version
 ```
 
-Create user to run Gitea (ex. `git`)
+Создайте пользователя для запуска Gitea (например, `git`)
 ```sh
 adduser \
    --system \
@@ -57,7 +57,7 @@ adduser \
    git
 ```
 
-### Create required directory structure
+### Создайте необходимую структуру каталогов
 
 ```sh
 mkdir -p /var/lib/gitea/{custom,data,log}
@@ -68,111 +68,108 @@ chown root:git /etc/gitea
 chmod 770 /etc/gitea
 ```
 
-**NOTE:** `/etc/gitea` is temporary set with write rights for user `git` so that Web installer could write configuration file. After installation is done, it is recommended to set rights to read-only using:
+**ПРИМЕЧАНИЕ:** `/etc/gitea` - временный набор с правами записи для пользователя `git`, чтобы веб-установщик мог записать файл конфигурации. После завершения установки рекомендуется установить права только для чтения с помощью:
 ```
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
 ```
-If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:root`, mode `0660`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
+Если вы не хотите, чтобы веб-установщик вообще мог записывать файл конфигурации, также можно сделать файл конфигурации доступным только для чтения для пользователя gitea (владелец/группа `root:root`, режим `0660` ) и установите `INSTALL_LOCK = true`. В этом случае все детали конфигурации базы данных должны быть установлены заранее в файле конфигурации, а также значения `SECRET_KEY` и `INTERNAL_TOKEN`. Обратитесь к [документацию о командной строке]({{< relref "doc/usage/command-line.ru-ru.md" >}}) для информации об использовании `gitea generate secret INTERNAL_TOKEN`.
 
-### Configure Gitea's working directory
+### Настроить рабочий каталог Gitea
 
-**NOTE:** If you plan on running Gitea as a Linux service, you can skip this step as the service file allows you to set `WorkingDirectory`. Otherwise, consider setting this environment variable (semi-)permanently so that Gitea consistently uses the correct working directory.
+**ПРИМЕЧАНИЕ:** Если вы планируете запускать Gitea как службу Linux, вы можете пропустить этот шаг, так как служебный файл позволяет вам установить `WorkingDirectory`. В противном случае подумайте о том, чтобы установить эту переменную среды (полу-)перманентным, чтобы Gitea постоянно использовала правильный рабочий каталог.
 ```
 export GITEA_WORK_DIR=/var/lib/gitea/
 ```
 
-### Copy Gitea binary to global location
+### Скопируйте двоичный файл Gitea в глобальное местоположение
 
 ```
 cp gitea /usr/local/bin/gitea
 ```
 
-## Running Gitea
+## Запуск Gitea
 
-After the above steps, two options to run Gitea are:
+После описанных выше шагов два варианта запуска Gitea:
 
-### 1. Creating a service file to start Gitea automatically (recommended)
+### 1. Создание служебного файла для автоматического запуска Gitea (рекомендуется)
 
-See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
+Посмотрите, как создать [Linux service]({{< relref "run-as-service-in-ubuntu.ru-ru.md" >}})
 
-### 2. Running from command-line/terminal
+### 2. Запуск из командной строки/терминала
 
 ```
 GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 ```
 
-## Updating to a new version
+## Обновление до новой версии
 
-You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance.
-The binary file name should not be changed during the update to avoid problems
-in existing repositories.
+Вы можете выполнить обновление до новой версии Gitea, остановив Gitea, заменив двоичный файл в `/usr/local/bin/gitea` и перезапустив экземпляр.
+Имя двоичного файла не следует изменять во время обновления, чтобы избежать проблем
+в существующих репозиториях.
 
-It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
+Рекомендуется сделать [резервное копирование и восстановление]({{< relref "doc/usage/backup-and-restore.ru-ru.md" >}}) перед обновлением вашей установки.
 
-If you have carried out the installation steps as described above, the binary should
-have the generic name `gitea`. Do not change this, i.e. to include the version number.
+Если вы выполнили шаги установки, как описано выше, двоичный файл должен иметь общее
+имя `gitea`. Не меняйте это значение, т.е. не добавляйте номер версии.
 
-### 1. Restarting gitea with systemd (recommended)
+### 1. Перезапуск gitea с помощью systemd (рекомендуется)
 
-As explained before, we recommend to use systemd as service manager. In this case ```systemctl restart gitea``` should be enough.
+Как объяснялось ранее, мы рекомендуем использовать systemd в качестве диспетчера служб. В этом случае будет достаточно ```systemctl restart gitea```.
 
-### 2. Restarting gitea without systemd
+### 2. Перезапуск gitea без systemd
 
-To restart your gitea instance, we recommend to use SIGHUP signal. If you know your gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
+Чтобы перезапустить экземпляр gitea, мы рекомендуем использовать сигнал SIGHUP. Если вы знаете, что ваш gitea PID использует ```kill -1 $GITEA_PID```, в противном случае вы можете использовать ```killall -1 gitea``` или ```pkill -1 gitea```
 
-To gracefully stop the gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
+Для корректной остановки экземпляра gitea достаточно простого ```kill $GITEA_PID``` или ```killall gitea```.
 
-**NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you may be forcefully stopping some of Gitea internal tasks and it will not gracefully stop (tasks in queues, indexers processes, etc.)
+**ПРИМЕЧАНИЕ:** Мы не рекомендуем использовать сигнал SIGKILL (известный также как `-9`), вы можете принудительно остановить некоторые внутренние задачи Gitea, и он не будет корректно останавливаться (задачи в очередях, процессы индексатора и т.д.)
 
-See below for troubleshooting instructions to repair broken repositories after
-an update of your Gitea version.
+См. Ниже инструкции по устранению неполадок для восстановления поврежденных
+репозиториев после обновления вашей версии Gitea.
 
-## Troubleshooting
+## Исправление проблем
 
-### Old glibc versions
+### Старые версии glibc
 
-Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to load the
-Gitea binary, usually producing an error such as ```./gitea: /lib/x86_64-linux-gnu/libc.so.6:
-version `GLIBC\_2.14' not found (required by ./gitea)```. This is due to the integrated
-SQLite support in the binaries provided by dl.gitea.io. In this situation, it is usually
-possible to [install from source]({{< relref "from-source.en-us.md" >}}) without sqlite
-support.
+Старые дистрибутивы Linux (такие как Debian 7 и CentOS 6) могут не иметь возможности загрузить
+двоичный файл Gitea, что обычно приводит к ошибке типа ```./gitea:/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC\_2.14' not found (required by ./gitea)```. Это связано с интегрированной поддержкой SQLite в двоичных файлах, предоставляемых dl.gitea.io. В этой ситуации обычно можно [установка с source]({{< relref "from-source.ru-ru.md" >}}) без поддержки
+sqlite.
 
-### Running Gitea on another port
+### Запуск Gitea на другом порту
 
-For errors like `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:3000:
-bind: address already in use` Gitea needs to be started on another free port. This
-is possible using `./gitea web -p $PORT`. It's possible another instance of Gitea
-is already running.
+Для ошибок типа `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:3000:
+bind: address already in use` Gitea нужно запустить на другом свободном порту. Это
+возможно с помощью `./gitea web -p $PORT`. Возможно, уже запущен другой экземпляр
+Gitea.
 
-### Running Gitea on Raspbian
+### Запуск Gitea на Raspbian
 
-As of v1.8, there is a problem with the arm7 version of Gitea and it doesn't run on Raspberry Pi and similar devices.
+Начиная с версии 1.8, существует проблема с версией Gitea для arm7, и она не работает на Raspberry Pi и подобных устройствах.
 
-It is therefore recommended to switch to the arm6 version which has been tested and shown to work on Raspberry Pi and similar devices.
+Поэтому рекомендуется перейти на версию arm6, которая была протестирована и доказала свою работоспособность на Raspberry Pi и аналогичных устройствах.
 
 <!---
 please remove after fixing the arm7 bug
 --->
-### Git error after updating to a new version of Gitea
+### Ошибка Git после обновления до новой версии Gitea
 
-If the binary file name has been changed during the update to a new version of Gitea,
-git hooks in existing repositories will not work any more. In that case, a git
-error will be displayed when pushing to the repository.
+Если имя двоичного файла было изменено во время обновления до новой версии Gitea,
+hook'и git в существующих репозиториях больше не будут работать. В этом случае
+при отправке в репозиторий будет отображаться ошибка git.
 
 ```
 remote: ./hooks/pre-receive.d/gitea: line 2: [...]: No such file or directory
 ```
 
-The `[...]` part of the error message will contain the path to your previous Gitea
-binary.
+Часть сообщения об ошибке `[...]` будет содержать путь к вашему предыдущему двоичному файлу 
+Gitea.
 
-To solve this, go to the admin options and run the task `Resynchronize pre-receive,
-update and post-receive hooks of all repositories` to update all hooks to contain
-the new binary path. Please note that this overwrite all git hooks including ones
-with customizations made.
+Чтобы решить эту проблему, перейдите в параметры администратора и запустите задачу
+`Resynchronize pre-receive, update and post-receive hooks of all repositories`, чтобы
+обновить все hook'и, чтобы они содержали новый двоичный путь. Обратите внимание, что
+при этом перезаписываются все hook'и git, включая те, которые были изменены.
 
-If you aren't using the built-in to Gitea SSH server you will also need to re-write
-the authorized key file by running the `Update the '.ssh/authorized_keys' file with
-Gitea SSH keys.` task in the admin options.
+Если вы не используете встроенный в Gitea SSH-сервер, вам также необходимо перезаписать
+авторизованный ключевой файл, запустив `Обновите файл '.ssh/authorized_keys' с помощью
+задачи Gitea SSH keys. В параметрах администратора.

@@ -18,8 +18,8 @@ menu:
 ## Включение/настройка доступа к API
 
 По умолчанию, `ENABLE_SWAGGER` true, и
-`MAX_RESPONSE_ITEMS` установлено на 50. См. [Config Cheat
-Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) для большей
+`MAX_RESPONSE_ITEMS` установлено на 50. См. [Памятку по
+конфигурации](https://docs.gitea.io/ru-ru/config-cheat-sheet/) для большей
 информации.
 
 ## Аутентификация через API

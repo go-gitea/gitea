@@ -17,7 +17,7 @@ menu:
 
 ## Настройка индексатора репозитория
 
-Gitea может выполнять поиск в файлах репозиториев, включив эту функцию в вашем [`app.ini`](https://docs.gitea.io/en-us/config-cheat-sheet/):
+Gitea может выполнять поиск в файлах репозиториев, включив эту функцию в вашем [`app.ini`](https://docs.gitea.io/ru-ru/config-cheat-sheet/):
 
 ```
 [indexer]

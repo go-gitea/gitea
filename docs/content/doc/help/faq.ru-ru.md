@@ -16,233 +16,232 @@ menu:
 # Часто задаваемые вопросы
 
 Эта страница содержит некоторые общие вопросы и ответы.  
-См. также [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
+См. также [Варианты поддержки]({{< relref "doc/help/seek-help.ru-ru.md" >}})
 
-* [Difference between 1.x and 1.x.x downloads](#difference-between-1-x-and-1-x-x-downloads)
-* [How to migrate from Gogs/GitHub/etc. to Gitea](#how-to-migrate-from-gogs-github-etc-to-gitea)
-* [Where does Gitea store "x" file](#where-does-gitea-store-x-file)
-* [Not seeing a clone URL or the clone URL being incorrect](#not-seeing-a-clone-url-or-the-clone-url-being-incorrect)
-* [Custom Templates not loading or working incorrectly](#custom-templates-not-loading-or-working-incorrectly)
-* [Active user vs login prohibited user](#active-user-vs-login-prohibited-user)
-* [Setting up logging](#setting-up-logging)
-* [What is Swagger?](#what-is-swagger)
-* [Adjusting your server for public/private use](#adjusting-your-server-for-public-private-use)
-  * [Preventing spammers](#preventing-spammers)
-  * [Only allow certain email domains](#only-allow-certain-email-domains)
-  * [Only allow/block certain OpenID providers](#only-allow-block-certain-openid-providers)
-  * [Issue only users](#issue-only-users)
-  * [Restricted users](#restricted-users)
-  * [Enable Fail2ban](#enable-fail2ban)
-* [Adding custom themes](#how-to-add-use-custom-themes)
-* [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
-* [Gitea is running slow](#gitea-is-running-slow)
-* [Can't create repositories/files](#cant-create-repositories-files)
-* [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
-* [Hooks aren't running](#hooks-aren-t-running)
-* [SSH Issues](#ssh-issues)
-  * [SSH Common Errors](#ssh-common-errors)
-* [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
-* [LFS Issues](#lfs-issues)
-* [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
-* [How can I enable password reset](#how-can-i-enable-password-reset)
-* [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
-* [Why is my markdown broken](#why-is-my-markdown-broken)
+* [Разница между загрузками 1.x и 1.x.x](#разница-между-загрузками-1.x-и-1.x.x)
+* [Как перейти с Gogs/GitHub/т.д. в Gitea](#как-перейти-с-gogs-github-т.д.-в-gitea)
+* [Где Gitea хранит "x" файл](#где-gitea-хранит-x-файл)
+* [URL-адрес клона не отображается или URL-адрес клона неверен](#url-адрес-клона-не-отображается-или-url-адрес-клона-неверен)
+* [Пользовательские шаблоны не загружаются или работают неправильно](#пользовательские-шаблоны-не-загружаются-или-работают-неправильно)
+* [Активный пользователь против входа в систему с запрещённым пользователем](#активный-пользователь-против-входа-в-систему-с-запрещённым-пользователем)
+* [Настройка ведения журнала](#настройка-ведения-журнала)
+* [Что такое Swagger?](#что-такое-swagger)
+* [Настройка вашего сервера для публичного/частного использования](#настройка-вашего-сервера-для-публичного-частного-использования)
+  * [Предотвращение спамеров](#предотвращение-спамеров)
+  * [Разрешить только определённые почтовые домены](#разрешить-только-определённые-почтовые-домены)
+  * [Разрешить/заблокировать только определённых провайдеров OpenID](#разрешить-заблокировать-только-определённых-провайдеров-openid)
+  * [Только для пользователей с задачами](#только-для-пользователей-с-задачами)
+  * [Ограниченные пользователи](#ограниченные-пользователи)
+  * [Включить Fail2ban](#включить-fail2ban)
+* [Как добавлять/использовать собственные темы](#как-добавлять-использовать-собственные-темы)
+* [SSHD против встроенного SSH](#sshd-против-встроенного-ssh)
+* [Gitea работает медленно](#gitea-работает-медленно)
+* [Не могу создавать репозитории/файлы](#не-могу-создавать-репозитории-файлы)
+* [Перевод неверный/как добавить больше переводов](#перевод-неверный-как-добавить-больше-переводов)
+* [Hook'и не работают](#hook'и-не-работают)
+* [Проблемы с SSH](#проблемы-с-ssh)
+  * [Обычные ошибки SSH](#обычные-ошибки-ssh)
+* [Отсутствуют релизы после переноса репозитория с тегами](#отсутствуют-релизы-после-переноса-репозитория-с-тегами)
+* [Проблемы LFS](#проблемы-lfs)
+* [Как мне создавать пользователей перед запуском Gitea](#как-мне-создавать-пользователей-перед-запуском-gitea)
+* [Как включить сброс пароля](#как-включить-сброс-пароля)
+* [Как можно изменить пароль пользователя](#как-можно-изменить-пароль-пользователя)
+* [Почему у меня не работает markdown](#почему-у-меня-не-работает-markdown)
 
 
-## Difference between 1.x and 1.x.x downloads
-Version 1.7.x will be used for this example.  
-**NOTE:** this example applies to Docker images as well!  
+## Разница между загрузками 1.x и 1.x.x
+В этом примере будет использоваться версия 1.7.x.  
+**ПРИМЕЧАНИЕ:** этот пример применим и к изображениям Docker!  
 
-On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.  
-The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
-The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.  
+На нашей [странице загрузок](https://dl.gitea.io/gitea/) вы увидите каталог 1.7, а также каталоги для 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7. 4, 1.7.5 и 1.7.6.  
+Каталоги 1.7 и 1.7.0 **не** одинаковы. Каталог 1.7 создается для каждого объединенного коммита в ветке [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7).  
+Однако каталог 1.7.0 - это сборка, которая была создана при создании тега [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0).  
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
-On the other hand, 1.x.x downloads should never change.
+Это означает, что загрузки 1.x будут меняться по мере того, как коммиты объединяются в их соответствующую ветку (воспринимайте это как отдельную "главную" ветку для каждого выпуска).  
+С другой стороны, загрузки 1.x.x никогда не должны меняться.
 
-## How to migrate from Gogs/GitHub/etc. to Gitea
-To migrate from Gogs to Gitea:
+## Как перейти с Gogs/GitHub/т.д. в Gitea
+Чтобы перейти с Gogs на Gitea:
 
-* [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
-* [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
+* [Gogs версии 0.9.146 или ниже]({{< relref "doc/upgrade/from-gogs.ru-ru.md" >}})
+* [Версия Gogs 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
-To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
-In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
-[Example (requires login)](https://try.gitea.io/repo/migrate)
+Чтобы перейти с GitHub на Gitea, вы можете использовать встроенную форму миграции Gitea. 
+Чтобы перенести такие элементы, как проблемы, запросы на вытягивание и т.д., Вам нужно будет ввести как минимум свое имя пользователя.  
+[Пример (требуется вход)](https://try.gitea.io/repo/migrate)
 
-To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
+Чтобы перейти с Gitlab на Gitea, вы можете использовать этот неаффилированный инструмент:  
 https://github.com/loganinak/MigrateGitlabToGogs
 
-## Where does Gitea store "x" file
+## Где Gitea хранит "x" файл
 * WorkPath
-  * Environment variable `GITEA_WORK_DIR`
-  * Else binary location
-* AppDataPath (default for database, indexers, etc.)
-  * `APP_DATA_PATH` from `app.ini`
-  * Else `%(WorkPath)/data`
-* CustomPath (custom templates)
-  * Environment variable `GITEA_CUSTOM`
-  * Else `%(WorkPath)/custom`
+  * Переменная окружения `GITEA_WORK_DIR`
+  * Другое двоичное расположение
+* AppDataPath (по умолчанию для базы данных, индексаторов и т.д.)
+  * `APP_DATA_PATH` из `app.ini`
+  * Ещё `%(WorkPath)/data`
+* CustomPath (собственные шаблоны)
+  * Переменная окружения `GITEA_CUSTOM`
+  * Ещё `%(WorkPath)/custom`
 * HomeDir
-  * Unix: Environment variable `HOME`
-  * Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
+  * Unix: Переменная окружения `HOME`
+  * Windows: Переменная среды `USERPROFILE`, иначе переменные среды `HOMEDRIVE`+`HOMEPATH`
 * RepoRootPath
-  * `ROOT` in `app.ini`
-  * Else `%(HomeDir)/gitea-repositories`
-* INI (config file)
-  * `-c` flag
-  * Else `%(CustomPath)/conf/app.ini`
-* SQLite Database 
-  * `PATH` in `database` section of `app.ini`
-  * Else `%(AppDataPath)/gitea.db`
+  * `ROOT` в `app.ini`
+  * Ещё `%(HomeDir)/gitea-repositories`
+* INI (файл конфигурации)
+  * `-c` флаг
+  * Ешё `%(CustomPath)/conf/app.ini`
+* База данных SQLite  
+  * `PATH` в разделе `database` в `app.ini`
+  * Ешё `%(AppDataPath)/gitea.db`
 
-## Not seeing a clone URL or the clone URL being incorrect
-There are a few places that could make this show incorrectly.
+## URL-адрес клона не отображается или URL-адрес клона неверен
+Есть несколько мест, где оно может показываться неправильно.
 
-1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})
-2. Make sure you have correctly set `ROOT_URL` in the `server` section of your `app.ini`
+1. При использовании обратного прокси-сервера убедитесь, что вы следовали указаниям по исправлению, приведенным в [руководстве по обратному прокси-серверу]({{< relref "doc/usage/reverse-proxies.ru-ru.md" >}})
+2. Убедитесь, что вы правильно установили `ROOT_URL` в разделе `server` вашего `app.ini`
 
-If certain clone options aren't showing up (HTTP/S or SSH), the following options can be checked in your `app.ini`
+Если определенные параметры клонирования не отображаются (HTTP/S или SSH), следующие параметры можно проверить в вашем `app.ini`
 
-`DISABLE_HTTP_GIT`: if set to true, there will be no HTTP/HTTPS link  
-`DISABLE_SSH`: if set to true, there will be no SSH link  
-`SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users  
-
-
-## Custom Templates not loading or working incorrectly
-Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
-The correct path for the template(s) will be relative to the `CustomPath`
-
-1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration 
-  * If that doesn't exist, you can try `echo $GITEA_CUSTOM`
-2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
-3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
-
-## Active user vs login prohibited user
-In Gitea, an "active" user refers to a user that has activated their account via email.  
-A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
-
-## Setting up logging 
-* [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
-
-## What is Swagger?
-[Swagger](https://swagger.io/) is what Gitea uses for its API.  
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
-For more information, refer to Gitea's [API docs]({{< relref "doc/advanced/api-usage.en-us.md" >}})
-
-[Swagger Example](https://try.gitea.io/api/swagger)
-
-## Adjusting your server for public/private use
-
-### Preventing spammers
-There are multiple things you can combine to prevent spammers.  
-
-1. By only whitelisting certain domains with OpenID (see below)
-2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
-
-### Only allow certain email domains
-You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
-
-### Only allow/block certain OpenID providers
-You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`  
-**NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
-
-### Issue only users
-The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
-
-### Restricted users
-Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.__
-
-Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browseable by all co-workers).
-
-At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
+`DISABLE_HTTP_GIT`: если установлено значение true, ссылка HTTP/HTTPS не будет  
+`DISABLE_SSH`: если установлено значение true, ссылка SSH не будет  
+`SSH_EXPOSE_ANONYMOUS`: если установлено значение false, ссылки SSH будут скрыты для анонимных пользователей  
 
 
-### Enable Fail2ban
+## Пользовательские шаблоны не загружаются или работают неправильно
+Пользовательские шаблоны Gitea должны быть добавлены в правильное место, иначе Gitea не сможет их найти и использовать.  
+Правильный путь для шаблона(ов) будет относительно `CustomPath`
 
-Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
+1. Чтобы найти `CustomPath`, ищите Custom File Root Path в Администрация сайта -> Конфигурация 
+  * Если этого не существует, вы можете попробовать `echo $GITEA_CUSTOM`
+2. Если вы всё ещё не можете найти путь, значение по умолчанию может быть [рассчитано выше](#где-gitea-хранит-"x"-файл)
+3. После того, как вы выяснили правильный пользовательский путь, вы можете обратиться к странице по [настройке Gitea]({{< relref "doc/advanced/customizing-gitea.ru-ru.md" >}}), чтобы добавить шаблон в нужное место.
 
-## How to add/use custom themes
-Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
-To add your own theme, currently the only way is to provide a complete theme (not just color overrides)  
+## Активный пользователь против входа в систему с запрещённым пользователем
+В Gitea "активный" пользователь относится к пользователю, который активировал свою учётную запись по электронной почте.  
+Пользователь с "запрещенным входом" - это пользователь, которому больше не разрешено входить в Gitea.
+
+## Настройка ведения журнала 
+* [Официальная документация]({{< relref "doc/advanced/logging-documentation.ru-ru.md" >}})
+
+## Что такое Swagger?
+[Swagger](https://swagger.io/) это то, что Gitea использует для своего API.  
+Все экземпляры Gitea имеют встроенный API, хотя его можно отключить, установив для параметра `ENABLE_SWAGGER` значение `false` в разделе `api` файла `app.ini`.
+Для получения дополнительной информации см. Gitea. [документацию API]({{< relref "doc/advanced/api-usage.en-us.md" >}})
+
+[Примерный Swagger](https://try.gitea.io/api/swagger)
+
+## Настройка вашего сервера для публичного/частного использования
+
+### Предотвращение спамеров
+Есть несколько вещей, которые вы можете комбинировать для предотвращения спамеров. 
+
+1. Добавляя в белый список только определённые домены с OpenID (см. ниже)
+2. Установка `ENABLE_CAPTCHA` в значение `true` в вашем `app.ini` и правильная настройка `RECAPTCHA_SECRET` и `RECAPTCHA_SITEKEY`
+3. Установите для параметра `DISABLE_REGISTRATION` значение `true` и создание новых пользователей через [CLI]({{< relref "doc/usage/command-line.ru-ru.md" >}}), [API]({{< relref "doc/advanced/api-usage.ru-ru.md" >}}), или пользовательский интерфейс администратора Gitea  
+
+### Разрешить только определённые почтовые домены
+Вы можете настроить `EMAIL_DOMAIN_WHITELIST` в своём app.ini в разделе `[service]`
+
+### Разрешить/заблокировать только определённых провайдеров OpenID
+Вы можете настроить `WHITELISTED_URIS` или `BLACKLISTED_URIS` в разделе `[openid]` в вашем `app.ini`  
+**ПРИМЕЧАНИЕ:** белый список имеет приоритет, поэтому, если он не пустой, то чёрный список игнорируется
+
+### Только для пользователей с задачами
+Текущий способ добиться этого - создать/изменить пользователя с максимальным лимитом создания репо, равным 0.
+
+### Ограниченные пользователи
+Пользователи с ограниченным доступом ограничены подмножеством контента на основе членства в их организации/команде и сотрудничества, игнорируя публичный флаг на организациях / репозиториях и т.д.__
+
+Пример использования: компания запускает экземпляр Gitea, требующий входа в систему. Большинство репозиториев общедоступны (доступны/просматриваются всеми сотрудниками).
+
+В какой-то момент клиенту или третьей стороне требуется доступ к определенному репо и только к этому репо. Ограничение такой учетной записи клиента и предоставление любого необходимого доступа с использованием членства в команде и/или совместной работы - это простой способ добиться этого без необходимости делать всё конфиденциальным.
+
+
+### Включить Fail2ban
+
+Используйте [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.ru-ru.md" >}}) для отслеживания и остановки автоматических попыток входа в систему или другого злонамеренного поведения на основе шаблонов журналов
+
+## Как добавлять/использовать собственные темы
+На данный момент Gitea поддерживает две официальные темы: `gitea` и `arc-green` (`light` и `dark` соответственно).  
+Чтобы добавить свою собственную тему, в настоящее время единственный способ - предоставить полную тему (а не только замену цвета)  
   
-As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
-Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
+В качестве примера предположим, что наша тема - `arc-blue` (это настоящая тема, и её можно найти [в этом issue](https://github.com/go-gitea/gitea/issues/6011))  
+Назовите файл `.css` - `theme-arc-blue.css` и добавьте его в свою пользовательскую папку в `custom/pulic/css`  
+Разрешите пользователям использовать его, добавив `arc-blue` в список `THEMES` в вашем `app.ini`
 
-## SSHD vs built-in SSH
-SSHD is the built-in SSH server on most Unix systems.  
-Gitea also provides its own SSH server, for usage when SSHD is not available.
+## SSHD против встроенного SSH
+SSHD - это встроенный SSH-сервер в большинстве систем Unix.  
+Gitea также предоставляет собственный SSH-сервер для использования, когда SSHD недоступен.
 
-## Gitea is running slow
-The most common culprit for this is loading federated avatars.  
-This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`  
-Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `true` in your `app.ini`
+## Gitea работает медленно
+Наиболее частая причина этого - загрузка федеративных аватаров.  
+Это можно отключить, установив для параметра `ENABLE_FEDERATED_AVATAR` значение на `false` в `app.ini`  
+Другой вариант, который может потребоваться изменить, - это установить для параметра `DISABLE_GRAVATAR` значение `true` в  `app.ini`
 
-## Can't create repositories/files
-Make sure that Gitea has sufficient permissions to write to its home directory and data directory.  
-See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
+## Не могу создавать репозитории/файлы
+Убедитесь, что у Gitea достаточно прав для записи в свой домашний каталог и каталог данных.  
+Обратитесь [AppDataPath и RepoRootPath](#где-gitea-хранит-x-файл)
 
-**Note for Arch users:** At the time of writing this, there is an issue with the Arch package's systemd file including this line:
+**Примечание для пользователей Arch:** На момент написания этой статьи возникла проблема с файлом systemd пакета Arch, содержащим эту строку:
 `ReadWritePaths=/etc/gitea/app.ini`  
-Which makes all other paths non-writeable to Gitea.
+Это делает все остальные пути недоступными для записи в Gitea.
 
-## Translation is incorrect/how to add more translations
-Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
-Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
+## Перевод неверный/как добавить больше переводов
+В настоящее время наши переводы собраны на нашем [Crowdin project](https://crowdin.com/project/gitea)  
+Если вы хотите изменить перевод или добавить новый, он должен быть там, так как все переводы перезаписываются в нашем CI через интеграцию Crowdin.
 
-## Hooks aren't running
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
-See [SSH Issues](#ssh-issues) for more information.  
+## Hook'и не работают
+Если Gitea не запускает хуки, распространенной причиной является неправильная установка ключей SSH.  
+Обратитесь к [Проблемы с SSH](#проблемы-с-ssh), чтобы получить больше информации.  
   
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+Вы также можете попробовать войти в панель администрирования и запустить опцию `Повторная синхронизация hook'ов pre-receive, update и post-receive во всех репозиториях.`.
 
-## SSH issues
-If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
+## Проблемы с SSH
+Если вы не можете получить доступ к репозиториям через `ssh`, но `https` работает нормально, подумайте о следующем.
 
-First, make sure you can access Gitea via SSH.  
+Во-первых, убедитесь, что вы можете получить доступ к Gitea через SSH.  
 `ssh git@myremote.example`  
 
-If the connection is successful, you should receive an error message like the following:
+Если соединение успешно, вы должны получить сообщение об ошибке, подобное следующему:
 ```
 Hi there, You've successfully authenticated, but Gitea does not provide shell access.
 If this is unexpected, please log in with password and setup Gitea under another user.
 ```
 
-If you do not get the above message but still connect, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
+Если вы не получили указанное выше сообщение, но всё ещё подключаетесь, это означает, что ваш SSH-ключ **не** управляется Gitea. Это означает, что hook'и не будут работать, помимо других потенциальных проблем.
 
-If you cannot connect at all, your SSH key may not be configured correctly locally. 
-This is specific to SSH and not Gitea, so will not be covered here. 
+Если вы вообще не можете подключиться, возможно, ваш SSH-ключ настроен неправильно локально.
+Это относится к SSH, а не к Gitea, поэтому здесь не рассматривается.
 
-### SSH Common Errors
+### Обычные ошибки SSH
 
 ```
 Permission denied (publickey).
 fatal: Could not read from remote repository.
 ```
 
-This error signifies that the server rejected a log in attempt, check the
-following things:
+Эта ошибка означает, что сервер отклонил попытку входа в систему,
+проверьте следующее:
 
-* On the client:
-  * Ensure the public and private ssh keys are added to the correct Gitea user.
-  * Make sure there are no issues in the remote url. In particular, ensure the name of the
-    git user (before the `@`) is spelled correctly.
-  * Ensure public and private ssh keys are correct on client machine.
-* On the server:
-  * Make sure the repository exists and is correctly named.
-  * Check the permissions of the `.ssh` directory in the system user's home directory.
-  * Verify that the correct public keys are added to `.ssh/authorized_keys`.  
-    Try to run `Rewrite '.ssh/authorized_keys' file (for Gitea SSH keys)` on the
-    Gitea admin panel.
-  * Read Gitea logs.
-  * Read /var/log/auth (or similar).
-  * Check permissions of repositories.
+* На клиенте:
+  * Убедитесь, что открытый и закрытый ключи ssh добавлены правильному пользователю Gitea.
+  * Убедитесь, что с удалённым URL-адресом нет проблем. В частности, убедитесь, что имя
+    пользователя git (до `@`) написано правильно.
+  * Убедитесь, что открытый и закрытый ключи ssh указаны правильно на клиентском компьютере.
+* На сервере:
+  * Убедитесь, что репозиторий существует и правильно назван.
+  * Проверьте права доступа к каталогу `.ssh` в домашнем каталоге пользователя системы.
+  * Убедитесь, что правильные открытые ключи добавлены в `.ssh/authorized_keys`.  
+    Попробуйте запустить `Rewrite '.ssh/authorized_keys' file (для ключей Gitea SSH)` на панели
+	администратора Gitea.
+  * Прочтите журналы(logs) Gitea.
+  * Прочтите /var/log/auth (или аналогичный).
+  * Проверьте разрешения репозиториев.
 
-The following is an example of a missing public SSH key where authentication
-succeeded, but some other setting is preventing SSH from reaching the correct
-repository.
+Ниже приведен пример отсутствия общедоступного ключа SSH при успешной аутентификации,
+но некоторые другие настройки не позволяют SSH достичь правильного репозитория.
 
 ```
 fatal: Could not read from remote repository.
@@ -251,60 +250,60 @@ Please make sure you have the correct access rights
 and the repository exists.
 ```
 
-In this case, look into the following settings:
+В этом случае посмотрите следующие настройки:
 
-* On the server:
-  * Make sure that the `git` system user has a usable shell set
-    * Verify this with `getent passwd git | cut -d: -f7`
-    * `usermod` or `chsh` can be used to modify this.
-  * Ensure that the `gitea serv` command in `.ssh/authorized_keys` uses the
-    correct configuration file.
+* На сервере:
+  * Убедитесь, что у системного пользователя `git` есть рабочий набор команд
+    * Проверьте это с помощью `getent passwd git | cut -d: -f7`
+    * `usermod` или `chsh` можно использовать, чтобы изменить это.
+  * Убедитесь, что `gitea serv` команда в `.ssh/authorized_keys` использует
+    правильный файл конфигурации.
 
-## Missing releases after migrating repository with tags
+## Отсутствуют релизы после переноса репозитория с тегами
 
-To migrate an repository *with* all tags, you need to do two things:
+Чтобы мигрировать репозиторий *со* всеми тегами, вам нужно сделать две вещи:
 
-* Push tags to the repository:
+* Перенести теги в репозиторий:
 ```
  git push --tags
  ```
  
- * (Re-)sync tags of all repositories within Gitea:
+ * (Повторно)синхронизировать теги всех репозиториев в Gitea:
  ```
  gitea admin repo-sync-releases
  ```
 
-## LFS Issues
+## Проблемы LFS
 
-For issues concerning LFS data upload
+По вопросам, связанным с загрузкой данных LFS
 
 ```
 batch response: Authentication required: Authorization error: <GITEA_LFS_URL>/info/lfs/objects/batch                                                                                                              
 Check that you have proper access to the repository
 error: failed to push some refs to '<GIT_REPO_URL>'
 ```
-Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.  
-By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
+Проверьте значение `LFS_HTTP_AUTH_EXPIRY` в вашем файле `app.ini`.  
+По умолчанию срок действия вашего токена LFS истекает через 20 минут. Если у вас медленное соединение или большой файл (или оба), загрузка может не завершиться в отведённое время.
 
-You may want to set this value to `60m` or `120m`.
+Вы можете установить это значение на `60m` или `120m`.
 
-## How can I create users before starting Gitea
-Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
+## Как мне создавать пользователей перед запуском Gitea
+Gitea предоставляет подкоманду gitea migrate для инициализации базы данных, после чего вы можете использовать [команды CLI администратора]({{< relref "doc/usage/command-line.ru-ru.md#админ" >}}), чтобы добавлять пользователей как обычно.
 
-## How can I enable password reset
-There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
+## Как включить сброс пароля
+Нет настройки для сброса пароля. Он включен, когда [почтовый сервис]({{< relref "doc/usage/email-setup.ru-ru.md" >}}) настроен и отключен в противном случае.
 
-## How can a user's password be changed
-- As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
-  - By navigating to your `Site Administration -> User Accounts` page and editing a user.  
-  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
-  Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
-- As a **user** you can change it... 
-  - In your account `Settings -> Account` page (this method **requires** you to know your current password).
-  - By using the `Forgot Password` link.  
-   If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+## Как можно изменить пароль пользователя
+- Как **администратор**, вы можете изменить пароль любого пользователя (и при необходимости заставить его изменить его при следующем входе в систему)...
+  - Перейдя на страницу `Администрирование сайта -> Учётные записи пользователей` и отредактировав имя пользователя.  
+  - Используя [команды CLI администратора]]({{< relref "doc/usage/command-line.ru-ru.md#admin" >}}).  
+  Имейте в виду, что для большинства команд также потребуется [глобальные параметры]({{< relref "doc/usage/command-line.ru-ru.md#глобальные-параметры" >}}), чтобы указать CLI на правильную конфигурацию.
+- Как **пользователь** вы можете изменить его... 
+  - На странице `Настройки -> Учётная запись` вашей учетной записи (этот метод **требует**, чтобы вы знали текущий пароль).
+  - По ссылке `Забыл пароль`.  
+   Если страница `Забыли пароль/восстановление учётной записи` отключена, обратитесь к администратору, чтобы настроить [почтовую службу]({{< relref "doc/usage/email-setup.ru-ru.md" >}}).
    
-## Why is my markdown broken
-In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
-If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
-If it is the latter, _usually_ there is a compliant alternative listed in the spec.
+## Почему у меня не работает markdown
+В версии Gitea `1.11` мы перешли на [goldmark](https://github.com/yuin/goldmark) для рендеринга markdown, который поддаётся [CommonMark](https://commonmark.org/).  
+Если у вас есть уценка, которая работала так, как вы ожидали до версии `1.11`, а после обновления она больше не работает, просмотрите спецификацию CommonMark, чтобы узнать, связана ли проблема с ошибкой или несовместимым синтаксисом.  
+Если это последнее, _ обычно_ есть соответствующая альтернатива, указанная в спецификации.

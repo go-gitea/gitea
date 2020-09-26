@@ -18,7 +18,7 @@ menu:
 Локализация Gitea происходит через наш [Crowdin project](https://crowdin.com/project/gitea).
 
 Для изменения **Английского** перевода можно сделать pull request, изменяющий соответствующий текст в 
-[english locale](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini).
+[Английской локализации](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini).
 
 Для изменения **неанглийского** перевода см. Crowdin project выше.
 

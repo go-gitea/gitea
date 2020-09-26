@@ -25,7 +25,7 @@ menu:
 Node.js - {{<min-node-version>}}, и рекомендуется последняя версия LTS.
 
 Вам также понадобится make.
-<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(Смотрите здесь, как получить Make)</a>
+<a href='{{< relref "doc/advanced/make.ru-ru.md" >}}'>(Смотрите здесь, как получить Make)</a>
 
 **Примечание**: При выполнении задач make, требующих внешних инструментов,
 таких как `make misspell-check`, Gitea автоматически загружает и создает
@@ -78,9 +78,9 @@ git fetch --all --prune
 ## Сборка Gitea (Basic)
 
 Взгляните на наши
-<a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>instructions</a>
-для <a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>building
-from source</a>.
+<a href='{{< relref "doc/installation/from-source.ru-ru.md" >}}'>инструкции</a>
+для <a href='{{< relref "doc/installation/from-source.ru-ru.md" >}}'>сборка из
+source</a>.
 
 Самый простой рекомендуемый способ сборки из исходного кода:
 
@@ -195,8 +195,8 @@ Swagger 2.0, а не документацию OpenAPI 3.
 
 При создании новых параметров конфигурации недостаточно добавить их в файлы 
 `modules/setting`. Вы должны добавить информацию в `custom/conf/app.ini` и в
-<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
-найти в `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
+<a href='{{< relref "doc/advanced/config-cheat-sheet.ru-ru.md" >}}'>памятке по конфигурации</a>,
+которую можно найти в `docs/content/doc/advanced/config-cheat-sheet.ru-ru.md`
 
 ### Смена логотипа
 

@@ -6,22 +6,22 @@
 
 - [Правила соучастников](#правила-соучастников)
   - [Введение](#введение)
-  - [Bug reports](#bug-reports)
-  - [Discuss your design](#discuss-your-design)
-  - [Testing redux](#testing-redux)
+  - [Сообщить об ошибках](#сообщить-об-ошибках)
+  - [Обсуждение дизайна](#обсуждение-дизайна)
+  - [Тестирование redux](#тестирование-redux)
   - [Vendoring](#vendoring)
-  - [Translation](#translation)
-  - [Code review](#code-review)
-  - [Styleguide](#styleguide)
-  - [Design guideline](#design-guideline)
+  - [Перевод](#перевод)
+  - [Обзор кода](#обзор-кода)
+  - [Руководство по редактированию](#руководство-по-редактированию)
+  - [Рекомендации по дизайну](#рекомендации-по-дизайну)
   - [API v1](#api-v1)
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
-  - [Release Cycle](#release-cycle)
-  - [Maintainers](#maintainers)
-  - [Owners](#owners)
-  - [Versions](#versions)
-  - [Releasing Gitea](#releasing-gitea)
-  - [Copyright](#copyright)
+  - [Цикл релиза](#цикл-релиза)
+  - [Сопровождающие](#сопровождающие)
+  - [Владельцы](#владельцы)
+  - [Версии](#версии)
+  - [Релиз Gitea](#релиз-gitea)
+  - [Авторские права](#авторские-права)
 
 ## Введение
 
@@ -31,114 +31,115 @@
 О чувствительных проблемах, связанных с безопасностью, следует сообщать
 [security@gitea.io](mailto:security@gitea.io).
 
-For configuring IDE or code editor to develop Gitea see [IDE and code editor configuration](contrib/ide/)
+Для настройки IDE или редактора кода для разработки Gitea см. [Конфигурация IDE и редактора кода](contrib/ide/)
 
-## Bug reports
+## Сообщить об ошибках
 
-Please search the issues on the issue tracker with a variety of keywords
-to ensure your bug is not already reported.
+Выполните поиск проблем в системе отслеживания проблем, используя различные
+ключевые слова, чтобы убедиться, что о вашей ошибке ещё не сообщалось.
 
-If unique, [open an issue](https://github.com/go-gitea/gitea/issues/new)
-and answer the questions so we can understand and reproduce the
-problematic behavior.
+Если новая, [откройте issue](https://github.com/go-gitea/gitea/issues/new)
+и ответим на вопросы, чтобы мы могли понять и воспроизвести
+проблемное поведение.
 
-To show us that the issue you are having is in Gitea itself, please
-write clear, concise instructions so we can reproduce the behavior—
-even if it seems obvious. The more detailed and specific you are,
-the faster we can fix the issue. Check out [How to Report Bugs
-Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
+Чтобы показать нам, что проблема, с которой вы столкнулись, связана
+с самой Gitea, напишите четкие и краткие инструкции, чтобы мы могли
+воспроизвести поведение, даже если оно кажется очевидным. Чем подробнее
+и конкретнее вы укажете, тем быстрее мы сможем решить проблему.
+Ознакомьтесь с [Как эффективно сообщать об ошибках](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
 
-Please be kind, remember that Gitea comes at no cost to you, and you're
-getting free help.
+Пожалуйста, будьте добры, помните, что Gitea предоставляется вам бесплатно,
+и вы получаете бесплатную помощь.
 
-## Discuss your design
+## Обсуждение дизайна
 
-The project welcomes submissions. If you want to change or add something,
-please let everyone know what you're working on—[file an issue](https://github.com/go-gitea/gitea/issues/new)!
-Significant changes must go through the change proposal process
-before they can be accepted. To create a proposal, file an issue with
-your proposed changes documented, and make sure to note in the title
-of the issue that it is a proposal.
+Проект приветствует заявки. Если вы хотите что-то изменить или добавить,
+сообщите всем, над чем вы работаете - [подайте issue](https://github.com/go-gitea/gitea/issues/new)!
+Существенные изменения должны пройти процесс предложения по изменению,
+прежде чем они могут быть приняты. Чтобы создать предложение, запишите
+проблему с задокументированными предлагаемыми изменениями и отметьте
+в названии проблемы, что это предложение.
 
-This process gives everyone a chance to validate the design, helps
-prevent duplication of effort, and ensures that the idea fits inside
-the goals for the project and tools. It also checks that the design is
-sound before code is written; the code review tool is not the place for
-high-level discussions.
+Этот процесс дает каждому возможность проверить дизайн, помогает
+предотвратить дублирование усилий и гарантирует, что идея соответствует
+целям проекта и инструментам. Он также проверяет правильность дизайна
+перед написанием кода; инструмент проверки кода - не место для
+обсуждений на высоком уровне.
 
-## Testing redux
+## Тестирование redux
 
-Before submitting a pull request, run all the tests for the whole tree
-to make sure your changes don't cause regression elsewhere.
+Перед отправкой запроса на перенос выполните все тесты для всего дерева,
+чтобы убедиться, что ваши изменения не вызывают регрессии где-либо ещё.
 
-Here's how to run the test suite:
+Вот как запустить набор тестов:
 
 - code lint
 
 |                       |                                                                   |
 | :-------------------- | :---------------------------------------------------------------- |
-|``make lint``          | lint everything (not suggest if you only change one type code)    |
-|``make lint-frontend`` | lint frontend files  |
-|``make lint-backend``  | lint backend files   |
+|``make lint``          | lint всего (не рекомендуется, если вы меняете только один код типа) |
+|``make lint-frontend`` | файлы внешнего интерфейса lint |
+|``make lint-backend``  | файлы заднего интерфейса lint |
 
-- run test code (Suggest run in linux)  
+- запустить тестовый код (предложить запустить в Linux)
 
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
-|``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for sqlite |  
-|[More detail message about integrations](integrations/README.md)  |
+|``make test[\#TestSpecificName]``       |  запустить модульный тест  |
+|``make test-sqlite[\#TestSpecificName]``|  запустить тест [интеграции](интеграции) для sqlite |  
+|[Более подробное сообщение об интеграции](integrations/README_RU.md)  |
 
 ## Vendoring
 
-We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
+Мы храним кешированную копию зависимостей в каталоге `vendor/`, управляя
+обновлениями через [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
 
-Pull requests should only include `vendor/` updates if they are part of
-the same change, be it a bugfix or a feature addition.
+Pull request'ы должны включать обновления `vendor/`, только если
+они являются частью одного и того же изменения, будь то исправление ошибки или добавление функции.
 
-The `vendor/` update needs to be justified as part of the PR description,
-and must be verified by the reviewers and/or merger to always reference
-an existing upstream commit.
+Обновление `vendor/` должно быть обосновано как часть описания PR и должно
+быть проверено рецензентами и/или слиянием, чтобы всегда ссылаться на
+существующий коммит восходящего потока.
 
-You can find more information on how to get started with it on the [Modules Wiki](https://github.com/golang/go/wiki/Modules).
+Вы можете найти дополнительную информацию о том, как начать работу с ним на [Вики по Modules](https://github.com/golang/go/wiki/Modules).
 
-## Translation
+## Перевод
 
-We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
-The only translation that is maintained in this git repository is
+Все переводческие работы делаем внутри [Crowdin](https://crowdin.com/project/gitea).
+Единственный перевод, который поддерживается в этом репозитории git, - это
 [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
-and is synced regularly to Crowdin. Once a translation has reached
-A SATISFACTORY PERCENTAGE it will be synced back into this repo and
-included in the next released version.
+и регулярно синхронизируется с Crowdin. Как только перевод достигнет
+УДОВЛЕТВОРИТЕЛЬНОГО ПРОЦЕНТА, он будет снова синхронизирован с этим
+репо и включен в следующую выпущенную версию.
 
-## Building Gitea
+## Сборка Gitea
 
-See the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/).
+См. [Инструкции по взлому](https://docs.gitea.io/en-us/hacking-on-gitea/).
 
-## Code review
+## Обзор кода
 
-Changes to Gitea must be reviewed before they are accepted—no matter who
-makes the change, even if they are an owner or a maintainer. We use GitHub's
-pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
-to ensure every PR is reviewed by at least 2 maintainers.
+Изменения в Gitea должны быть проверены перед их принятием - независимо
+от того, кто вносит изменения, даже если они являются владельцем или
+сопровождающим. Для этого мы используем рабочий процесс pull request'а GitHub.
+И мы также используем [LGTM](http://lgtm.co), чтобы гарантировать, что каждый
+PR проверяется как минимум двумя сопровождающими.
 
-Please try to make your pull request easy to review for us. And, please read
-the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;
-it has lots of useful tips for any project you may want to contribute.
-Some of the key points:
+Пожалуйста, постарайтесь упростить для нас рассмотрение вашего запроса на перенос. И, пожалуйста, прочтите
+руководство *[Как получить более быстрые PR-обзоры](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* ;
+в нём есть много полезных советов для любого проекта, в который вы хотите внести свой вклад.
+Некоторые ключевые моменты:
 
-* Make small pull requests. The smaller, the faster to review and the
-  more likely it will be merged soon.
-* Don't make changes unrelated to your PR. Maybe there are typos on
-  some comments, maybe refactoring would be welcome on a function... but
-  if that is not related to your PR, please make *another* PR for that.
-* Split big pull requests into multiple small ones. An incremental change
-  will be faster to review than a huge PR.
+* Делайте небольшие pull request'ы. Чем меньше, тем быстрее будет
+  проверка и тем больше вероятность, что она скоро будет объединена.
+* Не вносите изменений, не связанных с вашим PR. Может быть, в некоторых
+  комментариях есть опечатки, возможно, рефакторинг функции будет
+  приветствоваться... но если это не связано с вашим PR, сделайте *ещё* PR для этого.
+* Разделите большие pull request'ы нескольких мелких. Постепенное
+  изменение будет быстрее проанализировать, чем огромный PR.
 
-## Styleguide
+## Руководство по редактированию
 
-For imports you should use the following format (_without_ the comments)
+Для импорта вы должны использовать следующий формат (_без_ комментариев)
 ```go
 import (
   // stdlib
@@ -155,136 +156,136 @@ import (
 )
 ```
 
-## Design guideline
+## Рекомендации по дизайну
 
-To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
+Чтобы поддерживать понятный код и избегать циклических зависимостей, важно иметь хорошую структуру кода. Код gitea разделён на следующие части:
 
-- **integration:** Integrations tests
-- **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
-- **models/fixtures:** Sample model data used in integration tests.
-- **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
-- **modules:** Different modules to handle specific functionality in Gitea.
-- **public:** Frontend files (javascript, images, css, etc.)
-- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
-- **services:** Support functions for common routing operations. Uses models and modules to handle the request.
-- **templates:** Golang templates for generating the html output.
-- **vendor:** External code that Gitea depends on.
+- **integration:** Интеграционные тесты
+- **models:** Содержит структуры данных, используемые xorm для создания таблиц базы данных. Он также содержит вспомогательные функции для запроса и обновления базы данных. Следует избегать зависимости от другого кода в Gitea, хотя могут потребоваться некоторые модули (например, для ведения журнала).
+- **models/fixtures:** Пример данных модели, используемых в интеграционных тестах.
+- **models/migrations:** Обработка миграции базы данных между версиями. PR, которые изменяют структуру базы данных, также должны иметь этап миграции.
+- **modules:** Различные модули для обработки определённых функций в Gitea.
+- **public:** Файлы внешнего интерфейса (javascript, изображения, css и т.д.)
+- **routers:** Обработка запросов к серверу. Поскольку он использует другие пакеты Gitea для обслуживания запроса, другие пакеты (модели, модули или службы) не должны зависеть от маршрутизаторов.
+- **services:** Функции поддержки для общих операций маршрутизации. Использует модели и модули для обработки запроса.
+- **templates:** Шаблоны Golang для генерации вывода html.
+- **vendor:** Внешний код, от которого зависит Gitea.
 
 ## API v1
 
-The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
-Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate.  
-If Gitea provides functionality that GitHub does not, a new endpoint can be created.  
-If information is provided by Gitea that is not provided by the GitHub API, a new field can be used that doesn't collide with any GitHub fields.
+API документирован [swagger](http://try.gitea.io/api/swagger) и основан на [GitHub API v3](https://developer.github.com/v3/).
+Таким образом, API Gitea должен использовать те же конечные точки и поля, что и API GitHub, насколько это возможно, если нет веских причин для отклонения. 
+Если Gitea предоставляет функции, которых нет в GitHub, можно создать новую конечную точку.  
+Если Gitea предоставляет информацию, которая не предоставляется GitHub API, можно использовать новое поле, которое не конфликтует ни с одним из полей GitHub.
 
-Updating an existing API should not remove existing fields unless there is a really good reason to do so.
-The same applies to status responses. If you notice a problem, feel free to leave a comment in the code for future refactoring to APIv2 (which is currently not planned).
+Обновление существующего API не должно удалять существующие поля, если для этого нет действительно веской причины.
+То же самое и с ответами о статусе. Если вы заметили проблему, не стесняйтесь оставлять комментарий в коде для будущего рефакторинга APIv2 (который в настоящее время не планируется).
 
-All expected results (errors, success, fail messages) should be documented
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L319-L327)).
+Все ожидаемые результаты (ошибки, успехи, сообщения об ошибках) должны быть задокументированы.
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L319-L327)).
 
-All JSON input types must be defined as a struct in `models/structs/`
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L76-L91))
-and referenced in
+Все типы ввода JSON должны быть определены как структура в `models/structs/`
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L76-L91))
+и упоминается в
 [routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/options.go).  
-They can then be used like the following:
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L318)).
+Затем их можно использовать следующим образом:
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L318)).
 
-All JSON responses must be defined as a struct in `models/structs/`
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L36-L68))
-and referenced in its category in `routers/api/v1/swagger/`
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16))  
-They can be used like the following:
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L277-L279))
+Все ответы JSON должны быть определены как структура в `models/structs/`
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L36-L68))
+и упоминается в своей категории в `routers/api/v1/swagger/`
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16))  
+Их можно использовать следующим образом:
+([пример](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L277-L279))
 
-In general, HTTP methods are chosen as follows:
- * **GET** endpoints return requested object and status **OK (200)**
- * **DELETE** endpoints return status **No Content (204)**
- * **POST** endpoints return status **Created (201)**, used to **create** new objects (e.g. a User)
- * **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Obejcts (e.g. User) to something (e.g. Org-Team)
- * **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
+Обычно методы HTTP выбираются следующим образом:
+ * **GET** конечные точки возвращают запрошенный объект и статус **OK (200)**
+ * **DELETE** конечные точки возвращают статус **No Content (204)**
+ * **POST** конечные точки возвращают статус **Created (201)**, используется для **создания** новых объектов (например, пользователя)
+ * **PUT** конечные точки возвращают статус **No Content (204)**, используется для **добавления/назначения** существующих объектов (например, пользователя) чему-либо (например, орг-команды)
+ * **PATCH** конечные точки возвращают изменённый объект и статус **OK (200)**, используется для **редактирования/изменения** существующего объекта
 
 
-An endpoint which changes/edits an object expects all fields to be optional (except ones to identify the object, which are required).
+Конечная точка, которая изменяет/редактирует объект, ожидает, что все поля будут необязательными (кроме тех, которые идентифицируют объект, которые являются обязательными).
 
 
 ## Developer Certificate of Origin (DCO)
 
-We consider the act of contributing to the code by submitting a Pull
-Request as the "Sign off" or agreement to the certifications and terms
-of the [DCO](DCO) and [MIT license](LICENSE). No further action is required.
-Additionally you could add a line at the end of your commit message.
+Мы рассматриваем внесение вклада в код путём отправки pull request'а
+как "подписаный" или согласие с сертификатами и условиями [DCO](DCO)
+и [MIT license](LICENSE). Никаких дополнительных действий не требуется.
+Кроме того, вы можете добавить строку в конце сообщения о коммите.
 
 ```
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-If you set your `user.name` and `user.email` git configs, you can add the
-line to the end of your commit automatically with `git commit -s`.
+Если вы установите git-конфигурации `user.name` и `user.email`, вы можете
+автоматически добавить строку в конец коммита с помощью `git commit -s`.
 
-We assume in good faith that the information you provide is legally binding.
+Мы добросовестно предполагаем, что предоставленная вами информация является юридически обязательной.
 
-## Release Cycle
+## Цикл релиза
 
-We adopted a release schedule to streamline the process of working
-on, finishing, and issuing releases. The overall goal is to make a
-minor release every two months, which breaks down into one month of
-general development followed by one month of testing and polishing
-known as the release freeze. All the feature pull requests should be
-merged in the first month of one release period. And, during the frozen
-period, a corresponding release branch is open for fixes backported from
-master. Release candidates are made during this period for user testing to
-obtain a final version that is maintained in this branch. A release is
-maintained by issuing patch releases to only correct critical problems
-such as crashes or security issues.
+Мы приняли график релизов, чтобы упростить процесс работы, завершения
+и релиза релизов. Общая цель - выпускать второстепенный релиз каждые
+два месяца, который разбивается на один месяц общей разработки, за которым
+следует один месяц тестирования и доработки, известного как замораживание
+релиза. Все pull request'ы должны быть объединены в первый месяц одного периода релиза.
+Во время замороженного периода соответствующая ветвь релиза открыта для исправлений,
+перенесённых из мастера. Кандидаты на релиз создаются в течение этого периода для
+пользовательского тестирования, чтобы получить окончательную версию, которая поддерживается
+в этой ветви. Релиз поддерживается выпуском патчей, исправляющих только критические проблемы,
+такие как сбои или проблемы с безопасностью.
 
-Major release cycles are bimonthly. They always begin on the 25th and end on
-the 24th (i.e., the 25th of December to February 24th).
+Основные циклы релиза - раз в два месяца. Они всегда начинаются 25-го и
+заканчиваются 24-го (то есть с 25 декабря по 24 февраля).
 
-During a development cycle, we may also publish any necessary minor releases
-for the previous version. For example, if the latest, published release is
-v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
-still possible.
+Во время цикла разработки мы также можем публиковать любые необходимые второстепенные
+релизы предыдущей версии. Например, если последний опубликованный выпуск - v1.2, то
+незначительные изменения для предыдущего релиза - например, v1.1.0 -> v1.1.1 - всё ещё возможны.
 
-## Maintainers
+## Сопровождающие
 
-To make sure every PR is checked, we have [team
-maintainers](MAINTAINERS). Every PR **MUST** be reviewed by at least
-two maintainers (or owners) before it can get merged. A maintainer
-should be a contributor of Gitea (or Gogs) and contributed at least
-4 accepted PRs. A contributor should apply as a maintainer in the
-[Discord](https://discord.gg/NsatcWJ) #develop channel. The owners
-or the team maintainers may invite the contributor. A maintainer
-should spend some time on code reviews. If a maintainer has no
-time to do that, they should apply to leave the maintainers team
-and we will give them the honor of being a member of the [advisors
-team](https://github.com/orgs/go-gitea/teams/advisors). Of course, if
-an advisor has time to code review, we will gladly welcome them back
-to the maintainers team. If a maintainer is inactive for more than 3
-months and forgets to leave the maintainers team, the owners may move
-him or her from the maintainers team to the advisors team.
-For security reasons, Maintainers should use 2FA for their accounts and
-if possible provide gpg signed commits.
+Чтобы убедиться, что каждый PR проверяется, у нас
+есть [специалисты по сопровождению](MAINTAINERS). Каждый PR **ДОЛЖЕН**
+быть рассмотрен как минимум двумя сопровождающими (или владельцами),
+прежде чем он может быть объединен. Сопровождающий должен быть соавтором
+Gitea (или Gogs) и сделал не менее 4 принятых PR. Участник должен
+подать заявку в качестве сопровождающего в
+[Discord](https://discord.gg/NsatcWJ) в канале #develop. Владельцы
+или сопровождающие команды могут пригласить участника. Сопровождающий
+должен потратить некоторое время на проверку кода. Если у сопровождающего
+нет времени на это, он должен подать заявление о выходе из команды
+сопровождающих, и мы удостоим их чести быть членом [команды
+консультантов](https://github.com/orgs/go-gitea/teams/advisors). Конечно,
+если у консультанта есть время на проверку кода, мы будем рады
+снова поприветствовать его в команде разработчиков. Если сопровождающий
+неактивен более 3 месяцев и забывает покинуть команду сопровождающих,
+владельцы могут перевести его или её из группы сопровождающих в команду
+консультантов. По соображениям безопасности, сопровождающие должны
+использовать 2ФА для своих учётных записей и, если возможно, предоставлять
+подписанные gpg коммиты.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
-## Owners
+## Владельцы
 
-Since Gitea is a pure community organization without any company support,
-to keep the development healthy we will elect three owners every year. All
-contributors may vote to elect up to three candidates, one of which will
-be the main owner, and the other two the assistant owners. When the new
-owners have been elected, the old owners will give up ownership to the
-newly elected owners. If an owner is unable to do so, the other owners
-will assist in ceding ownership to the newly elected owners.
-For security reasons, Owners or any account with write access (like a bot)
-must use 2FA.
+Поскольку Gitea - это чисто общественная организация без какой-либо поддержки
+со стороны компании, для поддержания здорового развития мы будем выбирать трёх
+владельцев каждый год. Все участники могут проголосовать за избрание до трёх
+кандидатов, один из которых будет основным владельцем, а два других - помощниками
+владельцев. Когда будут избраны новые владельцы, старые владельцы уступят право
+собственности вновь избранным. Если владелец не может этого сделать, другие
+собственники помогут передать право собственности вновь избранным владельцам.
+По соображениям безопасности владельцы или любая учётная запись с доступом
+на запись (например, бот) должны использовать 2ФА.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
-After the election, the new owners should proactively agree
-with our [CONTRIBUTING](CONTRIBUTING.md) requirements in the
-[Discord](https://discord.gg/NsatcWJ) #general channel. Below are the
-words to speak:
+После выборов новые владельцы должны заранее согласовать
+с нашими требованиями [ВКЛАДА](CONTRIBUTING.md) в
+[Discord](https://discord.gg/NsatcWJ) в канале #general. Ниже приведены слова,
+которые нужно сказать:
 
 ```
 I'm honored to having been elected an owner of Gitea, I agree with
@@ -292,8 +293,8 @@ I'm honored to having been elected an owner of Gitea, I agree with
 and lead the development of Gitea.
 ```
 
-To honor the past owners, here's the history of the owners and the time
-they served:
+Чтобы почтить память прошлых владельцев, вот история владельцев и время,
+в течение которого они служили:
 
 * 2020-01-01 ~ 2020-12-31 - https://github.com/go-gitea/gitea/issues/9230
   * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
@@ -315,35 +316,35 @@ they served:
   * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
   * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
-## Versions
+## Версии
 
-Gitea has the `master` branch as a tip branch and has version branches
-such as `release/v0.9`. `release/v0.9` is a release branch and we will
-tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept
-pull requests on the `release/v0.9` branch and publish a `v0.9.1` tag,
-after bringing the bug fix also to the master branch.
+В Gitea есть ветка `master` в качестве ответвления и есть ветки версий,
+такие как `release/v0.9`. `release/v0.9` - это ветвь выпуска, и мы будем
+отмечать `v0.9.0` для двоичной загрузки. Если в `v0.9.0` есть ошибки, мы
+будем принимать pull request'ы в ветке `release/v0.9` и опубликуем тег
+`v0.9.1` после внесения исправления ошибки также в основную ветку.
 
-Since the `master` branch is a tip version, if you wish to use Gitea
-in production, please download the latest release tag version. All the
-branches will be protected via GitHub, all the PRs to every branch must
-be reviewed by two maintainers and must pass the automatic tests.
+Поскольку ветка `master` является подсказкой, если вы хотите использовать
+Gitea в производстве, загрузите последнюю версию тега выпуска. Все ветки
+будут защищены через GitHub, все PR для каждой ветки должны быть проверены
+двумя сопровождающими и должны пройти автоматические тесты.
 
-## Releasing Gitea
+## Релиз Gitea
 
-* Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
-* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
-  * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
-  * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
-* If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
-* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
-* If needed send PR for changelog on branch `master`.
-* Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
+* Пусть $vmaj, $vmin и $vpat будут номерами версий Major, Minor и Patch, $vpat должно быть rc1, rc2, 0, 1, ...... $vmaj. $vmin будет оставаться таким же, как метки на github или gitea в будущем.
+* Перед выпуском убедитесь, что все основные проблемы версии или PR были решены. Затем обсудите релиз на разнородном канале #maintainers и договоритесь практически со всеми собственниками и слияниями. Или вы можете объявить свою версию и, если никто не против, в течение примерно нескольких часов.
+* Если это большая версия, сначала вам нужно создать PR для журнала изменений в ветке `master` с PR с меткой `changelog`, и после того, как она будет объединена, выполните следующие шаги:
+  * Создайте тег `-dev` как `git tag -s -F release.notes v$vmaj.$vmin.0-dev` и вставьте тег как `git push origin v$vmaj.$vmin.0-dev`.
+  * Когда CI завершит создание тега, вам нужно создать новую ветку с именем `release/v$vmaj.$vmin`
+* Если это версия с исправлением ошибок, создайте PR для журнала изменений в ветке `release/v$vmaj. $vmin` и подождите, пока он будет рассмотрен и объединён.
+* Добавьте тег как `git tag -s -F release.notes v$vmaj.$vmin.$`, Файл release.notes может быть временным файлом, чтобы включать только журнал изменений этой версии, который вы добавили в `CHANGELOG.md`.
+* А затем вставьте тег как `git push origin v$vmaj.$vmin.$`. Drone CI автоматически создаст релиз и загрузит весь скомпилированный двоичный файл. (Но в настоящее время он не добавляет примечания к выпуску автоматически. Возможно, нам стоит это исправить.)
+* Если необходимо, отправьте PR для журнала изменений в ветке `master` этой версии, которую вы добавили в `CHANGELOG.md`.
+* Отправьте PR в [репозиторий блога](https://gitea.com/gitea/blog), объявив о выпуске.
 
-## Copyright
+## Авторские права
 
-Code that you contribute should use the standard copyright header:
+Код, который вы публикуете, должен использовать стандартный заголовок авторского права:
 
 ```
 // Copyright 2020 The Gitea Authors. All rights reserved.
@@ -351,6 +352,6 @@ Code that you contribute should use the standard copyright header:
 // license that can be found in the LICENSE file.
 ```
 
-Files in the repository contain copyright from the year they are added
-to the year they are last changed. If the copyright author is changed,
-just paste the header below the old one.
+Файлы в репозитории содержат авторские права с года их добавления до года
+последнего изменения. Если автор авторских прав изменился, просто вставьте
+заголовок под старым.

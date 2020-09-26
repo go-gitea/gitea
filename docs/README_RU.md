@@ -1,50 +1,53 @@
-# Gitea: Docs
+[English](README.md)
+[简体中文](README_ZH.md)
 
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
-[![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
+# Gitea: Документация
 
-## Hosting
+[![Присоединяйтесь к чату https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
+[![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Получите свой собственный значок с изображением microbadger.com")
 
-These pages are hosted using [netlifycms](https://www.netlifycms.org/) and get
-automatically updated on every push to the `master` branch.
+## Хостинг
 
-## Install
+Эти страницы размещаются с использованием [netlifycms](https://www.netlifycms.org/)
+и автоматически обновляются при каждом нажатии на ветку `master`.
 
-These pages use the [Hugo](https://gohugo.io/) static site generator.
-If you are planning to contribute you'll want to download and install Hugo on
-your local machine.
+## Установка
 
-The installation of Hugo is out of the scope of this document, so please take
-the [official install instructions](https://gohugo.io/overview/installing/) to
-get Hugo up and running.
+На этих страницах используется генератор статических сайтов [Hugo](https://gohugo.io/).
+Если вы планируете внести свой вклад, вы захотите загрузить и установить Hugo на
+свой локальный компьютер.
 
-## Development
+Установка Hugo выходит за рамки этого документа, поэтому воспользуйтесь
+[официальными инструкциями по установке](https://gohugo.io/overview/installing/) чтобы
+Hugo начал работать.
 
-To generate the website and serve it on [localhost:1313](http://localhost:1313)
-just execute this command and stop it with `Ctrl+C`:
+## Разработка
+
+Чтобы создать веб-сайт и обслуживать его на [localhost:1313](http://localhost:1313)
+просто выполните эту команду и остановите её с помощью `Ctrl+C`:
 
 ```
 make server
 ```
 
-When you are done with your changes just create a pull request, after merging
-the pull request the website will be updated automatically.
+Когда вы закончите вносить изменения, просто создайте pull request, после
+объединения pull request'а веб-сайт будет обновлён автоматически.
 
-## Contributing
+## Содействие
 
 Fork -> Patch -> Push -> Pull Request
 
-## Authors
+## Авторы
 
-* [Maintainers](https://github.com/orgs/go-gitea/people)
-* [Contributors](https://github.com/go-gitea/docs/graphs/contributors)
+* [Сопровождающие](https://github.com/orgs/go-gitea/people)
+* [Участники](https://github.com/go-gitea/docs/graphs/contributors)
 
-## License
+## Лицензия
 
-This project is under the Apache-2.0 License. See the [LICENSE](LICENSE) file
-for the full license text.
+Этот проект находится под лицензией Apache-2.0. Полный текст лицензии см.
+В файле [ЛИЦЕНЗИИ](LICENSE).
 
-## Copyright
+## Авторские права
 
 ```
 Copyright (c) 2016 The Gitea Authors <https://gitea.io>

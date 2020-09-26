@@ -1,7 +1,9 @@
+[English](README.md)
+
 # Gitea - Docker
 
-Dockerfile is found in root of repository.
+Dockerfile находится в корне репозитория.
 
-Docker image can be found on [docker hub](https://hub.docker.com/r/gitea/gitea)
+Образ Docker можно найти на [docker hub](https://hub.docker.com/r/gitea/gitea)
 
-Documentation on using docker image can be found on [Gitea Docs site](https://docs.gitea.io/en-us/install-with-docker/)
+Документацию по использованию образа Docker можно найти на [Сайте документации Gitea](https://docs.gitea.io/en-us/install-with-docker/)
