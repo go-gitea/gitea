@@ -6,10 +6,13 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
+	//"xorm.io/builder"
 
+	//"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -797,4 +800,63 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 		return nil, err
 	}
 	return tasks, nil
+}
+
+
+// CleanupHookTaskTable deletes rows from hook_task as needed.
+func CleanupHookTaskTable(ctx context.Context, cleanupType string, ageDays int, numberToKeep int) error {
+	log.Trace("Doing: CleanupHookTaskTable")
+
+	if cleanupType == "AGE" && ageDays > 0 {
+		deleteOlderThan := time.Now().AddDate(0, 0, ageDays).UnixNano();
+		deletes, err := x.
+			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
+			Delete(new(HookTask))
+		if err != nil {
+			return err
+		}
+		log.Trace("Deleted %d rows from hook_task older than %d days", deletes, ageDays)
+
+	} else if cleanupType == "NUMBER_TO_KEEP" && numberToKeep > 0 {
+		hookIDs := make([]int64, 0, 10)
+		err := x.Table("webhook").
+			Where("id > 0").
+			Cols("id").
+			Find(&hookIDs)
+		if err != nil {
+			return err
+		}
+		for _, hookID := range hookIDs {
+			deleteDeliveredHookTasksByWebhook(hookID, numberToKeep)
+		}
+	}
+
+	log.Trace("Finished: CleanupHookTaskTable")
+	return nil
+}
+
+func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
+	var deliveryDates = make([]int64, 0, 10)
+	err := x.Table("hook_task").
+		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ?", hookID, true).
+		Cols("hook_task.delivered").
+		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
+		OrderBy("hook_task.delivered desc").
+		Limit(1, int(numberDeliveriesToKeep)).
+		Find(&deliveryDates)
+	if err != nil {
+		return err
+	}
+
+	if len(deliveryDates) > 0 {
+		deletes, err := x.
+			Where("hook_id = ? and is_delivered = ? and delivered <= ?", hookID, true, deliveryDates[0]).
+			Delete(new(HookTask))
+		if err != nil {
+			return err
+		}
+		log.Trace("Deleted %d hook_task rows for webhook %d", deletes, hookID)
+	}
+
+	return nil
 }
