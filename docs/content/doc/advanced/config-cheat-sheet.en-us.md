@@ -134,7 +134,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
--  SHOW_USER_EMAIL: **true**: Whether the email of the user should be shown in the Explore Users page.
+- `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
