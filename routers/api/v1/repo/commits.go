@@ -63,7 +63,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 func getCommit(ctx *context.APIContext, identifier string) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
-		ctx.ServerError("OpenRepository", err)
+		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
 	}
 	defer gitRepo.Close()
@@ -75,7 +75,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 
 	json, err := convert.ToCommit(ctx.Repo.Repository, commit, nil)
 	if err != nil {
-		ctx.ServerError("toCommit", err)
+		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, json)
@@ -129,7 +129,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
-		ctx.ServerError("OpenRepository", err)
+		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
 	}
 	defer gitRepo.Close()
@@ -150,20 +150,20 @@ func GetAllCommits(ctx *context.APIContext) {
 		// no sha supplied - use default branch
 		head, err := gitRepo.GetHEADBranch()
 		if err != nil {
-			ctx.ServerError("GetHEADBranch", err)
+			ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
 			return
 		}
 
 		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
 		if err != nil {
-			ctx.ServerError("GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
 	} else {
 		// get commit specified by sha
 		baseCommit, err = gitRepo.GetCommit(sha)
 		if err != nil {
-			ctx.ServerError("GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
 	}
@@ -171,7 +171,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	// Total commit count
 	commitsCountTotal, err := baseCommit.CommitsCount()
 	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
+		ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	// Query commits
 	commits, err := baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
 	if err != nil {
-		ctx.ServerError("CommitsByRange", err)
+		ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		// Create json struct
 		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
 		if err != nil {
-			ctx.ServerError("toCommit", err)
+			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
 		}
 

@@ -41,17 +41,21 @@ func GetRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
-	if err != nil {
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
 	}
+
 	if err := release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
@@ -145,13 +149,15 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
-			ctx.ServerError("GetRelease", err)
+			ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 			return
 		}
 		// If target is not provided use default branch
@@ -195,7 +201,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Publisher = ctx.User
 
 		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, true); err != nil {
-			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
+			ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -235,6 +241,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
@@ -308,6 +316,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
