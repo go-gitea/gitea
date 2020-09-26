@@ -33,7 +33,7 @@ menu:
 
 **Примечание 2**: Go версии {{< min-go-version >}} или выше требуется. Однако рекомендуется
 иметь ту же версию, что и наша непрерывная интеграция, см. совет, данный в
-<a href='{{< relref "doc/advanced/hacking-on-gitea.ru-ru.md" >}}'>взлом Gitea</a>
+<a href='{{< relref "doc/advanced/hacking-on-gitea.ru-ru.md" >}}'>Hacking on Gitea</a>
 
 ## Скачивание
 

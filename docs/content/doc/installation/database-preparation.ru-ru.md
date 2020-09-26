@@ -1,6 +1,6 @@
 ---
 date: "2020-01-16"
-title: "Database Preparation"
+title: "Подготовка базы данных"
 slug: "database-prep"
 weight: 10
 toc: true
@@ -8,175 +8,175 @@ draft: false
 menu:
   sidebar:
     parent: "installation"
-    name: "Database preparation"
+    name: "Подготовка базы данных"
     weight: 20
     identifier: "database-prep"
 ---
 
-You need a database to use Gitea. Gitea supports PostgreSQL, MySQL, SQLite, and MSSQL. This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production.
+Для использования Gitea вам нужна база данных. Gitea поддерживает PostgreSQL, MySQL, SQLite и MSSQL. Эта страница поможет вам подготовить базу данных. Здесь будут рассмотрены только PostgreSQL и MySQL, поскольку эти механизмы баз данных широко используются в производстве.
 
-Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
+Экземпляр базы данных может находиться на том же компьютере, что и Gitea (настройка локальной базы данных), или на другом компьютере (удаленная база данных).
 
-Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password.  The steps assumes that you run Linux for both database and Gitea servers.
+Примечание. Для выполнения всех шагов ниже требуется, чтобы в вашей системе был установлен выбранный вами механизм базы данных. Для удаленной настройки базы данных установите серверную часть на экземпляр базы данных и клиентскую часть на вашем сервере Gitea. Кроме того, убедитесь, что вы используете одну и ту же версию движка для сервера и клиента, чтобы некоторые функции движка работали. В целях безопасности защитите суперпользователя базы данных `root` (MySQL) или `postgres` (PostgreSQL) надёжным паролем. Предполагается, что вы используете Linux как для серверов баз данных, так и для серверов Gitea.
 
 ## MySQL
 
-1.  On database instance, login to database console as root:
+1.  В экземпляре базы данных войдите в консоль базы данных как root:
 
     ```
     mysql -u root -p
     ```
 
-    Enter the password as prompted.
+    Введите пароль по запросу.
 
-2.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance. 
+2.  Создайте пользователя базы данных, который будет использоваться Gitea, аутентифицированный паролем. В этом примере в качестве пароля используется `'gitea'`. Пожалуйста, используйте безопасный пароль для вашего экземпляра. 
 
-    For local database:
+    Для локальной базы данных:
 
     ```sql
     SET old_passwords=0;
     CREATE USER 'gitea' IDENTIFIED BY 'gitea';
     ```
 
-    For remote database:
+    Для удалённой базы данных:
 
     ```sql
     SET old_passwords=0;
     CREATE USER 'gitea'@'192.0.2.10' IDENTIFIED BY 'gitea';
     ```
 
-    where `192.0.2.10` is the IP address of your Gitea instance.
+    где `192.0.2.10` - это IP-адрес вашего экземпляра Gitea.
 
-    Replace username and password above as appropriate.
+    При необходимости замените имя пользователя и пароль, указанные выше.
 
-3.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+3.  Создайте базу данных с кодировкой UTF-8 и сопоставлением. Обязательно используйте кодировку `utf8mb4` вместо `utf8`, поскольку первая поддерживает все символы Unicode (включая смайлы) за пределами *Basic Multilingual Plane*. Кроме того, сортировка выбирается в зависимости от вашего ожидаемого контента. В случае сомнений используйте `unicode_ci` или `general_ci`.
 
     ```sql
     CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
     ```
 
-    Replace database name as appropriate.
+    Замените имя базы данных соответствующим образом.
 
-4.  Grant all privileges on the database to database user created above.
+4.  Предоставьте все права доступа к базе данных пользователю базы данных, созданному выше.
 
-    For local database:
+    Для локальной базы данных:
 
     ```sql
     GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea';
     FLUSH PRIVILEGES;
     ```
 
-    For remote database:
+    Для удалённой базы данных:
 
     ```sql
     GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea'@'192.0.2.10';
     FLUSH PRIVILEGES;
     ```
 
-5.  Quit from database console by `exit`.
+5.  Выйти из консоли базы данных с помощью `exit`.
 
-6.  On your Gitea server, test connection to the database:
+6.  На вашем сервере Gitea проверьте подключение к базе данных:
 
     ```
     mysql -u gitea -h 203.0.113.3 -p giteadb
     ```
 
-    where `gitea` is database username, `giteadb` is database name, and `203.0.113.3` is IP address of database instance. Omit `-h` option for local database.
+    где `gitea` - имя пользователя базы данных, `giteadb` - имя базы данных, а `203.0.113.3` - IP-адрес экземпляра базы данных. Опустите параметр `-h` для локальной базы данных.
 
-    You should be connected to the database.
+    Вы должны быть подключены к базе данных.
 
 ## PostgreSQL
 
-1.  PostgreSQL uses `md5` challenge-response encryption scheme for password authentication by default. Nowadays this scheme is not considered secure anymore. Use SCRAM-SHA-256 scheme instead by editing the `postgresql.conf` configuration file on the database server to:
+1.  PostgreSQL по умолчанию использует схему шифрования запрос-ответ `md5` для аутентификации по паролю. В настоящее время эта схема уже не считается безопасной. Вместо этого используйте схему SCRAM-SHA-256, отредактировав файл конфигурации `postgresql.conf` на сервере базы данных, чтобы:
 
     ```ini
     password_encryption = scram-sha-256
     ```
 
-    Restart PostgreSQL to apply the setting.
+    Перезапустите PostgreSQL, чтобы применить настройку.
 
-2.  On the database server, login to the database console as superuser:
+2.  На сервере базы данных войдите в консоль базы данных как суперпользователь.:
 
     ```
     su -c "psql" - postgres
     ```
 
-3.  Create database user (role in PostgreSQL terms) with login privilege and password. Please use a secure, strong password instead of `'gitea'` below:
+3.  Создайте пользователя базы данных (роль в терминах PostgreSQL) с правами входа и паролем. Пожалуйста, используйте надежный и надежный пароль вместо `'gitea'` ниже:
 
     ```sql
     CREATE ROLE gitea WITH LOGIN PASSWORD 'gitea';
     ```
 
-    Replace username and password as appropriate.
+    При необходимости замените имя пользователя и пароль.
 
-4.  Create database with UTF-8 charset and owned by the database user created earlier. Any `libc` collations can be specified with `LC_COLLATE` and `LC_CTYPE` parameter, depending on expected content:
+4.  Создайте базу данных с кодировкой UTF-8, принадлежащую пользователю базы данных, созданному ранее. Любые сопоставления `libc` могут быть указаны с параметрами `LC_COLLATE` и `LC_CTYPE`, в зависимости от ожидаемого содержимого.:
 
     ```sql
     CREATE DATABASE giteadb WITH OWNER gitea TEMPLATE template0 ENCODING UTF8 LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8';
     ```
 
-    Replace database name as appropriate.
+    Замените имя базы данных соответствующим образом.
 
-5.  Allow the database user to access the database created above by adding the following authentication rule to `pg_hba.conf`.
+5.  Разрешите пользователю базы данных получить доступ к базе данных, созданной выше, добавив следующее правило аутентификации в `pg_hba.conf`.
 
-    For local database:
+    Для локальной базы данных:
 
     ```ini
     local    giteadb    gitea    scram-sha-256
     ```
 
-    For remote database:
+    Для удалённой базы данных:
 
     ```ini
     host    giteadb    gitea    192.0.2.10/32    scram-sha-256
     ```
 
-    Replace database name, user, and IP address of Gitea instance with your own.
+    Замените имя базы данных, пользователя и IP-адрес экземпляра Gitea своими собственными.
 
-    Note: rules on `pg_hba.conf` are evaluated sequentially, that is the first matching rule will be used for authentication. Your PostgreSQL installation may come with generic authentication rules that match all users and databases. You may need to place the rules presented here above such generic rules if it is the case.
+    Примечание: правила в `pg_hba.conf` оцениваются последовательно, то есть первое подходящее правило будет использоваться для аутентификации. Ваша установка PostgreSQL может иметь общие правила аутентификации, которые подходят для всех пользователей и баз данных. Возможно, вам придется разместить правила, представленные здесь, над такими общими правилами, если это так.
 
-    Restart PostgreSQL to apply new authentication rules.
+    Перезапустите PostgreSQL, чтобы применить новые правила аутентификации.
     
-6.  On your Gitea server, test connection to the database.
+6.  На вашем сервере Gitea проверьте подключение к базе данных.
 
-    For local database:
+    Для локальной базы данных:
 
     ```
     psql -U gitea -d giteadb
     ```
 
-    For remote database:
+    Для удалённой базы данных:
 
     ```
     psql "postgres://gitea@203.0.113.3/giteadb"
     ```
 
-    where `gitea` is database user, `giteadb` is database name, and `203.0.113.3` is IP address of your database instance.
+    где `gitea` - пользователь базы данных, giteadb - имя базы данных, а `203.0.113.3` - IP-адрес вашего экземпляра базы данных.
 
-    You should be prompted to enter password for the database user, and connected to the database.
+    Вам будет предложено ввести пароль для пользователя базы данных и подключиться к базе данных.
 
-## Database Connection over TLS
+## Подключение к базе данных через TLS
 
-If the communication between Gitea and your database instance is performed through a private network, or if Gitea and the database are running on the same server, this section can be omitted since the security between Gitea and the database instance is not critically exposed. If instead the database instance is on a public network, use TLS to encrypt the connection to the database, as it is possible for third-parties to intercept the traffic data.
+Если связь между Gitea и вашим экземпляром базы данных осуществляется через частную сеть или если Gitea и база данных работают на одном сервере, этот раздел можно пропустить, поскольку безопасность между Gitea и экземпляром базы данных критически не подвергается. Если вместо этого экземпляр базы данных находится в общедоступной сети, используйте TLS для шифрования соединения с базой данных, поскольку третьи стороны могут перехватить данные трафика.
 
-### Prerequisites
+### Предпосылки
 
-- You need two valid TLS certificates, one for the database instance (database server) and one for the Gitea instance (database client). Both certificates must be signed by a trusted CA.
-- The database certificate must contain `TLS Web Server Authentication` in the `X509v3 Extended Key Usage` extension attribute, while the client certificate needs `TLS Web Client Authentication` in the corresponding attribute.
-- On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
-- You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
+- Вам понадобятся два действительных сертификата TLS: один для экземпляра базы данных (сервер базы данных) и один для экземпляра Gitea (клиент базы данных). Оба сертификата должны быть подписаны доверенным центром сертификации.
+- Сертификат базы данных должен содержать `TLS Web Server Authentication` в атрибуте расширения `X509v3 Extended Key Usage`, а для сертификата клиента требуется `TLS Web Client Authentication` в соответствующем атрибуте.
+- В сертификате сервера базы данных одна из записей `Альтернативное имя субъекта` или `Общее имя` должно быть полным доменным именем (FQDN) экземпляра базы данных (например, `db.example.com`). В сертификате клиента базы данных одна из упомянутых выше записей должна содержать имя пользователя базы данных, которое Gitea будет использовать для подключения.
+- Вам необходимо сопоставить доменные имена серверов Gitea и баз данных с соответствующими IP-адресами. Либо настройте для них записи DNS, либо добавьте локальные сопоставления в `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` в Windows) в каждой системе. Это позволяет подключаться к базе данных по доменному имени, а не по IP-адресу. См. Подробную информацию в документации вашей системы.
 
 ### PostgreSQL
 
-The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificates to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
+Драйвер PostgreSQL, используемый Gitea, поддерживает двусторонний TLS. В двустороннем TLS и клиент базы данных, и сервер аутентифицируют друг друга, отправляя свои соответствующие сертификаты на свою противоположную сторону для проверки. Другими словами, сервер проверяет сертификат клиента, а клиент проверяет сертификат сервера.
 
-1.  On the server with the database instance, place the following credentials:
+1.  На сервере с экземпляром базы данных разместите следующие учётные данные:
 
-    -  `/path/to/postgresql.crt`: Database instance certificate
-    -  `/path/to/postgresql.key`: Database instance private key
-    -  `/path/to/root.crt`: CA certificate chain to validate client certificates
+    -  `/path/to/postgresql.crt`: Сертификат экземпляра базы данных
+    -  `/path/to/postgresql.key`: Закрытый ключ экземпляра базы данных
+    -  `/path/to/root.crt`: Цепочка сертификатов CA для проверки сертификатов клиентов
 
-2.  Add following options to `postgresql.conf`:
+2.  Добавьте следующие параметры в `postgresql.conf`:
 
     ```ini
     ssl = on
@@ -186,69 +186,69 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
     ssl_min_protocol_version = 'TLSv1.2'
     ```
 
-3.  Adjust credentials ownership and permission, as required by PostgreSQL:
+3.  Настройте право собственности на учётные данные и разрешения, как того требует PostgreSQL:
 
     ```
     chown postgres:postgres /path/to/root.crt /path/to/postgresql.crt /path/to/postgresql.key
     chmod 0600 /path/to/root.crt /path/to/postgresql.crt /path/to/postgresql.key
     ```
 
-4.  Edit `pg_hba.conf` rule to only allow Gitea database user to connect over SSL, and to require client certificate verification.
+4.  Измените правило `pg_hba.conf`, чтобы разрешить пользователю базы данных Gitea подключаться только через SSL и потребовать проверки сертификата клиента.
 
-    For PostgreSQL 12:
+    Для PostgreSQL 12:
 
     ```ini
     hostssl    giteadb    gitea    192.0.2.10/32    scram-sha-256    clientcert=verify-full
     ```
 
-    For PostgreSQL 11 and earlier:
+    Для PostgreSQL 11 и ранее:
 
     ```ini
     hostssl    giteadb    gitea    192.0.2.10/32    scram-sha-256    clientcert=1
     ```
 
-    Replace database name, user, and IP address of Gitea instance as appropriate.
+    Замените имя базы данных, пользователя и IP-адрес экземпляра Gitea соответствующим образом.
 
-5.  Restart PostgreSQL to apply configurations above.
+5.  Перезапустите PostgreSQL, чтобы применить указанные выше конфигурации.
 
-6.  On the server running the Gitea instance, place the following credentials under the home directory of the user who runs Gitea (e.g. `git`):
+6.  На сервере, на котором запущен экземпляр Gitea, поместите следующие учетные данные в домашний каталог пользователя, который запускает Gitea (например, `git`):
 
-    -  `~/.postgresql/postgresql.crt`: Database client certificate
-    -  `~/.postgresql/postgresql.key`: Database client private key
-    -  `~/.postgresql/root.crt`: CA certificate chain to validate server certificate
+    -  `~/.postgresql/postgresql.crt`: Сертификат клиента базы данных
+    -  `~/.postgresql/postgresql.key`: Закрытый ключ клиента базы данных
+    -  `~/.postgresql/root.crt`: Цепочка сертификатов CA для проверки сертификата сервера
 
-    Note: Those file names above are hardcoded in PostgreSQL and it is not possible to change them.
+    Примечание. Указанные выше имена файлов жёстко запрограммированы в PostgreSQL, и изменить их невозможно.
 
-7.  Adjust credentials, ownership and permission as required:
+7.  При необходимости измените учётные данные, право собственности и разрешения:
 
     ```
     chown git:git ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
     chown 0600 ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
     ```
 
-8.  Test the connection to the database:
+8.  Проверить подключение к базе данных:
 
     ```
     psql "postgres://gitea@example.db/giteadb?sslmode=verify-full"
     ```
 
-    You should be prompted to enter password for the database user, and then be connected to the database.
+    Вам будет предложено ввести пароль для пользователя базы данных, а затем вы подключитесь к базе данных.
 
 
 ### MySQL
 
-While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
+Хотя драйвер MySQL, используемый Gitea, также поддерживает двусторонний TLS, Gitea в настоящее время поддерживает только односторонний TLS. Подробности смотрите в выпуске #10828.
 
-In one-way TLS, the database client verifies the certificate sent from server during the connection handshake, and the server assumes that the connected client is legitimate, since client certificate verification doesn't take place.
+В одностороннем TLS клиент базы данных проверяет сертификат, отправленный с сервера во время подтверждения соединения, и сервер предполагает, что подключенный клиент является легитимным, поскольку проверка сертификата клиента не выполняется.
 
 
-1.  On the database instance, place the following credentials:
+1.  В экземпляре базы данных поместите следующие учётные данные:
 
-    -  `/path/to/mysql.crt`: Database instance certificate
-    -  `/path/to/mysql.key`: Database instance key
-    -  `/path/to/ca.crt`: CA certificate chain. This file isn't used on one-way TLS, but is used to validate client certificates on two-way TLS.
+    -  `/path/to/mysql.crt`: Сертификат экземпляра базы данных
+    -  `/path/to/mysql.key`: Ключ экземпляра базы данных
+    -  `/path/to/ca.crt`: Цепочка сертификатов CA. Этот файл не используется в одностороннем TLS, но используется для проверки клиентских сертификатов в двустороннем TLS.
 
-2.  Add following options to `my.cnf`:
+2.  Добавьте следующие параметры в `my.cnf`:
 
     ```ini
     [mysqld]
@@ -258,16 +258,16 @@ In one-way TLS, the database client verifies the certificate sent from server du
     tls-version = TLSv1.2,TLSv1.3
     ```
 
-3.  Adjust credentials ownership and permission:
+3.  Настройте право собственности на учётные данные и разрешения:
 
     ```
     chown mysql:mysql /path/to/ca.crt /path/to/mysql.crt /path/to/mysql.key
     chmod 0600 /path/to/ca.crt /path/to/mysql.crt /path/to/mysql.key
     ```
 
-4.  Restart MySQL to apply the setting.
+4.  Перезапустите MySQL, чтобы применить настройку.
 
-5.  The database user for Gitea may have been created earlier, but it would authenticate only against the IP addresses of the server running Gitea. To authenticate against its domain name, recreate the user, and this time also set it to require TLS for connecting to the database:
+5.  Пользователь базы данных для Gitea мог быть создан ранее, но он будет аутентифицироваться только по IP-адресам сервера, на котором запущен Gitea. Чтобы аутентифицироваться по его доменному имени, воссоздайте пользователя и на этот раз также установите для него требование TLS для подключения к базе данных:
 
     ```sql
     DROP USER 'gitea'@'192.0.2.10';
@@ -276,14 +276,14 @@ In one-way TLS, the database client verifies the certificate sent from server du
     FLUSH PRIVILEGES;
     ```
 
-    Replace database user name, password, and Gitea instance domain as appropriate.
+    Замените имя пользователя базы данных, пароль и домен экземпляра Gitea соответствующим образом.
 
-6.  Make sure that the CA certificate chain required to validate the database server certificate is on the system certificate store of both the database and Gitea servers. Consult your system documentation for instructions on adding a CA certificate to the certificate store.
+6.  Убедитесь, что цепочка сертификатов CA, необходимая для проверки сертификата сервера базы данных, находится в системном хранилище сертификатов как базы данных, так и серверов Gitea. Инструкции по добавлению сертификата CA в хранилище сертификатов см. В документации к вашей системе.
 
-7.  On the server running Gitea, test connection to the database:
+7.  На сервере под управлением Gitea проверьте подключение к базе данных:
 
     ```
     mysql -u gitea -h example.db -p --ssl
     ```
 
-    You should be connected to the database.
+    Вы должны быть подключены к базе данных.

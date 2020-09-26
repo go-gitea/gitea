@@ -23,7 +23,7 @@ menu:
 GITEA_CUSTOM=/home/gitea/custom ./gitea web
 ```
 
-## С языка Go
+## Особенности языка Go
 
 Поскольку Gitea написана на Go, в ней используются некоторые переменные Go,
 например:
@@ -55,10 +55,10 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
   * `HOMEDRIVE`: Main drive path used to access the home directory (C:)
   * `HOMEPATH`: Home relative path in the given home drive path
 
-## Macaron (framework used by Gitea)
+## Macaron (фреймворк, используемый Gitea)
 
-  * `HOST`: Host Macaron will listen on
-  * `PORT`: Port Macaron will listen on
+  * `HOST`: Хост Macaron, который будет использован для прослушивания
+  * `PORT`: Порт Macaron, который будет использован для прослушивания
   * `MACARON_ENV`: глобальная переменная для обеспечения специальных функций для сред разработки
      по сравнению с производственной средой. Если для MACARON_ENV установлено значение ""
 	 или "development", то шаблоны будут перекомпилироваться при каждом запросе.

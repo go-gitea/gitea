@@ -1,6 +1,6 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "Взлом Gitea"
+title: "Hacking on Gitea"
 slug: "hacking-on-gitea"
 weight: 10
 toc: false
@@ -8,16 +8,16 @@ draft: false
 menu:
   sidebar:
     parent: "advanced"
-    name: "Взлом Gitea"
+    name: "Hacking on Gitea"
     weight: 10
     identifier: "hacking-on-gitea"
 ---
 
-# Взлом Gitea
+# Hacking on Gitea
 
 ## Установка go
 
-Вам следует [установить go](https://golang.org/doc/install) и правильно настройте
+Вам следует [установить go](https://golang.org/doc/install) и правильно настроить
 среду go.
 
 Затем [установите Node.js с помощью npm] (https://nodejs.org/ru/download/), который
@@ -72,14 +72,14 @@ git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
 ```
 
-Чтобы иметь возможность создавать запросы на вытягивание, разветвленный репозиторий
+Чтобы иметь возможность создавать pull request, разветвленный репозиторий
 должен быть добавлен как удаленный к источникам Gitea. В противном случае изменения не будут внесены.
 
 ## Сборка Gitea (Basic)
 
 Взгляните на наши
 <a href='{{< relref "doc/installation/from-source.ru-ru.md" >}}'>инструкции</a>
-для <a href='{{< relref "doc/installation/from-source.ru-ru.md" >}}'>сборка из
+для <a href='{{< relref "doc/installation/from-source.ru-ru.md" >}}'>сборки из
 source</a>.
 
 Самый простой рекомендуемый способ сборки из исходного кода:
@@ -286,4 +286,4 @@ Visual Studio Code. Обратитесь к
 Если вам нужна дополнительная помощь, обращайтесь в [Discord](https://discord.gg/gitea) #Develop
 и обшайтесь там.
 
-Вот оно! Вы готовы взломать Gitea.
+Вот оно! Вы готовы к Hacking'у on Gitea.
