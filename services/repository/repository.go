@@ -18,11 +18,7 @@ import (
 func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
+		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
 	}
 
@@ -31,15 +27,28 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 	return repo, nil
 }
 
+// AdoptRepository adopts pre-existing repository files for the user/organization.
+func AdoptRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+	repo, err := repo_module.AdoptRepository(doer, owner, opts)
+	if err != nil {
+		// No need to rollback here we should do this in AdoptRepository...
+		return nil, err
+	}
+
+	notification.NotifyCreateRepository(doer, owner, repo)
+
+	return repo, nil
+}
+
+// DeleteUnadoptedRepository adopts pre-existing repository files for the user/organization.
+func DeleteUnadoptedRepository(doer, owner *models.User, name string) error {
+	return repo_module.DeleteUnadoptedRepository(doer, owner, name)
+}
+
 // ForkRepository forks a repository
 func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
 	repo, err := repo_module.ForkRepository(doer, u, oldRepo, name, desc)
 	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
 		return nil, err
 	}
 
