@@ -6,6 +6,7 @@ package queue
 
 import (
 	"code.gitea.io/gitea/modules/nosql"
+
 	"gitea.com/lunny/levelqueue"
 )
 
