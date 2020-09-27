@@ -51,6 +51,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when creating a new repository.
    \[last, private, public\]
+- `DEFAULT_PUSH_CREATE_PRIVATE`: **true**: Default private when creating a new repository with push-to-create.
 - `MAX_CREATION_LIMIT`: **-1**: Global maximum creation limit of repositories per user,
    `-1` means no limit.
 - `PULL_REQUEST_QUEUE_LENGTH`: **1000**: Length of pull request patch test queue, make it
