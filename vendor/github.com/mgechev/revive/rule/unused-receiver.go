@@ -11,7 +11,7 @@ import (
 type UnusedReceiverRule struct{}
 
 // Apply applies the rule to given file.
-func (_ *UnusedReceiverRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*UnusedReceiverRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {
@@ -26,7 +26,7 @@ func (_ *UnusedReceiverRule) Apply(file *lint.File, _ lint.Arguments) []lint.Fai
 }
 
 // Name returns the rule name.
-func (_ *UnusedReceiverRule) Name() string {
+func (*UnusedReceiverRule) Name() string {
 	return "unused-receiver"
 }
 

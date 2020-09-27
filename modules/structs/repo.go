@@ -109,6 +109,8 @@ type CreateRepoOption struct {
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
+	// Whether the repository is template
+	Template bool `json:"template"`
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
