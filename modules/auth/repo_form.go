@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/macaron/binding"
@@ -37,6 +38,7 @@ type CreateRepoForm struct {
 	IssueLabels   string
 	License       string
 	Readme        string
+	Template      bool
 
 	RepoTemplate int64
 	GitContent   bool
@@ -45,6 +47,7 @@ type CreateRepoForm struct {
 	Webhooks     bool
 	Avatar       bool
 	Labels       bool
+	TrustModel   string
 }
 
 // Validate validates the fields
@@ -56,11 +59,11 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 // this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
-	Service      int    `json:"service"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
-	AuthToken    string `json:"auth_token"`
+	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
+	Service      structs.GitServiceType `json:"service"`
+	AuthUsername string                 `json:"auth_username"`
+	AuthPassword string                 `json:"auth_password"`
+	AuthToken    string                 `json:"auth_token"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
@@ -141,6 +144,9 @@ type RepoSettingForm struct {
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
 	IsArchived                       bool
+
+	// Signing Settings
+	TrustModel string
 
 	// Admin settings
 	EnableHealthCheck                     bool

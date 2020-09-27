@@ -67,6 +67,18 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -94,8 +106,10 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	// Plain git should be first
-	ctx.Data["service"] = form.Service
+	ctx.Data["service"] = structs.GitServiceType(form.Service)
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+
+	tpl := base.TplName("repo/migrate/" + structs.GitServiceType(form.Service).Name())
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -104,7 +118,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMigrate)
+		ctx.HTML(200, tpl)
 		return
 	}
 
@@ -115,11 +129,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
 			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
 			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, &form)
 			default:
 				ctx.ServerError("Unknown error", err)
 			}
@@ -157,9 +171,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
 		return
 	}
 
@@ -169,5 +183,5 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
 }
