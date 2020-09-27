@@ -67,6 +67,18 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -159,7 +171,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
 		return
