@@ -239,6 +239,7 @@ func (u *User) GetEmail() string {
 }
 
 // APIFormat converts a User to api.User
+// Deprecated
 func (u *User) APIFormat() *api.User {
 	if u == nil {
 		return nil
