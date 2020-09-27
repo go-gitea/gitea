@@ -359,7 +359,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:  api.HookIssueCommentEdited,
 			Issue:   convert.ToAPIIssue(c.Issue),
-			Comment: c.APIFormat(),
+			Comment: convert.ToComment(c),
 			Changes: &api.ChangesPayload{
 				Body: &api.ChangesFromPayload{
 					From: oldContent,
@@ -373,7 +373,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:  api.HookIssueCommentEdited,
 			Issue:   convert.ToAPIIssue(c.Issue),
-			Comment: c.APIFormat(),
+			Comment: convert.ToComment(c),
 			Changes: &api.ChangesPayload{
 				Body: &api.ChangesFromPayload{
 					From: oldContent,
@@ -399,7 +399,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(issue),
-			Comment:    comment.APIFormat(),
+			Comment:    convert.ToComment(comment),
 			Repository: repo.APIFormat(mode),
 			Sender:     convert.ToUser(doer, false, false),
 			IsPull:     true,
@@ -408,7 +408,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(issue),
-			Comment:    comment.APIFormat(),
+			Comment:    convert.ToComment(comment),
 			Repository: repo.APIFormat(mode),
 			Sender:     convert.ToUser(doer, false, false),
 			IsPull:     false,
@@ -443,7 +443,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentDeleted,
 			Issue:      convert.ToAPIIssue(comment.Issue),
-			Comment:    comment.APIFormat(),
+			Comment:    convert.ToComment(comment),
 			Repository: comment.Issue.Repo.APIFormat(mode),
 			Sender:     convert.ToUser(doer, false, false),
 			IsPull:     true,
@@ -452,7 +452,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentDeleted,
 			Issue:      convert.ToAPIIssue(comment.Issue),
-			Comment:    comment.APIFormat(),
+			Comment:    convert.ToComment(comment),
 			Repository: comment.Issue.Repo.APIFormat(mode),
 			Sender:     convert.ToUser(doer, false, false),
 			IsPull:     false,
