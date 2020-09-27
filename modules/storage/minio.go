@@ -160,3 +160,24 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	return m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
 }
+
+// IterateObjects iterates across the objects in the miniostorage
+func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+	var opts = minio.GetObjectOptions{}
+	lobjectCtx, cancel := context.WithCancel(m.ctx)
+	defer cancel()
+	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
+		Prefix:    m.basePath,
+		Recursive: true,
+	}) {
+		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
+		if err != nil {
+			return err
+		}
+		defer object.Close()
+		if err = fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
