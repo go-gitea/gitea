@@ -44,6 +44,7 @@ func (a *Attachment) IncreaseDownloadCount() error {
 }
 
 // APIFormat converts models.Attachment to api.Attachment
+// Deprecated
 func (a *Attachment) APIFormat() *api.Attachment {
 	return &api.Attachment{
 		ID:            a.ID,

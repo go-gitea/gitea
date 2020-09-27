@@ -760,7 +760,7 @@ func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookRele
 	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
 	if err := webhook_module.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
-		Release:    rel.APIFormat(),
+		Release:    convert.ToRelease(rel),
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     convert.ToUser(rel.Publisher, false, false),
 	}); err != nil {
