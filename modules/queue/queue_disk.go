@@ -34,7 +34,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	}
 	config := configInterface.(LevelQueueConfiguration)
 
-	if config.ConnectionString == "" {
+	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
 
