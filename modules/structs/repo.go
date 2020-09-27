@@ -109,6 +109,8 @@ type CreateRepoOption struct {
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
+	// Whether the repository is template
+	Template bool `json:"template"`
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
@@ -117,6 +119,9 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// TrustModel of the repository
+	// enum: default,collaborator,committer,collaboratorcommitter
+	TrustModel string `json:"trust_model"`
 }
 
 // EditRepoOption options when editing a repository's properties

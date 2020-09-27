@@ -49,7 +49,6 @@ gitea.com/macaron/session/redis
 ## explicit
 gitea.com/macaron/toolbox
 # github.com/BurntSushi/toml v0.3.1
-## explicit
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
@@ -502,7 +501,7 @@ github.com/kr/text
 ## explicit
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.7.0
+# github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
 ## explicit
 github.com/lib/pq
 github.com/lib/pq/oid
@@ -541,12 +540,14 @@ github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-# github.com/mattn/go-colorable v0.1.6
+# github.com/mattn/go-colorable v0.1.7
+## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.7
+# github.com/mattn/go-runewidth v0.0.9
+## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.14.0
 ## explicit
@@ -556,7 +557,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 ## explicit
 github.com/mgechev/dots
-# github.com/mgechev/revive v1.0.2
+# github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7
 ## explicit
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
@@ -618,7 +619,8 @@ github.com/oliamb/cutter
 github.com/olivere/elastic/v7
 github.com/olivere/elastic/v7/config
 github.com/olivere/elastic/v7/uritemplates
-# github.com/pelletier/go-toml v1.8.0
+# github.com/pelletier/go-toml v1.8.1
+## explicit
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
@@ -821,7 +823,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+# golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -855,7 +857,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200825202427-b303f430e36d
+# golang.org/x/tools v0.0.0-20200921210052-fa0125251cc4
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis
@@ -884,7 +886,7 @@ golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/lsp/fuzzy
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/typesinternal
-# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.6

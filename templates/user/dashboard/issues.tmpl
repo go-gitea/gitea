@@ -7,26 +7,26 @@
 				<div class="ui secondary vertical filter menu">
 					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{.IssueStats.YourRepositoriesCount}}</strong>
+						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					{{if not .ContextUser.IsOrganization}}
 						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
-							<strong class="ui right">{{.IssueStats.AssignCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
 						</a>
 						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
-							<strong class="ui right">{{.IssueStats.CreateCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
 						</a>
 						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
-							<strong class="ui right">{{.IssueStats.MentionCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
-						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
+						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt .TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
@@ -45,7 +45,7 @@
 									{{end}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
-								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
+								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt (index $.Counts $Repo.ID)}}</div>
 							</a>
 						{{end}}
 					{{end}}

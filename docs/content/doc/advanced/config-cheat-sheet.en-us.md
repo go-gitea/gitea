@@ -101,6 +101,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   - `twofa`: Only sign if the user is logged in with twofa
   - `always`: Always sign
   - Options other than `never` and `always` can be combined as a comma separated list.
+- `DEFAULT_TRUST_MODEL`: **collaborator**: \[collaborator, committer, collaboratorcommitter\]: The default trust model used for verifying commits.
+   - `collaborator`: Trust signatures signed by keys of collaborators.
+   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the commmitter).
+   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the commiter.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
@@ -130,7 +134,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
-- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
+- `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
+- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
@@ -145,6 +150,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - Metadata (`ui.meta`)
+
+- `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
+- `DESCRIPTION`: **Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go**: Description meta tag of the homepage.
+- `KEYWORDS`: **go,git,self-hosted,gitea**: Keywords meta tag of the homepage.
 
 ### UI - Notification (`ui.notification`)
 
@@ -706,5 +717,5 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
-- `SHOW_FOOTER_VERSION`: **true**: Show Gitea version information in the footer.
+- `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
