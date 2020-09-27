@@ -13,7 +13,7 @@ import (
 func ToRelease(r *models.Release) *api.Release {
 	assets := make([]*api.Attachment, 0)
 	for _, att := range r.Attachments {
-		assets = append(assets, att.APIFormat())
+		assets = append(assets, ToReleaseAttachment(att))
 	}
 	return &api.Release{
 		ID:           r.ID,
@@ -31,5 +31,18 @@ func ToRelease(r *models.Release) *api.Release {
 		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    ToUser(r.Publisher, false, false),
 		Attachments:  assets,
+	}
+}
+
+// ToReleaseAttachment converts models.Attachment to api.Attachment
+func ToReleaseAttachment(a *models.Attachment) *api.Attachment {
+	return &api.Attachment{
+		ID:            a.ID,
+		Name:          a.Name,
+		Created:       a.CreatedUnix.AsTime(),
+		DownloadCount: a.DownloadCount,
+		Size:          a.Size,
+		UUID:          a.UUID,
+		DownloadURL:   a.DownloadURL(),
 	}
 }
