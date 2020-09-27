@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/nosql"
+
 	"gitea.com/macaron/session"
 	"github.com/go-redis/redis/v7"
 )
