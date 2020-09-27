@@ -37,7 +37,7 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	}
 	config := configInterface.(LevelUniqueQueueConfiguration)
 
-	if config.ConnectionString == "" {
+	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
 
