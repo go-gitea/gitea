@@ -17,7 +17,7 @@ func (r *EmptyBlockRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure
 		failures = append(failures, failure)
 	}
 
-	w := lintEmptyBlock{make([]*ast.BlockStmt, 0), onFailure}
+	w := lintEmptyBlock{make(map[*ast.BlockStmt]bool, 0), onFailure}
 	ast.Walk(w, file.AST)
 	return failures
 }
@@ -28,49 +28,38 @@ func (r *EmptyBlockRule) Name() string {
 }
 
 type lintEmptyBlock struct {
-	ignore    []*ast.BlockStmt
+	ignore    map[*ast.BlockStmt]bool
 	onFailure func(lint.Failure)
 }
 
 func (w lintEmptyBlock) Visit(node ast.Node) ast.Visitor {
-	fd, ok := node.(*ast.FuncDecl)
-	if ok {
-		w.ignore = append(w.ignore, fd.Body)
+	switch n := node.(type) {
+	case *ast.FuncDecl:
+		w.ignore[n.Body] = true
 		return w
-	}
-
-	fl, ok := node.(*ast.FuncLit)
-	if ok {
-		w.ignore = append(w.ignore, fl.Body)
+	case *ast.FuncLit:
+		w.ignore[n.Body] = true
 		return w
-	}
-
-	block, ok := node.(*ast.BlockStmt)
-	if !ok {
-		return w
-	}
-
-	if mustIgnore(block, w.ignore) {
-		return w
-	}
-
-	if len(block.List) == 0 {
-		w.onFailure(lint.Failure{
-			Confidence: 1,
-			Node:       block,
-			Category:   "logic",
-			Failure:    "this block is empty, you can remove it",
-		})
+	case *ast.RangeStmt:
+		if len(n.Body.List) == 0 {
+			w.onFailure(lint.Failure{
+				Confidence: 0.9,
+				Node:       n,
+				Category:   "logic",
+				Failure:    "this block is empty, you can remove it",
+			})
+			return nil // skip visiting the range subtree (it will produce a duplicated failure)
+		}
+	case *ast.BlockStmt:
+		if !w.ignore[n] && len(n.List) == 0 {
+			w.onFailure(lint.Failure{
+				Confidence: 1,
+				Node:       n,
+				Category:   "logic",
+				Failure:    "this block is empty, you can remove it",
+			})
+		}
 	}
 
 	return w
-}
-
-func mustIgnore(block *ast.BlockStmt, blackList []*ast.BlockStmt) bool {
-	for _, b := range blackList {
-		if b == block {
-			return true
-		}
-	}
-	return false
 }

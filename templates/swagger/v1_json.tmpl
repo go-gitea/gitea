@@ -120,6 +120,119 @@
         }
       }
     },
+    "/admin/unadopted": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List unadopted repositories",
+        "operationId": "adminUnadoptedList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "pattern of repositories to search for",
+            "name": "pattern",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StringSlice"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/unadopted/{owner}/{repo}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Adopt unadopted files as a repository",
+        "operationId": "adminAdoptRepository",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete unadopted files",
+        "operationId": "adminDeleteUnadoptedRepository",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
       "get": {
         "produces": [
@@ -1798,7 +1911,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/MigrateRepoForm"
+              "$ref": "#/definitions/MigrateRepoOptions"
             }
           }
         ],
@@ -2075,7 +2188,7 @@
           },
           {
             "type": "string",
-            "description": "archive to download, consisting of a git reference and archive",
+            "description": "the git reference for download with attached archive format (e.g. master.zip)",
             "name": "archive",
             "in": "path",
             "required": true
@@ -3848,6 +3961,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issue_templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get available issue templates for a repository",
+        "operationId": "repoGetIssueTemplates",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueTemplates"
           }
         }
       }
@@ -6320,9 +6466,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the milestone",
+            "type": "string",
+            "description": "the milestone to get, identified by ID and if not available by name",
             "name": "id",
             "in": "path",
             "required": true
@@ -6356,9 +6501,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the milestone to delete",
+            "type": "string",
+            "description": "the milestone to delete, identified by ID and if not available by name",
             "name": "id",
             "in": "path",
             "required": true
@@ -6398,9 +6542,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the milestone",
+            "type": "string",
+            "description": "the milestone to edit, identified by ID and if not available by name",
             "name": "id",
             "in": "path",
             "required": true
@@ -7533,8 +7676,54 @@
           "201": {
             "$ref": "#/responses/Release"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "409": {
             "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/releases/tags/{tag}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a release by tag name",
+        "operationId": "repoGetReleaseTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "tagname of the release to get",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7576,6 +7765,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7612,6 +7804,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7661,6 +7856,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11907,6 +12105,22 @@
           "description": "Readme of the repository to create",
           "type": "string",
           "x-go-name": "Readme"
+        },
+        "template": {
+          "description": "Whether the repository is template",
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
+        "trust_model": {
+          "description": "TrustModel of the repository",
+          "type": "string",
+          "enum": [
+            "default",
+            "collaborator",
+            "committer",
+            "collaboratorcommitter"
+          ],
+          "x-go-name": "TrustModel"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13190,6 +13404,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitServiceType": {
+      "description": "GitServiceType represents a git service",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -13439,6 +13659,40 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueTemplate": {
+      "description": "IssueTemplate represents an issue template for a repository",
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": "string",
+          "x-go-name": "About"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "file_name": {
+          "type": "string",
+          "x-go-name": "FileName"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Label": {
       "description": "Label a label to an issue or a pr",
       "type": "object",
@@ -13522,7 +13776,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
     "MigrateRepoForm": {
-      "description": "MigrateRepoForm form for migrating repository",
+      "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
       "type": "object",
       "required": [
         "clone_addr",
@@ -13583,9 +13837,7 @@
           "x-go-name": "RepoName"
         },
         "service": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Service"
+          "$ref": "#/definitions/GitServiceType"
         },
         "uid": {
           "type": "integer",
@@ -13598,6 +13850,94 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/auth"
+    },
+    "MigrateRepoOptions": {
+      "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
+      "type": "object",
+      "required": [
+        "clone_addr",
+        "repo_name"
+      ],
+      "properties": {
+        "auth_password": {
+          "type": "string",
+          "x-go-name": "AuthPassword"
+        },
+        "auth_token": {
+          "type": "string",
+          "x-go-name": "AuthToken"
+        },
+        "auth_username": {
+          "type": "string",
+          "x-go-name": "AuthUsername"
+        },
+        "clone_addr": {
+          "type": "string",
+          "x-go-name": "CloneAddr"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
+        "mirror": {
+          "type": "boolean",
+          "x-go-name": "Mirror"
+        },
+        "private": {
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        },
+        "repo_owner": {
+          "description": "Name of User or Organisation who will own Repo after migration",
+          "type": "string",
+          "x-go-name": "RepoOwner"
+        },
+        "service": {
+          "type": "string",
+          "enum": [
+            "git",
+            "github",
+            "gitea",
+            "gitlab"
+          ],
+          "x-go-name": "Service"
+        },
+        "uid": {
+          "description": "deprecated (only for backwards compatibility)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoOwnerID"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Milestone": {
       "description": "Milestone milestone is a collection of issues on one repository",
@@ -13671,6 +14011,9 @@
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
+        },
+        "state": {
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "type": "string",
@@ -15392,6 +15735,15 @@
         }
       }
     },
+    "IssueTemplates": {
+      "description": "IssueTemplates",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/IssueTemplate"
+        }
+      }
+    },
     "Label": {
       "description": "Label",
       "schema": {
@@ -15795,7 +16147,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/SubmitPullReviewOptions"
+        "$ref": "#/definitions/MigrateRepoOptions"
       }
     },
     "redirect": {

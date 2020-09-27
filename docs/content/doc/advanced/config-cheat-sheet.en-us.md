@@ -101,6 +101,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   - `twofa`: Only sign if the user is logged in with twofa
   - `always`: Always sign
   - Options other than `never` and `always` can be combined as a comma separated list.
+- `DEFAULT_TRUST_MODEL`: **collaborator**: \[collaborator, committer, collaboratorcommitter\]: The default trust model used for verifying commits.
+   - `collaborator`: Trust signatures signed by keys of collaborators.
+   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the commmitter).
+   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the commiter.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
@@ -130,7 +134,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
-- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
+- `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
+- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
@@ -145,6 +150,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - Metadata (`ui.meta`)
+
+- `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
+- `DESCRIPTION`: **Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go**: Description meta tag of the homepage.
+- `KEYWORDS`: **go,git,self-hosted,gitea**: Keywords meta tag of the homepage.
 
 ### UI - Notification (`ui.notification`)
 
@@ -211,12 +222,23 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
+
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
+- `LFS_STORE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service.
+- `LFS_SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `LFS_STORE_TYPE` is `local`.
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `LFS_STORE_TYPE is` `minio`
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `LFS_STORE_TYPE` is `minio`
+- `LFS_MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `LFS_STORE_TYPE` is `minio`
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCK_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
+
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
@@ -338,6 +360,7 @@ set name for unique queues. Individual queues will default to
     - digit - use one or more digits
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
+- `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 
 ## OpenID (`openid`)
 
@@ -699,5 +722,5 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
-- `SHOW_FOOTER_VERSION`: **true**: Show Gitea version information in the footer.
+- `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.

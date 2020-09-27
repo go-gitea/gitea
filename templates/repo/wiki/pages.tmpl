@@ -15,7 +15,7 @@
 				{{range .Pages}}
 					<tr>
 						<td>
-							{{svg "octicon-file" 16}}
+							{{svg "octicon-file"}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
 						</td>
 						{{$timeSince := TimeSinceUnix .UpdatedUnix $.Lang}}

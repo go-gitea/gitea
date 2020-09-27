@@ -43,7 +43,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 10, reviews[5].ID)
 	assert.EqualValues(t, "REQUEST_CHANGES", reviews[5].State)
 	assert.EqualValues(t, 1, reviews[5].CodeCommentsCount)
-	assert.EqualValues(t, 0, reviews[5].Reviewer.ID) // ghost user
+	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
 	assert.EqualValues(t, false, reviews[5].Stale)
 	assert.EqualValues(t, true, reviews[5].Official)
 
