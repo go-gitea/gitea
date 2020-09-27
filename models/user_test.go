@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -84,14 +85,14 @@ func TestUser_APIFormat(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, user.IsAdmin)
 
-	apiUser := user.APIFormat()
+	apiUser := convert.ToUser(user, true, true)
 	assert.True(t, apiUser.IsAdmin)
 
 	user, err = GetUserByID(2)
 	assert.NoError(t, err)
 	assert.False(t, user.IsAdmin)
 
-	apiUser = user.APIFormat()
+	apiUser = convert.ToUser(user, true, true)
 	assert.False(t, apiUser.IsAdmin)
 }
 
