@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
+	"github.com/unknwon/com"
 )
 
 type transformer struct {
@@ -246,12 +247,19 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo); err != nil {
+	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
 		return nil, err
 	}
 
-	repoPath := models.RepoPath(owner.Name, generateRepo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
+	repoPath := generateRepo.RepoPath()
+	if com.IsExist(repoPath) {
+		return nil, models.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
+		}
+	}
+
+	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 
