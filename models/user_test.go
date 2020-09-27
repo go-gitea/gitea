@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -77,23 +76,6 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames([]string{"user8", "user5"}))
 
 	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user7"}))
-}
-
-func TestUser_APIFormat(t *testing.T) {
-
-	user, err := GetUserByID(1)
-	assert.NoError(t, err)
-	assert.True(t, user.IsAdmin)
-
-	apiUser := convert.ToUser(user, true, true)
-	assert.True(t, apiUser.IsAdmin)
-
-	user, err = GetUserByID(2)
-	assert.NoError(t, err)
-	assert.False(t, user.IsAdmin)
-
-	apiUser = convert.ToUser(user, true, true)
-	assert.False(t, apiUser.IsAdmin)
 }
 
 func TestCanCreateOrganization(t *testing.T) {
