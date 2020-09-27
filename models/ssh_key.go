@@ -84,7 +84,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID), key.Content)
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID)), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
