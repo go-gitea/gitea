@@ -67,13 +67,26 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 		return nil
 	}
 
-	user, err := models.GetUserByName(username)
-	if err != nil {
-		if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
-			return r.newUser(ctx)
+	var user *models.User
+	var err error
+
+	if r.isAutoRegisterAllowed() {
+		// Use auto registration from reverse proxy if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION enabled.
+		if user, err = models.GetUserByName(username); err != nil {
+			if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
+				return r.newUser(ctx)
+			}
+			log.Error("GetUserByName: %v", err)
+			return nil
 		}
-		log.Error("GetUserByName: %v", err)
-		return nil
+	} else {
+		// Use auto registration from other backends if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION not enabled.
+		if user, err = models.UserSignIn(username, "", true); err != nil {
+			if !models.IsErrUserNotExist(err) {
+				log.Error("UserSignIn: %v", err)
+			}
+			return nil
+		}
 	}
 
 	return user

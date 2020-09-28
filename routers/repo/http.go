@@ -216,7 +216,7 @@ func HTTP(ctx *context.Context) {
 
 			if authUser == nil {
 				// Check username and password
-				authUser, err = models.UserSignIn(authUsername, authPasswd)
+				authUser, err = models.UserSignIn(authUsername, authPasswd, false)
 				if err != nil {
 					if models.IsErrUserProhibitLogin(err) {
 						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
