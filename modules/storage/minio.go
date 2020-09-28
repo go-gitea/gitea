@@ -174,8 +174,10 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 		if err != nil {
 			return err
 		}
-		defer object.Close()
-		if err = fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object}); err != nil {
+		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
+			defer object.Close()
+			return fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object})
+		}(object, fn); err != nil {
 			return err
 		}
 	}
