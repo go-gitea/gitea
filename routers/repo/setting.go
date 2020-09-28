@@ -185,8 +185,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
-			ctx.ServerError("SaveAddress", err)
+		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+			ctx.ServerError("UpdateAddress", err)
 			return
 		}
 
