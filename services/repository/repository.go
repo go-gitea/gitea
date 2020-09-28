@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	cfg "code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -88,7 +89,7 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 
 	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
-		IsPrivate: true,
+		IsPrivate: cfg.Repository.DefaultPushCreatePrivate,
 	})
 	if err != nil {
 		return nil, err
