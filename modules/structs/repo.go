@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -108,6 +109,8 @@ type CreateRepoOption struct {
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
+	// Whether the repository is template
+	Template bool `json:"template"`
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
@@ -116,6 +119,9 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// TrustModel of the repository
+	// enum: default,collaborator,committer,collaboratorcommitter
+	TrustModel string `json:"trust_model"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -205,17 +211,62 @@ const (
 // Name represents the service type's name
 // WARNNING: the name have to be equal to that on goth's library
 func (gt GitServiceType) Name() string {
+	return strings.ToLower(gt.Title())
+}
+
+// Title represents the service type's proper title
+func (gt GitServiceType) Title() string {
 	switch gt {
 	case GithubService:
-		return "github"
+		return "GitHub"
 	case GiteaService:
-		return "gitea"
+		return "Gitea"
 	case GitlabService:
-		return "gitlab"
+		return "GitLab"
 	case GogsService:
-		return "gogs"
+		return "Gogs"
+	case PlainGitService:
+		return "Git"
 	}
 	return ""
+}
+
+// MigrateRepoOptions options for migrating repository's
+// this is used to interact with api v1
+type MigrateRepoOptions struct {
+	// required: true
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// deprecated (only for backwards compatibility)
+	RepoOwnerID int64 `json:"uid"`
+	// Name of User or Organisation who will own Repo after migration
+	RepoOwner string `json:"repo_owner"`
+	// required: true
+	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+
+	// enum: git,github,gitea,gitlab
+	Service      string `json:"service"`
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
+
+	Mirror       bool   `json:"mirror"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(255)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
+}
+
+// TokenAuth represents whether a service type supports token-based auth
+func (gt GitServiceType) TokenAuth() bool {
+	switch gt {
+	case GithubService, GiteaService, GitlabService:
+		return true
+	}
+	return false
 }
 
 var (
@@ -226,28 +277,3 @@ var (
 		GitlabService,
 	}
 )
-
-// MigrateRepoOption options for migrating a repository from an external service
-type MigrateRepoOption struct {
-	// required: true
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
-	// required: true
-	UID int `json:"uid" binding:"Required"`
-	// required: true
-	RepoName        string `json:"repo_name" binding:"Required"`
-	Mirror          bool   `json:"mirror"`
-	Private         bool   `json:"private"`
-	Description     string `json:"description"`
-	OriginalURL     string
-	GitServiceType  GitServiceType
-	Wiki            bool
-	Issues          bool
-	Milestones      bool
-	Labels          bool
-	Releases        bool
-	Comments        bool
-	PullRequests    bool
-	MigrateToRepoID int64
-}

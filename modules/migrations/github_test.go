@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -64,18 +65,19 @@ func assertLabelEqual(t *testing.T, name, color, description string, label *base
 
 func TestGitHubDownloadRepo(t *testing.T) {
 	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
-	downloader := NewGithubDownloaderV3(os.Getenv("GITHUB_READ_TOKEN"), "", "go-gitea", "test_repo")
+	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
 	err := downloader.RefreshRate()
 	assert.NoError(t, err)
 
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
-		Name:        "test_repo",
-		Owner:       "go-gitea",
-		Description: "Test repository for testing migration from github to gitea",
-		CloneURL:    "https://github.com/go-gitea/test_repo.git",
-		OriginalURL: "https://github.com/go-gitea/test_repo",
+		Name:          "test_repo",
+		Owner:         "go-gitea",
+		Description:   "Test repository for testing migration from github to gitea",
+		CloneURL:      "https://github.com/go-gitea/test_repo.git",
+		OriginalURL:   "https://github.com/go-gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()

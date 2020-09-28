@@ -140,6 +140,7 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
 	go srv.awaitShutdown()
+	tlsConfig.MinVersion = tls.VersionTLS12
 
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {

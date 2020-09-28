@@ -402,6 +402,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/keys/delete", userSetting.DeleteKey)
 		m.Get("/organization", userSetting.Organization)
 		m.Get("/repos", userSetting.Repos)
+		m.Post("/repos/unadopted", userSetting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
@@ -461,6 +462,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
+			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
@@ -535,6 +537,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -722,8 +725,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Grouping for those endpoints that do require authentication
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
-			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
-				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
+			m.Group("/new", func() {
+				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
+					Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
+				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
@@ -732,6 +738,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
+				m.Post("/ref", repo.UpdateIssueRef)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
@@ -817,9 +824,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/:username/:reponame", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
-			m.Get("/tag/:tag", repo.SingleRelease)
+			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
@@ -858,24 +865,26 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
-			m.Get("/new", repo.NewProject)
-			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
-			m.Group("/:id", func() {
-				m.Get("", repo.ViewProject)
-				m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
-				m.Post("/delete", repo.DeleteProject)
+			m.Get("/:id", repo.ViewProject)
+			m.Group("", func() {
+				m.Get("/new", repo.NewProject)
+				m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+				m.Group("/:id", func() {
+					m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
+					m.Post("/delete", repo.DeleteProject)
 
-				m.Get("/edit", repo.EditProject)
-				m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
-				m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
+					m.Get("/edit", repo.EditProject)
+					m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
+					m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
 
-				m.Group("/:boardID", func() {
-					m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
-					m.Delete("", repo.DeleteProjectBoard)
+					m.Group("/:boardID", func() {
+						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
+						m.Delete("", repo.DeleteProjectBoard)
 
-					m.Post("/:index", repo.MoveIssueAcrossBoards)
+						m.Post("/:index", repo.MoveIssueAcrossBoards)
+					})
 				})
-			})
+			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {

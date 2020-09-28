@@ -97,7 +97,11 @@
 		{{end}}
 	{{end}}
 	<meta property="og:type" content="object" />
-	<meta property="og:image" content="{{.Repository.Owner.AvatarLink}}" />
+	{{if .Repository.AvatarLink}}
+		<meta property="og:image" content="{{.Repository.AvatarLink}}" />
+	{{else}}
+		<meta property="og:image" content="{{.Repository.Owner.AvatarLink}}" />
+	{{end}}
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />

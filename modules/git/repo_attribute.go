@@ -7,8 +7,6 @@ package git
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/mcuadros/go-version"
 )
 
 // CheckAttributeOpts represents the possible options to CheckAttribute
@@ -21,7 +19,7 @@ type CheckAttributeOpts struct {
 
 // CheckAttribute return the Blame object of file
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
-	binVersion, err := BinVersion()
+	err := LoadGitVersion()
 	if err != nil {
 		return nil, fmt.Errorf("Git version missing: %v", err)
 	}
@@ -42,7 +40,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if opts.CachedOnly && version.Compare(binVersion, "1.7.8", ">=") {
+	if opts.CachedOnly && CheckGitVersionConstraint(">= 1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 

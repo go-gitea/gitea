@@ -521,6 +521,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/api", settings.GetGeneralAPISettings)
+			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
@@ -634,7 +636,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Get("/issues/search", repo.SearchIssues)
 
-			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
@@ -795,6 +797,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseAttachment)
 						})
 					})
+					m.Group("/tags", func() {
+						m.Get("/:tag", repo.GetReleaseTag)
+					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
@@ -864,6 +869,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
+				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
@@ -934,6 +940,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 
 		m.Group("/admin", func() {
+			m.Group("/cron", func() {
+				m.Get("", admin.ListCronTasks)
+				m.Post("/:task", admin.PostCronTask)
+			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
 				m.Get("", admin.GetAllUsers)
@@ -949,6 +959,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})
+			})
+			m.Group("/unadopted", func() {
+				m.Get("", admin.ListUnadoptedRepositories)
+				m.Post("/:username/:reponame", admin.AdoptRepository)
+				m.Delete("/:username/:reponame", admin.DeleteUnadoptedRepository)
 			})
 		}, reqToken(), reqSiteAdmin())
 

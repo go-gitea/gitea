@@ -85,7 +85,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User.IsAdmin)
+	listUserOrgs(ctx, u, ctx.User != nil && (ctx.User.IsAdmin || ctx.User.ID == u.ID))
 }
 
 // GetAll return list of all public organizations

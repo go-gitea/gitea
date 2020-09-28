@@ -31,7 +31,7 @@
 			<li class="item">
 			<div class="ui grid middle aligned">
 				<div class="four wide column">
-					<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name | RenderEmoji}}</div>
+					<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag"}} {{.Name | RenderEmoji}}</div>
 				</div>
 				<div class="six wide column">
 					<div class="ui">
@@ -40,18 +40,18 @@
 				</div>
 				<div class="three wide column">
 					{{if $.PageIsOrgSettingsLabels}}
-						<a class="ui right open-issues" href="/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+						<a class="ui right open-issues" href="/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{else}}
-						<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+						<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{end}}
 				</div>
 				<div class="three wide column">
 					{{if and (not $.PageIsOrgSettingsLabels ) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
-						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
-						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 					{{else if $.PageIsOrgSettingsLabels}}
-						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
-						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -74,7 +74,7 @@
 					<li class="item">
 					<div class="ui grid middle aligned">
 						<div class="three wide column">
-							<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name | RenderEmoji}}</div>
+							<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag"}} {{.Name | RenderEmoji}}</div>
 						</div>
 						<div class="seven wide column">
 							<div class="ui">
@@ -82,7 +82,7 @@
 							</div>
 						</div>
 						<div class="three wide column">
-								<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
+								<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
 						</div>
 						<div class="three wide column">
 						</div>

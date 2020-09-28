@@ -120,8 +120,9 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": base.FileSize,
-		"List":    List,
+		"SizeFmt":  base.FileSize,
+		"CountFmt": base.FormatNumberSI,
+		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -468,12 +469,25 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
 var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
-// SVG render icons
-func SVG(icon string, size int) template.HTML {
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	size := 16
+	if len(others) > 0 && others[0].(int) != 0 {
+		size = others[0].(int)
+	}
+
+	class := ""
+	if len(others) > 1 && others[1].(string) != "" {
+		class = others[1].(string)
+	}
+
 	if svgStr, ok := svg.SVGs[icon]; ok {
 		if size != 16 {
 			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
 			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		if class != "" {
+			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
 		}
 		return template.HTML(svgStr)
 	}
@@ -607,7 +621,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
@@ -684,7 +698,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 // DiffTypeToStr returns diff type name
 func DiffTypeToStr(diffType int) string {
 	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename",
+		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
 	}
 	return diffTypes[diffType]
 }

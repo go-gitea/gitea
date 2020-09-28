@@ -19,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
-
-	"github.com/mcuadros/go-version"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -196,7 +194,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
@@ -206,8 +204,6 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
-		"GIT_COMMITTER_NAME="+committerSig.Name,
-		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
@@ -218,14 +214,32 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
+					// Add trailers
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Authored-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Committed-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+				}
+				committerSig = signer
+			}
+		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
+
+	env = append(env,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
+	)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -309,7 +323,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 
 // CheckAttribute checks the given attribute of the provided files
 func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		log.Error("Error retrieving git version: %v", err)
 		return nil, err
@@ -321,7 +335,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if version.Compare(binVersion, "1.7.8", ">=") {
+	if git.CheckGitVersionConstraint(">= 1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")

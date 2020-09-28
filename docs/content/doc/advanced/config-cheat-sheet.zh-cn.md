@@ -69,8 +69,18 @@ menu:
 - `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
+
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
+- `LFS_STORE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `LFS_SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
 - `LFS_CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
+- `LFS_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `LFS_STORE_TYPE` 为 `minio` 时有效。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 
 ## Database (`database`)
@@ -98,8 +108,12 @@ menu:
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `redis` 时，保存Redis队列的连接字符串。
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
 
-- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间）。
+- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间，如果是bleve可能需要占用约6倍存储空间）。
+- `REPO_INDEXER_TYPE`: **bleve**: 代码搜索引擎类型，可以为 `bleve` 或者 `elasticsearch`。
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: 用于代码搜索的索引文件路径。
+- `REPO_INDEXER_CONN_STR`: ****: 代码搜索引擎连接字符串，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。例如： http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_NAME`: **gitea_codes**: 代码搜索引擎的名字，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。
+
 - `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 

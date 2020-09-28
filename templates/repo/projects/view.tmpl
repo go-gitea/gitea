@@ -10,10 +10,9 @@
 				{{template "repo/issue/search" .}}
 			</div>
 			<div class="column right aligned">
-				{{if .PageIsProjects}}
-				<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
+				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
+					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
-
 				<div class="ui small modal" id="new-board-item">
 					<div class="header">
 						{{$.i18n.Tr "repo.projects.board.new"}}
@@ -45,65 +44,62 @@
 			<div class="ui segment board-column">
 				<div class="board-column-header">
 					<div class="ui large label board-label">{{.Title}}</div>
-
-					{{ if $.IsSigned }}
-					{{ if not (eq .ID 0) }}
-					<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
-						<span class="ui text">
-							<img class="ui tiny avatar image" width="24" height="24">
-							<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
-						</span>
-						<div class="menu user-menu" tabindex="-1">
-							<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
-								{{svg "octicon-pencil" 16}}
-								{{$.i18n.Tr "repo.projects.board.edit"}}
-							</a>
-							<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
-								{{svg "octicon-trashcan" 16}}
-								{{$.i18n.Tr "repo.projects.board.delete"}}
-							</a>
-
-							<div class="ui small modal edit-project-board" id="edit-project-board-modal-{{.ID}}">
-								<div class="header">
+					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
+						<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
+							<span class="ui text">
+								<img class="ui tiny avatar image" width="24" height="24">
+								<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
+							</span>
+							<div class="menu user-menu" tabindex="-1">
+								<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
+									{{svg "octicon-pencil"}}
 									{{$.i18n.Tr "repo.projects.board.edit"}}
-								</div>
-								<div class="content">
-									<form class="ui form">
-										<div class="required field">
-											<label for="new_board_title">{{$.i18n.Tr "repo.projects.board.edit_title"}}</label>
-											<input class="project-board-title" id="new_board_title" name="title" value="{{.Title}}" required>
-										</div>
+								</a>
+								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
+									{{svg "octicon-trashcan"}}
+									{{$.i18n.Tr "repo.projects.board.delete"}}
+								</a>
 
+								<div class="ui small modal edit-project-board" id="edit-project-board-modal-{{.ID}}">
+									<div class="header">
+										{{$.i18n.Tr "repo.projects.board.edit"}}
+									</div>
+									<div class="content">
+										<form class="ui form">
+											<div class="required field">
+												<label for="new_board_title">{{$.i18n.Tr "repo.projects.board.edit_title"}}</label>
+												<input class="project-board-title" id="new_board_title" name="title" value="{{.Title}}" required>
+											</div>
+
+											<div class="text right actions">
+												<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui red button">{{$.i18n.Tr "repo.projects.board.edit"}}</button>
+											</div>
+										</form>
+									</div>
+								</div>
+
+								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
+									<div class="ui icon header">
+										{{$.i18n.Tr "repo.projects.board.delete"}}
+									</div>
+									<div class="content center">
+										<input type="hidden" name="action" value="delete">
+										<div class="field">
+											<label>
+												{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
+											</label>
+										</div>
+									</div>
+									<form class="ui form" method="post">
 										<div class="text right actions">
 											<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-											<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui red button">{{$.i18n.Tr "repo.projects.board.edit"}}</button>
+											<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
 										</div>
 									</form>
 								</div>
 							</div>
-
-							<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
-								<div class="ui icon header">
-									{{$.i18n.Tr "repo.projects.board.delete"}}
-								</div>
-								<div class="content center">
-									<input type="hidden" name="action" value="delete">
-									<div class="field">
-										<label>
-											{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
-										</label>
-									</div>
-								</div>
-								<form class="ui form" method="post">
-									<div class="text right actions">
-										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
-									</div>
-								</form>
-							</div>
 						</div>
-					</div>
-					{{ end }}
 					{{ end }}
 				</div>
 				<div class="ui divider"></div>
@@ -117,9 +113,9 @@
 						<div class="content">
 							<div class="header">
 								<span class="{{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}{{svg "octicon-git-merge" 16}}
-									{{else if .IsClosed}}{{svg "octicon-issue-closed" 16}}
-									{{else}}{{svg "octicon-issue-opened" 16}}
+									{{if .IsPull}}{{svg "octicon-git-merge"}}
+									{{else if .IsClosed}}{{svg "octicon-issue-closed"}}
+									{{else}}{{svg "octicon-issue-opened"}}
 									{{end}}
 								</span>
 								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
@@ -127,7 +123,7 @@
 							<div class="meta">
 								{{ if .MilestoneID }}
 								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-									{{svg "octicon-milestone" 16}} {{ .Milestone.Name }}
+									{{svg "octicon-milestone"}} {{ .Milestone.Name }}
 								</a>
 								{{ end }}
 							</div>

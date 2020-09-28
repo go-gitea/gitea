@@ -43,8 +43,8 @@
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
 								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
-								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16}}&nbsp;ZIP</a>
-								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz">{{svg "octicon-file-zip" 16}}&nbsp;TAR.GZ</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							{{end}}
 							</div>
 						{{else}}
@@ -80,18 +80,18 @@
 										<ul class="list">
 											{{if $.Permission.CanRead $.UnitTypeCode}}
 												<li>
-													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16}} {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip"}} {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 												</li>
 												<li>
-													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16}} {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip"}} {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
 												</li>
 											{{end}}
 											{{if .Attachments}}
 												{{range .Attachments}}
 													<li>
-														<span class="ui text right" data-tooltip="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}" data-position="bottom right">{{svg "octicon-info" 16}}</span>
+														<span class="ui text right" data-tooltip="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}" data-position="bottom right">{{svg "octicon-info"}}</span>
 														<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-															<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16}}</span> {{.Name}}</strong>
+															<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package"}}</span> {{.Name}}</strong>
 															<span class="ui text grey right">{{.Size | FileSize}}</span>
 														</a>
 													</li>

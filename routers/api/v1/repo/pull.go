@@ -725,7 +725,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if err = pr.LoadHeadRepo(); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
@@ -759,8 +759,18 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
-		ctx.Status(http.StatusMethodNotAllowed)
+	if !pr.CanAutoMerge() {
+		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+		return
+	}
+
+	if pr.HasMerged {
+		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+		return
+	}
+
+	if pr.IsWorkInProgress() {
+		ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
 		return
 	}
 
@@ -812,7 +822,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
-			ctx.Status(http.StatusMethodNotAllowed)
+			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
@@ -875,7 +885,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			if models.IsErrUserNotExist(err) {
 				ctx.NotFound("GetUserByName")
 			} else {
-				ctx.ServerError("GetUserByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
 			return nil, nil, nil, nil, "", ""
 		}
@@ -919,7 +929,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
@@ -938,7 +948,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permHead.CanRead(models.UnitTypeCode) {

@@ -26,7 +26,7 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.15.x
-MIN_GO_VERSION := 001012000
+MIN_GO_VERSION := 001013000
 MIN_NODE_VERSION := 010013000
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -42,8 +42,10 @@ ifeq ($(HAS_GO), GO)
 endif
 
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
+	GOFLAGS := -v
 	EXECUTABLE ?= gitea
 endif
 
@@ -55,7 +57,6 @@ endif
 
 GOFMT ?= gofmt -s
 
-GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -154,6 +155,7 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
@@ -169,6 +171,8 @@ help:
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
+	@echo " - generate-license                 update license files"
+	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
@@ -183,7 +187,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.13 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -312,6 +316,10 @@ lint-frontend: node_modules
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
+
+.PHONY: watch
+watch:
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
@@ -461,7 +469,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 
 .PHONY: test-mssql-migration
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -556,7 +564,7 @@ release-windows: | $(DIST_DIRS)
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	@echo "Warning: windows version is built using golang 1.14"
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go go-1.14.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -609,7 +617,7 @@ release-docs: | $(DIST_DIRS) docs
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/gohugoio/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
 
@@ -667,6 +675,15 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
+.PHONY: generate-license
+generate-license:
+	GO111MODULE=on $(GO) run build/generate-licenses.go
+
+.PHONY: generate-gitignore
+generate-gitignore:
+	GO111MODULE=on $(GO) run build/generate-gitignores.go
+
+
 .PHONY: generate-images
 generate-images:
 	npm install --no-save --no-package-lock xmldom fabric imagemin-zopfli
@@ -680,7 +697,7 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.30.0; \
 	fi
 	golangci-lint run --timeout 5m
 

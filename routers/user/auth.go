@@ -1110,6 +1110,17 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
 		return
 	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(errMsg, tplSignUp, &form)
+		return
+	}
 
 	u := &models.User{
 		Name:     form.UserName,
@@ -1409,6 +1420,16 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), passwd); pwned || err != nil {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(errMsg, tplResetPassword, nil)
+		return
 	}
 
 	// Handle two-factor
@@ -1443,7 +1464,6 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 		}
 	}
-
 	var err error
 	if u.Rands, err = models.GetUserSalt(); err != nil {
 		ctx.ServerError("UpdateUser", err)

@@ -8,6 +8,7 @@ import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
+import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
@@ -111,8 +112,23 @@ function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
-    $($(this).data('id-selector')).val($(this).data('id'));
-    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+    const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
+    $($(this).data('id-selector')).val(selectedValue);
+
+    if (editMode === 'true') {
+      const form = $('#update_issueref_form');
+
+      $.post(form.attr('action'), {
+        _csrf: csrf,
+        ref: selectedValue
+      },
+      () => {
+        window.location.reload();
+      });
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
+    }
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
@@ -156,7 +172,7 @@ function initLabelEdit() {
   });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
+function updateIssuesMeta(url, action, issueIds, elementId) {
   return new Promise(((resolve) => {
     $.ajax({
       type: 'POST',
@@ -166,7 +182,6 @@ function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
         action,
         issue_ids: issueIds,
         id: elementId,
-        is_add: isAdd
       },
       success: resolve
     });
@@ -372,21 +387,20 @@ function initCommentForm() {
     const $list = $(`.ui.${outerSelector}.list`);
     const $noSelect = $list.find('.no-select');
     const $listMenu = $(`.${selector} .menu`);
-    let hasLabelUpdateAction = $listMenu.data('action') === 'update';
-    const labels = {};
+    let hasUpdateAction = $listMenu.data('action') === 'update';
+    const items = {};
 
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasLabelUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasLabelUpdateAction) {
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+      if (hasUpdateAction) {
         const promises = [];
-        Object.keys(labels).forEach((elementId) => {
-          const label = labels[elementId];
+        Object.keys(items).forEach((elementId) => {
+          const item = items[elementId];
           const promise = updateIssuesMeta(
-            label['update-url'],
-            label.action,
-            label['issue-id'],
+            item['update-url'],
+            item.action,
+            item['issue-id'],
             elementId,
-            label['is-checked']
           );
           promises.push(promise);
         });
@@ -394,65 +408,47 @@ function initCommentForm() {
       }
     });
 
-    $listMenu.find('.item:not(.no-select)').on('click', function () {
-      // we don't need the action attribute when updating assignees
-      if (selector === 'select-assignees-modify' || selector === 'select-reviewers-modify') {
-        // UI magic. We need to do this here, otherwise it would destroy the functionality of
-        // adding/removing labels
-
-        if ($(this).data('can-change') === 'block') {
-          return false;
-        }
-
-        if ($(this).hasClass('checked')) {
-          $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('invisible');
-          $(this).data('is-checked', 'remove');
-        } else {
-          $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('invisible');
-          $(this).data('is-checked', 'add');
-        }
-
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          '',
-          $listMenu.data('issue-id'),
-          $(this).data('id'),
-          $(this).data('is-checked')
-        );
-        $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+    $listMenu.find('.item:not(.no-select)').on('click', function (e) {
+      e.preventDefault();
+      if ($(this).hasClass('ban-change')) {
         return false;
       }
 
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
         $(this).find('.octicon-check').addClass('invisible');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'detach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
       } else {
         $(this).addClass('checked');
         $(this).find('.octicon-check').removeClass('invisible');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'attach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
+      }
+
+      // TODO: Which thing should be done for choosing review requests
+      // to make choosed items be shown on time here?
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
       }
 
       const listIds = [];
@@ -472,22 +468,25 @@ function initCommentForm() {
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
-    $listMenu.find('.no-select.item').on('click', function () {
-      if (hasLabelUpdateAction || selector === 'select-assignees-modify') {
+    $listMenu.find('.no-select.item').on('click', function (e) {
+      e.preventDefault();
+      if (hasUpdateAction) {
         updateIssuesMeta(
           $listMenu.data('update-url'),
           'clear',
           $listMenu.data('issue-id'),
           '',
-          ''
         ).then(reload);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
         $(this).find('.octicon').addClass('invisible');
-        $(this).data('is-checked', 'remove');
       });
+
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
+      }
 
       $list.find('.item').each(function () {
         $(this).addClass('hide');
@@ -520,7 +519,6 @@ function initCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-          $(this).data('is-checked')
         ).then(reload);
       }
       switch (input_id) {
@@ -551,7 +549,6 @@ function initCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-          $(this).data('is-checked')
         ).then(reload);
       }
 
@@ -671,10 +668,9 @@ function initIssueComments() {
     event.preventDefault();
     updateIssuesMeta(
       url,
-      '',
+      isChecked === 'true' ? 'attach' : 'detach',
       issueId,
       id,
-      isChecked
     ).then(reload);
   });
 
@@ -1155,25 +1151,6 @@ async function initRepository() {
   }
 }
 
-function initMigration() {
-  const toggleMigrations = function () {
-    const authUserName = $('#auth_username').val();
-    const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
-      $('#migrate_items').show();
-    } else {
-      $('#migrate_items').hide();
-    }
-  };
-
-  toggleMigrations();
-
-  $('#clone_addr').on('input', toggleMigrations);
-  $('#auth_username').on('input', toggleMigrations);
-  $('#mirror').on('change', toggleMigrations);
-}
-
 function initPullRequestReview() {
   $('.show-outdated').on('click', function (e) {
     e.preventDefault();
@@ -1507,7 +1484,26 @@ function setCommentSimpleMDE($editArea) {
     spellChecker: false,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
+      'code', 'quote', '|', {
+        name: 'checkbox-empty',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-square-o',
+        title: 'Add Checkbox (empty)',
+      },
+      {
+        name: 'checkbox-checked',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-check-square-o',
+        title: 'Add Checkbox (checked)',
+      }, '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
       'clean-block', '|',
@@ -1610,7 +1606,9 @@ async function initEditor() {
   const dirtyFileClass = 'dirty-file';
 
   // Disabling the button at the start
-  $commitButton.prop('disabled', true);
+  if ($('input[name="page_has_posted"]').val() !== 'true') {
+    $commitButton.prop('disabled', true);
+  }
 
   // Registering a custom listener for the file path and the file content
   $editForm.areYouSure({
@@ -1816,6 +1814,14 @@ function initAdmin() {
     }
   }
 
+  function onVerifyGroupMembershipChange() {
+    if ($('#groups_enabled').is(':checked')) {
+      $('#groups_enabled_change').show();
+    } else {
+      $('#groups_enabled_change').hide();
+    }
+  }
+
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
@@ -1856,6 +1862,7 @@ function initAdmin() {
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
+        onVerifyGroupMembershipChange();
       }
       if (authType === '2') {
         onUsePagedSearchChange();
@@ -1866,12 +1873,15 @@ function initAdmin() {
     $('#use_paged_search').on('change', onUsePagedSearchChange);
     $('#oauth2_provider').on('change', onOAuth2Change);
     $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
+      $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+      onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
@@ -2014,14 +2024,24 @@ function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
@@ -2335,6 +2355,7 @@ $(document).ready(async () => {
   $('.delete-button').on('click', showDeletePopup);
   $('.add-all-button').on('click', showAddAllPopup);
   $('.link-action').on('click', linkAction);
+  $('.language-menu a[lang]').on('click', linkLanguageAction);
   $('.link-email-action').on('click', linkEmailAction);
 
   $('.delete-branch-button').on('click', showDeletePopup);
@@ -2476,14 +2497,6 @@ $(document).ready(async () => {
       break;
     }
   }
-
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.on('change', () => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
-    }
-  });
 
   // parallel init of async loaded features
   await Promise.all([
@@ -2628,6 +2641,13 @@ function linkAction(e) {
     } else {
       window.location.reload();
     }
+  });
+}
+
+function linkLanguageAction() {
+  const $this = $(this);
+  $.post($this.data('url')).always(() => {
+    window.location.reload();
   });
 }
 

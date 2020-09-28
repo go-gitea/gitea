@@ -47,7 +47,7 @@
 					{{end}}
 					{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-							{{svg "octicon-clippy" 16}}
+							{{svg "octicon-clippy"}}
 						</button>
 					{{end}}
 				</div>
@@ -56,7 +56,7 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history" 16}}</a>
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}

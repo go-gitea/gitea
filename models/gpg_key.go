@@ -106,12 +106,12 @@ func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
 
 // checkArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
 // The function returns the actual public key on success
-func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
+func checkArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
 	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(content))
 	if err != nil {
 		return nil, ErrGPGKeyParsing{err}
 	}
-	return list[0], nil
+	return list, nil
 }
 
 //addGPGKey add key, import and subkeys to database
@@ -152,38 +152,40 @@ func addGPGSubKey(e Engine, key *GPGKey) (err error) {
 }
 
 // AddGPGKey adds new public key to database.
-func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
-	ekey, err := checkArmoredGPGKeyString(content)
+func AddGPGKey(ownerID int64, content string) ([]*GPGKey, error) {
+	ekeys, err := checkArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}
-
-	// Key ID cannot be duplicated.
-	has, err := x.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
-		Get(new(GPGKey))
-	if err != nil {
-		return nil, err
-	} else if has {
-		return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
-	}
-
-	//Get DB session
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
+	keys := make([]*GPGKey, 0, len(ekeys))
+	for _, ekey := range ekeys {
+		// Key ID cannot be duplicated.
+		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+			Get(new(GPGKey))
+		if err != nil {
+			return nil, err
+		} else if has {
+			return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
+		}
 
-	key, err := parseGPGKey(ownerID, ekey)
-	if err != nil {
-		return nil, err
+		//Get DB session
+
+		key, err := parseGPGKey(ownerID, ekey)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = addGPGKey(sess, key, content); err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
 	}
-
-	if err = addGPGKey(sess, key, content); err != nil {
-		return nil, err
-	}
-
-	return key, sess.Commit()
+	return keys, sess.Commit()
 }
 
 //base64EncPubKey encode public key content to base 64
@@ -221,7 +223,11 @@ func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
 	if err != nil {
 		return nil, err
 	}
-	return checkArmoredGPGKeyString(impKey.Content)
+	keys, err := checkArmoredGPGKeyString(impKey.Content)
+	if err != nil {
+		return nil, err
+	}
+	return keys[0], err
 }
 
 //parseSubGPGKey parse a sub Key
@@ -761,7 +767,7 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 	}
 
 	// Otherwise we have to parse the key
-	ekey, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
+	ekeys, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
 	if err != nil {
 		log.Error("Unable to get default signing key: %v", err)
 		return &CommitVerification{
@@ -770,22 +776,9 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 			Reason:         "gpg.error.generate_hash",
 		}
 	}
-	pubkey := ekey.PrimaryKey
-	content, err := base64EncPubKey(pubkey)
-	if err != nil {
-		return &CommitVerification{
-			CommittingUser: committer,
-			Verified:       false,
-			Reason:         "gpg.error.generate_hash",
-		}
-	}
-	k := &GPGKey{
-		Content: content,
-		CanSign: pubkey.CanSign(),
-		KeyID:   pubkey.KeyIdString(),
-	}
-	for _, subKey := range ekey.Subkeys {
-		content, err := base64EncPubKey(subKey.PublicKey)
+	for _, ekey := range ekeys {
+		pubkey := ekey.PrimaryKey
+		content, err := base64EncPubKey(pubkey)
 		if err != nil {
 			return &CommitVerification{
 				CommittingUser: committer,
@@ -793,25 +786,40 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 				Reason:         "gpg.error.generate_hash",
 			}
 		}
-		k.SubsKey = append(k.SubsKey, &GPGKey{
+		k := &GPGKey{
 			Content: content,
-			CanSign: subKey.PublicKey.CanSign(),
-			KeyID:   subKey.PublicKey.KeyIdString(),
-		})
-	}
-	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
-		Name:  gpgSettings.Name,
-		Email: gpgSettings.Email,
-	}, gpgSettings.Email); commitVerification != nil {
-		return commitVerification
-	}
-	if keyID == k.KeyID {
-		// This is a bad situation ... We have a key id that matches our default key but the signature doesn't match.
-		return &CommitVerification{
-			CommittingUser: committer,
-			Verified:       false,
-			Warning:        true,
-			Reason:         BadSignature,
+			CanSign: pubkey.CanSign(),
+			KeyID:   pubkey.KeyIdString(),
+		}
+		for _, subKey := range ekey.Subkeys {
+			content, err := base64EncPubKey(subKey.PublicKey)
+			if err != nil {
+				return &CommitVerification{
+					CommittingUser: committer,
+					Verified:       false,
+					Reason:         "gpg.error.generate_hash",
+				}
+			}
+			k.SubsKey = append(k.SubsKey, &GPGKey{
+				Content: content,
+				CanSign: subKey.PublicKey.CanSign(),
+				KeyID:   subKey.PublicKey.KeyIdString(),
+			})
+		}
+		if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
+			Name:  gpgSettings.Name,
+			Email: gpgSettings.Email,
+		}, gpgSettings.Email); commitVerification != nil {
+			return commitVerification
+		}
+		if keyID == k.KeyID {
+			// This is a bad situation ... We have a key id that matches our default key but the signature doesn't match.
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Warning:        true,
+				Reason:         BadSignature,
+			}
 		}
 	}
 	return nil
@@ -823,7 +831,7 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 		newCommits = list.New()
 		e          = oldCommits.Front()
 	)
-	memberMap := map[int64]bool{}
+	keyMap := map[string]bool{}
 
 	for e != nil {
 		c := e.Value.(UserCommit)
@@ -832,7 +840,7 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
-		_ = CalculateTrustStatus(signCommit.Verification, repository, &memberMap)
+		_ = CalculateTrustStatus(signCommit.Verification, repository, &keyMap)
 
 		newCommits.PushBack(signCommit)
 		e = e.Next()
@@ -841,31 +849,70 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 }
 
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
-func CalculateTrustStatus(verification *CommitVerification, repository *Repository, memberMap *map[int64]bool) (err error) {
-	if verification.Verified {
-		verification.TrustStatus = "trusted"
-		if verification.SigningUser.ID != 0 {
-			var isMember bool
-			if memberMap != nil {
-				var has bool
-				isMember, has = (*memberMap)[verification.SigningUser.ID]
-				if !has {
-					isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-					(*memberMap)[verification.SigningUser.ID] = isMember
-				}
-			} else {
-				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-			}
-
-			if !isMember {
-				verification.TrustStatus = "untrusted"
-				if verification.CommittingUser.ID != verification.SigningUser.ID {
-					// The committing user and the signing user are not the same and are not the default key
-					// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-					verification.TrustStatus = "unmatched"
-				}
-			}
-		}
+func CalculateTrustStatus(verification *CommitVerification, repository *Repository, keyMap *map[string]bool) (err error) {
+	if !verification.Verified {
+		return
 	}
+
+	// There are several trust models in Gitea
+	trustModel := repository.GetTrustModel()
+
+	// In the Committer trust model a signature is trusted if it matches the committer
+	// - it doesn't matter if they're a collaborator, the owner, Gitea or Github
+	// NB: This model is commit verification only
+	if trustModel == CommitterTrustModel {
+		// default to "unmatched"
+		verification.TrustStatus = "unmatched"
+
+		// We can only verify against users in our database but the default key will match
+		// against by email if it is not in the db.
+		if (verification.SigningUser.ID != 0 &&
+			verification.CommittingUser.ID == verification.SigningUser.ID) ||
+			(verification.SigningUser.ID == 0 && verification.CommittingUser.ID == 0 &&
+				verification.SigningUser.Email == verification.CommittingUser.Email) {
+			verification.TrustStatus = "trusted"
+		}
+		return
+	}
+
+	// Now we drop to the more nuanced trust models...
+	verification.TrustStatus = "trusted"
+
+	if verification.SigningUser.ID == 0 {
+		// This commit is signed by the default key - but this key is not assigned to a user in the DB.
+
+		// However in the CollaboratorCommitterTrustModel we cannot mark this as trusted
+		// unless the default key matches the email of a non-user.
+		if trustModel == CollaboratorCommitterTrustModel && (verification.CommittingUser.ID != 0 ||
+			verification.SigningUser.Email != verification.CommittingUser.Email) {
+			verification.TrustStatus = "untrusted"
+		}
+		return
+	}
+
+	var isMember bool
+	if keyMap != nil {
+		var has bool
+		isMember, has = (*keyMap)[verification.SigningKey.KeyID]
+		if !has {
+			isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+			(*keyMap)[verification.SigningKey.KeyID] = isMember
+		}
+	} else {
+		isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+	}
+
+	if !isMember {
+		verification.TrustStatus = "untrusted"
+		if verification.CommittingUser.ID != verification.SigningUser.ID {
+			// The committing user and the signing user are not the same
+			// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+			verification.TrustStatus = "unmatched"
+		}
+	} else if trustModel == CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
+		// The committing user and the signing user are not the same and our trustmodel states that they must match
+		verification.TrustStatus = "unmatched"
+	}
+
 	return
 }
