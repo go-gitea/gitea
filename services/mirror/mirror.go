@@ -117,7 +117,9 @@ func SaveAddress(m *models.Mirror, addr string) error {
 			return err
 		}
 	}
-	return nil
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // gitShortEmptySha Git short empty SHA
