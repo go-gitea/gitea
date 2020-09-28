@@ -21,6 +21,5 @@ func addTeamReviewRequestSupport(x *xorm.Engine) error {
 		return err
 	}
 
-	err := x.Sync2(new(Comment))
-	return err
+	return x.Sync2(new(Comment))
 }
