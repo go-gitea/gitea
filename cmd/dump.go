@@ -238,39 +238,21 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		switch setting.LFS.Storage.Type {
-		case setting.LocalStorageType:
-			if _, err := os.Stat(setting.LFS.Path); !os.IsNotExist(err) {
-				log.Info("Dumping lfs... %s", setting.LFS.Path)
-				if err := addRecursive(w, "lfs", setting.LFS.Path, verbose); err != nil {
-					fatal("Failed to include lfs: %v", err)
-				}
+		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+			info, err := object.Stat()
+			if err != nil {
+				return err
 			}
-		case setting.MinioStorageType:
-			if err := models.IterateLFS(func(mo *models.LFSMetaObject) error {
-				f, err := storage.LFS.Open(mo.RelativePath())
-				if err != nil {
-					return err
-				}
-				defer f.Close()
 
-				info, err := f.Stat()
-				if err != nil {
-					return err
-				}
-
-				return w.Write(archiver.File{
-					FileInfo: archiver.FileInfo{
-						FileInfo:   info,
-						CustomName: path.Join("data", "lfs", mo.RelativePath()),
-					},
-					ReadCloser: f,
-				})
-			}); err != nil {
-				fatal("Dump LFS failed: %v", err)
-			}
-		default:
-			fatal("Unknown LFS storage type: %s", setting.LFS.Storage.Type)
+			return w.Write(archiver.File{
+				FileInfo: archiver.FileInfo{
+					FileInfo:   info,
+					CustomName: path.Join("data", "lfs", objPath),
+				},
+				ReadCloser: object,
+			})
+		}); err != nil {
+			fatal("Failed to dump LFS objects: %v", err)
 		}
 	}
 
@@ -345,40 +327,21 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	// attachment default should be under data directory but not always there.
-	switch setting.Attachment.Storage.Type {
-	case setting.LocalStorageType:
-		if _, err := os.Stat(setting.Attachment.Path); !os.IsNotExist(err) {
-			log.Info("Dumping attachment... %s", setting.Attachment.Path)
-			if err := addRecursive(w, "attachments", setting.Attachment.Path, verbose); err != nil {
-				fatal("Failed to include attachment: %v", err)
-			}
+	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
 		}
-	case setting.MinioStorageType:
-		if err := models.IterateAttachment(func(attach *models.Attachment) error {
-			f, err := storage.Attachments.Open(attach.RelativePath())
-			if err != nil {
-				return err
-			}
-			defer f.Close()
 
-			info, err := f.Stat()
-			if err != nil {
-				return err
-			}
-
-			return w.Write(archiver.File{
-				FileInfo: archiver.FileInfo{
-					FileInfo:   info,
-					CustomName: path.Join("data", "attachments", attach.RelativePath()),
-				},
-				ReadCloser: f,
-			})
-		}); err != nil {
-			fatal("Dump Attachment failed: %v", err)
-		}
-	default:
-		fatal("Unknown Attachment storage type: %s", setting.Attachment.Storage.Type)
+		return w.Write(archiver.File{
+			FileInfo: archiver.FileInfo{
+				FileInfo:   info,
+				CustomName: path.Join("data", "attachments", objPath),
+			},
+			ReadCloser: object,
+		})
+	}); err != nil {
+		fatal("Failed to dump attachments: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,

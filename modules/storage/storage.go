@@ -18,6 +18,8 @@ import (
 var (
 	// ErrURLNotSupported represents url is not supported
 	ErrURLNotSupported = errors.New("url method not supported")
+	// ErrIterateObjectsNotSupported represents IterateObjects not supported
+	ErrIterateObjectsNotSupported = errors.New("iterateObjects method not supported")
 )
 
 // Object represents the object on the storage
@@ -34,6 +36,7 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
+	IterateObjects(func(path string, obj Object) error) error
 }
 
 // Copy copys a file from source ObjectStorage to dest ObjectStorage
