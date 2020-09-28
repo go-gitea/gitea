@@ -499,7 +499,7 @@ func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
-	upload.RenderUploadSettings(ctx, "repo")
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if treePath != ctx.Repo.TreePath {
@@ -534,7 +534,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Data["PageIsUpload"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
-	upload.RenderUploadSettings(ctx, "repo")
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName

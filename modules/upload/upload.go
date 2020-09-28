@@ -70,8 +70,8 @@ func Verify(buf []byte, fileName string, allowedTypesStr string) error {
 	return ErrFileTypeForbidden{Type: fullMimeType}
 }
 
-// RenderUploadSettings renders template values for dropzone
-func RenderUploadSettings(ctx *context.Context, uploadType string) {
+// AddUploadContext renders template values for dropzone
+func AddUploadContext(ctx *context.Context, uploadType string) {
 	if uploadType == "release" {
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/releases/attachments/remove"

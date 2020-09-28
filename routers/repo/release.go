@@ -194,7 +194,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.RenderUploadSettings(ctx, "release")
+	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -281,7 +281,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.RenderUploadSettings(ctx, "release")
+	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
