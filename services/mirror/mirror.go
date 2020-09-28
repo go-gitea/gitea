@@ -90,8 +90,8 @@ func AddressNoCredentials(m *models.Mirror) string {
 	return u.String()
 }
 
-// SaveAddress writes new address to Git repository config.
-func SaveAddress(m *models.Mirror, addr string) error {
+// UpdateAddress writes new address to Git repository and database
+func UpdateAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
 	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
@@ -100,7 +100,9 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	}
 
 	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
-	return err
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // gitShortEmptySha Git short empty SHA
