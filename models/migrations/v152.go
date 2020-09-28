@@ -4,23 +4,11 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func addTeamReviewRequestSupport(x *xorm.Engine) error {
-	type Review struct {
-		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
+func addTrustModelToRepository(x *xorm.Engine) error {
+	type Repository struct {
+		TrustModel int
 	}
-
-	type Comment struct {
-		AssigneeTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	if err := x.Sync2(new(Review)); err != nil {
-		return err
-	}
-
-	err := x.Sync2(new(Comment))
-	return err
+	return x.Sync2(new(Repository))
 }

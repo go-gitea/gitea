@@ -57,6 +57,19 @@ func simpleValueCoercion(object interface{}) (interface{}, error) {
 		return float64(original), nil
 	case fmt.Stringer:
 		return original.String(), nil
+	case []interface{}:
+		value := reflect.ValueOf(original)
+		length := value.Len()
+		arrayValue := reflect.MakeSlice(value.Type(), 0, length)
+		for i := 0; i < length; i++ {
+			val := value.Index(i).Interface()
+			simpleValue, err := simpleValueCoercion(val)
+			if err != nil {
+				return nil, err
+			}
+			arrayValue = reflect.Append(arrayValue, reflect.ValueOf(simpleValue))
+		}
+		return arrayValue.Interface(), nil
 	default:
 		return nil, fmt.Errorf("cannot convert type %T to Tree", object)
 	}
