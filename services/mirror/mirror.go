@@ -99,7 +99,9 @@ func UpdateAddress(m *models.Mirror, addr string) error {
 		return err
 	}
 
-	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
+	if _, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath); err != nil {
+		return err
+	}
 
 	m.Repo.OriginalURL = addr
 	return models.UpdateRepositoryCols(m.Repo, "original_url")
