@@ -668,7 +668,7 @@ function initIssueComments() {
     event.preventDefault();
     updateIssuesMeta(
       url,
-      isChecked === 'true' ? 'attach' : 'detach',
+      isChecked === 'true' ? 'detach' : 'attach',
       issueId,
       id,
     ).then(reload);

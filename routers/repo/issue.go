@@ -434,23 +434,195 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 	}
 }
 
+// ReviewerChoseItem items to bee shown
+type ReviewerChoseItem struct {
+	IsTeam    bool
+	Team      *models.Team
+	User      *models.User
+	Review    *models.Review
+	CanChange bool
+	Checked   bool
+	ItemID    int64
+}
+
 // RetrieveRepoReviewers find all reviewers of a repository
-func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issuePosterID int64) {
-	var (
-		err           error
-		teamReviewers []*models.Team
-	)
-	ctx.Data["Reviewers"], teamReviewers, err = repo.GetReviewers(ctx.User.ID, issuePosterID)
+func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue *models.Issue, canChooseReviewer bool) {
+	ctx.Data["CanChooseReviewer"] = canChooseReviewer
+
+	reviews, err := models.GetReviewersByIssueID(issue.ID)
 	if err != nil {
-		ctx.ServerError("GetReviewers", err)
+		ctx.ServerError("GetReviewersByIssueID", err)
 		return
 	}
 
-	for _, team := range teamReviewers {
-		team.ID = -team.ID
+	var (
+		pullReviews         []*ReviewerChoseItem
+		reviewersResult     []*ReviewerChoseItem
+		teamReviewersResult []*ReviewerChoseItem
+		teamReviewers       []*models.Team
+		reviewers           []*models.User
+	)
+
+	if canChooseReviewer {
+		posterID := issue.PosterID
+		if issue.OriginalAuthorID > 0 {
+			posterID = 0
+		}
+		reviewers, teamReviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
+		if err != nil {
+			ctx.ServerError("GetReviewers", err)
+			return
+		}
+		if len(reviewers) > 0 {
+			reviewersResult = make([]*ReviewerChoseItem, 0, len(reviewers))
+		}
+		if len(teamReviewers) > 0 {
+			teamReviewersResult = make([]*ReviewerChoseItem, 0, len(teamReviewers))
+		}
 	}
 
-	ctx.Data["TeamReviewers"] = teamReviewers
+	if len(reviews) != 0 {
+		pullReviews = make([]*ReviewerChoseItem, 0, len(reviews))
+
+		for _, review := range reviews {
+			tmp := &ReviewerChoseItem{
+				Checked: review.Type == models.ReviewTypeRequest,
+				Review:  review,
+				ItemID:  review.ReviewerID,
+			}
+			if review.ReviewerTeamID > 0 {
+				tmp.IsTeam = true
+				tmp.ItemID = -review.ReviewerTeamID
+			}
+			if ctx.User != nil && ctx.User.ID == review.ReviewerID && review.Type == models.ReviewTypeRequest {
+				// all user can refuse the review request to them
+				tmp.CanChange = true
+			} else if (canChooseReviewer || (ctx.User != nil && ctx.User.ID == issue.PosterID)) && review.Type != models.ReviewTypeRequest &&
+				ctx.User.ID != review.ReviewerID {
+				// manager and official reviewers call re-requst review from other reviewer
+				tmp.CanChange = true
+			} else if ctx.User != nil && ctx.Repo.IsAdmin() && ctx.User.ID != review.ReviewerID {
+				// only admin can dissims review request to other reviewers
+				tmp.CanChange = true
+			}
+
+			pullReviews = append(pullReviews, tmp)
+
+			if canChooseReviewer {
+				if tmp.IsTeam {
+					teamReviewersResult = append(teamReviewersResult, tmp)
+				} else {
+					reviewersResult = append(reviewersResult, tmp)
+				}
+			}
+		}
+	} else {
+		if !canChooseReviewer {
+			return
+		}
+	}
+
+	if !canChooseReviewer {
+		exitsReviers := make([]*ReviewerChoseItem, 0, len(pullReviews))
+		for _, item := range pullReviews {
+			if item.Review.ReviewerID > 0 {
+				if err = item.Review.LoadReviewer(); err != nil {
+					if models.IsErrUserNotExist(err) {
+						continue
+					} else {
+						ctx.ServerError("LoadReviewer", err)
+						return
+					}
+				}
+				item.User = item.Review.Reviewer
+			} else if item.Review.ReviewerTeamID > 0 {
+				if err = item.Review.LoadReviewerTeam(); err != nil {
+					if models.IsErrTeamNotExist(err) {
+						continue
+					} else {
+						ctx.ServerError("LoadReviewerTeam", err)
+						return
+					}
+				}
+				item.Team = item.Review.ReviewerTeam
+			} else {
+				continue
+			}
+
+			exitsReviers = append(exitsReviers, item)
+		}
+		ctx.Data["PullReviewers"] = exitsReviers
+		return
+	}
+
+	if reviewersResult != nil {
+		exitLen := len(reviewersResult)
+		for _, reviewer := range reviewers {
+			exist := false
+			for index, tmp := range reviewersResult {
+				if index >= exitLen {
+					break
+				}
+				if tmp.ItemID == reviewer.ID {
+					tmp.User = reviewer
+					exist = true
+				}
+			}
+			if !exist {
+				reviewersResult = append(reviewersResult, &ReviewerChoseItem{
+					IsTeam:    false,
+					CanChange: true,
+					User:      reviewer,
+					ItemID:    reviewer.ID,
+				})
+			}
+		}
+
+		ctx.Data["Reviewers"] = reviewersResult
+	}
+
+	if teamReviewersResult != nil {
+		exitLen := len(teamReviewersResult)
+		for _, team := range teamReviewers {
+			exist := false
+			for index, tmp := range teamReviewersResult {
+				if index >= exitLen {
+					break
+				}
+				if tmp.ItemID == -team.ID {
+					tmp.Team = team
+					exist = true
+				}
+			}
+			if !exist {
+				teamReviewersResult = append(teamReviewersResult, &ReviewerChoseItem{
+					IsTeam:    true,
+					CanChange: true,
+					Team:      team,
+					ItemID:    -team.ID,
+				})
+			}
+		}
+
+		ctx.Data["TeamReviewers"] = teamReviewersResult
+	}
+
+	if len(pullReviews) > 0 {
+		exitsReviers := make([]*ReviewerChoseItem, 0, len(pullReviews))
+		for _, item := range pullReviews {
+			if ctx.User != nil && item.ItemID == ctx.User.ID {
+				if err = item.Review.LoadReviewer(); err != nil {
+					ctx.ServerError("LoadReviewer", err)
+					return
+				}
+				item.User = item.Review.Reviewer
+			}
+			if item.Team != nil || item.User != nil {
+				exitsReviers = append(exitsReviers, item)
+			}
+		}
+		ctx.Data["PullReviewers"] = exitsReviers
+	}
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
@@ -988,13 +1160,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		if canChooseReviewer {
-			RetrieveRepoReviewers(ctx, repo, issue.PosterID)
-			ctx.Data["CanChooseReviewer"] = true
-		} else {
-			ctx.Data["CanChooseReviewer"] = false
-		}
-
+		RetrieveRepoReviewers(ctx, repo, issue, canChooseReviewer)
 		if ctx.Written() {
 			return
 		}
@@ -1286,12 +1452,6 @@ func ViewIssue(ctx *context.Context) {
 			pull.HeadRepo != nil &&
 			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
-
-		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
-		if err != nil {
-			ctx.ServerError("GetReviewersByIssueID", err)
-			return
-		}
 	}
 
 	// Get Dependencies
@@ -1563,7 +1723,7 @@ func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 			return fmt.Errorf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
 		}
 
-		if doer.ID == issue.PosterID && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
+		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
 			return nil
 		}
 
@@ -1582,7 +1742,7 @@ func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 			return fmt.Errorf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
 		}
 
-		if reviewer.ID == issue.PosterID {
+		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
 			return fmt.Errorf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
 		}
 	} else {

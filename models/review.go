@@ -122,6 +122,11 @@ func (r *Review) LoadReviewer() error {
 	return r.loadReviewer(x)
 }
 
+// LoadReviewerTeam loads reviewer team
+func (r *Review) LoadReviewerTeam() error {
+	return r.loadReviewerTeam(x)
+}
+
 func (r *Review) loadAttributes(e Engine) (err error) {
 	if err = r.loadIssue(e); err != nil {
 		return
@@ -446,53 +451,25 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 }
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
-	reviewsUnfiltered := []*Review{}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
+func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-		Find(&reviewsUnfiltered); err != nil {
+		Find(&reviews); err != nil {
 		return nil, err
-	}
-
-	// Load reviewer and skip if user is deleted
-	for _, review := range reviewsUnfiltered {
-		if err = review.loadReviewer(sess); err != nil {
-			if !IsErrUserNotExist(err) {
-				return nil, err
-			}
-		} else {
-			reviews = append(reviews, review)
-		}
 	}
 
 	teamReviewRequests := make([]*Review, 0, 5)
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
+	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
 		issueID).
 		Find(&teamReviewRequests); err != nil {
 		return nil, err
 	}
 
-	if len(teamReviewRequests) == 0 {
-		return reviews, nil
-	}
-
-	for _, review := range teamReviewRequests {
-		if err = review.loadReviewerTeam(sess); err != nil {
-			if !IsErrTeamNotExist(err) {
-				return nil, err
-			}
-		} else {
-			review.ReviewerID = -review.ReviewerTeamID
-			reviews = append(reviews, review)
-		}
+	if len(teamReviewRequests) > 0 {
+		reviews = append(reviews, teamReviewRequests...)
 	}
 
 	return reviews, nil
@@ -506,7 +483,7 @@ func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err e
 func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
 
-	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review); err != nil {
 		return nil, err

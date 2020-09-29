@@ -729,10 +729,15 @@ func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ 
 	return users, nil
 }
 
-func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) (users []*User, teams []*Team, err error) {
-	if err = repo.getOwner(e); err != nil {
+func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User, []*Team, error) {
+	if err := repo.getOwner(e); err != nil {
 		return nil, nil, err
 	}
+
+	var (
+		users []*User
+		err   error
+	)
 
 	if repo.IsPrivate ||
 		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
@@ -740,15 +745,20 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) (users []
 	} else {
 		users, err = repo.getReviewersPublic(x, doerID, posterID)
 	}
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if repo.Owner.IsOrganization() {
-		teams, err = GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
+		teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		return users, teams, nil
 	}
 
-	return
+	return users, nil, nil
 }
 
 // GetReviewers get all users can be requested to review
