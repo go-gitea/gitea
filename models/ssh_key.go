@@ -1112,6 +1112,8 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		return nil, err
 	}
 
+	sess.Close()
+
 	return key, RewriteAllPrincipalKeys()
 }
 
