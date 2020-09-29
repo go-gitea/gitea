@@ -247,7 +247,7 @@ func TestUpdateHookTask(t *testing.T) {
 	AssertExistsAndLoadBean(t, hook)
 }
 
-func TestCleanupHookTaskTable_NumberToKeep_DeletesDelivered(t *testing.T) {
+func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      3,
@@ -265,7 +265,7 @@ func TestCleanupHookTaskTable_NumberToKeep_DeletesDelivered(t *testing.T) {
 	AssertNotExistsBean(t, hookTask)
 }
 
-func TestCleanupHookTaskTable_NumberToKeep_LeavesUndelivered(t *testing.T) {
+func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
@@ -283,7 +283,7 @@ func TestCleanupHookTaskTable_NumberToKeep_LeavesUndelivered(t *testing.T) {
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestCleanupHookTaskTable_NumberToKeep_LeavesMostRecentTask(t *testing.T) {
+func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
@@ -302,4 +302,59 @@ func TestCleanupHookTaskTable_NumberToKeep_LeavesMostRecentTask(t *testing.T) {
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
-//TODO need unit tests for AGE type of cleanup...
+func TestCleanupHookTaskTable_Age_DeletesDelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      3,
+		HookID:      3,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().AddDate(0, 0, 31).UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(Age, 30, 0))
+	AssertNotExistsBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_Age_LeavesUndelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: false,
+		Delivered:   time.Now().AddDate(0, 0, 31).UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(Age, 30, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_Age_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().AddDate(0, 0, 29).UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(Age, 30, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
