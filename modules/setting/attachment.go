@@ -44,26 +44,25 @@ func newAttachmentService() {
 			log.Fatal("Failed to get attachment storage type: %s", Attachment.Storage.Type)
 		}
 		Attachment.Storage = storage
+
+		for _, key := range storage.Section.Keys() {
+			if !sec.HasKey(key.Name()) {
+				_, _ = sec.NewKey(key.Name(), key.Value())
+			}
+		}
+		Attachment.Storage.Section = sec
 	}
 
 	// Override
 	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(Attachment.ServeDirect)
 
-	switch Attachment.Storage.Type {
-	case LocalStorageType:
-		Attachment.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "attachments"))
-		if !filepath.IsAbs(Attachment.Path) {
-			Attachment.Path = filepath.Join(AppWorkPath, Attachment.Path)
-		}
-	case MinioStorageType:
-		Attachment.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString(Attachment.Minio.Endpoint)
-		Attachment.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString(Attachment.Minio.AccessKeyID)
-		Attachment.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString(Attachment.Minio.SecretAccessKey)
-		Attachment.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString(Attachment.Minio.Bucket)
-		Attachment.Minio.Location = sec.Key("MINIO_LOCATION").MustString(Attachment.Minio.Location)
-		Attachment.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(Attachment.Minio.UseSSL)
-		Attachment.Minio.BasePath = sec.Key("MINIO_BASE_PATH").MustString("attachments/")
+	Attachment.Storage.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "attachments"))
+	if !filepath.IsAbs(Attachment.Storage.Path) {
+		Attachment.Storage.Path = filepath.Join(AppWorkPath, Attachment.Storage.Path)
+		sec.Key("PATH").SetValue(Attachment.Storage.Path)
 	}
+
+	sec.Key("MINIO_BASE_PATH").MustString("attachments/")
 
 	Attachment.AllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)

@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -21,16 +22,20 @@ const (
 type Storage struct {
 	Type        string
 	Path        string
+	Section     *ini.Section
 	ServeDirect bool
-	Minio       struct {
-		Endpoint        string
-		AccessKeyID     string
-		SecretAccessKey string
-		UseSSL          bool
-		Bucket          string
-		Location        string
-		BasePath        string
+}
+
+// MapTo implements the Mappable interface
+func (s *Storage) MapTo(v interface{}) error {
+	pathValue := reflect.ValueOf(v).FieldByName("Path")
+	if pathValue.IsValid() && pathValue.Kind() == reflect.String {
+		pathValue.SetString(s.Path)
 	}
+	if s.Section != nil {
+		return s.Section.MapTo(v)
+	}
+	return nil
 }
 
 var (
@@ -40,17 +45,14 @@ var (
 func getStorage(sec *ini.Section) Storage {
 	var storage Storage
 	storage.Type = sec.Key("STORAGE_TYPE").MustString(LocalStorageType)
+	storage.Section = sec
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
-	switch storage.Type {
-	case LocalStorageType:
-	case MinioStorageType:
-		storage.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-		storage.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-		storage.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-		storage.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString("gitea")
-		storage.Minio.Location = sec.Key("MINIO_LOCATION").MustString("us-east-1")
-		storage.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(false)
-	}
+	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
+	sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
+	sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
+	sec.Key("MINIO_BUCKET").MustString("gitea")
+	sec.Key("MINIO_LOCATION").MustString("us-east-1")
+	sec.Key("MINIO_USE_SSL").MustBool(false)
 	return storage
 }
 

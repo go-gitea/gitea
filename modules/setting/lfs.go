@@ -48,28 +48,23 @@ func newLFSService() {
 			log.Fatal("Failed to get lfs storage type: %s", LFS.Storage.Type)
 		}
 		LFS.Storage = storage
+
+		for _, key := range storage.Section.Keys() {
+			if !lfsSec.HasKey(key.Name()) {
+				_, _ = lfsSec.NewKey(key.Name(), key.Value())
+			}
+		}
+		LFS.Storage.Section = lfsSec
 	}
 
 	// Override
 	LFS.ServeDirect = lfsSec.Key("SERVE_DIRECT").MustBool(LFS.ServeDirect)
-	switch LFS.Storage.Type {
-	case LocalStorageType:
-		// keep compatible
-		LFS.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-		LFS.Path = lfsSec.Key("PATH").MustString(LFS.Path)
-		if !filepath.IsAbs(LFS.Path) {
-			LFS.Path = filepath.Join(AppWorkPath, LFS.Path)
-		}
-
-	case MinioStorageType:
-		LFS.Minio.Endpoint = lfsSec.Key("MINIO_ENDPOINT").MustString(LFS.Minio.Endpoint)
-		LFS.Minio.AccessKeyID = lfsSec.Key("MINIO_ACCESS_KEY_ID").MustString(LFS.Minio.AccessKeyID)
-		LFS.Minio.SecretAccessKey = lfsSec.Key("MINIO_SECRET_ACCESS_KEY").MustString(LFS.Minio.SecretAccessKey)
-		LFS.Minio.Bucket = lfsSec.Key("MINIO_BUCKET").MustString(LFS.Minio.Bucket)
-		LFS.Minio.Location = lfsSec.Key("MINIO_LOCATION").MustString(LFS.Minio.Location)
-		LFS.Minio.UseSSL = lfsSec.Key("MINIO_USE_SSL").MustBool(LFS.Minio.UseSSL)
-		LFS.Minio.BasePath = lfsSec.Key("MINIO_BASE_PATH").MustString("lfs/")
+	LFS.Storage.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
+	LFS.Storage.Path = lfsSec.Key("PATH").MustString(LFS.Storage.Path)
+	if !filepath.IsAbs(LFS.Storage.Path) {
+		lfsSec.Key("PATH").SetValue(filepath.Join(AppWorkPath, LFS.Storage.Path))
 	}
+	lfsSec.Key("MINIO_BASE_PATH").MustString("lfs/")
 
 	if LFS.LocksPagingNum == 0 {
 		LFS.LocksPagingNum = 50

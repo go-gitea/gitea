@@ -107,6 +107,8 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
+	goCtx := context.Background()
+
 	if err := storage.Init(); err != nil {
 		return err
 	}
@@ -120,18 +122,23 @@ func runMigrateStorage(ctx *cli.Context) error {
 			log.Fatal("Path must be given when storage is loal")
 			return nil
 		}
-		dstStorage, err = storage.NewLocalStorage(p)
+		dstStorage, err = storage.NewLocalStorage(
+			goCtx,
+			storage.LocalStorageConfig{
+				Path: p,
+			})
 	case setting.MinioStorageType:
 		dstStorage, err = storage.NewMinioStorage(
-			context.Background(),
-			ctx.String("minio-endpoint"),
-			ctx.String("minio-access-key-id"),
-			ctx.String("minio-secret-access-key"),
-			ctx.String("minio-bucket"),
-			ctx.String("minio-location"),
-			ctx.String("minio-base-path"),
-			ctx.Bool("minio-use-ssl"),
-		)
+			goCtx,
+			storage.MinioStorageConfig{
+				Endpoint:        ctx.String("minio-endpoint"),
+				AccessKeyID:     ctx.String("minio-access-key-id"),
+				SecretAccessKey: ctx.String("minio-secret-access-key"),
+				Bucket:          ctx.String("minio-bucket"),
+				Location:        ctx.String("minio-location"),
+				BasePath:        ctx.String("minio-base-path"),
+				UseSSL:          ctx.Bool("minio-use-ssl"),
+			})
 	default:
 		return fmt.Errorf("Unsupported attachments storage type: %s", ctx.String("storage"))
 	}
