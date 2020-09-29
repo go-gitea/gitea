@@ -40,8 +40,8 @@ const (
 	tplCommentPrefix = `# gitea public key`
 	tplCommand       = "%s --config=%s serv key-%d"
 	tplPublicKey     = tplCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
-  
-  authorizedPrincipalsFile = "authorized_principals"
+
+	authorizedPrincipalsFile = "authorized_principals"
 )
 
 var sshOpLocker sync.Mutex
