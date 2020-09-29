@@ -691,8 +691,6 @@ func NewContext() {
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	newLFSService()
-
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return
@@ -761,7 +759,9 @@ func NewContext() {
 		}
 	}
 
+	newStorageService()
 	newAttachmentService()
+	newLFSService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -1017,7 +1017,6 @@ func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
-	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()
