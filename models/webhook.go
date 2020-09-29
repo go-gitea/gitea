@@ -6,13 +6,10 @@
 package models
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
-	//"xorm.io/builder"
 
-	//"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -39,6 +36,26 @@ var hookContentTypes = map[string]HookContentType{
 // ToHookContentType returns HookContentType by given name.
 func ToHookContentType(name string) HookContentType {
 	return hookContentTypes[name]
+}
+
+// HookTaskCleanupType is the type of cleanup to perform on hook_task
+type HookTaskCleanupType int
+
+const (
+	// Age hook_task rows will be cleaned up by the age of the row
+	Age HookTaskCleanupType = iota
+	// PerWebhook hook_task rows will be cleaned up by leaving the most recent deliveries for each webhook
+	PerWebhook
+)
+
+var hookTaskCleanupTypes = map[string]HookTaskCleanupType{
+	"Age": Age,
+	"PerWebhook": PerWebhook,
+}
+
+// ToHookTaskCleanupType returns HookTaskCleanupType by given name.
+func ToHookTaskCleanupType(name string) HookTaskCleanupType {
+	return hookTaskCleanupTypes[name]
 }
 
 // Name returns the name of a given web hook's content type
@@ -802,12 +819,11 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	return tasks, nil
 }
 
-
 // CleanupHookTaskTable deletes rows from hook_task as needed.
-func CleanupHookTaskTable(ctx context.Context, cleanupType string, ageDays int, numberToKeep int) error {
+func CleanupHookTaskTable(cleanupType HookTaskCleanupType, ageDays int, numberToKeep int) error {
 	log.Trace("Doing: CleanupHookTaskTable")
 
-	if cleanupType == "AGE" && ageDays > 0 {
+	if cleanupType == Age && ageDays > 0 {
 		deleteOlderThan := time.Now().AddDate(0, 0, ageDays).UnixNano();
 		deletes, err := x.
 			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
@@ -817,7 +833,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType string, ageDays int, 
 		}
 		log.Trace("Deleted %d rows from hook_task older than %d days", deletes, ageDays)
 
-	} else if cleanupType == "NUMBER_TO_KEEP" && numberToKeep > 0 {
+	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
 		err := x.Table("webhook").
 			Where("id > 0").

@@ -120,7 +120,7 @@ func registerCleanupHookTaskTable() {
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
-		return models.CleanupHookTaskTable(ctx, realConfig.CleanupType, realConfig.AgeDays, realConfig.NumberToKeep)
+		return models.CleanupHookTaskTable(models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.AgeDays, realConfig.NumberToKeep)
 	})
 }
 

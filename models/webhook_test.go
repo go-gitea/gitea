@@ -247,7 +247,7 @@ func TestUpdateHookTask(t *testing.T) {
 	AssertExistsAndLoadBean(t, hook)
 }
 
-func TestDeleteDeliveredHookTasks_DeletesDelivered(t *testing.T) {
+func TestCleanupHookTaskTable_NumberToKeep_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      3,
@@ -261,11 +261,11 @@ func TestDeleteDeliveredHookTasks_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, DeleteDeliveredHookTasks(3, 0))
+	assert.NoError(t, CleanupHookTaskTable(PerWebhook, 0, 0))
 	AssertNotExistsBean(t, hookTask)
 }
 
-func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
+func TestCleanupHookTaskTable_NumberToKeep_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
@@ -279,11 +279,11 @@ func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, DeleteDeliveredHookTasks(3, 0))
+	assert.NoError(t, CleanupHookTaskTable(PerWebhook, 0, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestDeleteDeliveredHookTasks_LeavesMostRecentTask(t *testing.T) {
+func TestCleanupHookTaskTable_NumberToKeep_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
@@ -298,7 +298,7 @@ func TestDeleteDeliveredHookTasks_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, DeleteDeliveredHookTasks(3, 1))
+	assert.NoError(t, CleanupHookTaskTable(PerWebhook, 0, 1))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
