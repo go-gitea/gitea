@@ -220,16 +220,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_STORE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service.
-- `LFS_SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
-- `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `LFS_STORE_TYPE` is `local`.
-- `LFS_MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `LFS_STORE_TYPE` is `minio`
-- `LFS_MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `LFS_STORE_TYPE` is `minio`
-- `LFS_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `LFS_STORE_TYPE is` `minio`
-- `LFS_MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `LFS_STORE_TYPE` is `minio`
-- `LFS_MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `LFS_STORE_TYPE` is `minio`
-- `LFS_MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `LFS_STORE_TYPE` is `minio`
-- `LFS_MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `LFS_STORE_TYPE` is `minio`
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
@@ -501,16 +491,16 @@ relation to port exhaustion.
    Use `*/*` for all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
-- `STORE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local`.
+- `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
-- `PATH`: **data/attachments**: Path to store attachments only available when STORE_TYPE is `local`
-- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORE_TYPE is `minio`
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORE_TYPE is `minio`
-- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when STORE_TYPE is `minio`
-- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments only available when STORE_TYPE is `minio`
-- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORE_TYPE is `minio`
-- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket only available when STORE_TYPE is `minio`
-- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORE_TYPE is `minio`
+- `PATH`: **data/attachments**: Path to store attachments only available when STORAGE_TYPE is `local`
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORAGE_TYPE is `minio`
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORAGE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -713,6 +703,56 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
+
+## LFS (`lfs`)
+
+Storage configuration for lfs data. It will be derived from default `[storage]` or
+`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. When derived, the default of `PATH` 
+is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
+
+- `STORAGE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `STORAGE_TYPE` is `local`.
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `STORAGE_TYPE` is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+
+## Storage (`storage`)
+
+Default storage configuration for attachments, lfs, avatars and etc.
+
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the data only available when `STORAGE_TYPE` is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+
+And you can also define a customize storage like below:
+
+```ini
+[storage.my_minio]
+STORAGE_TYPE = minio
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+```
+
+And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
 ## Other (`other`)
 
