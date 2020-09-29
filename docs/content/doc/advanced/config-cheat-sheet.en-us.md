@@ -474,6 +474,7 @@ relation to port exhaustion.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
+- `SESSION_LIFE_TIME`: **86400**: Session life time in seconds, default is 86400 (1 day)
 
 ## Picture (`picture`)
 

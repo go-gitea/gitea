@@ -43,6 +43,7 @@ func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	opts["BlockTimeout"] = q.BlockTimeout
 	opts["BoostTimeout"] = q.BoostTimeout
 	opts["BoostWorkers"] = q.BoostWorkers
+	opts["ConnectionString"] = q.ConnectionString
 
 	cfg, err := json.Marshal(opts)
 	if err != nil {
