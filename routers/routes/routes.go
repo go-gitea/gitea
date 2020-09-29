@@ -153,10 +153,10 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
-	switch setting.Avatar.StoreType {
+	switch setting.Avatar.Storage.Type {
 	case "local":
 		m.Use(public.StaticHandler(
-			setting.Avatar.UploadPath,
+			setting.Avatar.Path,
 			&public.Options{
 				Prefix:       "avatars",
 				SkipLogging:  setting.DisableRouterLog,
@@ -209,10 +209,10 @@ func NewMacaron() *macaron.Macaron {
 		log.Fatal("Unsupported avatar store type")
 	}
 
-	switch setting.RepoAvatar.StoreType {
+	switch setting.RepoAvatar.Storage.Type {
 	case "local":
 		m.Use(public.StaticHandler(
-			setting.RepoAvatar.UploadPath,
+			setting.RepoAvatar.Path,
 			&public.Options{
 				Prefix:       "repo-avatars",
 				SkipLogging:  setting.DisableRouterLog,
