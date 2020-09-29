@@ -19,7 +19,7 @@ import (
 
 func renderAttachmentSettings(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	ctx.Data["AttachmentStoreType"] = setting.Attachment.StoreType
+	ctx.Data["AttachmentStoreType"] = setting.Attachment.Storage.Type
 	ctx.Data["AttachmentAllowedTypes"] = setting.Attachment.AllowedTypes
 	ctx.Data["AttachmentMaxSize"] = setting.Attachment.MaxSize
 	ctx.Data["AttachmentMaxFiles"] = setting.Attachment.MaxFiles
