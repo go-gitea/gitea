@@ -516,10 +516,8 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 				}
 			}
 		}
-	} else {
-		if !canChooseReviewer {
-			return
-		}
+	} else if !canChooseReviewer {
+		return
 	}
 
 	if !canChooseReviewer {
