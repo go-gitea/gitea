@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -45,11 +46,23 @@ func (c *Client) ListReleases(user, repo string, opt ListReleasesOptions) ([]*Re
 	return releases, resp, err
 }
 
-// GetRelease get a release of a repository
+// GetRelease get a release of a repository by id
 func (c *Client) GetRelease(user, repo string, id int64) (*Release, *Response, error) {
 	r := new(Release)
 	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/releases/%d", user, repo, id),
+		jsonHeader, nil, &r)
+	return r, resp, err
+}
+
+// GetReleaseByTag get a release of a repository by tag
+func (c *Client) GetReleaseByTag(user, repo string, tag string) (*Release, *Response, error) {
+	if c.CheckServerVersionConstraint(">=1.13.0") != nil {
+		return c.fallbackGetReleaseByTag(user, repo, tag)
+	}
+	r := new(Release)
+	resp, err := c.getParsedResponse("GET",
+		fmt.Sprintf("/repos/%s/%s/releases/tags/%s", user, repo, tag),
 		nil, nil, &r)
 	return r, resp, err
 }
@@ -117,4 +130,24 @@ func (c *Client) DeleteRelease(user, repo string, id int64) (*Response, error) {
 		fmt.Sprintf("/repos/%s/%s/releases/%d", user, repo, id),
 		nil, nil)
 	return resp, err
+}
+
+// fallbackGetReleaseByTag is fallback for old gitea installations ( < 1.13.0 )
+func (c *Client) fallbackGetReleaseByTag(user, repo string, tag string) (*Release, *Response, error) {
+	for i := 1; ; i++ {
+		rl, resp, err := c.ListReleases(user, repo, ListReleasesOptions{ListOptions{Page: i}})
+		if err != nil {
+			return nil, resp, err
+		}
+		if len(rl) == 0 {
+			return nil,
+				&Response{&http.Response{StatusCode: 404}},
+				fmt.Errorf("release with tag '%s' not found", tag)
+		}
+		for _, r := range rl {
+			if r.TagName == tag {
+				return r, resp, nil
+			}
+		}
+	}
 }

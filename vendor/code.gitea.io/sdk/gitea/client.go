@@ -34,6 +34,7 @@ type Client struct {
 	password      string
 	otp           string
 	sudo          string
+	debug         bool
 	client        *http.Client
 	ctx           context.Context
 	serverVersion *version.Version
@@ -135,7 +136,17 @@ func (c *Client) SetSudo(sudo string) {
 	c.sudo = sudo
 }
 
+// SetDebugMode is an option for NewClient to enable debug mode
+func SetDebugMode() func(client *Client) {
+	return func(client *Client) {
+		client.debug = true
+	}
+}
+
 func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, *Response, error) {
+	if c.debug {
+		fmt.Printf("%s: %s\nBody: %v\n", method, c.url+path, body)
+	}
 	req, err := http.NewRequestWithContext(c.ctx, method, c.url+path, body)
 	if err != nil {
 		return nil, nil, err
@@ -147,10 +158,16 @@ func (c *Client) getWebResponse(method, path string, body io.Reader) ([]byte, *R
 
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
+	if c.debug {
+		fmt.Printf("Response: %v\n\n", resp)
+	}
 	return data, &Response{resp}, nil
 }
 
 func (c *Client) doRequest(method, path string, header http.Header, body io.Reader) (*Response, error) {
+	if c.debug {
+		fmt.Printf("%s: %s\nHeader: %v\nBody: %s\n", method, c.url+"/api/v1"+path, header, body)
+	}
 	req, err := http.NewRequestWithContext(c.ctx, method, c.url+"/api/v1"+path, body)
 	if err != nil {
 		return nil, err
@@ -174,6 +191,9 @@ func (c *Client) doRequest(method, path string, header http.Header, body io.Read
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if c.debug {
+		fmt.Printf("Response: %v\n\n", resp)
 	}
 	return &Response{resp}, nil
 }
@@ -217,7 +237,7 @@ func (c *Client) getResponse(method, path string, header http.Header, body io.Re
 func (c *Client) getParsedResponse(method, path string, header http.Header, body io.Reader, obj interface{}) (*Response, error) {
 	data, resp, err := c.getResponse(method, path, header, body)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	return resp, json.Unmarshal(data, obj)
 }
