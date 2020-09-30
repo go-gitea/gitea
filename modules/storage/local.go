@@ -59,7 +59,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 }
 
 // Stat returns the info of the file
-func (l *LocalStorage) Stat(path string) (ObjectInfo, error) {
+func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(filepath.Join(l.dir, path))
 }
 
@@ -72,4 +72,29 @@ func (l *LocalStorage) Delete(path string) error {
 // URL gets the redirect URL to a file
 func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 	return nil, ErrURLNotSupported
+}
+
+// IterateObjects iterates across the objects in the local storage
+func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) error {
+	return filepath.Walk(l.dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if path == l.dir {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		relPath, err := filepath.Rel(l.dir, path)
+		if err != nil {
+			return err
+		}
+		obj, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer obj.Close()
+		return fn(relPath, obj)
+	})
 }
