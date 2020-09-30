@@ -11,12 +11,6 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-// enumerate all storage types
-const (
-	LocalStorageType = "local"
-	MinioStorageType = "minio"
-)
-
 // Storage represents configuration of storages
 type Storage struct {
 	Type        string
@@ -52,7 +46,7 @@ func getStorage(name, typ string, overrides ...*ini.Section) Storage {
 
 	var storage Storage
 
-	storage.Type = sec.Key("STORAGE_TYPE").MustString(LocalStorageType)
+	storage.Type = sec.Key("STORAGE_TYPE").MustString("")
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 
 	// Global Defaults

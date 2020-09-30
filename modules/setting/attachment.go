@@ -18,7 +18,6 @@ var (
 		Enabled      bool
 	}{
 		Storage: Storage{
-			Type:        LocalStorageType,
 			ServeDirect: false,
 		},
 		AllowedTypes: "image/jpeg,image/png,application/zip,application/gzip",

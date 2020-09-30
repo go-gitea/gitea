@@ -32,8 +32,8 @@ var CmdMigrateStorage = cli.Command{
 		},
 		cli.StringFlag{
 			Name:  "storage, s",
-			Value: setting.LocalStorageType,
-			Usage: "New storage type, local or minio",
+			Value: "",
+			Usage: "New storage type: local (default) or minio",
 		},
 		cli.StringFlag{
 			Name:  "path, p",
@@ -116,7 +116,9 @@ func runMigrateStorage(ctx *cli.Context) error {
 	var dstStorage storage.ObjectStorage
 	var err error
 	switch strings.ToLower(ctx.String("storage")) {
-	case setting.LocalStorageType:
+	case "":
+		fallthrough
+	case string(storage.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
 			log.Fatal("Path must be given when storage is loal")
@@ -127,7 +129,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 			storage.LocalStorageConfig{
 				Path: p,
 			})
-	case setting.MinioStorageType:
+	case string(storage.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
 			goCtx,
 			storage.MinioStorageConfig{

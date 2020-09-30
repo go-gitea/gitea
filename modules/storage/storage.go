@@ -101,6 +101,9 @@ func Init() error {
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
 func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
+	if len(typStr) == 0 {
+		typStr = string(LocalStorageType)
+	}
 	fn, ok := storageMap[Type(typStr)]
 	if !ok {
 		return nil, fmt.Errorf("Unsupported storage type: %s", typStr)
