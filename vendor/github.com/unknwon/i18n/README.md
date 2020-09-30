@@ -1,4 +1,9 @@
-# i18n [![GoDoc](https://godoc.org/github.com/unknwon/i18n?status.svg)](https://godoc.org/github.com/unknwon/i18n)
+# i18n
+
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/unknwon/i18n/Go?logo=github&style=for-the-badge)](https://github.com/unknwon/i18n/actions?query=workflow%3AGo)
+[![codecov](https://img.shields.io/codecov/c/github/unknwon/i18n/master?logo=codecov&style=for-the-badge)](https://codecov.io/gh/unknwon/i18n)
+[![GoDoc](https://img.shields.io/badge/GoDoc-Reference-blue?style=for-the-badge&logo=go)](https://pkg.go.dev/github.com/unknwon/i18n?tab=doc)
+[![Sourcegraph](https://img.shields.io/badge/view%20on-Sourcegraph-brightgreen.svg?style=for-the-badge&logo=sourcegraph)](https://sourcegraph.com/github.com/unknwon/i18n)
 
 Package i18n is for app Internationalization and Localization.
 
@@ -124,7 +129,7 @@ Module i18n provides a command line helper tool beei18n for simplify steps of yo
 
 Command `sync` allows you use a exist local file as the template to create or sync other locale files:
 
-	ui18n sync srouce_file.ini other1.ini other2.ini
+	ui18n sync source_file.ini other1.ini other2.ini
 
 This command can operate 1 or more files in one command.
 

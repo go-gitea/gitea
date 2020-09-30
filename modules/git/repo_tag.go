@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/mcuadros/go-version"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -238,8 +237,6 @@ func (repo *Repository) GetTags() ([]string, error) {
 		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
 		return nil
 	})
-
-	version.Sort(tagNames)
 
 	// Reverse order
 	for i := 0; i < len(tagNames)/2; i++ {

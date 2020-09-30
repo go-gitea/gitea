@@ -284,7 +284,7 @@
 					</div>
 				</div>
 
-				{{if .Repository.CanEnablePulls}}
+				{{if and (not .IsMirror) (.Repository.UnitEnabled $.UnitTypePullRequests)}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
@@ -332,6 +332,52 @@
 						</div>
 					</div>
 				{{end}}
+
+				<div class="ui divider"></div>
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.signing_settings"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="signing">
+				<div class="field">
+					<label>{{.i18n.Tr "repo.settings.trust_model"}}</label>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
+							<label for="trust_model_default">{{.i18n.Tr "repo.settings.trust_model.default"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.default.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" id="trust_model_collaborator" name="trust_model" {{if eq .Repository.TrustModel.String "collaborator"}}checked="checked"{{end}} value="collaborator">
+							<label for="trust_model_collaborator">{{.i18n.Tr "repo.settings.trust_model.collaborator.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.collaborator.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="trust_model" id="trust_model_committer" {{if eq .Repository.TrustModel.String "committer"}}checked="checked"{{end}} value="committer">
+							<label for="trust_model_committer">{{.i18n.Tr "repo.settings.trust_model.committer.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.committer.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="trust_model" id="trust_model_collaboratorcommitter" {{if eq .Repository.TrustModel.String "collaboratorcommitter"}}checked="checked"{{end}} value="collaboratorcommitter">
+							<label for="trust_model_collaboratorcommitter">{{.i18n.Tr "repo.settings.trust_model.collaboratorcommitter.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.collaboratorcommitter.desc"}}</p>
+						</div>
+					</div>
+				</div>
 
 				<div class="ui divider"></div>
 				<div class="field">
