@@ -37,35 +37,15 @@ func newLFSService() {
 	}
 
 	lfsSec := Cfg.Section("lfs")
-	LFS.Storage.Type = lfsSec.Key("STORAGE_TYPE").MustString("")
-	if LFS.Storage.Type == "" {
-		LFS.Storage.Type = "default"
-	}
+	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
-	if LFS.Storage.Type != LocalStorageType && LFS.Storage.Type != MinioStorageType {
-		storage, ok := storages[LFS.Storage.Type]
-		if !ok {
-			log.Fatal("Failed to get lfs storage type: %s", LFS.Storage.Type)
-		}
-		LFS.Storage = storage
+	// Specifically default PATH to LFS_CONTENT_PATH
+	lfsSec.Key("PATH").MustString(
+		sec.Key("LFS_CONTENT_PATH").String())
 
-		for _, key := range storage.Section.Keys() {
-			if !lfsSec.HasKey(key.Name()) {
-				_, _ = lfsSec.NewKey(key.Name(), key.Value())
-			}
-		}
-		LFS.Storage.Section = lfsSec
-	}
+	LFS.Storage = getStorage("lfs", storageType, lfsSec)
 
-	// Override
-	LFS.ServeDirect = lfsSec.Key("SERVE_DIRECT").MustBool(LFS.ServeDirect)
-	LFS.Storage.Path = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-	LFS.Storage.Path = lfsSec.Key("PATH").MustString(LFS.Storage.Path)
-	if !filepath.IsAbs(LFS.Storage.Path) {
-		lfsSec.Key("PATH").SetValue(filepath.Join(AppWorkPath, LFS.Storage.Path))
-	}
-	lfsSec.Key("MINIO_BASE_PATH").MustString("lfs/")
-
+	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
 		LFS.LocksPagingNum = 50
 	}

@@ -5,10 +5,9 @@
 package setting
 
 import (
+	"path/filepath"
 	"reflect"
-	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -38,34 +37,51 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-var (
-	storages = make(map[string]Storage)
-)
+func getStorage(name, typ string, overrides ...*ini.Section) Storage {
+	sectionName := "storage"
+	if len(name) > 0 {
+		sectionName = sectionName + "." + typ
+	}
+	sec := Cfg.Section(sectionName)
 
-func getStorage(sec *ini.Section) Storage {
+	if len(overrides) == 0 {
+		overrides = []*ini.Section{
+			Cfg.Section(sectionName + "." + name),
+		}
+	}
+
 	var storage Storage
+
 	storage.Type = sec.Key("STORAGE_TYPE").MustString(LocalStorageType)
-	storage.Section = sec
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
+
+	// Global Defaults
 	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
 	sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
 	sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
 	sec.Key("MINIO_BUCKET").MustString("gitea")
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
-	return storage
-}
 
-func newStorageService() {
-	sec := Cfg.Section("storage")
-	storages["default"] = getStorage(sec)
+	storage.Section = sec
 
-	for _, sec := range Cfg.Section("storage").ChildSections() {
-		name := strings.TrimPrefix(sec.Name(), "storage.")
-		if name == "default" || name == LocalStorageType || name == MinioStorageType {
-			log.Error("storage name %s is system reserved!", name)
-			continue
+	for _, override := range overrides {
+		for _, key := range storage.Section.Keys() {
+			if !override.HasKey(key.Name()) {
+				_, _ = override.NewKey(key.Name(), key.Value())
+			}
 		}
-		storages[name] = getStorage(sec)
+		storage.ServeDirect = override.Key("SERVE_DIRECT").MustBool(false)
+		storage.Section = override
 	}
+
+	// Specific defaults
+	storage.Path = storage.Section.Key("PATH").MustString(filepath.Join(AppDataPath, name))
+	if !filepath.IsAbs(storage.Path) {
+		storage.Path = filepath.Join(AppWorkPath, storage.Path)
+		storage.Section.Key("PATH").SetValue(storage.Path)
+	}
+	storage.Section.Key("MINIO_BASE_PATH").MustString(name + "/")
+
+	return storage
 }
