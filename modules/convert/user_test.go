@@ -13,12 +13,12 @@ import (
 
 func TestUser_ToUser(t *testing.T) {
 
-	user1 := models.AssertExistsAndLoadBean(t, models.User{ID: 1, IsAdmin: true}).(*models.User)
+	user1 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
 
 	apiUser := ToUser(user1, true, true)
 	assert.True(t, apiUser.IsAdmin)
 
-	user2 := models.AssertExistsAndLoadBean(t, models.User{ID: 2, IsAdmin: false}).(*models.User)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2, IsAdmin: false}).(*models.User)
 
 	apiUser = ToUser(user2, true, true)
 	assert.False(t, apiUser.IsAdmin)
