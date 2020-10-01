@@ -27,7 +27,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix "only mail on mention" bug (#12775) (#12789)
   * Fix yet another bug with diff file names (#12771) (#12776)
   * RepoInit Respect AlternateDefaultBranch (#12746) (#12751)
-  * [Backport] Fix Avatar Resize (resize algo NearestNeighbor -> Bilinear) (#12745) (#12750)
+  * Fix Avatar Resize (resize algo NearestNeighbor -> Bilinear) (#12745) (#12750)
 * ENHANCEMENTS
   * gitea dump: include version & Check InstallLock (#12760) (#12762)
 
