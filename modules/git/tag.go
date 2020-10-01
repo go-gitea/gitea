@@ -60,7 +60,7 @@ l:
 			}
 			nextline += eol + 1
 		case eol == 0:
-			tag.Message = strings.TrimSuffix(string(data[nextline+1:]), "\n")
+			tag.Message = strings.TrimRight(string(data[nextline+1:]), "\n")
 			break l
 		default:
 			break l

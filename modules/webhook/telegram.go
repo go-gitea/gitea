@@ -120,7 +120,7 @@ func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			authorName = " - " + commit.Author.Name
 		}
 		text += fmt.Sprintf(`[<a href="%s">%s</a>] %s`, commit.URL, commit.ID[:7],
-			strings.TrimSuffix(commit.Message, "\r\n")) + authorName
+			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"
