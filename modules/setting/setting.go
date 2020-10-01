@@ -691,8 +691,6 @@ func NewContext() {
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	newLFSService()
-
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return
@@ -761,7 +759,9 @@ func NewContext() {
 		}
 	}
 
+	newStorageService()
 	newAttachmentService()
+	newLFSService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -934,7 +934,7 @@ func NewContext() {
 
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
@@ -1017,7 +1017,6 @@ func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
-	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()

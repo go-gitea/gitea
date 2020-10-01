@@ -105,7 +105,7 @@
 				<dd><i class="fa fa{{if .LFS.StartServer}}-check{{end}}-square-o"></i></dd>
 				{{if .LFS.StartServer}}
 					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
-					<dd>{{.LFS.ContentPath}}</dd>
+					<dd>{{.LFS.Path}}</dd>
 					<dt>{{.i18n.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
 					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
 				{{end}}
