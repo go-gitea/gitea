@@ -193,7 +193,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 		return nil, err
 	}
 
-	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	tagNames := strings.Split(strings.TrimSuffix(stdout, "\n"), "\n")
 
 	if page != 0 {
 		skip := (page - 1) * pageSize

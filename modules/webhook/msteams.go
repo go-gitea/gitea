@@ -226,7 +226,7 @@ func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+			strings.TrimSuffix(commit.Message, "\r\n"), commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"

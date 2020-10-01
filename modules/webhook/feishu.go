@@ -89,7 +89,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			authorName = " - " + commit.Author.Name
 		}
 		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+			strings.TrimSuffix(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"

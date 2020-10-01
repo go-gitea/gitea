@@ -318,7 +318,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 		return "", err
 	}
 
-	content = strings.TrimRight(content, "\n\r")
+	content = strings.TrimSuffix(content, "\n\r")
 	if strings.ContainsAny(content, "\n\r") {
 		return "", errors.New("only a single line with a single key please")
 	}

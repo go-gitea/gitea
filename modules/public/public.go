@@ -79,7 +79,7 @@ func (opts *Options) staticHandler(dir string) macaron.Handler {
 			opts.Prefix = "/" + opts.Prefix
 		}
 		// Remove any trailing '/'
-		opts.Prefix = strings.TrimRight(opts.Prefix, "/")
+		opts.Prefix = strings.TrimSuffix(opts.Prefix, "/")
 	}
 	if opts.FileSystem == nil {
 		opts.FileSystem = newStaticFileSystem(dir)
