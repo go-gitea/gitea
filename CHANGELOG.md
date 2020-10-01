@@ -18,7 +18,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add size limit for content of comment on action ui (#12881) (#12890)
   * Convert User expose ID each time (#12855) (#12883)
   * Support slashes in release tags (#12864) (#12882)
-  * Fix [API] CreateRepo missing information (#12848) (#12867)
+  * Add missing information to CreateRepo API endpoint (#12848) (#12867)
   * On Migration respect old DefaultBranch (#12843) (#12858)
   * Fix notifications page links (#12838) (#12853)
   * Stop cloning unnecessarily on PR update (#12839) (#12852)
