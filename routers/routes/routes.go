@@ -110,6 +110,61 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	}
 }
 
+func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) macaron.Handler {
+	if storageSetting.ServeDirect {
+		return func(ctx *macaron.Context) {
+			req := ctx.Req.Request
+			if req.Method != "GET" && req.Method != "HEAD" {
+				return
+			}
+
+			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+				return
+			}
+
+			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+			u, err := objStore.URL(rPath, path.Base(rPath))
+			if err != nil {
+				ctx.Error(500, err.Error())
+				return
+			}
+			http.Redirect(
+				ctx.Resp,
+				req,
+				u.String(),
+				301,
+			)
+		}
+	}
+
+	return func(ctx *macaron.Context) {
+		req := ctx.Req.Request
+		if req.Method != "GET" && req.Method != "HEAD" {
+			return
+		}
+
+		if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+			return
+		}
+
+		rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+		rPath = strings.TrimPrefix(rPath, "/")
+		//If we have matched and access to release or issue
+		fr, err := objStore.Open(rPath)
+		if err != nil {
+			ctx.Error(500, err.Error())
+			return
+		}
+		defer fr.Close()
+
+		_, err = io.Copy(ctx.Resp, fr)
+		if err != nil {
+			ctx.Error(500, err.Error())
+			return
+		}
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -153,117 +208,8 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
-	switch setting.Avatar.Storage.Type {
-	case "local":
-		m.Use(public.StaticHandler(
-			setting.Avatar.Path,
-			&public.Options{
-				Prefix:       "avatars",
-				SkipLogging:  setting.DisableRouterLog,
-				ExpiresAfter: setting.StaticCacheTime,
-			},
-		))
-	case "minio":
-		m.Use(func(ctx *macaron.Context) {
-			req := ctx.Req.Request
-			if req.Method != "GET" && req.Method != "HEAD" {
-				return
-			}
-
-			var prefix = "/avatars"
-			if !strings.HasPrefix(req.RequestURI, prefix) {
-				return
-			}
-
-			rPath := strings.TrimPrefix(req.RequestURI, prefix)
-			if setting.Avatar.ServeDirect {
-				u, err := storage.Avatars.URL(rPath, path.Base(rPath))
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-				http.Redirect(
-					ctx.Resp,
-					req,
-					u.String(),
-					301,
-				)
-			} else {
-				rPath = strings.TrimPrefix(rPath, "/")
-				//If we have matched and access to release or issue
-				fr, err := storage.Avatars.Open(rPath)
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-				defer fr.Close()
-
-				_, err = io.Copy(ctx.Resp, fr)
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-			}
-		})
-	default:
-		log.Fatal("Unsupported avatar store type")
-	}
-
-	switch setting.RepoAvatar.Storage.Type {
-	case "local":
-		m.Use(public.StaticHandler(
-			setting.RepoAvatar.Path,
-			&public.Options{
-				Prefix:       "repo-avatars",
-				SkipLogging:  setting.DisableRouterLog,
-				ExpiresAfter: setting.StaticCacheTime,
-			},
-		))
-	case "minio":
-		m.Use(func(ctx *macaron.Context) {
-			req := ctx.Req.Request
-			if req.Method != "GET" && req.Method != "HEAD" {
-				return
-			}
-
-			var prefix = "/repo-avatars"
-			if !strings.HasPrefix(req.RequestURI, prefix) {
-				return
-			}
-
-			rPath := strings.TrimPrefix(req.RequestURI, prefix)
-			if setting.RepoAvatar.ServeDirect {
-				u, err := storage.RepoAvatars.URL(rPath, path.Base(rPath))
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-				http.Redirect(
-					ctx.Resp,
-					req,
-					u.String(),
-					301,
-				)
-			} else {
-				rPath = strings.TrimPrefix(rPath, "/")
-				//If we have matched and access to release or issue
-				fr, err := storage.RepoAvatars.Open(rPath)
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-				defer fr.Close()
-
-				_, err = io.Copy(ctx.Resp, fr)
-				if err != nil {
-					ctx.Error(500, err.Error())
-					return
-				}
-			}
-		})
-	default:
-		log.Fatal("Unsupported repo-avatar store type")
-	}
+	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())

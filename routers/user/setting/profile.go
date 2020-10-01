@@ -132,7 +132,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 		defer fr.Close()
 
-		if form.Avatar.Size > setting.AvatarMaxFileSize {
+		if form.Avatar.Size > setting.Avatar.MaxFileSize {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 
