@@ -64,14 +64,11 @@ func DeleteRepository(doer *models.User, repo *models.Repository) error {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	// If the repo has a webhook, we need to trigger it before deleting it...
+	// If the repo itself has webhooks, we need to trigger them before deleting it...
 	notification.NotifyDeleteRepository(doer, repo)
 
-	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-		return err
-	}
-
-	return nil
+	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
+	return err
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
