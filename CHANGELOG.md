@@ -4,6 +4,33 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.5](https://github.com/go-gitea/gitea/releases/tag/v1.12.5) - 2020-10-01
+
+* BUGFIXES
+  * Allow U2F with default settings for gitea in subpath (#12990) (#13001)
+  * Prevent empty div when editing comment (#12404) (#12991)
+  * On mirror update also update address in DB (#12964) (#12967)
+  * Allow extended config on cron settings (#12939) (#12943)
+  * Open transaction when adding Avatar email-hash pairs to the DB (#12577) (#12940)
+  * Fix internal server error from ListUserOrgs API (#12910) (#12915)
+  * Update only the repository columns that need updating (#12900) (#12912)
+  * Fix panic when adding long comment (#12892) (#12894)
+  * Add size limit for content of comment on action ui (#12881) (#12890)
+  * Convert User expose ID each time (#12855) (#12883)
+  * Support slashes in release tags (#12864) (#12882)
+  * Add missing information to CreateRepo API endpoint (#12848) (#12867)
+  * On Migration respect old DefaultBranch (#12843) (#12858)
+  * Fix notifications page links (#12838) (#12853)
+  * Stop cloning unnecessarily on PR update (#12839) (#12852)
+  * Escape more things that are passed through str2html (#12622) (#12850)
+  * Remove double escape on labels addition in comments (#12809) (#12810)
+  * Fix "only mail on mention" bug (#12775) (#12789)
+  * Fix yet another bug with diff file names (#12771) (#12776)
+  * RepoInit Respect AlternateDefaultBranch (#12746) (#12751)
+  * Fix Avatar Resize (resize algo NearestNeighbor -> Bilinear) (#12745) (#12750)
+* ENHANCEMENTS
+  * gitea dump: include version & Check InstallLock (#12760) (#12762)
+
 ## [1.12.4](https://github.com/go-gitea/gitea/releases/tag/v1.12.4) - 2020-09-02
 
 * SECURITY
