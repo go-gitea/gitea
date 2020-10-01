@@ -96,12 +96,12 @@ func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 	switch l.Kind() {
 	case "image":
 		imageSrc := getMediaURL(link)
-		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, imageSrc, description, description))
+		fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, imageSrc, description, description)
 	case "video":
 		videoSrc := getMediaURL(link)
-		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, videoSrc, description, description))
+		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, videoSrc, description, description)
 	default:
-		r.WriteString(fmt.Sprintf(`<a href="%s" title="%s">%s</a>`, link, description, description))
+		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
 	}
 }
 
