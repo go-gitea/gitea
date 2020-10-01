@@ -9,10 +9,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Allow U2F with default settings for gitea in subpath (#12990) (#13001)
   * Prevent empty div when editing comment (#12404) (#12991)
-  * Mirror: Update DB on Address-Update too (#12964) (#12967)
+  * On mirror update also update address in DB (#12964) (#12967)
   * Allow extended config on cron settings (#12939) (#12943)
   * Open transaction when adding Avatar email-hash pairs to the DB (#12577) (#12940)
-  * Fix ListUserOrgs API (#12910) (#12915)
+  * Fix internal server error from ListUserOrgs API (#12910) (#12915)
   * Update only the repository columns that need updating (#12900) (#12912)
   * Fix panic when adding long comment (#12892) (#12894)
   * Add size limit for content of comment on action ui (#12881) (#12890)
