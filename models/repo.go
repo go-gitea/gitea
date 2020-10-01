@@ -318,7 +318,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
+	return setting.AppURL + "api/v1/repos/" + repo.FullName()
 }
 
 // APIFormat converts a Repository to api.Repository

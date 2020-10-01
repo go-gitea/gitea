@@ -5,7 +5,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -153,8 +152,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := fmt.Sprintf("%sapi/v1/orgs/%s/public_members/%s",
-		setting.AppURL, ctx.Org.Organization.Name, userToCheck.Name)
+	redirectURL := setting.AppURL + "api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
 	ctx.Redirect(redirectURL, 302)
 }
 
