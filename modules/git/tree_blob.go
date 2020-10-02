@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -35,6 +36,11 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 		if i == len(parts)-1 {
 			entries, err := tree.ListEntries()
 			if err != nil {
+				if err == plumbing.ErrObjectNotFound {
+					return nil, ErrNotExist{
+						RelPath: relpath,
+					}
+				}
 				return nil, err
 			}
 			for _, v := range entries {
@@ -45,6 +51,11 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 		} else {
 			tree, err = tree.SubTree(name)
 			if err != nil {
+				if err == plumbing.ErrObjectNotFound {
+					return nil, ErrNotExist{
+						RelPath: relpath,
+					}
+				}
 				return nil, err
 			}
 		}
