@@ -14,19 +14,31 @@
 							<div class="menu">
 								{{range .AllRefs}}
 									{{$refGroup := .RefGroup}}
-									<div class="item" data-value="{{.Name}}">
-										<span class="truncate">
-											{{if eq $refGroup "pull"}}
+									{{if eq $refGroup "pull"}}
+										<div class="item" data-value="{{.Name}}">
+											<span class="truncate">
 												{{svg "octicon-git-pull-request" 16 "mr-2"}}<span title="{{.ShortName}}">#{{.ShortName}}</span>
-											{{else if eq $refGroup "tags"}}
+											</span>
+										</div>
+									{{else if eq $refGroup "tags"}}
+										<div class="item" data-value="{{.Name}}">
+											<span class="truncate">
 												{{svg "octicon-tag" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
-											{{else if eq $refGroup "remotes"}}
+											</span>
+										</div>
+									{{else if eq $refGroup "remotes"}}
+										<div class="item" data-value="{{.Name}}">
+											<span class="truncate">
 												{{svg "octicon-cross-reference" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
-											{{else if eq $refGroup "heads"}}
+											</span>
+										</div>
+									{{else if eq $refGroup "heads"}}
+										<div class="item" data-value="{{.Name}}">
+											<span class="truncate">
 												{{svg "octicon-git-branch" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
-											{{end}}
-										</span>
-									</div>
+											</span>
+										</div>
+									{{end}}
 								{{end}}
 							</div>
 						</div>
