@@ -8,9 +8,9 @@
 					<div class="ui icon buttons tiny color-buttons">
 						<div class="ui multiple selection search dropdown" id="flow-select-refs-dropdown">
 							<input type="hidden">
-              				<i class="dropdown icon"></i>
-              				<input type="text" class="search">
-              				<div class="default text">{{.i18n.Tr "repo.commit_graph.select"}}</div>
+							<i class="dropdown icon"></i>
+							<input type="text" class="search">
+							<div class="default text">{{.i18n.Tr "repo.commit_graph.select"}}</div>
 							<div class="menu">
 								{{range .AllRefs}}
 									{{$refGroup := .RefGroup}}
