@@ -90,7 +90,7 @@ _Symbols used in table:_
 | Global issue search | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
 | Create issue via email | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
-| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | [✘](https://gitlab.com/groups/gitlab-org/-/epics/3103) | ✓ | ✘ | ✘ |
+| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103) | ✓ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
