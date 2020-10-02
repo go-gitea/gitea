@@ -36,17 +36,13 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 
 	repo.Avatar = idToString
 
-	pr, pw := io.Pipe()
-
-	go func() {
-		defer pw.Close()
-		if err = png.Encode(pw, img); err != nil {
+	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
+		if err := png.Encode(w, img); err != nil {
 			log.Error("Encode: %v", err)
 		}
-	}()
-
-	if _, err := storage.Avatars.Save(repo.CustomAvatarRelativePath(), pr); err != nil {
 		return err
+	}); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", repo.CustomAvatarRelativePath(), err)
 	}
 
 	log.Info("New random avatar created for repository: %d", repo.ID)
@@ -147,15 +143,12 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
-	pr, pw := io.Pipe()
-	go func() {
-		defer pw.Close()
-		if err := png.Encode(pw, *m); err != nil {
+	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
+		if err := png.Encode(w, *m); err != nil {
 			log.Error("Encode: %v", err)
 		}
-	}()
-
-	if _, err := storage.RepoAvatars.Save(repo.CustomAvatarRelativePath(), pr); err != nil {
+		return err
+	}); err != nil {
 		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %v", repo.RepoPath(), newAvatar, err)
 	}
 
@@ -194,26 +187,4 @@ func (repo *Repository) DeleteAvatar() error {
 	}
 
 	return sess.Commit()
-}
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	const batchSize = 100
-	for {
-		var repos = make([]*Repository, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
 }

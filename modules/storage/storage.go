@@ -82,6 +82,21 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 	return dstStorage.Save(dstPath, f)
 }
 
+// SaveFrom saves data to the ObjectStorage with path p from the callback
+func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+	pr, pw := io.Pipe()
+	defer pr.Close()
+	go func() {
+		defer pw.Close()
+		if err := callback(pw); err != nil {
+			pw.CloseWithError(err)
+		}
+	}()
+
+	_, err := objStorage.Save(p, pr)
+	return err
+}
+
 var (
 	// Attachments represents attachments storage
 	Attachments ObjectStorage

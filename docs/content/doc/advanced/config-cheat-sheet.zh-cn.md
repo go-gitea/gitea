@@ -182,30 +182,14 @@ menu:
 - `DISABLE_GRAVATAR`: 开启则只使用内部头像。
 - `ENABLE_FEDERATED_AVATAR`: 启用头像联盟支持 (参见 http://www.libravatar.org)
 
-- `AVATAR_STORE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
-- `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径，仅当 `AVATAR_STORE_TYPE` 是 `local` 有效。
-- `AVATAR_SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
-- `AVATAR_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_BASE_PATH`: **avatars/**: Minio base path ，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `AVATAR_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `AVATAR_STORE_TYPE` 为 `minio` 时有效。
+- `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
 - `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
 - `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
 - `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
 
-- `REPOSITORY_AVATAR_STORE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
-- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的文件系统路径，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 是 `local` 有效。
-- `REPOSITORY_AVATAR_SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
-- `REPOSITORY_AVATAR_MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_BASE_PATH`: **repo-avatars/**: Minio base path ，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
-- `REPOSITORY_AVATAR_MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `REPOSITORY_AVATAR_STORE_TYPE` 为 `minio` 时有效。
+- `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
 - `REPOSITORY_AVATAR_FALLBACK`: **none**: 当头像丢失时的处理方式
   - none = 不显示头像
   - random = 显示随机生成的头像

@@ -1872,3 +1872,25 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	}
 	return nil
 }
+
+// IterateUser iterate users
+func IterateUser(f func(user *User) error) error {
+	var start int
+	var batchSize = setting.Database.IterateBufferSize
+	for {
+		var users = make([]*User, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&users); err != nil {
+			return err
+		}
+		if len(users) == 0 {
+			return nil
+		}
+		start += len(users)
+
+		for _, user := range users {
+			if err := f(user); err != nil {
+				return err
+			}
+		}
+	}
+}

@@ -2315,3 +2315,25 @@ func DoctorUserStarNum() (err error) {
 
 	return
 }
+
+// IterateRepository iterate repositories
+func IterateRepository(f func(repo *Repository) error) error {
+	var start int
+	var batchSize = setting.Database.IterateBufferSize
+	for {
+		var repos = make([]*Repository, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
+			return err
+		}
+		if len(repos) == 0 {
+			return nil
+		}
+		start += len(repos)
+
+		for _, repo := range repos {
+			if err := f(repo); err != nil {
+				return err
+			}
+		}
+	}
+}

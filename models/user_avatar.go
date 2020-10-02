@@ -45,17 +45,13 @@ func (u *User) generateRandomAvatar(e Engine) error {
 		u.Avatar = fmt.Sprintf("%d", u.ID)
 	}
 
-	pr, pw := io.Pipe()
-
-	go func() {
-		defer pw.Close()
-		if err = png.Encode(pw, img); err != nil {
+	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+		if err := png.Encode(w, img); err != nil {
 			log.Error("Encode: %v", err)
 		}
-	}()
-
-	if _, err := storage.Avatars.Save(u.CustomAvatarRelativePath(), pr); err != nil {
 		return err
+	}); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
 	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
@@ -142,15 +138,12 @@ func (u *User) UploadAvatar(data []byte) error {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	pr, pw := io.Pipe()
-	go func() {
-		defer pw.Close()
-		if err := png.Encode(pw, *m); err != nil {
+	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+		if err := png.Encode(w, *m); err != nil {
 			log.Error("Encode: %v", err)
 		}
-	}()
-
-	if _, err := storage.Avatars.Save(u.CustomAvatarRelativePath(), pr); err != nil {
+		return err
+	}); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
@@ -173,26 +166,4 @@ func (u *User) DeleteAvatar() error {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
-}
-
-// IterateUser iterate users
-func IterateUser(f func(user *User) error) error {
-	var start int
-	const batchSize = 100
-	for {
-		var users = make([]*User, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&users); err != nil {
-			return err
-		}
-		if len(users) == 0 {
-			return nil
-		}
-		start += len(users)
-
-		for _, user := range users {
-			if err := f(user); err != nil {
-				return err
-			}
-		}
-	}
 }
