@@ -50,22 +50,19 @@ export default async function initGitGraph() {
   const params = url.searchParams;
   const updateGraph = () => {
     const queryString = params.toString();
-    let ajaxUrl = url.toString();
+    const ajaxUrl = new URL(url);
+    ajaxUrl.searchParams.set('div-only', 'true');
     if (queryString) {
-      url.search = `?${queryString}`;
       window.history.replaceState({}, '', `?${queryString}`);
-      ajaxUrl += '&div-only=true';
     } else {
-      url.search = '';
       window.history.replaceState({}, '', window.location.pathname);
-      ajaxUrl += '?div-only=true';
     }
-    $('#pagination').html('');
+    $('#pagination').empty();
     $('#rel-container').addClass('hide');
     $('#rev-container').addClass('hide');
     $('#loading-indicator').removeClass('hide');
 
-    $.ajax(ajaxUrl).then((div) => {
+    $.ajax(ajaxUrl.toString()).then((div) => {
       $('#pagination').html($($.parseHTML(div)).find('#pagination').html());
       $('#rel-container').html($($.parseHTML(div)).find('#rel-container').html());
       $('#rev-container').html($($.parseHTML(div)).find('#rev-container').html());
@@ -92,18 +89,18 @@ export default async function initGitGraph() {
   $('#flow-select-refs-dropdown').dropdown('set selected', params.getAll('branch'));
   $('#flow-select-refs-dropdown').dropdown({
     clearable: true,
-    onRemove(_text) {
+    onRemove(toRemove) {
       const branches = params.getAll('branch');
       params.delete('branch');
       for (const branch of branches) {
-        if (branch !== _text) {
+        if (branch !== toRemove) {
           params.append('branch', branch);
         }
       }
       updateGraph();
     },
-    onAdd(_text) {
-      params.append('branch', _text);
+    onAdd(toAdd) {
+      params.append('branch', toAdd);
       updateGraph();
     },
   });

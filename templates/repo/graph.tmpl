@@ -17,22 +17,22 @@
 									<div class="item" data-value="{{.Name}}">
 										<span class="truncate">
 											{{if eq $refGroup "pull"}}
-												<span class="emoji">{{svg "octicon-git-pull-request" 16}}</span> <span title="{{.ShortName}}">#{{.ShortName}}</span>
+												{{svg "octicon-git-pull-request" 16 "mr-2"}}<span title="{{.ShortName}}">#{{.ShortName}}</span>
 											{{else if eq $refGroup "tags"}}
-												<span class="emoji">{{svg "octicon-tag" 16}}</span> <span title="{{.ShortName}}">{{.ShortName}}</span>
+												{{svg "octicon-tag" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 											{{else if eq $refGroup "remotes"}}
-												<span class="emoji">{{svg "octicon-cross-reference" 16}}</span> <span title="{{.ShortName}}">{{.ShortName}}</span>
+												{{svg "octicon-cross-reference" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 											{{else if eq $refGroup "heads"}}
-												<span class="emoji">{{svg "octicon-git-branch" 16}}</span> <span title="{{.ShortName}}">{{.ShortName}}</span>
+												{{svg "octicon-git-branch" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 											{{end}}
 										</span>
 									</div>
 								{{end}}
 							</div>
 						</div>
-						<button id="flow-hide-pr-refs" class="ui labelled icon button {{if .HidePRRefs}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}"><span class="emoji">{{svg "octicon-git-pull-request"}}</span> {{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</button>
-						<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}"><span class="emoji">{{svg "material-invert-colors"}}</span> {{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
-						<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}"><span class="emoji">{{svg "material-palette"}}</span> {{.i18n.Tr "repo.commit_graph.color"}}</button>
+						<button id="flow-hide-pr-refs" class="ui labelled icon button {{if .HidePRRefs}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</button>
+						<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
+						<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.color"}}</button>
 					</div>
 				</div>
 			</h2>
