@@ -14,25 +14,25 @@
                             {{if $.HidePRRefs}}
                                 {{if (containGeneric $.SelectedBranches .Name) }}
                                     <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/pulls/{{.ShortName|PathEscape}}">
-                                        <span class="emoji">{{svg "octicon-git-pull-request" 16}}</span> #{{.ShortName}}
+                                        {{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
                                     </a>
                                 {{end}}
                             {{else}}
                                 <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/pulls/{{.ShortName|PathEscape}}">
-                                    <span class="emoji">{{svg "octicon-git-pull-request" 16}}</span> #{{.ShortName}}
+                                    {{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
                                 </a>
                             {{end}}
                         {{else if eq $refGroup "tags"}}
                             <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
-                                <span class="emoji">{{svg "octicon-tag" 16}}</span> {{.ShortName}}
+                                {{svg "octicon-tag" 16 "mr-2"}}{{.ShortName}}
                             </a>
                         {{else if eq $refGroup "remotes"}}
                             <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev}}">
-                                <span class="emoji">{{svg "octicon-cross-reference" 16}}</span> {{.ShortName}}
+                                {{svg "octicon-cross-reference" 16 "mr-2"}}{{.ShortName}}
                             </a>
                         {{else if eq $refGroup "heads"}}
                             <a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
-                                <span class="emoji">{{svg "octicon-git-branch" 16}}</span> {{.ShortName}}
+                                {{svg "octicon-git-branch" 16 "mr-2"}}{{.ShortName}}
                             </a>
                         {{else}}
                             <!-- Unknown ref type {{.Name}} -->
