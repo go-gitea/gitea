@@ -97,7 +97,7 @@ _Symbols used in table:_
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
 | Pull/Merge requests | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Squash merging | ✓ | ✘ | ✓ | [✓](https://docs.gitlab.com/ee/user/project/merge_requests/squash_and_merge.html) | ✓ | ✓ | ✓ |
+| Squash merging | ✓ | ✘ | ✓ | [✓](https://docs.gitlab.com/ce/user/project/merge_requests/squash_and_merge.html) | ✓ | ✓ | ✓ |
 | Rebase merging | ✓ | ✓ | ✓ | ✘ | ⁄ | ✘ | ✓ |
 | Pull/Merge request inline comments | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Pull/Merge request approval | ✓ | ✘ | ⁄ | ✓ | ✓ | ✓ | ✓ |
