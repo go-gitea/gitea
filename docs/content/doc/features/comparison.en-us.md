@@ -79,7 +79,7 @@ _Symbols used in table:_
 | Labels | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
-| Related issues | ✘ | ✘ | ⁄ | [✓](https://docs.gitlab.com/ee/user/project/issues/related_issues.html#related-issues) | ✓ | ✘ | ✘ |
+| Related issues | ✘ | ✘ | ⁄ | [✓](https://docs.gitlab.com/ee/user/project/issues/related_issues.html) | ✓ | ✘ | ✘ |
 | Confidential issues | [✘](https://github.com/go-gitea/gitea/issues/3217) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
