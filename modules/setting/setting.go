@@ -146,6 +146,7 @@ var (
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
+	PasswordCheckPwn                   bool
 
 	// UI settings
 	UI = struct {
@@ -690,8 +691,6 @@ func NewContext() {
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	newLFSService()
-
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return
@@ -744,6 +743,7 @@ func NewContext() {
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -759,7 +759,9 @@ func NewContext() {
 		}
 	}
 
+	newStorageService()
 	newAttachmentService()
+	newLFSService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -931,8 +933,8 @@ func NewContext() {
 	newMarkup()
 
 	sec = Cfg.Section("U2F")
-	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimSuffix(AppURL, AppSubURL+"/")))
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
@@ -1015,7 +1017,6 @@ func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
-	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()

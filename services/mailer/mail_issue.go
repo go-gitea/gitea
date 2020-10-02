@@ -118,7 +118,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 				visited[id] = true
 			}
 		}
-		recipients, err := models.GetMaileableUsersByIDs(unique)
+		recipients, err := models.GetMaileableUsersByIDs(unique, fromMention)
 		if err != nil {
 			return err
 		}

@@ -19,6 +19,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -118,10 +119,8 @@ func RestoreBranchPost(ctx *context.Context) {
 	}
 
 	// Don't return error below this
-	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
-		deletedBranch.Name,
-		repofiles.PushUpdateOptions{
+	if err := repo_service.PushUpdate(
+		&repo_service.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + deletedBranch.Name,
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
@@ -157,10 +156,8 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	}
 
 	// Don't return error below this
-	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
-		branchName,
-		repofiles.PushUpdateOptions{
+	if err := repo_service.PushUpdate(
+		&repo_service.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
