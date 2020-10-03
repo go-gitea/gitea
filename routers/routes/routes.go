@@ -826,7 +826,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
+		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/^:type(releases|tags)$", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
