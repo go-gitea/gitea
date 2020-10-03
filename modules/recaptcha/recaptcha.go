@@ -56,8 +56,11 @@ func Verify(ctx context.Context, response string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)
 	}
-
-	return jsonResponse.Success, jsonResponse.ErrorCodes[0]
+	var respErr error
+	if len(jsonResponse.ErrorCodes) > 0 {
+		respErr = jsonResponse.ErrorCodes[0]
+	}
+	return jsonResponse.Success, respErr
 }
 
 // ErrorCode is a reCaptcha error
