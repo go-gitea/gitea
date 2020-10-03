@@ -83,6 +83,7 @@ type RegisterForm struct {
 	Password           string `binding:"MaxSize(255)"`
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
+	HcaptchaResponse   string `form:"h-captcha-response"`
 }
 
 // Validate validates the fields
