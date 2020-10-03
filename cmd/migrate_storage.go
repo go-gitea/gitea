@@ -104,7 +104,6 @@ func runMigrateStorage(ctx *cli.Context) error {
 
 	if err := models.NewEngine(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
-		return err
 	}
 
 	if err := storage.Init(); err != nil {
@@ -117,8 +116,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	case setting.LocalStorageType:
 		p := ctx.String("path")
 		if p == "" {
-			log.Fatal("Path must be given when storage is loal")
-			return nil
+			log.Fatal("Path must be given when storage is local")
 		}
 		dstStorage, err = storage.NewLocalStorage(p)
 	case setting.MinioStorageType:

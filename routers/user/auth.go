@@ -445,7 +445,6 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 		r, err := reg.Parse()
 		if err != nil {
 			log.Fatal("parsing u2f registration: %v", err)
-			continue
 		}
 		newCounter, authErr := r.Authenticate(signResp, *challenge, reg.Counter)
 		if authErr == nil {

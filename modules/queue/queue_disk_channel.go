@@ -142,7 +142,6 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 		q.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to create internal queue for %s Error: %v", q.Name(), err)
-			return
 		}
 	} else {
 		q.lock.Unlock()

@@ -229,7 +229,6 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 		q.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to set the internal queue for %s Error: %v", q.Name(), err)
-			return
 		}
 		go func() {
 			for data := range q.channel {

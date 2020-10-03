@@ -85,7 +85,6 @@ func newLFSService() {
 			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
 				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
 			}
 
 			// Save secret
@@ -104,7 +103,6 @@ func newLFSService() {
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
 				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
-				return
 			}
 		}
 	}
