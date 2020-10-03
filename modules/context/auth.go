@@ -40,7 +40,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				if isAPIPath {
 					ctx.JSON(403, map[string]string{
-						"message": "Your account is not active.",
+						"message": "This account is not activated.",
 					})
 					return
 				}
@@ -51,7 +51,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				if isAPIPath {
 					ctx.JSON(403, map[string]string{
-						"message": "Your account is prohibited to sign in, please contact your site administrator.",
+						"message": "This account is prohibited from signing in, please contact your site administrator.",
 					})
 					return
 				}
@@ -62,7 +62,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 			if ctx.User.MustChangePassword {
 				if isAPIPath {
 					ctx.JSON(403, map[string]string{
-						"message": "You must change password. You can do it using link " + setting.AppURL + "/user/change_password",
+						"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
 					})
 					return
 				}
