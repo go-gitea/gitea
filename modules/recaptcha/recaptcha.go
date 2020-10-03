@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -21,7 +20,7 @@ import (
 // Response is the structure of JSON returned from API
 type Response struct {
 	Success     bool        `json:"success"`
-	ChallengeTS time.Time   `json:"challenge_ts"`
+	ChallengeTS string      `json:"challenge_ts"`
 	Hostname    string      `json:"hostname"`
 	ErrorCodes  []ErrorCode `json:"error-codes"`
 }
