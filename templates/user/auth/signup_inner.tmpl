@@ -53,7 +53,7 @@
 						{{end}}
 						{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
 							<div class="inline field required">
-								<div class="h-captcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
+								<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
 							</div>
 						{{end}}
 

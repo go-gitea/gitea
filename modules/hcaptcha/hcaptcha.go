@@ -14,17 +14,21 @@ import (
 
 // Verify calls hCaptcha API to verify token
 func Verify(ctx context.Context, response string) (bool, error) {
-	client, err := hcaptcha.New(setting.Service.RecaptchaSecret, hcaptcha.WithContext(ctx))
+	client, err := hcaptcha.New(setting.Service.HcaptchaSecret, hcaptcha.WithContext(ctx))
 	if err != nil {
 		return false, err
 	}
 
 	resp, err := client.Verify(response, hcaptcha.PostOptions{
-		Sitekey: setting.Service.RecaptchaSitekey,
+		Sitekey: setting.Service.HcaptchaSitekey,
 	})
 	if err != nil {
 		return false, err
 	}
 
-	return resp.Success, resp.ErrorCodes[0]
+	var respErr error
+	if len(resp.ErrorCodes) > 0 {
+		respErr = resp.ErrorCodes[0]
+	}
+	return resp.Success, respErr
 }
