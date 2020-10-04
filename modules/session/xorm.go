@@ -13,7 +13,7 @@ import (
 	"gitea.com/macaron/session"
 )
 
-// XormlStore represents a xorm session store implementation.
+// XormStore represents a xorm session store implementation.
 type XormStore struct {
 	sid  string
 	lock sync.RWMutex
