@@ -341,7 +341,9 @@ Your `git` user needs to have an SSH key generated:
 sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 ```
 
-Still on the host, symlink the container `.ssh/authorized_keys` file to your git user `.ssh/authorized_keys`.
+Now, proceed with one of the points given below:
+
+- symlink the container `.ssh/authorized_keys` file to your git user `.ssh/authorized_keys`.
 This can be done on the host as the `/var/lib/gitea` directory is mounted inside the container under `/data`:
 
 ```
@@ -352,6 +354,23 @@ Then echo the `git` user SSH key into the authorized_keys file so the host can t
 
 ```
 echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /home/git/.ssh/id_rsa.pub)" >> /var/lib/gitea/git/.ssh/authorized_keys
+```
+
+Lastly, Gitea makes `authorized_keys` backups by default. This could be a problem
+as the symbolic link made to `authorized_keys` previously could end up pointing
+to an old backup. To resolve this, please put the following into your Gitea
+config:
+
+```
+[ssh]
+SSH_BACKUP_AUTHORIZED_KEYS=false
+```
+
+- mount your `.ssh` directory directly into the container i.e. add the
+  following to the `volumes` section of your Docker container config:
+
+```
+- /home/git/.ssh/:/data/git/.ssh/
 ```
 
 Now you should be able to use Git over SSH to your container without disrupting SSH access to the host.
