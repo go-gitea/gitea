@@ -244,6 +244,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		IsPrivate:     opt.Private,
 		AutoInit:      opt.AutoInit,
 		DefaultBranch: opt.DefaultBranch,
+		TrustModel:    models.ToTrustModel(opt.TrustModel),
+		IsTemplate:    opt.Template,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -255,6 +257,12 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
 		}
 		return
+	}
+
+	// reload repo from db to get a real state after creation
+	repo, err = models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
 	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
@@ -366,7 +374,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	if !ctx.User.IsAdmin {
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
 		} else if !canCreate {
 			ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")

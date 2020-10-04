@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -197,32 +199,96 @@ func Organization(ctx *context.Context) {
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsRepos"] = true
-	ctxUser := ctx.User
+	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
+	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 
-	var err error
-	if err = ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.User.RepoPagingNum}); err != nil {
-		ctx.ServerError("GetRepositories", err)
-		return
+	opts := models.ListOptions{
+		PageSize: setting.UI.Admin.UserPagingNum,
+		Page:     ctx.QueryInt("page"),
 	}
-	repos := ctxUser.Repos
 
-	for i := range repos {
-		if repos[i].IsFork {
-			err := repos[i].GetBaseRepo()
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	start := (opts.Page - 1) * opts.PageSize
+	end := start + opts.PageSize
+
+	adoptOrDelete := ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories)
+
+	ctxUser := ctx.User
+	count := 0
+
+	if adoptOrDelete {
+		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
+		repos := map[string]*models.Repository{}
+		// We're going to iterate by pagesize.
+		root := filepath.Join(models.UserPath(ctxUser.Name))
+		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				ctx.ServerError("GetBaseRepo", err)
-				return
+				return err
 			}
-			err = repos[i].BaseRepo.GetOwner()
-			if err != nil {
-				ctx.ServerError("GetOwner", err)
-				return
+			if !info.IsDir() || path == root {
+				return nil
+			}
+			name := info.Name()
+			if !strings.HasSuffix(name, ".git") {
+				return filepath.SkipDir
+			}
+			name = name[:len(name)-4]
+			if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name {
+				return filepath.SkipDir
+			}
+			if count >= start && count < end {
+				repoNames = append(repoNames, name)
+			}
+			count++
+			return filepath.SkipDir
+		}); err != nil {
+			ctx.ServerError("filepath.Walk", err)
+			return
+		}
+
+		if err := ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
+			ctx.ServerError("GetRepositories", err)
+			return
+		}
+		for _, repo := range ctxUser.Repos {
+			if repo.IsFork {
+				if err := repo.GetBaseRepo(); err != nil {
+					ctx.ServerError("GetBaseRepo", err)
+					return
+				}
+			}
+			repos[repo.LowerName] = repo
+		}
+		ctx.Data["Dirs"] = repoNames
+		ctx.Data["ReposMap"] = repos
+	} else {
+		var err error
+		var count64 int64
+		ctxUser.Repos, count64, err = models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+
+		if err != nil {
+			ctx.ServerError("GetRepositories", err)
+			return
+		}
+		count = int(count64)
+		repos := ctxUser.Repos
+
+		for i := range repos {
+			if repos[i].IsFork {
+				if err := repos[i].GetBaseRepo(); err != nil {
+					ctx.ServerError("GetBaseRepo", err)
+					return
+				}
 			}
 		}
+
+		ctx.Data["Repos"] = repos
 	}
-
 	ctx.Data["Owner"] = ctxUser
-	ctx.Data["Repos"] = repos
-
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsRepositories)
 }
