@@ -51,6 +51,11 @@
 								<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
 							</div>
 						{{end}}
+						{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
+							<div class="inline field required">
+								<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
+							</div>
+						{{end}}
 
 						<div class="inline field">
 							<label></label>

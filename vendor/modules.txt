@@ -761,6 +761,9 @@ github.com/yuin/goldmark-highlighting
 github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
+# go.jolheiser.com/hcaptcha v0.0.4
+## explicit
+go.jolheiser.com/hcaptcha
 # go.jolheiser.com/pwn v0.0.3
 ## explicit
 go.jolheiser.com/pwn
