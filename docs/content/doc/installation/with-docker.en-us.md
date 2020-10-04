@@ -356,8 +356,8 @@ Then echo the `git` user SSH key into the authorized_keys file so the host can t
 echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /home/git/.ssh/id_rsa.pub)" >> /var/lib/gitea/git/.ssh/authorized_keys
 ```
 
-Lastly, Gitea makes authorized_keys backups by default. This could be a problem
-as the symbolic link made to authorized_keys previously could end up pointing
+Lastly, Gitea makes `authorized_keys` backups by default. This could be a problem
+as the symbolic link made to `authorized_keys` previously could end up pointing
 to an old backup. To resolve this, please put the following into your Gitea
 config:
 
