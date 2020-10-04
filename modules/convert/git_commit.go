@@ -30,7 +30,7 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA:       tag.Object.String(),
 		URL:       util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
-		Timestamp: tag.Tagger.When,
+		Created: tag.Tagger.When,
 	}
 }
 

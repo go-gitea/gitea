@@ -37,6 +37,6 @@ func TestToCommitMeta(t *testing.T) {
 	assert.EqualValues(t, &api.CommitMeta{
 		SHA:       "0000000000000000000000000000000000000000",
 		URL:       util.URLJoin(headRepo.APIURL(), "git/commits", "0000000000000000000000000000000000000000"),
-		Timestamp: time.Unix(0, 0),
+		Created: time.Unix(0, 0),
 	}, commitMeta)
 }

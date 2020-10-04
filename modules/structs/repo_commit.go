@@ -21,7 +21,7 @@ type CommitMeta struct {
 	URL string `json:"url"`
 	SHA string `json:"sha"`
 	// swagger:strfmt date-time
-	Timestamp time.Time `json:"timestamp"`
+	Created time.Time `json:"created"`
 }
 
 // CommitUser contains information of a user in the context of a commit.
