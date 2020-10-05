@@ -197,19 +197,10 @@
 			</div>
 		</div>
 		{{if .IsAttachmentEnabled}}
-		<div class="field">
-			<div class="comment-files"></div>
-			<div class="ui dropzone" id="comment-dropzone"
-				data-upload-url="{{AppSubUrl}}/attachments"
-				data-remove-url="{{AppSubUrl}}/attachments/delete"
-				data-csrf="{{.CsrfToken}}" data-accepts="{{.AttachmentAllowedTypes}}"
-				data-max-file="{{.AttachmentMaxFiles}}" data-max-size="{{.AttachmentMaxSize}}"
-				data-default-message="{{.i18n.Tr "dropzone.default_message"}}"
-				data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}"
-				data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}"
-				data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}">
+			<div class="field">
+				<div class="comment-files"></div>
+				{{template "repo/upload" .}}
 			</div>
-		</div>
 		{{end}}
 		<div class="field footer">
 			<div class="text right edit">
