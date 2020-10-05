@@ -12,15 +12,15 @@ import (
 
 // Session represents a session compatible for go-macaron session
 type Session struct {
-	ID     string             `xorm:"pk CHAR(16)"`
+	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-macaron/session
 	Data   []byte             `xorm:"BLOB"`
 	Expiry timeutil.TimeStamp // has to be Expiry to match with go-macaron/session
 }
 
 // UpdateSession updates the session with provided id
-func UpdateSession(id string, data []byte) error {
+func UpdateSession(key string, data []byte) error {
 	_, err := x.Update(&Session{
-		ID:     id,
+		Key:    key,
 		Data:   data,
 		Expiry: timeutil.TimeStampNow(),
 	})
@@ -28,9 +28,9 @@ func UpdateSession(id string, data []byte) error {
 }
 
 // ReadSession reads the data for the provided session
-func ReadSession(id string) (*Session, error) {
+func ReadSession(key string) (*Session, error) {
 	session := Session{
-		ID: id,
+		Key: key,
 	}
 	sess := x.NewSession()
 	defer sess.Close()
@@ -52,23 +52,23 @@ func ReadSession(id string) (*Session, error) {
 }
 
 // ExistSession checks if a session exists
-func ExistSession(id string) (bool, error) {
+func ExistSession(key string) (bool, error) {
 	session := Session{
-		ID: id,
+		Key: key,
 	}
 	return x.Get(&session)
 }
 
 // DestroySession destroys a session
-func DestroySession(id string) error {
+func DestroySession(key string) error {
 	_, err := x.Delete(&Session{
-		ID: id,
+		Key: key,
 	})
 	return err
 }
 
 // RegenerateSession regenerates a session from the old id
-func RegenerateSession(oldID, newID string) (*Session, error) {
+func RegenerateSession(oldKey, newKey string) (*Session, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -76,20 +76,20 @@ func RegenerateSession(oldID, newID string) (*Session, error) {
 	}
 
 	if has, err := sess.Get(&Session{
-		ID: newID,
+		Key: newKey,
 	}); err != nil {
 		return nil, err
 	} else if has {
-		return nil, fmt.Errorf("session ID: %s already exists", newID)
+		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
 	if has, err := sess.Get(&Session{
-		ID: oldID,
+		Key: oldKey,
 	}); err != nil {
 		return nil, err
 	} else if !has {
 		_, err := sess.Insert(&Session{
-			ID:     oldID,
+			Key:    oldKey,
 			Expiry: timeutil.TimeStampNow(),
 		})
 		if err != nil {
@@ -97,12 +97,12 @@ func RegenerateSession(oldID, newID string) (*Session, error) {
 		}
 	}
 
-	if _, err := sess.Exec("UPDATE "+x.TableName(&Session{})+" SET `id` = ? WHERE `id`=?", newID, oldID); err != nil {
+	if _, err := sess.Exec("UPDATE "+x.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
 		return nil, err
 	}
 
 	s := Session{
-		ID: newID,
+		Key: newKey,
 	}
 	if _, err := sess.Get(s); err != nil {
 		return nil, err
