@@ -414,10 +414,10 @@
 		{{end}}
 
 		{{if .Permission.IsOwner}}
-		<h4 class="ui top attached warning header">
+		<h4 class="ui top attached error header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached warning table danger segment">
+		<div class="ui attached error table danger segment">
 			{{if .Repository.IsMirror}}
 				<div class="item">
 					<div class="ui right">
