@@ -940,7 +940,7 @@ async function initRepository() {
                   dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
-                    const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
+                    const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
@@ -996,17 +996,21 @@ async function initRepository() {
               $renderContent.html(data.content);
             }
             const $content = $segment.parent();
-            if (!$content.find('.ui.small.images').length) {
+            if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
                 $content.append(
-                  '<div class="ui bottom attached segment"><div class="ui small images"></div></div>'
+                  `<div class="dropzone-attachments">
+                  <div class="ui clearing divider"></div>
+                  <div class="ui middle aligned padded grid">
+                  </div>
+                </div>`
                 );
-                $content.find('.ui.small.images').html(data.attachments);
+                $content.find('.dropzone-attachments .grid').html(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.ui.small.images').parent().remove();
+              $content.find('.dropzone-attachments').parent().remove();
             } else {
-              $content.find('.ui.small.images').html(data.attachments);
+              $content.find('.dropzone-attachments .grid').html(data.attachments);
             }
             dz.emit('submit');
             dz.emit('reload');
