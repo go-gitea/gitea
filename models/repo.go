@@ -766,7 +766,7 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 // but for public rpo, that return all users that have write access or higher to the repository,
 // and all repo watchers.
 // TODO: may be we should hava a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) (_ []*User, _ []*Team, err error) {
+func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, []*Team, error) {
 	return repo.getReviewers(x, doerID, posterID)
 }
 
