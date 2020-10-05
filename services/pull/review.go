@@ -105,7 +105,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	return comment, nil
 }
 
-var notEnoughLines = regexp.MustCompile(`.*fatal: file .* has only \d+ lines?`)
+var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
