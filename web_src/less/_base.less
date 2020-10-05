@@ -476,6 +476,17 @@ code,
     vertical-align: middle;
   }
 
+  .error {
+    &.header {
+      background-color: #ffe8e6 !important;
+      border-color: #db2828;
+    }
+
+    &.segment {
+      border-color: #db2828;
+    }
+  }
+
   .warning {
     &.header {
       background-color: #f9edbe !important;
@@ -1044,6 +1055,11 @@ i.icon.centerlock {
   white-space: pre;
 }
 
+.lines-code.active,
+.lines-code .active {
+  background: #fffbdd !important;
+}
+
 .blame .lines-num {
   padding: 0 !important;
   background-color: #f5f5f5;
@@ -1122,11 +1138,6 @@ i.icon.centerlock {
   table {
     width: 100%;
   }
-
-  .active {
-    background: #fffbdd !important;
-  }
-
 }
 
 .octicon-tiny {
