@@ -122,12 +122,139 @@ func (t *Tree) GetPath(keys []string) interface{} {
 	}
 }
 
+// GetArray returns the value at key in the Tree.
+// It returns []string, []int64, etc type if key has homogeneous lists
+// Key is a dot-separated path (e.g. a.b.c) without single/double quoted strings.
+// Returns nil if the path does not exist in the tree.
+// If keys is of length zero, the current tree is returned.
+func (t *Tree) GetArray(key string) interface{} {
+	if key == "" {
+		return t
+	}
+	return t.GetArrayPath(strings.Split(key, "."))
+}
+
+// GetArrayPath returns the element in the tree indicated by 'keys'.
+// If keys is of length zero, the current tree is returned.
+func (t *Tree) GetArrayPath(keys []string) interface{} {
+	if len(keys) == 0 {
+		return t
+	}
+	subtree := t
+	for _, intermediateKey := range keys[:len(keys)-1] {
+		value, exists := subtree.values[intermediateKey]
+		if !exists {
+			return nil
+		}
+		switch node := value.(type) {
+		case *Tree:
+			subtree = node
+		case []*Tree:
+			// go to most recent element
+			if len(node) == 0 {
+				return nil
+			}
+			subtree = node[len(node)-1]
+		default:
+			return nil // cannot navigate through other node types
+		}
+	}
+	// branch based on final node type
+	switch node := subtree.values[keys[len(keys)-1]].(type) {
+	case *tomlValue:
+		switch n := node.value.(type) {
+		case []interface{}:
+			return getArray(n)
+		default:
+			return node.value
+		}
+	default:
+		return node
+	}
+}
+
+// if homogeneous array, then return slice type object over []interface{}
+func getArray(n []interface{}) interface{} {
+	var s []string
+	var i64 []int64
+	var f64 []float64
+	var bl []bool
+	for _, value := range n {
+		switch v := value.(type) {
+		case string:
+			s = append(s, v)
+		case int64:
+			i64 = append(i64, v)
+		case float64:
+			f64 = append(f64, v)
+		case bool:
+			bl = append(bl, v)
+		default:
+			return n
+		}
+	}
+	if len(s) == len(n) {
+		return s
+	} else if len(i64) == len(n) {
+		return i64
+	} else if len(f64) == len(n) {
+		return f64
+	} else if len(bl) == len(n) {
+		return bl
+	}
+	return n
+}
+
 // GetPosition returns the position of the given key.
 func (t *Tree) GetPosition(key string) Position {
 	if key == "" {
 		return t.position
 	}
 	return t.GetPositionPath(strings.Split(key, "."))
+}
+
+// SetPositionPath sets the position of element in the tree indicated by 'keys'.
+// If keys is of length zero, the current tree position is set.
+func (t *Tree) SetPositionPath(keys []string, pos Position) {
+	if len(keys) == 0 {
+		t.position = pos
+		return
+	}
+	subtree := t
+	for _, intermediateKey := range keys[:len(keys)-1] {
+		value, exists := subtree.values[intermediateKey]
+		if !exists {
+			return
+		}
+		switch node := value.(type) {
+		case *Tree:
+			subtree = node
+		case []*Tree:
+			// go to most recent element
+			if len(node) == 0 {
+				return
+			}
+			subtree = node[len(node)-1]
+		default:
+			return
+		}
+	}
+	// branch based on final node type
+	switch node := subtree.values[keys[len(keys)-1]].(type) {
+	case *tomlValue:
+		node.position = pos
+		return
+	case *Tree:
+		node.position = pos
+		return
+	case []*Tree:
+		// go to most recent element
+		if len(node) == 0 {
+			return
+		}
+		node[len(node)-1].position = pos
+		return
+	}
 }
 
 // GetPositionPath returns the element in the tree indicated by 'keys'.
@@ -212,7 +339,8 @@ func (t *Tree) SetPathWithOptions(keys []string, opts SetOptions, value interfac
 			// go to most recent element
 			if len(node) == 0 {
 				// create element if it does not exist
-				subtree.values[intermediateKey] = append(node, newTreeWithPosition(Position{Line: t.position.Line + i, Col: t.position.Col}))
+				node = append(node, newTreeWithPosition(Position{Line: t.position.Line + i, Col: t.position.Col}))
+				subtree.values[intermediateKey] = node
 			}
 			subtree = node[len(node)-1]
 		}
@@ -232,6 +360,8 @@ func (t *Tree) SetPathWithOptions(keys []string, opts SetOptions, value interfac
 		toInsert = value
 	case *tomlValue:
 		v.comment = opts.Comment
+		v.commented = opts.Commented
+		v.multiline = opts.Multiline
 		toInsert = v
 	default:
 		toInsert = &tomlValue{value: value,

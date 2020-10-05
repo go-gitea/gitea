@@ -74,6 +74,11 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 	return err
 }
 
+// GetDefaultBranch gets default branch of repository.
+func (repo *Repository) GetDefaultBranch() (string, error) {
+	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
+}
+
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
 	var branchNames []string

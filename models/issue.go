@@ -549,6 +549,11 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -1266,7 +1271,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
+	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
@@ -1277,6 +1282,27 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// CountIssues number return of issues by given conditions.
+func CountIssues(opts *IssuesOptions) (int64, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 1)
+
+	sess.Select("COUNT(issue.id) AS count").Table("issue")
+	opts.setupSession(sess)
+	if err := sess.Find(&countsSlice); err != nil {
+		return 0, fmt.Errorf("Find: %v", err)
+	}
+	if len(countsSlice) < 1 {
+		return 0, fmt.Errorf("there is less than one result sql record")
+	}
+	return countsSlice[0].Count, nil
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,

@@ -326,7 +326,7 @@ function uploadFile(file, callback) {
     }
   });
 
-  xhr.open('post', `${AppSubUrl}/attachments`, true);
+  xhr.open('post', $('#dropzone').data('upload-url'), true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -902,7 +902,7 @@ async function initRepository() {
             headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
-            acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+            acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
             addRemoveLinks: true,
             dictDefaultMessage: $dropzone.data('default-message'),
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
@@ -923,10 +923,10 @@ async function initRepository() {
                   return;
                 }
                 $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: filenameDict[file.name].uuid,
-                    _csrf: $dropzone.data('csrf')
+                    _csrf: csrf,
                   });
                 }
               });
@@ -1484,7 +1484,26 @@ function setCommentSimpleMDE($editArea) {
     spellChecker: false,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
+      'code', 'quote', '|', {
+        name: 'checkbox-empty',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-square-o',
+        title: 'Add Checkbox (empty)',
+      },
+      {
+        name: 'checkbox-checked',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-check-square-o',
+        title: 'Add Checkbox (checked)',
+      }, '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
       'clean-block', '|',
@@ -2005,14 +2024,24 @@ function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view td.lines-code');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
@@ -2294,7 +2323,7 @@ $(document).ready(async () => {
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
-      acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+      acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
       addRemoveLinks: true,
       dictDefaultMessage: $dropzone.data('default-message'),
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
@@ -2311,10 +2340,10 @@ $(document).ready(async () => {
           if (file.name in filenameDict) {
             $(`#${filenameDict[file.name]}`).remove();
           }
-          if ($dropzone.data('remove-url') && $dropzone.data('csrf')) {
+          if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: filenameDict[file.name],
-              _csrf: $dropzone.data('csrf')
+              _csrf: csrf
             });
           }
         });

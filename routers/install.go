@@ -71,7 +71,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
-	form.LFSRootPath = setting.LFS.ContentPath
+	form.LFSRootPath = setting.LFS.Path
 
 	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
