@@ -89,7 +89,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 	go func() {
 		defer pw.Close()
 		if err := callback(pw); err != nil {
-			pw.CloseWithError(err)
+			_ = pw.CloseWithError(err)
 		}
 	}()
 
