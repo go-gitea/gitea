@@ -22,6 +22,19 @@ var (
 	quoteEscaper               = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 )
 
+type minioObject struct {
+	*minio.Object
+}
+
+func (m *minioObject) Stat() (os.FileInfo, error) {
+	oi, err := m.Object.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	return &minioFileInfo{oi}, nil
+}
+
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
 	ctx      context.Context
@@ -69,7 +82,7 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return object, nil
+	return &minioObject{object}, nil
 }
 
 // Save save a file to minio
@@ -104,8 +117,20 @@ func (m minioFileInfo) ModTime() time.Time {
 	return m.LastModified
 }
 
+func (m minioFileInfo) IsDir() bool {
+	return strings.HasSuffix(m.ObjectInfo.Key, "/")
+}
+
+func (m minioFileInfo) Mode() os.FileMode {
+	return os.ModePerm
+}
+
+func (m minioFileInfo) Sys() interface{} {
+	return nil
+}
+
 // Stat returns the stat information of the object
-func (m *MinioStorage) Stat(path string) (ObjectInfo, error) {
+func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
 		m.ctx,
 		m.bucket,
@@ -134,4 +159,27 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	return m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+}
+
+// IterateObjects iterates across the objects in the miniostorage
+func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+	var opts = minio.GetObjectOptions{}
+	lobjectCtx, cancel := context.WithCancel(m.ctx)
+	defer cancel()
+	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
+		Prefix:    m.basePath,
+		Recursive: true,
+	}) {
+		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
+		if err != nil {
+			return err
+		}
+		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
+			defer object.Close()
+			return fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object})
+		}(object, fn); err != nil {
+			return err
+		}
+	}
+	return nil
 }

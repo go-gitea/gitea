@@ -11297,6 +11297,11 @@
         "committer": {
           "$ref": "#/definitions/User"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -11340,6 +11345,11 @@
       "type": "object",
       "title": "CommitMeta contains meta information of a commit in terms of API.",
       "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
@@ -13064,6 +13074,11 @@
         },
         "committer": {
           "$ref": "#/definitions/CommitUser"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
         },
         "html_url": {
           "type": "string",

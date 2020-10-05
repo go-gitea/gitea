@@ -492,17 +492,17 @@
 																<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 															{{end}}
 															{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
-															<div class="text">
-																<div class="render-content markdown">
-																{{if .RenderedContent}}
-																	{{.RenderedContent|Str2html}}
-																{{else}}
-																	<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
-																{{end}}
-																</div>
-																<div class="raw-content hide">{{.Content}}</div>
-															</div>
 														</span>
+														<div class="text">
+															<div class="render-content markdown">
+															{{if .RenderedContent}}
+																{{.RenderedContent|Str2html}}
+															{{else}}
+																<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+															{{end}}
+															</div>
+															<div class="raw-content hide">{{.Content}}</div>
+														</div>
 													</div>
 												</div>
 											</div>
