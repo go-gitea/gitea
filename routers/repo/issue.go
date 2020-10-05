@@ -434,8 +434,8 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 	}
 }
 
-// ReviewerChoseItem items to bee shown
-type ReviewerChoseItem struct {
+// repoReviewerSelection items to bee shown
+type repoReviewerSelection struct {
 	IsTeam    bool
 	Team      *models.Team
 	User      *models.User
@@ -456,9 +456,9 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 	}
 
 	var (
-		pullReviews         []*ReviewerChoseItem
-		reviewersResult     []*ReviewerChoseItem
-		teamReviewersResult []*ReviewerChoseItem
+		pullReviews         []*repoReviewerSelection
+		reviewersResult     []*repoReviewerSelection
+		teamReviewersResult []*repoReviewerSelection
 		teamReviewers       []*models.Team
 		reviewers           []*models.User
 	)
@@ -474,18 +474,18 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 			return
 		}
 		if len(reviewers) > 0 {
-			reviewersResult = make([]*ReviewerChoseItem, 0, len(reviewers))
+			reviewersResult = make([]*repoReviewerSelection, 0, len(reviewers))
 		}
 		if len(teamReviewers) > 0 {
-			teamReviewersResult = make([]*ReviewerChoseItem, 0, len(teamReviewers))
+			teamReviewersResult = make([]*repoReviewerSelection, 0, len(teamReviewers))
 		}
 	}
 
 	if len(reviews) != 0 {
-		pullReviews = make([]*ReviewerChoseItem, 0, len(reviews))
+		pullReviews = make([]*repoReviewerSelection, 0, len(reviews))
 
 		for _, review := range reviews {
-			tmp := &ReviewerChoseItem{
+			tmp := &repoReviewerSelection{
 				Checked: review.Type == models.ReviewTypeRequest,
 				Review:  review,
 				ItemID:  review.ReviewerID,
@@ -521,7 +521,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 	}
 
 	if !canChooseReviewer {
-		exitsReviers := make([]*ReviewerChoseItem, 0, len(pullReviews))
+		exitsReviers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err = item.Review.LoadReviewer(); err != nil {
@@ -567,7 +567,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 				}
 			}
 			if !exist {
-				reviewersResult = append(reviewersResult, &ReviewerChoseItem{
+				reviewersResult = append(reviewersResult, &repoReviewerSelection{
 					IsTeam:    false,
 					CanChange: true,
 					User:      reviewer,
@@ -593,7 +593,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 				}
 			}
 			if !exist {
-				teamReviewersResult = append(teamReviewersResult, &ReviewerChoseItem{
+				teamReviewersResult = append(teamReviewersResult, &repoReviewerSelection{
 					IsTeam:    true,
 					CanChange: true,
 					Team:      team,
@@ -606,7 +606,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 	}
 
 	if len(pullReviews) > 0 {
-		exitsReviers := make([]*ReviewerChoseItem, 0, len(pullReviews))
+		exitsReviers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if ctx.User != nil && item.ItemID == ctx.User.ID {
 				if err = item.Review.LoadReviewer(); err != nil {
