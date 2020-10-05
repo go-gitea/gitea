@@ -996,11 +996,9 @@
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
-
-            .text {
-              padding-top: 10px;
-              padding-bottom: 10px;
-            }
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
             &.arrow-top::before,
             &.arrow-top::after {
@@ -1017,11 +1015,16 @@
               left: 7px;
             }
 
-            .actions a {
-              color: rgba(0, 0, 0, .4);
+            .actions {
+              display: flex;
+              padding: 0 .5rem;
 
-              &:hover {
-                color: rgba(0, 0, 0, .8);
+              a {
+                color: rgba(0, 0, 0, .4);
+
+                &:hover {
+                  color: rgba(0, 0, 0, .8);
+                }
               }
             }
           }
