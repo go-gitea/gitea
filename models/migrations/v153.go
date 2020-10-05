@@ -11,7 +11,7 @@ import (
 
 func addSessionTable(x *xorm.Engine) error {
 	type Session struct {
-		ID          string `xorm:"pk CHAR(16)"`
+		Key         string `xorm:"pk CHAR(16)"`
 		Data        []byte `xorm:"BLOB"`
 		CreatedUnix timeutil.TimeStamp
 	}
