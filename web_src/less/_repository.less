@@ -1053,6 +1053,16 @@
             &.no-header {
               #avatar-arrow;
             }
+
+            @media only screen and (max-width: 767px) {
+              .form .button {
+                width: 100%;
+
+                &:not(:last-child) {
+                  margin-bottom: 1rem;
+                }
+              }
+            }
           }
 
           .markdown {
