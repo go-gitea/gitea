@@ -4,10 +4,6 @@
 
 package setting
 
-import (
-	"strings"
-)
-
 var (
 	// Attachment settings
 	Attachment = struct {
@@ -33,8 +29,7 @@ func newAttachmentService() {
 
 	Attachment.Storage = getStorage("attachment", storageType, sec)
 
-	// Other settings
-	Attachment.AllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
+	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".docx,.gif,.gz,.jpeg,.jpg,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip")
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(true)

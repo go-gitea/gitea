@@ -670,6 +670,11 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -696,6 +701,11 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
@@ -739,6 +749,11 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
