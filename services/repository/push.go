@@ -222,7 +222,7 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 			branch := opts.BranchName()
 			if !opts.IsDelRef() {
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-				pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
+				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -241,26 +241,26 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
+
+					isForce, err := isForcePush(repo.RepoPath(), opts)
+					if err != nil {
+						log.Error("isForcePush %s/%s failed: %v", repo.ID, branch, err)
+					}
+
+					if isForce {
+						log.Trace("Push %s is a force push", opts.NewCommitID)
+
+						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
+					} else {
+						// TODO: increment update the commit count cache but not remove
+						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
+					}
 				}
 
 				commits = repo_module.ListToPushCommits(l)
 
 				if err = models.RemoveDeletedBranch(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
-				}
-
-				isForce, err := isForcePush(repo.RepoPath(), opts)
-				if err != nil {
-					log.Error("isForcePush %s/%s failed: %v", repo.ID, branch, err)
-				}
-
-				if isForce {
-					log.Trace("Push %s is a force push", opts.NewCommitID)
-
-					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-				} else {
-					// TODO: increment update the commit count cache but not remove
-					cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 				}
 
 				// Cache for big repository
