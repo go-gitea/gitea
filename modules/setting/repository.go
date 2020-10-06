@@ -58,7 +58,7 @@ var (
 		Upload struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
@@ -84,6 +84,10 @@ var (
 		Issue struct {
 			LockReasons []string
 		} `ini:"repository.issue"`
+
+		Release struct {
+			AllowedTypes string
+		} `ini:"repository.release"`
 
 		Signing struct {
 			SigningKey        string
@@ -165,13 +169,13 @@ var (
 		Upload: struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		}{
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
-			AllowedTypes: []string{},
+			AllowedTypes: "",
 			FileMaxSize:  3,
 			MaxFiles:     5,
 		},
@@ -211,6 +215,12 @@ var (
 			LockReasons []string
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+		},
+
+		Release: struct {
+			AllowedTypes string
+		}{
+			AllowedTypes: "",
 		},
 
 		// Signing settings

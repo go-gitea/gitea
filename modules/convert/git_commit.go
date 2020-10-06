@@ -28,8 +28,9 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 // ToCommitMeta convert a git.Tag to an api.CommitMeta
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
-		SHA: tag.Object.String(),
-		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+		SHA:     tag.Object.String(),
+		URL:     util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+		Created: tag.Tagger.When,
 	}
 }
 
