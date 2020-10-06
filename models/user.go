@@ -1148,6 +1148,24 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) error {
+
+	// Don't allow username, fullname nor email changes if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		if currUser, err := GetUserByID(u.ID); err == nil {
+			if currUser.Name != u.Name {
+				return fmt.Errorf("cannot change %s username; local user management disabled", u.Name)
+			}
+			if currUser.FullName != u.FullName {
+				return fmt.Errorf("cannot change %s full name; local user management disabled", u.Name)
+			}
+			if currUser.Email != u.Email {
+				return fmt.Errorf("cannot change %s e-mail; local user management disabled", u.Name)
+			}
+		} else {
+			return err
+		}
+	}
+
 	if !u.IsOrganization() {
 		if err := checkDupEmail(x, u); err != nil {
 			return err

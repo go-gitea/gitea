@@ -10,20 +10,20 @@
 			<p>{{.i18n.Tr "settings.profile_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="required field {{if .Err_Name}}error{{end}}">
+				<div class="{{if not .DisableLocalUserManagement}}required{{end}} field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{.i18n.Tr "username"}}<span class="text red hide" id="name-change-prompt"> {{.i18n.Tr "settings.change_username_prompt"}}</span></label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if not .SignedUser.IsLocal}}disabled{{end}}>
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus {{if not .DisableLocalUserManagement}}required{{end}} {{if or (not .SignedUser.IsLocal) (.DisableLocalUserManagement) }}disabled{{end}}>
 					{{if not .SignedUser.IsLocal}}
 					<p class="help text blue">{{$.i18n.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if .DisableLocalUserManagement}}readonly{{end}}>
 				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="{{if not .DisableLocalUserManagement}}required{{end}} field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "email"}}</label>
-					<input id="email" name="email" value="{{.SignedUser.Email}}">
+					<input id="email" name="email" value="{{.SignedUser.Email}}" {{if .DisableLocalUserManagement}}readonly{{end}}>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
