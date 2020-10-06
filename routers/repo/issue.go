@@ -469,9 +469,14 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 		if issue.OriginalAuthorID > 0 {
 			posterID = 0
 		}
-		reviewers, teamReviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
+		reviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
+			return
+		}
+		teamReviewers, err = repo.GetReviewerTeams()
+		if err != nil {
+			ctx.ServerError("GetReviewerTeams", err)
 			return
 		}
 		if len(reviewers) > 0 {

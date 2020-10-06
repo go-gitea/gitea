@@ -729,9 +729,9 @@ func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ 
 	return users, nil
 }
 
-func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User, []*Team, error) {
+func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User, error) {
 	if err := repo.getOwner(e); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var (
@@ -746,19 +746,10 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 		users, err = repo.getReviewersPublic(x, doerID, posterID)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if repo.Owner.IsOrganization() {
-		teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return users, teams, nil
-	}
-
-	return users, nil, nil
+	return users, nil
 }
 
 // GetReviewers get all users can be requested to review
@@ -766,8 +757,25 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 // but for public rpo, that return all users that have write access or higher to the repository,
 // and all repo watchers.
 // TODO: may be we should hava a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, []*Team, error) {
+func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
 	return repo.getReviewers(x, doerID, posterID)
+}
+
+// GetReviewerTeams get all teams can be requested to review
+func (repo *Repository) GetReviewerTeams() ([]*Team, error) {
+	if err := repo.GetOwner(); err != nil {
+		return nil, err
+	}
+	if !repo.Owner.IsOrganization() {
+		return nil, nil
+	}
+
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
+	if err != nil {
+		return nil, err
+	}
+
+	return teams, err
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
