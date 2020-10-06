@@ -23,7 +23,7 @@ Instead, check out [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/bra
 
 Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
-### Internationalization 
+### Internationalization
 - [Weblate](https://docs.weblate.org/en/latest/admin/continuous.html#gitea-setup)
 
 ### Migrating
@@ -37,6 +37,6 @@ Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 ###  Editor Extensions
 - [Gitea Extension for Visual Studio](https://github.com/maikebing/Gitea.VisualStudio)
    - Download from [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MysticBoy.GiteaExtensionforVisualStudio)
- 
+
 ### Project Management
 - [YouTrack by JetBrains](https://blog.jetbrains.com/youtrack/2019/12/whats-new-in-youtrack-2019-3/)
