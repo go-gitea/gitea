@@ -998,13 +998,13 @@ async function initRepository() {
             const $content = $segment.parent();
             if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
-                $content.append(
-                  `<div class="dropzone-attachments">
-                  <div class="ui clearing divider"></div>
-                  <div class="ui middle aligned padded grid">
+                $content.append(`
+                  <div class="dropzone-attachments">
+                    <div class="ui clearing divider"></div>
+                    <div class="ui middle aligned padded grid">
+                    </div>
                   </div>
-                </div>`
-                );
+                `);
                 $content.find('.dropzone-attachments .grid').html(data.attachments);
               }
             } else if (data.attachments === '') {
