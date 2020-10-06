@@ -32,7 +32,7 @@ Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
 
 ### Mobile
-- [GitNex for Android](https://gitlab.com/mmarif4u/gitnex)
+- [GitNex for Android](https://codeberg.org/gitnex/GitNex)
 
 ###  Editor Extensions
 - [Gitea Extension for Visual Studio](https://github.com/maikebing/Gitea.VisualStudio)
