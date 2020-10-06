@@ -8,6 +8,7 @@ package pull
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -104,6 +105,8 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	return comment, nil
 }
 
+var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
+
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
@@ -127,7 +130,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
 		if err == nil {
 			commitID = commit.ID.String()
-		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
+		} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
 	}
