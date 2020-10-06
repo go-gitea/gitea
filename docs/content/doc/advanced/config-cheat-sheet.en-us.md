@@ -474,7 +474,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `ED25519`: **256**
 - `ECDSA`: **256**
 - `RSA`: **2048**
-- `DSA`: **1024**
+- `DSA`: **-1**: DSA is now disabled by default. Set to **1024** to re-enable but ensure you may need to reconfigure your SSHD provider
 
 ## Webhook (`webhook`)
 
