@@ -976,7 +976,9 @@ async function initRepository() {
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          dz.emit('reload');
+          if (dz) {
+            dz.emit('reload');
+          }
         });
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
@@ -1012,8 +1014,10 @@ async function initRepository() {
             } else {
               $content.find('.dropzone-attachments .grid').html(data.attachments);
             }
-            dz.emit('submit');
-            dz.emit('reload');
+            if (dz) {
+              dz.emit('submit');
+              dz.emit('reload');
+            }
             renderMarkdownContent();
           });
         });
