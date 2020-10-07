@@ -833,7 +833,6 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 			return err
 		}
 		log.Error("Deleted %d rows from hook_task older than %d", deletes, olderThan)
-
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
 		err := x.Table("webhook").
@@ -854,7 +853,6 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 			}
 		}
 	}
-
 	log.Error("Finished: CleanupHookTaskTable")
 	return nil
 }

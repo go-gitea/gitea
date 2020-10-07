@@ -116,7 +116,7 @@ func registerCleanupHookTaskTable() {
 			Schedule:   "@every 24h",
 		},
 		CleanupType:  "OlderThan",
-		OlderThan:    24 * time.Hour * 10,
+		OlderThan:    24 * time.Hour * 30,
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
