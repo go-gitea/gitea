@@ -43,14 +43,14 @@ func ToHookContentType(name string) HookContentType {
 type HookTaskCleanupType int
 
 const (
-	// Age hook_task rows will be cleaned up by the age of the row
-	Age HookTaskCleanupType = iota
+	// OlderThan hook_task rows will be cleaned up by the age of the row
+	OlderThan HookTaskCleanupType = iota
 	// PerWebhook hook_task rows will be cleaned up by leaving the most recent deliveries for each webhook
 	PerWebhook
 )
 
 var hookTaskCleanupTypes = map[string]HookTaskCleanupType{
-	"Age":        Age,
+	"OlderThan":  OlderThan,
 	"PerWebhook": PerWebhook,
 }
 
@@ -821,18 +821,18 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 }
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
-func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, ageDays int, numberToKeep int) error {
+func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, olderThan time.Duration, numberToKeep int) error {
 	log.Error("Doing: CleanupHookTaskTable")
 
-	if cleanupType == Age && ageDays > 0 {
-		deleteOlderThan := time.Now().AddDate(0, 0, -ageDays).UnixNano()
+	if cleanupType == OlderThan {
+		deleteOlderThan := time.Now().Add(-olderThan).UnixNano()
 		deletes, err := x.
 			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
 			Delete(new(HookTask))
 		if err != nil {
 			return err
 		}
-		log.Error("Deleted %d rows from hook_task older than %d days", deletes, ageDays)
+		log.Error("Deleted %d rows from hook_task older than %d", deletes, olderThan)
 
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
@@ -860,6 +860,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 }
 
 func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
+	log.Error("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
 	var deliveryDates = make([]int64, 0, 10)
 	err := x.Table("hook_task").
 		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ?", hookID, true).
@@ -880,6 +881,8 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 			return err
 		}
 		log.Error("Deleted %d hook_task rows for webhook %d", deletes, hookID)
+	} else {
+		log.Error("No hook_task rows to delete for webhook %d", hookID)
 	}
 
 	return nil

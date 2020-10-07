@@ -690,8 +690,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `ENABLED`: **true**: Enable cleanup hook_task job.
 - `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for cleaning hook_task table.
-- `CLEANUP_TYPE` **Age** Age or PerWebhook Method to cleanup hook_task, either by age (i.e. how old hook_task record is) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
-- `AGE_DAYS`: **30**: If CLEANUP_TYPE is set to Age, then any delivered hook_task records older than this number of days will be deleted.
+- `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
+- `OLDER_THAN`: **30d**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
 - `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
 
 ### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)

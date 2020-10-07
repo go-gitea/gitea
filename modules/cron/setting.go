@@ -44,7 +44,7 @@ type UpdateExistingConfig struct {
 type CleanupHookTaskConfig struct {
 	BaseConfig
 	CleanupType  string
-	AgeDays      int
+	OlderThan    time.Duration
 	NumberToKeep int
 }
 
