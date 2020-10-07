@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
@@ -112,17 +113,25 @@ func registerCleanupHookTaskTable() {
 	RegisterTaskFatal("cleanup_hook_task_table", &CleanupHookTaskConfig{
 		BaseConfig: BaseConfig{
 			Enabled:    true,
-			RunAtStart: false,
+			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
-		CleanupType:  "AGE",
+		CleanupType:  "Age",
 		AgeDays:      30,
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
-		return models.CleanupHookTaskTable(models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.AgeDays, realConfig.NumberToKeep)
+		//TODO log what is in here!
+		log.Error("num %d", realConfig.NumberToKeep)
+		log.Error("age %d", realConfig.AgeDays)
+		log.Error("type %s", realConfig.CleanupType)
+		log.Error("enabled %s", realConfig.Enabled)
+		log.Error("run!!! %s", realConfig.RunAtStart)
+		log.Error("sched %s", realConfig.Schedule)
+		return models.CleanupHookTaskTable(ctx, models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.AgeDays, realConfig.NumberToKeep)
 	})
 }
+
 
 func initBasicTasks() {
 	registerUpdateMirrorTask()

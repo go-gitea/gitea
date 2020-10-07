@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -49,7 +50,7 @@ const (
 )
 
 var hookTaskCleanupTypes = map[string]HookTaskCleanupType{
-	"Age": Age,
+	"Age":        Age,
 	"PerWebhook": PerWebhook,
 }
 
@@ -820,18 +821,18 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 }
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
-func CleanupHookTaskTable(cleanupType HookTaskCleanupType, ageDays int, numberToKeep int) error {
-	log.Trace("Doing: CleanupHookTaskTable")
+func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, ageDays int, numberToKeep int) error {
+	log.Error("Doing: CleanupHookTaskTable")
 
 	if cleanupType == Age && ageDays > 0 {
-		deleteOlderThan := time.Now().AddDate(0, 0, ageDays).UnixNano();
+		deleteOlderThan := time.Now().AddDate(0, 0, -ageDays).UnixNano()
 		deletes, err := x.
 			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
 			Delete(new(HookTask))
 		if err != nil {
 			return err
 		}
-		log.Trace("Deleted %d rows from hook_task older than %d days", deletes, ageDays)
+		log.Error("Deleted %d rows from hook_task older than %d days", deletes, ageDays)
 
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
@@ -843,11 +844,18 @@ func CleanupHookTaskTable(cleanupType HookTaskCleanupType, ageDays int, numberTo
 			return err
 		}
 		for _, hookID := range hookIDs {
-			deleteDeliveredHookTasksByWebhook(hookID, numberToKeep)
+			select {
+			case <-ctx.Done():
+				return ErrCancelledf("Before deleting hook_task records for hook id %d", hookID)
+			default:
+			}
+			if err = deleteDeliveredHookTasksByWebhook(hookID, numberToKeep); err != nil {
+				return err
+			}
 		}
 	}
 
-	log.Trace("Finished: CleanupHookTaskTable")
+	log.Error("Finished: CleanupHookTaskTable")
 	return nil
 }
 
@@ -871,7 +879,7 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 		if err != nil {
 			return err
 		}
-		log.Trace("Deleted %d hook_task rows for webhook %d", deletes, hookID)
+		log.Error("Deleted %d hook_task rows for webhook %d", deletes, hookID)
 	}
 
 	return nil
