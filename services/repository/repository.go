@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	cfg "code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -18,11 +19,7 @@ import (
 func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
+		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
 	}
 
@@ -31,15 +28,28 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 	return repo, nil
 }
 
+// AdoptRepository adopts pre-existing repository files for the user/organization.
+func AdoptRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+	repo, err := repo_module.AdoptRepository(doer, owner, opts)
+	if err != nil {
+		// No need to rollback here we should do this in AdoptRepository...
+		return nil, err
+	}
+
+	notification.NotifyCreateRepository(doer, owner, repo)
+
+	return repo, nil
+}
+
+// DeleteUnadoptedRepository adopts pre-existing repository files for the user/organization.
+func DeleteUnadoptedRepository(doer, owner *models.User, name string) error {
+	return repo_module.DeleteUnadoptedRepository(doer, owner, name)
+}
+
 // ForkRepository forks a repository
 func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
 	repo, err := repo_module.ForkRepository(doer, u, oldRepo, name, desc)
 	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
 		return nil, err
 	}
 
@@ -54,13 +64,11 @@ func DeleteRepository(doer *models.User, repo *models.Repository) error {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-		return err
-	}
-
+	// If the repo itself has webhooks, we need to trigger them before deleting it...
 	notification.NotifyDeleteRepository(doer, repo)
 
-	return nil
+	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
+	return err
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -79,7 +87,7 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 
 	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
-		IsPrivate: true,
+		IsPrivate: cfg.Repository.DefaultPushCreatePrivate,
 	})
 	if err != nil {
 		return nil, err

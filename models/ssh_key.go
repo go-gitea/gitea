@@ -38,8 +38,8 @@ import (
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplCommand       = "%s --config=%q serv key-%d"
-	tplPublicKey     = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommand       = "%s --config=%s serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 )
 
 var sshOpLocker sync.Mutex
@@ -84,7 +84,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, fmt.Sprintf(tplCommand, setting.AppPath, setting.CustomConf, key.ID), key.Content)
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID)), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {

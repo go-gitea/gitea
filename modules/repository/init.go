@@ -172,10 +172,14 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	return nil
 }
 
-func checkInitRepository(repoPath string) (err error) {
+func checkInitRepository(owner, name string) (err error) {
 	// Somehow the directory could exist.
+	repoPath := models.RepoPath(owner, name)
 	if com.IsExist(repoPath) {
-		return fmt.Errorf("checkInitRepository: path already exists: %s", repoPath)
+		return models.ErrRepoFilesAlreadyExist{
+			Uname: owner,
+			Name:  name,
+		}
 	}
 
 	// Init git bare new repository.
@@ -187,9 +191,85 @@ func checkInitRepository(repoPath string) (err error) {
 	return nil
 }
 
+func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+	if !com.IsExist(repoPath) {
+		return fmt.Errorf("adoptRepository: path does not already exist: %s", repoPath)
+	}
+
+	if err := createDelegateHooks(repoPath); err != nil {
+		return fmt.Errorf("createDelegateHooks: %v", err)
+	}
+
+	// Re-fetch the repository from database before updating it (else it would
+	// override changes that were done earlier with sql)
+	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+		return fmt.Errorf("getRepositoryByID: %v", err)
+	}
+
+	repo.IsEmpty = false
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
+	if len(opts.DefaultBranch) > 0 {
+		repo.DefaultBranch = opts.DefaultBranch
+
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
+		}
+	} else {
+		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
+		if err != nil {
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+				return fmt.Errorf("setDefaultBranch: %v", err)
+			}
+		}
+
+		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
+	}
+	branches, _ := gitRepo.GetBranches()
+	found := false
+	hasDefault := false
+	hasMaster := false
+	for _, branch := range branches {
+		if branch == repo.DefaultBranch {
+			found = true
+			break
+		} else if branch == setting.Repository.DefaultBranch {
+			hasDefault = true
+		} else if branch == "master" {
+			hasMaster = true
+		}
+	}
+	if !found {
+		if hasDefault {
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+		} else if hasMaster {
+			repo.DefaultBranch = "master"
+		} else if len(branches) > 0 {
+			repo.DefaultBranch = branches[0]
+		} else {
+			repo.IsEmpty = true
+			repo.DefaultBranch = setting.Repository.DefaultBranch
+		}
+
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
+		}
+	}
+
+	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+		return fmt.Errorf("updateRepository: %v", err)
+	}
+
+	return nil
+}
+
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
-	if err = checkInitRepository(repoPath); err != nil {
+	if err = checkInitRepository(repo.OwnerName, repo.Name); err != nil {
 		return err
 	}
 
@@ -225,7 +305,8 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		repo.IsEmpty = true
 	}
 
-	repo.DefaultBranch = "master"
+	repo.DefaultBranch = setting.Repository.DefaultBranch
+
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
 		gitRepo, err := git.OpenRepository(repo.RepoPath())

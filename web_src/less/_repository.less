@@ -996,11 +996,9 @@
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
-
-            .text {
-              padding-top: 10px;
-              padding-bottom: 10px;
-            }
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
             &.arrow-top::before,
             &.arrow-top::after {
@@ -1017,11 +1015,16 @@
               left: 7px;
             }
 
-            .actions a {
-              color: rgba(0, 0, 0, .4);
+            .actions {
+              display: flex;
+              padding: 0 .5rem;
 
-              &:hover {
-                color: rgba(0, 0, 0, .8);
+              a {
+                color: rgba(0, 0, 0, .4);
+
+                &:hover {
+                  color: rgba(0, 0, 0, .8);
+                }
               }
             }
           }
@@ -1049,6 +1052,16 @@
 
             &.no-header {
               #avatar-arrow;
+            }
+
+            @media only screen and (max-width: 767px) {
+              .form .button {
+                width: 100%;
+
+                &:not(:last-child) {
+                  margin-bottom: 1rem;
+                }
+              }
             }
           }
 
@@ -1399,7 +1412,8 @@
         position: relative;
         float: left;
         padding-bottom: 6px;
-        width: 90px;
+        width: 50%;
+        max-width: 90px;
 
         &:last-child {
           border-left: 1px solid #b4b4b4;
@@ -1481,7 +1495,7 @@
     .ui.signature.avatar {
       height: 16px;
       margin-bottom: 0;
-      width: auto;
+      width: 16px;
     }
 
     .detail.icon {

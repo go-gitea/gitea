@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
@@ -30,8 +31,8 @@ var CmdMigrateStorage = cli.Command{
 			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
 		},
 		cli.StringFlag{
-			Name:  "store, s",
-			Value: "local",
+			Name:  "storage, s",
+			Value: setting.LocalStorageType,
 			Usage: "New storage type, local or minio",
 		},
 		cli.StringFlag{
@@ -112,15 +113,15 @@ func runMigrateStorage(ctx *cli.Context) error {
 
 	var dstStorage storage.ObjectStorage
 	var err error
-	switch ctx.String("store") {
-	case "local":
+	switch strings.ToLower(ctx.String("storage")) {
+	case setting.LocalStorageType:
 		p := ctx.String("path")
 		if p == "" {
-			log.Fatal("Path must be given when store is loal")
+			log.Fatal("Path must be given when storage is loal")
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(p)
-	case "minio":
+	case setting.MinioStorageType:
 		dstStorage, err = storage.NewMinioStorage(
 			context.Background(),
 			ctx.String("minio-endpoint"),
@@ -132,14 +133,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 			ctx.Bool("minio-use-ssl"),
 		)
 	default:
-		return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
+		return fmt.Errorf("Unsupported attachments storage type: %s", ctx.String("storage"))
 	}
 
 	if err != nil {
 		return err
 	}
 
-	tp := ctx.String("type")
+	tp := strings.ToLower(ctx.String("type"))
 	switch tp {
 	case "attachments":
 		if err := migrateAttachments(dstStorage); err != nil {

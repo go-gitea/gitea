@@ -397,7 +397,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // the local explore page. Function returns immediately.
 // When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
-	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+	return strings.TrimSuffix(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
 }
 
 // RealSizedAvatarLink returns a link to the user's avatar. When
@@ -646,8 +646,8 @@ func (u *User) GetOrganizationCount() (int64, error) {
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts ListOptions) (err error) {
-	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
+func (u *User) GetRepositories(listOpts ListOptions, names ...string) (err error) {
+	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
 	return err
 }
 

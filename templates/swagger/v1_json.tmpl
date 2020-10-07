@@ -120,6 +120,119 @@
         }
       }
     },
+    "/admin/unadopted": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List unadopted repositories",
+        "operationId": "adminUnadoptedList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "pattern of repositories to search for",
+            "name": "pattern",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StringSlice"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/unadopted/{owner}/{repo}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Adopt unadopted files as a repository",
+        "operationId": "adminAdoptRepository",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete unadopted files",
+        "operationId": "adminDeleteUnadoptedRepository",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
       "get": {
         "produces": [
@@ -7563,8 +7676,54 @@
           "201": {
             "$ref": "#/responses/Release"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "409": {
             "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/releases/tags/{tag}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a release by tag name",
+        "operationId": "repoGetReleaseTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "tagname of the release to get",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7606,6 +7765,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7642,6 +7804,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7691,6 +7856,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -8702,23 +8870,6 @@
         }
       }
     },
-    "/settings/Attachment": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "settings"
-        ],
-        "summary": "Get instance's global settings for Attachment",
-        "operationId": "getGeneralAttachmentSettings",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/GeneralAttachmentSettings"
-          }
-        }
-      }
-    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -8732,6 +8883,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GeneralAPISettings"
+          }
+        }
+      }
+    },
+    "/settings/attachment": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for Attachment",
+        "operationId": "getGeneralAttachmentSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAttachmentSettings"
           }
         }
       }
@@ -11129,6 +11297,11 @@
         "committer": {
           "$ref": "#/definitions/User"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -11172,6 +11345,11 @@
       "type": "object",
       "title": "CommitMeta contains meta information of a commit in terms of API.",
       "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
@@ -11937,6 +12115,11 @@
           "description": "Readme of the repository to create",
           "type": "string",
           "x-go-name": "Readme"
+        },
+        "template": {
+          "description": "Whether the repository is template",
+          "type": "boolean",
+          "x-go-name": "Template"
         },
         "trust_model": {
           "description": "TrustModel of the repository",
@@ -12892,6 +13075,11 @@
         "committer": {
           "$ref": "#/definitions/CommitUser"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -13229,6 +13417,12 @@
           "x-go-name": "URL"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GitServiceType": {
+      "description": "GitServiceType represents a git service",
+      "type": "integer",
+      "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "GitTreeResponse": {
@@ -13658,9 +13852,7 @@
           "x-go-name": "RepoName"
         },
         "service": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Service"
+          "$ref": "#/definitions/GitServiceType"
         },
         "uid": {
           "type": "integer",
@@ -13834,6 +14026,9 @@
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
+        },
+        "state": {
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "type": "string",
