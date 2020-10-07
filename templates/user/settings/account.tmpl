@@ -3,6 +3,7 @@
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+{{if not .DisableLocalUserManagement}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "settings.password"}}
 		</h4>
@@ -36,7 +37,7 @@
 			</div>
 			{{end}}
 		</div>
-
+{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "settings.manage_emails"}}
 		</h4>
@@ -70,6 +71,7 @@
 				</div>
 				{{range .Emails}}
 					<div class="item">
+{{if not $.DisableLocalUserManagement}}
 						{{if not .IsPrimary}}
 							<div class="right floated content">
 								<button class="ui red tiny button delete-button" id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
@@ -101,8 +103,11 @@
 								</form>
 							</div>
 						{{end}}
+{{end}}
 						<div class="content">
 							<strong>{{.Email}}</strong>
+{{if not $.DisableLocalUserManagement}}
+
 							{{if .IsPrimary}}
 								<div class="ui blue label">{{$.i18n.Tr "settings.primary"}}</div>
 							{{end}}
@@ -111,11 +116,13 @@
 							{{else}}
 								<div class="ui label">{{$.i18n.Tr "settings.requires_activation"}}</div>
 							{{end}}
+{{end}}
 						</div>
 					</div>
 				{{end}}
 			</div>
 		</div>
+{{if not .DisableLocalUserManagement}}
 		<div class="ui attached bottom segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				{{.CsrfTokenHtml}}
@@ -128,7 +135,7 @@
 				</button>
 			</form>
 		</div>
-
+{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "settings.manage_themes"}}
 		</h4>
@@ -167,6 +174,7 @@
 			</form>
 			</div>
 		</div>
+{{if not .DisableLocalUserManagement}}
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "settings.delete_account"}}
 		</h4>
@@ -189,6 +197,7 @@
 				</div>
 			</form>
 		</div>
+{{end}}
 	</div>
 </div>
 

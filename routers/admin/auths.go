@@ -40,6 +40,12 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("Authentications", fmt.Errorf("access to /admin/auths page denied; local user management disabled"))
+		return
+	}
+
 	var err error
 	ctx.Data["Sources"], err = models.LoginSources()
 	if err != nil {
@@ -95,6 +101,12 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
+
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewAuthSource", fmt.Errorf("access to /admin/auths/new page denied; local user management disabled"))
+		return
+	}
 
 	// only the first as default
 	for key := range models.OAuth2Providers {
@@ -218,6 +230,12 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
+	// Don't allow to create auth source if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewAuthSourcePost", fmt.Errorf("cannot create auth source; local user management disabled"))
+		return
+	}
+
 	hasTLS := false
 	var config convert.Conversion
 	switch models.LoginType(form.Type) {
@@ -290,6 +308,12 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("EditAuthSource", fmt.Errorf("access to /admin/auths page denied; local user management disabled"))
+		return
+	}
+
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("GetLoginSourceByID", err)
@@ -313,6 +337,12 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+
+	// Don't allow to update auth source if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("EditAuthSourcePost", fmt.Errorf("cannot update auth source; local user management disabled"))
+		return
+	}
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {

@@ -127,6 +127,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 	ctx.Data["Stats"] = models.GetStatistic()
 	// FIXME: update periodically
 	updateSystemStatus()
@@ -139,6 +140,7 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 	ctx.Data["Stats"] = models.GetStatistic()
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
@@ -235,6 +237,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
@@ -325,6 +328,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()

@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"fmt"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -28,6 +29,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	loadAccountData(ctx)
 
@@ -38,6 +40,7 @@ func Account(ctx *context.Context) {
 func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
@@ -83,9 +86,16 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	// Make emailaddress primary.
 	if ctx.Query("_method") == "PRIMARY" {
+		// No access to this function if local user management is disabled.
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("MakeEmailPrimary", fmt.Errorf("access to /user/settings/account/email MakeEmailPrimary function denied; local user management disabled"))
+			return
+		}
+
 		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.QueryInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
@@ -97,6 +107,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	// Send activation Email
 	if ctx.Query("_method") == "SENDACTIVATION" {
+		// No access to this function if local user management is disabled.
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("SendActivation", fmt.Errorf("access to /user/settings/account/email SendActivation function denied; local user management disabled"))
+			return
+		}
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
@@ -161,6 +176,12 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		return
 	}
 
+	// No access to this function if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("AddEmailAddress", fmt.Errorf("access to /user/settings/account/email AddEmailAddress function denied; local user management disabled"))
+		return
+	}
+
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
@@ -201,6 +222,13 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
+
+	// No access to this function if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("DeleteEmail", fmt.Errorf("access to /user/settings/account/email DeleteEmail function denied; local user management disabled"))
+		return
+	}
+
 	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.QueryInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
@@ -215,6 +243,12 @@ func DeleteEmail(ctx *context.Context) {
 
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("DeleteAccount", fmt.Errorf("access to /user/settings/account/delete page denied; local user management disabled"))
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -251,6 +285,7 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	if ctx.HasError() {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")

@@ -24,6 +24,7 @@ func Notices(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.notices")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminNotices"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	total := models.CountNotices()
 	page := ctx.QueryInt("page")

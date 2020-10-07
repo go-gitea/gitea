@@ -14,7 +14,7 @@
 					<span>{{.User.Name}}</span>
 				</div>
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
+				<div class="inline required field {{if .Err_LoginType}}error{{end}}{{if .DisableLocalUserManagement}} hide{{end}}">
 					<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
@@ -28,20 +28,20 @@
 						</div>
 					</div>
 				</div>
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
+				<div class="required non-local field {{if .Err_LoginName}}error{{end}}{{if or (eq .User.LoginSource 0) (.DisableLocalUserManagement)}} hide{{end}}">
 					<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
-					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
+					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus {{if .DisableLocalUserManagement}}readonly{{end}}>
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.User.FullName}}">
+					<input id="full_name" name="full_name" value="{{.User.FullName}}" {{if .DisableLocalUserManagement}}readonly{{end}}>
 				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="{{if not .DisableLocalUserManagement}}required {{end}}field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "email"}}</label>
-					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
+					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required {{if .DisableLocalUserManagement}}readonly{{end}}>
 				</div>
 				<input class="fake" type="password">
-				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
+				<div class="local field {{if .Err_Password}}error{{end}} {{if or (not (or (.User.IsLocal) (.User.IsOAuth2))) (.DisableLocalUserManagement)}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password">
 					<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
@@ -68,19 +68,19 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.is_activated"}}</strong></label>
-						<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
+						<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}} {{if .DisableLocalUserManagement}}readonly{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.prohibit_login"}}</strong></label>
-						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
+						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if or (eq .User.ID .SignedUserID) (.DisableLocalUserManagement)}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.is_admin"}}</strong></label>
-						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
+						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}} {{if .DisableLocalUserManagement}}readonly{{end}}>
 					</div>
 				</div>
 				<div class="inline field">

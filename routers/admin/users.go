@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -32,6 +33,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type: models.UserTypeIndividual,
@@ -50,6 +52,12 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewUser", fmt.Errorf("access to /admin/users/new page denied; local user management disabled"))
+		return
+	}
+
 	sources, err := models.LoginSources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
@@ -66,6 +74,12 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+
+	// Don't allow to create users if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewUserPost", fmt.Errorf("cannot create new user; local user management disabled"))
+		return
+	}
 
 	sources, err := models.LoginSources()
 	if err != nil {
@@ -188,6 +202,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -202,6 +217,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -226,6 +242,11 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
+		// Don't allow password changes if local user management is disabled.
+		//if setting.Service.DisableLocalUserManagement {
+		//ctx.ServerError("UpdateUser", fmt.Errorf("cannot change %s password; local user management disabled", u.Name))
+		//return
+		//}
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)

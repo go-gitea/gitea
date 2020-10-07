@@ -41,12 +41,15 @@ func Profile(ctx *context.Context) {
 
 func handleUsernameChange(ctx *context.Context, newName string) {
 	// Non-local users are not allowed to change their username.
-	if len(newName) == 0 || !ctx.User.IsLocal() || setting.Service.DisableLocalUserManagement {
+	if len(newName) == 0 || !ctx.User.IsLocal() {
 		return
 	}
 
 	// Check if user name has been changed
 	if ctx.User.LowerName != strings.ToLower(newName) {
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("ChangeUserName", fmt.Errorf("cannot change user %s username; local user management disabled", ctx.User.Name))
+		}
 		if err := models.ChangeUserName(ctx.User, newName); err != nil {
 			switch {
 			case models.IsErrUserAlreadyExist(err):
