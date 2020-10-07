@@ -361,14 +361,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			official, err = isOfficialReviewer(sess, issue, doer)
-			if err != nil {
+			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
 
 		// No current review. Create a new one!
-		review, err = createReview(sess, CreateReviewOptions{
+		if review, err = createReview(sess, CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: doer,
@@ -376,8 +375,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 			Official: official,
 			CommitID: commitID,
 			Stale:    stale,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, nil, err
 		}
 	} else {
@@ -393,8 +391,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			official, err = isOfficialReviewer(sess, issue, doer)
-			if err != nil {
+			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -571,10 +568,16 @@ func InsertReviews(reviews []*Review) error {
 }
 
 // AddReviewRequest add a review request from one reviewer
-func AddReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, err error) {
-	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	review, err := getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	// skip it when reviewer hase been request to review
@@ -582,23 +585,13 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, err
 		return nil, nil
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
-
 	var official bool
-	official, err = isOfficialReviewer(sess, issue, reviewer)
-
-	if err != nil {
+	if official, err = isOfficialReviewer(sess, issue, reviewer); err != nil {
 		return nil, err
 	}
 
 	if !official {
-		official, err = isOfficialReviewer(sess, issue, doer)
-
-		if err != nil {
+		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
 			return nil, err
 		}
 	}
@@ -609,28 +602,25 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, err
 		}
 	}
 
-	_, err = createReview(sess, CreateReviewOptions{
+	if _, err = createReview(sess, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
 		Official: official,
 		Stale:    false,
-	})
-
-	if err != nil {
-		return
+	}); err != nil {
+		return nil, err
 	}
 
-	comment, err = createComment(sess, &CreateCommentOptions{
+	var comment *Comment
+	if comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -638,31 +628,29 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, err
 }
 
 //RemoveReviewRequest remove a review request from one reviewer
-func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, err error) {
-	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil {
-		return
-	}
-
-	if review.Type != ReviewTypeRequest {
-		return nil, nil
-	}
-
+func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	_, err = sess.Delete(review)
+	review, err := getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil {
 		return nil, err
 	}
 
+	if review.Type != ReviewTypeRequest {
+		return nil, nil
+	}
+
+	if _, err = sess.Delete(review); err != nil {
+		return nil, err
+	}
+
 	var official bool
-	official, err = isOfficialReviewer(sess, issue, reviewer)
-	if err != nil {
-		return
+	if official, err = isOfficialReviewer(sess, issue, reviewer); err != nil {
+		return nil, err
 	}
 
 	if official {
@@ -681,10 +669,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, 
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
+	var comment *Comment
 	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
@@ -702,48 +687,42 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (comment *Comment, 
 }
 
 // AddTeamReviewRequest add a review request from one team
-func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (comment *Comment, err error) {
-	review, err := GetTeamReviewerByIssueIDAndTeamID(issue.ID, reviewer.ID)
-	if err != nil && !IsErrReviewNotExist(err) {
-		return
-	}
-
-	// skip it when reviewer team hase been request to review
-	if review != nil {
-		return nil, nil
-	}
-
+func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	var official bool
-	official, err = isOfficialReviewerTeam(sess, issue, reviewer)
-
-	if err != nil {
+	review, err := GetTeamReviewerByIssueIDAndTeamID(issue.ID, reviewer.ID)
+	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
 
-	if !official {
-		official, err = isOfficialReviewer(sess, issue, doer)
+	// This team already has been requested to review - therefore skip this.
+	if review != nil {
+		return nil, nil
+	}
 
-		if err != nil {
-			return nil, err
+	var official bool
+	if official, err = isOfficialReviewerTeam(sess, issue, reviewer); err != nil {
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+	}
+
+	if !official {
+		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
 		}
 	}
 
-	_, err = createReview(sess, CreateReviewOptions{
+	if _, err = createReview(sess, CreateReviewOptions{
 		Type:         ReviewTypeRequest,
 		Issue:        issue,
 		ReviewerTeam: reviewer,
 		Official:     official,
 		Stale:        false,
-	})
-
-	if err != nil {
-		return
+	}); err != nil {
+		return nil, err
 	}
 
 	if official {
@@ -752,27 +731,26 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (comment *Co
 		}
 	}
 
-	comment, err = createComment(sess, &CreateCommentOptions{
+	var comment *Comment
+	if comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-	})
-
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
 	return comment, sess.Commit()
 }
 
 //RemoveTeamReviewRequest remove a review request from one team
-func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (comment *Comment, err error) {
+func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	review, err := GetTeamReviewerByIssueIDAndTeamID(issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
-		return
+		return nil, err
 	}
 
 	if review == nil {
@@ -785,15 +763,13 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (comment 
 		return nil, err
 	}
 
-	_, err = sess.Delete(review)
-	if err != nil {
+	if _, err = sess.Delete(review); err != nil {
 		return nil, err
 	}
 
 	var official bool
-	official, err = isOfficialReviewerTeam(sess, issue, reviewer)
-	if err != nil {
-		return
+	if official, err = isOfficialReviewerTeam(sess, issue, reviewer); err != nil {
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	}
 
 	if official {
@@ -812,25 +788,20 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (comment 
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	if doer == nil {
 		return nil, sess.Commit()
 	}
 
-	comment, err = createComment(sess, &CreateCommentOptions{
+	var comment *Comment
+	if comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-	})
-
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
 	return comment, sess.Commit()
