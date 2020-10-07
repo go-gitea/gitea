@@ -265,7 +265,7 @@ OUTER:
 		// going back all the way to the OUTER loop
 		var popNum int
 		for j := len(i.statesStack) - 1; j > 0; j-- {
-			if i.statesStack[j].NumTransitions() != 1 {
+			if j == 1 || i.statesStack[j].NumTransitions() != 1 {
 				popNum = len(i.statesStack) - 1 - j
 				break
 			}

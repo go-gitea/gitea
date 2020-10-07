@@ -295,10 +295,6 @@ type decompressor struct {
 	r       Reader
 	roffset int64
 
-	// Input bits, in top of b.
-	b  uint32
-	nb uint
-
 	// Huffman decoders for literal/length, distance.
 	h1, h2 huffmanDecoder
 
@@ -309,19 +305,24 @@ type decompressor struct {
 	// Output history, buffer.
 	dict dictDecoder
 
-	// Temporary buffer (avoids repeated allocation).
-	buf [4]byte
-
 	// Next step in the decompression,
 	// and decompression state.
 	step      func(*decompressor)
 	stepState int
-	final     bool
 	err       error
 	toRead    []byte
 	hl, hd    *huffmanDecoder
 	copyLen   int
 	copyDist  int
+
+	// Temporary buffer (avoids repeated allocation).
+	buf [4]byte
+
+	// Input bits, in top of b.
+	b uint32
+
+	nb    uint
+	final bool
 }
 
 func (f *decompressor) nextBlock() {

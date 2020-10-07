@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -154,7 +153,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
-	if !setting.AttachmentEnabled {
+	if !setting.Attachment.Enabled {
 		ctx.NotFound("Attachment is not enabled")
 		return
 	}
@@ -182,7 +181,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if the filetype is allowed by the settings
-	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.Verify(buf, header.Filename, setting.Repository.Release.AllowedTypes)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "DetectContentType", err)
 		return

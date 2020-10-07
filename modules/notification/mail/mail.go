@@ -145,3 +145,16 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }
+
+func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("NotifyNewRelease: %v", err)
+		return
+	}
+
+	if rel.IsDraft || rel.IsPrerelease {
+		return
+	}
+
+	mailer.MailNewRelease(rel)
+}

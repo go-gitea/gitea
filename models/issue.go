@@ -41,6 +41,7 @@ type Issue struct {
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
+	Project          *Project   `xorm:"-"`
 	Priority         int
 	AssigneeID       int64        `xorm:"-"`
 	Assignee         *User        `xorm:"-"`
@@ -66,6 +67,9 @@ type Issue struct {
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
+
+	// For view issue page.
+	ShowTag CommentTag `xorm:"-"`
 }
 
 var (
@@ -271,6 +275,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadMilestone(e); err != nil {
+		return
+	}
+
+	if err = issue.loadProject(e); err != nil {
 		return
 	}
 
@@ -541,6 +549,11 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -699,6 +712,22 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	}
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
+	}
+
+	return sess.Commit()
+}
+
+// ChangeRef changes the branch of this issue, as the given user.
+func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "ref"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
 	return sess.Commit()
@@ -1062,6 +1091,8 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	MilestoneIDs       []int64
+	ProjectID          int64
+	ProjectBoardID     int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1147,6 +1178,19 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
+	if opts.ProjectID > 0 {
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+			And("project_issue.project_id=?", opts.ProjectID)
+	}
+
+	if opts.ProjectBoardID != 0 {
+		if opts.ProjectBoardID > 0 {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+		} else {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
+		}
+	}
+
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
 		sess.And("issue.is_pull=?", true)
@@ -1227,7 +1271,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
+	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
@@ -1238,6 +1282,27 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// CountIssues number return of issues by given conditions.
+func CountIssues(opts *IssuesOptions) (int64, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 1)
+
+	sess.Select("COUNT(issue.id) AS count").Table("issue")
+	opts.setupSession(sess)
+	if err := sess.Find(&countsSlice); err != nil {
+		return 0, fmt.Errorf("Find: %v", err)
+	}
+	if len(countsSlice) < 1 {
+		return 0, fmt.Errorf("there is less than one result sql record")
+	}
+	return countsSlice[0].Count, nil
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
@@ -1953,13 +2018,24 @@ func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, 
 		return
 	}
 
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&ProjectIssue{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("dependent_issue_id", deleteCond).
+		Delete(&Comment{}); err != nil {
+		return
+	}
+
 	var attachments []*Attachment
 	if err = sess.In("issue_id", deleteCond).
 		Find(&attachments); err != nil {
 		return
 	}
+
 	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
+		attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).

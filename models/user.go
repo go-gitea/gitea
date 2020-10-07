@@ -105,7 +105,7 @@ type User struct {
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
-	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -397,7 +397,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // the local explore page. Function returns immediately.
 // When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
-	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+	return strings.TrimSuffix(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
 }
 
 // RealSizedAvatarLink returns a link to the user's avatar. When
@@ -582,7 +582,7 @@ func (u *User) UploadAvatar(data []byte) error {
 func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
 	if len(u.Avatar) > 0 {
-		if err := os.Remove(u.CustomAvatarPath()); err != nil {
+		if err := util.Remove(u.CustomAvatarPath()); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
 		}
 	}
@@ -610,12 +610,12 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
-// IsUserPartOfOrg returns true if user with userID is part of the u organisation.
-func (u *User) IsUserPartOfOrg(userID int64) bool {
-	return u.isUserPartOfOrg(x, userID)
+// HasMemberWithUserID returns true if user with userID is part of the u organisation.
+func (u *User) HasMemberWithUserID(userID int64) bool {
+	return u.hasMemberWithUserID(x, userID)
 }
 
-func (u *User) isUserPartOfOrg(e Engine, userID int64) bool {
+func (u *User) hasMemberWithUserID(e Engine, userID int64) bool {
 	isMember, err := isOrganizationMember(e, u.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
@@ -646,8 +646,8 @@ func (u *User) GetOrganizationCount() (int64, error) {
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts ListOptions) (err error) {
-	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
+func (u *User) GetRepositories(listOpts ListOptions, names ...string) (err error) {
+	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
 	return err
 }
 
@@ -1282,14 +1282,14 @@ func deleteUser(e *xorm.Session, u *User) error {
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -1419,11 +1419,21 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
+
+	if isMention {
+		return ous, x.In("id", ids).
+			Where("`type` = ?", UserTypeIndividual).
+			And("`prohibit_login` = ?", false).
+			And("`is_active` = ?", true).
+			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			Find(&ous)
+	}
+
 	return ous, x.In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).

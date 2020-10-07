@@ -50,6 +50,7 @@ type Commit struct {
 	Status         *BuildStateValue `json:"status"`
 	LastPipeline   *PipelineInfo    `json:"last_pipeline"`
 	ProjectID      int              `json:"project_id"`
+	WebURL         string           `json:"web_url"`
 }
 
 // CommitStats represents the number of added and deleted files in a commit.
@@ -118,11 +119,13 @@ const (
 
 // CommitAction represents a single file action within a commit.
 type CommitAction struct {
-	Action       FileAction `url:"action" json:"action"`
-	FilePath     string     `url:"file_path" json:"file_path"`
-	PreviousPath string     `url:"previous_path,omitempty" json:"previous_path,omitempty"`
-	Content      string     `url:"content,omitempty" json:"content,omitempty"`
-	Encoding     string     `url:"encoding,omitempty" json:"encoding,omitempty"`
+	Action          FileAction `url:"action" json:"action"`
+	FilePath        string     `url:"file_path" json:"file_path"`
+	PreviousPath    string     `url:"previous_path,omitempty" json:"previous_path,omitempty"`
+	Content         string     `url:"content,omitempty" json:"content,omitempty"`
+	Encoding        string     `url:"encoding,omitempty" json:"encoding,omitempty"`
+	LastCommitID    string     `url:"last_commit_id,omitempty" json:"last_commit_id,omitempty"`
+	ExecuteFilemode bool       `url:"execute_filemode,omitempty" json:"execute_filemode,omitempty"`
 }
 
 // CommitRef represents the reference of branches/tags in a commit.

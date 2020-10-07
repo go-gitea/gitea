@@ -85,7 +85,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User.IsAdmin)
+	listUserOrgs(ctx, u, ctx.User != nil && (ctx.User.IsAdmin || ctx.User.ID == u.ID))
 }
 
 // GetAll return list of all public organizations
@@ -135,6 +135,7 @@ func GetAll(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &orgs)
 }
 

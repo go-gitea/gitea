@@ -44,7 +44,7 @@ Starts the server:
 - Examples:
     - `gitea web`
     - `gitea web --port 80`
-    - `gitea web --config /etc/gitea.ini --pid /var/run/gitea.pid`
+    - `gitea web --config /etc/gitea.ini --pid /some/custom/gitea.pid`
 - Notes:
     - Gitea should not be run as root. To bind to a port below 1024, you can use setcap on
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
@@ -318,6 +318,36 @@ var checklist = []check{
 ```
 
 This function will receive a command line context and return a list of details about the problems or error.
+
+##### doctor recreate-table
+
+Sometimes when there are migrations the old columns and default values may be left
+unchanged in the database schema. This may lead to warning such as:
+
+```
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+```
+
+You can cause Gitea to recreate these tables and copy the old data into the new table
+with the defaults set appropriately by using:
+
+```
+gitea doctor recreate-table user
+```
+
+You can ask gitea to recreate multiple tables using:
+
+```
+gitea doctor recreate-table table1 table2 ...
+```
+
+And if you would like Gitea to recreate all tables simply call:
+
+```
+gitea doctor recreate-table
+```
+
+It is highly recommended to back-up your database before running these commands.
 
 #### manager
 

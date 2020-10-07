@@ -6,11 +6,13 @@
 package migrations
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -26,12 +28,12 @@ func TestGiteaUploadRepo(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	var (
-		downloader = NewGithubDownloaderV3("", "", "go-xorm", "builder")
+		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(downloader, uploader, structs.MigrateRepoOption{
+	err := migrateRepository(downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
