@@ -8870,23 +8870,6 @@
         }
       }
     },
-    "/settings/Attachment": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "settings"
-        ],
-        "summary": "Get instance's global settings for Attachment",
-        "operationId": "getGeneralAttachmentSettings",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/GeneralAttachmentSettings"
-          }
-        }
-      }
-    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -8900,6 +8883,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GeneralAPISettings"
+          }
+        }
+      }
+    },
+    "/settings/attachment": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for Attachment",
+        "operationId": "getGeneralAttachmentSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralAttachmentSettings"
           }
         }
       }
