@@ -13,7 +13,7 @@
 				<div class="{{if not .DisableLocalUserManagement}}required{{end}} field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{.i18n.Tr "username"}}<span class="text red hide" id="name-change-prompt"> {{.i18n.Tr "settings.change_username_prompt"}}</span></label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus {{if not .DisableLocalUserManagement}}required{{end}} {{if or (not .SignedUser.IsLocal) (.DisableLocalUserManagement) }}disabled{{end}}>
-					{{if not .SignedUser.IsLocal}}
+					{{if not (or (.SignedUser.IsLocal) (.DisableLocalUserManagement))}}
 					<p class="help text blue">{{$.i18n.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
