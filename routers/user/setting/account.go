@@ -71,7 +71,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 			return
 		}
 		ctx.User.HashPassword(form.Password)
-		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
+		if err := models.UpdateUserCols(ctx.User, false, "salt", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

@@ -201,7 +201,7 @@ func (email *EmailAddress) updateActivation(e Engine, activate bool) error {
 	if _, err := e.ID(email.ID).Cols("is_activated").Update(email); err != nil {
 		return err
 	}
-	return updateUserCols(e, user, "rands")
+	return updateUserCols(e, user, false, "rands")
 }
 
 // DeleteEmailAddress deletes an email address of given user.
@@ -448,7 +448,7 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 		if user.Rands, err = GetUserSalt(); err != nil {
 			return fmt.Errorf("generate salt: %v", err)
 		}
-		if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
+		if err = updateUserCols(sess, &user, false, "is_active", "rands"); err != nil {
 			return fmt.Errorf("updateUserCols(): %v", err)
 		}
 	} else {

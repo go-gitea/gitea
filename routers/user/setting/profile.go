@@ -160,7 +160,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 	}
 
-	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := models.UpdateUserCols(ctxUser, false, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 

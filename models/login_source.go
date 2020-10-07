@@ -488,7 +488,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = UpdateUserCols(user, cols...)
+				err = UpdateUserCols(user, false, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -768,7 +768,7 @@ func UserSignIn(username, password string) (*User, error) {
 				// Update password hash if server password hash algorithm have changed
 				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
 					user.HashPassword(password)
-					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+					if err := UpdateUserCols(user, false, "passwd", "passwd_hash_algo"); err != nil {
 						return nil, err
 					}
 				}

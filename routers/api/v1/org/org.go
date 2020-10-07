@@ -253,7 +253,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	if form.Visibility != "" {
 		org.Visibility = api.VisibilityModes[form.Visibility]
 	}
-	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location", "visibility"); err != nil {
+	if err := models.UpdateUserCols(org, false, "full_name", "description", "website", "location", "visibility"); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
 		return
 	}

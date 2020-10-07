@@ -519,7 +519,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := models.UpdateUserCols(u, "language"); err != nil {
+		if err := models.UpdateUserCols(u, false, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
@@ -532,7 +532,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 
 	// Register last login
 	u.SetLastLogin()
-	if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+	if err := models.UpdateUserCols(u, false, "last_login_unix"); err != nil {
 		ctx.ServerError("UpdateUserCols", err)
 		return setting.AppSubURL + "/"
 	}
@@ -639,7 +639,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 
 		// Register last login
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(u, false, "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -978,7 +978,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(u, false, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1154,7 +1154,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(u, false, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1215,7 +1215,7 @@ func Activate(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
+		if err := models.UpdateUserCols(user, false, "is_active", "rands"); err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(404)
 			} else {
@@ -1475,7 +1475,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 	u.HashPassword(passwd)
 	u.MustChangePassword = false
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+	if err := models.UpdateUserCols(u, false, "must_change_password", "passwd", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -1551,7 +1551,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	u.HashPassword(form.Password)
 	u.MustChangePassword = false
 
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "salt"); err != nil {
+	if err := models.UpdateUserCols(u, false, "must_change_password", "passwd", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

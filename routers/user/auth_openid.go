@@ -443,7 +443,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(u, false, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
