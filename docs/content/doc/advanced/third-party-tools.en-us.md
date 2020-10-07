@@ -33,6 +33,7 @@ Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
 ### Mobile
 - [GitNex for Android](https://codeberg.org/gitnex/GitNex)
+- [GitTouch for Android and iOS](https://github.com/git-touch/git-touch)
 
 ###  Editor Extensions
 - [Gitea Extension for Visual Studio](https://github.com/maikebing/Gitea.VisualStudio)
