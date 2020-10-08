@@ -335,6 +335,12 @@ func NewContext() {
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 }
 
+// SendSync uses default sender to send a message with blocking
+func SendSync(msg *Message) error {
+	gomailMsg := msg.ToMessage()
+	return gomail.Send(Sender, gomailMsg)
+}
+
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
 	go func() {
