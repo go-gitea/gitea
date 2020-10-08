@@ -883,7 +883,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "editcomment")
+	upload.AddUploadContext(ctx, "comment")
 
 	if err = issue.LoadAttributes(); err != nil {
 		ctx.ServerError("LoadAttributes", err)

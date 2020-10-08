@@ -82,14 +82,11 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 	} else if uploadType == "comment" {
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
-		ctx.Data["UploadAccepts"] = strings.Replace(setting.Attachment.AllowedTypes, "|", ",", -1)
-		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	} else if uploadType == "editcomment" {
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + ctx.Params(":index") + "/attachments"
+		if len(ctx.Params(":index")) > 0 {
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + ctx.Params(":index") + "/attachments"
+		} else {
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
+		}
 		ctx.Data["UploadAccepts"] = strings.Replace(setting.Attachment.AllowedTypes, "|", ",", -1)
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
