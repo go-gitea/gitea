@@ -116,13 +116,14 @@ func registerCleanupHookTaskTable() {
 			Schedule:   "@every 24h",
 		},
 		CleanupType:  "OlderThan",
-		OlderThan:    24 * time.Hour * 30,
+		OlderThan:    168 * time.Hour,
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
 		return models.CleanupHookTaskTable(ctx, models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
 	})
 }
+
 
 func initBasicTasks() {
 	registerUpdateMirrorTask()

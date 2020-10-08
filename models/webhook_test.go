@@ -312,13 +312,13 @@ func TestCleanupHookTaskTable_Age_DeletesDelivered(t *testing.T) {
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, 31).UnixNano(),
+		Delivered:   time.Now().AddDate(0, 0, 8).UnixNano(),
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 24 * time.Hour * 30, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
 	AssertNotExistsBean(t, hookTask)
 }
 
@@ -331,13 +331,13 @@ func TestCleanupHookTaskTable_Age_LeavesUndelivered(t *testing.T) {
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
-		Delivered:   time.Now().AddDate(0, 0, 31).UnixNano(),
+		Delivered:   time.Now().AddDate(0, 0, 8).UnixNano(),
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 24 * time.Hour * 30, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -350,12 +350,12 @@ func TestCleanupHookTaskTable_Age_LeavesTaskEarlierThanAgeToDelete(t *testing.T)
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, 29).UnixNano(),
+		Delivered:   time.Now().AddDate(0, 0, 6).UnixNano(),
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 24 * time.Hour * 30, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }

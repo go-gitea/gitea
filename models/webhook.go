@@ -822,7 +822,7 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
 func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, olderThan time.Duration, numberToKeep int) error {
-	log.Error("Doing: CleanupHookTaskTable")
+	log.Trace("Doing: CleanupHookTaskTable")
 
 	if cleanupType == OlderThan {
 		deleteOlderThan := time.Now().Add(-olderThan).UnixNano()
@@ -832,7 +832,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 		if err != nil {
 			return err
 		}
-		log.Error("Deleted %d rows from hook_task older than %d", deletes, olderThan)
+		log.Trace("Deleted %d rows from hook_task", deletes)
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
 		err := x.Table("webhook").
@@ -853,12 +853,12 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 			}
 		}
 	}
-	log.Error("Finished: CleanupHookTaskTable")
+	log.Trace("Finished: CleanupHookTaskTable")
 	return nil
 }
 
 func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
-	log.Error("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
+	log.Trace("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
 	var deliveryDates = make([]int64, 0, 10)
 	err := x.Table("hook_task").
 		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ?", hookID, true).
@@ -878,9 +878,9 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 		if err != nil {
 			return err
 		}
-		log.Error("Deleted %d hook_task rows for webhook %d", deletes, hookID)
+		log.Trace("Deleted %d hook_task rows for webhook %d", deletes, hookID)
 	} else {
-		log.Error("No hook_task rows to delete for webhook %d", hookID)
+		log.Trace("No hook_task rows to delete for webhook %d", hookID)
 	}
 
 	return nil
