@@ -124,7 +124,6 @@ func registerCleanupHookTaskTable() {
 	})
 }
 
-
 func initBasicTasks() {
 	registerUpdateMirrorTask()
 	registerRepoHealthCheck()

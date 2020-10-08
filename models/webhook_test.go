@@ -318,7 +318,7 @@ func TestCleanupHookTaskTable_Age_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
 	AssertNotExistsBean(t, hookTask)
 }
 
@@ -337,7 +337,7 @@ func TestCleanupHookTaskTable_Age_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -356,6 +356,6 @@ func TestCleanupHookTaskTable_Age_LeavesTaskEarlierThanAgeToDelete(t *testing.T)
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168 * time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }
