@@ -43,6 +43,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea_server
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -74,6 +75,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea_server
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -106,6 +108,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea_server
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -156,6 +159,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea_server
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -211,6 +215,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea_server
     restart: always
     networks:
       - gitea
@@ -309,6 +314,7 @@ UID/GID as the container values `USER_UID`/`USER_GID`. You should also create th
   services:
     server:
       image: gitea/gitea:latest
+      container_name: gitea_server
       environment:
         - USER_UID=1000
         - USER_GID=1000
