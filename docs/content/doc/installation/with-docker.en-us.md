@@ -34,7 +34,7 @@ Also be aware that the tag `:latest` will install the current development versio
 For a stable release you can use `:1` or specify a certain release like `:{{< version >}}`.
 
 ```yaml
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -43,7 +43,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
-    container_name: gitea_server
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -66,7 +66,7 @@ the port section. It's common to just change the host port and keep the ports wi
 the container like they are.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -75,7 +75,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
-    container_name: gitea_server
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -99,7 +99,7 @@ To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -108,7 +108,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
-    container_name: gitea_server
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -150,7 +150,7 @@ To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -159,7 +159,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
-    container_name: gitea_server
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -202,7 +202,7 @@ create the required volume. You don't need to worry about permissions with
 named volumes; Docker will deal with that automatically.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -215,7 +215,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
-    container_name: gitea_server
+    container_name: gitea
     restart: always
     networks:
       - gitea
@@ -311,10 +311,12 @@ UID/GID as the container values `USER_UID`/`USER_GID`. You should also create th
 `/var/lib/gitea` on the host, owned by the `git` user and mounted in the container, e.g.
 
 ```
+version: "3"
+
   services:
     server:
       image: gitea/gitea:latest
-      container_name: gitea_server
+      container_name: gitea
       environment:
         - USER_UID=1000
         - USER_GID=1000
