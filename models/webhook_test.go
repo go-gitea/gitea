@@ -303,7 +303,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestCleanupHookTaskTable_Age_DeletesDelivered(t *testing.T) {
+func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      3,
@@ -322,7 +322,7 @@ func TestCleanupHookTaskTable_Age_DeletesDelivered(t *testing.T) {
 	AssertNotExistsBean(t, hookTask)
 }
 
-func TestCleanupHookTaskTable_Age_LeavesUndelivered(t *testing.T) {
+func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
@@ -341,7 +341,7 @@ func TestCleanupHookTaskTable_Age_LeavesUndelivered(t *testing.T) {
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestCleanupHookTaskTable_Age_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
+func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTask := &HookTask{
 		RepoID:      2,
