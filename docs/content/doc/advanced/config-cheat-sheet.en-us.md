@@ -70,7 +70,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
-- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
+- `DISABLE_MIRRORS`: **false**: Disable mirroring feature. Pre-existing mirrors remain valid but cannot be updated (may be converted to regular repo).
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 
 ### Repository - Pull Request (`repository.pull-request`)
