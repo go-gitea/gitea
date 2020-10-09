@@ -257,6 +257,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
+		Delivered:   time.Now().UnixNano(),
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
@@ -275,6 +276,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
+		Delivered:   time.Now().UnixNano(),
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
