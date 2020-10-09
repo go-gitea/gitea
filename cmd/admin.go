@@ -628,12 +628,8 @@ func runDeleteAuth(c *cli.Context) error {
 }
 
 func runSendMail(c *cli.Context) error {
-	if !c.IsSet("title") {
-		return errors.New("--title flag is missing")
-	}
-
-	if !c.IsSet("content") {
-		return errors.New("--content flag is missing")
+	if err := argsSet(c, "title", "content"); err != nil {
+		return err
 	}
 
 	subject := c.String("title")
