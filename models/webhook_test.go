@@ -263,7 +263,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168 * time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
 	AssertNotExistsBean(t, hookTask)
 }
 
@@ -282,7 +282,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168 * time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -301,7 +301,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, CreateHookTask(hookTask))
 	AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168 * time.Hour, 1))
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 1))
 	AssertExistsAndLoadBean(t, hookTask)
 }
 
