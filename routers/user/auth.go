@@ -949,7 +949,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		Name:        form.UserName,
 		Email:       form.Email,
 		Passwd:      form.Password,
-		IsActive:    !setting.Service.RegisterEmailConfirm,
+		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   models.LoginOAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.(goth.User).UserID,
@@ -1144,7 +1144,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   form.Password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
