@@ -271,6 +271,10 @@ var (
 				Usage: "a content of a message",
 				Value: "",
 			},
+			cli.BoolFlag{
+				Name:  "force,yes,y",
+				Usage: "A flag to bypass a confirmation step",
+			},
 		},
 	}
 )
@@ -634,6 +638,7 @@ func runSendMail(c *cli.Context) error {
 
 	subject := c.String("title")
 	body := c.String("content")
+	confirmSkiped := c.Bool("force")
 
 	if err := initDB(); err != nil {
 		return err
@@ -653,13 +658,15 @@ func runSendMail(c *cli.Context) error {
 		emails = append(emails, user.Email)
 	}
 
-	fmt.Print("Proceed with sending email? [Y/n] ")
-	isConfirmed, err := confirm()
-	if err != nil {
-		return err
-	} else if !isConfirmed {
-		fmt.Println("The mail was not sent")
-		return nil
+	if !confirmSkiped {
+		fmt.Print("Proceed with sending email? [Y/n] ")
+		isConfirmed, err := confirm()
+		if err != nil {
+			return err
+		} else if !isConfirmed {
+			fmt.Println("The mail was not sent")
+			return nil
+		}
 	}
 
 	mailer.NewContext()
