@@ -13,16 +13,16 @@
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
 					<label for="old_password">{{.i18n.Tr "settings.old_password"}}</label>
-					<input id="old_password" name="old_password" type="password" autocomplete="off" autofocus required>
+					<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
 				</div>
 				{{end}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password">{{.i18n.Tr "settings.new_password"}}</label>
-					<input id="password" name="password" type="password" autocomplete="off" required>
+					<input id="password" name="password" type="password" autocomplete="new-password" required>
 				</div>
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="retype">{{.i18n.Tr "settings.retype_new_password"}}</label>
-					<input id="retype" name="retype" type="password" autocomplete="off" required>
+					<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 				</div>
 
 				<div class="field">
@@ -179,7 +179,7 @@
 				<input class="fake" type="password">
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
-					<input id="password-confirmation" name="password" type="password" required>
+					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
 					<div class="ui red button delete-button" id="delete-account" data-type="form" data-form="#delete-form">
