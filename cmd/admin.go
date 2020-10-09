@@ -653,6 +653,15 @@ func runSendMail(c *cli.Context) error {
 		emails = append(emails, user.Email)
 	}
 
+	fmt.Print("Proceed with sending email? [Y/n] ")
+	isConfirmed, err := confirm()
+	if err != nil {
+		return err
+	} else if !isConfirmed {
+		fmt.Println("The mail was not sent")
+		return nil
+	}
+
 	mailer.NewContext()
 	msg := mailer.NewMessage(emails, subject, body)
 	err = mailer.SendSync(msg)
