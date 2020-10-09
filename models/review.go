@@ -278,6 +278,9 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	if opts.Reviewer != nil {
 		review.ReviewerID = opts.Reviewer.ID
 	} else {
+		if review.Type != ReviewTypeRequest {
+			review.Type = ReviewTypeRequest
+		}
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 	}
 	if _, err := e.Insert(review); err != nil {
@@ -451,15 +454,18 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
+	sess := x.NewSession()
+	defer sess.Close()
+
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
 		return nil, err
 	}
 
 	teamReviewRequests := make([]*Review, 0, 5)
-	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
 		issueID).
 		Find(&teamReviewRequests); err != nil {
 		return nil, err
@@ -694,7 +700,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		return nil, err
 	}
 
-	review, err := GetTeamReviewerByIssueIDAndTeamID(issue.ID, reviewer.ID)
+	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
@@ -748,19 +754,19 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 
 //RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	review, err := GetTeamReviewerByIssueIDAndTeamID(issue.ID, reviewer.ID)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
 
 	if review == nil {
 		return nil, nil
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
 	}
 
 	if _, err = sess.Delete(review); err != nil {
