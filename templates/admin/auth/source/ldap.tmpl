@@ -27,7 +27,7 @@
 	<input class="fake" type="password">
 	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
 		<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
-		<input id="bind_password" name="bind_password" type="password" value="{{.bind_password}}">
+		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
 		<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 	</div>
 	<div class="binddnrequired {{if (eq .type 2)}}required{{end}} field">
