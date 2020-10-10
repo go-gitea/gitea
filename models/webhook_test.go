@@ -243,6 +243,7 @@ func TestUpdateHookTask(t *testing.T) {
 	hook.PayloadContent = "new payload content"
 	hook.DeliveredString = "new delivered string"
 	hook.IsDelivered = true
+  hook.Delivered = time.Now().UnixNano()
 	AssertNotExistsBean(t, hook)
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
