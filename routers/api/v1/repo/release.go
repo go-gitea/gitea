@@ -41,17 +41,21 @@ func GetRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
-	if err != nil {
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
 	}
+
 	if err := release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
@@ -145,6 +149,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 
@@ -235,6 +241,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
@@ -308,6 +316,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
