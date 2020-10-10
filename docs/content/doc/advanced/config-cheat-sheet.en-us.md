@@ -258,7 +258,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_BACKUP_AUTHORIZED_KEYS`: **true**: Enable SSH Authorized Key Backup when rewriting all keys, default is true.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
-- `MINIMUM_KEY_SIZE_CHECK`: **false**: Indicate whether to check minimum key size with corresponding type.
+- `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
@@ -388,8 +388,13 @@ relation to port exhaustion.
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
-- `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
-   git hooks.
+- `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with git hook privilege to create custom git hooks.
+   WARNING: Custom git hooks can be used to perform arbitrary code execution on the host operating system.
+   This enables the users to access and modify this config file and the Gitea database and interrupt the Gitea service.
+   By modifying the Gitea database, users can gain Gitea administrator privileges.
+   It also enables them to access other resources available to the user on the operating system that is running the
+   Gitea instance and perform arbitrary actions in the name of the Gitea OS user.
+   This maybe harmful to you website or your operating system.
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
@@ -474,7 +479,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `ED25519`: **256**
 - `ECDSA`: **256**
 - `RSA`: **2048**
-- `DSA`: **1024**
+- `DSA`: **-1**: DSA is now disabled by default. Set to **1024** to re-enable but ensure you may need to reconfigure your SSHD provider
 
 ## Webhook (`webhook`)
 
