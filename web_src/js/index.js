@@ -997,7 +997,7 @@ async function initRepository() {
             } else {
               $renderContent.html(data.content);
             }
-            const $content = $segment.parent();
+            const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
                 $content.append(`
@@ -1010,7 +1010,7 @@ async function initRepository() {
                 $content.find('.dropzone-attachments .grid').html(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.dropzone-attachments').parent().remove();
+              $content.find('.dropzone-attachments').remove();
             } else {
               $content.find('.dropzone-attachments .grid').html(data.attachments);
             }

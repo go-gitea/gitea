@@ -67,7 +67,7 @@
 					{{if .Issue.Attachments}}
 						<div class="dropzone-attachments">
 							<div class="ui clearing divider"></div>
-							<div class="ui middle aligned padded grid dropzone-attachments">
+							<div class="ui middle aligned padded grid">
 								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments}}
 							</div>
 						</div>
