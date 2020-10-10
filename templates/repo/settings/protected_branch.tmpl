@@ -5,7 +5,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.branch_protection" .Branch.BranchName | Str2html}}
+			{{.i18n.Tr "repo.settings.branch_protection" (.Branch.BranchName|Escape) | Str2html}}
 		</h4>
 		<div class="ui attached segment branch-protection">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -65,7 +65,7 @@
 									<div class="menu">
 										{{range .Teams}}
 											<div class="item" data-value="{{.ID}}">
-												{{svg "octicon-people" 16}}
+												{{svg "octicon-people"}}
 												{{.Name}}
 											</div>
 										{{end}}
@@ -115,7 +115,7 @@
 								<div class="menu">
 								{{range .Teams}}
 									<div class="item" data-value="{{.ID}}">
-										{{svg "octicon-people" 16}}
+										{{svg "octicon-people"}}
 									{{.Name}}
 									</div>
 								{{end}}
@@ -195,7 +195,7 @@
 									<div class="menu">
 									{{range .Teams}}
 										<div class="item" data-value="{{.ID}}">
-											{{svg "octicon-people" 16}}
+											{{svg "octicon-people"}}
 										{{.Name}}
 										</div>
 									{{end}}

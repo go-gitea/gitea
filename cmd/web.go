@@ -41,7 +41,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: "/var/run/gitea.pid",
+			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
 	},
@@ -93,7 +93,7 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Remove the trailing slash at the end of setting.AppURL, the request
 	// URI always contains a leading slash, which would result in a double
 	// slash
-	target := strings.TrimRight(setting.AppURL, "/") + r.URL.RequestURI()
+	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
@@ -110,7 +110,8 @@ func runWeb(ctx *cli.Context) error {
 
 	// Set pid file setting
 	if ctx.IsSet("pid") {
-		setting.CustomPID = ctx.String("pid")
+		setting.PIDFile = ctx.String("pid")
+		setting.WritePIDFile = true
 	}
 
 	// Perform global initialization

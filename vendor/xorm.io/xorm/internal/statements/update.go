@@ -130,7 +130,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 			}
 		}
 
-		if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
+		if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok && !fieldValue.IsNil() {
 			data, err := structConvert.ToDB()
 			if err != nil {
 				return nil, nil, err

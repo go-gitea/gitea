@@ -112,6 +112,7 @@ type ListUsersOptions struct {
 	CreatedAfter         *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
 	OrderBy              *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
 	Sort                 *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	External             *bool      `url:"external,omitempty" json:"external,omitempty"`
 	WithCustomAttributes *bool      `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 }
 
@@ -829,6 +830,7 @@ type UserActivity struct {
 // GitLap API docs:
 // https://docs.gitlab.com/ce/api/users.html#get-user-activities-admin-only
 type GetUserActivitiesOptions struct {
+	ListOptions
 	From *ISOTime `url:"from,omitempty" json:"from,omitempty"`
 }
 

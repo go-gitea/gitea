@@ -12,10 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
@@ -66,20 +67,28 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
 	}
+	setting.Attachment.Storage.Type = setting.LocalStorageType
+	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
 
-	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+	setting.LFS.Storage.Type = setting.LocalStorageType
+	setting.LFS.Storage.Path = filepath.Join(setting.AppDataPath, "lfs")
+	if err = storage.Init(); err != nil {
+		fatalTestError("storage.Init: %v\n", err)
+	}
+
+	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("com.CopyDir: %v\n", err)
 	}
 
 	exitStatus := m.Run()
-	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = removeAllWithRetry(setting.AppDataPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.AppDataPath); err != nil {
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }
@@ -103,18 +112,6 @@ func CreateTestEngine(fixturesDir string) error {
 	return InitFixtures(fixturesDir)
 }
 
-func removeAllWithRetry(dir string) error {
-	var err error
-	for i := 0; i < 20; i++ {
-		err = os.RemoveAll(dir)
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return err
-}
-
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return LoadFixtures()
@@ -124,7 +121,7 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, removeAllWithRetry(setting.RepoRootPath))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
 	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set

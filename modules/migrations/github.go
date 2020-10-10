@@ -6,8 +6,11 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -37,30 +40,21 @@ func init() {
 type GithubDownloaderV3Factory struct {
 }
 
-// Match returns ture if the migration remote URL matched this downloader factory
-func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error) {
-	u, err := url.Parse(opts.CloneAddr)
-	if err != nil {
-		return false, err
-	}
-
-	return strings.EqualFold(u.Host, "github.com") && opts.AuthUsername != "", nil
-}
-
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
+	baseURL := u.Scheme + "://" + u.Host
 	fields := strings.Split(u.Path, "/")
 	oldOwner := fields[1]
 	oldName := strings.TrimSuffix(fields[2], ".git")
 
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
-	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -81,34 +75,33 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
 		userName:  userName,
 		password:  password,
-		ctx:       context.Background(),
+		ctx:       ctx,
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}
 
-	var client *http.Client
-	if userName != "" {
-		if password == "" {
-			ts := oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: userName},
-			)
-			client = oauth2.NewClient(downloader.ctx, ts)
-		} else {
-			client = &http.Client{
-				Transport: &http.Transport{
-					Proxy: func(req *http.Request) (*url.URL, error) {
-						req.SetBasicAuth(userName, password)
-						return nil, nil
-					},
-				},
-			}
-		}
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				req.SetBasicAuth(userName, password)
+				return nil, nil
+			},
+		},
+	}
+	if token != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		client = oauth2.NewClient(downloader.ctx, ts)
 	}
 	downloader.client = github.NewClient(client)
+	if baseURL != "https://github.com" {
+		downloader.client, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+	}
 	return &downloader
 }
 
@@ -154,14 +147,20 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}
 	g.rate = &resp.Rate
 
+	defaultBranch := ""
+	if gr.DefaultBranch != nil {
+		defaultBranch = *gr.DefaultBranch
+	}
+
 	// convert github repo to stand Repo
 	return &base.Repository{
-		Owner:       g.repoOwner,
-		Name:        gr.GetName(),
-		IsPrivate:   *gr.Private,
-		Description: gr.GetDescription(),
-		OriginalURL: gr.GetHTMLURL(),
-		CloneURL:    gr.GetCloneURL(),
+		Owner:         g.repoOwner,
+		Name:          gr.GetName(),
+		IsPrivate:     *gr.Private,
+		Description:   gr.GetDescription(),
+		OriginalURL:   gr.GetHTMLURL(),
+		CloneURL:      gr.GetCloneURL(),
+		DefaultBranch: defaultBranch,
 	}, nil
 }
 
@@ -290,10 +289,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
-		u, _ := url.Parse(*asset.BrowserDownloadURL)
-		u.User = url.UserPassword(g.userName, g.password)
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:           u.String(),
+			ID:            *asset.ID,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,
@@ -329,6 +326,18 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
+}
+
+// GetAsset returns an asset
+func (g *GithubDownloaderV3) GetAsset(_ string, id int64) (io.ReadCloser, error) {
+	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
+	if err != nil {
+		return nil, err
+	}
+	if asset == nil {
+		return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
+	}
+	return asset, nil
 }
 
 // GetIssues returns issues according start and limit

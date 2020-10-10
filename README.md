@@ -40,12 +40,12 @@ or if sqlite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.12](https://golang.org/dl/) or greater.
+- `make backend` which requires [Go 1.13](https://golang.org/dl/) or greater.
 - `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
 
-		TAGS="bindata" make backend
+    TAGS="bindata" make backend
 
 Parallelism is not supported for these targets, so please don't include `-j <num>`.
 

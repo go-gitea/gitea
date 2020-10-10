@@ -255,7 +255,7 @@ func TestRender_emoji(t *testing.T) {
 	//Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
-		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
 
 	test(
 		"Some text with 😄 in the middle",

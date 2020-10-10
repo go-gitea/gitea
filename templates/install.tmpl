@@ -284,11 +284,11 @@
 							</div>
 							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 								<label for="admin_passwd">{{.i18n.Tr "install.admin_password"}}</label>
-								<input id="admin_passwd" name="admin_passwd" type="password" value="{{.admin_passwd}}">
+								<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
 							</div>
 							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 								<label for="admin_confirm_passwd">{{.i18n.Tr "install.confirm_password"}}</label>
-								<input id="admin_confirm_passwd" name="admin_confirm_passwd" type="password" value="{{.admin_confirm_passwd}}">
+								<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
 							</div>
 							<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
 								<label for="admin_email">{{.i18n.Tr "install.admin_email"}}</label>

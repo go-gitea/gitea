@@ -10,11 +10,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-var (
-	errorEmoji   = color.RedString("✘")
-	warningEmoji = color.YellowString("⚠")
-)
-
 var newLines = map[rune]bool{
 	0x000A: true,
 	0x000B: true,
@@ -23,6 +18,14 @@ var newLines = map[rune]bool{
 	0x0085: true,
 	0x2028: true,
 	0x2029: true,
+}
+
+func getErrorEmoji() string {
+	return color.RedString("✘")
+}
+
+func getWarningEmoji() string {
+	return color.YellowString("⚠")
 }
 
 // Friendly is an implementation of the Formatter interface
@@ -68,9 +71,9 @@ func (f *Friendly) printFriendlyFailure(failure lint.Failure, severity lint.Seve
 }
 
 func (f *Friendly) printHeaderRow(failure lint.Failure, severity lint.Severity) {
-	emoji := warningEmoji
+	emoji := getWarningEmoji()
 	if severity == lint.SeverityError {
-		emoji = errorEmoji
+		emoji = getErrorEmoji()
 	}
 	fmt.Print(f.table([][]string{{emoji, "https://revive.run/r#" + failure.RuleName, color.GreenString(failure.Failure)}}))
 }
@@ -85,9 +88,9 @@ type statEntry struct {
 }
 
 func (f *Friendly) printSummary(errors, warnings int) {
-	emoji := warningEmoji
+	emoji := getWarningEmoji()
 	if errors > 0 {
-		emoji = errorEmoji
+		emoji = getErrorEmoji()
 	}
 	problemsLabel := "problems"
 	if errors+warnings == 1 {

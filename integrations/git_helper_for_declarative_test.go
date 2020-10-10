@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
@@ -30,7 +31,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 
 	tmpDir, err := ioutil.TempDir("", "key-file")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer util.RemoveAll(tmpDir)
 
 	err = os.Chmod(tmpDir, 0700)
 	assert.NoError(t, err)
@@ -119,7 +120,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		tmpDir, err := ioutil.TempDir("", "doGitCloneFail")
 		assert.NoError(t, err)
-		defer os.RemoveAll(tmpDir)
+		defer util.RemoveAll(tmpDir)
 		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
 		assert.False(t, com.IsExist(filepath.Join(tmpDir, "README.md")))
 	}

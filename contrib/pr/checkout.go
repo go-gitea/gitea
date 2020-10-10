@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
@@ -108,8 +109,8 @@ func runPR() {
 		os.Exit(1)
 	}
 	models.LoadFixtures()
-	os.RemoveAll(setting.RepoRootPath)
-	os.RemoveAll(models.LocalCopyPath())
+	util.RemoveAll(setting.RepoRootPath)
+	util.RemoveAll(models.LocalCopyPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
@@ -141,20 +142,20 @@ func runPR() {
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
-		if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-			fmt.Printf("os.RemoveAll: %v\n", err)
+		if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+			fmt.Printf("util.RemoveAll: %v\n", err)
 			os.Exit(1)
 		}
-		if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+		if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
 			fmt.Printf("Unable to remove repo indexer: %v\n", err)
 			os.Exit(1)
 		}
 	*/
-	if err = os.RemoveAll(setting.RepoRootPath); err != nil {
-		log.Fatalf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+		log.Fatalf("util.RemoveAll: %v\n", err)
 	}
-	if err = os.RemoveAll(setting.AppDataPath); err != nil {
-		log.Fatalf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.AppDataPath); err != nil {
+		log.Fatalf("util.RemoveAll: %v\n", err)
 	}
 }
 

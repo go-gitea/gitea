@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/unknwon/com"
 
 	"xorm.io/builder"
@@ -27,9 +28,9 @@ func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {
 		fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
 	}
 	giteaHookTpls = []string{
-		fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-		fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-		fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s pre-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
+		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s update $1 $2 $3\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
+		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s post-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
 	}
 	return
 }
@@ -53,7 +54,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		}
 
 		// WARNING: This will override all old server-side hooks
-		if err = os.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
+		if err = util.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
 		}
 		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
@@ -64,7 +65,7 @@ func createDelegateHooks(repoPath string) (err error) {
 			return fmt.Errorf("Unable to set %s executable. Error %v", oldHookPath, err)
 		}
 
-		if err = os.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
+		if err = util.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
 		}
 		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {

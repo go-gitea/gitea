@@ -6,7 +6,10 @@ package utils
 
 import (
 	"html"
+	"net/url"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // RemoveUsernameParameterSuffix returns the username parameter without the (fullname) suffix - leaving just the username
@@ -45,4 +48,17 @@ func SanitizeFlashErrorString(x string) string {
 	}
 
 	return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
+}
+
+// IsExternalURL checks if rawURL points to an external URL like http://example.com
+func IsExternalURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return true
+	}
+	appURL, _ := url.Parse(setting.AppURL)
+	if len(parsed.Host) != 0 && strings.Replace(parsed.Host, "www.", "", 1) != strings.Replace(appURL.Host, "www.", "", 1) {
+		return true
+	}
+	return false
 }
