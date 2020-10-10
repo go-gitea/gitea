@@ -292,7 +292,7 @@ messages. However, you could perhaps set this logger to work on `FATAL`.
 
 ## Debugging problems
 
-When submitting logs for during gitea issues it is often helpful to submit
+When submitting logs in Gitea issues it is often helpful to submit
 merged logs obtained by either by redirecting the console log to a file or
 copying and pasting it. To that end it is recommended to set your logging to:
 
