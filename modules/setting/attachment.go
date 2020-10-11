@@ -27,7 +27,7 @@ func newAttachmentService() {
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
-	Attachment.Storage = getStorage("attachment", storageType, sec)
+	Attachment.Storage = getStorage("attachments", storageType, sec)
 
 	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".docx,.gif,.gz,.jpeg,.jpg,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip")
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
