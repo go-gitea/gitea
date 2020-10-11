@@ -104,3 +104,6 @@ issues:
     - text: "commentFormatting: put a space between `//` and comment text"
       linters:
         - gocritic
+    - text: "exitAfterDefer:"
+      linters:
+        - gocritic
