@@ -36,6 +36,12 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		theFactory base.DownloaderFactory
 	)
 
+	// determine if user is token
+	if len(opts.AuthUsername) != 0 && len(opts.AuthPassword) == 0 {
+		opts.AuthToken = opts.AuthUsername
+		opts.AuthUsername = ""
+	}
+
 	for _, factory := range factories {
 		if match, err := factory.Match(opts); err != nil {
 			return nil, err

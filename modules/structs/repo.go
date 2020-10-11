@@ -213,6 +213,7 @@ type MigrateRepoOption struct {
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

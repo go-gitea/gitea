@@ -60,7 +60,7 @@ func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Download
 
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
-	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -81,7 +81,7 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
 		userName:  userName,
 		password:  password,
@@ -90,23 +90,19 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 		repoName:  repoName,
 	}
 
-	var client *http.Client
-	if userName != "" {
-		if password == "" {
-			ts := oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: userName},
-			)
-			client = oauth2.NewClient(downloader.ctx, ts)
-		} else {
-			client = &http.Client{
-				Transport: &http.Transport{
-					Proxy: func(req *http.Request) (*url.URL, error) {
-						req.SetBasicAuth(userName, password)
-						return nil, nil
-					},
-				},
-			}
-		}
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				req.SetBasicAuth(userName, password)
+				return nil, nil
+			},
+		},
+	}
+	if token != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		client = oauth2.NewClient(downloader.ctx, ts)
 	}
 	downloader.client = github.NewClient(client)
 	return &downloader

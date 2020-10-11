@@ -93,12 +93,15 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	var remoteAddr = repo.CloneURL
-	if len(opts.AuthUsername) > 0 {
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(repo.CloneURL)
 		if err != nil {
 			return err
 		}
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
 		remoteAddr = u.String()
 	}
 
