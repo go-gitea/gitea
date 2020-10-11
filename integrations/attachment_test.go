@@ -43,7 +43,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 
 	csrf := GetCSRF(t, session, repoURL)
 
-	req := NewRequestWithBody(t, "POST", "/attachments", body)
+	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, expectedStatus)

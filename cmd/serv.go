@@ -54,6 +54,8 @@ func setup(logPath string, debug bool) {
 	_ = log.DelLogger("console")
 	if debug {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
+	} else {
+		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
 	setting.NewContext()
 	if debug {
