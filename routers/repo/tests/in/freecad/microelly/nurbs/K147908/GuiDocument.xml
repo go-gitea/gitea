@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+ FreeCAD Document, see http://www.freecadweb.org for more information...
+-->
+<Document SchemaVersion="1">
+    <ViewProviderData Count="1">
+        <ViewProvider name="FK1699A" expanded="0">
+            <Properties Count="16">
+                <Property name="BoundingBox" type="App::PropertyBool">
+                    <Bool value="false"/>
+                </Property>
+                <Property name="Coloring" type="App::PropertyBool">
+                    <Bool value="false"/>
+                </Property>
+                <Property name="CreaseAngle" type="App::PropertyFloatConstraint">
+                    <Float value="0.000000000000"/>
+                </Property>
+                <Property name="DisplayMode" type="App::PropertyEnumeration">
+                    <Integer value="0"/>
+                </Property>
+                <Property name="Lighting" type="App::PropertyEnumeration">
+                    <Integer value="0"/>
+                </Property>
+                <Property name="LineColor" type="App::PropertyColor">
+                    <PropertyColor value="255"/>
+                </Property>
+                <Property name="LineTransparency" type="App::PropertyPercent">
+                    <Integer value="0"/>
+                </Property>
+                <Property name="LineWidth" type="App::PropertyFloatConstraint">
+                    <Float value="1.000000000000"/>
+                </Property>
+                <Property name="OpenEdges" type="App::PropertyBool">
+                    <Bool value="false"/>
+                </Property>
+                <Property name="PointSize" type="App::PropertyFloatConstraint">
+                    <Float value="2.000000000000"/>
+                </Property>
+                <Property name="Selectable" type="App::PropertyBool">
+                    <Bool value="true"/>
+                </Property>
+                <Property name="SelectionStyle" type="App::PropertyEnumeration">
+                    <Integer value="0"/>
+                </Property>
+                <Property name="ShapeColor" type="App::PropertyColor">
+                    <PropertyColor value="3435973887"/>
+                </Property>
+                <Property name="ShapeMaterial" type="App::PropertyMaterial">
+                    <PropertyMaterial ambientColor="858993408" diffuseColor="3435973887" specularColor="0" emissiveColor="0" shininess="0.200000002980" transparency="0.000000000000"/>
+                </Property>
+                <Property name="Transparency" type="App::PropertyPercent">
+                    <Integer value="0"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </ViewProvider>
+    </ViewProviderData>
+    <Camera settings="  OrthographicCamera {   viewportMapping ADJUST_CAMERA   position 4.4975815 66.446045 -91.645187   orientation 0.56642807 0.80840546 0.16012439  2.4790733   nearDistance 59.321022   farDistance 231.46501   aspectRatio 1   focalDistance 145.30704   height 196.76349  } "/>
+</Document>

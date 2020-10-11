@@ -16,6 +16,10 @@ import (
 	"strconv"
 	"strings"
 
+	"bufio"
+	"os"
+	"os/exec"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
@@ -395,6 +399,86 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
+	// ---- Gitea for CAD changes ----
+	isCadFile, isCadFileSourceDisplayable := base.IsCadFile(blob.Name(), buf)
+	ctx.Data["IsCadFile"] = isCadFile
+	ctx.Data["IsCadFileSourceDisplayable"] = isCadFileSourceDisplayable
+
+	if isCadFile {
+		// TODO
+		// - private repo -> how?
+
+		// - DEBUG
+		fmt.Println("Calling Python")
+
+		// -- conversion script parameters
+		// python_path := "/opt/miniconda3/bin/python"
+		python_path := "python"
+		// gitea_path := "/home/guillaume/go/src/code.gitea.io/gitea"
+		fmt.Println("GOPATH defined as : " + os.Getenv("GOPATH"))
+
+		gitea_path := ""
+
+		if os.Getenv("GOPATH") == "" {
+			gitea_path = "/home/guillaume/go/src/code.gitea.io/gitea"
+		} else {
+			gitea_path = os.Getenv("GOPATH") + "/src/code.gitea.io/gitea"
+		}
+		fmt.Println("gitea_path defined as : " + gitea_path)
+		conversion_script_path := gitea_path + "/routers/repo/cad2web_main.py"
+		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
+		converted_files_folder := gitea_path + "/public/converted_files"
+
+		// -- Conversion script definition
+		cmd := exec.Command(python_path, conversion_script_path, cad_file_raw_url, converted_files_folder)
+
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// -- Run the conversion script
+		status := cmd.Run()
+
+		// -- Retrieve the dat file and build the list
+		descriptor_filename := converted_files_folder + "/" + path.Base(cad_file_raw_url) + ".dat"
+		file, err := os.Open(descriptor_filename)
+		if err != nil {
+			ctx.ServerError("DatFile", err)
+			return
+		}
+		defer file.Close()
+
+		var lines []string
+		line_nb := 0
+		max_dim := 1000.0
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			if line_nb == 0 {
+				max_dim, err = strconv.ParseFloat(scanner.Text(), 32)
+				if err != nil {
+					max_dim = 1000.0
+				}
+			} else {
+				lines = append(lines, scanner.Text())
+			}
+			line_nb = line_nb + 1
+		}
+
+		ctx.Data["MaxDim"] = 2.0 * max_dim
+		ctx.Data["ConvertedFiles"] = lines
+
+		// -- DEBUG
+		fmt.Println("descriptor_filename : ")
+		fmt.Println(descriptor_filename)
+		fmt.Println("Lines : ")
+		fmt.Println(lines)
+		fmt.Println("Status : ")
+		fmt.Println(status)
+		fmt.Println("Calling Python ... Done")
+	}
+
+	// ---- End Gitea for CAD changes ----
+
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
 		meta := lfs.IsPointerFile(&buf)
@@ -404,6 +488,36 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
+		}
+		if meta != nil {
+			ctx.Data["IsLFSFile"] = true
+			isLFSFile = true
+
+			// OK read the lfs object
+			var err error
+			dataRc, err = lfs.ReadMetaObject(meta)
+			if err != nil {
+				ctx.ServerError("ReadMetaObject", err)
+				return
+
+			}
+			defer dataRc.Close()
+
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				ctx.ServerError("Data", err)
+				return
+			}
+			buf = buf[:n]
+
+			isTextFile = base.IsTextFile(buf)
+			ctx.Data["IsTextFile"] = isTextFile
+
+			fileSize = meta.Size
+			ctx.Data["FileSize"] = meta.Size
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 		if meta != nil {
 			ctx.Data["IsLFSFile"] = true
@@ -434,6 +548,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
+	}
+	// Check LFS Lock
+	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	ctx.Data["LFSLock"] = lfsLock
+	if err != nil {
+		ctx.ServerError("GetTreePathLock", err)
+		return
+	}
+	if lfsLock != nil {
+		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
+		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 	// Check LFS Lock
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)

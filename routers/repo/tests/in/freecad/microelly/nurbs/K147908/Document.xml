@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+ FreeCAD Document, see http://www.freecadweb.org for more information...
+-->
+<Document SchemaVersion="4" ProgramVersion="0.17R13298 (Git)" FileVersion="1">
+    <Properties Count="14">
+        <Property name="Comment" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Company" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="CreatedBy" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="CreationDate" type="App::PropertyString">
+            <String value="2018-04-04T19:08:28+02:00"/>
+        </Property>
+        <Property name="Id" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Label" type="App::PropertyString">
+            <String value="K147908"/>
+        </Property>
+        <Property name="LastModifiedBy" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="LastModifiedDate" type="App::PropertyString">
+            <String value="2018-04-04T19:13:21+02:00"/>
+        </Property>
+        <Property name="License" type="App::PropertyString">
+            <String value="All rights reserved"/>
+        </Property>
+        <Property name="LicenseURL" type="App::PropertyString">
+            <String value="http://en.wikipedia.org/wiki/All_rights_reserved"/>
+        </Property>
+        <Property name="Material" type="App::PropertyMap">
+            <Map count="0">
+            </Map>
+        </Property>
+        <Property name="Meta" type="App::PropertyMap">
+            <Map count="0">
+            </Map>
+        </Property>
+        <Property name="TipName" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Uid" type="App::PropertyUUID">
+            <Uuid value="cf82fd77-d027-4edd-9b53-6b1344f3d36d"/>
+        </Property>
+    </Properties>
+    <Objects Count="1">
+        <Object type="Mesh::Feature" name="FK1699A" />
+    </Objects>
+    <ObjectData Count="1">
+        <Object name="FK1699A">
+            <Properties Count="4">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="FK1699A"/>
+                </Property>
+                <Property name="Mesh" type="Mesh::PropertyMeshKernel">
+                    <Mesh file="MeshKernel.bms"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+            </Properties>
+        </Object>
+    </ObjectData>
+</Document>

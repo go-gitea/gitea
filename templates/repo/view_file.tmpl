@@ -1,3 +1,182 @@
+<!--<script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script>
+<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>-->
+
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/three.js"></script>
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/controls/TrackballControls.js"></script>
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/loaders/STLLoader.js"></script>
+
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/libs/util/Stats.js"></script>
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/libs/util/dat.gui.js"></script>
+
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/js/util.js"></script>
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/js/baseLoaderScene.js"></script>
+
+<script>
+		var camera, scene, renderer, object, stats, container, shape_material, gridHelper;
+		var mouseX = 0;
+		var mouseXOnMouseDown = 0;
+		var mouseY = 0;
+		var mouseYOnMouseDown = 0;
+		var moveForward = false;
+		var moveBackward = false;
+		var moveLeft = false;
+		var moveRight = false;
+		var moveUp = false;
+		var moveDown = false;
+		var windowHalfX = window.innerWidth / 2;
+		var windowHalfY = window.innerHeight / 2;
+		var selected_target_color_r = 0;
+		var selected_target_color_g = 0;
+		var selected_target_color_b = 0;
+		var selected_target = null;
+
+	function init() {
+		mouse = new THREE.Vector2();
+		raycaster = new THREE.Raycaster();
+
+		// setup the scene for rendering
+
+		var colors = [0x222d5a, 0xff8840, 0x3d4f99, 0xcc3f14, 0x00b8ff];
+		var colors_length = colors.length;
+
+		// initCamera is defined in utils.js
+		//   The unique parameter is the camera position
+		// var camera = initCamera(new THREE.Vector3({{.MaxDim}}, 0, 0));
+		camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100000);
+		camera.position.z = {{.MaxDim}};
+
+		// BaseLoaderScene is defined in baseLoaderScene.js
+		scene = new BaseLoaderScene(camera);
+		camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+		{{range $i, $element := .ConvertedFiles}}
+		//eval("var loader_{{$i}} = new THREE.STLLoader();")
+		eval("var loader_{{$i}} = new THREE.BufferGeometryLoader();")
+		eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: colors[{{$i}}%colors_length], metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});scene.addMesh(mesh_{{$i}});})")
+
+		{{end}}
+
+		var size = 100;
+		var divisions = 10;
+
+		gridHelper = new THREE.GridHelper( size, divisions );
+		scene.scene.add( gridHelper );
+
+		scene.render(camera);
+
+		// add events
+		document.addEventListener('keypress', onDocumentKeyPress, false);
+		document.addEventListener('click', onDocumentMouseClick, false);
+		window.addEventListener('resize', onWindowResize, false);
+	}
+
+	function onWindowResize() {
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+	}
+
+	function onDocumentKeyPress(event) {
+	  // alert("onDocumentKeyPress");
+	  event.preventDefault();
+	  if (event.key=="t") {  // t key
+		  if (selected_target) {
+				selected_target.material.visible = !selected_target.material.visible;
+			}
+	  }
+	  else if (event.key=="g") { // g key, toggle grid visibility
+		   gridHelper.visible = !gridHelper.visible;
+	  }
+	  else if (event.key=="a") { // g key, toggle axisHelper visibility
+		   axisHelper.visible = !axisHelper.visible;
+	  }
+	  else if (event.key=="w") { // g key, toggle axisHelper visibility
+		   if (selected_target) {
+				selected_target.material.wireframe = !selected_target.material.wireframe;
+			}
+	  }
+	}
+	function onDocumentMouseClick(event) {
+		// alert("onDocumentMouseClick");
+		// event.preventDefault();
+		mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+		// restore previous selected target color
+		if (selected_target) {
+			selected_target.material.color.setRGB(selected_target_color_r,
+				selected_target_color_g,
+				selected_target_color_b);
+		}
+		// perform selection
+		raycaster.setFromCamera(mouse, camera);
+		var intersects = raycaster.intersectObjects(scene.scene.children);
+		if (intersects.length > 0) {
+			var target = intersects[0].object;
+			selected_target_color_r = target.material.color.r;
+			selected_target_color_g = target.material.color.g;
+			selected_target_color_b = target.material.color.b;
+			target.material.color.setRGB(1., 0.65, 0.);
+			console.log(target);
+			selected_target = target;
+		}
+	}
+	function fit_to_scene() {
+		// compute bounding sphere of whole scene
+		var center = new THREE.Vector3(0,0,0);
+		var radiuses = new Array();
+		var positions = new Array();
+		// compute center of all objects
+		scene.traverse(function(child) {
+			if (child instanceof THREE.Mesh) {
+				child.geometry.computeBoundingBox();
+				var box = child.geometry.boundingBox;
+				var curCenter = new THREE.Vector3().copy(box.min).add(box.max).multiplyScalar(0.5);
+				var radius = new THREE.Vector3().copy(box.max).distanceTo(box.min)/2.;
+				center.add(curCenter);
+				positions.push(curCenter);
+				radiuses.push(radius);
+			}
+		});
+		if (radiuses.length > 0) {
+			center.divideScalar(radiuses.length*0.7);
+		}
+		var maxRad = 1.;
+		// compute bounding radius
+		for (var ichild = 0; ichild < radiuses.length; ++ichild) {
+			var distToCenter = positions[ichild].distanceTo(center);
+			var totalDist = distToCenter + radiuses[ichild];
+			if (totalDist > maxRad) {
+				maxRad = totalDist;
+			}
+		}
+		maxRad = maxRad * 0.7; // otherwise the scene seems to be too far away
+		camera.lookAt(center);
+		var direction = new THREE.Vector3().copy(camera.position).sub(controls.target);
+		var len = direction.length();
+		direction.normalize();
+
+		// compute new distance of camera to middle of scene to fit the object to screen
+		var lnew = maxRad / Math.sin(camera.fov/180. * Math.PI / 2.);
+		direction.multiplyScalar(lnew);
+
+		var pnew = new THREE.Vector3().copy(center).add(direction);
+		// change near far values to avoid culling of objects
+		camera.position.set(pnew.x, pnew.y, pnew.z);
+		camera.far = lnew*50;
+		camera.near = lnew*50*0.001;
+		camera.updateProjectionMatrix();
+		controls.target = center;
+		controls.update();
+		// adds and adjust a grid helper if needed
+		gridHelper = new THREE.GridHelper(maxRad*4, 10)
+		scene.add(gridHelper);
+		// axisHelper
+		axisHelper = new THREE.AxesHelper(maxRad);
+		scene.add(axisHelper);
+	}
+</script>
+
+
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header">
 		<div class="file-header-left df ac">
@@ -65,6 +244,104 @@
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
 				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
+			{{else if .IsCadFile}}
+				<table>
+					<tbody>
+					<!-- x3dom viewer-->
+						<!--<tr>
+							<td colspan="2">
+								<x3d width='1100px' height='800px'>
+									<scene>
+										<shape>
+											<appearance>
+											<material diffuseColor='1 0 0'></material>
+											</appearance>
+											<box></box>
+										</shape>
+										<transform translation='-3 0 0'>
+										<shape>
+											<appearance>
+											<material diffuseColor='0 1 0'></material>
+											</appearance>
+											<cone></cone>
+										</shape>
+										</transform>
+										<transform translation='3 0 0'>
+										<shape>
+											<appearance>
+											<material diffuseColor='0 0 1'></material>
+											</appearance>
+											<sphere></sphere>
+										</shape>
+										</transform>
+									</scene>
+								</x3d>
+							</td>
+						</tr>-->
+					<!-- x3dom viewer-->
+
+					<!-- three.js viewer container -->
+						<tr>
+							<td id="threejs-td" colspan="2">
+								<div id="webgl-output">
+									<script type="text/javascript">
+										(function () {
+											// your page initialization code here
+											// the DOM will be available here
+											init()
+										})();
+									</script>
+
+								</div>
+							</td>
+						</tr>
+					<!-- end three.js viewer container -->
+
+					<!-- debug message -->
+						<!-- <tr>
+							<td colspan="2">
+								This is a CAD file. Is its source displayable? {{.IsCadFileSourceDisplayable}}
+							</td>
+						</tr> -->
+						<!-- <tr>
+							<td colspan="2">
+								MaxDim : {{.MaxDim}}
+							</td>
+						</tr>  -->
+						<!-- <tr>
+							<td>
+								<strong>{{.FileName}}</strong>
+							</td>
+						</tr> -->
+						<!-- <tr>
+							<td>{{EscapePound $.RawFileLink}}</td>
+						</tr> -->
+					{{range .ConvertedFiles}}
+					<!-- <tr>
+						<td>
+							{{.}}
+						</td>
+					</tr> -->
+					{{end}}
+					<!-- end debug message -->
+
+					<!-- source code display / or not-->
+						{{if .IsCadFileSourceDisplayable}}
+
+						<tr>
+						{{if .IsFileTooLarge}}
+							<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
+						{{else}}
+							<td class="lines-num">{{.LineNums}}</td>
+							<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
+						{{end}}
+						</tr>
+
+						{{end}}
+					<!-- source code display / or not-->
+						</tbody>
+					</table>
+
 			{{else if not .IsTextFile}}
 				<div class="view-raw ui center">
 					{{if .IsImageFile}}
