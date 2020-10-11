@@ -219,12 +219,12 @@ type CreateReviewOptions struct {
 	Stale        bool
 }
 
-// IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewer(issue *Issue, reviewer *User) (bool, error) {
-	return isOfficialReviewer(x, issue, reviewer)
+// IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
+func IsOfficialReviewer(issue *Issue, reviewers ...*User) (bool, error) {
+	return isOfficialReviewer(x, issue, reviewers...)
 }
 
-func isOfficialReviewer(e Engine, issue *Issue, reviewer *User) (bool, error) {
+func isOfficialReviewer(e Engine, issue *Issue, reviewers ...*User) (bool, error) {
 	pr, err := getPullRequestByIssueID(e, issue.ID)
 	if err != nil {
 		return false, err
@@ -236,7 +236,14 @@ func isOfficialReviewer(e Engine, issue *Issue, reviewer *User) (bool, error) {
 		return false, nil
 	}
 
-	return pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+	for _, reviewer := range reviewers {
+		official, err := pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+		if official || err != nil {
+			return official, err
+		}
+	}
+
+	return false, nil
 }
 
 // IsOfficialReviewerTeam check if reviewer in this team can make official reviews in issue (counts towards required approvals)
@@ -426,22 +433,20 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	// try to remove team review request if need
 	if issue.Repo.Owner.IsOrganization() && (reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject) {
 		teamReviewRequests := make([]*Review, 0, 10)
-		if err = sess.SQL("SELECT * FROM review WHERE reviewer_team_id > 0 AND type = ?", ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
+		if err := sess.SQL("SELECT * FROM review WHERE reviewer_team_id > 0 AND type = ?", ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
 			return nil, nil, err
 		}
 
-		if len(teamReviewRequests) > 0 {
-			for _, teamReviewRequest := range teamReviewRequests {
-				ok := false
-				if ok, err = isTeamMember(sess, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID); err != nil {
-					return nil, nil, err
-				}
+		for _, teamReviewRequest := range teamReviewRequests {
+			ok, err := isTeamMember(sess, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
+			if err != nil {
+				return nil, nil, err
+			} else if !ok {
+				continue
+			}
 
-				if ok {
-					if _, err := sess.Delete(teamReviewRequest); err != nil {
-						return nil, nil, err
-					}
-				}
+			if _, err := sess.Delete(teamReviewRequest); err != nil {
+				return nil, nil, err
 			}
 		}
 	}
@@ -456,6 +461,9 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 
 	sess := x.NewSession()
 	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
 
 	// Get latest review of each reviwer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
@@ -479,12 +487,12 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 }
 
 // GetReviewerByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err error) {
-	return getReviewerByIssueIDAndUserID(x, issueID, userID)
+func GetReviewerByIssueIDAndUserID(issueID, userID int64) (*Review, error) {
+	return getReviewByIssueIDAndUserID(x, issueID, userID)
 }
 
-func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
-	review = new(Review)
+func getReviewByIssueIDAndUserID(e Engine, issueID, userID int64) (*Review, error) {
+	var review *Review
 
 	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
@@ -492,7 +500,7 @@ func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Rev
 		return nil, err
 	}
 
-	return
+	return review, nil
 }
 
 // GetTeamReviewerByIssueIDAndTeamID get the latest review requst of reviewer team for a pull request
@@ -581,7 +589,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	review, err := getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -591,18 +599,10 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, nil
 	}
 
-	var official bool
-	if official, err = isOfficialReviewer(sess, issue, reviewer); err != nil {
+	official, err := isOfficialReviewer(sess, issue, reviewer, doer)
+	if err != nil {
 		return nil, err
-	}
-
-	if !official {
-		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
-			return nil, err
-		}
-	}
-
-	if official {
+	} else if official {
 		if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, reviewer.ID); err != nil {
 			return nil, err
 		}
@@ -618,15 +618,15 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	var comment *Comment
-	if comment, err = createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -641,7 +641,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	review, err := getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -654,16 +654,12 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	var official bool
-	if official, err = isOfficialReviewer(sess, issue, reviewer); err != nil {
+	official, err := isOfficialReviewer(sess, issue, reviewer)
+	if err != nil {
 		return nil, err
-	}
-
-	if official {
-		// recalculate which is the latest official review from that user
-		var review *Review
-
-		review, err = getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+	} else if official {
+		// recalculate the latest official review for reviewer
+		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -675,8 +671,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	var comment *Comment
-	comment, err = createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -684,7 +679,6 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -710,12 +704,10 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		return nil, nil
 	}
 
-	var official bool
-	if official, err = isOfficialReviewerTeam(sess, issue, reviewer); err != nil {
+	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
-	}
-
-	if !official {
+	} else if !official {
 		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
 			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
 		}
@@ -732,20 +724,20 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	}
 
 	if official {
-		if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id = ?", false, issue.ID, reviewer.ID); err != nil {
+		if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id=?", false, issue.ID, reviewer.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	var comment *Comment
-	if comment, err = createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
@@ -773,16 +765,14 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		return nil, err
 	}
 
-	var official bool
-	if official, err = isOfficialReviewerTeam(sess, issue, reviewer); err != nil {
+	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	}
 
 	if official {
 		// recalculate which is the latest official review from that team
-		var review *Review
-
-		review, err = getReviewerByIssueIDAndUserID(sess, issue.ID, -reviewer.ID)
+		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, -reviewer.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -798,15 +788,15 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		return nil, sess.Commit()
 	}
 
-	var comment *Comment
-	if comment, err = createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
