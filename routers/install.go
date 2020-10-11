@@ -271,6 +271,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
 	cfg.Section("database").Key("CHARSET").SetValue(setting.Database.Charset)
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
+	cfg.Section("database").Key("LOG_SQL").SetValue("false") // LOG_SQL is rarely helpful
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
@@ -330,9 +331,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
-	cfg.Section("log").Key("MODE").SetValue("file")
+	cfg.Section("log").Key("MODE").SetValue("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
+	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
+	cfg.Section("log").Key("MACARON").SetValue("console")
+	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 	var secretKey string

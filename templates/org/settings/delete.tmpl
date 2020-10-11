@@ -18,7 +18,7 @@
 						<input class="fake" type="password">
 						<div class="inline required field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password" autofocus required>
+							<input id="password" name="password" type="password" autocomplete="off" autofocus required>
 						</div>
 						<div class="ui red button delete-button" data-type="form" data-form="#delete-form">
 							{{.i18n.Tr "org.settings.confirm_delete_account"}}
