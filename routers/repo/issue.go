@@ -1698,7 +1698,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	})
 }
 
-func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
+func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
 	if reviewer.IsOrganization() {
 		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.PullRequest.BaseRepo.ID)
 	}
@@ -1764,7 +1764,7 @@ func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	return nil
 }
 
-func isLegalTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
+func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
 	if doer.IsOrganization() {
 		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
 	}
@@ -1846,9 +1846,9 @@ func updatePullReviewRequest(ctx *context.Context) {
 						return
 					}
 
-					err = isLegalTeamReviewRequest(team, ctx.User, action == "attach", issue)
+					err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
 					if err != nil {
-						ctx.ServerError("isLegalTeamReviewRequest", err)
+						ctx.Status(403)
 						return
 					}
 
@@ -1868,9 +1868,9 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, action == "attach", issue)
+			err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
 			if err != nil {
-				ctx.ServerError("isLegalRequestReview", err)
+				ctx.Status(403)
 				return
 			}
 
