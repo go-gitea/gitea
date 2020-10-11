@@ -238,7 +238,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		FromTreePath: ctx.Repo.TreePath,
 		TreePath:     form.TreePath,
 		Message:      message,
-		Content:      strings.Replace(form.Content, "\r", "", -1),
+		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 		IsNewFile:    isNewFile,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile

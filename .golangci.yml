@@ -101,3 +101,6 @@ issues:
     - path: cmd/dump.go
       linters:
         - dupl
+    - text: "commentFormatting: put a space between `//` and comment text"
+      linters:
+        - gocritic
