@@ -405,7 +405,7 @@ func getAppPath() (string, error) {
 	}
 	// Note: we don't use path.Dir here because it does not handle case
 	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.Replace(appPath, "\\", "/", -1), err
+	return strings.ReplaceAll(appPath, "\\", "/"), err
 }
 
 func getWorkPath(appPath string) string {
@@ -422,7 +422,7 @@ func getWorkPath(appPath string) string {
 			workPath = appPath[:i]
 		}
 	}
-	return strings.Replace(workPath, "\\", "/", -1)
+	return strings.ReplaceAll(workPath, "\\", "/")
 }
 
 func init() {
@@ -524,7 +524,7 @@ func NewContext() {
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
-	homeDir = strings.Replace(homeDir, "\\", "/", -1)
+	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
 	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")

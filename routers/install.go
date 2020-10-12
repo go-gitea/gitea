@@ -172,7 +172,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Test repository root path.
-	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
+	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
@@ -181,7 +181,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Test LFS root path if not empty, empty meaning disable LFS
 	if form.LFSRootPath != "" {
-		form.LFSRootPath = strings.Replace(form.LFSRootPath, "\\", "/", -1)
+		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
 		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
 			ctx.Data["Err_LFSRootPath"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
@@ -190,7 +190,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Test log root path.
-	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
+	form.LogRootPath = strings.ReplaceAll(form.LogRootPath, "\\", "/")
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
