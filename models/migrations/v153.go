@@ -5,18 +5,21 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addChangedProtectedFilesPullRequestColumn(x *xorm.Engine) error {
-	type PullRequest struct {
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+func addTeamReviewRequestSupport(x *xorm.Engine) error {
+	type Review struct {
+		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	type Comment struct {
+		AssigneeTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return nil
+
+	if err := x.Sync2(new(Review)); err != nil {
+		return err
+	}
+
+	return x.Sync2(new(Comment))
 }

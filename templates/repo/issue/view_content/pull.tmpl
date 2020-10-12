@@ -1,24 +1,31 @@
-{{if gt (len .PullReviewers) 0}}
+{{if .PullReviewers }}
 	<div class="comment box">
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
 				{{range .PullReviewers}}
-					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
+					{{ $createdStr:= TimeSinceUnix .Review.UpdatedUnix $.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
-								<img src="{{.Reviewer.RelAvatarLink}}">
-							</a>
-							<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
-								{{if eq .Type 1}}
+							{{if .User}}
+								<a class="ui avatar image" href="{{.User.HomeLink}}">
+									<img src="{{.User.RelAvatarLink}}">
+								</a>
+							{{end}}
+							<span class="text grey">
+								{{if .User}}
+									<a href="{{.User.HomeLink}}">{{.User.Name}}</a>
+								{{else if .Team}}
+									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+								{{end}}
+								{{if eq .Review.Type 1}}
 									{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
-								{{else if eq .Type 2}}
+								{{else if eq .Review.Type 2}}
 									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-								{{else if eq .Type 3}}
+								{{else if eq .Review.Type 3}}
 									{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-								{{else if eq .Type 4}}
+								{{else if eq .Review.Type 4}}
 									{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 								{{else}}
 									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
@@ -26,34 +33,23 @@
 							</span>
 						</div>
 						<div class="review-item-right">
-							{{if .Stale}}
+							{{if .Review.Stale}}
 							<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
 								<i class="octicon icon fa-hourglass-end"></i>
 							</span>
 							{{end}}
-							<span class="type-icon text {{if eq .Type 1}}green
-								{{- else if eq .Type 2}}grey
-								{{- else if eq .Type 3}}red
-								{{- else if eq .Type 4}}yellow
+							<span class="type-icon text {{if eq .Review.Type 1}}green
+								{{- else if eq .Review.Type 2}}grey
+								{{- else if eq .Review.Type 3}}red
+								{{- else if eq .Review.Type 4}}yellow
 								{{else}}grey{{end}}">
 
-								{{$canChoose := false}}
-								{{if eq .Type 4}}
-									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-										{{$canChoose = true}}
-									{{end}}
-								{{else}}
-									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-										{{$canChoose = true}}
-									{{end}}
-								{{end}}
-
-								{{if $canChoose }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+								{{if .CanChange }}
+									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{svg "octicon-sync"}}
 									</a>
 								{{end}}
-								{{svg (printf "octicon-%s" .Type.Icon)}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
 							</span>
 						</div>
 					</div>

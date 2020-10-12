@@ -694,32 +694,37 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
 }
 
-func (repo *Repository) getReviewersPrivate(e Engine, doerID, posterID int64) (users []*User, err error) {
-	users = make([]*User, 0, 20)
-
-	if err = e.
-		SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
-			repo.ID, AccessModeRead,
-			doerID, posterID).
-		Find(&users); err != nil {
+func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User, error) {
+	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
+	if err := repo.getOwner(e); err != nil {
 		return nil, err
 	}
 
-	return users, nil
-}
+	var users []*User
 
-func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ []*User, err error) {
+	if repo.IsPrivate ||
+		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
+		// This a private repository:
+		// Anyone who can read the repository is a requestable reviewer
+		if err := e.
+			SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
+				repo.ID, AccessModeRead,
+				doerID, posterID).
+			Find(&users); err != nil {
+			return nil, err
+		}
 
-	users := make([]*User, 0)
+		return users, nil
+	}
 
-	const SQLCmd = "SELECT * FROM `user` WHERE id IN ( " +
-		"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
-		"UNION " +
-		"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
-		") ORDER BY name"
-
-	if err = e.
-		SQL(SQLCmd,
+	// This is a "public" repository:
+	// Any user that has write access or who is a watcher can be requested to review
+	if err := e.
+		SQL("SELECT * FROM `user` WHERE id IN ( "+
+			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) "+
+			"UNION "+
+			"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) "+
+			") ORDER BY name",
 			repo.ID, AccessModeRead, doerID, posterID,
 			repo.ID, doerID, posterID, RepoWatchModeNormal, RepoWatchModeAuto).
 		Find(&users); err != nil {
@@ -729,27 +734,30 @@ func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ 
 	return users, nil
 }
 
-func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) (users []*User, err error) {
-	if err = repo.getOwner(e); err != nil {
+// GetReviewers get all users can be requested to review:
+// * for private repositories this returns all users that have read access or higher to the repository.
+// * for public repositories this returns all users that have write access or higher to the repository,
+// and all repo watchers.
+// TODO: may be we should hava a busy choice for users to block review request to them.
+func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
+	return repo.getReviewers(x, doerID, posterID)
+}
+
+// GetReviewerTeams get all teams can be requested to review
+func (repo *Repository) GetReviewerTeams() ([]*Team, error) {
+	if err := repo.GetOwner(); err != nil {
+		return nil, err
+	}
+	if !repo.Owner.IsOrganization() {
+		return nil, nil
+	}
+
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
+	if err != nil {
 		return nil, err
 	}
 
-	if repo.IsPrivate ||
-		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
-		users, err = repo.getReviewersPrivate(x, doerID, posterID)
-	} else {
-		users, err = repo.getReviewersPublic(x, doerID, posterID)
-	}
-	return
-}
-
-// GetReviewers get all users can be requested to review
-// for private rpo , that return all users that have read access or higher to the repository.
-// but for public rpo, that return all users that have write access or higher to the repository,
-// and all repo watchers.
-// TODO: may be we should hava a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) (_ []*User, err error) {
-	return repo.getReviewers(x, doerID, posterID)
+	return teams, err
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
