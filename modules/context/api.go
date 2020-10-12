@@ -99,7 +99,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if macaron.Env != macaron.PROD {
+	if macaron.Env != macaron.PROD || (ctx.User != nil && ctx.User.IsAdmin) {
 		message = err.Error()
 	}
 
