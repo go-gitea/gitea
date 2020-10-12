@@ -293,7 +293,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Downgraded Gitea not supported
 	if int(v-minDBVersion) > len(migrations) {
-		msg := fmt.Sprintf("Downgrade Gitea from '%d' to '%d' not supported.\nIf you really have to, execute `UPDATE version SET version=%d WHERE id=1;`\n",
+		msg := fmt.Sprintf("Downgrading Gitea from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
 			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
 		fmt.Fprint(os.Stderr, msg)
 		log.Fatal(msg)
