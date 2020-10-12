@@ -651,7 +651,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	if review == nil && review.Type != ReviewTypeRequest {
+	if review == nil || review.Type != ReviewTypeRequest {
 		return nil, nil
 	}
 
