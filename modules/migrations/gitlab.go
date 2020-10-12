@@ -239,6 +239,19 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
+func (g *GitlabDownloader) normalizeColor(val string) string {
+	val = strings.TrimLeft(val, "#")
+	val = strings.ToLower(val)
+	if len(val) == 3 {
+		c := []rune(val)
+		val = fmt.Sprintf("%c%c%c%c%c%c", c[0], c[0], c[1], c[1], c[2], c[2])
+	}
+	if len(val) != 6 {
+		return ""
+	}
+	return val
+}
+
 // GetLabels returns labels
 func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 	if g == nil {
@@ -257,7 +270,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 		for _, label := range ls {
 			baseLabel := &base.Label{
 				Name:        label.Name,
-				Color:       strings.TrimLeft(label.Color, "#)"),
+				Color:       g.normalizeColor(label.Color),
 				Description: label.Description,
 			}
 			labels = append(labels, baseLabel)
