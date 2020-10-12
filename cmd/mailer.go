@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/services/mailer"
+
 	"github.com/urfave/cli"
 )
 
