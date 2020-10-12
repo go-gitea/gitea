@@ -1690,10 +1690,18 @@ func UpdateIssueAssignee(ctx *context.Context) {
 
 func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
 	if reviewer.IsOrganization() {
-		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.PullRequest.BaseRepo.ID)
+		return models.ErrNotValidReviewRequest{
+			Reason: "Organization can't be added as reviewer",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
+		}
 	}
 	if doer.IsOrganization() {
-		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
+		return models.ErrNotValidReviewRequest{
+			Reason: "Organization can't be doer to add reviewer",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
+		}
 	}
 
 	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
@@ -1706,8 +1714,8 @@ func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 		return err
 	}
 
-	lastreview, err := models.GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil {
+	lastreview, err := models.GetReviewByIssueIDAndUserID(issue.ID, reviewer.ID)
+	if err != nil && !models.IsErrReviewNotExist(err) {
 		return err
 	}
 
@@ -1715,7 +1723,11 @@ func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	if isAdd {
 		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
 		if !pemResult {
-			return fmt.Errorf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			return models.ErrNotValidReviewRequest{
+				Reason: "Reviewer can't read",
+				UserID: doer.ID,
+				RepoID: issue.Repo.ID,
+			}
 		}
 
 		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
@@ -1729,25 +1741,41 @@ func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 				return err
 			}
 			if !pemResult {
-				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+				return models.ErrNotValidReviewRequest{
+					Reason: "Doer can't choose reviewer",
+					UserID: doer.ID,
+					RepoID: issue.Repo.ID,
+				}
 			}
 		}
 
 		if doer.ID == reviewer.ID {
-			return fmt.Errorf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+			return models.ErrNotValidReviewRequest{
+				Reason: "doer can't be reviewer",
+				UserID: doer.ID,
+				RepoID: issue.Repo.ID,
+			}
 		}
 
 		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
-			return fmt.Errorf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			return models.ErrNotValidReviewRequest{
+				Reason: "poster of pr can't be reviewer",
+				UserID: doer.ID,
+				RepoID: issue.Repo.ID,
+			}
 		}
 	} else {
-		if lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
+		if lastreview != nil && lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
 			return nil
 		}
 
 		pemResult = permDoer.IsAdmin()
 		if !pemResult {
-			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+			return models.ErrNotValidReviewRequest{
+				Reason: "Doer is not admin",
+				UserID: doer.ID,
+				RepoID: issue.Repo.ID,
+			}
 		}
 	}
 
@@ -1756,7 +1784,11 @@ func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 
 func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
 	if doer.IsOrganization() {
-		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
+		return models.ErrNotValidReviewRequest{
+			Reason: "Organization can't be doer to add reviewer",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
+		}
 	}
 
 	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
@@ -1770,7 +1802,11 @@ func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bo
 			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
 
 			if !hasTeam {
-				return fmt.Errorf("Reviewing team can't read repo [team_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+				return models.ErrNotValidReviewRequest{
+					Reason: "Reviewing team can't read repo",
+					UserID: doer.ID,
+					RepoID: issue.Repo.ID,
+				}
 			}
 		}
 
@@ -1782,11 +1818,19 @@ func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bo
 				return err
 			}
 			if !official {
-				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+				return models.ErrNotValidReviewRequest{
+					Reason: "Doer can't choose reviewer",
+					UserID: doer.ID,
+					RepoID: issue.Repo.ID,
+				}
 			}
 		}
 	} else if !permission.IsAdmin() {
-		return fmt.Errorf("Only admin users can remove team requests. Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		return models.ErrNotValidReviewRequest{
+			Reason: "Only admin users can remove team requests. Doer is not admin",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
+		}
 	}
 
 	return nil
@@ -1854,12 +1898,16 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 			err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
 			if err != nil {
-				log.Warn(
-					"UpdatePullReviewRequest: refusing to add invalid team review request for UID[%d] team %s to %s#%d owned by UID[%d]: Error: %v",
-					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
-					err,
-				)
-				ctx.Status(403)
+				if models.IsErrNotValidReviewRequest(err) {
+					log.Warn(
+						"UpdatePullReviewRequest: refusing to add invalid team review request for UID[%d] team %s to %s#%d owned by UID[%d]: Error: %v",
+						team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
+						err,
+					)
+					ctx.Status(403)
+					return
+				}
+				ctx.ServerError("isValidTeamReviewRequest", err)
 				return
 			}
 
@@ -1888,12 +1936,16 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 		err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
 		if err != nil {
-			log.Warn(
-				"UpdatePullReviewRequest: refusing to add invalid review request for %-v to %-v#%d: Error: %v",
-				reviewer, issue.Repo, issue.Index,
-				err,
-			)
-			ctx.Status(403)
+			if models.IsErrNotValidReviewRequest(err) {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add invalid review request for %-v to %-v#%d: Error: %v",
+					reviewer, issue.Repo, issue.Index,
+					err,
+				)
+				ctx.Status(403)
+				return
+			}
+			ctx.ServerError("isValidReviewRequest", err)
 			return
 		}
 

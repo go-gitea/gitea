@@ -45,7 +45,7 @@
 								{{else}}grey{{end}}">
 
 								{{if .CanChange }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if .Checked}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{svg "octicon-sync"}}
 									</a>
 								{{end}}

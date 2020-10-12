@@ -486,18 +486,23 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	return reviews, nil
 }
 
-// GetReviewerByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewerByIssueIDAndUserID(issueID, userID int64) (*Review, error) {
+// GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
+func GetReviewByIssueIDAndUserID(issueID, userID int64) (*Review, error) {
 	return getReviewByIssueIDAndUserID(x, issueID, userID)
 }
 
 func getReviewByIssueIDAndUserID(e Engine, issueID, userID int64) (*Review, error) {
-	var review *Review
+	review := new(Review)
 
-	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
+	has, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-		Get(review); err != nil {
+		Get(review)
+	if err != nil {
 		return nil, err
+	}
+
+	if !has {
+		return nil, ErrReviewNotExist{}
 	}
 
 	return review, nil
@@ -590,7 +595,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	}
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
-	if err != nil {
+	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
 
@@ -642,11 +647,11 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	}
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
-	if err != nil {
+	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
 
-	if review.Type != ReviewTypeRequest {
+	if review == nil && review.Type != ReviewTypeRequest {
 		return nil, nil
 	}
 
@@ -660,7 +665,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	} else if official {
 		// recalculate the latest official review for reviewer
 		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
-		if err != nil {
+		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
@@ -773,7 +778,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 	if official {
 		// recalculate which is the latest official review from that team
 		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, -reviewer.ID)
-		if err != nil {
+		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
