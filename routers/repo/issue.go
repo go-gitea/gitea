@@ -1785,10 +1785,8 @@ func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bo
 				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
 			}
 		}
-	} else {
-		if !permission.IsAdmin() {
-			return fmt.Errorf("Only admin users can remove team requests. Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
-		}
+	} else if !permission.IsAdmin() {
+		return fmt.Errorf("Only admin users can remove team requests. Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
 	}
 
 	return nil
@@ -1875,6 +1873,15 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 		reviewer, err := models.GetUserByID(reviewID)
 		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				log.Warn(
+					"UpdatePullReviewRequest: requested reviewer [%d] for %-v to %-v#%d is not exist: Error: %v",
+					reviewID, issue.Repo, issue.Index,
+					err,
+				)
+				ctx.Status(403)
+				return
+			}
 			ctx.ServerError("GetUserByID", err)
 			return
 		}
