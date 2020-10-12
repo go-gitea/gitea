@@ -5,7 +5,7 @@
 		{{if .Issue.IsPull }}
 
 		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-		<div class="ui {{if or (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
 				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
@@ -20,36 +20,30 @@
 						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
-				{{range .Reviewers}}
-					{{$ReviewerID := .ID}}
-					{{$checked := false}}
-					{{$canChoose := false}}
-					{{$notReviewed := true}}
-
-					{{range $.PullReviewers}}
-						{{if eq .ReviewerID $ReviewerID }}
-							{{$notReviewed = false }}
-							{{if  eq .Type 4 }}
-								{{$checked = true}}
-								{{if or (eq $ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
-								{{end}}
-							{{else}}
-								{{$canChoose = true}}
-							{{end}}
+				{{if .Reviewers}}
+					{{range .Reviewers}}
+						{{if .User}}
+							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+								<span class="text">
+									<img class="ui avatar image" src="{{.User.RelAvatarLink}}"> {{.User.GetDisplayName}}
+								</span>
+							</a>
 						{{end}}
 					{{end}}
-
-					{{ if $notReviewed}}
-						{{$canChoose = true}}
+				{{end}}
+				{{if .TeamReviewers}}
+					<div class="ui divider"></div>
+					{{range .TeamReviewers}}
+						{{if .Team}}
+							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+								<span class="text">
+									{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+								</span>
+							</a>
+						{{end}}
 					{{end}}
-
-					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}} {{if not $canChoose}}ban-change{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
-						<span class="text">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
-						</span>
-					</a>
 				{{end}}
 			</div>
 		</div>
@@ -59,30 +53,23 @@
 			<div class="selected">
 				{{range .PullReviewers}}
 					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{.Reviewer.HomeLink}}"><img class="ui avatar image" src="{{.Reviewer.RelAvatarLink}}">&nbsp;{{.Reviewer.GetDisplayName}}</a>
-						<span class="ui right type-icon text {{if eq .Type 1}}green
-							{{- else if eq .Type 2}}grey
-							{{- else if eq .Type 3}}red
-							{{- else if eq .Type 4}}yellow
+						{{if .User}}
+							<a href="{{.User.HomeLink}}"><img class="ui avatar image" src="{{.User.RelAvatarLink}}">&nbsp;{{.User.GetDisplayName}}</a>
+						{{else if .Team}}
+							<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+						{{end}}
+						<span class="ui right type-icon text {{if eq .Review.Type 1}}green
+							{{- else if eq .Review.Type 2}}grey
+							{{- else if eq .Review.Type 3}}red
+							{{- else if eq .Review.Type 4}}yellow
 							{{- else}}grey{{end}} right ">
 
-							{{$canChoose := false}}
-							{{if eq .Type 4}}
-								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
-								{{end}}
-							{{else}}
-								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-									{{$canChoose = true}}
-								{{end}}
-							{{end}}
-
-							{{if $canChoose}}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+							{{if .CanChange}}
+								<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 									{{svg "octicon-sync"}}
 								</a>
 							{{end}}
-							{{svg (printf "octicon-%s" .Type.Icon)}}
+							{{svg (printf "octicon-%s" .Review.Type.Icon)}}
 						</span>
 					</div>
 				{{end}}
