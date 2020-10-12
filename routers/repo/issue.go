@@ -516,7 +516,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 			tmp.CanChange = true
 		} else if (canChooseReviewer || (ctx.User != nil && ctx.User.ID == issue.PosterID)) && review.Type != models.ReviewTypeRequest &&
 			ctx.User.ID != review.ReviewerID {
-			// manager and official reviewers call re-requst review from other reviewer
+			// The poster of the PR, a manager, or official reviewers can re-request review from other reviewers
 			tmp.CanChange = true
 		}
 
