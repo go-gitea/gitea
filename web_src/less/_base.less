@@ -476,6 +476,17 @@ code,
     vertical-align: middle;
   }
 
+  .error {
+    &.header {
+      background-color: #ffe8e6 !important;
+      border-color: #db2828;
+    }
+
+    &.segment {
+      border-color: #db2828;
+    }
+  }
+
   .warning {
     &.header {
       background-color: #f9edbe !important;
@@ -997,6 +1008,7 @@ i.icon.centerlock {
   color: rgba(27, 31, 35, .3);
   width: 1%;
   user-select: none;
+  font-family: @monospaced-fonts, monospace;
 
   span {
     &.bottom-line {
@@ -1041,6 +1053,11 @@ i.icon.centerlock {
 
 .lines-code code {
   white-space: pre;
+}
+
+.lines-code.active,
+.lines-code .active {
+  background: #fffbdd !important;
 }
 
 .blame .lines-num {
@@ -1121,11 +1138,6 @@ i.icon.centerlock {
   table {
     width: 100%;
   }
-
-  .active {
-    background: #fffbdd !important;
-  }
-
 }
 
 .octicon-tiny {

@@ -202,8 +202,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
-			ctx.ServerError("SaveAddress", err)
+		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+			ctx.ServerError("UpdateAddress", err)
 			return
 		}
 
@@ -883,6 +883,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
+			ctx.Data["Err_Title"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+		case models.IsErrDeployKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:

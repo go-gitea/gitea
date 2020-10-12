@@ -18,7 +18,7 @@
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="password">{{.i18n.Tr "password"}}</label>
-				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 			</div>
 			{{end}}
 			{{if not .LinkAccountMode}}

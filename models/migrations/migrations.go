@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -317,12 +318,16 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		return nil
 	}
 
+	// Downgraded Gitea not supported
 	if int(v-minDBVersion) > len(migrations) {
-		// User downgraded Gitea.
-		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.ID(1).Update(currentVersion)
-		return err
+		msg := fmt.Sprintf("Downgrading Gitea from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
+			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
+		fmt.Fprint(os.Stderr, msg)
+		log.Fatal(msg)
+		return nil
 	}
+
+	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
@@ -682,7 +687,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "`" + strings.ToLower(col) + "`"
 		}
 		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.Replace(cols, "`", "'", -1))
+			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
 			return fmt.Errorf("Find constraints: %v", err)

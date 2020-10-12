@@ -70,6 +70,10 @@ func RemoveAllWithNotice(title, path string) {
 // RemoveStorageWithNotice removes a file from the storage and
 // creates a system notice when error occurs.
 func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
+	removeStorageWithNotice(x, bucket, title, path)
+}
+
+func removeStorageWithNotice(e Engine, bucket storage.ObjectStorage, title, path string) {
 	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)

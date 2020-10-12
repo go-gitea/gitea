@@ -34,7 +34,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
-	name = strings.Replace(name, ",", " ", -1)
+	name = strings.ReplaceAll(name, ",", " ")
 
 	if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		cs, err := charset.DetectEncoding(buf)

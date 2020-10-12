@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -573,6 +574,8 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.Query("body")
 	ctx.Data["BodyQuery"] = body
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	milestoneID := ctx.QueryInt64("milestone")
 	if milestoneID > 0 {
@@ -598,8 +601,6 @@ func NewIssue(ctx *context.Context) {
 		}
 
 	}
-
-	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
 	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
@@ -731,7 +732,8 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["ReadOnly"] = false
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -880,8 +882,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
-
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	if err = issue.LoadAttributes(); err != nil {
 		ctx.ServerError("LoadAttributes", err)

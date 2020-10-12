@@ -5,42 +5,24 @@
 package setting
 
 import (
-	"path"
 	"path/filepath"
-	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 var (
 	// Attachment settings
 	Attachment = struct {
-		StoreType   string
-		Path        string
-		ServeDirect bool
-		Minio       struct {
-			Endpoint        string
-			AccessKeyID     string
-			SecretAccessKey string
-			UseSSL          bool
-			Bucket          string
-			Location        string
-			BasePath        string
-		}
+		Storage
 		AllowedTypes string
 		MaxSize      int64
 		MaxFiles     int
 		Enabled      bool
 	}{
-		StoreType:   "local",
-		ServeDirect: false,
-		Minio: struct {
-			Endpoint        string
-			AccessKeyID     string
-			SecretAccessKey string
-			UseSSL          bool
-			Bucket          string
-			Location        string
-			BasePath        string
-		}{},
+		Storage: Storage{
+			Type:        LocalStorageType,
+			ServeDirect: false,
+		},
 		AllowedTypes: "image/jpeg,image/png,application/zip,application/gzip",
 		MaxSize:      4,
 		MaxFiles:     5,
@@ -50,25 +32,39 @@ var (
 
 func newAttachmentService() {
 	sec := Cfg.Section("attachment")
-	Attachment.StoreType = sec.Key("STORE_TYPE").MustString("local")
-	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
-	switch Attachment.StoreType {
-	case "local":
-		Attachment.Path = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
-		if !filepath.IsAbs(Attachment.Path) {
-			Attachment.Path = path.Join(AppWorkPath, Attachment.Path)
-		}
-	case "minio":
-		Attachment.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-		Attachment.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-		Attachment.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-		Attachment.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString("gitea")
-		Attachment.Minio.Location = sec.Key("MINIO_LOCATION").MustString("us-east-1")
-		Attachment.Minio.BasePath = sec.Key("MINIO_BASE_PATH").MustString("attachments/")
-		Attachment.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(false)
+	Attachment.Storage.Type = sec.Key("STORAGE_TYPE").MustString("")
+	if Attachment.Storage.Type == "" {
+		Attachment.Storage.Type = "default"
 	}
 
-	Attachment.AllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
+	if Attachment.Storage.Type != LocalStorageType && Attachment.Storage.Type != MinioStorageType {
+		storage, ok := storages[Attachment.Storage.Type]
+		if !ok {
+			log.Fatal("Failed to get attachment storage type: %s", Attachment.Storage.Type)
+		}
+		Attachment.Storage = storage
+	}
+
+	// Override
+	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(Attachment.ServeDirect)
+
+	switch Attachment.Storage.Type {
+	case LocalStorageType:
+		Attachment.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "attachments"))
+		if !filepath.IsAbs(Attachment.Path) {
+			Attachment.Path = filepath.Join(AppWorkPath, Attachment.Path)
+		}
+	case MinioStorageType:
+		Attachment.Minio.Endpoint = sec.Key("MINIO_ENDPOINT").MustString(Attachment.Minio.Endpoint)
+		Attachment.Minio.AccessKeyID = sec.Key("MINIO_ACCESS_KEY_ID").MustString(Attachment.Minio.AccessKeyID)
+		Attachment.Minio.SecretAccessKey = sec.Key("MINIO_SECRET_ACCESS_KEY").MustString(Attachment.Minio.SecretAccessKey)
+		Attachment.Minio.Bucket = sec.Key("MINIO_BUCKET").MustString(Attachment.Minio.Bucket)
+		Attachment.Minio.Location = sec.Key("MINIO_LOCATION").MustString(Attachment.Minio.Location)
+		Attachment.Minio.UseSSL = sec.Key("MINIO_USE_SSL").MustBool(Attachment.Minio.UseSSL)
+		Attachment.Minio.BasePath = sec.Key("MINIO_BASE_PATH").MustString("attachments/")
+	}
+
+	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".docx,.gif,.gz,.jpeg,.jpg,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip")
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(true)
