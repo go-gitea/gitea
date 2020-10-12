@@ -38,8 +38,8 @@
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
-								<span class="ui text">
-									{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+								<span class="text">
+									{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 								</span>
 							</a>
 						{{end}}
@@ -56,7 +56,7 @@
 						{{if .User}}
 							<a href="{{.User.HomeLink}}"><img class="ui avatar image" src="{{.User.RelAvatarLink}}">&nbsp;{{.User.GetDisplayName}}</a>
 						{{else if .Team}}
-							<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+							<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 						{{end}}
 						<span class="ui right type-icon text {{if eq .Review.Type 1}}green
 							{{- else if eq .Review.Type 2}}grey
