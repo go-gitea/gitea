@@ -14,13 +14,9 @@ import (
 )
 
 func runSendMail(c *cli.Context) error {
-	if err := argsSet(c, "title", "content"); err != nil {
+	if err := argsSet(c, "title"); err != nil {
 		return err
 	}
-
-	subject := c.String("title")
-	body := c.String("content")
-	confirmSkiped := c.Bool("force")
 
 	if err := initDB(); err != nil {
 		return err
@@ -40,7 +36,15 @@ func runSendMail(c *cli.Context) error {
 		emails = append(emails, user.Email)
 	}
 
+	subject := c.String("title")
+	confirmSkiped := c.Bool("force")
+	body := c.String("content")
+
 	if !confirmSkiped {
+		if len(body) == 0 {
+			fmt.Print("warning: Content is empty")
+		}
+
 		fmt.Print("Proceed with sending email? [Y/n] ")
 		isConfirmed, err := confirm()
 		if err != nil {
