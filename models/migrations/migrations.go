@@ -243,7 +243,7 @@ var migrations = []Migration{
 	// v153 > v154
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
-	NewMigration("add timestamps to Star, Label, LanguageStat, Follow, Watch and Collaboration", addTimeStamps),
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 }
 
 // GetCurrentDBVersion returns the current db version

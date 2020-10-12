@@ -23,8 +23,7 @@ type LanguageStat struct {
 	Percentage  float32            `xorm:"-"`
 	Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 	Color       string             `xorm:"-"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
 // LanguageStatList defines a list of language statistics

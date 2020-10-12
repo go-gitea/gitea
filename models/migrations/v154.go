@@ -30,14 +30,6 @@ func addTimeStamps(x *xorm.Engine) error {
 		return err
 	}
 
-	// LanguageStat describes language statistics of a repository
-	type LanguageStat struct {
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-	if err := x.Sync2(new(LanguageStat)); err != nil {
-		return err
-	}
-
 	// Follow represents relations of user and his/her followers.
 	type Follow struct {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
