@@ -290,12 +290,13 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		return nil
 	}
 
+	// Downgraded Gitea not supported
 	if int(v-minDBVersion) > len(migrations) {
-		// User downgraded Gitea.
-		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.ID(1).Update(currentVersion)
-		return err
+		return fmt.Errorf("Downgrade Gitea from '%d' to '%d' not supported.\nIf you really have to execute `UPDATE version SET version=%d WHERE id=1;`",
+			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
 	}
+
+	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
