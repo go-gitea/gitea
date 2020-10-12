@@ -16,7 +16,6 @@ func addTimeStamps(x *xorm.Engine) error {
 	// Star represents a starred repo by an user.
 	type Star struct {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 	if err := x.Sync2(new(Star)); err != nil {
 		return err
