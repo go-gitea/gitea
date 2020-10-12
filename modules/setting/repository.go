@@ -43,6 +43,7 @@ var (
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
+		DisableMigrations                       bool
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
@@ -148,6 +149,7 @@ var (
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMirrors:                          false,
+		DisableMigrations:                       false,
 		DefaultBranch:                           "master",
 
 		// Repository editor settings

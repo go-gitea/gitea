@@ -188,6 +188,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -202,6 +203,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
