@@ -240,6 +240,8 @@ var migrations = []Migration{
 	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
 	// v152 -> v153
 	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	// v153 > v154
+	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 }
 
 // GetCurrentDBVersion returns the current db version

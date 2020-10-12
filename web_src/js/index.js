@@ -663,15 +663,16 @@ function initIssueComments() {
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
-    const isChecked = $(this).data('is-checked');
+    const isChecked = $(this).hasClass('checked');
 
     event.preventDefault();
     updateIssuesMeta(
       url,
-      isChecked === 'true' ? 'attach' : 'detach',
+      isChecked ? 'detach' : 'attach',
       issueId,
       id,
     ).then(reload);
+    return false;
   });
 
   $(document).on('click', (event) => {
