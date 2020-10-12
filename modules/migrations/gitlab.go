@@ -74,9 +74,7 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
-	var gitlabClient *gitlab.Client
-	var err error
-	gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
 	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
 	if token == "" && password != "" {
