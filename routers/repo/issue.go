@@ -456,6 +456,10 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 		return
 	}
 
+	if len(reviews) == 0 && !canChooseReviewer {
+		return
+	}
+
 	var (
 		pullReviews         []*repoReviewerSelection
 		reviewersResult     []*repoReviewerSelection
@@ -469,163 +473,149 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 		if issue.OriginalAuthorID > 0 {
 			posterID = 0
 		}
+
 		reviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
+
 		teamReviewers, err = repo.GetReviewerTeams()
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
 		}
+
 		if len(reviewers) > 0 {
 			reviewersResult = make([]*repoReviewerSelection, 0, len(reviewers))
 		}
+
 		if len(teamReviewers) > 0 {
 			teamReviewersResult = make([]*repoReviewerSelection, 0, len(teamReviewers))
 		}
 	}
 
-	if len(reviews) != 0 {
-		pullReviews = make([]*repoReviewerSelection, 0, len(reviews))
+	pullReviews = make([]*repoReviewerSelection, 0, len(reviews))
 
-		for _, review := range reviews {
-			tmp := &repoReviewerSelection{
-				Checked: review.Type == models.ReviewTypeRequest,
-				Review:  review,
-				ItemID:  review.ReviewerID,
-			}
-			if review.ReviewerTeamID > 0 {
-				tmp.IsTeam = true
-				tmp.ItemID = -review.ReviewerTeamID
-			}
-			if ctx.User != nil && ctx.User.ID == review.ReviewerID && review.Type == models.ReviewTypeRequest {
-				// all user can refuse the review request to them
-				tmp.CanChange = true
-			} else if (canChooseReviewer || (ctx.User != nil && ctx.User.ID == issue.PosterID)) && review.Type != models.ReviewTypeRequest &&
-				ctx.User.ID != review.ReviewerID {
-				// manager and official reviewers call re-requst review from other reviewer
-				tmp.CanChange = true
-			} else if ctx.User != nil && ctx.Repo.IsAdmin() && ctx.User.ID != review.ReviewerID {
-				// only admin can dissims review request to other reviewers
-				tmp.CanChange = true
-			}
+	for _, review := range reviews {
+		tmp := &repoReviewerSelection{
+			Checked: review.Type == models.ReviewTypeRequest,
+			Review:  review,
+			ItemID:  review.ReviewerID,
+		}
+		if review.ReviewerTeamID > 0 {
+			tmp.IsTeam = true
+			tmp.ItemID = -review.ReviewerTeamID
+		}
 
-			pullReviews = append(pullReviews, tmp)
+		if ctx.Repo.IsAdmin() {
+			// Admin can dismiss or re-request any review requests
+			tmp.CanChange = true
+		} else if ctx.User != nil && ctx.User.ID == review.ReviewerID && review.Type == models.ReviewTypeRequest {
+			// A user can refuse review requests
+			tmp.CanChange = true
+		} else if (canChooseReviewer || (ctx.User != nil && ctx.User.ID == issue.PosterID)) && review.Type != models.ReviewTypeRequest &&
+			ctx.User.ID != review.ReviewerID {
+			// The poster of the PR, a manager, or official reviewers can re-request review from other reviewers
+			tmp.CanChange = true
+		}
 
-			if canChooseReviewer {
-				if tmp.IsTeam {
-					teamReviewersResult = append(teamReviewersResult, tmp)
-				} else {
-					reviewersResult = append(reviewersResult, tmp)
-				}
+		pullReviews = append(pullReviews, tmp)
+
+		if canChooseReviewer {
+			if tmp.IsTeam {
+				teamReviewersResult = append(teamReviewersResult, tmp)
+			} else {
+				reviewersResult = append(reviewersResult, tmp)
 			}
 		}
-	} else if !canChooseReviewer {
-		return
 	}
 
-	if !canChooseReviewer {
-		exitsReviers := make([]*repoReviewerSelection, 0, len(pullReviews))
+	if len(pullReviews) > 0 {
+		// Drop all non-existing users and teams from the reviews
+		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err = item.Review.LoadReviewer(); err != nil {
 					if models.IsErrUserNotExist(err) {
 						continue
-					} else {
-						ctx.ServerError("LoadReviewer", err)
-						return
 					}
+					ctx.ServerError("LoadReviewer", err)
+					return
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err = item.Review.LoadReviewerTeam(); err != nil {
 					if models.IsErrTeamNotExist(err) {
 						continue
-					} else {
-						ctx.ServerError("LoadReviewerTeam", err)
-						return
 					}
+					ctx.ServerError("LoadReviewerTeam", err)
+					return
 				}
 				item.Team = item.Review.ReviewerTeam
 			} else {
 				continue
 			}
 
-			exitsReviers = append(exitsReviers, item)
+			currentPullReviewers = append(currentPullReviewers, item)
 		}
-		ctx.Data["PullReviewers"] = exitsReviers
-		return
+		ctx.Data["PullReviewers"] = currentPullReviewers
 	}
 
-	if reviewersResult != nil {
-		exitLen := len(reviewersResult)
+	if canChooseReviewer && reviewersResult != nil {
+		preadded := len(reviewersResult)
 		for _, reviewer := range reviewers {
-			exist := false
-			for index, tmp := range reviewersResult {
-				if index >= exitLen {
-					break
-				}
+			found := false
+		reviewAddLoop:
+			for _, tmp := range reviewersResult[:preadded] {
 				if tmp.ItemID == reviewer.ID {
 					tmp.User = reviewer
-					exist = true
+					found = true
+					break reviewAddLoop
 				}
 			}
-			if !exist {
-				reviewersResult = append(reviewersResult, &repoReviewerSelection{
-					IsTeam:    false,
-					CanChange: true,
-					User:      reviewer,
-					ItemID:    reviewer.ID,
-				})
+
+			if found {
+				continue
 			}
+
+			reviewersResult = append(reviewersResult, &repoReviewerSelection{
+				IsTeam:    false,
+				CanChange: true,
+				User:      reviewer,
+				ItemID:    reviewer.ID,
+			})
 		}
 
 		ctx.Data["Reviewers"] = reviewersResult
 	}
 
-	if teamReviewersResult != nil {
-		exitLen := len(teamReviewersResult)
+	if canChooseReviewer && teamReviewersResult != nil {
+		preadded := len(teamReviewersResult)
 		for _, team := range teamReviewers {
-			exist := false
-			for index, tmp := range teamReviewersResult {
-				if index >= exitLen {
-					break
-				}
+			found := false
+		teamReviewAddLoop:
+			for _, tmp := range teamReviewersResult[:preadded] {
 				if tmp.ItemID == -team.ID {
 					tmp.Team = team
-					exist = true
+					found = true
+					break teamReviewAddLoop
 				}
 			}
-			if !exist {
-				teamReviewersResult = append(teamReviewersResult, &repoReviewerSelection{
-					IsTeam:    true,
-					CanChange: true,
-					Team:      team,
-					ItemID:    -team.ID,
-				})
+
+			if found {
+				continue
 			}
+
+			teamReviewersResult = append(teamReviewersResult, &repoReviewerSelection{
+				IsTeam:    true,
+				CanChange: true,
+				Team:      team,
+				ItemID:    -team.ID,
+			})
 		}
 
 		ctx.Data["TeamReviewers"] = teamReviewersResult
-	}
-
-	if len(pullReviews) > 0 {
-		exitsReviers := make([]*repoReviewerSelection, 0, len(pullReviews))
-		for _, item := range pullReviews {
-			if ctx.User != nil && item.ItemID == ctx.User.ID {
-				if err = item.Review.LoadReviewer(); err != nil {
-					ctx.ServerError("LoadReviewer", err)
-					return
-				}
-				item.User = item.Review.Reviewer
-			}
-			if item.Team != nil || item.User != nil {
-				exitsReviers = append(exitsReviers, item)
-			}
-		}
-		ctx.Data["PullReviewers"] = exitsReviers
 	}
 }
 
@@ -1769,43 +1759,43 @@ func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bo
 		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
 	}
 
-	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
+	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
 	if err != nil {
+		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 		return err
 	}
 
-	var pemResult bool
 	if isAdd {
 		if issue.Repo.IsPrivate {
-			pemResult = models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
+			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
 
-			if !pemResult {
-				return fmt.Errorf("Reviewer can't read [team_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			if !hasTeam {
+				return fmt.Errorf("Reviewing team can't read repo [team_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
 			}
 		}
 
-		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
+		doerCanWrite := permission.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
+		if !doerCanWrite {
+			official, err := models.IsOfficialReviewer(issue, doer)
 			if err != nil {
+				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 				return err
 			}
-			if !pemResult {
+			if !official {
 				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
 			}
 		}
 	} else {
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		if !permission.IsAdmin() {
+			return fmt.Errorf("Only admin users can remove team requests. Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
 		}
 	}
 
 	return nil
 }
 
-// updatePullReviewRequest change pull's request reviewers
-func updatePullReviewRequest(ctx *context.Context) {
+// UpdatePullReviewRequest add or remove review request
+func UpdatePullReviewRequest(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
 		return
@@ -1821,66 +1811,88 @@ func updatePullReviewRequest(ctx *context.Context) {
 	}
 
 	for _, issue := range issues {
-		if issue.IsPull {
+		if err := issue.LoadRepo(); err != nil {
+			ctx.ServerError("issue.LoadRepo", err)
+			return
+		}
 
-			if reviewID < 0 {
-				if err := issue.LoadRepo(); err != nil {
-					ctx.ServerError("issue.LoadRepo", err)
-					return
-				}
-
-				if err := issue.Repo.GetOwner(); err != nil {
-					ctx.ServerError("issue.Repo.GetOwner", err)
-					return
-				}
-
-				if issue.Repo.Owner.IsOrganization() {
-					team, err := models.GetTeamByID(-reviewID)
-					if err != nil {
-						ctx.ServerError("models.GetTeamByID", err)
-						return
-					}
-
-					if team.OrgID != issue.Repo.OwnerID {
-						ctx.Status(403)
-						return
-					}
-
-					err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
-					if err != nil {
-						ctx.Status(403)
-						return
-					}
-
-					err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
-					if err != nil {
-						ctx.ServerError("ReviewRequest", err)
-						return
-					}
-
-					continue
-				}
-			}
-
-			reviewer, err := models.GetUserByID(reviewID)
-			if err != nil {
-				ctx.ServerError("GetUserByID", err)
+		if !issue.IsPull {
+			log.Warn(
+				"UpdatePullReviewRequest: refusing to add review request for non-PR issue %-v#%d",
+				issue.Repo, issue.Index,
+			)
+			ctx.Status(403)
+			return
+		}
+		if reviewID < 0 {
+			// negative reviewIDs represent team requests
+			if err := issue.Repo.GetOwner(); err != nil {
+				ctx.ServerError("issue.Repo.GetOwner", err)
 				return
 			}
 
-			err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
-			if err != nil {
+			if !issue.Repo.Owner.IsOrganization() {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add team review request for %s#%d owned by non organization UID[%d]",
+					issue.Repo.FullName(), issue.Index, issue.Repo.ID,
+				)
 				ctx.Status(403)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
+			team, err := models.GetTeamByID(-reviewID)
 			if err != nil {
-				ctx.ServerError("ReviewRequest", err)
+				ctx.ServerError("models.GetTeamByID", err)
 				return
 			}
-		} else {
+
+			if team.OrgID != issue.Repo.OwnerID {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add team review request for UID[%d] team %s to %s#%d owned by UID[%d]",
+					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID)
+				ctx.Status(403)
+				return
+			}
+
+			err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
+			if err != nil {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add invalid team review request for UID[%d] team %s to %s#%d owned by UID[%d]: Error: %v",
+					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
+					err,
+				)
+				ctx.Status(403)
+				return
+			}
+
+			err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
+			if err != nil {
+				ctx.ServerError("TeamReviewRequest", err)
+				return
+			}
+			continue
+		}
+
+		reviewer, err := models.GetUserByID(reviewID)
+		if err != nil {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+
+		err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
+		if err != nil {
+			log.Warn(
+				"UpdatePullReviewRequest: refusing to add invalid review request for %-v to %-v#%d: Error: %v",
+				reviewer, issue.Repo, issue.Index,
+				err,
+			)
 			ctx.Status(403)
+			return
+		}
+
+		err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
+		if err != nil {
+			ctx.ServerError("ReviewRequest", err)
 			return
 		}
 	}
@@ -1888,11 +1900,6 @@ func updatePullReviewRequest(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
 	})
-}
-
-// UpdatePullReviewRequest add or remove review request
-func UpdatePullReviewRequest(ctx *context.Context) {
-	updatePullReviewRequest(ctx)
 }
 
 // UpdateIssueStatus change issue's status

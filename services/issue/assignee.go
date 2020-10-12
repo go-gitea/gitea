@@ -85,22 +85,25 @@ func TeamReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.
 		return
 	}
 
-	if comment != nil && isAdd {
-		// notify all user in this team
-		if err = comment.LoadIssue(); err != nil {
-			return
-		}
-		if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
-			return
-		}
+	if comment == nil || !isAdd {
+		return
+	}
 
-		for _, member := range reviewer.Members {
-			if member.ID == comment.Issue.PosterID {
-				continue
-			}
-			comment.AssigneeID = member.ID
-			notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
+	// notify all user in this team
+	if err = comment.LoadIssue(); err != nil {
+		return
+	}
+
+	if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
+		return
+	}
+
+	for _, member := range reviewer.Members {
+		if member.ID == comment.Issue.PosterID {
+			continue
 		}
+		comment.AssigneeID = member.ID
+		notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
 	}
 
 	return nil
