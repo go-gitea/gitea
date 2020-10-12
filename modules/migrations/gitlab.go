@@ -56,10 +56,11 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword), nil
+	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
 }
 
 // GitServiceType returns the type of git service
@@ -85,15 +86,12 @@ type GitlabDownloader struct {
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
-func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
-	var gitlabClient *gitlab.Client
-	var err error
-	if username != "" {
-		if password == "" {
-			gitlabClient, err = gitlab.NewClient(username, gitlab.WithBaseURL(baseURL))
-		} else {
-			gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
-		}
+func NewGitlabDownloader(baseURL, repoPath, username, password, token string) *GitlabDownloader {
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	// Only use basic auth if token is blank and password is NOT
+	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
+	if token == "" && password != "" {
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 	}
 
 	if err != nil {
