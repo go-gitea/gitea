@@ -486,6 +486,20 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	return reviews, nil
 }
 
+// GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request
+func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
+
+	// Get latest review of each reviwer, sorted in order they were made
+	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		Find(&reviews); err != nil {
+		return nil, err
+	}
+
+	return reviews, nil
+}
+
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewByIssueIDAndUserID(issueID, userID int64) (*Review, error) {
 	return getReviewByIssueIDAndUserID(x, issueID, userID)
