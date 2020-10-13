@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	_            ObjectStorage = &MinioStorage{}
-	quoteEscaper               = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+	_ ObjectStorage = &MinioStorage{}
+
+	quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 )
 
 type minioObject struct {
@@ -35,6 +36,20 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	return &minioFileInfo{oi}, nil
 }
 
+// MinioStorageType is the type descriptor for minio storage
+const MinioStorageType Type = "minio"
+
+// MinioStorageConfig represents the configuration for a minio storage
+type MinioStorageConfig struct {
+	Endpoint        string `ini:"MINIO_ENDPOINT"`
+	AccessKeyID     string `ini:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey string `ini:"MINIO_SECRET_ACCESS_KEY"`
+	Bucket          string `ini:"MINIO_BUCKET"`
+	Location        string `ini:"MINIO_LOCATION"`
+	BasePath        string `ini:"MINIO_BASE_PATH"`
+	UseSSL          bool   `ini:"MINIO_USE_SSL"`
+}
+
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
 	ctx      context.Context
@@ -44,20 +59,26 @@ type MinioStorage struct {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, endpoint, accessKeyID, secretAccessKey, bucket, location, basePath string, useSSL bool) (*MinioStorage, error) {
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
+	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
+	if err != nil {
+		return nil, err
+	}
+	config := configInterface.(MinioStorageConfig)
+
+	minioClient, err := minio.New(config.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure: config.UseSSL,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if err := minioClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
-		Region: location,
+	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+		Region: config.Location,
 	}); err != nil {
 		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucket)
+		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
 		if !exists || errBucketExists != nil {
 			return nil, err
 		}
@@ -66,8 +87,8 @@ func NewMinioStorage(ctx context.Context, endpoint, accessKeyID, secretAccessKey
 	return &MinioStorage{
 		ctx:      ctx,
 		client:   minioClient,
-		bucket:   bucket,
-		basePath: basePath,
+		bucket:   config.Bucket,
+		basePath: config.BasePath,
 	}, nil
 }
 
@@ -182,4 +203,8 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 		}
 	}
 	return nil
+}
+
+func init() {
+	RegisterStorageType(MinioStorageType, NewMinioStorage)
 }
