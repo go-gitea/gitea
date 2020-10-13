@@ -8,11 +8,13 @@
 	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 		{{.i18n.Tr "settings.security"}}
 	</a>
-	<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
-		{{.i18n.Tr "settings.applications"}}
-	</a>
+	{{if or (not DisableSwagger) (not DisableOAuth2)}}
+		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
+			{{.i18n.Tr "settings.applications"}}
+		</a>
+	{{end}}
 	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
-		{{.i18n.Tr "settings.ssh_gpg_keys"}}
+		{{.i18n.Tr "settings.keys"}}
 	</a>
 	<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
 		{{.i18n.Tr "settings.organization"}}
