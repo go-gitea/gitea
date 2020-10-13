@@ -47,7 +47,7 @@ func SanitizeFlashErrorString(x string) string {
 		x = "..." + string(runes[len(runes)-512:])
 	}
 
-	return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
+	return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")
 }
 
 // IsExternalURL checks if rawURL points to an external URL like http://example.com
