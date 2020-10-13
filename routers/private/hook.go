@@ -283,7 +283,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			}
 		}
 
-		// Now there are several tests which can be overriden:
+		// Now there are several tests which can be overridden:
 		//
 		// 4. Check protected file patterns - this is overridable from the UI
 		changedProtectedfiles := false
