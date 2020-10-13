@@ -208,38 +208,59 @@ func TestPatch(pr *models.PullRequest) error {
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, repo *git.Repository) ([]string, error) {
-	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
+func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo *git.Repository) ([]string, error) {
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
+		log.Error("Unable to create os.Pipe for %s", repo.Path)
 		return nil, err
 	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
 
-	if len(patterns) == 0 {
-		return nil, nil
+	changedProtectedFiles := make([]string, 0, limit)
+
+	// This use of ...  is safe as force-pushes have already been ruled out.
+	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				counter := 0
+
+				scanner := bufio.NewScanner(stdoutReader)
+				for scanner.Scan() {
+					path := strings.TrimSpace(scanner.Text())
+					if len(path) == 0 {
+						continue
+					}
+					lpath := strings.ToLower(path)
+					for _, pat := range patterns {
+						if pat.Match(lpath) {
+							if counter < limit {
+								counter++
+								changedProtectedFiles = append(changedProtectedFiles, path)
+								continue
+							}
+							cancel()
+							return models.ErrFilePathProtected{
+								Path: path,
+							}
+						}
+					}
+					if counter >= limit {
+						break
+					}
+				}
+				err := scanner.Err()
+				return err
+			})
+	if err != nil && !models.IsErrFilePathProtected(err) {
+		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 
-	var changedFiles []string
-	if limit <= 10 {
-		changedFiles = make([]string, 0, limit)
-	} else {
-		changedFiles = make([]string, 0, 10)
-	}
-
-	for _, path := range strings.Split(stdout, "\n") {
-		lpath := strings.ToLower(strings.TrimSpace(path))
-		for _, pat := range patterns {
-			if pat.Match(lpath) {
-				changedFiles = append(changedFiles, path)
-				break
-			}
-		}
-
-		if len(changedFiles) >= limit {
-			break
-		}
-	}
-
-	return changedFiles, nil
+	return changedProtectedFiles, err
 }
 
 // CheckPullFilesProtection check if pr changed protected files and save results
@@ -268,6 +289,9 @@ func CheckPullFilesProtection(pr *models.PullRequest) (err error) {
 		return err
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, headCommitID, pr.ProtectedBranch.GetProtectedFilePatterns(), 10, gitRepo)
+	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, headCommitID, pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ(), gitRepo)
+	if models.IsErrFilePathProtected(err) {
+		err = nil
+	}
 	return
 }

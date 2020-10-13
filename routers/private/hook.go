@@ -25,7 +25,6 @@ import (
 
 	"gitea.com/macaron/macaron"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/gobwas/glob"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -55,53 +54,6 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			})
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
-	}
-	return err
-}
-
-func checkFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository, env []string) error {
-
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
-	// This use of ...  is safe as force-pushes have already been ruled out.
-	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				_ = stdoutWriter.Close()
-
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					lpath := strings.ToLower(path)
-					for _, pat := range patterns {
-						if pat.Match(lpath) {
-							cancel()
-							return models.ErrFilePathProtected{
-								Path: path,
-							}
-						}
-					}
-				}
-				if err := scanner.Err(); err != nil {
-					return err
-				}
-				_ = stdoutReader.Close()
-				return err
-			})
-	if err != nil && !models.IsErrFilePathProtected(err) {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
@@ -291,7 +243,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 		globs := protectBranch.GetProtectedFilePatterns()
 		if len(globs) > 0 {
-			err := checkFileProtection(oldCommitID, newCommitID, globs, gitRepo, env)
+			_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 0, env, gitRepo)
 			if err != nil {
 				if !models.IsErrFilePathProtected(err) {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
