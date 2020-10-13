@@ -595,14 +595,22 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{if .RemovedAssignee}}
-					{{if eq .PosterID .AssigneeID}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+				{{if (gt .AssigneeID 0)}}
+					{{if .RemovedAssignee}}
+						{{if eq .PosterID .AssigneeID}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{end}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 					{{end}}
 				{{else}}
-					{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+					{{if .RemovedAssignee}}
+						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{end}}
 				{{end}}
 			</span>
 		</div>
