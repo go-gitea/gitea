@@ -716,7 +716,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\d/", "-M"}
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
