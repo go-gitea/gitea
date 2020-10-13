@@ -804,7 +804,6 @@ func NewContext() {
 		}
 	}
 
-	newStorageService()
 	newAttachmentService()
 	newLFSService()
 
