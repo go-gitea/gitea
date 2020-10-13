@@ -351,6 +351,7 @@ type DiffFile struct {
 	IsSubmodule        bool
 	Sections           []*DiffSection
 	IsIncomplete       bool
+	IsProtected        bool
 }
 
 // GetType returns type of diff file.

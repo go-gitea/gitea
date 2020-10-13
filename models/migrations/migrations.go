@@ -244,6 +244,8 @@ var migrations = []Migration{
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
 	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
+	// v155 -> v156
+	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
