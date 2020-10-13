@@ -243,7 +243,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 		globs := protectBranch.GetProtectedFilePatterns()
 		if len(globs) > 0 {
-			_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 0, env, gitRepo)
+			_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 1, env, gitRepo)
 			if err != nil {
 				if !models.IsErrFilePathProtected(err) {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)

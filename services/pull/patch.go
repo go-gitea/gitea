@@ -291,10 +291,13 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 						}
 					}
 					if len(changedProtectedFiles) >= limit {
-						cancel()
-						return models.ErrFilePathProtected{
-							Path: path,
-						}
+						break
+					}
+				}
+
+				if len(changedProtectedFiles) > 0 {
+					return models.ErrFilePathProtected{
+						Path: changedProtectedFiles[0],
 					}
 				}
 				return scanner.Err()
