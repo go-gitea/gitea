@@ -581,7 +581,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			_ = rd.UnreadByte()
 			if char == '"' {
 				fmt.Fscanf(rd, "%q ", &a)
-				fmt.Printf("read %s", a)
 				if a[0] == '\\' {
 					a = a[1:]
 				}
