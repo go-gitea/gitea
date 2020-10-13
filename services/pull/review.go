@@ -68,14 +68,13 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = models.CreateReview(models.CreateReviewOptions{
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
 			Official: false,
 			CommitID: latestCommitID,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, err
 		}
 	}
