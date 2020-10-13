@@ -85,10 +85,8 @@ func TestPatch(pr *models.PullRequest) error {
 	}
 
 	// 3. Check for protected files changes
-	if pr.Index != 0 {
-		if err = checkPullFilesProtection(pr, gitRepo); err != nil {
-			return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
-		}
+	if err = checkPullFilesProtection(pr, gitRepo); err != nil {
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
 	if len(pr.ChangedProtectedFiles) > 0 {
