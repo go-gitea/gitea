@@ -50,7 +50,7 @@ func newPictureService() {
 	avatarSec.Key("PATH").MustString(
 		sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	Avatar.Storage = getStorage("avatar", storageType, avatarSec)
+	Avatar.Storage = getStorage("avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
@@ -107,7 +107,7 @@ func newRepoAvatarService() {
 	repoAvatarSec.Key("PATH").MustString(
 		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	RepoAvatar.Storage = getStorage("avatar", storageType, repoAvatarSec)
+	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
