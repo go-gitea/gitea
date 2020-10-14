@@ -7,12 +7,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.13.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-RC1) - 2020-10-14
 
 * SECURITY
-  * Use argon as default password hash algorithm (#12688)
-* BREAKING
   * Mitigate Security vulnerability in the git hook feature (#13058)
   * Disable DSA ssh keys by default (#13056)
-  * Don't replace underscores in auto-generated IDs in goldmark (#12805)
   * Set TLS minimum version to 1.2 (#12689)
+  * Use argon as default password hash algorithm (#12688)
+* BREAKING
+  * Don't replace underscores in auto-generated IDs in goldmark (#12805)
   * Add Primary Key to Topic and RepoTopic tables (#12639)
   * Disable password complexity check default (#12557)
   * Change PIDFile default from /var/run/gitea.pid to /run/gitea.pid (#12500)
