@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-10-14
+## [1.13.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-RC1) - 2020-10-14
 
 * SECURITY
   * Use argon as default password hash algorithm (#12688)
@@ -311,7 +311,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade xorm to v1.0.5 (#12765)
   * Upgrade bleve to v1.0.10 (#12737)
   * Update to go-org 1.3.2 (#12728)
-  * [Vendor] update go-swagger v0.21.0 -> v0.25.0 (#12670)
   * Vendor update: github.com/yuin/goldmark v1.2.1 (#12377)
   * Upgrade xorm to v1.0.3 (#12210)
   * Update Goldmark v1.1.25 -> v1.1.32 (#12048)
