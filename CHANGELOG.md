@@ -24,6 +24,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Check passwords against HaveIBeenPwned (#12716)
   * Gitea 2 Gitea migration (#12657)
   * Add postgres schema to the search_path on database connection (#12634)
+  * Support storing Avatars in minio  (#12516)
   * Allow addition of gpg keyring with multiple keys (#12487)
   * Add email notify for new release (#12463)
   * Add Access-Control-Expose-Headers (#12446)
