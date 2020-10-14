@@ -140,6 +140,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix Enter not working in SimpleMDE (#11564)
   * Fix bug about can't skip commits base on base branch (#11555)
 * ENHANCEMENTS
+  * Add HostCertificate to sshd_config in Docker image (#13143)
   * Save TimeStamps for Star, Label, Follow, Watch and Collaboration to Database (#13124)
   * Improve error feedback for duplicate deploy keys (#13112)
   * Set appropriate `autocomplete` attributes on password fields (#13078)
