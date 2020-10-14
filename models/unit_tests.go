@@ -71,10 +71,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 	setting.LFS.Storage.Path = filepath.Join(setting.AppDataPath, "lfs")
 
-	setting.Avatar.Storage.Type = setting.LocalStorageType
 	setting.Avatar.Storage.Path = filepath.Join(setting.AppDataPath, "avatars")
 
-	setting.RepoAvatar.Storage.Type = setting.LocalStorageType
 	setting.RepoAvatar.Storage.Path = filepath.Join(setting.AppDataPath, "repo-avatars")
 
 	if err = storage.Init(); err != nil {

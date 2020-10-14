@@ -141,7 +141,7 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 }
 
 func initAvatars() (err error) {
-	Avatars, err = initStorage(setting.Avatar.Storage)
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
 	return
 }
 
@@ -156,6 +156,6 @@ func initLFS() (err error) {
 }
 
 func initRepoAvatars() (err error) {
-	RepoAvatars, err = initStorage(setting.RepoAvatar.Storage)
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
 	return
 }
