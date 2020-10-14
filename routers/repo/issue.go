@@ -450,6 +450,13 @@ type repoReviewerSelection struct {
 func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue *models.Issue, canChooseReviewer bool) {
 	ctx.Data["CanChooseReviewer"] = canChooseReviewer
 
+	originalAuthorReviews, err := models.GetReviewersFromOriginalAuthorsByIssueID(issue.ID)
+	if err != nil {
+		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
+		return
+	}
+	ctx.Data["OriginalReviews"] = originalAuthorReviews
+
 	reviews, err := models.GetReviewersByIssueID(issue.ID)
 	if err != nil {
 		ctx.ServerError("GetReviewersByIssueID", err)

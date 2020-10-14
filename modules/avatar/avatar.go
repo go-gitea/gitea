@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"image/color/palette"
+
 	// Enable PNG support:
 	_ "image/png"
 	"math/rand"
@@ -57,11 +58,11 @@ func Prepare(data []byte) (*image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("DecodeConfig: %v", err)
 	}
-	if imgCfg.Width > setting.AvatarMaxWidth {
-		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
+	if imgCfg.Width > setting.Avatar.MaxWidth {
+		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.Avatar.MaxWidth)
 	}
-	if imgCfg.Height > setting.AvatarMaxHeight {
-		return nil, fmt.Errorf("Image height is too large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
+	if imgCfg.Height > setting.Avatar.MaxHeight {
+		return nil, fmt.Errorf("Image height is too large: %d > %d", imgCfg.Height, setting.Avatar.MaxHeight)
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(data))
