@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 )
 
@@ -133,7 +132,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 		defer fr.Close()
 
-		if form.Avatar.Size > setting.AvatarMaxFileSize {
+		if form.Avatar.Size > setting.Avatar.MaxFileSize {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 
@@ -147,7 +146,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		if err = ctxUser.UploadAvatar(data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
-	} else if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
+	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
 		if err := ctxUser.GenerateRandomAvatar(); err != nil {
