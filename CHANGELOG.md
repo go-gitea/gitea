@@ -21,7 +21,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * FEATURES
   * Adopt repositories (#12920)
   * Set setting.AppURL as GITEA_ROOT_URL environment variable during pushes (#12752)
-  * Only use async pre-empt hack if go < 1.15 (#12718)
   * Check passwords against HaveIBeenPwned (#12716)
   * Gitea 2 Gitea migration (#12657)
   * Add postgres schema to the search_path on database connection (#12634)
@@ -165,7 +164,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add placeholder text for bio profile text form (#12792)
   * Set language via AJAX (#12785)
   * Show git-pull-request icon for closed pull request (#12742)
-  * [Vendor] Switch go-version lib (#12719)
+  * Migrate version parsing library to hashicorp/go-version (#12719)
+  * Only use async pre-empt hack if go < 1.15 (#12718)
   * UI: Inform user what meaning hourglass on reviews has (#12713)
   * Add a migrate service type switch page (#12697)
   * Migrations: Gitlab Add Reactions Support for Issues & MergeRequests (#12695)
