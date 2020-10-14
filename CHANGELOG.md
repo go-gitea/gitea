@@ -306,8 +306,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade xorm to v1.0.5 (#12765)
   * Upgrade bleve to v1.0.10 (#12737)
   * Update to go-org 1.3.2 (#12728)
-  * Vendor update: github.com/yuin/goldmark v1.2.1 (#12377)
-  * Update Goldmark v1.1.25 -> v1.1.32 (#12048)
+  * Update goldmark to v1.2.1 (#12377)
   * Upgrade pq to v1.7.0 (#11905)
   * Upgrade to use testfixtures v3 (#11904)
 
