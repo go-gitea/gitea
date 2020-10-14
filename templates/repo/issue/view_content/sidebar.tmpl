@@ -49,7 +49,7 @@
 		</div>
 
 		<div class="ui assignees list">
-			<span class="no-select item {{if .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
+			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
 			<div class="selected">
 				{{range .PullReviewers}}
 					<div class="item" style="margin-bottom: 10px;">
@@ -70,6 +70,18 @@
 								</a>
 							{{end}}
 							{{svg (printf "octicon-%s" .Review.Type.Icon)}}
+						</span>
+					</div>
+				{{end}}
+				{{range .OriginalReviews}}
+					<div class="item" style="margin-bottom: 10px;">
+						<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
+						<span class="ui right type-icon text {{if eq .Type 1}}green
+							{{- else if eq .Type 2}}grey
+							{{- else if eq .Type 3}}red
+							{{- else if eq .Type 4}}yellow
+							{{- else}}grey{{end}} right ">
+							{{svg (printf "octicon-%s" .Type.Icon)}}
 						</span>
 					</div>
 				{{end}}
