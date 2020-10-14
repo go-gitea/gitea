@@ -6,6 +6,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-10-14
 
+* SECURITY
+  * Use argon as default password hash algorithm (#12688)
 * BREAKING
   * Mitigate Security vulnerability in the git hook feature (#13058)
   * Disable DSA ssh keys by default (#13056)
@@ -41,8 +43,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add push commits history comment on PR time-line (#11167)
   * Support elastic search for code search (#10273)
   * Kanban board (#8346)
-* SECURITY
-  * Use argon as default password hash algorithm (#12688)
 * API
   * [API] If User is Admin, show 500 error message on PROD mode too (#13115)
   * [#13004] Add Timestamp to Tag list API (#13026)
