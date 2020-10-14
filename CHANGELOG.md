@@ -75,6 +75,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add endpoint for Branch Creation (#11607)
   * Add pagination headers on endpoints that support total count from database (#11145)
 * BUGFIXES
+  * Show original author's reviews on pull summary box (#13127)
   * Update golangci-lint to version 1.31.0 (#13102)
   * Fix line break for MS teams webhook (#13081)
   * Fix Issue & Pull Request comment headers on mobile (#13039)
@@ -306,17 +307,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Narrow down Edge version in browser support docs (#11640)
 * MISC
   * Use time/tzdata for timezone in docker  (#12922)
-  * Update gitea.com/macaron/i18n (#12806)
   * Update JS dependencies (#12782)
   * Upgrade xorm to v1.0.5 (#12765)
   * Upgrade bleve to v1.0.10 (#12737)
   * Update to go-org 1.3.2 (#12728)
   * Vendor update: github.com/yuin/goldmark v1.2.1 (#12377)
-  * Upgrade xorm to v1.0.3 (#12210)
   * Update Goldmark v1.1.25 -> v1.1.32 (#12048)
   * upgrade pq to v1.7.0 (#11905)
   * upgrade to use testfixtures v3 (#11904)
-  * Upgrade xorm to v1.0.2 (#11900)
 
 ## [1.12.5](https://github.com/go-gitea/gitea/releases/tag/v1.12.5) - 2020-10-01
 
