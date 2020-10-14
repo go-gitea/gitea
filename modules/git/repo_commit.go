@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -470,7 +469,7 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, err
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if version.Compare(gitVersion, "2.7.0", ">=") {
+	if CheckGitVersionConstraint(">= 2.7.0") == nil {
 		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
@@ -505,10 +504,6 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 
 // GetCommitsFromIDs get commits from commit IDs
 func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
-	if len(commitIDs) == 0 {
-		return nil
-	}
-
 	commits = list.New()
 
 	for _, commitID := range commitIDs {

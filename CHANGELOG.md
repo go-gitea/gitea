@@ -4,6 +4,60 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.5](https://github.com/go-gitea/gitea/releases/tag/v1.12.5) - 2020-10-01
+
+* BUGFIXES
+  * Allow U2F with default settings for gitea in subpath (#12990) (#13001)
+  * Prevent empty div when editing comment (#12404) (#12991)
+  * On mirror update also update address in DB (#12964) (#12967)
+  * Allow extended config on cron settings (#12939) (#12943)
+  * Open transaction when adding Avatar email-hash pairs to the DB (#12577) (#12940)
+  * Fix internal server error from ListUserOrgs API (#12910) (#12915)
+  * Update only the repository columns that need updating (#12900) (#12912)
+  * Fix panic when adding long comment (#12892) (#12894)
+  * Add size limit for content of comment on action ui (#12881) (#12890)
+  * Convert User expose ID each time (#12855) (#12883)
+  * Support slashes in release tags (#12864) (#12882)
+  * Add missing information to CreateRepo API endpoint (#12848) (#12867)
+  * On Migration respect old DefaultBranch (#12843) (#12858)
+  * Fix notifications page links (#12838) (#12853)
+  * Stop cloning unnecessarily on PR update (#12839) (#12852)
+  * Escape more things that are passed through str2html (#12622) (#12850)
+  * Remove double escape on labels addition in comments (#12809) (#12810)
+  * Fix "only mail on mention" bug (#12775) (#12789)
+  * Fix yet another bug with diff file names (#12771) (#12776)
+  * RepoInit Respect AlternateDefaultBranch (#12746) (#12751)
+  * Fix Avatar Resize (resize algo NearestNeighbor -> Bilinear) (#12745) (#12750)
+* ENHANCEMENTS
+  * gitea dump: include version & Check InstallLock (#12760) (#12762)
+
+## [1.12.4](https://github.com/go-gitea/gitea/releases/tag/v1.12.4) - 2020-09-02
+
+* SECURITY
+  * Escape provider name in oauth2 provider redirect (#12648) (#12650)
+  * Escape Email on password reset page (#12610) (#12612)
+  * When reading expired sessions - expire them (#12686) (#12690)
+* ENHANCEMENTS
+  * StaticRootPath configurable at compile time (#12371) (#12652)
+* BUGFIXES
+  * Fix to show an issue that is related to a deleted issue (#12651) (#12692)
+  * Expire time acknowledged for cache (#12605) (#12611)
+  * Fix diff path unquoting (#12554) (#12575)
+  * Improve HTML escaping helper (#12562)
+  * models: break out of loop (#12386) (#12561)
+  * Default empty merger list to those with write permissions (#12535) (#12560)
+  * Skip SSPI authentication attempts for /api/internal (#12556) (#12559)
+  * Prevent NPE on commenting on lines with invalidated comments (#12549) (#12550)
+  * Remove hardcoded ES indexername (#12521) (#12526)
+  * Fix bug preventing transfer to private organization (#12497) (#12501)
+  * Keys should not verify revoked email addresses (#12486) (#12495)
+  * Do not add prefix on http/https submodule links (#12477) (#12479)
+  * Fix ignored login on compare (#12476) (#12478)
+  * Fix incorrect error logging in Stats indexer and OAuth2 (#12387) (#12422)
+  * Upgrade google/go-github to v32.1.0 (#12361) (#12390)
+  * Render emoji's of Commit message on feed-page (#12373)
+  * Fix handling of diff on unrelated branches when Git 2.28 used (#12370)
+
 ## [1.12.3](https://github.com/go-gitea/gitea/releases/tag/v1.12.3) - 2020-07-28
 
 * BUGFIXES

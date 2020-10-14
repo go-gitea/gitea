@@ -5,7 +5,6 @@
 package task
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -38,10 +38,8 @@ func handleCreateError(owner *models.User, err error, name string) error {
 func runMigrateTask(t *models.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
+			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v\nStacktrace: %v", err, log.Stack(2))
+			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		if err == nil {
@@ -51,14 +49,14 @@ func runMigrateTask(t *models.Task) (err error) {
 				return
 			}
 
-			log.Error("FinishMigrateTask failed: %s", err.Error())
+			log.Error("FinishMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] failed: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Errors = err.Error()
 		if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
-			log.Error("Task UpdateCols failed: %s", err.Error())
+			log.Error("Task UpdateCols failed: %v", err)
 		}
 
 		if t.Repo != nil {
@@ -89,7 +87,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return err
 	}
 
-	var opts *structs.MigrateRepoOption
+	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
 	if err != nil {
 		return err

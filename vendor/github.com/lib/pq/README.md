@@ -19,10 +19,7 @@
 * Unix socket support
 * Notifications: `LISTEN`/`NOTIFY`
 * pgpass support
-
-## Optional Features
-
-* GSS (Kerberos) auth (to use, see GoDoc)
+* GSS (Kerberos) auth
 
 ## Tests
 

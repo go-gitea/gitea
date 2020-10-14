@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -24,6 +25,15 @@ type LFSMetaObject struct {
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+}
+
+// RelativePath returns the relative path of the lfs object
+func (m *LFSMetaObject) RelativePath() string {
+	if len(m.Oid) < 5 {
+		return m.Oid
+	}
+
+	return path.Join(m.Oid[0:2], m.Oid[2:4], m.Oid[4:])
 }
 
 // Pointer returns the string representation of an LFS pointer file
@@ -201,4 +211,26 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 	}
 
 	return sess.Commit()
+}
+
+// IterateLFS iterates lfs object
+func IterateLFS(f func(mo *LFSMetaObject) error) error {
+	var start int
+	const batchSize = 100
+	for {
+		var mos = make([]*LFSMetaObject, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&mos); err != nil {
+			return err
+		}
+		if len(mos) == 0 {
+			return nil
+		}
+		start += len(mos)
+
+		for _, mo := range mos {
+			if err := f(mo); err != nil {
+				return err
+			}
+		}
+	}
 }

@@ -7,34 +7,134 @@
 			{{.i18n.Tr "settings.repos"}}
 		</h4>
 		<div class="ui attached segment">
-			{{if .Repos}}
-				<div class="ui middle aligned divided list">
-					{{range .Repos}}
-					<div class="item">
-						<div class="content">
-							{{if .IsPrivate}}
-								<span class="text gold iconFloat">{{svg "octicon-lock" 16}}</span>
-							{{else if .IsFork}}
-								<span class="iconFloat">{{svg "octicon-repo-forked" 16}}</span>
-							{{else if .IsMirror}}
-								<span class="iconFloat">{{svg "octicon-mirror" 16}}</span>
-							{{else}}
-								<span class="iconFloat">{{svg "octicon-repo" 16}}</span>
-							{{end}}
-							<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">{{$.Owner.Name}}/{{.Name}}</a>
-							<span>{{SizeFmt .Size}}</span>
-							{{if .IsFork}}
-								{{$.i18n.Tr "repo.forked_from"}}
-								<span><a href="{{AppSubUrl}}/{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}">{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}</a></span>
-							{{end}}
+			{{if or .allowAdopt .allowDelete}}
+				{{if .Dirs}}
+					<div class="ui middle aligned divided list">
+						{{range $dirI, $dir := .Dirs}}
+							{{ $repo := index $.ReposMap $dir}}
+							<div class="item">
+								<div class="content">
+									{{if $repo}}
+										{{if $repo.IsPrivate}}
+											<span class="text gold icon">{{svg "octicon-lock"}}</span>
+										{{else if $repo.IsFork}}
+											<span class="icon">{{svg "octicon-repo-forked"}}</span>
+										{{else if $repo.IsMirror}}
+											<span class="icon">{{svg "octicon-mirror"}}</span>
+										{{else if $repo.IsTemplate}}
+											<span class="icon">{{svg "octicon-repo-template"}}</span>
+										{{else}}
+											<span class="icon">{{svg "octicon-repo"}}</span>
+										{{end}}
+										<a class="name" href="{{AppSubUrl}}/{{$repo.OwnerName}}/{{$repo.Name}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
+										<span>{{SizeFmt $repo.Size}}</span>
+										{{if $repo.IsFork}}
+											{{$.i18n.Tr "repo.forked_from"}}
+											<span><a href="{{AppSubUrl}}/{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
+										{{end}}
+									{{else}}
+										<span class="icon">{{svg "octicon-file-directory"}}</span>
+										<span class="name">{{$.Owner.Name}}/{{$dir}}</span>
+        		                        <div class="right floated content">
+											{{if $.allowAdopt}}
+												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.i18n.Tr "repo.adopt_preexisting_label"}}</span></button>
+												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
+													<i class="close icon"></i>
+													<div class="header">
+														<span class="label">{{$.i18n.Tr "repo.adopt_preexisting"}}</span>
+													</div>
+													<div class="content">
+														<p>{{$.i18n.Tr "repo.adopt_preexisting_content" $dir}}</p>
+													</div>
+													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+														{{$.CsrfTokenHtml}}
+														<input type="hidden" name="id" value="{{$dir}}">
+														<input type="hidden" name="action" value="adopt">
+														<div class="actions">
+															<div class="ui red basic inverted cancel button">
+																<i class="remove icon"></i>
+																{{$.i18n.Tr "modal.no"}}
+															</div>
+															<button class="ui green basic inverted ok button">
+																<i class="checkmark icon"></i>
+																{{$.i18n.Tr "modal.yes"}}
+															</button>
+														</div>
+													</form>
+												</div>
+											{{end}}
+											{{if $.allowDelete}}
+												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.i18n.Tr "repo.delete_preexisting_label"}}</span></button>
+												<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
+													<i class="close icon"></i>
+													<div class="header">
+														<span class="label">{{$.i18n.Tr "repo.delete_preexisting"}}</span>
+													</div>
+													<div class="content">
+														<p>{{$.i18n.Tr "repo.delete_preexisting_content" $dir}}</p>
+													</div>
+													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+														{{$.CsrfTokenHtml}}
+														<input type="hidden" name="id" value="{{$dir}}">
+														<input type="hidden" name="action" value="delete">
+														<div class="actions">
+															<div class="ui red basic inverted cancel button">
+																<i class="remove icon"></i>
+																{{$.i18n.Tr "modal.no"}}
+															</div>
+															<button class="ui green basic inverted ok button">
+																<i class="checkmark icon"></i>
+																{{$.i18n.Tr "modal.yes"}}
+															</button>
+														</div>
+													</form>
+												</div>
+											{{end}}
+										</div>
+									{{end}}
+								</div>
 							</div>
-						</div>
-					{{end}}
-				</div>
+						{{end}}
+					</div>
+					{{template "base/paginate" .}}
+				{{else}}
+					<div class="item">
+						{{.i18n.Tr "settings.repos_none"}}
+					</div>
+				{{end}}
 			{{else}}
-				<div class="item">
-					{{.i18n.Tr "settings.repos_none"}}
-				</div>
+				{{if .Repos}}
+					<div class="ui middle aligned divided list">
+						{{range .Repos}}
+							<div class="item">
+								<div class="content">
+									{{if .IsPrivate}}
+										<span class="text gold iconFloat">{{svg "octicon-lock"}}</span>
+									{{else if .IsFork}}
+										<span class="iconFloat">{{svg "octicon-repo-forked"}}</span>
+									{{else if .IsMirror}}
+										<span class="iconFloat">{{svg "octicon-mirror"}}</span>
+									{{else if .IsTemplate}}
+										<span class="iconFloat">{{svg "octicon-repo-template"}}</span>
+									{{else}}
+										<span class="iconFloat">{{svg "octicon-repo"}}</span>
+									{{end}}
+									<a class="name" href="{{AppSubUrl}}/{{$.OwnerName}}/{{.Name}}">{{$.OwnerName}}/{{.Name}}</a>
+									<span>{{SizeFmt .Size}}</span>
+									{{if .IsFork}}
+										{{$.i18n.Tr "repo.forked_from"}}
+										<span><a href="{{AppSubUrl}}/{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
+									{{end}}
+								</div>
+							</div>
+						{{end}}
+					</div>
+					{{template "base/paginate" .}}
+				{{else}}
+					<div class="item">
+						{{.i18n.Tr "settings.repos_none"}}
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 	</div>

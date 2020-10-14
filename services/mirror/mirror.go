@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -43,11 +42,11 @@ func readAddress(m *models.Mirror) {
 
 func remoteAddress(repoPath string) (string, error) {
 	var cmd *git.Command
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		return "", err
 	}
-	if version.Compare(binVersion, "2.7", ">=") {
+	if git.CheckGitVersionConstraint(">= 2.7") == nil {
 		cmd = git.NewCommand("remote", "get-url", "origin")
 	} else {
 		cmd = git.NewCommand("config", "--get", "remote.origin.url")
@@ -90,8 +89,8 @@ func AddressNoCredentials(m *models.Mirror) string {
 	return u.String()
 }
 
-// SaveAddress writes new address to Git repository config.
-func SaveAddress(m *models.Mirror, addr string) error {
+// UpdateAddress writes new address to Git repository and database
+func UpdateAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
 	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
@@ -118,7 +117,9 @@ func SaveAddress(m *models.Mirror, addr string) error {
 			return err
 		}
 	}
-	return nil
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // gitShortEmptySha Git short empty SHA

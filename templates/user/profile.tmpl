@@ -6,11 +6,11 @@
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
+							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
 						</a>
 					{{else}}
 						<span class="image">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
+							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
 						</span>
 					{{end}}
 					<div class="content wrap">
@@ -20,17 +20,17 @@
 					<div class="extra content wrap">
 						<ul class="text black">
 							{{if .Owner.Location}}
-								<li>{{svg "octicon-location" 16}} {{.Owner.Location}}</li>
+								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
 							{{if .ShowUserEmail }}
 								<li>
-									{{svg "octicon-mail" 16}}
+									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 								</li>
 							{{end}}
 							{{if .Owner.Website}}
 								<li>
-									{{svg "octicon-link" 16}}
+									{{svg "octicon-link"}}
 									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
@@ -47,7 +47,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock" 16}} {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
+							<li>{{svg "octicon-clock"}} {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -66,12 +66,12 @@
 								{{if .SignedUser.IsFollowing .Owner.ID}}
 									<form method="post" action="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
-										<button type="submit" class="ui basic red button">{{svg "octicon-person" 16}} {{.i18n.Tr "user.unfollow"}}</button>
+										<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.i18n.Tr "user.unfollow"}}</button>
 									</form>
 								{{else}}
 									<form method="post" action="{{.Link}}/action/follow?redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
-										<button type="submit" class="ui basic green button">{{svg "octicon-person" 16}} {{.i18n.Tr "user.follow"}}</button>
+										<button type="submit" class="ui basic green button">{{svg "octicon-person"}} {{.i18n.Tr "user.follow"}}</button>
 									</form>
 								{{end}}
 							</li>
@@ -83,21 +83,21 @@
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
-						{{svg "octicon-repo" 16}} {{.i18n.Tr "user.repositories"}}
+						{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
-						{{svg "octicon-rss" 16}} {{.i18n.Tr "user.activity"}}
+						{{svg "octicon-rss"}} {{.i18n.Tr "user.activity"}}
 					</a>
 					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-						{{svg "octicon-star" 16}}  {{.i18n.Tr "user.starred"}}
+						{{svg "octicon-star"}}  {{.i18n.Tr "user.starred"}}
 						<div class="ui label">{{.Owner.NumStars}}</div>
 					</a>
 					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
-						{{svg "octicon-person" 16}}  {{.i18n.Tr "user.following"}}
+						{{svg "octicon-person"}}  {{.i18n.Tr "user.following"}}
 						<div class="ui label">{{.Owner.NumFollowing}}</div>
 					</a>
 					<a class='{{if eq .TabName "followers"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=followers">
-						{{svg "octicon-person" 16}}  {{.i18n.Tr "user.followers"}}
+						{{svg "octicon-person"}}  {{.i18n.Tr "user.followers"}}
 						<div class="ui label">{{.Owner.NumFollowers}}</div>
 					</a>
 				</div>

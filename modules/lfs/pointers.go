@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 // ReadPointerFile will return a partially filled LFSMetaObject if the provided reader is a pointer file
@@ -53,9 +54,10 @@ func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 		return nil
 	}
 
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	meta := &models.LFSMetaObject{Oid: oid, Size: size}
-	if !contentStore.Exists(meta) {
+	exist, err := contentStore.Exists(meta)
+	if err != nil || !exist {
 		return nil
 	}
 
@@ -64,6 +66,6 @@ func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	return contentStore.Get(meta, 0)
 }

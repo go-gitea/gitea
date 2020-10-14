@@ -21,7 +21,12 @@ Note: All steps below requires that the database engine of your choice is instal
 
 ## MySQL
 
-1.  On database instance, login to database console as root:
+1.  For remote database setup, you will need to make MySQL listen to your IP address. Edit `bind-address` option on `/etc/mysql/my.cnf` on database instance to:
+
+    ```ini
+    bind-address = 203.0.113.3
+    ```
+2.  On database instance, login to database console as root:
 
     ```
     mysql -u root -p
@@ -29,7 +34,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Enter the password as prompted.
 
-2.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance. 
+3.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance. 
 
     For local database:
 
@@ -49,7 +54,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
-3.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+4.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
     CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
@@ -57,7 +62,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace database name as appropriate.
 
-4.  Grant all privileges on the database to database user created above.
+5.  Grant all privileges on the database to database user created above.
 
     For local database:
 
@@ -73,9 +78,9 @@ Note: All steps below requires that the database engine of your choice is instal
     FLUSH PRIVILEGES;
     ```
 
-5.  Quit from database console by `exit`.
+6.  Quit from database console by `exit`.
 
-6.  On your Gitea server, test connection to the database:
+7.  On your Gitea server, test connection to the database:
 
     ```
     mysql -u gitea -h 203.0.113.3 -p giteadb
@@ -87,7 +92,13 @@ Note: All steps below requires that the database engine of your choice is instal
 
 ## PostgreSQL
 
-1.  PostgreSQL uses `md5` challenge-response encryption scheme for password authentication by default. Nowadays this scheme is not considered secure anymore. Use SCRAM-SHA-256 scheme instead by editing the `postgresql.conf` configuration file on the database server to:
+1.  For remote database setup, configure PostgreSQL on database instance to listen to your IP address by editing `listen_addresses` on `postgresql.conf` to:
+
+    ```ini
+    listen_addresses = 'localhost, 203.0.113.3'
+    ```
+
+2.  PostgreSQL uses `md5` challenge-response encryption scheme for password authentication by default. Nowadays this scheme is not considered secure anymore. Use SCRAM-SHA-256 scheme instead by editing the `postgresql.conf` configuration file on the database server to:
 
     ```ini
     password_encryption = scram-sha-256
@@ -95,13 +106,13 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Restart PostgreSQL to apply the setting.
 
-2.  On the database server, login to the database console as superuser:
+3.  On the database server, login to the database console as superuser:
 
     ```
     su -c "psql" - postgres
     ```
 
-3.  Create database user (role in PostgreSQL terms) with login privilege and password. Please use a secure, strong password instead of `'gitea'` below:
+4.  Create database user (role in PostgreSQL terms) with login privilege and password. Please use a secure, strong password instead of `'gitea'` below:
 
     ```sql
     CREATE ROLE gitea WITH LOGIN PASSWORD 'gitea';
@@ -109,7 +120,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password as appropriate.
 
-4.  Create database with UTF-8 charset and owned by the database user created earlier. Any `libc` collations can be specified with `LC_COLLATE` and `LC_CTYPE` parameter, depending on expected content:
+5.  Create database with UTF-8 charset and owned by the database user created earlier. Any `libc` collations can be specified with `LC_COLLATE` and `LC_CTYPE` parameter, depending on expected content:
 
     ```sql
     CREATE DATABASE giteadb WITH OWNER gitea TEMPLATE template0 ENCODING UTF8 LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8';
@@ -117,7 +128,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace database name as appropriate.
 
-5.  Allow the database user to access the database created above by adding the following authentication rule to `pg_hba.conf`.
+6.  Allow the database user to access the database created above by adding the following authentication rule to `pg_hba.conf`.
 
     For local database:
 
@@ -137,7 +148,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Restart PostgreSQL to apply new authentication rules.
     
-6.  On your Gitea server, test connection to the database.
+7.  On your Gitea server, test connection to the database.
 
     For local database:
 
