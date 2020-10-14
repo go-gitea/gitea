@@ -30,7 +30,6 @@ import (
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
-	"strk.kbt.io/projects/go/libravatar"
 )
 
 // Scheme describes protocol types
@@ -271,20 +270,6 @@ var (
 		DisableRegularOrgCreation bool
 		DefaultEmailNotification  string
 	}
-
-	// Picture settings
-	AvatarUploadPath              string
-	AvatarMaxWidth                int
-	AvatarMaxHeight               int
-	GravatarSource                string
-	GravatarSourceURL             *url.URL
-	DisableGravatar               bool
-	EnableFederatedAvatar         bool
-	LibravatarService             *libravatar.Libravatar
-	AvatarMaxFileSize             int64
-	RepositoryAvatarUploadPath    string
-	RepositoryAvatarFallback      string
-	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -864,59 +849,7 @@ func NewContext() {
 
 	newRepository()
 
-	sec = Cfg.Section("picture")
-	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
-	forcePathSeparator(AvatarUploadPath)
-	if !filepath.IsAbs(AvatarUploadPath) {
-		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
-	}
-	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
-	forcePathSeparator(RepositoryAvatarUploadPath)
-	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
-		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
-	}
-	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
-	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
-	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
-	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
-	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
-	case "duoshuo":
-		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
-	case "gravatar":
-		GravatarSource = "https://secure.gravatar.com/avatar/"
-	case "libravatar":
-		GravatarSource = "https://seccdn.libravatar.org/avatar/"
-	default:
-		GravatarSource = source
-	}
-	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
-	if OfflineMode {
-		DisableGravatar = true
-		EnableFederatedAvatar = false
-	}
-	if DisableGravatar {
-		EnableFederatedAvatar = false
-	}
-	if EnableFederatedAvatar || !DisableGravatar {
-		GravatarSourceURL, err = url.Parse(GravatarSource)
-		if err != nil {
-			log.Fatal("Failed to parse Gravatar URL(%s): %v",
-				GravatarSource, err)
-		}
-	}
-
-	if EnableFederatedAvatar {
-		LibravatarService = libravatar.New()
-		if GravatarSourceURL.Scheme == "https" {
-			LibravatarService.SetUseHTTPS(true)
-			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
-		} else {
-			LibravatarService.SetUseHTTPS(false)
-			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
-		}
-	}
+	newPictureService()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)

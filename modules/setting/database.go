@@ -47,7 +47,8 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 	}{
-		Timeout: 500,
+		Timeout:           500,
+		IterateBufferSize: 50,
 	}
 )
 

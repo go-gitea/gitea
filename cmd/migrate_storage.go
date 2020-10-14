@@ -91,6 +91,20 @@ func migrateLFS(dstStorage storage.ObjectStorage) error {
 	})
 }
 
+func migrateAvatars(dstStorage storage.ObjectStorage) error {
+	return models.IterateUser(func(user *models.User) error {
+		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
+		return err
+	})
+}
+
+func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
+	return models.IterateRepository(func(repo *models.Repository) error {
+		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
@@ -142,9 +156,8 @@ func runMigrateStorage(ctx *cli.Context) error {
 				UseSSL:          ctx.Bool("minio-use-ssl"),
 			})
 	default:
-		return fmt.Errorf("Unsupported attachments storage type: %s", ctx.String("storage"))
+		return fmt.Errorf("Unsupported storage type: %s", ctx.String("storage"))
 	}
-
 	if err != nil {
 		return err
 	}
@@ -157,6 +170,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 		}
 	case "lfs":
 		if err := migrateLFS(dstStorage); err != nil {
+			return err
+		}
+	case "avatars":
+		if err := migrateAvatars(dstStorage); err != nil {
+			return err
+		}
+	case "repo-avatars":
+		if err := migrateRepoAvatars(dstStorage); err != nil {
 			return err
 		}
 	default:
