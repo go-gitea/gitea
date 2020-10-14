@@ -7,8 +7,10 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"io"
 	"net/http"
 	"path"
+	"strings"
 	"text/template"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
@@ -107,6 +110,61 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	}
 }
 
+func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) macaron.Handler {
+	if storageSetting.ServeDirect {
+		return func(ctx *macaron.Context) {
+			req := ctx.Req.Request
+			if req.Method != "GET" && req.Method != "HEAD" {
+				return
+			}
+
+			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+				return
+			}
+
+			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+			u, err := objStore.URL(rPath, path.Base(rPath))
+			if err != nil {
+				ctx.Error(500, err.Error())
+				return
+			}
+			http.Redirect(
+				ctx.Resp,
+				req,
+				u.String(),
+				301,
+			)
+		}
+	}
+
+	return func(ctx *macaron.Context) {
+		req := ctx.Req.Request
+		if req.Method != "GET" && req.Method != "HEAD" {
+			return
+		}
+
+		if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+			return
+		}
+
+		rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+		rPath = strings.TrimPrefix(rPath, "/")
+		//If we have matched and access to release or issue
+		fr, err := objStore.Open(rPath)
+		if err != nil {
+			ctx.Error(500, err.Error())
+			return
+		}
+		defer fr.Close()
+
+		_, err = io.Copy(ctx.Resp, fr)
+		if err != nil {
+			ctx.Error(500, err.Error())
+			return
+		}
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -149,22 +207,9 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
-	m.Use(public.StaticHandler(
-		setting.AvatarUploadPath,
-		&public.Options{
-			Prefix:       "avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
-	m.Use(public.StaticHandler(
-		setting.RepositoryAvatarUploadPath,
-		&public.Options{
-			Prefix:       "repo-avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
+
+	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())
@@ -512,11 +557,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/attachments", func() {
-		m.Post("", repo.UploadAttachment)
-		m.Post("/delete", repo.DeleteAttachment)
-	}, reqSignIn)
-
 	m.Group("/:username", func() {
 		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
@@ -754,8 +794,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
-				m.Get("/attachments", repo.GetIssueAttachments)
 			}, context.RepoMustNotBeArchived())
+			m.Group("/:index", func() {
+				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments/:uuid", repo.GetAttachment)
+			})
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
@@ -764,13 +807,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
+			m.Post("/attachments", repo.UploadIssueAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
-			m.Get("/attachments", repo.GetCommentAttachments)
 		}, context.RepoMustNotBeArchived())
+		m.Group("/comments/:id", func() {
+			m.Get("/attachments", repo.GetCommentAttachments)
+		})
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
@@ -826,11 +873,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
+			m.Get("/attachments/:uuid", repo.GetAttachment)
 		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
+			m.Post("/attachments", repo.UploadReleaseAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
