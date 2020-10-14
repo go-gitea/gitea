@@ -242,7 +242,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, comments[:4])
 
-	prs, err := downloader.GetPullRequests(1, 1)
+	prs, _, err := downloader.GetPullRequests(1, 1)
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 
