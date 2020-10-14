@@ -166,7 +166,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Show git-pull-request icon for closed pull request (#12742)
   * Migrate version parsing library to hashicorp/go-version (#12719)
   * Only use async pre-empt hack if go < 1.15 (#12718)
-  * UI: Inform user what meaning hourglass on reviews has (#12713)
+  * Inform user about meaning of an hourglass on reviews (#12713)
   * Add a migrate service type switch page (#12697)
   * Migrations: Gitlab Add Reactions Support for Issues & MergeRequests (#12695)
   * Remove duplicate logic in initListSubmits (#12660)
