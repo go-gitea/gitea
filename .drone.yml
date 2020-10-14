@@ -119,12 +119,6 @@ services:
         from_secret: gitlab_read_token
     depends_on:
       - build
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
   - name: mysql8
     pull: default
