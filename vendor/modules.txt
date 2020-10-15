@@ -60,7 +60,8 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.4.23
+# github.com/RoaringBitmap/roaring v0.5.1
+## explicit
 github.com/RoaringBitmap/roaring
 # github.com/alecthomas/chroma v0.8.1
 ## explicit
@@ -107,7 +108,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v1.0.10
+# github.com/blevesearch/bleve v1.0.12
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -157,14 +158,16 @@ github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.10
+# github.com/blevesearch/zap/v11 v11.0.12
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.10
+# github.com/blevesearch/zap/v12 v12.0.12
 github.com/blevesearch/zap/v12
-# github.com/blevesearch/zap/v13 v13.0.2
+# github.com/blevesearch/zap/v13 v13.0.4
 github.com/blevesearch/zap/v13
-# github.com/blevesearch/zap/v14 v14.0.1
+# github.com/blevesearch/zap/v14 v14.0.3
 github.com/blevesearch/zap/v14
+# github.com/blevesearch/zap/v15 v15.0.1
+github.com/blevesearch/zap/v15
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
@@ -403,9 +406,11 @@ github.com/golang-sql/civil
 # github.com/golang/gddo v0.0.0-20190419222130-af0f2af80721
 github.com/golang/gddo/httputil
 github.com/golang/gddo/httputil/header
-# github.com/golang/protobuf v1.4.2
+# github.com/golang/protobuf v1.4.3
+## explicit
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.2
+## explicit
 github.com/golang/snappy
 # github.com/google/go-github/v32 v32.1.0
 ## explicit
@@ -740,7 +745,8 @@ github.com/unknwon/paginater
 # github.com/urfave/cli v1.20.0
 ## explicit
 github.com/urfave/cli
-# github.com/willf/bitset v1.1.10
+# github.com/willf/bitset v1.1.11
+## explicit
 github.com/willf/bitset
 # github.com/xanzy/go-gitlab v0.37.0
 ## explicit
@@ -835,7 +841,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
+# golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

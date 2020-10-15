@@ -18,8 +18,9 @@ require (
 	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
+	github.com/RoaringBitmap/roaring v0.5.1 // indirect
 	github.com/alecthomas/chroma v0.8.1
-	github.com/blevesearch/bleve v1.0.10
+	github.com/blevesearch/bleve v1.0.12
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -47,6 +48,8 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
+	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
@@ -98,6 +101,7 @@ require (
 	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
+	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.37.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.2.1
@@ -108,7 +112,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
+	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20200921210052-fa0125251cc4
