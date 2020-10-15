@@ -559,7 +559,7 @@ parsingLoop:
 	}
 
 	// FIXME: There are numerous issues with this:
-	// - we might one to consider detecting encoding while parsing but...
+	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
 	// - and this doesn't really account for changes in encoding
 	var buf bytes.Buffer
