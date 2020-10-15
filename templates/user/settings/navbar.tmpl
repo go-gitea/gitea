@@ -8,7 +8,7 @@
 	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 		{{.i18n.Tr "settings.security"}}
 	</a>
-	{{if or (not DisableSwagger) (not DisableOAuth2)}}
+	{{if or .EnableSwagger (not DisableOAuth2)}}
 		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 			{{.i18n.Tr "settings.applications"}}
 		</a>

@@ -231,9 +231,6 @@ func NewFuncMap() []template.FuncMap {
 		"DisableSSH": func() bool {
 			return setting.SSH.Disabled
 		},
-		"DisableSwagger": func() bool {
-			return !setting.API.EnableSwagger
-		},
 		"DisableOAuth2": func() bool {
 			return !setting.OAuth2.Enable
 		},
