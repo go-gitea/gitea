@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/services/mailer"
+
 	"github.com/urfave/cli"
 )
 
@@ -22,18 +23,13 @@ func runSendMail(c *cli.Context) error {
 		return err
 	}
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:        models.UserTypeIndividual,
-		OrderBy:     models.SearchOrderByAlphabetically,
-		ListOptions: models.ListOptions{},
+	var emails []string
+	err := models.IterateUser(func(user *models.User) error {
+		emails = append(emails, user.Email)
+		return nil
 	})
 	if err != nil {
 		return errors.New("Cann't find users")
-	}
-
-	var emails []string
-	for _, user := range users {
-		emails = append(emails, user.Email)
 	}
 
 	subject := c.String("title")
