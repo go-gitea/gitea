@@ -224,7 +224,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		}
 	}
 
-	if len(form.Password) > 0 {
+	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
 		var err error
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true

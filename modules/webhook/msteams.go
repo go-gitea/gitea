@@ -229,7 +229,7 @@ func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			text += "\n\n"
 		}
 	}
 

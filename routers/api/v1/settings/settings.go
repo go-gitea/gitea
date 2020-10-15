@@ -63,7 +63,7 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 
 // GetGeneralAttachmentSettings returns instance's global settings for Attachment
 func GetGeneralAttachmentSettings(ctx *context.APIContext) {
-	// swagger:operation GET /settings/Attachment settings getGeneralAttachmentSettings
+	// swagger:operation GET /settings/attachment settings getGeneralAttachmentSettings
 	// ---
 	// summary: Get instance's global settings for Attachment
 	// produces:

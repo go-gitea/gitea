@@ -4,6 +4,9 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
+# code.gitea.io/sdk/gitea v0.13.1
+## explicit
+code.gitea.io/sdk/gitea
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
@@ -14,7 +17,6 @@ gitea.com/macaron/binding
 ## explicit
 gitea.com/macaron/cache
 gitea.com/macaron/cache/memcache
-gitea.com/macaron/cache/redis
 # gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 ## explicit
 gitea.com/macaron/captcha
@@ -44,7 +46,6 @@ gitea.com/macaron/session/memcache
 gitea.com/macaron/session/mysql
 gitea.com/macaron/session/nodb
 gitea.com/macaron/session/postgres
-gitea.com/macaron/session/redis
 # gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 ## explicit
 gitea.com/macaron/toolbox
@@ -347,15 +348,15 @@ github.com/go-openapi/strfmt
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.19.10
 github.com/go-openapi/validate
-# github.com/go-redis/redis v6.15.2+incompatible
+# github.com/go-redis/redis/v7 v7.4.0
 ## explicit
-github.com/go-redis/redis
-github.com/go-redis/redis/internal
-github.com/go-redis/redis/internal/consistenthash
-github.com/go-redis/redis/internal/hashtag
-github.com/go-redis/redis/internal/pool
-github.com/go-redis/redis/internal/proto
-github.com/go-redis/redis/internal/util
+github.com/go-redis/redis/v7
+github.com/go-redis/redis/v7/internal
+github.com/go-redis/redis/v7/internal/consistenthash
+github.com/go-redis/redis/v7/internal/hashtag
+github.com/go-redis/redis/v7/internal/pool
+github.com/go-redis/redis/v7/internal/proto
+github.com/go-redis/redis/v7/internal/util
 # github.com/go-sql-driver/mysql v1.5.0
 ## explicit
 github.com/go-sql-driver/mysql
@@ -425,7 +426,7 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.7
 ## explicit
 github.com/hashicorp/go-retryablehttp
-# github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000 => github.com/6543/go-version v1.2.3
+# github.com/hashicorp/go-version v1.2.1 => github.com/6543/go-version v1.2.3
 ## explicit
 github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v1.0.0
@@ -692,6 +693,7 @@ github.com/stretchr/testify/require
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
 # github.com/syndtr/goleveldb v1.0.0
+## explicit
 github.com/syndtr/goleveldb/leveldb
 github.com/syndtr/goleveldb/leveldb/cache
 github.com/syndtr/goleveldb/leveldb/comparer
@@ -762,6 +764,9 @@ github.com/yuin/goldmark-highlighting
 github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
+# go.jolheiser.com/hcaptcha v0.0.4
+## explicit
+go.jolheiser.com/hcaptcha
 # go.jolheiser.com/pwn v0.0.3
 ## explicit
 go.jolheiser.com/pwn

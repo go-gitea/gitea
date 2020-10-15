@@ -67,6 +67,16 @@ func registerRewriteAllPublicKeys() {
 	})
 }
 
+func registerRewriteAllPrincipalKeys() {
+	RegisterTaskFatal("resync_all_sshprincipals", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 72h",
+	}, func(_ context.Context, _ *models.User, _ Config) error {
+		return models.RewriteAllPrincipalKeys()
+	})
+}
+
 func registerRepositoryUpdateHook() {
 	RegisterTaskFatal("resync_all_hooks", &BaseConfig{
 		Enabled:    false,
@@ -114,6 +124,7 @@ func initExtendedTasks() {
 	if !setting.SSH.Disabled {
 		registerRewriteAllPublicKeys()
 	}
+	registerRewriteAllPrincipalKeys()
 	if !setting.DisableGitHooks {
 		registerRepositoryUpdateHook()
 	}

@@ -18,9 +18,37 @@ import (
 )
 
 var (
-	_            ObjectStorage = &MinioStorage{}
-	quoteEscaper               = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+	_ ObjectStorage = &MinioStorage{}
+
+	quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 )
+
+type minioObject struct {
+	*minio.Object
+}
+
+func (m *minioObject) Stat() (os.FileInfo, error) {
+	oi, err := m.Object.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	return &minioFileInfo{oi}, nil
+}
+
+// MinioStorageType is the type descriptor for minio storage
+const MinioStorageType Type = "minio"
+
+// MinioStorageConfig represents the configuration for a minio storage
+type MinioStorageConfig struct {
+	Endpoint        string `ini:"MINIO_ENDPOINT"`
+	AccessKeyID     string `ini:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey string `ini:"MINIO_SECRET_ACCESS_KEY"`
+	Bucket          string `ini:"MINIO_BUCKET"`
+	Location        string `ini:"MINIO_LOCATION"`
+	BasePath        string `ini:"MINIO_BASE_PATH"`
+	UseSSL          bool   `ini:"MINIO_USE_SSL"`
+}
 
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
@@ -31,20 +59,26 @@ type MinioStorage struct {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, endpoint, accessKeyID, secretAccessKey, bucket, location, basePath string, useSSL bool) (*MinioStorage, error) {
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
+	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
+	if err != nil {
+		return nil, err
+	}
+	config := configInterface.(MinioStorageConfig)
+
+	minioClient, err := minio.New(config.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure: config.UseSSL,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if err := minioClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
-		Region: location,
+	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+		Region: config.Location,
 	}); err != nil {
 		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucket)
+		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
 		if !exists || errBucketExists != nil {
 			return nil, err
 		}
@@ -53,8 +87,8 @@ func NewMinioStorage(ctx context.Context, endpoint, accessKeyID, secretAccessKey
 	return &MinioStorage{
 		ctx:      ctx,
 		client:   minioClient,
-		bucket:   bucket,
-		basePath: basePath,
+		bucket:   config.Bucket,
+		basePath: config.BasePath,
 	}, nil
 }
 
@@ -69,7 +103,7 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return object, nil
+	return &minioObject{object}, nil
 }
 
 // Save save a file to minio
@@ -104,8 +138,20 @@ func (m minioFileInfo) ModTime() time.Time {
 	return m.LastModified
 }
 
+func (m minioFileInfo) IsDir() bool {
+	return strings.HasSuffix(m.ObjectInfo.Key, "/")
+}
+
+func (m minioFileInfo) Mode() os.FileMode {
+	return os.ModePerm
+}
+
+func (m minioFileInfo) Sys() interface{} {
+	return nil
+}
+
 // Stat returns the stat information of the object
-func (m *MinioStorage) Stat(path string) (ObjectInfo, error) {
+func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
 		m.ctx,
 		m.bucket,
@@ -134,4 +180,31 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	return m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+}
+
+// IterateObjects iterates across the objects in the miniostorage
+func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+	var opts = minio.GetObjectOptions{}
+	lobjectCtx, cancel := context.WithCancel(m.ctx)
+	defer cancel()
+	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
+		Prefix:    m.basePath,
+		Recursive: true,
+	}) {
+		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
+		if err != nil {
+			return err
+		}
+		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
+			defer object.Close()
+			return fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object})
+		}(object, fn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func init() {
+	RegisterStorageType(MinioStorageType, NewMinioStorage)
 }

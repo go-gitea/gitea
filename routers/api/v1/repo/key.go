@@ -177,6 +177,8 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Key content has been used as non-deploy key")
 	case models.IsErrKeyNameAlreadyUsed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Key title has been used")
+	case models.IsErrDeployKeyNameAlreadyUsed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", "A key with the same name already exists")
 	default:
 		ctx.Error(http.StatusInternalServerError, "AddKey", err)
 	}

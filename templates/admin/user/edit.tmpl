@@ -43,7 +43,7 @@
 				<input class="fake" type="password">
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
-					<input id="password" name="password" type="password">
+					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">

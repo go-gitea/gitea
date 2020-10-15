@@ -67,9 +67,14 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
 	}
+	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
 
-	setting.Attachment.Path = filepath.Join(setting.AppDataPath, "attachments")
-	setting.LFS.ContentPath = filepath.Join(setting.AppDataPath, "lfs")
+	setting.LFS.Storage.Path = filepath.Join(setting.AppDataPath, "lfs")
+
+	setting.Avatar.Storage.Path = filepath.Join(setting.AppDataPath, "avatars")
+
+	setting.RepoAvatar.Storage.Path = filepath.Join(setting.AppDataPath, "repo-avatars")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}

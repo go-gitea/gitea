@@ -21,27 +21,14 @@ import (
 // LFS represents the configuration for Git LFS
 var LFS = struct {
 	StartServer     bool          `ini:"LFS_START_SERVER"`
-	ContentPath     string        `ini:"LFS_CONTENT_PATH"`
 	JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
 	JWTSecretBytes  []byte        `ini:"-"`
 	HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 
-	StoreType   string
-	ServeDirect bool
-	Minio       struct {
-		Endpoint        string
-		AccessKeyID     string
-		SecretAccessKey string
-		UseSSL          bool
-		Bucket          string
-		Location        string
-		BasePath        string
-	}
-}{
-	StoreType: "local",
-}
+	Storage
+}{}
 
 func newLFSService() {
 	sec := Cfg.Section("server")
@@ -49,10 +36,16 @@ func newLFSService() {
 		log.Fatal("Failed to map LFS settings: %v", err)
 	}
 
-	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
-	}
+	lfsSec := Cfg.Section("lfs")
+	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
+
+	// Specifically default PATH to LFS_CONTENT_PATH
+	lfsSec.Key("PATH").MustString(
+		sec.Key("LFS_CONTENT_PATH").String())
+
+	LFS.Storage = getStorage("lfs", storageType, lfsSec)
+
+	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
 		LFS.LocksPagingNum = 50
 	}
@@ -88,14 +81,6 @@ func newLFSService() {
 				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
 				return
 			}
-		}
-	}
-}
-
-func ensureLFSDirectory() {
-	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
 		}
 	}
 }
