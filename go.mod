@@ -78,7 +78,7 @@ require (
 	github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7
 	github.com/mholt/archiver/v3 v3.3.2
 	github.com/microcosm-cc/bluemonday v1.0.4
-	github.com/minio/minio-go/v7 v7.0.4
+	github.com/minio/minio-go/v7 v7.0.5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646

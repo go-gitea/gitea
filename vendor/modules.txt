@@ -583,7 +583,7 @@ github.com/mholt/archiver/v3
 github.com/microcosm-cc/bluemonday
 # github.com/minio/md5-simd v1.1.0
 github.com/minio/md5-simd
-# github.com/minio/minio-go/v7 v7.0.4
+# github.com/minio/minio-go/v7 v7.0.5
 ## explicit
 github.com/minio/minio-go/v7
 github.com/minio/minio-go/v7/pkg/credentials
