@@ -4,6 +4,21 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-10-15
+
+* BUGFIXES
+  * Fix diff parsing (#13136) (#13139)
+  * Return error 404 not 500 from API if team does not exist (#13118) (#13119)
+  * Prohibit automatic downgrades (#13108) (#13111)
+  * Fix GitLab Migration Option AuthToken (#13101)
+  * GitLab Label Color Normalizer (#12793) (#13100)
+  * Log the underlying panic in runMigrateTask (#13096) (#13098)
+  * Fix attachments list in edit comment (#13036) (#13097)
+  * Fix deadlock when deleting team user (#13093)
+  * Fix error create comment on outdated file (#13041) (#13042)
+  * Fix repository create/delete event webhooks (#13008) (#13027)
+  * Fix internal server error on README in submodule (#13006) (#13016)
+
 ## [1.12.5](https://github.com/go-gitea/gitea/releases/tag/v1.12.5) - 2020-10-01
 
 * BUGFIXES
