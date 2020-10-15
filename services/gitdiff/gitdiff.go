@@ -423,6 +423,9 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 	input := bufio.NewReaderSize(reader, readerSize)
 	line, err := input.ReadString('\n')
 	if err != nil {
+		if err == io.EOF {
+			return diff, nil
+		}
 		return diff, err
 	}
 parsingLoop:
