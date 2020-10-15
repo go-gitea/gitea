@@ -56,7 +56,7 @@ require (
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-version v1.2.1
-	github.com/huandu/xstrings v1.3.0
+	github.com/huandu/xstrings v1.3.2
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1
