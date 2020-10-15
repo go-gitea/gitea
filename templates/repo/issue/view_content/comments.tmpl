@@ -441,29 +441,34 @@
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
 									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 								{{if or $invalid $resolved}}
-									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
+									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated">
 										{{svg "octicon-unfold"}}
-										{{if $invalid }}
-											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
 										{{end}}
 									</button>
-									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated">
 										{{svg "octicon-fold"}}
-										{{if $invalid}}
-											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 										{{end}}
 									</button>
 								{{end}}
-									<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								{{if and $invalid (not $resolved)}}
+									<span class="tag">
+										{{$.i18n.Tr "repo.issues.review.outdated"}}
+									</span>
+								{{end}}
 								</div>
 								{{$diff := (CommentMustAsDiff (index $comms 0))}}
 								{{if $diff}}
 									{{$file := (index $diff.Files 0)}}
-									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if or $invalid $resolved}} hide{{end}}">
+									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} hide{{end}}">
 										<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 											<div class="file-body file-code code-view code-diff code-diff-unified">
 												<table>
@@ -475,7 +480,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if or $invalid $resolved}} hide{{end}}">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $resolved}} hide{{end}}">
 									<div class="ui comments">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
