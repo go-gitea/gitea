@@ -578,7 +578,7 @@ github.com/mgechev/revive/rule
 # github.com/mholt/archiver/v3 v3.3.2
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
+# github.com/microcosm-cc/bluemonday v1.0.4
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/minio/md5-simd v1.1.0
