@@ -680,7 +680,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "`" + strings.ToLower(col) + "`"
 		}
 		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.Replace(cols, "`", "'", -1))
+			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
 			return fmt.Errorf("Find constraints: %v", err)

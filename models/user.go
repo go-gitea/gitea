@@ -1254,6 +1254,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err != nil {
 		return err
 	}
+	err = rewriteAllPrincipalKeys(e)
+	if err != nil {
+		return err
+	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
