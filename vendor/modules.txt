@@ -100,7 +100,8 @@ github.com/alecthomas/chroma/styles
 github.com/andybalholm/brotli
 # github.com/andybalholm/cascadia v1.1.0
 github.com/andybalholm/cascadia
-# github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
+# github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
+## explicit
 github.com/anmitsu/go-shlex
 # github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 github.com/asaskevich/govalidator
@@ -249,7 +250,7 @@ github.com/fatih/color
 github.com/fatih/structtag
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gliderlabs/ssh v0.2.2
+# github.com/gliderlabs/ssh v0.3.1
 ## explicit
 github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
@@ -791,7 +792,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+# golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
