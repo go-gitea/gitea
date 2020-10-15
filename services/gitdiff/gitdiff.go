@@ -427,9 +427,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 	}
 parsingLoop:
 	for {
-		if err != nil {
-			break parsingLoop
-		}
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
 		// if it does not we have bad input!
 		if !strings.HasPrefix(line, cmdDiffHead) {
@@ -441,6 +438,7 @@ parsingLoop:
 			diff.IsIncomplete = true
 			_, err := io.Copy(ioutil.Discard, reader)
 			if err != nil {
+				// By the definition of io.Copy this never returns io.EOF
 				return diff, fmt.Errorf("Copy: %v", err)
 			}
 			break parsingLoop
@@ -491,6 +489,9 @@ parsingLoop:
 		for {
 			line, err = input.ReadString('\n')
 			if err != nil {
+				if err != io.EOF {
+					return diff, err
+				}
 				break parsingLoop
 			}
 			switch {
@@ -533,6 +534,9 @@ parsingLoop:
 				diff.TotalAddition += curFile.Addition
 				diff.TotalDeletion += curFile.Deletion
 				if err != nil {
+					if err != io.EOF {
+						return diff, err
+					}
 					break parsingLoop
 				}
 				sb.Reset()
@@ -552,10 +556,6 @@ parsingLoop:
 			}
 		}
 
-	}
-
-	if err == io.EOF {
-		err = nil
 	}
 
 	// FIXME: There are numerous issues with this:
