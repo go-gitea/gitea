@@ -495,7 +495,7 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.10.11
+# github.com/klauspost/compress v1.11.1
 ## explicit
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse

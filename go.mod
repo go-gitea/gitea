@@ -64,7 +64,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.10.11
+	github.com/klauspost/compress v1.11.1
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
