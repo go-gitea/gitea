@@ -203,7 +203,7 @@ func (s *UpdateByQueryService) AbortOnVersionConflict() *UpdateByQueryService {
 	return s
 }
 
-// ProceedOnVersionConflict aborts the request on version conflicts.
+// ProceedOnVersionConflict won't abort the request on version conflicts.
 // It is an alias to setting Conflicts("proceed").
 func (s *UpdateByQueryService) ProceedOnVersionConflict() *UpdateByQueryService {
 	s.conflicts = "proceed"

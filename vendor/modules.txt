@@ -471,6 +471,8 @@ github.com/jbenet/go-context/io
 github.com/jessevdk/go-flags
 # github.com/jmhodges/levigo v1.0.0
 ## explicit
+# github.com/josharian/intern v1.0.0
+github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
 # github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
@@ -533,7 +535,7 @@ github.com/lunny/nodb/store/driver
 github.com/lunny/nodb/store/goleveldb
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
-# github.com/mailru/easyjson v0.7.1
+# github.com/mailru/easyjson v0.7.6
 github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
@@ -627,7 +629,7 @@ github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
 github.com/oliamb/cutter
-# github.com/olivere/elastic/v7 v7.0.9
+# github.com/olivere/elastic/v7 v7.0.20
 ## explicit
 github.com/olivere/elastic/v7
 github.com/olivere/elastic/v7/config
