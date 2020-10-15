@@ -124,11 +124,11 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		log.Error("SSH: Wait: %v from %s", err, session.RemoteAddr())
 	}
 
 	if err := session.Exit(getExitStatusFromError(err)); err != nil {
-		log.Error("Session failed to exit. %s", err)
+		log.Error("Session failed to exit. %s from %s", err, session.RemoteAddr())
 	}
 }
 
@@ -185,7 +185,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
-		log.Error("SearchPublicKeyByContent: %v", err)
+		log.Error("SearchPublicKeyByContent: %v from %s", err, ctx.RemoteAddr())
 		return false
 	}
 
