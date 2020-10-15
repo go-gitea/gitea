@@ -559,7 +559,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 }
 
 // CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
-func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
+func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (err error) {
 	if err = pr.LoadBaseRepo(); err != nil {
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
@@ -595,6 +595,16 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "The head branch is behind the base branch",
+		}
+	}
+
+	if skipProtectedFilesCheck {
+		return nil
+	}
+
+	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Changed protected files",
 		}
 	}
 

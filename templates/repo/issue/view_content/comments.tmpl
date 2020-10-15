@@ -57,9 +57,11 @@
 					<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
 					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 				{{if .Attachments}}
-					<div class="ui clearing divider"></div>
-					<div class="ui middle aligned padded grid">
-						{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments}}
+					<div class="dropzone-attachments">
+						<div class="ui clearing divider"></div>
+						<div class="ui middle aligned padded grid">
+							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments}}
+						</div>
 					</div>
 				{{end}}
 				</div>
@@ -439,29 +441,34 @@
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
 									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 								{{if or $invalid $resolved}}
-									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
+									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated">
 										{{svg "octicon-unfold"}}
-										{{if $invalid }}
-											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
 										{{end}}
 									</button>
-									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated">
 										{{svg "octicon-fold"}}
-										{{if $invalid}}
-											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 										{{end}}
 									</button>
 								{{end}}
-									<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								{{if and $invalid (not $resolved)}}
+									<span class="tag">
+										{{$.i18n.Tr "repo.issues.review.outdated"}}
+									</span>
+								{{end}}
 								</div>
 								{{$diff := (CommentMustAsDiff (index $comms 0))}}
 								{{if $diff}}
 									{{$file := (index $diff.Files 0)}}
-									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if or $invalid $resolved}} hide{{end}}">
+									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} hide{{end}}">
 										<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 											<div class="file-body file-code code-view code-diff code-diff-unified">
 												<table>
@@ -473,7 +480,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if or $invalid $resolved}} hide{{end}}">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $resolved}} hide{{end}}">
 									<div class="ui comments">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
@@ -593,14 +600,22 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{if .RemovedAssignee}}
-					{{if eq .PosterID .AssigneeID}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+				{{if (gt .AssigneeID 0)}}
+					{{if .RemovedAssignee}}
+						{{if eq .PosterID .AssigneeID}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{end}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 					{{end}}
 				{{else}}
-					{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+					{{if .RemovedAssignee}}
+						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{end}}
 				{{end}}
 			</span>
 		</div>

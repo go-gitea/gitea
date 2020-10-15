@@ -774,7 +774,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
 			return
