@@ -38,6 +38,9 @@ func readLength(reader io.Reader) (length int, read int, err error) {
 		if lengthBytes > 8 {
 			return 0, read, errors.New("long-form length overflow")
 		}
+
+		// Accumulate into a 64-bit variable
+		var length64 int64
 		for i := 0; i < lengthBytes; i++ {
 			b, err = readByte(reader)
 			if err != nil {
@@ -49,8 +52,15 @@ func readLength(reader io.Reader) (length int, read int, err error) {
 			read++
 
 			// x.600, 8.1.3.5
-			length <<= 8
-			length |= int(b)
+			length64 <<= 8
+			length64 |= int64(b)
+		}
+
+		// Cast to a platform-specific integer
+		length = int(length64)
+		// Ensure we didn't overflow
+		if int64(length) != length64 {
+			return 0, read, errors.New("long-form length overflow")
 		}
 
 	default:
