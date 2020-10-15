@@ -1,9 +1,13 @@
 language: go
 
+env:
+  - GO111MODULE=on
+
 go:
-  - 1.8.x
   - 1.9.x
   - 1.10.x
+  - 1.11.x
+  - 1.12.x
   - master
 
 matrix:
@@ -16,3 +20,5 @@ sudo: false
 script: 
  - go test -v -cpu=2
  - go test -v -cpu=2 -race
+ - go test -v -cpu=2 -tags noasm
+ - go test -v -cpu=2 -race -tags noasm

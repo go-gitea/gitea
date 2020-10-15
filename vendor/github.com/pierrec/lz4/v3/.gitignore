@@ -30,4 +30,5 @@ Temporary Items
 
 # End of https://www.gitignore.io/api/macos
 
-lz4c/lz4c
+cmd/*/*exe
+.idea

@@ -7,14 +7,15 @@ import (
 )
 
 const (
-	prime32_1 uint32 = 2654435761
-	prime32_2 uint32 = 2246822519
-	prime32_3 uint32 = 3266489917
-	prime32_4 uint32 = 668265263
-	prime32_5 uint32 = 374761393
+	prime1 uint32 = 2654435761
+	prime2 uint32 = 2246822519
+	prime3 uint32 = 3266489917
+	prime4 uint32 = 668265263
+	prime5 uint32 = 374761393
 
-	prime32_1plus2 uint32 = 606290984
-	prime32_minus1 uint32 = 1640531535
+	primeMask   = 0xFFFFFFFF
+	prime1plus2 = uint32((uint64(prime1) + uint64(prime2)) & primeMask) // 606290984
+	prime1minus = uint32((-int64(prime1)) & primeMask)                  // 1640531535
 )
 
 // XXHZero represents an xxhash32 object with seed 0.
@@ -37,10 +38,10 @@ func (xxh XXHZero) Sum(b []byte) []byte {
 
 // Reset resets the Hash to its initial state.
 func (xxh *XXHZero) Reset() {
-	xxh.v1 = prime32_1plus2
-	xxh.v2 = prime32_2
+	xxh.v1 = prime1plus2
+	xxh.v2 = prime2
 	xxh.v3 = 0
-	xxh.v4 = prime32_minus1
+	xxh.v4 = prime1minus
 	xxh.totalLen = 0
 	xxh.bufused = 0
 }
@@ -83,20 +84,20 @@ func (xxh *XXHZero) Write(input []byte) (int, error) {
 
 		// fast rotl(13)
 		buf := xxh.buf[:16] // BCE hint.
-		v1 = rol13(v1+binary.LittleEndian.Uint32(buf[:])*prime32_2) * prime32_1
-		v2 = rol13(v2+binary.LittleEndian.Uint32(buf[4:])*prime32_2) * prime32_1
-		v3 = rol13(v3+binary.LittleEndian.Uint32(buf[8:])*prime32_2) * prime32_1
-		v4 = rol13(v4+binary.LittleEndian.Uint32(buf[12:])*prime32_2) * prime32_1
+		v1 = rol13(v1+binary.LittleEndian.Uint32(buf[:])*prime2) * prime1
+		v2 = rol13(v2+binary.LittleEndian.Uint32(buf[4:])*prime2) * prime1
+		v3 = rol13(v3+binary.LittleEndian.Uint32(buf[8:])*prime2) * prime1
+		v4 = rol13(v4+binary.LittleEndian.Uint32(buf[12:])*prime2) * prime1
 		p = r
 		xxh.bufused = 0
 	}
 
 	for n := n - 16; p <= n; p += 16 {
 		sub := input[p:][:16] //BCE hint for compiler
-		v1 = rol13(v1+binary.LittleEndian.Uint32(sub[:])*prime32_2) * prime32_1
-		v2 = rol13(v2+binary.LittleEndian.Uint32(sub[4:])*prime32_2) * prime32_1
-		v3 = rol13(v3+binary.LittleEndian.Uint32(sub[8:])*prime32_2) * prime32_1
-		v4 = rol13(v4+binary.LittleEndian.Uint32(sub[12:])*prime32_2) * prime32_1
+		v1 = rol13(v1+binary.LittleEndian.Uint32(sub[:])*prime2) * prime1
+		v2 = rol13(v2+binary.LittleEndian.Uint32(sub[4:])*prime2) * prime1
+		v3 = rol13(v3+binary.LittleEndian.Uint32(sub[8:])*prime2) * prime1
+		v4 = rol13(v4+binary.LittleEndian.Uint32(sub[12:])*prime2) * prime1
 	}
 	xxh.v1, xxh.v2, xxh.v3, xxh.v4 = v1, v2, v3, v4
 
@@ -112,25 +113,25 @@ func (xxh *XXHZero) Sum32() uint32 {
 	if h32 >= 16 {
 		h32 += rol1(xxh.v1) + rol7(xxh.v2) + rol12(xxh.v3) + rol18(xxh.v4)
 	} else {
-		h32 += prime32_5
+		h32 += prime5
 	}
 
 	p := 0
 	n := xxh.bufused
 	buf := xxh.buf
 	for n := n - 4; p <= n; p += 4 {
-		h32 += binary.LittleEndian.Uint32(buf[p:p+4]) * prime32_3
-		h32 = rol17(h32) * prime32_4
+		h32 += binary.LittleEndian.Uint32(buf[p:p+4]) * prime3
+		h32 = rol17(h32) * prime4
 	}
 	for ; p < n; p++ {
-		h32 += uint32(buf[p]) * prime32_5
-		h32 = rol11(h32) * prime32_1
+		h32 += uint32(buf[p]) * prime5
+		h32 = rol11(h32) * prime1
 	}
 
 	h32 ^= h32 >> 15
-	h32 *= prime32_2
+	h32 *= prime2
 	h32 ^= h32 >> 13
-	h32 *= prime32_3
+	h32 *= prime3
 	h32 ^= h32 >> 16
 
 	return h32
@@ -142,19 +143,19 @@ func ChecksumZero(input []byte) uint32 {
 	h32 := uint32(n)
 
 	if n < 16 {
-		h32 += prime32_5
+		h32 += prime5
 	} else {
-		v1 := prime32_1plus2
-		v2 := prime32_2
+		v1 := prime1plus2
+		v2 := prime2
 		v3 := uint32(0)
-		v4 := prime32_minus1
+		v4 := prime1minus
 		p := 0
 		for n := n - 16; p <= n; p += 16 {
 			sub := input[p:][:16] //BCE hint for compiler
-			v1 = rol13(v1+binary.LittleEndian.Uint32(sub[:])*prime32_2) * prime32_1
-			v2 = rol13(v2+binary.LittleEndian.Uint32(sub[4:])*prime32_2) * prime32_1
-			v3 = rol13(v3+binary.LittleEndian.Uint32(sub[8:])*prime32_2) * prime32_1
-			v4 = rol13(v4+binary.LittleEndian.Uint32(sub[12:])*prime32_2) * prime32_1
+			v1 = rol13(v1+binary.LittleEndian.Uint32(sub[:])*prime2) * prime1
+			v2 = rol13(v2+binary.LittleEndian.Uint32(sub[4:])*prime2) * prime1
+			v3 = rol13(v3+binary.LittleEndian.Uint32(sub[8:])*prime2) * prime1
+			v4 = rol13(v4+binary.LittleEndian.Uint32(sub[12:])*prime2) * prime1
 		}
 		input = input[p:]
 		n -= p
@@ -163,19 +164,19 @@ func ChecksumZero(input []byte) uint32 {
 
 	p := 0
 	for n := n - 4; p <= n; p += 4 {
-		h32 += binary.LittleEndian.Uint32(input[p:p+4]) * prime32_3
-		h32 = rol17(h32) * prime32_4
+		h32 += binary.LittleEndian.Uint32(input[p:p+4]) * prime3
+		h32 = rol17(h32) * prime4
 	}
 	for p < n {
-		h32 += uint32(input[p]) * prime32_5
-		h32 = rol11(h32) * prime32_1
+		h32 += uint32(input[p]) * prime5
+		h32 = rol11(h32) * prime1
 		p++
 	}
 
 	h32 ^= h32 >> 15
-	h32 *= prime32_2
+	h32 *= prime2
 	h32 ^= h32 >> 13
-	h32 *= prime32_3
+	h32 *= prime3
 	h32 ^= h32 >> 16
 
 	return h32
@@ -183,12 +184,12 @@ func ChecksumZero(input []byte) uint32 {
 
 // Uint32Zero hashes x with seed 0.
 func Uint32Zero(x uint32) uint32 {
-	h := prime32_5 + 4 + x*prime32_3
-	h = rol17(h) * prime32_4
+	h := prime5 + 4 + x*prime3
+	h = rol17(h) * prime4
 	h ^= h >> 15
-	h *= prime32_2
+	h *= prime2
 	h ^= h >> 13
-	h *= prime32_3
+	h *= prime3
 	h ^= h >> 16
 	return h
 }

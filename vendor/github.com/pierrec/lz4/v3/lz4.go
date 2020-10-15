@@ -10,6 +10,10 @@
 //
 package lz4
 
+import "math/bits"
+
+import "sync"
+
 const (
 	// Extension is the LZ4 frame file name extension
 	Extension = ".lz4"
@@ -30,26 +34,63 @@ const (
 	// hashLog determines the size of the hash table used to quickly find a previous match position.
 	// Its value influences the compression speed and memory usage, the lower the faster,
 	// but at the expense of the compression ratio.
-	// 16 seems to be the best compromise.
-	hashLog       = 16
-	hashTableSize = 1 << hashLog
-	hashShift     = uint((minMatch * 8) - hashLog)
+	// 16 seems to be the best compromise for fast compression.
+	hashLog = 16
+	htSize  = 1 << hashLog
 
-	mfLimit      = 8 + minMatch // The last match cannot start within the last 12 bytes.
-	skipStrength = 6            // variable step for fast scan
+	mfLimit = 10 + minMatch // The last match cannot start within the last 14 bytes.
 )
 
 // map the block max size id with its value in bytes: 64Kb, 256Kb, 1Mb and 4Mb.
-var (
-	bsMapID    = map[byte]int{4: 64 << 10, 5: 256 << 10, 6: 1 << 20, 7: 4 << 20}
-	bsMapValue = make(map[int]byte, len(bsMapID))
+const (
+	blockSize64K = 1 << (16 + 2*iota)
+	blockSize256K
+	blockSize1M
+	blockSize4M
 )
 
-// Reversed.
-func init() {
-	for i, v := range bsMapID {
-		bsMapValue[v] = i
+var (
+	// Keep a pool of buffers for each valid block sizes.
+	bsMapValue = [...]*sync.Pool{
+		newBufferPool(2 * blockSize64K),
+		newBufferPool(2 * blockSize256K),
+		newBufferPool(2 * blockSize1M),
+		newBufferPool(2 * blockSize4M),
 	}
+)
+
+// newBufferPool returns a pool for buffers of the given size.
+func newBufferPool(size int) *sync.Pool {
+	return &sync.Pool{
+		New: func() interface{} {
+			return make([]byte, size)
+		},
+	}
+}
+
+// getBuffer returns a buffer to its pool.
+func getBuffer(size int) []byte {
+	idx := blockSizeValueToIndex(size) - 4
+	return bsMapValue[idx].Get().([]byte)
+}
+
+// putBuffer returns a buffer to its pool.
+func putBuffer(size int, buf []byte) {
+	if cap(buf) > 0 {
+		idx := blockSizeValueToIndex(size) - 4
+		bsMapValue[idx].Put(buf[:cap(buf)])
+	}
+}
+func blockSizeIndexToValue(i byte) int {
+	return 1 << (16 + 2*uint(i))
+}
+func isValidBlockSize(size int) bool {
+	const blockSizeMask = blockSize64K | blockSize256K | blockSize1M | blockSize4M
+
+	return size&blockSizeMask > 0 && bits.OnesCount(uint(size)) == 1
+}
+func blockSizeValueToIndex(size int) byte {
+	return 4 + byte(bits.TrailingZeros(uint(size)>>16)/2)
 }
 
 // Header describes the various flags that can be set on a Writer or obtained from a Reader.
@@ -57,7 +98,7 @@ func init() {
 // (http://fastcompression.blogspot.com/2013/04/lz4-streaming-format-final.html).
 //
 // NB. in a Reader, in case of concatenated frames, the Header values may change between Read() calls.
-// It is the caller responsibility to check them if necessary.
+// It is the caller's responsibility to check them if necessary.
 type Header struct {
 	BlockChecksum    bool   // Compressed blocks checksum flag.
 	NoChecksum       bool   // Frame checksum flag.
@@ -65,4 +106,8 @@ type Header struct {
 	Size             uint64 // Frame total size. It is _not_ computed by the Writer.
 	CompressionLevel int    // Compression level (higher is better, use 0 for fastest compression).
 	done             bool   // Header processed flag (Read or Write and checked).
+}
+
+func (h *Header) Reset() {
+	h.done = false
 }
