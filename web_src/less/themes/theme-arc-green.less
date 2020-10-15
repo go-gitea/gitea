@@ -683,6 +683,11 @@ a.ui.basic.green.label:hover {
   color: #626773;
 }
 
+.ui.disabled.checkbox label,
+.ui.checkbox input[disabled] ~ label {
+  color: #9e9e9e;
+}
+
 .ui.pagination.menu .active.item {
   color: #dbdbdb;
   background-color: #87ab63;
@@ -1271,16 +1276,36 @@ input {
   color: #9ebcc5;
 }
 
-.ui .warning.header {
-  background-color: #5d3a22 !important;
-  border-color: #794f31;
+.ui .warning.header,
+.ui.warning.message {
+  background-color: #542 !important;
+  border-color: #ec8;
+}
+
+.ui.warning.message {
+  color: #ec8;
+  box-shadow: 0 0 0 1px #ec8;
+}
+
+.ui.warning.segment {
+  border-color: #ec8;
 }
 
 .ui.red.message,
 .ui.error.message {
-  background-color: rgba(80, 23, 17, .6);
+  background-color: #522;
   color: #f9cbcb;
-  box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
+  box-shadow: 0 0 0 1px #a04141 inset;
+}
+
+.ui .error.header,
+.ui.error.message {
+  background-color: #522 !important;
+  border-color: #a04141;
+}
+
+.ui.error.segment {
+  border-color: #a04141;
 }
 
 .ui.red.button,
@@ -1474,8 +1499,14 @@ a.blob-excerpt:hover {
   background: #87ab63;
 }
 
-.code-view .lines-code.active {
+.lines-code.active,
+.lines-code .active {
   background: #534d1b !important;
+}
+
+.ui.ui.ui.ui.table tr.active,
+.ui.ui.table td.active {
+  color: #dbdbdb;
 }
 
 a.ui.label:hover,
@@ -1595,6 +1626,8 @@ a.ui.labels .label:hover {
   border-color: #634343 !important;
 }
 
+.organization.teams .repositories .item:not(:last-child),
+.organization.teams .members .item:not(:last-child),
 .organization.teams .detail .item:not(:last-child),
 .organization.members .list .item {
   border-bottom-color: #404552;

@@ -329,7 +329,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *GithubDownloaderV3) GetAsset(_ string, id int64) (io.ReadCloser, error) {
+func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, error) {
 	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
 	if err != nil {
 		return nil, err
@@ -496,7 +496,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	opt := &github.PullRequestListOptions{
 		Sort:      "created",
 		Direction: "asc",
@@ -510,7 +510,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	g.sleep()
 	prs, resp, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
 	g.rate = &resp.Rate
 	for _, pr := range prs {
@@ -576,7 +576,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 				PerPage: perPage,
 			})
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			g.rate = &resp.Rate
 			if len(res) == 0 {
@@ -626,7 +626,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		})
 	}
 
-	return allPRs, nil
+	return allPRs, len(prs) < perPage, nil
 }
 
 func convertGithubReview(r *github.PullRequestReview) *base.Review {

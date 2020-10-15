@@ -79,7 +79,7 @@ _Symbols used in table:_
 | Labels | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
-| Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
+| Related issues | ✘ | ✘ | ⁄ | [✓](https://docs.gitlab.com/ce/user/project/issues/related_issues.html) | ✓ | ✘ | ✘ |
 | Confidential issues | [✘](https://github.com/go-gitea/gitea/issues/3217) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
@@ -90,14 +90,14 @@ _Symbols used in table:_
 | Global issue search | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
 | Create issue via email | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
-| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
+| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103) | ✓ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
 | Pull/Merge requests | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Squash merging | ✓ | ✘ | ✓ | ✘ | ✓ | ✓ | ✓ |
+| Squash merging | ✓ | ✘ | ✓ | [✓](https://docs.gitlab.com/ce/user/project/merge_requests/squash_and_merge.html) | ✓ | ✓ | ✓ |
 | Rebase merging | ✓ | ✓ | ✓ | ✘ | ⁄ | ✘ | ✓ |
 | Pull/Merge request inline comments | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Pull/Merge request approval | ✓ | ✘ | ⁄ | ✓ | ✓ | ✓ | ✓ |

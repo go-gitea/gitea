@@ -35,7 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	var commit = util.URLJoin(AppSubURL, "commit", sha)
 	var subtree = util.URLJoin(commit, "src")
-	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var tree = strings.ReplaceAll(subtree, "/commit/", "/tree/")
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
@@ -235,7 +235,7 @@ func TestRender_emoji(t *testing.T) {
 	setting.StaticURLPrefix = AppURL
 
 	test := func(input, expected string) {
-		expected = strings.Replace(expected, "&", "&amp;", -1)
+		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}

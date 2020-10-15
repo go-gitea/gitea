@@ -90,9 +90,9 @@ func TestParsePatch_singlefile(t *testing.T) {
 	tests := []testcase{
 		{
 			name: "readme.md2readme.md",
-			gitdiff: `diff --git "a/README.md" "b/README.md"
---- a/README.md
-+++ b/README.md
+			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
+--- "\\a/README.md"
++++ "\\b/README.md"
 @@ -1,3 +1,6 @@
  # gitea-github-migrator
 +
@@ -102,9 +102,10 @@ func TestParsePatch_singlefile(t *testing.T) {
 + cut off
 + cut off
 `,
-			addition: 4,
-			deletion: 1,
-			filename: "README.md",
+			addition:    4,
+			deletion:    1,
+			filename:    "README.md",
+			oldFilename: "README.md",
 		},
 		{
 			name: "A \\ B",
@@ -119,16 +120,17 @@ func TestParsePatch_singlefile(t *testing.T) {
  Docker Pulls
 + cut off
 + cut off`,
-			addition: 4,
-			deletion: 1,
-			filename: "A \\ B",
+			addition:    4,
+			deletion:    1,
+			filename:    "A \\ B",
+			oldFilename: "A \\ B",
 		},
 		{
 			name: "really weird filename",
-			gitdiff: `diff --git a/a b/file b/a a/file b/a b/file b/a a/file
+			gitdiff: `diff --git "\\a/a b/file b/a a/file" "\\b/a b/file b/a a/file"
 index d2186f1..f5c8ed2 100644
---- a/a b/file b/a a/file	
-+++ b/a b/file b/a a/file	
+--- "\\a/a b/file b/a a/file"	
++++ "\\b/a b/file b/a a/file"	
 @@ -1,3 +1,2 @@
  Create a weird file.
  
@@ -141,10 +143,10 @@ index d2186f1..f5c8ed2 100644
 		},
 		{
 			name: "delete file with blanks",
-			gitdiff: `diff --git a/file with blanks b/file with blanks
+			gitdiff: `diff --git "\\a/file with blanks" "\\b/file with blanks"
 deleted file mode 100644
 index 898651a..0000000
---- a/file with blanks	
+--- "\\a/file with blanks"	
 +++ /dev/null
 @@ -1,5 +0,0 @@
 -a blank file
@@ -153,9 +155,10 @@ index 898651a..0000000
 -
 -the 5th line is the last
 `,
-			addition: 0,
-			deletion: 5,
-			filename: "file with blanks",
+			addition:    0,
+			deletion:    5,
+			filename:    "file with blanks",
+			oldFilename: "file with blanks",
 		},
 		{
 			name: "rename a—as",
@@ -171,7 +174,7 @@ rename to "a\342\200\224as"
 		},
 		{
 			name: "rename with spaces",
-			gitdiff: `diff --git a/a b/file b/a a/file b/a b/a a/file b/b file
+			gitdiff: `diff --git "\\a/a b/file b/a a/file" "\\b/a b/a a/file b/b file"
 similarity index 100%
 rename from a b/file b/a a/file
 rename to a b/a a/file b/b file
