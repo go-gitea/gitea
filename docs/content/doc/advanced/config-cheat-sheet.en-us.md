@@ -251,6 +251,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `SSH_ROOT_PATH`: **~/.ssh**: Root path of SSH directory. 
 - `SSH_CREATE_AUTHORIZED_KEYS_FILE`: **true**: Gitea will create a authorized_keys file by default when it is not using the internal ssh server. If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+- `SSH_TRUSTED_USER_CA_KEYS`: **\<empty\>**: Specifies the public keys of certificate authorities that are trusted to sign user certificates for authentication. Multiple keys should be comma separated. E.g.`ssh-<algorithm> <key>` or `ssh-<algorithm> <key1>, ssh-<algorithm> <key2>`. For more information see `TrustedUserCAKeys` in the sshd config man pages. When empty no file will be created and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` will default to `off`.
+- `SSH_TRUSTED_USER_CA_KEYS_FILENAME`: **`RUN_USER`/.ssh/gitea-trusted-user-ca-keys.pem**: Absolute path of the `TrustedUserCaKeys` file gitea will manage. If you're running your own ssh server and you want to use the gitea managed file you'll also need to modify your sshd_config to point to this file. The official docker image will automatically work without further configuration.
+- `SSH_AUTHORIZED_PRINCIPALS_ALLOW`: **off** or **username, email**: \[off, username, email, anything\]: Specify the principals values that users are allowed to use as principal. When set to `anything` no checks are done on the principal string. When set to `off` authorized principal are not allowed to be set.
+- `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
+- `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true if `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_SERVER_CIPHERS`: **aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_KEY_EXCHANGES`: **diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
@@ -258,7 +263,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_BACKUP_AUTHORIZED_KEYS`: **true**: Enable SSH Authorized Key Backup when rewriting all keys, default is true.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
-- `MINIMUM_KEY_SIZE_CHECK`: **false**: Indicate whether to check minimum key size with corresponding type.
+- `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
@@ -388,8 +393,13 @@ relation to port exhaustion.
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
-- `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
-   git hooks.
+- `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with git hook privilege to create custom git hooks.
+   WARNING: Custom git hooks can be used to perform arbitrary code execution on the host operating system.
+   This enables the users to access and modify this config file and the Gitea database and interrupt the Gitea service.
+   By modifying the Gitea database, users can gain Gitea administrator privileges.
+   It also enables them to access other resources available to the user on the operating system that is running the
+   Gitea instance and perform arbitrary actions in the name of the Gitea OS user.
+   This maybe harmful to you website or your operating system.
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
@@ -474,7 +484,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `ED25519`: **256**
 - `ECDSA`: **256**
 - `RSA`: **2048**
-- `DSA`: **1024**
+- `DSA`: **-1**: DSA is now disabled by default. Set to **1024** to re-enable but ensure you may need to reconfigure your SSHD provider
 
 ## Webhook (`webhook`)
 
@@ -554,16 +564,21 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
    [http://www.libravatar.org](http://www.libravatar.org)).
+
+- `AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
+- `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
+- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
+
+- `REPOSITORY_AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
 - `REPOSITORY_AVATAR_FALLBACK`: **none**: How Gitea deals with missing repository avatars
   - none = no avatar will be displayed
   - random = random avatar will be generated
-  - image = default image will be used (which is set in `REPOSITORY_AVATAR_DEFAULT_IMAGE`)
+  - image = default image will be used (which is set in `REPOSITORY_AVATAR_FALLBACK_IMAGE`)
 - `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: Image used as default repository avatar (if `REPOSITORY_AVATAR_FALLBACK` is set to image and none was uploaded)
-- `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
-- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
+
 
 ## Project (`project`)
 

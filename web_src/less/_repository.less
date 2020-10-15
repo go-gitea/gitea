@@ -101,6 +101,12 @@
         line-height: 2em;
       }
 
+      &.assignees .teamavatar {
+        margin-top: .125rem;
+        margin-left: 6.75px;
+        margin-right: 8.75px;
+      }
+
       .hide {
         display: none !important;
       }
@@ -996,11 +1002,9 @@
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
-
-            .text {
-              padding-top: 10px;
-              padding-bottom: 10px;
-            }
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
             &.arrow-top::before,
             &.arrow-top::after {
@@ -1017,11 +1021,16 @@
               left: 7px;
             }
 
-            .actions a {
-              color: rgba(0, 0, 0, .4);
+            .actions {
+              display: flex;
+              padding: 0 .5rem;
 
-              &:hover {
-                color: rgba(0, 0, 0, .8);
+              a {
+                color: rgba(0, 0, 0, .4);
+
+                &:hover {
+                  color: rgba(0, 0, 0, .8);
+                }
               }
             }
           }
@@ -1049,6 +1058,16 @@
 
             &.no-header {
               #avatar-arrow;
+            }
+
+            @media only screen and (max-width: 767px) {
+              .form .button {
+                width: 100%;
+
+                &:not(:last-child) {
+                  margin-bottom: 1rem;
+                }
+              }
             }
           }
 

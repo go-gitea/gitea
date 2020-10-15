@@ -663,15 +663,16 @@ function initIssueComments() {
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
-    const isChecked = $(this).data('is-checked');
+    const isChecked = $(this).hasClass('checked');
 
     event.preventDefault();
     updateIssuesMeta(
       url,
-      isChecked === 'true' ? 'attach' : 'detach',
+      isChecked ? 'detach' : 'attach',
       issueId,
       id,
     ).then(reload);
+    return false;
   });
 
   $(document).on('click', (event) => {
@@ -940,7 +941,7 @@ async function initRepository() {
                   dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
-                    const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
+                    const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
@@ -976,7 +977,9 @@ async function initRepository() {
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          dz.emit('reload');
+          if (dz) {
+            dz.emit('reload');
+          }
         });
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
@@ -990,26 +993,32 @@ async function initRepository() {
             context: $editContentZone.data('context'),
             files: $attachments
           }, (data) => {
-            if (data.length === 0) {
+            if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
             }
-            const $content = $segment.parent();
-            if (!$content.find('.ui.small.images').length) {
+            const $content = $segment;
+            if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
-                $content.append(
-                  '<div class="ui bottom attached segment"><div class="ui small images"></div></div>'
-                );
-                $content.find('.ui.small.images').html(data.attachments);
+                $content.append(`
+                  <div class="dropzone-attachments">
+                    <div class="ui clearing divider"></div>
+                    <div class="ui middle aligned padded grid">
+                    </div>
+                  </div>
+                `);
+                $content.find('.dropzone-attachments .grid').html(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.ui.small.images').parent().remove();
+              $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.ui.small.images').html(data.attachments);
+              $content.find('.dropzone-attachments .grid').html(data.attachments);
             }
-            dz.emit('submit');
-            dz.emit('reload');
+            if (dz) {
+              dz.emit('submit');
+              dz.emit('reload');
+            }
             renderMarkdownContent();
           });
         });

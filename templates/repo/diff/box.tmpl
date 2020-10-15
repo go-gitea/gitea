@@ -68,6 +68,9 @@
 						</div>
 						<span class="file">{{$file.Name}}</span>
 						<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+						{{if $file.IsProtected}}
+							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
+						{{end}}
 						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 							{{if $file.IsDeleted}}
 								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
@@ -104,6 +107,9 @@
 							{{end}}
 						</div>
 						<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+						{{if $file.IsProtected}}
+							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
+						{{end}}
 						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 							{{if $file.IsDeleted}}
 								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>

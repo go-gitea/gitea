@@ -123,7 +123,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
 func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
-	// If no branch name is set, assume master
+	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
 	}

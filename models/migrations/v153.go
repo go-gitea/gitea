@@ -5,16 +5,21 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func addSessionTable(x *xorm.Engine) error {
-	type Session struct {
-		Key         string `xorm:"pk CHAR(16)"`
-		Data        []byte `xorm:"BLOB"`
-		CreatedUnix timeutil.TimeStamp
+func addTeamReviewRequestSupport(x *xorm.Engine) error {
+	type Review struct {
+		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return x.Sync2(new(Session))
+
+	type Comment struct {
+		AssigneeTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	if err := x.Sync2(new(Review)); err != nil {
+		return err
+	}
+
+	return x.Sync2(new(Comment))
 }

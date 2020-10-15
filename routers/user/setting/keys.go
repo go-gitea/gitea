@@ -22,6 +22,8 @@ func Keys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	loadKeysData(ctx)
 
@@ -32,6 +34,9 @@ func Keys(ctx *context.Context) {
 func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	if ctx.HasError() {
 		loadKeysData(ctx)
@@ -40,6 +45,32 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		return
 	}
 	switch form.Type {
+	case "principal":
+		content, err := models.CheckPrincipalKeyString(ctx.User, form.Content)
+		if err != nil {
+			if models.IsErrSSHDisabled(err) {
+				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_principal", err.Error()))
+			}
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
+		if _, err = models.AddPrincipalKey(ctx.User.ID, content, 0); err != nil {
+			ctx.Data["HasPrincipalError"] = true
+			switch {
+			case models.IsErrKeyAlreadyExist(err), models.IsErrKeyNameAlreadyUsed(err):
+				loadKeysData(ctx)
+
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_principal_been_used"), tplSettingsKeys, &form)
+			default:
+				ctx.ServerError("AddPrincipalKey", err)
+			}
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
 		keys, err := models.AddGPGKey(ctx.User.ID, form.Content)
 		if err != nil {
@@ -134,6 +165,12 @@ func DeleteKey(ctx *context.Context) {
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
+	case "principal":
+		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeletePublicKey: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
+		}
 	default:
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -157,4 +194,11 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
+
+	principals, err := models.ListPrincipalKeys(ctx.User.ID, models.ListOptions{})
+	if err != nil {
+		ctx.ServerError("ListPrincipalKeys", err)
+		return
+	}
+	ctx.Data["Principals"] = principals
 }

@@ -65,7 +65,7 @@ func newGit() {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
 	if err := git.SetExecutablePath(Git.Path); err != nil {
-		log.Fatal("Failed to initialize Git settings", err)
+		log.Fatal("Failed to initialize Git settings: %v", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
