@@ -6,12 +6,23 @@ package migrations
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
+
+// Copy paste from models/repo.go because we cannot import models package
+func repoPath(userName, repoName string) string {
+	return filepath.Join(userPath(userName), strings.ToLower(repoName)+".git")
+}
+
+func userPath(userName string) string {
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+}
 
 func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 
@@ -92,7 +103,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = git.OpenRepository(models.RepoPath(user.Name, repo.Name))
+				gitRepo, err = git.OpenRepository(repoPath(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}
