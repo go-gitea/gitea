@@ -14,7 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-ldap/ldap"
+	"github.com/go-ldap/ldap/v3"
 )
 
 // SecurityProtocol protocol type
