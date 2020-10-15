@@ -418,7 +418,7 @@ github.com/golang/snappy
 github.com/google/go-github/v32/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
-# github.com/google/uuid v1.1.1
+# github.com/google/uuid v1.1.2
 ## explicit
 github.com/google/uuid
 # github.com/gorilla/context v1.1.1
