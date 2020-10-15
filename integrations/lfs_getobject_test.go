@@ -50,7 +50,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	lfsID++
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
-	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &lfs.ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	exist, err := contentStore.Exists(lfsMetaObject)
 	assert.NoError(t, err)
 	if !exist {

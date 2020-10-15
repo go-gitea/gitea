@@ -431,7 +431,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		contentStore := &lfs.ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 		exist, err := contentStore.Exists(lfsMetaObject)
 		if err != nil {
 			return nil, err

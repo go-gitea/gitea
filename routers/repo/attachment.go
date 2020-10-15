@@ -126,7 +126,7 @@ func GetAttachment(ctx *context.Context) {
 
 	if setting.Attachment.ServeDirect {
 		//If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
+		u, err := storage.GetManager().Get("attachments").URL(attach.RelativePath(), attach.Name)
 
 		if u != nil && err == nil {
 			if err := attach.IncreaseDownloadCount(); err != nil {
@@ -140,7 +140,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 
 	//If we have matched and access to release or issue
-	fr, err := storage.Attachments.Open(attach.RelativePath())
+	fr, err := storage.GetManager().Get("attachments").Open(attach.RelativePath())
 	if err != nil {
 		ctx.ServerError("Open", err)
 		return

@@ -54,7 +54,7 @@ func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 		return nil
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	meta := &models.LFSMetaObject{Oid: oid, Size: size}
 	exist, err := contentStore.Exists(meta)
 	if err != nil || !exist {
@@ -66,6 +66,6 @@ func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	return contentStore.Get(meta, 0)
 }

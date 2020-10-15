@@ -1132,7 +1132,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
+		if err := storage.GetManager().Get("avatars").Delete(avatarPath); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}

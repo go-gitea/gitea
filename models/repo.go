@@ -1753,7 +1753,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		removeStorageWithNotice(sess, storage.GetManager().Get("lfs"), "Delete orphaned LFS file", v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
@@ -1784,16 +1784,16 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		RemoveStorageWithNotice(storage.GetManager().Get("attachments"), "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		RemoveStorageWithNotice(storage.GetManager().Get("attachments"), "Delete release attachment", releaseAttachments[i])
 	}
 
 	if len(repo.Avatar) > 0 {
-		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
+		if err := storage.GetManager().Get("repo-avatars").Delete(repo.CustomAvatarRelativePath()); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", repo.Avatar, err)
 		}
 	}

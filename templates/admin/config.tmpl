@@ -300,6 +300,25 @@
 		</div>
 
 		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.storage_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				{{range $i, $s := .Storage}}
+					{{if gt $i 0}}
+						<div class="ui divider"></div>
+					{{end}}
+					<dt>{{$.i18n.Tr "admin.config.storage_name"}}</dt>
+					<dd>{{$s.Name}}</dd>
+					<dt>{{$.i18n.Tr "admin.config.storage_type"}}</dt>
+					<dd>{{$s.Type}}
+					<dt>{{$.i18n.Tr "admin.config.storage_config"}}</dt>
+					<dd><pre>{{.ConfigAsString | JsonPrettyPrint}}</pre></dd>
+				{{end}}
+			</dl>
+		</div>
+
+		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.config.git_config"}}
 		</h4>
 		<div class="ui attached table segment">

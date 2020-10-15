@@ -97,38 +97,26 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 	return err
 }
 
-var (
-	// Attachments represents attachments storage
-	Attachments ObjectStorage
-
-	// LFS represents lfs storage
-	LFS ObjectStorage
-
-	// Avatars represents user avatars storage
-	Avatars ObjectStorage
-	// RepoAvatars represents repository avatars storage
-	RepoAvatars ObjectStorage
-)
-
 // Init init the stoarge
 func Init() error {
-	if err := initAttachments(); err != nil {
-		return err
+	s := map[string]setting.Storage{
+		"attachments":  setting.Attachment.Storage,
+		"avatars":      setting.Avatar.Storage,
+		"repo-avatars": setting.RepoAvatar.Storage,
+		"lfs":          setting.LFS.Storage,
 	}
 
-	if err := initAvatars(); err != nil {
-		return err
+	for name, storageSettings := range s {
+		if _, err := NewStorage(name, storageSettings.Type, storageSettings); err != nil {
+			return err
+		}
 	}
 
-	if err := initRepoAvatars(); err != nil {
-		return err
-	}
-
-	return initLFS()
+	return nil
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
-func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
+func NewStorage(name, typStr string, cfg interface{}) (ObjectStorage, error) {
 	if len(typStr) == 0 {
 		typStr = string(LocalStorageType)
 	}
@@ -137,25 +125,11 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 		return nil, fmt.Errorf("Unsupported storage type: %s", typStr)
 	}
 
-	return fn(context.Background(), cfg)
-}
+	storage, err := fn(context.Background(), cfg)
+	if err != nil {
+		return nil, err
+	}
+	GetManager().Add(name, typStr, cfg, storage)
 
-func initAvatars() (err error) {
-	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
-	return
-}
-
-func initAttachments() (err error) {
-	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
-	return
-}
-
-func initLFS() (err error) {
-	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
-	return
-}
-
-func initRepoAvatars() (err error) {
-	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
-	return
+	return storage, err
 }

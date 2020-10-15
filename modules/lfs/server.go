@@ -188,7 +188,7 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
 		// Errors are logged in contentStore.Get
@@ -289,7 +289,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	exist, err := contentStore.Exists(meta)
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
@@ -350,7 +350,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := &ContentStore{ObjectStorage: storage.LFS}
+		contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
@@ -408,7 +408,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	bodyReader := ctx.Req.Body().ReadCloser()
 	defer bodyReader.Close()
 	if err := contentStore.Put(meta, bodyReader); err != nil {
@@ -450,7 +450,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	ok, err := contentStore.Verify(meta)
 	if err != nil {
 		// Error will be logged in Verify

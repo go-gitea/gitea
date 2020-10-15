@@ -79,28 +79,28 @@ var CmdMigrateStorage = cli.Command{
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
 	return models.IterateAttachment(func(attach *models.Attachment) error {
-		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
+		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.GetManager().Get("attachments"), attach.RelativePath())
 		return err
 	})
 }
 
 func migrateLFS(dstStorage storage.ObjectStorage) error {
 	return models.IterateLFS(func(mo *models.LFSMetaObject) error {
-		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
+		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.GetManager().Get("lfs"), mo.RelativePath())
 		return err
 	})
 }
 
 func migrateAvatars(dstStorage storage.ObjectStorage) error {
 	return models.IterateUser(func(user *models.User) error {
-		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
+		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.GetManager().Get("avatars"), user.CustomAvatarRelativePath())
 		return err
 	})
 }
 
 func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
 	return models.IterateRepository(func(repo *models.Repository) error {
-		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
+		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.GetManager().Get("repo-avatars"), repo.CustomAvatarRelativePath())
 		return err
 	})
 }

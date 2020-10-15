@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -311,6 +312,9 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["EnvVars"] = envVars
 	ctx.Data["Loggers"] = setting.GetLogDescriptions()
+
+	ctx.Data["Storage"] = storage.GetManager().GetAll()
+
 	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate

@@ -238,7 +238,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+		if err := storage.GetManager().Get("lfs").IterateObjects(func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
 				return err
@@ -327,7 +327,7 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+	if err := storage.GetManager().Get("attachments").IterateObjects(func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err

@@ -139,7 +139,7 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 // GenerateAvatar generates the avatar from a template repository
 func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error {
 	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
-	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
+	if _, err := storage.Copy(storage.GetManager().Get("repo-avatars"), generateRepo.CustomAvatarRelativePath(), storage.GetManager().Get("repo-avatars"), templateRepo.CustomAvatarRelativePath()); err != nil {
 		return err
 	}
 

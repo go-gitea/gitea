@@ -45,7 +45,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 		u.Avatar = fmt.Sprintf("%d", u.ID)
 	}
 
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+	if err := storage.SaveFrom(storage.GetManager().Get("avatars"), u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, img); err != nil {
 			log.Error("Encode: %v", err)
 		}
@@ -138,7 +138,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+	if err := storage.SaveFrom(storage.GetManager().Get("avatars"), u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, *m); err != nil {
 			log.Error("Encode: %v", err)
 		}
@@ -155,7 +155,7 @@ func (u *User) DeleteAvatar() error {
 	aPath := u.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {
-		if err := storage.Avatars.Delete(aPath); err != nil {
+		if err := storage.GetManager().Get("avatars").Delete(aPath); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", aPath, err)
 		}
 	}

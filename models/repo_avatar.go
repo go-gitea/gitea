@@ -36,7 +36,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 
 	repo.Avatar = idToString
 
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
+	if err := storage.SaveFrom(storage.GetManager().Get("repo-avatars"), repo.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, img); err != nil {
 			log.Error("Encode: %v", err)
 		}
@@ -143,7 +143,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
+	if err := storage.SaveFrom(storage.GetManager().Get("repo-avatars"), repo.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, *m); err != nil {
 			log.Error("Encode: %v", err)
 		}
@@ -153,7 +153,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	}
 
 	if len(oldAvatarPath) > 0 {
-		if err := storage.RepoAvatars.Delete(oldAvatarPath); err != nil {
+		if err := storage.GetManager().Get("repo-avatars").Delete(oldAvatarPath); err != nil {
 			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
@@ -182,7 +182,7 @@ func (repo *Repository) DeleteAvatar() error {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
-	if err := storage.RepoAvatars.Delete(avatarPath); err != nil {
+	if err := storage.GetManager().Get("repo-avatars").Delete(avatarPath); err != nil {
 		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 	}
 

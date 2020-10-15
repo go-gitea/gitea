@@ -208,8 +208,8 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
-	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.GetManager().Get("avatars")))
+	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.GetManager().Get("repo-avatars")))
 
 	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())

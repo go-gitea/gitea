@@ -99,7 +99,7 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.New().String()
 
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
+	size, err := storage.GetManager().Get("attachments").Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
@@ -219,7 +219,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
+			if err := storage.GetManager().Get("attachments").Delete(a.RelativePath()); err != nil {
 				return i, err
 			}
 		}

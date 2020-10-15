@@ -168,7 +168,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 
 	for i := range rel.Attachments {
 		attachment := rel.Attachments[i]
-		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
+		if err := storage.GetManager().Get("attachments").Delete(attachment.RelativePath()); err != nil {
 			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
 		}
 	}

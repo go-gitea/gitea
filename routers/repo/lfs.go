@@ -354,7 +354,7 @@ func LFSDelete(ctx *context.Context) {
 	// Please note a similar condition happens in models/repo.go DeleteRepository
 	if count == 0 {
 		oidPath := path.Join(oid[0:2], oid[2:4], oid[4:])
-		err = storage.LFS.Delete(oidPath)
+		err = storage.GetManager().Get("lfs").Delete(oidPath)
 		if err != nil {
 			ctx.ServerError("LFSDelete", err)
 			return
@@ -618,7 +618,7 @@ type pointerResult struct {
 func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
-	contentStore := lfs.ContentStore{ObjectStorage: storage.LFS}
+	contentStore := lfs.ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)

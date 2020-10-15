@@ -164,7 +164,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	// OK now we can insert the data into the store - there's no way to clean up the store
 	// once it's in there, it's in there.
-	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &lfs.ContentStore{ObjectStorage: storage.GetManager().Get("lfs")}
 	for _, uploadInfo := range infos {
 		if uploadInfo.lfsMetaObject == nil {
 			continue
