@@ -351,6 +351,7 @@ type DiffFile struct {
 	IsSubmodule        bool
 	Sections           []*DiffSection
 	IsIncomplete       bool
+	IsProtected        bool
 }
 
 // GetType returns type of diff file.
@@ -482,46 +483,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		}
 		line := linebuf.String()
 
-		if strings.HasPrefix(line, "--- ") {
-			if line[4] == '"' {
-				fmt.Sscanf(line[4:], "%q", &curFile.OldName)
-			} else {
-				curFile.OldName = line[4:]
-				if strings.Contains(curFile.OldName, " ") {
-					// Git adds a terminal \t if there is a space in the name
-					curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
-				}
-			}
-			if curFile.OldName[0:2] == "a/" {
-				curFile.OldName = curFile.OldName[2:]
-			}
-			continue
-		} else if strings.HasPrefix(line, "+++ ") {
-			if line[4] == '"' {
-				fmt.Sscanf(line[4:], "%q", &curFile.Name)
-			} else {
-				curFile.Name = line[4:]
-				if strings.Contains(curFile.Name, " ") {
-					// Git adds a terminal \t if there is a space in the name
-					curFile.Name = curFile.Name[:len(curFile.Name)-1]
-				}
-			}
-			if curFile.Name[0:2] == "b/" {
-				curFile.Name = curFile.Name[2:]
-			}
-			curFile.IsRenamed = (curFile.Name != curFile.OldName) && !(curFile.IsCreated || curFile.IsDeleted)
-			if curFile.IsDeleted {
-				curFile.Name = curFile.OldName
-				curFile.OldName = ""
-			} else if curFile.IsCreated {
-				curFile.OldName = ""
-			}
-			continue
-		} else if len(line) == 0 {
-			continue
-		}
-
-		if strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "---") || len(line) == 0 {
+		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") || len(line) == 0 {
 			continue
 		}
 
@@ -609,10 +571,42 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				break
 			}
 
+			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
+			// e.g. diff --git "a/xxx" "b/xxx"
+			var a string
+			var b string
+
+			rd := strings.NewReader(line[len(cmdDiffHead):])
+			char, _ := rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q ", &a)
+				if a[0] == '\\' {
+					a = a[1:]
+				}
+			} else {
+				fmt.Fscanf(rd, "%s ", &a)
+			}
+			char, _ = rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q", &b)
+				if b[0] == '\\' {
+					b = b[1:]
+				}
+			} else {
+				fmt.Fscanf(rd, "%s", &b)
+			}
+			a = a[2:]
+			b = b[2:]
+
 			curFile = &DiffFile{
-				Index:    len(diff.Files) + 1,
-				Type:     DiffFileChange,
-				Sections: make([]*DiffSection, 0, 10),
+				Name:      b,
+				OldName:   a,
+				Index:     len(diff.Files) + 1,
+				Type:      DiffFileChange,
+				Sections:  make([]*DiffSection, 0, 10),
+				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
 			curFileLinesCount = 0
@@ -621,7 +615,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			curFileLFSPrefix = false
 
 			// Check file diff type and is submodule.
-		loop:
 			for {
 				line, err := input.ReadString('\n')
 				if err != nil {
@@ -632,67 +625,29 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 					}
 				}
 
-				if curFile.Type != DiffFileRename {
-					switch {
-					case strings.HasPrefix(line, "new file"):
-						curFile.Type = DiffFileAdd
-						curFile.IsCreated = true
-					case strings.HasPrefix(line, "deleted"):
-						curFile.Type = DiffFileDel
-						curFile.IsDeleted = true
-					case strings.HasPrefix(line, "index"):
-						curFile.Type = DiffFileChange
-					case strings.HasPrefix(line, "similarity index 100%"):
-						curFile.Type = DiffFileRename
+				switch {
+				case strings.HasPrefix(line, "copy from "):
+					curFile.IsRenamed = true
+					curFile.Type = DiffFileCopy
+				case strings.HasPrefix(line, "copy to "):
+					curFile.IsRenamed = true
+					curFile.Type = DiffFileCopy
+				case strings.HasPrefix(line, "new file"):
+					curFile.Type = DiffFileAdd
+					curFile.IsCreated = true
+				case strings.HasPrefix(line, "deleted"):
+					curFile.Type = DiffFileDel
+					curFile.IsDeleted = true
+				case strings.HasPrefix(line, "index"):
+					curFile.Type = DiffFileChange
+				case strings.HasPrefix(line, "similarity index 100%"):
+					curFile.Type = DiffFileRename
+				}
+				if curFile.Type > 0 {
+					if strings.HasSuffix(line, " 160000\n") {
+						curFile.IsSubmodule = true
 					}
-					if curFile.Type > 0 && curFile.Type != DiffFileRename {
-						if strings.HasSuffix(line, " 160000\n") {
-							curFile.IsSubmodule = true
-						}
-						break
-					}
-				} else {
-					switch {
-					case strings.HasPrefix(line, "rename from "):
-						if line[12] == '"' {
-							fmt.Sscanf(line[12:], "%q", &curFile.OldName)
-						} else {
-							curFile.OldName = line[12:]
-							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
-						}
-					case strings.HasPrefix(line, "rename to "):
-						if line[10] == '"' {
-							fmt.Sscanf(line[10:], "%q", &curFile.Name)
-						} else {
-							curFile.Name = line[10:]
-							curFile.Name = curFile.Name[:len(curFile.Name)-1]
-						}
-						curFile.IsRenamed = true
-						break loop
-					case strings.HasPrefix(line, "copy from "):
-						if line[10] == '"' {
-							fmt.Sscanf(line[10:], "%q", &curFile.OldName)
-						} else {
-							curFile.OldName = line[10:]
-							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
-						}
-					case strings.HasPrefix(line, "copy to "):
-						if line[8] == '"' {
-							fmt.Sscanf(line[8:], "%q", &curFile.Name)
-						} else {
-							curFile.Name = line[8:]
-							curFile.Name = curFile.Name[:len(curFile.Name)-1]
-						}
-						curFile.IsRenamed = true
-						curFile.Type = DiffFileCopy
-						break loop
-					default:
-						if strings.HasSuffix(line, " 160000\n") {
-							curFile.IsSubmodule = true
-						} else {
-							break loop
-						}
-					}
+					break
 				}
 			}
 		}
@@ -761,7 +716,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "-M"}
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}

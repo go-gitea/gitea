@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -21,14 +23,17 @@ var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID                int64 `xorm:"pk autoincr"`
-	RepoID            int64 `xorm:"INDEX"`
-	OrgID             int64 `xorm:"INDEX"`
-	Name              string
-	Description       string
-	Color             string `xorm:"VARCHAR(7)"`
-	NumIssues         int
-	NumClosedIssues   int
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"`
+	OrgID           int64 `xorm:"INDEX"`
+	Name            string
+	Description     string
+	Color           string `xorm:"VARCHAR(7)"`
+	NumIssues       int
+	NumClosedIssues int
+	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
 	IsChecked         bool   `xorm:"-"`
