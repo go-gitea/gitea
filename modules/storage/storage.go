@@ -82,17 +82,45 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 	return dstStorage.Save(dstPath, f)
 }
 
+// SaveFrom saves data to the ObjectStorage with path p from the callback
+func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+	pr, pw := io.Pipe()
+	defer pr.Close()
+	go func() {
+		defer pw.Close()
+		if err := callback(pw); err != nil {
+			_ = pw.CloseWithError(err)
+		}
+	}()
+
+	_, err := objStorage.Save(p, pr)
+	return err
+}
+
 var (
 	// Attachments represents attachments storage
 	Attachments ObjectStorage
 
 	// LFS represents lfs storage
 	LFS ObjectStorage
+
+	// Avatars represents user avatars storage
+	Avatars ObjectStorage
+	// RepoAvatars represents repository avatars storage
+	RepoAvatars ObjectStorage
 )
 
 // Init init the stoarge
 func Init() error {
 	if err := initAttachments(); err != nil {
+		return err
+	}
+
+	if err := initAvatars(); err != nil {
+		return err
+	}
+
+	if err := initRepoAvatars(); err != nil {
 		return err
 	}
 
@@ -112,6 +140,11 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 	return fn(context.Background(), cfg)
 }
 
+func initAvatars() (err error) {
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
+	return
+}
+
 func initAttachments() (err error) {
 	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
 	return
@@ -119,5 +152,10 @@ func initAttachments() (err error) {
 
 func initLFS() (err error) {
 	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
+	return
+}
+
+func initRepoAvatars() (err error) {
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
 	return
 }
