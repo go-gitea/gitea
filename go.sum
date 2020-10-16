@@ -48,8 +48,8 @@ gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7 h1:N9QFoeNsUXLhl14m
 gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7/go.mod h1:kgsbFPPS4P+acDYDOPDa3N4IWWOuDJt5/INKRUz7aks=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
-github.com/6543/go-version v1.2.3 h1:uF30BawMhoQLzqBeCwhFcWM6HVxlzMHe/zXbzJeKP+o=
-github.com/6543/go-version v1.2.3/go.mod h1:fcfWh4zkneEgGXe8JJptiGwp8l6JgJJgS7oTw6P83So=
+github.com/6543/go-version v1.2.4 h1:MPsSnqNrM0HwA9tnmWNnsMdQMg4/u4fflARjwomoof4=
+github.com/6543/go-version v1.2.4/go.mod h1:oqFAHCwtLVUTLdhQmVZWYvaHXTdsbB4SY85at64SQEo=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=

@@ -123,4 +123,4 @@ require (
 	xorm.io/xorm v1.0.5
 )
 
-replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.3
+replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
