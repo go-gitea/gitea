@@ -1,12 +1,12 @@
 package archiver
 
 import (
-	"compress/gzip"
 	"fmt"
 	"io"
 	"path/filepath"
 
-	pgzip "github.com/klauspost/pgzip"
+	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/pgzip"
 )
 
 // Gz facilitates gzip compression.

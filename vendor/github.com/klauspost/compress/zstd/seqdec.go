@@ -196,6 +196,10 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 		s.literals = s.literals[ll:]
 		out := s.out
 
+		if mo == 0 && ml > 0 {
+			return fmt.Errorf("zero matchoff and matchlen (%d) > 0", ml)
+		}
+
 		if mo > len(s.out)+len(hist) || mo > s.windowSize {
 			if len(s.dict) == 0 {
 				return fmt.Errorf("match offset (%d) bigger than current history (%d)", mo, len(s.out)+len(hist))
@@ -216,10 +220,6 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 				mo = 0
 				ml = 0
 			}
-		}
-
-		if mo == 0 && ml > 0 {
-			return fmt.Errorf("zero matchoff and matchlen (%d) > 0", ml)
 		}
 
 		// Copy from history.

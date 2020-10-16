@@ -186,8 +186,8 @@ type XPackWatchActionStatus struct {
 }
 
 type XPackWatchActionAckStatus struct {
-	Timestamp      time.Time `json:"timestamp"`
-	AckStatusState string    `json:"ack_status_state"`
+	Timestamp time.Time `json:"timestamp"`
+	State     string    `json:"state"`
 }
 
 type XPackWatchActionExecutionState struct {
@@ -202,13 +202,13 @@ type XPackWatchActionThrottle struct {
 }
 
 type XPackWatch struct {
-	Trigger                map[string]map[string]interface{}  `json:"trigger"`
-	Input                  map[string]map[string]interface{}  `json:"input"`
-	Condition              map[string]map[string]interface{}  `json:"condition"`
-	Transform              map[string]interface{}             `json:"transform,omitempty"`
-	ThrottlePeriod         string                             `json:"throttle_period,omitempty"`
-	ThrottlePeriodInMillis int64                              `json:"throttle_period_in_millis,omitempty"`
-	Actions                map[string]*XPackWatchActionStatus `json:"actions"`
-	Metadata               map[string]interface{}             `json:"metadata,omitempty"`
-	Status                 *XPackWatchStatus                  `json:"status,omitempty"`
+	Trigger                map[string]map[string]interface{} `json:"trigger"`
+	Input                  map[string]map[string]interface{} `json:"input"`
+	Condition              map[string]map[string]interface{} `json:"condition"`
+	Transform              map[string]interface{}            `json:"transform,omitempty"`
+	ThrottlePeriod         string                            `json:"throttle_period,omitempty"`
+	ThrottlePeriodInMillis int64                             `json:"throttle_period_in_millis,omitempty"`
+	Actions                map[string]map[string]interface{} `json:"actions"`
+	Metadata               map[string]interface{}            `json:"metadata,omitempty"`
+	Status                 *XPackWatchStatus                 `json:"status,omitempty"`
 }

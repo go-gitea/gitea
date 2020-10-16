@@ -72,6 +72,11 @@ type ExtensionChecker interface {
 	CheckExt(name string) error
 }
 
+// FilenameChecker validates filenames to prevent path traversal attacks
+type FilenameChecker interface {
+	CheckPath(to, filename string) error
+}
+
 // Unarchiver is a type that can extract archive files
 // into a folder.
 type Unarchiver interface {
