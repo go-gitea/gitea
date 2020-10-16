@@ -7,6 +7,7 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -127,7 +128,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
 			u, err := objStore.URL(rPath, path.Base(rPath))
 			if err != nil {
-				if err == os.ErrNotExist {
+				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
 					ctx.Error(404, "file not found")
 					return
@@ -160,7 +161,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 		//If we have matched and access to release or issue
 		fr, err := objStore.Open(rPath)
 		if err != nil {
-			if err == os.ErrNotExist {
+			if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 				log.Warn("Unable to find %s %s", prefix, rPath)
 				ctx.Error(404, "file not found")
 				return
