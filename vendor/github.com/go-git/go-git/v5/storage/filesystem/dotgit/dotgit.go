@@ -3,12 +3,14 @@ package dotgit
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	stdioutil "io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -30,6 +32,12 @@ const (
 	objectsPath    = "objects"
 	packPath       = "pack"
 	refsPath       = "refs"
+	branchesPath   = "branches"
+	hooksPath      = "hooks"
+	infoPath       = "info"
+	remotesPath    = "remotes"
+	logsPath       = "logs"
+	worktreesPath  = "worktrees"
 
 	tmpPackedRefsPrefix = "._packed-refs"
 
@@ -82,7 +90,7 @@ type DotGit struct {
 	incomingChecked bool
 	incomingDirName string
 
-	objectList []plumbing.Hash
+	objectList []plumbing.Hash // sorted
 	objectMap  map[plumbing.Hash]struct{}
 	packList   []plumbing.Hash
 	packMap    map[plumbing.Hash]struct{}
@@ -330,6 +338,53 @@ func (d *DotGit) NewObject() (*ObjectWriter, error) {
 	return newObjectWriter(d.fs)
 }
 
+// ObjectsWithPrefix returns the hashes of objects that have the given prefix.
+func (d *DotGit) ObjectsWithPrefix(prefix []byte) ([]plumbing.Hash, error) {
+	// Handle edge cases.
+	if len(prefix) < 1 {
+		return d.Objects()
+	} else if len(prefix) > len(plumbing.ZeroHash) {
+		return nil, nil
+	}
+
+	if d.options.ExclusiveAccess {
+		err := d.genObjectList()
+		if err != nil {
+			return nil, err
+		}
+
+		// Rely on d.objectList being sorted.
+		// Figure out the half-open interval defined by the prefix.
+		first := sort.Search(len(d.objectList), func(i int) bool {
+			// Same as plumbing.HashSlice.Less.
+			return bytes.Compare(d.objectList[i][:], prefix) >= 0
+		})
+		lim := len(d.objectList)
+		if limPrefix, overflow := incBytes(prefix); !overflow {
+			lim = sort.Search(len(d.objectList), func(i int) bool {
+				// Same as plumbing.HashSlice.Less.
+				return bytes.Compare(d.objectList[i][:], limPrefix) >= 0
+			})
+		}
+		return d.objectList[first:lim], nil
+	}
+
+	// This is the slow path.
+	var objects []plumbing.Hash
+	var n int
+	err := d.ForEachObjectHash(func(hash plumbing.Hash) error {
+		n++
+		if bytes.HasPrefix(hash[:], prefix) {
+			objects = append(objects, hash)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return objects, nil
+}
+
 // Objects returns a slice with the hashes of objects found under the
 // .git/objects/ directory.
 func (d *DotGit) Objects() ([]plumbing.Hash, error) {
@@ -421,12 +476,17 @@ func (d *DotGit) genObjectList() error {
 	}
 
 	d.objectMap = make(map[plumbing.Hash]struct{})
-	return d.forEachObjectHash(func(h plumbing.Hash) error {
+	populate := func(h plumbing.Hash) error {
 		d.objectList = append(d.objectList, h)
 		d.objectMap[h] = struct{}{}
 
 		return nil
-	})
+	}
+	if err := d.forEachObjectHash(populate); err != nil {
+		return err
+	}
+	plumbing.HashesSort(d.objectList)
+	return nil
 }
 
 func (d *DotGit) hasObject(h plumbing.Hash) error {
@@ -1108,4 +1168,21 @@ func isNum(b byte) bool {
 
 func isHexAlpha(b byte) bool {
 	return b >= 'a' && b <= 'f' || b >= 'A' && b <= 'F'
+}
+
+// incBytes increments a byte slice, which involves incrementing the
+// right-most byte, and following carry leftward.
+// It makes a copy so that the provided slice's underlying array is not modified.
+// If the overall operation overflows (e.g. incBytes(0xff, 0xff)), the second return parameter indicates that.
+func incBytes(in []byte) (out []byte, overflow bool) {
+	out = make([]byte, len(in))
+	copy(out, in)
+	for i := len(out) - 1; i >= 0; i-- {
+		out[i]++
+		if out[i] != 0 {
+			return // Didn't overflow.
+		}
+	}
+	overflow = true
+	return
 }

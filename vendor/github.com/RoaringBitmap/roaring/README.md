@@ -1,5 +1,9 @@
-roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https://travis-ci.org/RoaringBitmap/roaring) [![Coverage Status](https://coveralls.io/repos/github/RoaringBitmap/roaring/badge.svg?branch=master)](https://coveralls.io/github/RoaringBitmap/roaring?branch=master) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
+roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https://travis-ci.org/RoaringBitmap/roaring) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
 [![Build Status](https://cloud.drone.io/api/badges/RoaringBitmap/roaring/status.svg)](https://cloud.drone.io/RoaringBitmap/roaring)
+![Go-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-CI/badge.svg)
+![Go-ARM-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-ARM-CI/badge.svg)
+![Go-Windows-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-Windows-CI/badge.svg)
+![Go-macos-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-macos-CI/badge.svg)
 =============
 
 This is a go version of the Roaring bitmap data structure. 
@@ -7,7 +11,7 @@ This is a go version of the Roaring bitmap data structure.
 
 
 Roaring bitmaps are used by several major systems such as [Apache Lucene][lucene] and derivative systems such as [Solr][solr] and
-[Elasticsearch][elasticsearch], [Apache Druid (Incubating)][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [Cloud Torrent][cloudtorrent], [Whoosh][whoosh],  [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin].
+[Elasticsearch][elasticsearch], [Apache Druid (Incubating)][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [Cloud Torrent][cloudtorrent], [Whoosh][whoosh],  [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin]. The YouTube SQL Engine, [Google Procella](https://research.google/pubs/pub48388/), uses Roaring bitmaps for indexing.
 
 [lucene]: https://lucene.apache.org/
 [solr]: https://lucene.apache.org/solr/
@@ -172,10 +176,70 @@ That is, given a fixed overhead for the universe size (x), Roaring
 bitmaps never use more than 2 bytes per integer. You can call
 ``BoundSerializedSizeInBytes`` for a more precise estimate.
 
+### 64-bit Roaring
+
+By default, roaring is used to stored unsigned 32-bit integers. However, we also offer
+an extension dedicated to 64-bit integers. It supports roughly the same functions:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/RoaringBitmap/roaring/roaring64"
+    "bytes"
+)
+
+
+func main() {
+    // example inspired by https://github.com/fzandona/goroar
+    fmt.Println("==roaring64==")
+    rb1 := roaring64.BitmapOf(1, 2, 3, 4, 5, 100, 1000)
+    fmt.Println(rb1.String())
+
+    rb2 := roaring64.BitmapOf(3, 4, 1000)
+    fmt.Println(rb2.String())
+
+    rb3 := roaring64.New()
+    fmt.Println(rb3.String())
+
+    fmt.Println("Cardinality: ", rb1.GetCardinality())
+
+    fmt.Println("Contains 3? ", rb1.Contains(3))
+
+    rb1.And(rb2)
+
+    rb3.Add(1)
+    rb3.Add(5)
+
+    rb3.Or(rb1)
+
+
+
+    // prints 1, 3, 4, 5, 1000
+    i := rb3.Iterator()
+    for i.HasNext() {
+        fmt.Println(i.Next())
+    }
+    fmt.Println()
+
+    // next we include an example of serialization
+    buf := new(bytes.Buffer)
+    rb1.WriteTo(buf) // we omit error handling
+    newrb:= roaring64.New()
+    newrb.ReadFrom(buf)
+    if rb1.Equals(newrb) {
+    	fmt.Println("I wrote the content to a byte stream and read it back.")
+    }
+    // you can iterate over bitmaps using ReverseIterator(), Iterator, ManyIterator()
+}
+```
+
+Only the 32-bit roaring format is standard and cross-operable between Java, C++, C and Go. There is no guarantee that the 64-bit versions are compatible.
 
 ### Documentation
 
-Current documentation is available at http://godoc.org/github.com/RoaringBitmap/roaring
+Current documentation is available at http://godoc.org/github.com/RoaringBitmap/roaring and http://godoc.org/github.com/RoaringBitmap/roaring64
 
 ### Goroutine safety
 
