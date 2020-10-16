@@ -23,15 +23,6 @@ func runSendMail(c *cli.Context) error {
 		return err
 	}
 
-	var emails []string
-	err := models.IterateUser(func(user *models.User) error {
-		emails = append(emails, user.Email)
-		return nil
-	})
-	if err != nil {
-		return errors.New("Cann't find users")
-	}
-
 	subject := c.String("title")
 	confirmSkiped := c.Bool("force")
 	body := c.String("content")
@@ -51,11 +42,22 @@ func runSendMail(c *cli.Context) error {
 		}
 	}
 
-	mailer.NewContext()
-	msg := mailer.NewMessage(emails, subject, body)
-	err = mailer.SendSync(msg)
+	var emails []string
+	err := models.IterateUser(func(user *models.User) error {
+		emails = append(emails, user.Email)
+		return nil
+	})
 	if err != nil {
-		return err
+		return errors.New("Cann't find users")
+	}
+
+	mailer.NewContext()
+	for _, email := range emails {
+		msg := mailer.NewMessage([]string{email}, subject, body)
+		err = mailer.SendSync(msg)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
