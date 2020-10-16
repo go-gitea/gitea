@@ -14,12 +14,13 @@ import (
 )
 
 type blockEnc struct {
-	size      int
-	literals  []byte
-	sequences []seq
-	coders    seqCoders
-	litEnc    *huff0.Scratch
-	wr        bitWriter
+	size       int
+	literals   []byte
+	sequences  []seq
+	coders     seqCoders
+	litEnc     *huff0.Scratch
+	dictLitEnc *huff0.Scratch
+	wr         bitWriter
 
 	extraLits int
 	last      bool
@@ -314,19 +315,19 @@ func (b *blockEnc) encodeRawTo(dst, src []byte) []byte {
 }
 
 // encodeLits can be used if the block is only litLen.
-func (b *blockEnc) encodeLits(raw bool) error {
+func (b *blockEnc) encodeLits(lits []byte, raw bool) error {
 	var bh blockHeader
 	bh.setLast(b.last)
-	bh.setSize(uint32(len(b.literals)))
+	bh.setSize(uint32(len(lits)))
 
 	// Don't compress extremely small blocks
-	if len(b.literals) < 32 || raw {
+	if len(lits) < 8 || (len(lits) < 32 && b.dictLitEnc == nil) || raw {
 		if debug {
-			println("Adding RAW block, length", len(b.literals), "last:", b.last)
+			println("Adding RAW block, length", len(lits), "last:", b.last)
 		}
 		bh.setType(blockTypeRaw)
 		b.output = bh.appendTo(b.output)
-		b.output = append(b.output, b.literals...)
+		b.output = append(b.output, lits...)
 		return nil
 	}
 
@@ -335,13 +336,18 @@ func (b *blockEnc) encodeLits(raw bool) error {
 		reUsed, single bool
 		err            error
 	)
-	if len(b.literals) >= 1024 {
+	if b.dictLitEnc != nil {
+		b.litEnc.TransferCTable(b.dictLitEnc)
+		b.litEnc.Reuse = huff0.ReusePolicyAllow
+		b.dictLitEnc = nil
+	}
+	if len(lits) >= 1024 {
 		// Use 4 Streams.
-		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)
-	} else if len(b.literals) > 32 {
+		out, reUsed, err = huff0.Compress4X(lits, b.litEnc)
+	} else if len(lits) > 32 {
 		// Use 1 stream
 		single = true
-		out, reUsed, err = huff0.Compress1X(b.literals, b.litEnc)
+		out, reUsed, err = huff0.Compress1X(lits, b.litEnc)
 	} else {
 		err = huff0.ErrIncompressible
 	}
@@ -349,19 +355,19 @@ func (b *blockEnc) encodeLits(raw bool) error {
 	switch err {
 	case huff0.ErrIncompressible:
 		if debug {
-			println("Adding RAW block, length", len(b.literals), "last:", b.last)
+			println("Adding RAW block, length", len(lits), "last:", b.last)
 		}
 		bh.setType(blockTypeRaw)
 		b.output = bh.appendTo(b.output)
-		b.output = append(b.output, b.literals...)
+		b.output = append(b.output, lits...)
 		return nil
 	case huff0.ErrUseRLE:
 		if debug {
-			println("Adding RLE block, length", len(b.literals))
+			println("Adding RLE block, length", len(lits))
 		}
 		bh.setType(blockTypeRLE)
 		b.output = bh.appendTo(b.output)
-		b.output = append(b.output, b.literals[0])
+		b.output = append(b.output, lits[0])
 		return nil
 	default:
 		return err
@@ -384,7 +390,7 @@ func (b *blockEnc) encodeLits(raw bool) error {
 		lh.setType(literalsBlockCompressed)
 	}
 	// Set sizes
-	lh.setSizes(len(out), len(b.literals), single)
+	lh.setSizes(len(out), len(lits), single)
 	bh.setSize(uint32(len(out) + lh.size() + 1))
 
 	// Write block headers.
@@ -444,13 +450,19 @@ func fuzzFseEncoder(data []byte) int {
 }
 
 // encode will encode the block and append the output in b.output.
-func (b *blockEnc) encode(raw, rawAllLits bool) error {
+// Previous offset codes must be pushed if more blocks are expected.
+func (b *blockEnc) encode(org []byte, raw, rawAllLits bool) error {
 	if len(b.sequences) == 0 {
-		return b.encodeLits(rawAllLits)
+		return b.encodeLits(b.literals, rawAllLits)
 	}
-	// We want some difference
-	if len(b.literals) > (b.size - (b.size >> 5)) {
-		return errIncompressible
+	// We want some difference to at least account for the headers.
+	saved := b.size - len(b.literals) - (b.size >> 5)
+	if saved < 16 {
+		if org == nil {
+			return errIncompressible
+		}
+		b.popOffsets()
+		return b.encodeLits(org, rawAllLits)
 	}
 
 	var bh blockHeader
@@ -466,6 +478,11 @@ func (b *blockEnc) encode(raw, rawAllLits bool) error {
 		reUsed, single bool
 		err            error
 	)
+	if b.dictLitEnc != nil {
+		b.litEnc.TransferCTable(b.dictLitEnc)
+		b.litEnc.Reuse = huff0.ReusePolicyAllow
+		b.dictLitEnc = nil
+	}
 	if len(b.literals) >= 1024 && !raw {
 		// Use 4 Streams.
 		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)

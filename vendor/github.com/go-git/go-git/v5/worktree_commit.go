@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/crypto/openpgp"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/storage"
 
 	"github.com/go-git/go-billy/v5"
+	"golang.org/x/crypto/openpgp"
 )
 
 // Commit stores the current contents of the index in a new commit along with
@@ -58,17 +58,23 @@ func (w *Worktree) autoAddModifiedAndDeleted() error {
 		return err
 	}
 
+	idx, err := w.r.Storer.Index()
+	if err != nil {
+		return err
+	}
+
 	for path, fs := range s {
 		if fs.Worktree != Modified && fs.Worktree != Deleted {
 			continue
 		}
 
-		if _, err := w.Add(path); err != nil {
+		if _, _, err := w.doAddFile(idx, s, path, nil); err != nil {
 			return err
 		}
+
 	}
 
-	return nil
+	return w.r.Storer.SetIndex(idx)
 }
 
 func (w *Worktree) updateHEAD(commit plumbing.Hash) error {

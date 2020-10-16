@@ -491,11 +491,11 @@ func (ra *roaringArray) writeTo(w io.Writer) (n int64, err error) {
 		binary.LittleEndian.PutUint16(buf[2:], uint16(len(ra.keys)-1))
 		nw += 2
 		// compute isRun bitmap without temporary allocation
-		var runbitmapslice = buf[nw:nw+isRunSizeInBytes]
+		var runbitmapslice = buf[nw : nw+isRunSizeInBytes]
 		for i, c := range ra.containers {
 			switch c.(type) {
 			case *runContainer16:
-				runbitmapslice[i / 8] |= 1<<(uint(i)%8)
+				runbitmapslice[i/8] |= 1 << (uint(i) % 8)
 			}
 		}
 		nw += isRunSizeInBytes
