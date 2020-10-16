@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -267,6 +268,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.EnvIsDeployKey + "=false",
+			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !authUser.KeepEmailPrivate {
@@ -322,7 +324,7 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req.Request
@@ -391,7 +393,7 @@ func dummyInfoRefs(ctx *context.Context) {
 		}
 
 		defer func() {
-			if err := os.RemoveAll(tmpDir); err != nil {
+			if err := util.RemoveAll(tmpDir); err != nil {
 				log.Error("RemoveAll: %v", err)
 			}
 		}()
@@ -495,7 +497,7 @@ func getGitConfig(option, dir string) string {
 }
 
 func getConfigSetting(service, dir string) bool {
-	service = strings.Replace(service, "-", "", -1)
+	service = strings.ReplaceAll(service, "-", "")
 	setting := getGitConfig("http."+service, dir)
 
 	if service == "uploadpack" {

@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -45,6 +47,7 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
@@ -125,6 +128,9 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(Project),
+		new(ProjectBoard),
+		new(ProjectIssue),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -149,6 +155,16 @@ func getEngine() (*xorm.Engine, error) {
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// Add the schema to the search path
+		if _, err := engine.Exec(`SELECT set_config(
+			'search_path',
+			? || ',' || current_setting('search_path'),
+			false)`,
+			setting.Database.Schema); err != nil {
+			return nil, err
+		}
+	}
 	return engine, nil
 }
 
@@ -210,6 +226,36 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	return nil
 }
 
+// NamesToBean return a list of beans or an error
+func NamesToBean(names ...string) ([]interface{}, error) {
+	beans := []interface{}{}
+	if len(names) == 0 {
+		beans = append(beans, tables...)
+		return beans, nil
+	}
+	// Need to map provided names to beans...
+	beanMap := make(map[string]interface{})
+	for _, bean := range tables {
+
+		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
+		beanMap[strings.ToLower(x.TableName(bean))] = bean
+		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
+	}
+
+	gotBean := make(map[interface{}]bool)
+	for _, name := range names {
+		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
+		if !ok {
+			return nil, fmt.Errorf("No table found that matches: %s", name)
+		}
+		if !gotBean[bean] {
+			beans = append(beans, bean)
+			gotBean[bean] = true
+		}
+	}
+	return beans, nil
+}
+
 // Statistic contains the database statistics
 type Statistic struct {
 	Counter struct {
@@ -266,6 +312,17 @@ func DumpDatabase(filePath string, dbType string) error {
 		}
 		tbs = append(tbs, t)
 	}
+
+	type Version struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Version int64
+	}
+	t, err := x.TableInfo(Version{})
+	if err != nil {
+		return err
+	}
+	tbs = append(tbs, t)
+
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}

@@ -16,8 +16,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -53,6 +53,7 @@ const (
 	DiffFileChange
 	DiffFileDel
 	DiffFileRename
+	DiffFileCopy
 )
 
 // DiffLineExpandDirection represents the DiffLineSection expand direction
@@ -88,8 +89,8 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 }
 
-// BlobExceprtChunkSize represent max lines of excerpt
-const BlobExceprtChunkSize = 20
+// BlobExcerptChunkSize represent max lines of excerpt
+const BlobExcerptChunkSize = 20
 
 // GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
@@ -138,7 +139,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return DiffLineExpandUp
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExceprtChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return DiffLineExpandUpDown
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return DiffLineExpandDown
@@ -180,55 +181,61 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
+var addSpanRegex = regexp.MustCompile(`<span [class="[a-z]*]*$`)
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-	var addSpan bool
+	var addSpan string
 	for i := range diffs {
 		switch {
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
 			// Looking for the case where our 3rd party diff library previously detected a string difference
 			// in the middle of a span class because we highlight them first. This happens when added/deleted code
-			// also changes the chroma class name. If found, just move the openining span code forward into the next section
-			if addSpan {
-				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			// also changes the chroma class name, either partially or fully. If found, just move the openining span code forward into the next section
+			// see TestDiffToHTML for examples
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
 			}
-			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
-				addSpan = true
-				buf.WriteString(strings.TrimSuffix(diffs[i].Text, "<span class=\""))
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				buf.WriteString(strings.TrimSuffix(diffs[i].Text, addSpan))
 			} else {
-				addSpan = false
+				addSpan = ""
 				buf.WriteString(getLineContent(diffs[i].Text))
 			}
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-			if addSpan {
-				addSpan = false
-				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
 			}
 			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
 			if strings.HasPrefix(diffs[i].Text, "</span>") {
 				buf.WriteString("</span>")
 				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
 			}
-			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
-				addSpan = true
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
 			}
 			buf.Write(addedCodePrefix)
 			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-			if addSpan {
-				addSpan = false
-				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			if len(addSpan) > 0 {
+				diffs[i].Text = addSpan + diffs[i].Text
+				addSpan = ""
 			}
 			if strings.HasPrefix(diffs[i].Text, "</span>") {
 				buf.WriteString("</span>")
 				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
 			}
-			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
-				addSpan = true
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
+			if m != nil {
+				addSpan = diffs[i].Text[m[0]:m[1]]
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
 			}
 			buf.Write(removedCodePrefix)
 			buf.WriteString(getLineContent(diffs[i].Text))
@@ -344,6 +351,7 @@ type DiffFile struct {
 	IsSubmodule        bool
 	Sections           []*DiffSection
 	IsIncomplete       bool
+	IsProtected        bool
 }
 
 // GetType returns type of diff file.
@@ -563,40 +571,34 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				break
 			}
 
-			var middle int
-
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
 			// e.g. diff --git "a/xxx" "b/xxx"
-			hasQuote := line[len(cmdDiffHead)] == '"'
-			if hasQuote {
-				middle = strings.Index(line, ` "b/`)
+			var a string
+			var b string
+
+			rd := strings.NewReader(line[len(cmdDiffHead):])
+			char, _ := rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q ", &a)
+				if a[0] == '\\' {
+					a = a[1:]
+				}
 			} else {
-				middle = strings.Index(line, " b/")
+				fmt.Fscanf(rd, "%s ", &a)
 			}
-
-			beg := len(cmdDiffHead)
-			a := line[beg+2 : middle]
-			b := line[middle+3:]
-
-			if hasQuote {
-				// Keep the entire string in double quotes for now
-				a = line[beg:middle]
-				b = line[middle+1:]
-
-				var err error
-				a, err = strconv.Unquote(a)
-				if err != nil {
-					return nil, fmt.Errorf("Unquote: %v", err)
+			char, _ = rd.ReadByte()
+			_ = rd.UnreadByte()
+			if char == '"' {
+				fmt.Fscanf(rd, "%q", &b)
+				if b[0] == '\\' {
+					b = b[1:]
 				}
-				b, err = strconv.Unquote(b)
-				if err != nil {
-					return nil, fmt.Errorf("Unquote: %v", err)
-				}
-				// Now remove the /a /b
-				a = a[2:]
-				b = b[2:]
-
+			} else {
+				fmt.Fscanf(rd, "%s", &b)
 			}
+			a = a[2:]
+			b = b[2:]
 
 			curFile = &DiffFile{
 				Name:      b,
@@ -624,6 +626,12 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				}
 
 				switch {
+				case strings.HasPrefix(line, "copy from "):
+					curFile.IsRenamed = true
+					curFile.Type = DiffFileCopy
+				case strings.HasPrefix(line, "copy to "):
+					curFile.IsRenamed = true
+					curFile.Type = DiffFileCopy
 				case strings.HasPrefix(line, "new file"):
 					curFile.Type = DiffFileAdd
 					curFile.IsCreated = true
@@ -708,7 +716,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "-M"}
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}

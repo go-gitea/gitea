@@ -10,6 +10,7 @@ steps:
   commands:
     - make vet
     - make test
+    - make fmt-check
   when:
     event:
     - push
@@ -104,6 +105,25 @@ steps:
   - make test-mymysql
   - TEST_CACHE_ENABLE=true make test-mymysql
   - TEST_QUOTE_POLICY=reserved make test-mymysql
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-mariadb
+  image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mariadb
+    TEST_MYSQL_CHARSET: utf8mb4
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
+  commands:
+  - make test-mysql
+  - TEST_CACHE_ENABLE=true make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql
   when:
     event:
     - push
@@ -249,6 +269,18 @@ services:
 - name: mysql8
   pull: default
   image: mysql:8.0
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mariadb
+  pull: default
+  image: mariadb:10.4
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: yes
     MYSQL_DATABASE: xorm_test

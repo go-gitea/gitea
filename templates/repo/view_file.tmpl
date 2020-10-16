@@ -1,12 +1,8 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header">
-		<div class="file-header-left">
+		<div class="file-header-left df ac">
 			{{if .ReadmeInList}}
-				{{if .FileIsSymlink}}
-					<i class="icons"><i class="book icon"></i><i class="bottom left corner tiny inverted share icon"></i></i>
-				{{else}}
-					<i class="book icon"></i>
-				{{end}}
+				{{svg "octicon-book" 16 "mr-3"}}
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				<div class="file-info text grey normal mono">
@@ -26,8 +22,8 @@
 						</div>
 					{{end}}
 					{{if .LFSLock}}
-						<div class="file-info-entry">
-							<i class="fa fa-lock poping up disabled" data-content="{{.LFSLockHint}}" data-position="bottom center" data-variation="tiny inverted"></i>
+						<div class="file-info-entry ui" data-tooltip="{{.LFSLockHint}}" data-inverted="">
+							{{svg "octicon-lock" 16 "mr-2"}}
 							<a href="{{AppSubUrl}}/{{.LFSLock.Owner.Name}}">{{.LFSLockOwner}}</a>
 						</div>
 					{{end}}
@@ -35,7 +31,7 @@
 			{{end}}
 		</div>
 		{{if not .ReadmeInList}}
-		<div class="file-header-right">
+		<div class="file-header-right df ac">
 			<div class="ui right file-actions">
 				<div class="ui buttons">
 					<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
@@ -49,14 +45,14 @@
 				</div>
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
-						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span></a>
+						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
 					{{else}}
-						<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span>
+						<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span></a>
+						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span></a>
 					{{else}}
-						<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span>
+						<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span>
 					{{end}}
 				{{end}}
 			</div>

@@ -22,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -624,6 +624,20 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
+	if err = pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("LoadProtectedBranch", err)
+		return
+	}
+
+	if pull.ProtectedBranch != nil {
+		glob := pull.ProtectedBranch.GetProtectedFilePatterns()
+		if len(glob) != 0 {
+			for _, file := range diff.Files {
+				file.IsProtected = pull.ProtectedBranch.IsProtectedFile(glob, file.Name)
+			}
+		}
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
@@ -666,7 +680,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.HTML(200, tplPullFiles)
 }
 
-// UpdatePullRequest merge master into PR
+// UpdatePullRequest merge PR's baseBranch into headBranch
 func UpdatePullRequest(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
@@ -715,6 +729,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
 	}
 
 	time.Sleep(1 * time.Second)
@@ -771,7 +786,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.ServerError("Merge PR status", err)
 			return
@@ -892,7 +907,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -905,12 +921,12 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 	defer headGitRepo.Close()
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
+	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
 		return
 	}
 
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
 
@@ -1123,10 +1139,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := repofiles.PushUpdate(
-		pr.HeadRepo,
-		pr.HeadBranch,
-		repofiles.PushUpdateOptions{
+	if err := repo_service.PushUpdate(
+		&repo_service.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + pr.HeadBranch,
 			OldCommitID:  branchCommitID,
 			NewCommitID:  git.EmptySHA,

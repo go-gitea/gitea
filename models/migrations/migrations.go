@@ -7,6 +7,8 @@ package migrations
 
 import (
 	"fmt"
+	"os"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -222,6 +224,28 @@ var migrations = []Migration{
 	NewMigration("recalculate Stars number for all user", recalculateStars),
 	// v144 -> v145
 	NewMigration("update Matrix Webhook http method to 'PUT'", updateMatrixWebhookHTTPMethod),
+	// v145 -> v146
+	NewMigration("Increase Language field to 50 in LanguageStats", increaseLanguageField),
+	// v146 -> v147
+	NewMigration("Add projects info to repository table", addProjectsInfo),
+	// v147 -> v148
+	NewMigration("create review for 0 review id code comments", createReviewsForCodeComments),
+	// v148 -> v149
+	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
+	// v149 -> v150
+	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
+	// v150 -> v151
+	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
+	// v151 -> v152
+	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
+	// v152 -> v153
+	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	// v153 > v154
+	NewMigration("add Team review request support", addTeamReviewRequestSupport),
+	// v154 > v155
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
+	// v155 -> v156
+	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -298,12 +322,16 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		return nil
 	}
 
+	// Downgrading Gitea's database version not supported
 	if int(v-minDBVersion) > len(migrations) {
-		// User downgraded Gitea.
-		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.ID(1).Update(currentVersion)
-		return err
+		msg := fmt.Sprintf("Downgrading database version from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
+			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
+		fmt.Fprint(os.Stderr, msg)
+		log.Fatal(msg)
+		return nil
 	}
+
+	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
@@ -317,6 +345,221 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	return nil
 }
 
+// RecreateTables will recreate the tables for the provided beans using the newly provided bean definition and move all data to that new table
+// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
+func RecreateTables(beans ...interface{}) func(*xorm.Engine) error {
+	return func(x *xorm.Engine) error {
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+		sess = sess.StoreEngine("InnoDB")
+		for _, bean := range beans {
+			log.Info("Recreating Table: %s for Bean: %s", x.TableName(bean), reflect.Indirect(reflect.ValueOf(bean)).Type().Name())
+			if err := recreateTable(sess, bean); err != nil {
+				return err
+			}
+		}
+		return sess.Commit()
+	}
+}
+
+// recreateTable will recreate the table using the newly provided bean definition and move all data to that new table
+// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
+// WARNING: YOU MUST COMMIT THE SESSION AT THE END
+func recreateTable(sess *xorm.Session, bean interface{}) error {
+	// TODO: This will not work if there are foreign keys
+
+	tableName := sess.Engine().TableName(bean)
+	tempTableName := fmt.Sprintf("tmp_recreate__%s", tableName)
+
+	// We need to move the old table away and create a new one with the correct columns
+	// We will need to do this in stages to prevent data loss
+	//
+	// First create the temporary table
+	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
+		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
+	if err := sess.Table(tempTableName).CreateUniques(bean); err != nil {
+		log.Error("Unable to create uniques for table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
+	if err := sess.Table(tempTableName).CreateIndexes(bean); err != nil {
+		log.Error("Unable to create indexes for table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
+	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
+	table, err := sess.Engine().TableInfo(bean)
+	if err != nil {
+		log.Error("Unable to get table info. Error: %v", err)
+
+		return err
+	}
+	newTableColumns := table.Columns()
+	if len(newTableColumns) == 0 {
+		return fmt.Errorf("no columns in new table")
+	}
+	hasID := false
+	for _, column := range newTableColumns {
+		hasID = hasID || (column.IsPrimaryKey && column.IsAutoIncrement)
+	}
+
+	if hasID && setting.Database.UseMSSQL {
+		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
+			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
+			return err
+		}
+	}
+
+	sqlStringBuilder := &strings.Builder{}
+	_, _ = sqlStringBuilder.WriteString("INSERT INTO `")
+	_, _ = sqlStringBuilder.WriteString(tempTableName)
+	_, _ = sqlStringBuilder.WriteString("` (`")
+	_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+	_, _ = sqlStringBuilder.WriteString("`")
+	for _, column := range newTableColumns[1:] {
+		_, _ = sqlStringBuilder.WriteString(", `")
+		_, _ = sqlStringBuilder.WriteString(column.Name)
+		_, _ = sqlStringBuilder.WriteString("`")
+	}
+	_, _ = sqlStringBuilder.WriteString(")")
+	_, _ = sqlStringBuilder.WriteString(" SELECT ")
+	if newTableColumns[0].Default != "" {
+		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+		_, _ = sqlStringBuilder.WriteString("`, ")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Default)
+		_, _ = sqlStringBuilder.WriteString(")")
+	} else {
+		_, _ = sqlStringBuilder.WriteString("`")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+		_, _ = sqlStringBuilder.WriteString("`")
+	}
+
+	for _, column := range newTableColumns[1:] {
+		if column.Default != "" {
+			_, _ = sqlStringBuilder.WriteString(", COALESCE(`")
+			_, _ = sqlStringBuilder.WriteString(column.Name)
+			_, _ = sqlStringBuilder.WriteString("`, ")
+			_, _ = sqlStringBuilder.WriteString(column.Default)
+			_, _ = sqlStringBuilder.WriteString(")")
+		} else {
+			_, _ = sqlStringBuilder.WriteString(", `")
+			_, _ = sqlStringBuilder.WriteString(column.Name)
+			_, _ = sqlStringBuilder.WriteString("`")
+		}
+	}
+	_, _ = sqlStringBuilder.WriteString(" FROM `")
+	_, _ = sqlStringBuilder.WriteString(tableName)
+	_, _ = sqlStringBuilder.WriteString("`")
+
+	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
+		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
+	if hasID && setting.Database.UseMSSQL {
+		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
+			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
+			return err
+		}
+	}
+
+	switch {
+	case setting.Database.UseSQLite3:
+		// SQLite will drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
+			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			return err
+		}
+
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
+			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
+			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
+			return err
+		}
+
+	case setting.Database.UseMySQL:
+		// MySQL will drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		// SQLite and MySQL will move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+	case setting.Database.UsePostgreSQL:
+		// CASCADE causes postgres to drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+
+		var indices []string
+		schema := sess.Engine().Dialect().URI().Schema
+		sess.Engine().SetSchema("")
+		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, index := range indices {
+			newIndexName := strings.Replace(index, "tmp_recreate__", "", 1)
+			if _, err := sess.Exec(fmt.Sprintf("ALTER INDEX `%s` RENAME TO `%s`", index, newIndexName)); err != nil {
+				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
+				return err
+			}
+		}
+
+	case setting.Database.UseMSSQL:
+		// MSSQL will drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+
+	default:
+		log.Fatal("Unrecognized DB")
+	}
+	return nil
+}
+
+// WARNING: YOU MUST COMMIT THE SESSION AT THE END
 func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
@@ -448,24 +691,19 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "`" + strings.ToLower(col) + "`"
 		}
 		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.Replace(cols, "`", "'", -1))
+			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			sess.Rollback()
 			return fmt.Errorf("Find constraints: %v", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				sess.Rollback()
 				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			sess.Rollback()
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-
-		return sess.Commit()
 	default:
 		log.Fatal("Unrecognized DB")
 	}

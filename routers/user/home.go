@@ -101,7 +101,7 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 	ctx.Data["Feeds"] = actions
 }
 
-// Dashboard render the dashborad page
+// Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
 	ctxUser := getDashboardContextUser(ctx)
 	if ctx.Written() {

@@ -29,7 +29,7 @@
                         {{.Fingerprint}}
                     </div>
                     <div class="activity meta">
-                        <i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+                        <i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
                     </div>
                 </div>
 			</div>
@@ -37,7 +37,7 @@
 	</div>
 </div>
 <br>
-<p>{{.i18n.Tr "settings.ssh_helper" "https://help.github.com/articles/generating-ssh-keys" "https://help.github.com/ssh-issues/" | Str2html}}</p>
+<p>{{.i18n.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
 <div {{if not .HasSSHError}}class="hide"{{end}} id="add-ssh-key-panel">
 	<h4 class="ui top attached header">
 		{{.i18n.Tr "settings.add_new_key"}}
@@ -51,7 +51,7 @@
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
+				<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui green button">

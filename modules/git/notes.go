@@ -70,7 +70,7 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		return err
 	}
 
-	lastCommits, err := getLastCommitForPaths(commitNode, "", []string{path})
+	lastCommits, err := GetLastCommitForPaths(commitNode, "", []string{path})
 	if err != nil {
 		return err
 	}

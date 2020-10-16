@@ -17,12 +17,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -537,7 +538,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -896,14 +897,20 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {
@@ -1040,6 +1047,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
 	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -1058,6 +1066,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -1073,14 +1082,20 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {
@@ -1108,6 +1123,17 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
+		return
+	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(errMsg, tplSignUp, &form)
 		return
 	}
 
@@ -1409,6 +1435,16 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), passwd); pwned || err != nil {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(errMsg, tplResetPassword, nil)
+		return
 	}
 
 	// Handle two-factor
@@ -1443,7 +1479,6 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 		}
 	}
-
 	var err error
 	if u.Rands, err = models.GetUserSalt(); err != nil {
 		ctx.ServerError("UpdateUser", err)
@@ -1540,7 +1575,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		ctx.RedirectToFirst(redirectTo)
 		return

@@ -40,7 +40,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
-			revs2, err := getLastCommitForPaths(c, treePath, unHitPaths)
+			revs2, err := GetLastCommitForPaths(c, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -53,7 +53,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 			}
 		}
 	} else {
-		revs, err = getLastCommitForPaths(c, treePath, entryPaths)
+		revs, err = GetLastCommitForPaths(c, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -170,7 +170,8 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 	return results, unHitEntryPaths, nil
 }
 
-func getLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
+// GetLastCommitForPaths returns last commit information
+func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {

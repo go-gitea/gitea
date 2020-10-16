@@ -120,7 +120,7 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error)
 			return nil
 		},
 	); err != nil {
-		if strings.HasPrefix("Aborted gathering missing repo", err.Error()) {
+		if strings.HasPrefix(err.Error(), "Aborted gathering missing repo") {
 			return nil, err
 		}
 		if err2 := models.CreateRepositoryNotice("gatherMissingRepoRecords: %v", err); err2 != nil {

@@ -233,6 +233,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
+	ctx.Data["UsersTwoFaStatus"] = models.UserList(users).GetTwoFaStatus()
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -302,10 +303,8 @@ func ExploreCode(ctx *context.Context) {
 		repoIDs []int64
 		err     error
 		isAdmin bool
-		userID  int64
 	)
 	if ctx.User != nil {
-		userID = ctx.User.ID
 		isAdmin = ctx.User.IsAdmin
 	}
 
@@ -335,7 +334,7 @@ func ExploreCode(ctx *context.Context) {
 		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(userID, isAdmin, models.UnitTypeCode) {
+			if repo.CheckUnitUser(ctx.User, models.UnitTypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}

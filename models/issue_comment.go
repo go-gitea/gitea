@@ -97,6 +97,10 @@ const (
 	CommentTypeMergePull
 	// push to PR head branch
 	CommentTypePullPush
+	// Project changed
+	CommentTypeProject
+	// Project board changed
+	CommentTypeProjectBoard
 )
 
 // CommentTag defines comment tag type
@@ -122,6 +126,10 @@ type Comment struct {
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
 	Label            *Label `xorm:"-"`
+	OldProjectID     int64
+	ProjectID        int64
+	OldProject       *Project `xorm:"-"`
+	Project          *Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
@@ -129,6 +137,8 @@ type Comment struct {
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
+	AssigneeTeamID   int64 `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam     *Team `xorm:"-"`
 	ResolveDoerID    int64
 	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
@@ -389,6 +399,32 @@ func (c *Comment) LoadLabel() error {
 	return nil
 }
 
+// LoadProject if comment.Type is CommentTypeProject, then load project.
+func (c *Comment) LoadProject() error {
+
+	if c.OldProjectID > 0 {
+		var oldProject Project
+		has, err := x.ID(c.OldProjectID).Get(&oldProject)
+		if err != nil {
+			return err
+		} else if has {
+			c.OldProject = &oldProject
+		}
+	}
+
+	if c.ProjectID > 0 {
+		var project Project
+		has, err := x.ID(c.ProjectID).Get(&project)
+		if err != nil {
+			return err
+		} else if has {
+			c.Project = &project
+		}
+	}
+
+	return nil
+}
+
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
@@ -453,17 +489,36 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 	return sess.Commit()
 }
 
-// LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssigneeUser() error {
+// LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
+func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
-	if c.AssigneeID > 0 {
+	if c.AssigneeID > 0 && c.Assignee == nil {
 		c.Assignee, err = getUserByID(x, c.AssigneeID)
 		if err != nil {
 			if !IsErrUserNotExist(err) {
 				return err
 			}
 			c.Assignee = NewGhostUser()
+		}
+	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
+		if err = c.LoadIssue(); err != nil {
+			return err
+		}
+
+		if err = c.Issue.LoadRepo(); err != nil {
+			return err
+		}
+
+		if err = c.Issue.Repo.GetOwner(); err != nil {
+			return err
+		}
+
+		if c.Issue.Repo.Owner.IsOrganization() {
+			c.AssigneeTeam, err = GetTeamByID(c.AssigneeTeamID)
+			if err != nil && !IsErrTeamNotExist(err) {
+				return err
+			}
 		}
 	}
 	return nil
@@ -647,8 +702,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID:          LabelID,
 		OldMilestoneID:   opts.OldMilestoneID,
 		MilestoneID:      opts.MilestoneID,
+		OldProjectID:     opts.OldProjectID,
+		ProjectID:        opts.ProjectID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
+		AssigneeTeamID:   opts.AssigneeTeamID,
 		CommitID:         opts.CommitID,
 		CommitSHA:        opts.CommitSHA,
 		Line:             opts.LineNum,
@@ -810,7 +868,10 @@ type CreateCommentOptions struct {
 	DependentIssueID int64
 	OldMilestoneID   int64
 	MilestoneID      int64
+	OldProjectID     int64
+	ProjectID        int64
 	AssigneeID       int64
+	AssigneeTeamID   int64
 	RemovedAssignee  bool
 	OldTitle         string
 	NewTitle         string

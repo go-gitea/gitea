@@ -108,6 +108,17 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
 			return
 		}
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			ctx.Data["Err_Password"] = true
+			errMsg := ctx.Tr("auth.password_pwned")
+			if err != nil {
+				log.Error(err.Error())
+				errMsg = ctx.Tr("auth.password_pwned_err")
+			}
+			ctx.RenderWithErr(errMsg, tplUserNew, &form)
+			return
+		}
 		u.MustChangePassword = form.MustChangePassword
 	}
 	if err := models.CreateUser(u); err != nil {
@@ -213,7 +224,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		}
 	}
 
-	if len(form.Password) > 0 {
+	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
 		var err error
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
@@ -222,6 +233,17 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		}
 		if !password.IsComplexEnough(form.Password) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			return
+		}
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			ctx.Data["Err_Password"] = true
+			errMsg := ctx.Tr("auth.password_pwned")
+			if err != nil {
+				log.Error(err.Error())
+				errMsg = ctx.Tr("auth.password_pwned_err")
+			}
+			ctx.RenderWithErr(errMsg, tplUserNew, &form)
 			return
 		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {

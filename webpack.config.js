@@ -1,10 +1,10 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
-const CssNanoPlugin = require('cssnano-webpack-plugin');
+const AddAssetPlugin = require('add-asset-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -49,6 +49,7 @@ module.exports = {
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
+      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
     ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
@@ -80,9 +81,9 @@ module.exports = {
           },
         },
       }),
-      new CssNanoPlugin({
+      new CssMinimizerPlugin({
         sourceMap: true,
-        cssnanoOptions: {
+        minimizerOptions: {
           preset: [
             'default',
             {
@@ -97,14 +98,6 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-      cacheGroups: {
-        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
-        monaco: {
-          test: /monaco-editor/,
-          name: 'monaco',
-          chunks: 'async',
-        },
-      },
     },
   },
   module: {
@@ -121,9 +114,7 @@ module.exports = {
           {
             loader: 'worker-loader',
             options: {
-              name: '[name].js',
-              inline: true,
-              fallback: false,
+              inline: 'no-fallback',
             },
           },
         ],
@@ -135,6 +126,7 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              sourceMaps: true,
               cacheDirectory: true,
               cacheCompression: false,
               cacheIdentifier: [
@@ -142,7 +134,6 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -159,7 +150,6 @@ module.exports = {
                     regenerator: true,
                   }
                 ],
-                '@babel/plugin-proposal-object-rest-spread',
               ],
               generatorOpts: {
                 compact: false,
@@ -177,19 +167,28 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
+              sourceMap: true,
               importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
             },
           },
           {
             loader: 'postcss-loader',
             options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
               sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-preset-env',
+                    {
+                      features: {
+                        'system-ui-font-family': false,
+                      },
+                    },
+                  ],
+                ],
+              },
             },
           },
         ],
@@ -203,19 +202,28 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
+              sourceMap: true,
               importLoaders: 2,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
             },
           },
           {
             loader: 'postcss-loader',
             options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
               sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-preset-env',
+                    {
+                      features: {
+                        'system-ui-font-family': false,
+                      },
+                    },
+                  ],
+                ],
+              },
             },
           },
           {
@@ -284,7 +292,7 @@ module.exports = {
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
     }),
-    new LicenseWebpackPlugin({
+    isProduction ? new LicenseWebpackPlugin({
       outputFilename: 'js/licenses.txt',
       perChunkOutput: false,
       addBanner: false,
@@ -292,6 +300,9 @@ module.exports = {
       modulesDirectories: [
         resolve(__dirname, 'node_modules'),
       ],
+      additionalModules: [
+        '@primer/octicons',
+      ].map((name) => ({name, directory: resolve(__dirname, `node_modules/${name}`)})),
       renderLicenses: (modules) => {
         const line = '-'.repeat(80);
         return modules.map((module) => {
@@ -305,7 +316,7 @@ module.exports = {
         warnings: false,
         errors: true,
       },
-    }),
+    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -325,5 +336,10 @@ module.exports = {
   },
   stats: {
     children: false,
+    excludeAssets: [
+      // exclude monaco's language chunks in stats output for brevity
+      // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
+      /^js\/[0-9]+\.js$/,
+    ],
   },
 };

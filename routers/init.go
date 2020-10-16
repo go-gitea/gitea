@@ -28,12 +28,14 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/services/repository"
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
@@ -54,6 +56,12 @@ func checkRunMode() {
 // NewServices init new services
 func NewServices() {
 	setting.NewServices()
+	if err := storage.Init(); err != nil {
+		log.Fatal("storage init failed: %v", err)
+	}
+	if err := repository.NewContext(); err != nil {
+		log.Fatal("repository init failed: %v", err)
+	}
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()

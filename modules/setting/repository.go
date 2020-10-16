@@ -29,6 +29,7 @@ var (
 		AnsiCharset                             string
 		ForcePrivate                            bool
 		DefaultPrivate                          string
+		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
 		MirrorQueueLength                       int
 		PullRequestQueueLength                  int
@@ -44,6 +45,8 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
 		DefaultBranch                           string
+		AllowAdoptionOfUnadoptedRepositories    bool
+		AllowDeleteOfUnadoptedRepositories      bool
 
 		// Repository editor settings
 		Editor struct {
@@ -55,7 +58,7 @@ var (
 		Upload struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
@@ -82,14 +85,19 @@ var (
 			LockReasons []string
 		} `ini:"repository.issue"`
 
+		Release struct {
+			AllowedTypes string
+		} `ini:"repository.release"`
+
 		Signing struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -131,6 +139,7 @@ var (
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
+		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
@@ -145,6 +154,7 @@ var (
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMirrors:                          false,
+		DefaultBranch:                           "master",
 
 		// Repository editor settings
 		Editor: struct {
@@ -159,13 +169,13 @@ var (
 		Upload: struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		}{
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
-			AllowedTypes: []string{},
+			AllowedTypes: "",
 			FileMaxSize:  3,
 			MaxFiles:     5,
 		},
@@ -207,23 +217,31 @@ var (
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 		},
 
+		Release: struct {
+			AllowedTypes string
+		}{
+			AllowedTypes: "",
+		},
+
 		// Signing settings
 		Signing: struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		}{
-			SigningKey:    "default",
-			SigningName:   "",
-			SigningEmail:  "",
-			InitialCommit: []string{"always"},
-			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
-			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},
-			Wiki:          []string{"never"},
+			SigningKey:        "default",
+			SigningName:       "",
+			SigningEmail:      "",
+			InitialCommit:     []string{"always"},
+			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
+			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
+			Wiki:              []string{"never"},
+			DefaultTrustModel: "collaborator",
 		},
 	}
 	RepoRootPath string
@@ -235,14 +253,14 @@ func newRepository() {
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
-	homeDir = strings.Replace(homeDir, "\\", "/", -1)
+	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
 	// Determine and create root git repository path.
 	sec := Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
-	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString("master")
+	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
@@ -268,6 +286,13 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
+	// Handle default trustmodel settings
+	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
+	if Repository.Signing.DefaultTrustModel == "default" {
+		Repository.Signing.DefaultTrustModel = "collaborator"
+	}
+
+	// Handle preferred charset orders
 	preferred := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {
 		canonicalCharset := strings.ToLower(strings.TrimSpace(charset))

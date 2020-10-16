@@ -339,9 +339,9 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	actions := make([]*Action, 0, 20)
+	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(20).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
