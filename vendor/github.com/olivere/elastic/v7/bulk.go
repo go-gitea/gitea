@@ -137,7 +137,7 @@ func (s *BulkService) Timeout(timeout string) *BulkService {
 // Refresh controls when changes made by this request are made visible
 // to search. The allowed values are: "true" (refresh the relevant
 // primary and replica shards immediately), "wait_for" (wait for the
-// changes to be made visible by a refresh before reying), or "false"
+// changes to be made visible by a refresh before replying), or "false"
 // (no refresh related actions). The default value is "false".
 //
 // See https://www.elastic.co/guide/en/elasticsearch/reference/7.0/docs-refresh.html

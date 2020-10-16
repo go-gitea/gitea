@@ -3,7 +3,6 @@ package plumbing
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 )
 
 // MemoryObject on memory Object implementation
@@ -39,9 +38,11 @@ func (o *MemoryObject) Size() int64 { return o.sz }
 // afterwards
 func (o *MemoryObject) SetSize(s int64) { o.sz = s }
 
-// Reader returns a ObjectReader used to read the object's content.
+// Reader returns an io.ReadCloser used to read the object's content.
+//
+// For a MemoryObject, this reader is seekable.
 func (o *MemoryObject) Reader() (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewBuffer(o.cont)), nil
+	return nopCloser{bytes.NewReader(o.cont)}, nil
 }
 
 // Writer returns a ObjectWriter used to write the object's content.
@@ -59,3 +60,13 @@ func (o *MemoryObject) Write(p []byte) (n int, err error) {
 // Close releases any resources consumed by the object when it is acting as a
 // ObjectWriter.
 func (o *MemoryObject) Close() error { return nil }
+
+// nopCloser exposes the extra methods of bytes.Reader while nopping Close().
+//
+// This allows clients to attempt seeking in a cached Blob's Reader.
+type nopCloser struct {
+	*bytes.Reader
+}
+
+// Close does nothing.
+func (nc nopCloser) Close() error { return nil }
