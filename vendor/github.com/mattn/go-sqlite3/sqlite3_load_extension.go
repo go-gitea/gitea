@@ -68,7 +68,7 @@ func (c *SQLiteConn) loadExtension(lib string, entry *string) error {
 
 	var centry *C.char
 	if entry != nil {
-		centry := C.CString(*entry)
+		centry = C.CString(*entry)
 		defer C.free(unsafe.Pointer(centry))
 	}
 
