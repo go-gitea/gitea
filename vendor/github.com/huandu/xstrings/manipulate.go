@@ -4,7 +4,6 @@
 package xstrings
 
 import (
-	"bytes"
 	"strings"
 	"unicode/utf8"
 )
@@ -131,7 +130,7 @@ func Insert(dst, src string, index int) string {
 // Scrub scrubs invalid utf8 bytes with repl string.
 // Adjacent invalid bytes are replaced only once.
 func Scrub(str, repl string) string {
-	var buf *bytes.Buffer
+	var buf *stringBuilder
 	var r rune
 	var size, pos int
 	var hasError bool
@@ -144,7 +143,7 @@ func Scrub(str, repl string) string {
 		if r == utf8.RuneError {
 			if !hasError {
 				if buf == nil {
-					buf = &bytes.Buffer{}
+					buf = &stringBuilder{}
 				}
 
 				buf.WriteString(origin[:pos])

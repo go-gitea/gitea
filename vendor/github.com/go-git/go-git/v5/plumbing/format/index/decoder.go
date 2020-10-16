@@ -188,7 +188,7 @@ func (d *Decoder) doReadEntryNameV4() (string, error) {
 
 func (d *Decoder) doReadEntryName(len uint16) (string, error) {
 	name := make([]byte, len)
-	_, err := io.ReadFull(d.r, name[:])
+	_, err := io.ReadFull(d.r, name)
 
 	return string(name), err
 }
@@ -390,7 +390,9 @@ func (d *treeExtensionDecoder) readEntry() (*TreeEntry, error) {
 
 	e.Trees = i
 	_, err = io.ReadFull(d.r, e.Hash[:])
-
+	if err != nil {
+		return nil, err
+	}
 	return e, nil
 }
 

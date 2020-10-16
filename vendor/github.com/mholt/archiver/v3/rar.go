@@ -60,6 +60,17 @@ func (*Rar) CheckExt(filename string) error {
 	return nil
 }
 
+// CheckPath ensures that the filename has not been crafted to perform path traversal attacks
+func (*Rar) CheckPath(to, filename string) error {
+	to, _ = filepath.Abs(to) //explicit the destination folder to prevent that 'string.HasPrefix' check can be 'bypassed' when no destination folder is supplied in input
+	dest := filepath.Join(to, filename)
+	//prevent path traversal attacks
+	if !strings.HasPrefix(dest, to) {
+		return fmt.Errorf("illegal file path: %s", filename)
+	}
+	return nil
+}
+
 // Unarchive unpacks the .rar file at source to destination.
 // Destination will be treated as a folder name. It supports
 // multi-volume archives.
@@ -94,7 +105,7 @@ func (r *Rar) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if r.ContinueOnError {
+			if r.ContinueOnError || strings.Contains(err.Error(), "illegal file path") {
 				log.Printf("[ERROR] Reading file in rar archive: %v", err)
 				continue
 			}
@@ -145,10 +156,18 @@ func (r *Rar) unrarNext(to string) error {
 	if err != nil {
 		return err // don't wrap error; calling loop must break on io.EOF
 	}
+	defer f.Close()
+
 	header, ok := f.Header.(*rardecode.FileHeader)
 	if !ok {
 		return fmt.Errorf("expected header to be *rardecode.FileHeader but was %T", f.Header)
 	}
+
+	errPath := r.CheckPath(to, header.Name)
+	if errPath != nil {
+		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+
 	return r.unrarFile(f, filepath.Join(to, header.Name))
 }
 
@@ -363,7 +382,9 @@ func (*Rar) Match(file io.ReadSeeker) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer file.Seek(currentPos, io.SeekStart)
+	defer func() {
+		_, _ = file.Seek(currentPos, io.SeekStart)
+	}()
 
 	buf := make([]byte, 8)
 	if n, err := file.Read(buf); err != nil || n < 8 {
@@ -402,6 +423,7 @@ var (
 	_ = Extractor(new(Rar))
 	_ = Matcher(new(Rar))
 	_ = ExtensionChecker(new(Rar))
+	_ = FilenameChecker(new(Rar))
 	_ = os.FileInfo(rarFileInfo{})
 )
 

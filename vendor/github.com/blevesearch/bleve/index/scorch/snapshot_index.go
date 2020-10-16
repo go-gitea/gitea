@@ -708,6 +708,33 @@ func (i *IndexSnapshot) DumpFields() chan interface{} {
 	return rv
 }
 
+func (i *IndexSnapshot) diskSegmentsPaths() map[string]struct{} {
+	rv := make(map[string]struct{}, len(i.segment))
+	for _, segmentSnapshot := range i.segment {
+		if seg, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
+			rv[seg.Path()] = struct{}{}
+		}
+	}
+	return rv
+}
+
+// reClaimableDocsRatio gives a ratio about the obsoleted or
+// reclaimable documents present in a given index snapshot.
+func (i *IndexSnapshot) reClaimableDocsRatio() float64 {
+	var totalCount, liveCount uint64
+	for _, segmentSnapshot := range i.segment {
+		if _, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
+			totalCount += uint64(segmentSnapshot.FullSize())
+			liveCount += uint64(segmentSnapshot.Count())
+		}
+	}
+
+	if totalCount > 0 {
+		return float64(totalCount-liveCount) / float64(totalCount)
+	}
+	return 0
+}
+
 // subtractStrings returns set a minus elements of set b.
 func subtractStrings(a, b []string) []string {
 	if len(b) == 0 {
