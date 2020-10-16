@@ -7,8 +7,10 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -125,7 +127,13 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
 			u, err := objStore.URL(rPath, path.Base(rPath))
 			if err != nil {
-				ctx.Error(500, err.Error())
+				if err == os.ErrNotExist {
+					log.Warn("Unable to find %s %s", prefix, rPath)
+					ctx.Error(404, "file not found")
+					return
+				}
+				log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
+				ctx.Error(500, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath))
 				return
 			}
 			http.Redirect(
@@ -152,14 +160,21 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 		//If we have matched and access to release or issue
 		fr, err := objStore.Open(rPath)
 		if err != nil {
-			ctx.Error(500, err.Error())
+			if err == os.ErrNotExist {
+				log.Warn("Unable to find %s %s", prefix, rPath)
+				ctx.Error(404, "file not found")
+				return
+			}
+			log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
+			ctx.Error(500, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath))
 			return
 		}
 		defer fr.Close()
 
 		_, err = io.Copy(ctx.Resp, fr)
 		if err != nil {
-			ctx.Error(500, err.Error())
+			log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
+			ctx.Error(500, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath))
 			return
 		}
 	}
@@ -208,10 +223,11 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
+	m.Use(templates.HTMLRenderer())
+
 	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
-	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")

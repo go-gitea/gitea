@@ -13,13 +13,30 @@ import (
 type dict struct {
 	id uint32
 
-	litDec              *huff0.Scratch
+	litEnc              *huff0.Scratch
 	llDec, ofDec, mlDec sequenceDec
-	offsets             [3]int
-	content             []byte
+	//llEnc, ofEnc, mlEnc []*fseEncoder
+	offsets [3]int
+	content []byte
 }
 
 var dictMagic = [4]byte{0x37, 0xa4, 0x30, 0xec}
+
+// ID returns the dictionary id or 0 if d is nil.
+func (d *dict) ID() uint32 {
+	if d == nil {
+		return 0
+	}
+	return d.id
+}
+
+// DictContentSize returns the dictionary content size or 0 if d is nil.
+func (d *dict) DictContentSize() int {
+	if d == nil {
+		return 0
+	}
+	return len(d.content)
+}
 
 // Load a dictionary as described in
 // https://github.com/facebook/zstd/blob/master/doc/zstd_compression_format.md#dictionary-format
@@ -43,10 +60,11 @@ func loadDict(b []byte) (*dict, error) {
 
 	// Read literal table
 	var err error
-	d.litDec, b, err = huff0.ReadTable(b[8:], nil)
+	d.litEnc, b, err = huff0.ReadTable(b[8:], nil)
 	if err != nil {
 		return nil, err
 	}
+	d.litEnc.Reuse = huff0.ReusePolicyMust
 
 	br := byteReader{
 		b:   b,
