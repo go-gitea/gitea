@@ -374,6 +374,16 @@ func reqGitHook() macaron.Handler {
 	}
 }
 
+// reqWebHooksEnabled requires web hooks to be enabled by admin.
+func reqWebHooksEnabled() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if setting.DisableWebHooks {
+			ctx.Error(http.StatusForbidden, "", "web hooks disabled by administrator")
+			return
+		}
+	}
+}
+
 func orgAssignment(args ...bool) macaron.Handler {
 	var (
 		assignOrg  bool
@@ -646,6 +656,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
+				m.Group("/hooks/git", func() {
+					m.Combo("").Get(repo.ListGitHooks)
+					m.Group("/:id", func() {
+						m.Combo("").Get(repo.GetGitHook).
+							Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+							Delete(repo.DeleteGitHook)
+					})
+				}, reqToken(), reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -655,15 +673,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
-					m.Group("/git", func() {
-						m.Combo("").Get(repo.ListGitHooks)
-						m.Group("/:id", func() {
-							m.Combo("").Get(repo.GetGitHook).
-								Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
-								Delete(repo.DeleteGitHook)
-						})
-					}, reqGitHook(), context.ReferencesGitRepo(true))
-				}, reqToken(), reqAdmin())
+				}, reqToken(), reqAdmin(), reqWebHooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(reqAnyRepoReader(), repo.IsCollaborator).
@@ -914,7 +924,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(), reqOrgOwnership())
+			}, reqToken(), reqOrgOwnership(), reqWebHooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).

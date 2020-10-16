@@ -11,12 +11,14 @@
 	<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
 		{{.i18n.Tr "admin.repositories"}}
 	</a>
+	{{if not DisableWebHooks}}
 	<a class="{{if .PageIsAdminHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/hooks">
 		{{.i18n.Tr "admin.hooks"}}
 	</a>
 	<a class="{{if .PageIsAdminSystemHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/system-hooks">
 		{{.i18n.Tr "admin.systemhooks"}}
 	</a>
+	{{end}}
 	<a class="{{if .PageIsAdminAuthentications}}active{{end}} item" href="{{AppSubUrl}}/admin/auths">
 		{{.i18n.Tr "admin.authentication"}}
 	</a>

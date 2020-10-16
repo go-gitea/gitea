@@ -141,6 +141,10 @@ func Deliver(t *models.HookTask) error {
 		}
 	}()
 
+	if setting.DisableWebHooks {
+		return fmt.Errorf("Sending webhook skipped (web hooks disabled): [%d]", t.ID)
+	}
+
 	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
