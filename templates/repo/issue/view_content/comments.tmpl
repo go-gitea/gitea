@@ -460,7 +460,7 @@
 								{{end}}
 								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
 								{{if and $invalid (not $resolved)}}
-									<span class="tag">
+									<span class="ui label basic small yellow">
 										{{$.i18n.Tr "repo.issues.review.outdated"}}
 									</span>
 								{{end}}
