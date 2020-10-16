@@ -22,6 +22,38 @@ var (
 	ErrIterateObjectsNotSupported = errors.New("iterateObjects method not supported")
 )
 
+// ErrInvalidConfiguration is called when there is invalid configuration for a storage
+type ErrInvalidConfiguration struct {
+	cfg interface{}
+	err error
+}
+
+func (err ErrInvalidConfiguration) Error() string {
+	if err.err != nil {
+		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
+	}
+	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
+}
+
+// IsErrInvalidConfiguration checks if an error is an ErrInvalidConfiguration
+func IsErrInvalidConfiguration(err error) bool {
+	_, ok := err.(ErrInvalidConfiguration)
+	return ok
+}
+
+// Type is a type of Storage
+type Type string
+
+// NewStorageFunc is a function that creates a storage
+type NewStorageFunc func(ctx context.Context, cfg interface{}) (ObjectStorage, error)
+
+var storageMap = map[Type]NewStorageFunc{}
+
+// RegisterStorageType registers a provided storage type with a function to create it
+func RegisterStorageType(typ Type, fn func(ctx context.Context, cfg interface{}) (ObjectStorage, error)) {
+	storageMap[typ] = fn
+}
+
 // Object represents the object on the storage
 type Object interface {
 	io.ReadCloser
@@ -50,12 +82,32 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 	return dstStorage.Save(dstPath, f)
 }
 
+// SaveFrom saves data to the ObjectStorage with path p from the callback
+func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+	pr, pw := io.Pipe()
+	defer pr.Close()
+	go func() {
+		defer pw.Close()
+		if err := callback(pw); err != nil {
+			_ = pw.CloseWithError(err)
+		}
+	}()
+
+	_, err := objStorage.Save(p, pr)
+	return err
+}
+
 var (
 	// Attachments represents attachments storage
 	Attachments ObjectStorage
 
 	// LFS represents lfs storage
 	LFS ObjectStorage
+
+	// Avatars represents user avatars storage
+	Avatars ObjectStorage
+	// RepoAvatars represents repository avatars storage
+	RepoAvatars ObjectStorage
 )
 
 // Init init the stoarge
@@ -64,44 +116,46 @@ func Init() error {
 		return err
 	}
 
+	if err := initAvatars(); err != nil {
+		return err
+	}
+
+	if err := initRepoAvatars(); err != nil {
+		return err
+	}
+
 	return initLFS()
 }
 
-func initStorage(storageCfg setting.Storage) (ObjectStorage, error) {
-	var err error
-	var s ObjectStorage
-	switch storageCfg.Type {
-	case setting.LocalStorageType:
-		s, err = NewLocalStorage(storageCfg.Path)
-	case setting.MinioStorageType:
-		minio := storageCfg.Minio
-		s, err = NewMinioStorage(
-			context.Background(),
-			minio.Endpoint,
-			minio.AccessKeyID,
-			minio.SecretAccessKey,
-			minio.Bucket,
-			minio.Location,
-			minio.BasePath,
-			minio.UseSSL,
-		)
-	default:
-		return nil, fmt.Errorf("Unsupported attachment store type: %s", storageCfg.Type)
+// NewStorage takes a storage type and some config and returns an ObjectStorage or an error
+func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
+	if len(typStr) == 0 {
+		typStr = string(LocalStorageType)
+	}
+	fn, ok := storageMap[Type(typStr)]
+	if !ok {
+		return nil, fmt.Errorf("Unsupported storage type: %s", typStr)
 	}
 
-	if err != nil {
-		return nil, err
-	}
+	return fn(context.Background(), cfg)
+}
 
-	return s, nil
+func initAvatars() (err error) {
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
+	return
 }
 
 func initAttachments() (err error) {
-	Attachments, err = initStorage(setting.Attachment.Storage)
+	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
 	return
 }
 
 func initLFS() (err error) {
-	LFS, err = initStorage(setting.LFS.Storage)
+	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
+	return
+}
+
+func initRepoAvatars() (err error) {
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
 	return
 }
