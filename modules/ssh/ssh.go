@@ -124,11 +124,11 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v Failed authentication attempt from %s", err, session.RemoteAddr())
+		log.Error("SSH: Wait: %v", err)
 	}
 
 	if err := session.Exit(getExitStatusFromError(err)); err != nil {
-		log.Error("Session failed to exit. %s Failed authentication attempt from %s", err, session.RemoteAddr())
+		log.Error("Session failed to exit. %s", err)
 	}
 }
 

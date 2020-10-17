@@ -26,7 +26,7 @@ on a bad authentication from the web or CLI using SSH or HTTP respectively:
 2018/04/26 18:15:54 [I] Failed authentication attempt for user from xxx.xxx.xxx.xxx
 ```
 ```log
-2020/10/15 16:05:09 modules/ssh/ssh.go:127:sessionHandler() [E] SSH: Wait: exit status 1 Failed authentication attempt from xxx.xxx.xxx.xxx
+2020/10/15 16:05:09 modules/ssh/ssh.go:188:publicKeyHandler() [E] SearchPublicKeyByContent: public key does not exist [id: 0] Failed authentication attempt from xxx.xxx.xxx.xxx
 ```
 ```log
 2020/10/15 16:08:44 ...s/context/context.go:204:HandleText() [E] invalid credentials from xxx.xxx.xxx.xxx
@@ -37,7 +37,7 @@ Add our filter in `/etc/fail2ban/filter.d/gitea.conf`:
 ```ini
 # gitea.conf
 [Definition]
-failregex =  .*(Failed authentication attempt|invalid credentials).* from <HOST>
+failregex =  .*(Failed authentication attempt|invalid credentials|Attempted access of unknown user).* from <HOST>
 ignoreregex =
 ```
 

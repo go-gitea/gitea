@@ -102,6 +102,7 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
+		log.Error("Attempted access of unknown user from %s", ctx.RemoteAddr())
 		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
 		return
 	}
