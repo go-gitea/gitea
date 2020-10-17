@@ -78,7 +78,7 @@ func NewTemplateFileSystem() templateFileSystem {
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates")
-	isDir, err = util.IsDir(customDir)
+	isDir, err := util.IsDir(customDir)
 	if err != nil {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
 	}
