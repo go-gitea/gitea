@@ -14732,6 +14732,13 @@
             "type": "string"
           },
           "x-go-name": "Reviewers"
+        },
+        "team_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TeamReviewers"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16284,7 +16291,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/MigrateRepoOptions"
+        "$ref": "#/definitions/PullReviewRequestOptions"
       }
     },
     "redirect": {

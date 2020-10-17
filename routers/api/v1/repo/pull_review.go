@@ -660,13 +660,13 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			return
 		}
 
-		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue, permDoer)
+		err = issue_service.IsValidReviewRequest(reviewer, ctx.User, isAdd, pr.Issue, &permDoer)
 		if err != nil {
-			if models.IsErrIllLegalReviewRequest(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "IllegalReviewRequest", err)
+			if models.IsErrNotValidReviewRequest(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "IsLegalReviewRequest", err)
+			ctx.Error(http.StatusInternalServerError, "IsValidReviewRequest", err)
 			return
 		}
 
@@ -685,8 +685,51 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			return
 		}
 
-		if comment != nil {
-			if isAdd {
+		if comment != nil && isAdd {
+			if err = comment.LoadReview(); err != nil {
+				ctx.ServerError("ReviewRequest", err)
+				return
+			}
+			reviews = append(reviews, comment.Review)
+		}
+	}
+
+	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
+
+		teamReviewers := make([]*models.Team, 0, len(opts.TeamReviewers))
+		for _, t := range opts.TeamReviewers {
+			var teamReviewer *models.Team
+			teamReviewer, err = models.GetTeam(ctx.Repo.Owner.ID, t)
+			if err != nil {
+				if models.IsErrTeamNotExist(err) {
+					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
+				return
+			}
+
+			err = issue_service.IsValidTeamReviewRequest(teamReviewer, ctx.User, isAdd, pr.Issue)
+			if err != nil {
+				if models.IsErrNotValidReviewRequest(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "IsValidTeamReviewRequest", err)
+				return
+			}
+
+			teamReviewers = append(teamReviewers, teamReviewer)
+		}
+
+		for _, teamReviewer := range teamReviewers {
+			comment, err := issue_service.TeamReviewRequest(pr.Issue, ctx.User, teamReviewer, isAdd)
+			if err != nil {
+				ctx.ServerError("TeamReviewRequest", err)
+				return
+			}
+
+			if comment != nil && isAdd {
 				if err = comment.LoadReview(); err != nil {
 					ctx.ServerError("ReviewRequest", err)
 					return

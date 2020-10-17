@@ -93,5 +93,6 @@ type SubmitPullReviewOptions struct {
 
 // PullReviewRequestOptions are options to add or remove pull review requests
 type PullReviewRequestOptions struct {
-	Reviewers []string `json:"reviewers"`
+	Reviewers     []string `json:"reviewers"`
+	TeamReviewers []string `json:"team_reviewers"`
 }

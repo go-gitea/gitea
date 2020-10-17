@@ -633,7 +633,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		Reviewer: reviewer,
 		Official: official,
 		Stale:    false,
-	}); 
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -734,7 +734,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		}
 	}
 
-	if _, err = createReview(sess, CreateReviewOptions{
+	if review, err = createReview(sess, CreateReviewOptions{
 		Type:         ReviewTypeRequest,
 		Issue:        issue,
 		ReviewerTeam: reviewer,
@@ -757,6 +757,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("createComment(): %v", err)

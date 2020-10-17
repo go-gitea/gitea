@@ -169,4 +169,40 @@ func TestAPIPullReviewRequest(t *testing.T) {
 		Reviewers: []string{"user8"},
 	})
 	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// Test team review request
+	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	assert.NoError(t, pullIssue12.LoadAttributes())
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+
+	// Test add Team Review Request
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"team1", "owners"},
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	// Test add Team Review Request to not allowned
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"test_team"},
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// Test add Team Review Request to not exist
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"not_exist_team"},
+	})
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// Test Remove team Review Request
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"team1"},
+	})
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// empty request test
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	session.MakeRequest(t, req, http.StatusNoContent)
 }
