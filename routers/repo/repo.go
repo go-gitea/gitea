@@ -20,8 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -393,7 +391,11 @@ func Download(ctx *context.Context) {
 	}
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
-	if !com.IsFile(archivePath) {
+	isFile, err := util.IsFile(archivePath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", archivePath, err)
+	}
+	if !isFile {
 		if err := commit.CreateArchive(ctx.Req.Context(), archivePath, git.CreateArchiveOpts{
 			Format: archiveType,
 			Prefix: setting.Repository.PrefixArchiveFiles,

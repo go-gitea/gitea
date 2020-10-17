@@ -1118,7 +1118,11 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 
 	// Use custom file when available.
 	customPath := path.Join(setting.CustomPath, relPath)
-	if com.IsFile(customPath) {
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(customPath)
 	}
 

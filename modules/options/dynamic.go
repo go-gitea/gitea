@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -95,13 +96,21 @@ func Labels(name string) ([]byte, error) {
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsFile(customPath) {
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(customPath)
 	}
 
 	staticPath := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsFile(staticPath) {
+	isFile, err = util.IsFile(staticPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(staticPath)
 	}
 
