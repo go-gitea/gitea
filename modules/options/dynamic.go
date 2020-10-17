@@ -12,6 +12,7 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -32,7 +33,11 @@ func Dir(name string) ([]string, error) {
 
 	customDir := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsDir(customDir) {
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %v", customDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(customDir, true)
 
 		if err != nil {
@@ -44,7 +49,11 @@ func Dir(name string) ([]string, error) {
 
 	staticDir := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsDir(staticDir) {
+	isDir, err = util.IsDir(staticDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Unabe to check if static directory %s is a directory. %v", staticDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(staticDir, true)
 
 		if err != nil {

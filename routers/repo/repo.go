@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
@@ -351,8 +352,11 @@ func Download(ctx *context.Context) {
 		return
 	}
 	refName = strings.TrimSuffix(uri, ext)
-
-	if !com.IsDir(archivePath) {
+	isDir, err := util.IsDir(archivePath)
+	if err != nil {
+		ctx.ServerError("Download -> IsDir", err)
+	}
+	if !isDir {
 		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
 			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
 			return
@@ -362,8 +366,8 @@ func Download(ctx *context.Context) {
 	// Get corresponding commit.
 	var (
 		commit *git.Commit
-		err    error
 	)
+
 	gitRepo := ctx.Repo.GitRepo
 	if gitRepo.IsBranchExist(refName) {
 		commit, err = gitRepo.GetBranchCommit(refName)

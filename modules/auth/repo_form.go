@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -101,10 +102,19 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
-		remoteAddr = u.String()
-	} else if !user.CanImportLocal() {
+		return u.String(), nil
+	}
+
+	if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
-	} else if !com.IsDir(remoteAddr) {
+	}
+
+	isDir, err := util.IsDir(remoteAddr)
+	if err != nil {
+		log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
+		return "", err
+	}
+	if !isDir {
 		return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
 	}
 

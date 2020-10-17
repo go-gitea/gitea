@@ -12,6 +12,7 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -31,8 +32,11 @@ func Dir(name string) ([]string, error) {
 	)
 
 	customDir := path.Join(setting.CustomPath, "options", name)
-
-	if com.IsDir(customDir) {
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", err)
+	}
+	if isDir {
 		files, err := com.StatDir(customDir, true)
 
 		if err != nil {

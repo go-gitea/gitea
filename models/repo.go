@@ -74,7 +74,11 @@ func loadRepoConfig() {
 			log.Fatal("Failed to get %s files: %v", t, err)
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
-		if com.IsDir(customPath) {
+		isDir, err := util.IsDir(customPath)
+		if err != nil {
+			log.Fatal("Failed to get custom %s files: %v", t, err)
+		}
+		if isDir {
 			customFiles, err := com.StatDir(customPath)
 			if err != nil {
 				log.Fatal("Failed to get custom %s files: %v", t, err)
@@ -1004,7 +1008,11 @@ func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
 	})
-	return has && com.IsDir(RepoPath(u.Name, repoName)), err
+	if err != nil {
+		return false, err
+	}
+	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
+	return has && isDir, err
 }
 
 // IsRepositoryExist returns true if the repository with given name under user has already existed.
