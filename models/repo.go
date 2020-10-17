@@ -410,8 +410,17 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 	numReleases, _ := GetReleaseCountByRepoID(repo.ID, FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
 
 	return &api.Repository{
-		ID:                        repo.ID,
-		Owner:                     repo.Owner.APIFormat(),
+		ID: repo.ID,
+		// TODO use convert.ToUser(repo.Owner)
+		Owner: &api.User{
+			ID:        repo.Owner.ID,
+			UserName:  repo.Owner.Name,
+			FullName:  repo.Owner.FullName,
+			Email:     repo.Owner.GetEmail(),
+			AvatarURL: repo.Owner.AvatarLink(),
+			LastLogin: repo.Owner.LastLoginUnix.AsTime(),
+			Created:   repo.Owner.CreatedUnix.AsTime(),
+		},
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
