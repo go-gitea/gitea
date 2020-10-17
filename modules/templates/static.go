@@ -176,7 +176,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 	customDir := path.Join(setting.CustomPath, "templates", "mail")
 	isDir, err := util.IsDir(customDir)
 	if err != nil {
-		return log.Warn("Failed to check if custom directory %s is a directory. %v", err)
+		log.Warn("Failed to check if custom directory %s is a directory. %v", err)
 	}
 	if isDir {
 		files, err := com.StatDir(customDir)
