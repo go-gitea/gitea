@@ -122,6 +122,8 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cancel)
 
 	scanner := bufio.NewScanner(stdout)
+	buf := make([]byte, 0, bufio.MaxScanTokenSize)
+	scanner.Buffer(buf, 1024*1024)
 
 	return &BlameReader{
 		cmd,
