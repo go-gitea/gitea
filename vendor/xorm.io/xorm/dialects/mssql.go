@@ -205,16 +205,50 @@ var (
 		"PROC":                           true,
 	}
 
-	mssqlQuoter = schemas.Quoter{'[', ']', schemas.AlwaysReserve}
+	mssqlQuoter = schemas.Quoter{
+		Prefix:     '[',
+		Suffix:     ']',
+		IsReserved: schemas.AlwaysReserve,
+	}
 )
 
 type mssql struct {
 	Base
+	defaultVarchar string
+	defaultChar    string
 }
 
 func (db *mssql) Init(uri *URI) error {
 	db.quoter = mssqlQuoter
 	return db.Base.Init(db, uri)
+}
+
+func (db *mssql) SetParams(params map[string]string) {
+	defaultVarchar, ok := params["DEFAULT_VARCHAR"]
+	if ok {
+		var t = strings.ToUpper(defaultVarchar)
+		switch t {
+		case "NVARCHAR", "VARCHAR":
+			db.defaultVarchar = t
+		default:
+			db.defaultVarchar = "VARCHAR"
+		}
+	} else {
+		db.defaultVarchar = "VARCHAR"
+	}
+
+	defaultChar, ok := params["DEFAULT_CHAR"]
+	if ok {
+		var t = strings.ToUpper(defaultChar)
+		switch t {
+		case "NCHAR", "CHAR":
+			db.defaultChar = t
+		default:
+			db.defaultChar = "CHAR"
+		}
+	} else {
+		db.defaultChar = "CHAR"
+	}
 }
 
 func (db *mssql) SQLType(c *schemas.Column) string {
@@ -227,6 +261,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		} else if strings.EqualFold(c.Default, "false") {
 			c.Default = "0"
 		}
+		return res
 	case schemas.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
@@ -250,7 +285,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.MediumInt:
 		res = schemas.Int
 	case schemas.Text, schemas.MediumText, schemas.TinyText, schemas.LongText, schemas.Json:
-		res = schemas.Varchar + "(MAX)"
+		res = db.defaultVarchar + "(MAX)"
 	case schemas.Double:
 		res = schemas.Real
 	case schemas.Uuid:
@@ -262,12 +297,32 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.BigInt:
 		res = schemas.BigInt
 		c.Length = 0
+	case schemas.NVarchar:
+		res = t
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
+	case schemas.Varchar:
+		res = db.defaultVarchar
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
+	case schemas.Char:
+		res = db.defaultChar
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
+	case schemas.NChar:
+		res = t
+		if c.Length == -1 {
+			res += "(MAX)"
+		}
 	default:
 		res = t
 	}
 
-	if res == schemas.Int {
-		return schemas.Int
+	if res == schemas.Int || res == schemas.Bit || res == schemas.DateTime {
+		return res
 	}
 
 	hasLen1 := (c.Length > 0)
@@ -385,8 +440,18 @@ func (db *mssql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 			col.SQLType = schemas.SQLType{Name: schemas.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NVARCHAR":
 			col.SQLType = schemas.SQLType{Name: schemas.NVarchar, DefaultLength: 0, DefaultLength2: 0}
+			if col.Length > 0 {
+				col.Length /= 2
+				col.Length2 /= 2
+			}
 		case "IMAGE":
 			col.SQLType = schemas.SQLType{Name: schemas.VarBinary, DefaultLength: 0, DefaultLength2: 0}
+		case "NCHAR":
+			if col.Length > 0 {
+				col.Length /= 2
+				col.Length2 /= 2
+			}
+			fallthrough
 		default:
 			if _, ok := schemas.SqlTypes[ct]; ok {
 				col.SQLType = schemas.SQLType{Name: ct, DefaultLength: 0, DefaultLength2: 0}
@@ -501,11 +566,8 @@ func (db *mssql) CreateTableSQL(table *schemas.Table, tableName string) ([]strin
 
 	for _, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += db.String(col)
-		} else {
-			sql += db.StringNoPk(col)
-		}
+		s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
+		sql += s
 		sql = strings.TrimSpace(sql)
 		sql += ", "
 	}

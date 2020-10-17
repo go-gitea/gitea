@@ -131,6 +131,7 @@ func Dashboard(ctx *context.Context) {
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
+	ctx.Data["SSH"] = setting.SSH
 	ctx.HTML(200, tplDashboard)
 }
 
@@ -153,8 +154,11 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
 		}
 	}
-
-	ctx.Redirect(setting.AppSubURL + "/admin")
+	if form.From == "monitor" {
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+	} else {
+		ctx.Redirect(setting.AppSubURL + "/admin")
+	}
 }
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -240,7 +244,9 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	ctx.Data["GitVersion"], _ = git.BinVersion()
+	if version, err := git.LocalVersion(); err == nil {
+		ctx.Data["GitVersion"] = version.Original()
+	}
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
@@ -304,7 +310,7 @@ func Config(ctx *context.Context) {
 	}
 
 	ctx.Data["EnvVars"] = envVars
-	ctx.Data["Loggers"] = setting.LogDescriptions
+	ctx.Data["Loggers"] = setting.GetLogDescriptions()
 	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
@@ -331,7 +337,7 @@ func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
 

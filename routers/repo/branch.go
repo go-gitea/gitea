@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,6 +19,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -102,7 +104,11 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Repo.GitRepo.CreateBranch(deletedBranch.Name, deletedBranch.Commit); err != nil {
+	if err := git.Push(ctx.Repo.Repository.RepoPath(), git.PushOptions{
+		Remote: ctx.Repo.Repository.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
+		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
+	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
@@ -112,17 +118,9 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.RemoveDeletedBranch(deletedBranch.ID); err != nil {
-		log.Error("RemoveDeletedBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
-		return
-	}
-
 	// Don't return error below this
-	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
-		deletedBranch.Name,
-		repofiles.PushUpdateOptions{
+	if err := repo_service.PushUpdate(
+		&repo_service.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + deletedBranch.Name,
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
@@ -158,10 +156,8 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	}
 
 	// Don't return error below this
-	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
-		branchName,
-		repofiles.PushUpdateOptions{
+	if err := repo_service.PushUpdate(
+		&repo_service.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
@@ -216,7 +212,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
-		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)
+		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
 		if divergenceError != nil {
 			ctx.ServerError("CountDivergingCommits", divergenceError)
 			return nil
@@ -331,6 +327,8 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 	var err error
 	if ctx.Repo.IsViewBranch {
 		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+	} else if ctx.Repo.IsViewTag {
+		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	} else {
 		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	}

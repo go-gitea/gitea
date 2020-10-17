@@ -19,13 +19,6 @@ import (
 	"github.com/unknwon/com"
 )
 
-const (
-	// ProtectedBranchRepoID protected Repo ID
-	ProtectedBranchRepoID = "GITEA_REPO_ID"
-	// ProtectedBranchPRID protected Repo PR ID
-	ProtectedBranchPRID = "GITEA_PR_ID"
-)
-
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                        int64  `xorm:"pk autoincr"`
@@ -98,9 +91,10 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
-		return true
+		// Then we need to fall back on whether the user has write permission
+		return permissionInRepo.CanWrite(UnitTypeCode)
 	}
 
 	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
@@ -215,6 +209,38 @@ func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
 	return extarr
 }
 
+// MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullRequest) bool {
+	glob := protectBranch.GetProtectedFilePatterns()
+	if len(glob) == 0 {
+		return false
+	}
+
+	return len(pr.ChangedProtectedFiles) > 0
+}
+
+// IsProtectedFile return if path is protected
+func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) bool {
+	if len(patterns) == 0 {
+		patterns = protectBranch.GetProtectedFilePatterns()
+		if len(patterns) == 0 {
+			return false
+		}
+	}
+
+	lpath := strings.ToLower(strings.TrimSpace(path))
+
+	r := false
+	for _, pat := range patterns {
+		if pat.Match(lpath) {
+			r = true
+			break
+		}
+	}
+
+	return r
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
@@ -240,8 +266,8 @@ func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*Protected
 
 // GetProtectedBranchByID getting protected branch by ID
 func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: id}
-	has, err := x.Get(rel)
+	rel := &ProtectedBranch{}
+	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -509,9 +535,9 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
-	deletedBranch := &DeletedBranch{ID: ID}
-	has, err := x.Get(deletedBranch)
+func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{}
+	has, err := x.ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}

@@ -11,12 +11,12 @@ package main
 
 import (
 	// for lint
-	_ "github.com/BurntSushi/toml"
 	_ "github.com/mgechev/dots"
 	_ "github.com/mgechev/revive/formatter"
 	_ "github.com/mgechev/revive/lint"
 	_ "github.com/mgechev/revive/rule"
 	_ "github.com/mitchellh/go-homedir"
+	_ "github.com/pelletier/go-toml"
 
 	// for embed
 	_ "github.com/shurcooL/vfsgen"
@@ -25,7 +25,7 @@ import (
 	_ "golang.org/x/tools/cover"
 
 	// for vet
-	_ "gitea.com/jolheiser/gitea-vet"
+	_ "code.gitea.io/gitea-vet"
 
 	// for swagger
 	_ "github.com/go-swagger/go-swagger/cmd/swagger"

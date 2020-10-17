@@ -6,6 +6,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -37,7 +38,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -77,7 +78,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -310,7 +311,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -472,7 +473,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -635,7 +636,7 @@ func SearchTeam(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -650,15 +651,17 @@ func SearchTeam(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/Team"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	}
 
-	teams, _, err := models.SearchTeam(opts)
+	teams, maxResults, err := models.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -681,6 +684,9 @@ func SearchTeam(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,

@@ -35,7 +35,7 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
@@ -107,45 +107,6 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
-
-#### Example: Mermaid.js
-
-If you would like to add [mermaid.js](https://mermaid-js.github.io/mermaid) support to Gitea's markdown you simply add:
-
-```html
-{{if .RequireHighlightJS}}
-<script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
-<!-- or wherever you have placed it -->
-<script>mermaid.init(".language-mermaid")</script>
-{{end}}
-```
-
-to `custom/footer.tmpl`. You then can add blocks
-like below to your markdown:
-
-    ```mermaid
-        stateDiagram
-        [*] --> Active
-
-        state Active {
-            [*] --> NumLockOff
-            NumLockOff --> NumLockOn : EvNumLockPressed
-            NumLockOn --> NumLockOff : EvNumLockPressed
-            --
-            [*] --> CapsLockOff
-            CapsLockOff --> CapsLockOn : EvCapsLockPressed
-            CapsLockOn --> CapsLockOff : EvCapsLockPressed
-            --
-            [*] --> ScrollLockOff
-            ScrollLockOff --> ScrollLockOn : EvCapsLockPressed
-            ScrollLockOn --> ScrollLockOff : EvCapsLockPressed
-        }
-    ```
-
-If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
-you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
-
-Mermaid will detect and use tags with `class="language-mermaid"`.
 
 #### Example: PlantUML
 

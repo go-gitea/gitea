@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -67,13 +68,6 @@ func Releases(ctx *context.Context) {
 		},
 		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
-	}
-
-	if opts.ListOptions.Page <= 1 {
-		opts.ListOptions.Page = 1
-	}
-	if opts.ListOptions.PageSize <= 0 {
-		opts.ListOptions.Page = 10
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
@@ -139,8 +133,12 @@ func SingleRelease(ctx *context.Context) {
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
 	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetRelease", err)
+			return
+		}
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
@@ -195,7 +193,8 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -215,7 +214,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
@@ -226,7 +225,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			return
 		}
 
-		rel := &models.Release{
+		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,
@@ -265,9 +264,9 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, true); err != nil {
 			ctx.Data["Err_TagName"] = true
-			ctx.ServerError("UpdateRelease", err)
+			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -281,7 +280,8 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -336,7 +336,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
@@ -344,7 +344,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, false); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}

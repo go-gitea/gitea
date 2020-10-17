@@ -35,6 +35,6 @@ func TestGetBlobBySHA(t *testing.T) {
 		SHA:      "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		Size:     180,
 	}
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, expectedGBR, gbr)
 }

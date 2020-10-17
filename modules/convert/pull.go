@@ -53,6 +53,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		Assignee:  apiIssue.Assignee,
 		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
+		IsLocked:  apiIssue.IsLocked,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
 		DiffURL:   pr.Issue.DiffURL(),
@@ -140,7 +141,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = pr.Merger.APIFormat()
+		apiPullRequest.MergedBy = ToUser(pr.Merger, false, false)
 	}
 
 	return apiPullRequest

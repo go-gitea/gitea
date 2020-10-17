@@ -40,7 +40,7 @@ func ListForks(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -109,7 +109,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		}
 		isMember, err := org.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		} else if !isMember {
 			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))

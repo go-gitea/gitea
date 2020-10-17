@@ -105,7 +105,7 @@
 				<dd><i class="fa fa{{if .LFS.StartServer}}-check{{end}}-square-o"></i></dd>
 				{{if .LFS.StartServer}}
 					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
-					<dd>{{.LFS.ContentPath}}</dd>
+					<dd>{{.LFS.Path}}</dd>
 					<dt>{{.i18n.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
 					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
 				{{end}}
@@ -237,7 +237,7 @@
 						{{.CsrfTokenHtml}}
 						<div class="inline field ui left">
 							<div class="ui input">
-								<input type="email" name="email" required>
+								<input type="email" name="email" placeholder="{{.i18n.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
 						</div>
 						<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>

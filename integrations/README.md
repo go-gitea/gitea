@@ -70,3 +70,25 @@ For other databases(replace MSSQL to MYSQL, MYSQL8, PGSQL):
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG
 ```
+
+## Setting timeouts for declaring long-tests and long-flushes
+
+We appreciate that some testing machines may not be very powerful and
+the default timeouts for declaring a slow test or a slow clean-up flush
+may not be appropriate.
+
+You can either:
+
+* Within the test ini file set the following section:
+
+```ini
+[integration-tests]
+SLOW_TEST = 10s ; 10s is the default value
+SLOW_FLUSH = 5S ; 5s is the default value
+```
+
+* Set the following environment variables:
+
+```bash
+GITEA_SLOW_TEST_TIME="10s" GITEA_SLOW_FLUSH_TIME="5s" make test-sqlite
+```

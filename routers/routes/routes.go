@@ -7,8 +7,12 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"path"
+	"strings"
 	"text/template"
 	"time"
 
@@ -21,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
@@ -107,6 +112,74 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	}
 }
 
+func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) macaron.Handler {
+	if storageSetting.ServeDirect {
+		return func(ctx *macaron.Context) {
+			req := ctx.Req.Request
+			if req.Method != "GET" && req.Method != "HEAD" {
+				return
+			}
+
+			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+				return
+			}
+
+			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+			u, err := objStore.URL(rPath, path.Base(rPath))
+			if err != nil {
+				if err == os.ErrNotExist {
+					log.Warn("Unable to find %s %s", prefix, rPath)
+					ctx.Error(404, "file not found")
+					return
+				}
+				log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
+				ctx.Error(500, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath))
+				return
+			}
+			http.Redirect(
+				ctx.Resp,
+				req,
+				u.String(),
+				301,
+			)
+		}
+	}
+
+	return func(ctx *macaron.Context) {
+		req := ctx.Req.Request
+		if req.Method != "GET" && req.Method != "HEAD" {
+			return
+		}
+
+		if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+			return
+		}
+
+		rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+		rPath = strings.TrimPrefix(rPath, "/")
+		//If we have matched and access to release or issue
+		fr, err := objStore.Open(rPath)
+		if err != nil {
+			if err == os.ErrNotExist {
+				log.Warn("Unable to find %s %s", prefix, rPath)
+				ctx.Error(404, "file not found")
+				return
+			}
+			log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
+			ctx.Error(500, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath))
+			return
+		}
+		defer fr.Close()
+
+		_, err = io.Copy(ctx.Resp, fr)
+		if err != nil {
+			log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
+			ctx.Error(500, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath))
+			return
+		}
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -149,24 +222,12 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
-	m.Use(public.StaticHandler(
-		setting.AvatarUploadPath,
-		&public.Options{
-			Prefix:       "avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
-	m.Use(public.StaticHandler(
-		setting.RepositoryAvatarUploadPath,
-		&public.Options{
-			Prefix:       "repo-avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
 
 	m.Use(templates.HTMLRenderer())
+
+	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+
 	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
@@ -275,6 +336,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
 		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
 		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
 	})
 
 	// FIXME: not all routes need go through same middlewares.
@@ -401,6 +463,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/keys/delete", userSetting.DeleteKey)
 		m.Get("/organization", userSetting.Organization)
 		m.Get("/repos", userSetting.Repos)
+		m.Post("/repos/unadopted", userSetting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
@@ -460,6 +523,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
+			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
@@ -509,11 +573,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/attachments", func() {
-		m.Post("", repo.UploadAttachment)
-		m.Post("/delete", repo.DeleteAttachment)
-	}, reqSignIn)
-
 	m.Group("/:username", func() {
 		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
@@ -533,6 +592,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoPullsReader := context.RequireRepoReader(models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
+	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -713,15 +774,18 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:id", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.CompareDiff).
+			Get(ignSignIn, repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 	}, context.RepoAssignment(), context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
-			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
-				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
+			m.Group("/new", func() {
+				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
+					Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
+				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
@@ -730,6 +794,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
+				m.Post("/ref", repo.UpdateIssueRef)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
@@ -745,22 +810,30 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
-				m.Get("/attachments", repo.GetIssueAttachments)
 			}, context.RepoMustNotBeArchived())
+			m.Group("/:index", func() {
+				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments/:uuid", repo.GetAttachment)
+			})
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
+			m.Post("/attachments", repo.UploadIssueAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
-			m.Get("/attachments", repo.GetCommentAttachments)
 		}, context.RepoMustNotBeArchived())
+		m.Group("/comments/:id", func() {
+			m.Get("/attachments", repo.GetCommentAttachments)
+		})
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
@@ -772,7 +845,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Post(bindIgnErr(auth.CreateMilestoneForm{}), repo.NewMilestonePost)
 			m.Get("/:id/edit", repo.EditMilestone)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateMilestoneForm{}), repo.EditMilestonePost)
-			m.Post("/:id/:action", repo.ChangeMilestonStatus)
+			m.Post("/:id/:action", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/pull", func() {
@@ -814,13 +887,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/:username/:reponame", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
-			m.Get("/tag/:tag", repo.SingleRelease)
+			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+			m.Get("/attachments/:uuid", repo.GetAttachment)
+		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
+			m.Post("/attachments", repo.UploadReleaseAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
@@ -852,6 +928,30 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
+
+		m.Group("/projects", func() {
+			m.Get("", repo.Projects)
+			m.Get("/:id", repo.ViewProject)
+			m.Group("", func() {
+				m.Get("/new", repo.NewProject)
+				m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+				m.Group("/:id", func() {
+					m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
+					m.Post("/delete", repo.DeleteProject)
+
+					m.Get("/edit", repo.EditProject)
+					m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
+					m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
+
+					m.Group("/:boardID", func() {
+						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
+						m.Delete("", repo.DeleteProjectBoard)
+
+						m.Post("/:index", repo.MoveIssueAcrossBoards)
+					})
+				})
+			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
+		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
@@ -1046,10 +1146,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
-	})
-
-	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
-		ctx.HTML(200, "pwa/serviceworker_js")
 	})
 
 	// prometheus metrics endpoint

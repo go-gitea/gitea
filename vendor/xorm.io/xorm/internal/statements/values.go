@@ -36,18 +36,21 @@ func (statement *Statement) Value2Interface(col *schemas.Column, fieldValue refl
 		}
 	}
 
-	if fieldConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
-		data, err := fieldConvert.ToDB()
-		if err != nil {
-			return nil, err
+	isNil := fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil()
+	if !isNil {
+		if fieldConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
+			data, err := fieldConvert.ToDB()
+			if err != nil {
+				return nil, err
+			}
+			if col.SQLType.IsBlob() {
+				return data, nil
+			}
+			if nil == data {
+				return nil, nil
+			}
+			return string(data), nil
 		}
-		if col.SQLType.IsBlob() {
-			return data, nil
-		}
-		if nil == data {
-			return nil, nil
-		}
-		return string(data), nil
 	}
 
 	fieldType := fieldValue.Type()
@@ -147,7 +150,7 @@ func (statement *Statement) Value2Interface(col *schemas.Column, fieldValue refl
 		}
 		return nil, ErrUnSupportedType
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		return int64(fieldValue.Uint()), nil
+		return fieldValue.Uint(), nil
 	default:
 		return fieldValue.Interface(), nil
 	}

@@ -68,6 +68,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDoctor,
 		cmd.CmdManager,
 		cmd.Cmdembedded,
+		cmd.CmdMigrateStorage,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -188,5 +189,5 @@ func formatBuiltWith() string {
 		return " built with " + version
 	}
 
-	return " built with " + version + " : " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with " + version + " : " + strings.ReplaceAll(Tags, " ", ", ")
 }

@@ -1,8 +1,3 @@
-// retrieve a HTML string for given SVG icon name and size in pixels
-export function svg(name, size) {
-  return `<svg class="svg ${name}" width="${size}" height="${size}" aria-hidden="true"><use xlink:href="#${name}"/></svg>`;
-}
-
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -27,4 +22,15 @@ export function isDarkTheme() {
 // removes duplicate elements in an array
 export function uniq(arr) {
   return Array.from(new Set(arr));
+}
+
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+// generate a random string
+export function random(length) {
+  let str = '';
+  for (let i = 0; i < length; i++) {
+    str += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return str;
 }

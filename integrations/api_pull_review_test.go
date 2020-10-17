@@ -43,7 +43,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 10, reviews[5].ID)
 	assert.EqualValues(t, "REQUEST_CHANGES", reviews[5].State)
 	assert.EqualValues(t, 1, reviews[5].CodeCommentsCount)
-	assert.EqualValues(t, 0, reviews[5].Reviewer.ID) // ghost user
+	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
 	assert.EqualValues(t, false, reviews[5].Stale)
 	assert.EqualValues(t, true, reviews[5].Official)
 
@@ -86,6 +86,11 @@ func TestAPIPullReview(t *testing.T) {
 			Body:       "first old line",
 			OldLineNum: 1,
 			NewLineNum: 0,
+		}, {
+			Path:       "iso-8859-1.txt",
+			Body:       "this line contains a non-utf-8 character",
+			OldLineNum: 0,
+			NewLineNum: 1,
 		},
 		},
 	})
@@ -93,7 +98,7 @@ func TestAPIPullReview(t *testing.T) {
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "PENDING", review.State)
-	assert.EqualValues(t, 2, review.CodeCommentsCount)
+	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
 	// test SubmitPullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.SubmitPullReviewOptions{
@@ -104,7 +109,7 @@ func TestAPIPullReview(t *testing.T) {
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "APPROVED", review.State)
-	assert.EqualValues(t, 2, review.CodeCommentsCount)
+	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
 	// test DeletePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{

@@ -19,7 +19,7 @@
 					{{else}}
 						<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 							<label for="user_name">{{.i18n.Tr "username"}}</label>
-							<input id="user_name" name="user_name" value="{{.user_name}}" autofocus required>
+							<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 						</div>
 						<div class="required inline field {{if .Err_Email}}error{{end}}">
 							<label for="email">{{.i18n.Tr "email"}}</label>
@@ -29,11 +29,11 @@
 						{{if not .DisablePassword}}
 							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 								<label for="password">{{.i18n.Tr "password"}}</label>
-								<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+								<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 							</div>
 							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 								<label for="retype">{{.i18n.Tr "re_type"}}</label>
-								<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="off" required>
+								<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
 							</div>
 						{{end}}
 						{{if and .EnableCaptcha (eq .CaptchaType "image")}}
@@ -49,6 +49,11 @@
 						{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
 							<div class="inline field required">
 								<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
+							</div>
+						{{end}}
+						{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
+							<div class="inline field required">
+								<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
 							</div>
 						{{end}}
 

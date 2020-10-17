@@ -21,87 +21,81 @@ import (
 	"github.com/go-swagger/go-swagger/generator"
 )
 
-// Server the command to generate an entire server application
-type Server struct {
-	shared
-	Name                       string   `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
-	Operations                 []string `long:"operation" short:"O" description:"specify an operation to include, repeat for multiple"`
-	Tags                       []string `long:"tags" description:"the tags to include, if not specified defaults to all"`
-	Principal                  string   `long:"principal" short:"P" description:"the model to use for the security principal"`
-	DefaultScheme              string   `long:"default-scheme" description:"the default scheme for this API" default:"http"`
-	Models                     []string `long:"model" short:"M" description:"specify a model to include, repeat for multiple"`
-	SkipModels                 bool     `long:"skip-models" description:"no models will be generated when this flag is specified"`
-	SkipOperations             bool     `long:"skip-operations" description:"no operations will be generated when this flag is specified"`
-	SkipSupport                bool     `long:"skip-support" description:"no supporting files will be generated when this flag is specified"`
-	ExcludeMain                bool     `long:"exclude-main" description:"exclude main function, so just generate the library"`
-	ExcludeSpec                bool     `long:"exclude-spec" description:"don't embed the swagger specification"`
-	WithContext                bool     `long:"with-context" description:"handlers get a context as first arg (deprecated)"`
-	DumpData                   bool     `long:"dump-data" description:"when present dumps the json for the template generator instead of generating files"`
-	FlagStrategy               string   `long:"flag-strategy" description:"the strategy to provide flags for the server" default:"go-flags" choice:"go-flags" choice:"pflag" choice:"flag"`
-	CompatibilityMode          string   `long:"compatibility-mode" description:"the compatibility mode for the tls server" default:"modern" choice:"modern" choice:"intermediate"`
-	SkipValidation             bool     `long:"skip-validation" description:"skips validation of spec prior to generation"`
-	RegenerateConfigureAPI     bool     `long:"regenerate-configureapi" description:"Force regeneration of configureapi.go"`
-	KeepSpecOrder              bool     `long:"keep-spec-order" description:"Keep schema properties order identical to spec file"`
-	StrictAdditionalProperties bool     `long:"strict-additional-properties" description:"disallow extra properties when additionalProperties is set to false"`
+type serverOptions struct {
+	ServerPackage string `long:"server-package" short:"s" description:"the package to save the server specific code" default:"restapi"`
+	MainTarget    string `long:"main-package" short:"" description:"the location of the generated main. Defaults to cmd/{name}-server" default:""`
 }
 
-func (s *Server) getOpts() (*generator.GenOpts, error) {
-	// warning: deprecation
+func (cs serverOptions) apply(opts *generator.GenOpts) {
+	opts.ServerPackage = cs.ServerPackage
+}
+
+// Server the command to generate an entire server application
+type Server struct {
+	WithShared
+	WithModels
+	WithOperations
+
+	serverOptions
+	schemeOptions
+	mediaOptions
+
+	SkipModels             bool   `long:"skip-models" description:"no models will be generated when this flag is specified"`
+	SkipOperations         bool   `long:"skip-operations" description:"no operations will be generated when this flag is specified"`
+	SkipSupport            bool   `long:"skip-support" description:"no supporting files will be generated when this flag is specified"`
+	ExcludeMain            bool   `long:"exclude-main" description:"exclude main function, so just generate the library"`
+	ExcludeSpec            bool   `long:"exclude-spec" description:"don't embed the swagger specification"`
+	FlagStrategy           string `long:"flag-strategy" description:"the strategy to provide flags for the server" default:"go-flags" choice:"go-flags" choice:"pflag" choice:"flag"` // nolint: staticcheck
+	CompatibilityMode      string `long:"compatibility-mode" description:"the compatibility mode for the tls server" default:"modern" choice:"modern" choice:"intermediate"`          // nolint: staticcheck
+	RegenerateConfigureAPI bool   `long:"regenerate-configureapi" description:"Force regeneration of configureapi.go"`
+
+	Name string `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
+	// TODO(fredbi): CmdName string `long:"cmd-name" short:"A" description:"the name of the server command, when main is generated (defaults to {name}-server)"`
+
+	//deprecated flags
+	WithContext bool `long:"with-context" description:"handlers get a context as first arg (deprecated)"`
+}
+
+func (s Server) apply(opts *generator.GenOpts) {
 	if s.WithContext {
 		log.Printf("warning: deprecated option --with-context is ignored")
 	}
 
-	return &generator.GenOpts{
-		Spec:                       string(s.Spec),
-		Target:                     string(s.Target),
-		APIPackage:                 s.APIPackage,
-		ModelPackage:               s.ModelPackage,
-		ServerPackage:              s.ServerPackage,
-		ClientPackage:              s.ClientPackage,
-		Principal:                  s.Principal,
-		DefaultScheme:              s.DefaultScheme,
-		IncludeModel:               !s.SkipModels,
-		IncludeValidator:           !s.SkipModels,
-		IncludeHandler:             !s.SkipOperations,
-		IncludeParameters:          !s.SkipOperations,
-		IncludeResponses:           !s.SkipOperations,
-		IncludeURLBuilder:          !s.SkipOperations,
-		IncludeMain:                !s.ExcludeMain,
-		IncludeSupport:             !s.SkipSupport,
-		PropertiesSpecOrder:        s.KeepSpecOrder,
-		ValidateSpec:               !s.SkipValidation,
-		ExcludeSpec:                s.ExcludeSpec,
-		StrictAdditionalProperties: s.StrictAdditionalProperties,
-		Template:                   s.Template,
-		RegenerateConfigureAPI:     s.RegenerateConfigureAPI,
-		TemplateDir:                string(s.TemplateDir),
-		DumpData:                   s.DumpData,
-		Models:                     s.Models,
-		Operations:                 s.Operations,
-		Tags:                       s.Tags,
-		Name:                       s.Name,
-		FlagStrategy:               s.FlagStrategy,
-		CompatibilityMode:          s.CompatibilityMode,
-		ExistingModels:             s.ExistingModels,
-		AllowTemplateOverride:      s.AllowTemplateOverride,
-	}, nil
-}
+	s.Shared.apply(opts)
+	s.Models.apply(opts)
+	s.Operations.apply(opts)
+	s.serverOptions.apply(opts)
+	s.schemeOptions.apply(opts)
+	s.mediaOptions.apply(opts)
 
-func (s *Server) getShared() *shared {
-	return &s.shared
+	opts.IncludeModel = !s.SkipModels
+	opts.IncludeValidator = !s.SkipModels
+	opts.IncludeHandler = !s.SkipOperations
+	opts.IncludeParameters = !s.SkipOperations
+	opts.IncludeResponses = !s.SkipOperations
+	opts.IncludeURLBuilder = !s.SkipOperations
+	opts.IncludeSupport = !s.SkipSupport
+	opts.IncludeMain = !s.ExcludeMain
+	opts.FlagStrategy = s.FlagStrategy
+	opts.CompatibilityMode = s.CompatibilityMode
+	opts.RegenerateConfigureAPI = s.RegenerateConfigureAPI
+
+	opts.Name = s.Name
+	opts.MainPackage = s.MainTarget
 }
 
 func (s *Server) generate(opts *generator.GenOpts) error {
-	return generator.GenerateServer(s.Name, s.Models, s.Operations, opts)
+	return generator.GenerateServer(s.Name, s.Models.Models, s.Operations.Operations, opts)
 }
 
-func (s *Server) log(rp string) {
+func (s Server) log(rp string) {
 	var flagsPackage string
-	if strings.HasPrefix(s.FlagStrategy, "pflag") {
+	switch {
+	case strings.HasPrefix(s.FlagStrategy, "pflag"):
 		flagsPackage = "github.com/spf13/pflag"
-	} else if strings.HasPrefix(s.FlagStrategy, "flag") {
+	case strings.HasPrefix(s.FlagStrategy, "flag"):
 		flagsPackage = "flag"
-	} else {
+	default:
 		flagsPackage = "github.com/jessevdk/go-flags"
 	}
 

@@ -209,7 +209,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	metas := ctx.Repo.Repository.ComposeMetas()
+	metas := ctx.Repo.Repository.ComposeDocumentMetas()
 	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
 	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
@@ -572,6 +572,11 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	}
 
 	wikiName := wiki_service.NormalizeWikiName(form.Title)
+
+	if len(form.Message) == 0 {
+		form.Message = ctx.Tr("repo.editor.add", form.Title)
+	}
+
 	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
@@ -620,6 +625,10 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
+
+	if len(form.Message) == 0 {
+		form.Message = ctx.Tr("repo.editor.update", form.Title)
+	}
 
 	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)

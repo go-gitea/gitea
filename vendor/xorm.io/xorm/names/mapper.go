@@ -7,6 +7,7 @@ package names
 import (
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 // Mapper represents a name convertation between struct's fields name and table's column name
@@ -77,19 +78,24 @@ func (m SameMapper) Table2Obj(t string) string {
 type SnakeMapper struct {
 }
 
+func b2s(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
 func snakeCasedName(name string) string {
-	newstr := make([]rune, 0)
-	for idx, chr := range name {
-		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
-			if idx > 0 {
+	newstr := make([]byte, 0, len(name)+1)
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if isUpper := 'A' <= c && c <= 'Z'; isUpper {
+			if i > 0 {
 				newstr = append(newstr, '_')
 			}
-			chr -= ('A' - 'a')
+			c += 'a' - 'A'
 		}
-		newstr = append(newstr, chr)
+		newstr = append(newstr, c)
 	}
 
-	return string(newstr)
+	return b2s(newstr)
 }
 
 func (mapper SnakeMapper) Obj2Table(name string) string {
@@ -97,27 +103,28 @@ func (mapper SnakeMapper) Obj2Table(name string) string {
 }
 
 func titleCasedName(name string) string {
-	newstr := make([]rune, 0)
+	newstr := make([]byte, 0, len(name))
 	upNextChar := true
 
 	name = strings.ToLower(name)
 
-	for _, chr := range name {
+	for i := 0; i < len(name); i++ {
+		c := name[i]
 		switch {
 		case upNextChar:
 			upNextChar = false
-			if 'a' <= chr && chr <= 'z' {
-				chr -= ('a' - 'A')
+			if 'a' <= c && c <= 'z' {
+				c -= 'a' - 'A'
 			}
-		case chr == '_':
+		case c == '_':
 			upNextChar = true
 			continue
 		}
 
-		newstr = append(newstr, chr)
+		newstr = append(newstr, c)
 	}
 
-	return string(newstr)
+	return b2s(newstr)
 }
 
 func (mapper SnakeMapper) Table2Obj(name string) string {

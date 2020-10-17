@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -208,7 +209,7 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// consumes:
 	// - application/json
@@ -224,7 +225,7 @@ func GetStopwatches(ctx *context.APIContext) {
 		return
 	}
 
-	apiSWs, err := sws.APIFormat()
+	apiSWs, err := convert.ToStopWatches(sws)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
 		return

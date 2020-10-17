@@ -6,7 +6,7 @@ A FileSystem Abstraction System for Go
 
 # Overview
 
-Afero is an filesystem framework providing a simple, uniform and universal API
+Afero is a filesystem framework providing a simple, uniform and universal API
 interacting with any filesystem, as an abstraction layer providing interfaces,
 types and methods. Afero has an exceptionally clean interface and simple design
 without needless constructors or initialization methods.
@@ -18,7 +18,7 @@ and benefit of the os and ioutil packages.
 Afero provides significant improvements over using the os package alone, most
 notably the ability to create mock and testing filesystems without relying on the disk.
 
-It is suitable for use in a any situation where you would consider using the OS
+It is suitable for use in any situation where you would consider using the OS
 package as it provides an additional abstraction that makes it easy to use a
 memory backed file system during testing. It also adds support for the http
 filesystem for full interoperability.
@@ -41,8 +41,8 @@ Afero is easy to use and easier to adopt.
 
 A few different ways you could use Afero:
 
-* Use the interfaces alone to define you own file system.
-* Wrap for the OS packages.
+* Use the interfaces alone to define your own file system.
+* Wrapper for the OS packages.
 * Define different filesystems for different parts of your application.
 * Use Afero for mock filesystems while testing
 
@@ -380,7 +380,6 @@ The following is a short list of possible backends we hope someone will
 implement:
 
 * SSH
-* ZIP
 * TAR
 * S3
 
@@ -406,28 +405,7 @@ Googles very well.
 
 ## Release Notes
 
-* **0.10.0** 2015.12.10
-  * Full compatibility with Windows
-  * Introduction of afero utilities
-  * Test suite rewritten to work cross platform
-  * Normalize paths for MemMapFs
-  * Adding Sync to the file interface
-  * **Breaking Change** Walk and ReadDir have changed parameter order
-  * Moving types used by MemMapFs to a subpackage
-  * General bugfixes and improvements
-* **0.9.0** 2015.11.05
-  * New Walk function similar to filepath.Walk
-  * MemMapFs.OpenFile handles O_CREATE, O_APPEND, O_TRUNC
-  * MemMapFs.Remove now really deletes the file
-  * InMemoryFile.Readdir and Readdirnames work correctly
-  * InMemoryFile functions lock it for concurrent access
-  * Test suite improvements
-* **0.8.0** 2014.10.28
-  * First public version
-  * Interfaces feel ready for people to build using
-  * Interfaces satisfy all known uses
-  * MemMapFs passes the majority of the OS test suite
-  * OsFs passes the majority of the OS test suite
+See the [Releases Page](https://github.com/spf13/afero/releases).
 
 ## Contributing
 

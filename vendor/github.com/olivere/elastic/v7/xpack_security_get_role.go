@@ -181,6 +181,6 @@ type XPackSecurityApplicationPrivileges struct {
 type XPackSecurityIndicesPermissions struct {
 	Names         []string    `json:"names"`
 	Privileges    []string    `json:"privileges"`
-	FieldSecurity interface{} `json:"field_security"`
+	FieldSecurity interface{} `json:"field_security,omitempty"`
 	Query         string      `json:"query"`
 }

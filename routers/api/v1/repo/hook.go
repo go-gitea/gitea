@@ -41,7 +41,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -144,7 +144,7 @@ func TestHook(ctx *context.APIContext) {
 		Before: ctx.Repo.Commit.ID.String(),
 		After:  ctx.Repo.Commit.ID.String(),
 		Commits: []*api.PayloadCommit{
-			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
+			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
 		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
 		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),

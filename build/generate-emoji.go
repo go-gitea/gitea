@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -39,6 +40,7 @@ type Emoji struct {
 	Description    string   `json:"description,omitempty"`
 	Aliases        []string `json:"aliases"`
 	UnicodeVersion string   `json:"unicode_version,omitempty"`
+	SkinTones      bool     `json:"skin_tones,omitempty"`
 }
 
 // Don't include some fields in JSON
@@ -47,6 +49,7 @@ func (e Emoji) MarshalJSON() ([]byte, error) {
 	x := emoji(e)
 	x.UnicodeVersion = ""
 	x.Description = ""
+	x.SkinTones = false
 	return json.Marshal(x)
 }
 
@@ -75,6 +78,7 @@ var replacer = strings.NewReplacer(
 	", Description:", ", ",
 	", Aliases:", ", ",
 	", UnicodeVersion:", ", ",
+	", SkinTones:", ", ",
 )
 
 var emojiRE = regexp.MustCompile(`\{Emoji:"([^"]*)"`)
@@ -102,18 +106,20 @@ func generate() ([]byte, error) {
 		return nil, err
 	}
 
-	var re = regexp.MustCompile(`keycap|registered|copyright`)
-	tmp := data[:0]
+	var skinTones = make(map[string]string)
 
-	// filter out emoji that require greater than max unicode version
+	skinTones["\U0001f3fb"] = "Light Skin Tone"
+	skinTones["\U0001f3fc"] = "Medium-Light Skin Tone"
+	skinTones["\U0001f3fd"] = "Medium Skin Tone"
+	skinTones["\U0001f3fe"] = "Medium-Dark Skin Tone"
+	skinTones["\U0001f3ff"] = "Dark Skin Tone"
+
+	var tmp Gemoji
+
+	//filter out emoji that require greater than max unicode version
 	for i := range data {
 		val, _ := strconv.ParseFloat(data[i].UnicodeVersion, 64)
 		if int(val) <= maxUnicodeVersion {
-			// remove these keycaps for now they really complicate matching since
-			// they include normal letters in them
-			if re.MatchString(data[i].Description) {
-				continue
-			}
 			tmp = append(tmp, data[i])
 		}
 	}
@@ -123,7 +129,6 @@ func generate() ([]byte, error) {
 		return data[i].Aliases[0] < data[j].Aliases[0]
 	})
 
-	aliasPairs := make([]string, 0)
 	aliasMap := make(map[string]int, len(data))
 
 	for i, e := range data {
@@ -135,7 +140,6 @@ func generate() ([]byte, error) {
 				continue
 			}
 			aliasMap[a] = i
-			aliasPairs = append(aliasPairs, ":"+a+":", e.Emoji)
 		}
 	}
 
@@ -147,6 +151,43 @@ func generate() ([]byte, error) {
 	i, ok = aliasMap["laughing"]
 	if ok {
 		data[i].Aliases = append(data[i].Aliases, "laugh")
+	}
+
+	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
+	file, _ := json.Marshal(data)
+	_ = ioutil.WriteFile("assets/emoji.json", file, 0644)
+
+	// Add skin tones to emoji that support it
+	var (
+		s              []string
+		newEmoji       string
+		newDescription string
+		newData        Emoji
+	)
+
+	for i := range data {
+		if data[i].SkinTones {
+			for k, v := range skinTones {
+				s = strings.Split(data[i].Emoji, "")
+
+				if utf8.RuneCountInString(data[i].Emoji) == 1 {
+					s = append(s, k)
+				} else {
+					// insert into slice after first element because all emoji that support skin tones
+					// have that modifer placed at this spot
+					s = append(s, "")
+					copy(s[2:], s[1:])
+					s[1] = k
+				}
+
+				newEmoji = strings.Join(s, "")
+				newDescription = data[i].Description + ": " + v
+				newAlias := data[i].Aliases[0] + "_" + strings.ReplaceAll(v, " ", "_")
+
+				newData = Emoji{newEmoji, newDescription, []string{newAlias}, "12.0", false}
+				data = append(data, newData)
+			}
+		}
 	}
 
 	// add header
@@ -161,10 +202,6 @@ func generate() ([]byte, error) {
 		}
 		return "{" + strconv.QuoteToASCII(s)
 	})
-
-	// write a JSON file to use with tribute
-	file, _ := json.Marshal(data)
-	_ = ioutil.WriteFile("assets/emoji.json", file, 0644)
 
 	// format
 	return format.Source([]byte(str))

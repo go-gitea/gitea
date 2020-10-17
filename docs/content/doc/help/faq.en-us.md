@@ -47,7 +47,8 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [How can I enable password reset](#how-can-i-enable-password-reset)
 * [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
 * [Why is my markdown broken](#why-is-my-markdown-broken)
-
+* [Errors during upgrade on MySQL: Error 1118: Row size too large.](#upgrade-errors-with-mysql)
+* [Why are emoji broken on MySQL](#why-are-emoji-broken-on-mysql)
 
 ## Difference between 1.x and 1.x.x downloads
 Version 1.7.x will be used for this example.  
@@ -161,7 +162,7 @@ At some point, a customer or third party needs access to a specific repo and onl
 
 ### Enable Fail2ban
 
-Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
+Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
@@ -308,3 +309,30 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
 In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
 If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
 If it is the latter, _usually_ there is a compliant alternative listed in the spec.
+
+## Upgrade errors with MySQL
+
+If you are receiving errors on upgrade of Gitea using MySQL that read:
+
+> `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
+
+Please run `gitea convert` or run `ALTER TABLE table_name ROW_FORMAT=dynamic;` for each table in the database.
+
+The underlying problem is that the space allocated for indices by the default row format
+is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
+
+If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
+then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+
+## Why Are Emoji Broken On MySQL
+
+Unfortunately MySQL's `utf8` charset does not completely allow all possible UTF-8 characters, in particular Emoji.
+They created a new charset and collation called `utf8mb4` that allows for emoji to be stored but tables which use
+the `utf8` charset, and connections which use the `utf8` charset will not use this.
+
+Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+for each table in the database.
+
+You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.

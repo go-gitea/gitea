@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -21,14 +23,17 @@ var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID                int64 `xorm:"pk autoincr"`
-	RepoID            int64 `xorm:"INDEX"`
-	OrgID             int64 `xorm:"INDEX"`
-	Name              string
-	Description       string
-	Color             string `xorm:"VARCHAR(7)"`
-	NumIssues         int
-	NumClosedIssues   int
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"`
+	OrgID           int64 `xorm:"INDEX"`
+	Name            string
+	Description     string
+	Color           string `xorm:"VARCHAR(7)"`
+	NumIssues       int
+	NumClosedIssues int
+	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
 	IsChecked         bool   `xorm:"-"`
@@ -295,10 +300,8 @@ func getLabelByID(e Engine, labelID int64) (*Label, error) {
 		return nil, ErrLabelNotExist{labelID}
 	}
 
-	l := &Label{
-		ID: labelID,
-	}
-	has, err := e.Get(l)
+	l := &Label{}
+	has, err := e.ID(labelID).Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -672,6 +675,11 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -698,6 +706,11 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
@@ -741,6 +754,11 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 

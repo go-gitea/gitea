@@ -93,7 +93,7 @@ func (o *OAuth2) userIDFromToken(ctx *macaron.Context) int64 {
 	}
 	t, err := models.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
-		if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+		if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return 0
@@ -121,7 +121,7 @@ func (o *OAuth2) VerifyAuthData(ctx *macaron.Context, sess session.Store) *model
 		return nil
 	}
 
-	if !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
+	if isInternalPath(ctx) || !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
 		return nil
 	}
 

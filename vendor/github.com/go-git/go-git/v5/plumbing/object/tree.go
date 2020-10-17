@@ -304,29 +304,34 @@ func (t *Tree) buildMap() {
 }
 
 // Diff returns a list of changes between this tree and the provided one
-func (from *Tree) Diff(to *Tree) (Changes, error) {
-	return DiffTree(from, to)
+func (t *Tree) Diff(to *Tree) (Changes, error) {
+	return t.DiffContext(context.Background(), to)
 }
 
-// Diff returns a list of changes between this tree and the provided one
-// Error will be returned if context expires
-// Provided context must be non nil
-func (from *Tree) DiffContext(ctx context.Context, to *Tree) (Changes, error) {
-	return DiffTreeContext(ctx, from, to)
-}
-
-// Patch returns a slice of Patch objects with all the changes between trees
-// in chunks. This representation can be used to create several diff outputs.
-func (from *Tree) Patch(to *Tree) (*Patch, error) {
-	return from.PatchContext(context.Background(), to)
+// DiffContext returns a list of changes between this tree and the provided one
+// Error will be returned if context expires. Provided context must be non nil.
+//
+// NOTE: Since version 5.1.0 the renames are correctly handled, the settings
+// used are the recommended options DefaultDiffTreeOptions.
+func (t *Tree) DiffContext(ctx context.Context, to *Tree) (Changes, error) {
+	return DiffTreeWithOptions(ctx, t, to, DefaultDiffTreeOptions)
 }
 
 // Patch returns a slice of Patch objects with all the changes between trees
 // in chunks. This representation can be used to create several diff outputs.
-// If context expires, an error will be returned
-// Provided context must be non-nil
-func (from *Tree) PatchContext(ctx context.Context, to *Tree) (*Patch, error) {
-	changes, err := DiffTreeContext(ctx, from, to)
+func (t *Tree) Patch(to *Tree) (*Patch, error) {
+	return t.PatchContext(context.Background(), to)
+}
+
+// PatchContext returns a slice of Patch objects with all the changes between
+// trees in chunks. This representation can be used to create several diff
+// outputs. If context expires, an error will be returned. Provided context must
+// be non-nil.
+//
+// NOTE: Since version 5.1.0 the renames are correctly handled, the settings
+// used are the recommended options DefaultDiffTreeOptions.
+func (t *Tree) PatchContext(ctx context.Context, to *Tree) (*Patch, error) {
+	changes, err := t.DiffContext(ctx, to)
 	if err != nil {
 		return nil, err
 	}
