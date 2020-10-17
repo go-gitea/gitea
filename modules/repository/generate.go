@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
-	"github.com/unknwon/com"
 )
 
 type transformer struct {
@@ -252,7 +251,12 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 	}
 
 	repoPath := generateRepo.RepoPath()
-	if com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return nil, err
+	}
+	if isExist {
 		return nil, models.ErrRepoFilesAlreadyExist{
 			Uname: generateRepo.OwnerName,
 			Name:  generateRepo.Name,
