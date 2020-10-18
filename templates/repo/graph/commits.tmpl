@@ -5,9 +5,29 @@
                 {{ if $commit.OnlyRelation }}
                     <span />
                 {{ else }}
-                    <code id="{{$commit.ShortRev}}">
-                        <a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}">{{ .ShortRev}}</a>
-                    </code>
+                    <span class="sha" id="{{$commit.ShortRev}}">
+                        {{$class := "ui sha label"}}
+                        {{if $commit.Commit.Signature}}
+                            {{$class = (printf "%s%s" $class " isSigned")}}
+                            {{if $commit.Verification.Verified}}
+                                {{if eq $commit.Verification.TrustStatus "trusted"}}
+                                    {{$class = (printf "%s%s" $class " isVerified")}}
+                                {{else if eq $commit.Verification.TrustStatus "untrusted"}}
+                                    {{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+                                {{else}}
+                                    {{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+                                {{end}}
+                            {{else if $commit.Verification.Warning}}
+                                {{$class = (printf "%s%s" $class " isWarning")}}
+                            {{end}}
+                        {{end}}
+                        <a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}" rel="nofollow" class="{{$class}}">
+                            <span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
+                            {{- if $commit.Commit.Signature -}}
+                                <span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
+                            {{- end -}}
+                        </a>
+                    </span>
                     {{range $commit.Refs}}
                         {{$refGroup := .RefGroup}}
                         {{if eq $refGroup "pull"}}
@@ -38,8 +58,20 @@
                             <!-- Unknown ref type {{.Name}} -->
                         {{end}}
                     {{end}}
-                    <span>{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span> by
-                    <span class="author">{{$commit.Author}}</span>
+                    —
+                    <span>{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+                    —
+                    <span class="author">
+                        {{$userName := $commit.Commit.Author.Name}}
+                        {{if $commit.User}}
+                            {{if $commit.User.FullName}}
+                                {{$userName = $commit.User.FullName}}
+                            {{end}}
+                            <img class="ui avatar image" src="{{$commit.User.RelAvatarLink}}" alt=""/><a href="{{AppSubUrl}}/{{$commit.User.Name}}">{{$userName}}</a>
+                        {{else}}
+                            <img class="ui avatar image" src="{{AvatarLink $commit.Commit.Author.Email}}" alt=""/>{{$userName}}
+                        {{end}}
+                    </span>
                     <span class="time">{{$commit.Date}}</span>
                 {{ end }}
             </li>

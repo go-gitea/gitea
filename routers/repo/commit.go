@@ -135,6 +135,11 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
+	if err := graph.LoadAndProcessCommits(ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
+		ctx.ServerError("LoadAndProcessCommits", err)
+		return
+	}
+
 	ctx.Data["Graph"] = graph
 
 	gitRefs, err := ctx.Repo.GitRepo.GetRefs()
