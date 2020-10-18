@@ -263,7 +263,8 @@ func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases .
 				// download attachment
 
 				err := func(attachLocalPath string) error {
-					rc, err := downloader.GetAsset(release.TagName, asset.ID)
+					// FIXME: release ID
+					rc, err := downloader.GetAsset(release.TagName, 0, asset.ID)
 					if err != nil {
 						return err
 					}

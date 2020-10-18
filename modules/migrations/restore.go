@@ -48,7 +48,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	return nil, nil
 }
 
-func (r *RepositoryRestorer) GetAsset(tagName string, id int64) (io.ReadCloser, error) {
+func (r *RepositoryRestorer) GetAsset(tagName string, relID, assetID int64) (io.ReadCloser, error) {
 	return nil, nil
 }
 
@@ -64,8 +64,8 @@ func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, er
 	return nil, nil
 }
 
-func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
-	return nil, nil
+func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+	return nil, false, nil
 }
 
 func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
