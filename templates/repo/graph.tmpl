@@ -12,6 +12,13 @@
 						<input type="text" class="search">
 						<div class="default text">{{.i18n.Tr "repo.commit_graph.select"}}</div>
 						<div class="menu">
+							<div class="item" data-value="...flow-hide-pr-refs">
+								<span class="truncate">
+									{{svg "octicon-eye-closed" 16 "mr-2"}}<span title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</span>
+								</span>
+								<!--<button id="flow-hide-pr-refs" class="ui labelled icon button {{if .HidePRRefs}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</button>-->
+							</div>
+							<div class="divider"></div>
 							{{range .AllRefs}}
 								{{$refGroup := .RefGroup}}
 								{{if eq $refGroup "pull"}}
@@ -42,7 +49,6 @@
 							{{end}}
 						</div>
 					</div>
-					<button id="flow-hide-pr-refs" class="ui labelled icon button {{if .HidePRRefs}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</button>
 					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
 					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.color"}}</button>
 				</div>

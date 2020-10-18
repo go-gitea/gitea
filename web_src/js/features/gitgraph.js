@@ -71,36 +71,34 @@ export default async function initGitGraph() {
       $('#rev-container').removeClass('hide');
     });
   };
-  $('#flow-hide-pr-refs').on('click', () => {
-    let hidePRRefs = true;
-    if (params.has('hide-pr-refs')) {
-      hidePRRefs = params.get('hide-pr-refs') === 'false';
-    }
-    if (hidePRRefs) {
-      $('#flow-hide-pr-refs').addClass('active');
-      params.set('hide-pr-refs', hidePRRefs);
-    } else {
-      $('#flow-hide-pr-refs').removeClass('active');
-      $('#flow-hide-pr-refs').blur();
-      params.delete('hide-pr-refs');
-    }
-    updateGraph();
-  });
-  $('#flow-select-refs-dropdown').dropdown('set selected', params.getAll('branch'));
+  const dropdownSelected = params.getAll('branch');
+  if (params.has('hide-pr-refs') && params.get('hide-pr-refs') === 'true') {
+    dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
+  }
+
+  $('#flow-select-refs-dropdown').dropdown('set selected', dropdownSelected);
   $('#flow-select-refs-dropdown').dropdown({
     clearable: true,
     onRemove(toRemove) {
-      const branches = params.getAll('branch');
-      params.delete('branch');
-      for (const branch of branches) {
-        if (branch !== toRemove) {
-          params.append('branch', branch);
+      if (toRemove === '...flow-hide-pr-refs') {
+        params.delete('hide-pr-refs');
+      } else {
+        const branches = params.getAll('branch');
+        params.delete('branch');
+        for (const branch of branches) {
+          if (branch !== toRemove) {
+            params.append('branch', branch);
+          }
         }
       }
       updateGraph();
     },
     onAdd(toAdd) {
-      params.append('branch', toAdd);
+      if (toAdd === '...flow-hide-pr-refs') {
+        params.set('hide-pr-refs', true);
+      } else {
+        params.append('branch', toAdd);
+      }
       updateGraph();
     },
   });
