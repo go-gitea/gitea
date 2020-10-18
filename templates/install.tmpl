@@ -10,7 +10,7 @@
 
 				<p>{{.i18n.Tr "install.docker_helper" "https://docs.gitea.io/en-us/install-with-docker/" | Safe}}</p>
 
-				<form class="ui form" action="{{AppSubUrl}}/install" method="post">
+				<form class="ui form" action="{{AppSubUrl}}/" method="post">
 					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
 					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
@@ -306,5 +306,21 @@
 			</div>
 		</div>
 	</div>
+</div>
+<div class="hidden">
+	<script type="text/javascript">
+		<!--//--><![CDATA[//><!--
+			var images = new Array()
+			function preload() {
+				for (i = 0; i < preload.arguments.length; i++) {
+					images[i] = new Image()
+					images[i].src = preload.arguments[i]
+				}
+			}
+			preload(
+				"{{StaticUrlPrefix}}/img/loading.png"
+			)
+		//--><!]]>
+	</script>
 </div>
 {{template "base/footer" .}}
