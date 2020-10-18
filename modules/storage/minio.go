@@ -30,7 +30,7 @@ type minioObject struct {
 func (m *minioObject) Stat() (os.FileInfo, error) {
 	oi, err := m.Object.Stat()
 	if err != nil {
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 
 	return &minioFileInfo{oi}, nil
@@ -56,6 +56,26 @@ type MinioStorage struct {
 	client   *minio.Client
 	bucket   string
 	basePath string
+}
+
+func convertMinioErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	errResp, ok := err.(minio.ErrorResponse)
+	if !ok {
+		return err
+	}
+
+	// Convert two responses to standard analogues
+	switch errResp.Code {
+	case "NoSuchKey":
+		return os.ErrNotExist
+	case "AccessDenied":
+		return os.ErrPermission
+	}
+
+	return err
 }
 
 // NewMinioStorage returns a minio storage
