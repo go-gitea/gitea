@@ -62,7 +62,11 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 		ok           bool
 		err          error
 	)
-
+	defer func() {
+		for i := range gitRepoCache {
+			gitRepoCache[i].Close()
+		}
+	} ()
 	for start := 0; ; start += batchSize {
 		releases := make([]*Release, 0, batchSize)
 
@@ -130,10 +134,6 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				return err
 			}
 		}
-	}
-
-	for i := range gitRepoCache {
-		gitRepoCache[i].Close()
 	}
 
 	return sess.Commit()
