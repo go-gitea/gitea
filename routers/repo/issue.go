@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -2453,7 +2454,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	var attachments = make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = issue.Attachments[i].APIFormat()
+		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(200, attachments)
 }
@@ -2472,7 +2473,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, comment.Attachments[i].APIFormat())
+			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(200, attachments)

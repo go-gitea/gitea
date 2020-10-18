@@ -182,6 +182,27 @@ rename to a b/a a/file b/b file
 			oldFilename: "a b/file b/a a/file",
 			filename:    "a b/a a/file b/b file",
 		},
+		{
+			name: "minuses-and-pluses",
+			gitdiff: `diff --git a/minuses-and-pluses b/minuses-and-pluses
+index 6961180..9ba1a00 100644
+--- a/minuses-and-pluses
++++ b/minuses-and-pluses
+@@ -1,4 +1,4 @@
+--- 1st line
+-++ 2nd line
+--- 3rd line
+-++ 4th line
++++ 1st line
++-- 2nd line
++++ 3rd line
++-- 4th line
+`,
+			oldFilename: "minuses-and-pluses",
+			filename:    "minuses-and-pluses",
+			addition:    4,
+			deletion:    4,
+		},
 	}
 
 	for _, testcase := range tests {
