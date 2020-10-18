@@ -11,7 +11,7 @@
 	<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
 		{{.i18n.Tr "admin.repositories"}}
 	</a>
-	{{if not DisableWebHooks}}
+	{{if not DisableWebhooks}}
 	<a class="{{if .PageIsAdminHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/hooks">
 		{{.i18n.Tr "admin.hooks"}}
 	</a>

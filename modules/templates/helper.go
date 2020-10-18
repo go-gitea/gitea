@@ -225,8 +225,8 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
-		"DisableWebHooks": func() bool {
-			return setting.DisableWebHooks
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
 		},
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths

@@ -141,8 +141,8 @@ func Deliver(t *models.HookTask) error {
 		}
 	}()
 
-	if setting.DisableWebHooks {
-		return fmt.Errorf("Sending webhook skipped (web hooks disabled): [%d]", t.ID)
+	if setting.DisableWebhooks {
+		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
 	resp, err := webhookHTTPClient.Do(req)

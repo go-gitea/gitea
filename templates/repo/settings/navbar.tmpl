@@ -10,7 +10,7 @@
 			{{.i18n.Tr "repo.settings.branches"}}
 		</a>
 	{{end}}
-	{{if not DisableWebHooks}}
+	{{if not DisableWebhooks}}
 	<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
 		{{.i18n.Tr "repo.settings.hooks"}}
 	</a>

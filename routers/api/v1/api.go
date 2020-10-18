@@ -374,11 +374,11 @@ func reqGitHook() macaron.Handler {
 	}
 }
 
-// reqWebHooksEnabled requires web hooks to be enabled by admin.
-func reqWebHooksEnabled() macaron.Handler {
+// reqWebhooksEnabled requires webhooks to be enabled by admin.
+func reqWebhooksEnabled() macaron.Handler {
 	return func(ctx *context.APIContext) {
-		if setting.DisableWebHooks {
-			ctx.Error(http.StatusForbidden, "", "web hooks disabled by administrator")
+		if setting.DisableWebhooks {
+			ctx.Error(http.StatusForbidden, "", "webhooks disabled by administrator")
 			return
 		}
 	}
@@ -673,7 +673,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
-				}, reqToken(), reqAdmin(), reqWebHooksEnabled())
+				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(reqAnyRepoReader(), repo.IsCollaborator).
@@ -924,7 +924,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(), reqOrgOwnership(), reqWebHooksEnabled())
+			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).

@@ -68,8 +68,8 @@ func checkBranch(w *models.Webhook, branch string) bool {
 }
 
 func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.HookEventType, p api.Payloader) error {
-	// Skip sending if web hooks are disabled.
-	if setting.DisableWebHooks {
+	// Skip sending if webhooks are disabled.
+	if setting.DisableWebhooks {
 		return nil
 	}
 
