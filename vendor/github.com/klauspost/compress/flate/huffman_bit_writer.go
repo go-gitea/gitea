@@ -206,7 +206,7 @@ func (w *huffmanBitWriter) write(b []byte) {
 }
 
 func (w *huffmanBitWriter) writeBits(b int32, nb uint16) {
-	w.bits |= uint64(b) << (w.nbits & 63)
+	w.bits |= uint64(b) << (w.nbits & reg16SizeMask64)
 	w.nbits += nb
 	if w.nbits >= 48 {
 		w.writeOutBits()
@@ -759,7 +759,7 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 		} else {
 			// inlined
 			c := lengths[lengthCode&31]
-			w.bits |= uint64(c.code) << (w.nbits & 63)
+			w.bits |= uint64(c.code) << (w.nbits & reg16SizeMask64)
 			w.nbits += c.len
 			if w.nbits >= 48 {
 				w.writeOutBits()
@@ -779,7 +779,7 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 		} else {
 			// inlined
 			c := offs[offsetCode&31]
-			w.bits |= uint64(c.code) << (w.nbits & 63)
+			w.bits |= uint64(c.code) << (w.nbits & reg16SizeMask64)
 			w.nbits += c.len
 			if w.nbits >= 48 {
 				w.writeOutBits()
@@ -878,7 +878,7 @@ func (w *huffmanBitWriter) writeBlockHuff(eof bool, input []byte, sync bool) {
 	for _, t := range input {
 		// Bitwriting inlined, ~30% speedup
 		c := encoding[t]
-		w.bits |= uint64(c.code) << ((w.nbits) & 63)
+		w.bits |= uint64(c.code) << ((w.nbits) & reg16SizeMask64)
 		w.nbits += c.len
 		if w.nbits >= 48 {
 			bits := w.bits

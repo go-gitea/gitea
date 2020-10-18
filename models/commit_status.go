@@ -61,27 +61,6 @@ func (status *CommitStatus) APIURL() string {
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
 
-// APIFormat assumes some fields assigned with values:
-// Required - Repo, Creator
-func (status *CommitStatus) APIFormat() *api.Status {
-	_ = status.loadRepo(x)
-	apiStatus := &api.Status{
-		Created:     status.CreatedUnix.AsTime(),
-		Updated:     status.CreatedUnix.AsTime(),
-		State:       api.StatusState(status.State),
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-		ID:          status.Index,
-		URL:         status.APIURL(),
-		Context:     status.Context,
-	}
-	if status.Creator != nil {
-		apiStatus.Creator = status.Creator.APIFormat()
-	}
-
-	return apiStatus
-}
-
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus

@@ -83,4 +83,5 @@ const (
 	amzBucketReplicationStatus = "X-Amz-Replication-Status"
 	// Minio specific Replication extension
 	minIOBucketReplicationSourceMTime = "X-Minio-Source-Mtime"
+	minIOBucketReplicationETag        = "X-Minio-Source-Etag"
 )

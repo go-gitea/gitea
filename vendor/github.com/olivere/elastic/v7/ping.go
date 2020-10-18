@@ -120,7 +120,7 @@ func (s *PingService) HttpHeadOnly(httpHeadOnly bool) *PingService {
 // server, and an error.
 func (s *PingService) Do(ctx context.Context) (*PingResult, int, error) {
 	s.client.mu.RLock()
-	basicAuth := s.client.basicAuth
+	basicAuth := s.client.basicAuthUsername != "" || s.client.basicAuthPassword != ""
 	basicAuthUsername := s.client.basicAuthUsername
 	basicAuthPassword := s.client.basicAuthPassword
 	defaultHeaders := s.client.headers

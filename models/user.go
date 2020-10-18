@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -235,22 +234,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// APIFormat converts a User to api.User
-func (u *User) APIFormat() *api.User {
-	if u == nil {
-		return nil
-	}
-	return &api.User{
-		ID:        u.ID,
-		UserName:  u.Name,
-		FullName:  u.FullName,
-		Email:     u.GetEmail(),
-		AvatarURL: u.AvatarLink(),
-		Language:  u.Language,
-		IsAdmin:   u.IsAdmin,
-		LastLogin: u.LastLoginUnix.AsTime(),
-		Created:   u.CreatedUnix.AsTime(),
-	}
+// GetAllUsers returns a slice of all users found in DB.
+func GetAllUsers() ([]*User, error) {
+	users := make([]*User, 0)
+	return users, x.OrderBy("id").Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.

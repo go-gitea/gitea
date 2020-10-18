@@ -1,5 +1,9 @@
 package brotli
 
+import (
+	"sync"
+)
+
 /* Copyright 2013 Google Inc. All Rights Reserved.
 
    Distributed under MIT license.
@@ -31,13 +35,10 @@ func computeDistanceCode(distance uint, max_distance uint, dist_cache []int) uin
 	return distance + numDistanceShortCodes - 1
 }
 
-/* "commands" points to the next output command to write to, "*num_commands" is
-   initially the total amount of commands output by previous
-   CreateBackwardReferences calls, and must be incremented by the amount written
-   by this call. */
-func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher hasherHandle, dist_cache []int, last_insert_len *uint, commands []command, num_commands *uint, num_literals *uint) {
+var hasherSearchResultPool sync.Pool
+
+func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher hasherHandle, dist_cache []int, last_insert_len *uint, commands *[]command, num_literals *uint) {
 	var max_backward_limit uint = maxBackwardLimit(params.lgwin)
-	var orig_commands []command = commands
 	var insert_length uint = *last_insert_len
 	var pos_end uint = position + num_bytes
 	var store_end uint
@@ -57,8 +58,14 @@ func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, 
 
 	/* Minimum score to accept a backward reference. */
 	hasher.PrepareDistanceCache(dist_cache)
-	var sr2 hasherSearchResult
-	var sr hasherSearchResult
+	sr2, _ := hasherSearchResultPool.Get().(*hasherSearchResult)
+	if sr2 == nil {
+		sr2 = &hasherSearchResult{}
+	}
+	sr, _ := hasherSearchResultPool.Get().(*hasherSearchResult)
+	if sr == nil {
+		sr = &hasherSearchResult{}
+	}
 
 	for position+hasher.HashTypeLength() < pos_end {
 		var max_length uint = pos_end - position
@@ -67,7 +74,7 @@ func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, 
 		sr.len_code_delta = 0
 		sr.distance = 0
 		sr.score = kMinScore
-		hasher.FindLongestMatch(&params.dictionary, ringbuffer, ringbuffer_mask, dist_cache, position, max_length, max_distance, gap, params.dist.max_distance, &sr)
+		hasher.FindLongestMatch(&params.dictionary, ringbuffer, ringbuffer_mask, dist_cache, position, max_length, max_distance, gap, params.dist.max_distance, sr)
 		if sr.score > kMinScore {
 			/* Found a match. Let's look for something even better ahead. */
 			var delayed_backward_references_in_row int = 0
@@ -83,14 +90,14 @@ func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, 
 				sr2.distance = 0
 				sr2.score = kMinScore
 				max_distance = brotli_min_size_t(position+1, max_backward_limit)
-				hasher.FindLongestMatch(&params.dictionary, ringbuffer, ringbuffer_mask, dist_cache, position+1, max_length, max_distance, gap, params.dist.max_distance, &sr2)
+				hasher.FindLongestMatch(&params.dictionary, ringbuffer, ringbuffer_mask, dist_cache, position+1, max_length, max_distance, gap, params.dist.max_distance, sr2)
 				if sr2.score >= sr.score+cost_diff_lazy {
 					/* Ok, let's just write one byte for now and start a match from the
 					   next byte. */
 					position++
 
 					insert_length++
-					sr = sr2
+					*sr = *sr2
 					delayed_backward_references_in_row++
 					if delayed_backward_references_in_row < 4 && position+hasher.HashTypeLength() < pos_end {
 						continue
@@ -114,8 +121,7 @@ func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, 
 					hasher.PrepareDistanceCache(dist_cache)
 				}
 
-				initCommand(&commands[0], &params.dist, insert_length, sr.len, sr.len_code_delta, distance_code)
-				commands = commands[1:]
+				*commands = append(*commands, makeCommand(&params.dist, insert_length, sr.len, sr.len_code_delta, distance_code))
 			}
 
 			*num_literals += insert_length
@@ -173,5 +179,7 @@ func createBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, 
 
 	insert_length += pos_end - position
 	*last_insert_len = insert_length
-	*num_commands += uint(-cap(commands) + cap(orig_commands))
+
+	hasherSearchResultPool.Put(sr)
+	hasherSearchResultPool.Put(sr2)
 }

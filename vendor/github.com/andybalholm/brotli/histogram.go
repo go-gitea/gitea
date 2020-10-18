@@ -163,7 +163,7 @@ func initBlockSplitIterator(self *blockSplitIterator, split *blockSplit) {
 	self.split_ = split
 	self.idx_ = 0
 	self.type_ = 0
-	if split.lengths != nil {
+	if len(split.lengths) > 0 {
 		self.length_ = uint(split.lengths[0])
 	} else {
 		self.length_ = 0
@@ -180,17 +180,16 @@ func blockSplitIteratorNext(self *blockSplitIterator) {
 	self.length_--
 }
 
-func buildHistogramsWithContext(cmds []command, num_commands uint, literal_split *blockSplit, insert_and_copy_split *blockSplit, dist_split *blockSplit, ringbuffer []byte, start_pos uint, mask uint, prev_byte byte, prev_byte2 byte, context_modes []int, literal_histograms []histogramLiteral, insert_and_copy_histograms []histogramCommand, copy_dist_histograms []histogramDistance) {
+func buildHistogramsWithContext(cmds []command, literal_split *blockSplit, insert_and_copy_split *blockSplit, dist_split *blockSplit, ringbuffer []byte, start_pos uint, mask uint, prev_byte byte, prev_byte2 byte, context_modes []int, literal_histograms []histogramLiteral, insert_and_copy_histograms []histogramCommand, copy_dist_histograms []histogramDistance) {
 	var pos uint = start_pos
 	var literal_it blockSplitIterator
 	var insert_and_copy_it blockSplitIterator
 	var dist_it blockSplitIterator
-	var i uint
 
 	initBlockSplitIterator(&literal_it, literal_split)
 	initBlockSplitIterator(&insert_and_copy_it, insert_and_copy_split)
 	initBlockSplitIterator(&dist_it, dist_split)
-	for i = 0; i < num_commands; i++ {
+	for i := range cmds {
 		var cmd *command = &cmds[i]
 		var j uint
 		blockSplitIteratorNext(&insert_and_copy_it)

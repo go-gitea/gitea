@@ -8,10 +8,11 @@ require (
 	github.com/blevesearch/go-porterstemmer v1.0.3
 	github.com/blevesearch/segment v0.9.0
 	github.com/blevesearch/snowballstem v0.9.0
-	github.com/blevesearch/zap/v11 v11.0.10
-	github.com/blevesearch/zap/v12 v12.0.10
-	github.com/blevesearch/zap/v13 v13.0.2
-	github.com/blevesearch/zap/v14 v14.0.1
+	github.com/blevesearch/zap/v11 v11.0.12
+	github.com/blevesearch/zap/v12 v12.0.12
+	github.com/blevesearch/zap/v13 v13.0.4
+	github.com/blevesearch/zap/v14 v14.0.3
+	github.com/blevesearch/zap/v15 v15.0.1
 	github.com/couchbase/moss v0.1.0
 	github.com/couchbase/vellum v1.0.2
 	github.com/golang/protobuf v1.3.2

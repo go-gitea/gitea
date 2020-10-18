@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"unsafe"
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
@@ -19,6 +20,12 @@ type Marshaler interface {
 // Marshaler is an easyjson-compatible unmarshaler interface.
 type Unmarshaler interface {
 	UnmarshalEasyJSON(w *jlexer.Lexer)
+}
+
+// MarshalerUnmarshaler is an easyjson-compatible marshaler/unmarshaler interface.
+type MarshalerUnmarshaler interface {
+	Marshaler
+	Unmarshaler
 }
 
 // Optional defines an undefined-test method for a type to integrate with 'omitempty' logic.
@@ -36,9 +43,17 @@ type UnknownsMarshaler interface {
 	MarshalUnknowns(w *jwriter.Writer, first bool)
 }
 
+func isNilInterface(i interface{}) bool {
+	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
+}
+
 // Marshal returns data as a single byte slice. Method is suboptimal as the data is likely to be copied
 // from a chain of smaller chunks.
 func Marshal(v Marshaler) ([]byte, error) {
+	if isNilInterface(v) {
+		return nullBytes, nil
+	}
+
 	w := jwriter.Writer{}
 	v.MarshalEasyJSON(&w)
 	return w.BuildBytes()
@@ -46,6 +61,10 @@ func Marshal(v Marshaler) ([]byte, error) {
 
 // MarshalToWriter marshals the data to an io.Writer.
 func MarshalToWriter(v Marshaler, w io.Writer) (written int, err error) {
+	if isNilInterface(v) {
+		return w.Write(nullBytes)
+	}
+
 	jw := jwriter.Writer{}
 	v.MarshalEasyJSON(&jw)
 	return jw.DumpTo(w)
@@ -56,6 +75,13 @@ func MarshalToWriter(v Marshaler, w io.Writer) (written int, err error) {
 // false if an error occurred before any http.ResponseWriter methods were actually
 // invoked (in this case a 500 reply is possible).
 func MarshalToHTTPResponseWriter(v Marshaler, w http.ResponseWriter) (started bool, written int, err error) {
+	if isNilInterface(v) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", strconv.Itoa(len(nullBytes)))
+		written, err = w.Write(nullBytes)
+		return true, written, err
+	}
+
 	jw := jwriter.Writer{}
 	v.MarshalEasyJSON(&jw)
 	if jw.Error != nil {
