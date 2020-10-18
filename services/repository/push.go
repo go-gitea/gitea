@@ -180,10 +180,6 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 	}
 
 	repoPath := repo.RepoPath()
-	_, err = git.NewCommand("update-server-info").RunInDir(repoPath)
-	if err != nil {
-		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
-	}
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)

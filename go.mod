@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	code.gitea.io/gitea-vet v0.2.1
+	code.gitea.io/sdk/gitea v0.13.1
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
@@ -49,7 +50,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
-	github.com/hashicorp/go-version v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/go-version v1.2.1
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1

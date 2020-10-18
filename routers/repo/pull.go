@@ -624,6 +624,20 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
+	if err = pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("LoadProtectedBranch", err)
+		return
+	}
+
+	if pull.ProtectedBranch != nil {
+		glob := pull.ProtectedBranch.GetProtectedFilePatterns()
+		if len(glob) != 0 {
+			for _, file := range diff.Files {
+				file.IsProtected = pull.ProtectedBranch.IsProtectedFile(glob, file.Name)
+			}
+		}
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
@@ -772,7 +786,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.ServerError("Merge PR status", err)
 			return

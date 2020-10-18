@@ -273,9 +273,18 @@ func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases
 
 			// download attachment
 			err = func() error {
-				rc, err := downloader.GetAsset(rel.TagName, asset.ID)
-				if err != nil {
-					return err
+				var rc io.ReadCloser
+				if asset.DownloadURL == nil {
+					rc, err = downloader.GetAsset(rel.TagName, rel.ID, asset.ID)
+					if err != nil {
+						return err
+					}
+				} else {
+					resp, err := http.Get(*asset.DownloadURL)
+					if err != nil {
+						return err
+					}
+					rc = resp.Body
 				}
 				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
 				return err
@@ -779,8 +788,12 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		for _, comment := range review.Comments {
-			_, _, line, _ := git.ParseDiffHunkString(comment.DiffHunk)
-
+			line := comment.Line
+			if line != 0 {
+				comment.Position = 1
+			} else {
+				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
+			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
 			if err != nil {
 				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
