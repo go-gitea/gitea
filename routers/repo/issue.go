@@ -271,6 +271,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
+	handleTeamMentions(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
@@ -405,6 +410,11 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
+	handleTeamMentions(ctx)
+	if ctx.Written() {
 		return
 	}
 }
@@ -2532,4 +2542,39 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) str
 		return ""
 	}
 	return attachHTML
+}
+
+// get all teams that current user can mention
+func handleTeamMentions(ctx *context.Context) {
+	if ctx.User == nil || !ctx.Repo.Owner.IsOrganization() {
+		return
+	}
+
+	isAdmin := false
+	var err error
+	// Admin has super access.
+	if ctx.User.IsAdmin {
+		isAdmin = true
+	} else {
+		isAdmin, err = ctx.Repo.Owner.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		}
+	}
+
+	if isAdmin {
+		if err := ctx.Repo.Owner.GetTeams(&models.SearchTeamOptions{}); err != nil {
+			ctx.ServerError("GetTeams", err)
+			return
+		}
+	} else {
+		ctx.Repo.Owner.Teams, err = ctx.Repo.Owner.GetUserTeams(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetUserTeams", err)
+			return
+		}
+	}
+
+	ctx.Data["MentionableTeams"] = ctx.Repo.Owner.Teams
 }
