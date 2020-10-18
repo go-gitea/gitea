@@ -61,6 +61,17 @@ func (*Tar) CheckExt(filename string) error {
 	return nil
 }
 
+// CheckPath ensures that the filename has not been crafted to perform path traversal attacks
+func (*Tar) CheckPath(to, filename string) error {
+	to, _ = filepath.Abs(to) //explicit the destination folder to prevent that 'string.HasPrefix' check can be 'bypassed' when no destination folder is supplied in input
+	dest := filepath.Join(to, filename)
+	//prevent path traversal attacks
+	if !strings.HasPrefix(dest, to) {
+		return fmt.Errorf("illegal file path: %s", filename)
+	}
+	return nil
+}
+
 // Archive creates a tarball file at destination containing
 // the files listed in sources. The destination must end with
 // ".tar". File paths can be those of regular files or
@@ -150,7 +161,7 @@ func (t *Tar) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if t.ContinueOnError {
+			if t.ContinueOnError || strings.Contains(err.Error(), "illegal file path") {
 				log.Printf("[ERROR] Reading file in tar archive: %v", err)
 				continue
 			}
@@ -206,27 +217,31 @@ func (t *Tar) addTopLevelFolder(sourceArchive, destination string) (string, erro
 	return destination, nil
 }
 
-func (t *Tar) untarNext(to string) error {
+func (t *Tar) untarNext(destination string) error {
 	f, err := t.Read()
 	if err != nil {
 		return err // don't wrap error; calling loop must break on io.EOF
 	}
+	defer f.Close()
+
 	header, ok := f.Header.(*tar.Header)
 	if !ok {
 		return fmt.Errorf("expected header to be *tar.Header but was %T", f.Header)
 	}
-	return t.untarFile(f, filepath.Join(to, header.Name))
+
+	errPath := t.CheckPath(destination, header.Name)
+	if errPath != nil {
+		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+	return t.untarFile(f, destination, header)
 }
 
-func (t *Tar) untarFile(f File, to string) error {
+func (t *Tar) untarFile(f File, destination string, hdr *tar.Header) error {
+	to := filepath.Join(destination, hdr.Name)
+
 	// do not overwrite existing files, if configured
 	if !f.IsDir() && !t.OverwriteExisting && fileExists(to) {
 		return fmt.Errorf("file already exists: %s", to)
-	}
-
-	hdr, ok := f.Header.(*tar.Header)
-	if !ok {
-		return fmt.Errorf("expected header to be *tar.Header but was %T", f.Header)
 	}
 
 	switch hdr.Typeflag {
@@ -237,7 +252,7 @@ func (t *Tar) untarFile(f File, to string) error {
 	case tar.TypeSymlink:
 		return writeNewSymbolicLink(to, hdr.Linkname)
 	case tar.TypeLink:
-		return writeNewHardLink(to, filepath.Join(to, hdr.Linkname))
+		return writeNewHardLink(to, filepath.Join(destination, hdr.Linkname))
 	case tar.TypeXGlobalHeader:
 		return nil // ignore the pax global header from git-generated tarballs
 	default:
@@ -513,9 +528,14 @@ func (t *Tar) Extract(source, target, destination string) error {
 			if err != nil {
 				return fmt.Errorf("relativizing paths: %v", err)
 			}
-			joined := filepath.Join(destination, end)
+			th.Name = end
 
-			err = t.untarFile(f, joined)
+			// relativize any hardlink names
+			if th.Typeflag == tar.TypeLink {
+				th.Linkname = filepath.Join(filepath.Base(filepath.Dir(th.Linkname)), filepath.Base(th.Linkname))
+			}
+
+			err = t.untarFile(f, destination, th)
 			if err != nil {
 				return fmt.Errorf("extracting file %s: %v", th.Name, err)
 			}
@@ -544,7 +564,9 @@ func (*Tar) Match(file io.ReadSeeker) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer file.Seek(currentPos, io.SeekStart)
+	defer func() {
+		_, _ = file.Seek(currentPos, io.SeekStart)
+	}()
 
 	buf := make([]byte, tarBlockSize)
 	if _, err = io.ReadFull(file, buf); err != nil {
@@ -610,6 +632,7 @@ var (
 	_ = Extractor(new(Tar))
 	_ = Matcher(new(Tar))
 	_ = ExtensionChecker(new(Tar))
+	_ = FilenameChecker(new(Tar))
 )
 
 // DefaultTar is a default instance that is conveniently ready to use.

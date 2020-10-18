@@ -13,6 +13,9 @@ import (
 // ToUser convert models.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func ToUser(user *models.User, signed, authed bool) *api.User {
+	if user == nil {
+		return nil
+	}
 	result := &api.User{
 		ID:        user.ID,
 		UserName:  user.Name,

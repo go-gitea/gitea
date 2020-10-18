@@ -182,6 +182,20 @@ menu:
 - `DISABLE_GRAVATAR`: 开启则只使用内部头像。
 - `ENABLE_FEDERATED_AVATAR`: 启用头像联盟支持 (参见 http://www.libravatar.org)
 
+- `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
+- `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
+- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+
+- `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
+- `REPOSITORY_AVATAR_FALLBACK`: **none**: 当头像丢失时的处理方式
+  - none = 不显示头像
+  - random = 显示随机生成的头像
+  - image = 显示默认头像，通过 `REPOSITORY_AVATAR_FALLBACK_IMAGE` 设置
+- `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: 默认仓库头像
+
 ## Attachment (`attachment`)
 
 - `ENABLED`: 是否允许用户上传附件。

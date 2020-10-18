@@ -31,8 +31,10 @@ type prevEntry struct {
 // and that it is longer (lazy matching).
 type betterFastEncoder struct {
 	fastBase
-	table     [betterShortTableSize]tableEntry
-	longTable [betterLongTableSize]prevEntry
+	table         [betterShortTableSize]tableEntry
+	longTable     [betterLongTableSize]prevEntry
+	dictTable     []tableEntry
+	dictLongTable []prevEntry
 }
 
 // Encode improves compression...
@@ -515,4 +517,79 @@ encodeLoop:
 // we do not need to check for max match length.
 func (e *betterFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 	e.Encode(blk, src)
+}
+
+// ResetDict will reset and set a dictionary if not nil
+func (e *betterFastEncoder) Reset(d *dict, singleBlock bool) {
+	e.resetBase(d, singleBlock)
+	if d == nil {
+		return
+	}
+	// Init or copy dict table
+	if len(e.dictTable) != len(e.table) || d.id != e.lastDictID {
+		if len(e.dictTable) != len(e.table) {
+			e.dictTable = make([]tableEntry, len(e.table))
+		}
+		end := int32(len(d.content)) - 8 + e.maxMatchOff
+		for i := e.maxMatchOff; i < end; i += 4 {
+			const hashLog = betterShortTableBits
+
+			cv := load6432(d.content, i-e.maxMatchOff)
+			nextHash := hash5(cv, hashLog)      // 0 -> 4
+			nextHash1 := hash5(cv>>8, hashLog)  // 1 -> 5
+			nextHash2 := hash5(cv>>16, hashLog) // 2 -> 6
+			nextHash3 := hash5(cv>>24, hashLog) // 3 -> 7
+			e.dictTable[nextHash] = tableEntry{
+				val:    uint32(cv),
+				offset: i,
+			}
+			e.dictTable[nextHash1] = tableEntry{
+				val:    uint32(cv >> 8),
+				offset: i + 1,
+			}
+			e.dictTable[nextHash2] = tableEntry{
+				val:    uint32(cv >> 16),
+				offset: i + 2,
+			}
+			e.dictTable[nextHash3] = tableEntry{
+				val:    uint32(cv >> 24),
+				offset: i + 3,
+			}
+		}
+		e.lastDictID = d.id
+	}
+
+	// Init or copy dict table
+	if len(e.dictLongTable) != len(e.longTable) || d.id != e.lastDictID {
+		if len(e.dictLongTable) != len(e.longTable) {
+			e.dictLongTable = make([]prevEntry, len(e.longTable))
+		}
+		if len(d.content) >= 8 {
+			cv := load6432(d.content, 0)
+			h := hash8(cv, betterLongTableBits)
+			e.dictLongTable[h] = prevEntry{
+				offset: e.maxMatchOff,
+				prev:   e.dictLongTable[h].offset,
+			}
+
+			end := int32(len(d.content)) - 8 + e.maxMatchOff
+			off := 8 // First to read
+			for i := e.maxMatchOff + 1; i < end; i++ {
+				cv = cv>>8 | (uint64(d.content[off]) << 56)
+				h := hash8(cv, betterLongTableBits)
+				e.dictLongTable[h] = prevEntry{
+					offset: i,
+					prev:   e.dictLongTable[h].offset,
+				}
+				off++
+			}
+		}
+		e.lastDictID = d.id
+	}
+	// Reset table to initial state
+	copy(e.longTable[:], e.dictLongTable)
+
+	e.cur = e.maxMatchOff
+	// Reset table to initial state
+	copy(e.table[:], e.dictTable)
 }
