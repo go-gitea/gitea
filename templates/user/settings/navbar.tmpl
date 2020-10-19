@@ -5,9 +5,11 @@
 	<a class="{{if .PageIsSettingsAccount}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account">
 		{{.i18n.Tr "settings.account"}}
 	</a>
+	{{if or (not Disable2FA) .EnableOpenIDSignIn}}
 	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 		{{.i18n.Tr "settings.security"}}
 	</a>
+	{{end}}
 	{{if or .EnableSwagger (not DisableOAuth2)}}
 		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 			{{.i18n.Tr "settings.applications"}}
