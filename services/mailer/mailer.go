@@ -337,7 +337,7 @@ func NewContext() {
 
 // FlushMessages a messages which were published to the mailQueue
 //
-// Function blocks untill the queue become empty or an operation exceed timeout duration.
+// Function blocks until the queue become empty or an operation exceed timeout duration.
 func FlushMessages(timeout time.Duration) error {
 	return mailQueue.Flush(timeout)
 }
