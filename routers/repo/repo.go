@@ -353,6 +353,7 @@ func Download(ctx *context.Context) {
 	isDir, err := util.IsDir(archivePath)
 	if err != nil {
 		ctx.ServerError("Download -> IsDir", err)
+		return
 	}
 	if !isDir {
 		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {

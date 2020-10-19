@@ -100,6 +100,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 	if has || !isDir {
 		ctx.NotFound()
@@ -161,6 +162,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 	if has || !isDir {
 		ctx.NotFound()

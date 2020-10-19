@@ -39,6 +39,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	isDir, err := util.IsDir(filepath.Join(root, dir+".git"))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
+		return
 	}
 	if has || !isDir {
 		// Fallthrough to failure mode

@@ -128,6 +128,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
+		return
 	}
 	if has || !isDir {
 		// Fallthrough to failure mode
