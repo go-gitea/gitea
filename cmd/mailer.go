@@ -7,7 +7,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/services/mailer"
@@ -27,6 +26,7 @@ func runSendMail(c *cli.Context) error {
 	subject := c.String("title")
 	confirmSkiped := c.Bool("force")
 	body := c.String("content")
+	timeout := c.Duration("timeout")
 
 	if !confirmSkiped {
 		if len(body) == 0 {
@@ -61,7 +61,7 @@ func runSendMail(c *cli.Context) error {
 		mailer.SendAsync(msg)
 	}
 
-	err = mailer.FlushMessages(time.Minute * 60)
+	err = mailer.FlushMessages(timeout)
 	if err != nil {
 		return err
 	}
