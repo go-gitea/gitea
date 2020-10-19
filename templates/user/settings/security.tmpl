@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		{{template "user/settings/security_twofa" .}}
 		{{template "user/settings/security_u2f" .}}
-		{{template "user/settings/security_accountlinks" .}}
 		{{if .EnableOpenIDSignIn}}
+		{{template "user/settings/security_accountlinks" .}}
 		{{template "user/settings/security_openid" .}}
 		{{end}}
 	</div>
