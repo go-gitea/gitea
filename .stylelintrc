@@ -13,4 +13,3 @@ rules:
   rule-empty-line-before: null
   selector-pseudo-element-colon-notation: null
   shorthand-property-no-redundant-values: true
-  value-keyword-case: null
