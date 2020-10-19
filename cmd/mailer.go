@@ -7,11 +7,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"sync/atomic"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/urfave/cli"
@@ -57,27 +55,16 @@ func runSendMail(c *cli.Context) error {
 	fmt.Printf("Sending %d emails", len(emails))
 
 	mailer.NewContext()
-	var ops uint64
-	var wg sync.WaitGroup
+
 	for _, email := range emails {
-		wg.Add(1)
-		go func(email, subject, content string) {
-			defer wg.Done()
-			msg := mailer.NewMessage([]string{email}, subject, body)
-			err = mailer.SendSync(msg)
-			if err != nil {
-				log.Error("Failed to send email %s: %v", email, err)
-			} else {
-				atomic.AddUint64(&ops, 1)
-			}
-		}(email, subject, body)
+		msg := mailer.NewMessage([]string{email}, subject, body)
+		mailer.SendAsync(msg)
 	}
 
-	wg.Wait()
-
-	opsFinal := atomic.LoadUint64(&ops)
-
-	fmt.Printf("Was sent %d emails from %d", opsFinal, len(emails))
+	err = mailer.FlushMessages(time.Minute * 60)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
