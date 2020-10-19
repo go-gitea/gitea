@@ -74,6 +74,15 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
 	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"></span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
+		{Type: dmp.DiffInsert, Text: "<span"},
+		{Type: dmp.DiffEqual, Text: " "},
+		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
+		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
+		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
+	}, DiffLineAdd))
 }
 
 func TestParsePatch_singlefile(t *testing.T) {
