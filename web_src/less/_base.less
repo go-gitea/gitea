@@ -1,7 +1,10 @@
 :root {
+  /* documented customizable variables */
   --fonts-proportional: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial;
   --fonts-monospace: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console', monospace;
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* other variables */
+  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
 }
 
 :root:lang(ja) {
@@ -88,7 +91,7 @@ h5,
 .ui.steps .step .title,
 .ui.text.container,
 .ui.language > .menu > .item {
-  font-family: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
+  font-family: var(--fonts-regular);
 }
 
 body {
@@ -1074,7 +1077,7 @@ i.icon.centerlock {
 
     .blame-data {
       display: flex;
-      font-family: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
+      font-family: var(--fonts-regular);
 
       .blame-message {
         flex-grow: 2;
