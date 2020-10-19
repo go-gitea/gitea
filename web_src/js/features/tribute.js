@@ -36,7 +36,7 @@ function makeCollections({mentions, emoji}) {
       menuItemTemplate: (item) => {
         return `
           <div class="tribute-item">
-            ${item.original.avatar !== '' ? `<img src="${item.original.avatar}"/>` : ''}
+            <img src="${item.original.avatar}"/>
             <span class="name">${item.original.name}</span>
             ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
           </div>

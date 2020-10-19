@@ -56,7 +56,8 @@
 				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
 				{{ end }}
 				{{ range .MentionableTeams }}
-					['{{.Name}}', {key: '{{.Name}}', value: '{{.Name}}', name: '{{.Name}}'}],
+					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}', 
+					name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvator}}'}],
 				{{ end }}
 			]).values()),
 			{{end}}
