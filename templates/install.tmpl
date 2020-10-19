@@ -307,20 +307,5 @@
 		</div>
 	</div>
 </div>
-<div class="hidden">
-	<script type="text/javascript">
-		<!--//--><![CDATA[//><!--
-			var images = new Array()
-			function preload() {
-				for (i = 0; i < preload.arguments.length; i++) {
-					images[i] = new Image()
-					images[i].src = preload.arguments[i]
-				}
-			}
-			preload(
-				"{{StaticUrlPrefix}}/img/loading.png"
-			)
-		//--><!]]>
-	</script>
-</div>
+<img style="display: none" src="{{StaticUrlPrefix}}/img/loading.png"/>
 {{template "base/footer" .}}
