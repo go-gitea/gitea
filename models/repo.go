@@ -1559,6 +1559,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		isExist, err := util.IsExist(daemonExportFile)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			return err
 		}
 		if repo.IsPrivate && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {

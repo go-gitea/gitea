@@ -115,7 +115,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if err != nil {
 			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", oldHookPath, err))
 		}
-		if !isExist {
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("old hook file %s does not exist", oldHookPath))
 			cont = true
 		}
@@ -123,7 +123,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if err != nil {
 			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", oldHookPath+".d", err))
 		}
-		if !isExist {
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("hooks directory %s does not exist", oldHookPath+".d"))
 			cont = true
 		}
@@ -131,7 +131,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if err != nil {
 			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", newHookPath, err))
 		}
-		if !isExist {
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("new hook file %s does not exist", newHookPath))
 			cont = true
 		}
