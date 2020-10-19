@@ -41,7 +41,7 @@
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
 								{{if gt .Issue.ShowTag 0}}
-									<div class="item tag">
+									<div class="ui basic label">
 										{{if eq .Issue.ShowTag 2}}
 											{{$.i18n.Tr "repo.issues.collaborator"}}
 										{{else if eq .Issue.ShowTag 3}}
