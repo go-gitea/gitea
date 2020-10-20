@@ -2003,7 +2003,7 @@ type ErrNotValidReviewRequest struct {
 
 // IsErrNotValidReviewRequest checks if an error is a ErrNotValidReviewRequest.
 func IsErrNotValidReviewRequest(err error) bool {
-	_, ok := err.(ErrReviewNotExist)
+	_, ok := err.(ErrNotValidReviewRequest)
 	return ok
 }
 
