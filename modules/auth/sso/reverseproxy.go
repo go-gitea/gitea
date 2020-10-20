@@ -6,6 +6,7 @@
 package sso
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -86,6 +87,14 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 				log.Error("UserSignIn: %v", err)
 			}
 			return nil
+		}
+	}
+
+	// If the user does not have a locale set, we save the current one.
+	if len(user.Language) == 0 {
+		user.Language = ctx.Locale.Language()
+		if err = models.UpdateUserCols(user, "language"); err != nil {
+			log.Error(fmt.Sprintf("VerifyAuthData: error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 		}
 	}
 
