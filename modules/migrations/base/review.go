@@ -36,6 +36,7 @@ type ReviewComment struct {
 	TreePath  string
 	DiffHunk  string
 	Position  int
+	Line      int
 	CommitID  string
 	PosterID  int64
 	Reactions []*Reaction

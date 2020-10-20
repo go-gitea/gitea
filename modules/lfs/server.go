@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"gitea.com/macaron/macaron"
 	"github.com/dgrijalva/jwt-go"
@@ -187,7 +188,7 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
 		// Errors are logged in contentStore.Get
@@ -288,8 +289,14 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
-	if meta.Existing && contentStore.Exists(meta) {
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	exist, err := contentStore.Exists(meta)
+	if err != nil {
+		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
+		writeStatus(ctx, 500)
+		return
+	}
+	if meta.Existing && exist {
 		sentStatus = 200
 	}
 	ctx.Resp.WriteHeader(sentStatus)
@@ -343,12 +350,20 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+		contentStore := &ContentStore{ObjectStorage: storage.LFS}
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
-		if err == nil && contentStore.Exists(meta) { // Object is found and exists
-			responseObjects = append(responseObjects, Represent(object, meta, true, false))
-			continue
+		if err == nil { // Object is found and exists
+			exist, err := contentStore.Exists(meta)
+			if err != nil {
+				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, object.User, object.Repo, err)
+				writeStatus(ctx, 500)
+				return
+			}
+			if exist {
+				responseObjects = append(responseObjects, Represent(object, meta, true, false))
+				continue
+			}
 		}
 
 		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
@@ -360,7 +375,13 @@ func BatchHandler(ctx *context.Context) {
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 		if err == nil {
-			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
+			exist, err := contentStore.Exists(meta)
+			if err != nil {
+				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, object.User, object.Repo, err)
+				writeStatus(ctx, 500)
+				return
+			}
+			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !exist))
 		} else {
 			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", object.Oid, object.Size, object.User, object.Repo, err)
 		}
@@ -387,7 +408,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	bodyReader := ctx.Req.Body().ReadCloser()
 	defer bodyReader.Close()
 	if err := contentStore.Put(meta, bodyReader); err != nil {
@@ -429,7 +450,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	ok, err := contentStore.Verify(meta)
 	if err != nil {
 		// Error will be logged in Verify

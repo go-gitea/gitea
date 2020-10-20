@@ -159,6 +159,9 @@ func (s *IndicesSyncedFlushService) Validate() error {
 }
 
 // Do executes the service.
+//
+// Deprecated: Synced flush is deprecated and will be removed in 8.0.
+// Use flush at _/flush or /{index}/_flush instead.
 func (s *IndicesSyncedFlushService) Do(ctx context.Context) (*IndicesSyncedFlushResponse, error) {
 	// Check pre-conditions
 	if err := s.Validate(); err != nil {

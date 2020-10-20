@@ -1,5 +1,4 @@
-<!-- Currently tests against core-test are not done so hide build status badge for now -->
-<!-- [![Build Status](https://travis-ci.org/editorconfig/editorconfig-core-go.svg?branch=master)](https://travis-ci.org/editorconfig/editorconfig-core-go) -->
+![Build Status](https://github.com/editorconfig/editorconfig-core-go/workflows/.github/workflows/main.yml/badge.svg)
 [![GoDoc](https://godoc.org/github.com/editorconfig/editorconfig-core-go?status.svg)](https://godoc.org/github.com/editorconfig/editorconfig-core-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/editorconfig/editorconfig-core-go)](https://goreportcard.com/report/github.com/editorconfig/editorconfig-core-go)
 
@@ -7,25 +6,19 @@
 
 A [Editorconfig][editorconfig] file parser and manipulator for Go.
 
-> Currently this package does some basic work but does not fully support
-> EditorConfig specs, so using it in "real world" is not recommended.
-
 ## Missing features
 
-- `unset`
 - escaping comments in values, probably in [go-ini/ini](https://github.com/go-ini/ini)
 
 ## Installing
 
-We recommend the use of Go 1.11+ modules for this package.
+We recommend the use of Go 1.13+ modules for this package.
 
 Import by the same path. The package name you will use to access it is
 `editorconfig`.
 
 ```go
-import (
-    "github.com/editorconfig/editorconfig-core-go/v2"
-)
+import "github.com/editorconfig/editorconfig-core-go/v2"
 ```
 
 ## Usage
@@ -33,9 +26,15 @@ import (
 ### Parse from file
 
 ```go
-editorConfig, err := editorconfig.ParseFile("path/to/.editorconfig")
+fp, err := os.Open("path/to/.editorconfig")
 if err != nil {
-    log.Fatal(err)
+	log.Fatal(err)
+}
+defer fp.Close()
+
+editorConfig, err := editorconfig.Parse(fp)
+if err != nil {
+	log.Fatal(err)
 }
 ```
 
@@ -45,7 +44,7 @@ if err != nil {
 data := []byte("...")
 editorConfig, err := editorconfig.ParseBytes(data)
 if err != nil {
-    log.Fatal(err)
+	log.Fatal(err)
 }
 ```
 
@@ -71,8 +70,8 @@ type Definition struct {
 	IndentSize             string
 	TabWidth               int
 	EndOfLine              string
-	TrimTrailingWhitespace bool
-	InsertFinalNewline     bool
+	TrimTrailingWhitespace *bool
+	InsertFinalNewline     *bool
 	Raw                    map[string]string
 }
 ```
@@ -104,13 +103,13 @@ You can easily convert a Editorconfig struct to a compatible INI file:
 // serialize to slice of bytes
 data, err := editorConfig.Serialize()
 if err != nil {
-    log.Fatal(err)
+	log.Fatal(err)
 }
 
 // save directly to file
 err := editorConfig.Save("path/to/.editorconfig")
 if err != nil {
-    log.Fatal(err)
+	log.Fatal(err)
 }
 ```
 
@@ -122,4 +121,10 @@ To run the tests:
 go test -v ./...
 ```
 
-[editorconfig]: http://editorconfig.org/
+To run the [integration tests](https://github.com/editorconfig/editorconfig-core-test):
+
+```
+make test-core
+```
+
+[editorconfig]: https://editorconfig.org/

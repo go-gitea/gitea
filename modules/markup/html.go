@@ -481,6 +481,7 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Attr:     []html.Attribute{},
 	}
 	if class != "" {
+		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
 		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
 	}
 
@@ -682,9 +683,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 	absoluteLink := isLinkStr(link)
 	if !absoluteLink {
 		if image {
-			link = strings.Replace(link, " ", "+", -1)
+			link = strings.ReplaceAll(link, " ", "+")
 		} else {
-			link = strings.Replace(link, " ", "-", -1)
+			link = strings.ReplaceAll(link, " ", "-")
 		}
 		if !strings.Contains(link, "/") {
 			link = url.PathEscape(link)
@@ -901,7 +902,7 @@ func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 
 	alias := node.Data[m[0]:m[1]]
-	alias = strings.Replace(alias, ":", "", -1)
+	alias = strings.ReplaceAll(alias, ":", "")
 	converted := emoji.FromAlias(alias)
 	if converted == nil {
 		// check if this is a custom reaction

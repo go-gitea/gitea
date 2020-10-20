@@ -96,7 +96,7 @@ func (h *Hook) Update() error {
 		return err
 	}
 
-	err := ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
+	err := ioutil.WriteFile(h.path, []byte(strings.ReplaceAll(h.Content, "\r", "")), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ const (
 	HookPathUpdate = "hooks/update"
 )
 
-// SetUpdateHook writes given content to update hook of the reposiotry.
+// SetUpdateHook writes given content to update hook of the repository.
 func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)

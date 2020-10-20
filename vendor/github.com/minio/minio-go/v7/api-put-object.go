@@ -73,6 +73,7 @@ type PutObjectOptions struct {
 	SendContentMd5          bool
 	DisableMultipart        bool
 	ReplicationVersionID    string
+	ReplicationETag         string
 	ReplicationStatus       ReplicationStatus
 	ReplicationMTime        time.Time
 }
@@ -141,6 +142,9 @@ func (opts PutObjectOptions) Header() (header http.Header) {
 	}
 	if !opts.ReplicationMTime.IsZero() {
 		header.Set(minIOBucketReplicationSourceMTime, opts.ReplicationMTime.Format(time.RFC3339))
+	}
+	if opts.ReplicationETag != "" {
+		header.Set(minIOBucketReplicationETag, opts.ReplicationETag)
 	}
 	if len(opts.UserTags) != 0 {
 		header.Set(amzTaggingHeader, s3utils.TagEncode(opts.UserTags))

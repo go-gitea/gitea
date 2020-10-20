@@ -1,0 +1,23 @@
+{{template "base/head" .}}
+<div class="repository new migrate">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<div class="ui three stackable cards">
+				{{range .Services}}
+					<div class="ui card">
+						<a class="image" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">
+							{{svg (Printf "gitea-%s" .Name) 184}}
+						</a>
+						<div class="content">
+							<a class="header" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">{{.Title}}</a>
+							<div class="description">
+								{{(Printf "repo.migrate.%s.description" .Name) | $.i18n.Tr }}
+							</div>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -8,4 +8,28 @@ package base
 import "code.gitea.io/gitea/modules/structs"
 
 // MigrateOptions defines the way a repository gets migrated
-type MigrateOptions = structs.MigrateRepoOption
+// this is for internal usage by migrations module and func who interact with it
+type MigrateOptions struct {
+	// required: true
+	CloneAddr    string `json:"clone_addr" binding:"Required"`
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
+	// required: true
+	UID int `json:"uid" binding:"Required"`
+	// required: true
+	RepoName        string `json:"repo_name" binding:"Required"`
+	Mirror          bool   `json:"mirror"`
+	Private         bool   `json:"private"`
+	Description     string `json:"description"`
+	OriginalURL     string
+	GitServiceType  structs.GitServiceType
+	Wiki            bool
+	Issues          bool
+	Milestones      bool
+	Labels          bool
+	Releases        bool
+	Comments        bool
+	PullRequests    bool
+	MigrateToRepoID int64
+}

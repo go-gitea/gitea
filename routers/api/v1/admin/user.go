@@ -87,6 +87,15 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		if err != nil {
+			log.Error(err.Error())
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
@@ -151,7 +160,15 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		var err error
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Data["Err_Password"] = true
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return

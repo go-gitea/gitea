@@ -318,14 +318,14 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 	if opts.CommitID == "" {
 		gitRepo, err := git.OpenRepository(pr.Issue.Repo.RepoPath())
 		if err != nil {
-			ctx.ServerError("git.OpenRepository", err)
+			ctx.Error(http.StatusInternalServerError, "git.OpenRepository", err)
 			return
 		}
 		defer gitRepo.Close()
 
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
+			ctx.Error(http.StatusInternalServerError, "GetRefCommitID", err)
 			return
 		}
 
@@ -350,7 +350,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 			0,    // no reply
 			opts.CommitID,
 		); err != nil {
-			ctx.ServerError("CreateCodeComment", err)
+			ctx.Error(http.StatusInternalServerError, "CreateCodeComment", err)
 			return
 		}
 	}

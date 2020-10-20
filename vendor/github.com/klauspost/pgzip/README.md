@@ -39,7 +39,6 @@ You might need to get/update the dependencies:
 
 ```
 go get -u github.com/klauspost/compress
-go get -u github.com/klauspost/crc32
 ```
 
 Usage
@@ -65,7 +64,7 @@ Changes in [github.com/klauspost/compress](https://github.com/klauspost/compress
 ## Compression
 The simplest way to use this is to simply do the same as you would when using [compress/gzip](http://golang.org/pkg/compress/gzip). 
 
-To change the block size, use the added (*pgzip.Writer).SetConcurrency(blockSize, blocks int) function. With this you can control the approximate size of your blocks, as well as how many you want to be processing in parallel. Default values for this is SetConcurrency(250000, 16), meaning blocks are split at 250000 bytes and up to 16 blocks can be processing at once before the writer blocks.
+To change the block size, use the added (*pgzip.Writer).SetConcurrency(blockSize, blocks int) function. With this you can control the approximate size of your blocks, as well as how many you want to be processing in parallel. Default values for this is SetConcurrency(1MB, runtime.GOMAXPROCS(0)), meaning blocks are split at 1 MB and up to the number of CPU threads blocks can be processing at once before the writer blocks.
 
 
 Example:
@@ -99,19 +98,19 @@ See my blog post in [Benchmarks of Golang Gzip](https://blog.klauspost.com/go-gz
 
 Compression cost is usually about 0.2% with default settings with a block size of 250k.
 
-Example with GOMAXPROC set to 8 (quad core with 8 hyperthreads)
+Example with GOMAXPROC set to 32 (16 core CPU)
 
 Content is [Matt Mahoneys 10GB corpus](http://mattmahoney.net/dc/10gb.html). Compression level 6.
 
 Compressor  | MB/sec   | speedup | size | size overhead (lower=better)
 ------------|----------|---------|------|---------
-[gzip](http://golang.org/pkg/compress/gzip) (golang) | 7.21MB/s | 1.0x | 4786608902 | 0%
-[gzip](http://github.com/klauspost/compress/gzip) (klauspost) | 10.98MB/s | 1.52x | 4781331645 | -0.11%
-[pgzip](https://github.com/klauspost/pgzip) (klauspost) | 50.76MB/s|7.04x | 4784121440 | -0.052%
-[bgzf](https://godoc.org/github.com/biogo/hts/bgzf) (biogo) | 38.65MB/s | 5.36x | 4924899484 | 2.889%
-[pargzip](https://godoc.org/github.com/golang/build/pargzip) (builder) | 32.00MB/s | 4.44x | 4791226567 | 0.096%
+[gzip](http://golang.org/pkg/compress/gzip) (golang) | 15.44MB/s (1 thread) | 1.0x | 4781329307 | 0%
+[gzip](http://github.com/klauspost/compress/gzip) (klauspost) | 135.04MB/s (1 thread) | 8.74x | 4894858258 | +2.37%
+[pgzip](https://github.com/klauspost/pgzip) (klauspost) | 1573.23MB/s| 101.9x | 4902285651 | +2.53%
+[bgzf](https://godoc.org/github.com/biogo/hts/bgzf) (biogo) | 361.40MB/s | 23.4x | 4869686090 | +1.85%
+[pargzip](https://godoc.org/github.com/golang/build/pargzip) (builder) | 306.01MB/s | 19.8x | 4786890417 | +0.12%
 
-pgzip also contains a [linear time compression](https://github.com/klauspost/compress#linear-time-compression) mode, that will allow compression at ~150MB per core per second, independent of the content.
+pgzip also contains a [linear time compression](https://github.com/klauspost/compress#linear-time-compression-huffman-only) mode, that will allow compression at ~250MB per core per second, independent of the content.
 
 See the [complete sheet](https://docs.google.com/spreadsheets/d/1nuNE2nPfuINCZJRMt6wFWhKpToF95I47XjSsc-1rbPQ/edit?usp=sharing) for different content types and compression settings.
 
