@@ -61,8 +61,13 @@ func (r *ReverseProxy) IsEnabled() bool {
 // the revese proxy.
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
-// Returns nil if header is empty.
+// Returns nil if header is empty or internal API is being called.
 func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
+
+	// Internal API should not use this auth method.
+	if isInternalPath(ctx) {
+		return nil
+	}
 
 	// Just return user if session is estabilshed already.
 	user := SessionUser(sess)
@@ -103,16 +108,19 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 	// Make sure requests to API paths and PWA resources do not create a new session.
 	if !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
 
-		// Initialize new session.
-		handleSignIn(ctx, sess, user)
-
+		// Update last user login timestamp.
 		user.SetLastLogin()
 		if err = models.UpdateUserCols(user, false, "last_login_unix"); err != nil {
 			log.Error(fmt.Sprintf("VerifyAuthData: error updating user last login time [user: %d]", user.ID))
 		}
 
-		// Redirect to self to update language.
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.RequestURI())
+		// Initialize new session. Will set lang and CSRF cookies.
+		handleSignIn(ctx, sess, user)
+
+		// Unfortunatelly we cannot do redirect here (would break git HTTP requests) to
+		// reload page with user locale so first page after login may be displayed in
+		// wrong language. Language handling in SSO mode should be reconsidered
+		// in future gitea versions.
 	}
 
 	return user
