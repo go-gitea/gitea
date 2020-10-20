@@ -5,7 +5,7 @@
 package routers
 
 import (
-	"errors"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,13 +27,15 @@ import (
 
 const (
 	// tplInstall template for installation page
-	tplInstall base.TplName = "install"
+	tplInstall     base.TplName = "install"
+	tplPostInstall base.TplName = "post-install"
 )
 
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.NotFound("Install", errors.New("Installation is prohibited"))
+		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+		ctx.HTML(200, tplPostInstall)
 		return
 	}
 
@@ -357,7 +359,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	GlobalInit(graceful.GetManager().HammerContext())
+	// Re-read settings
+	PostInstallInit(ctx.Req.Context())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -380,6 +383,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			u, _ = models.GetUserByName(u.Name)
 		}
 
+		days := 86400 * setting.LogInRememberDays
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
@@ -397,12 +405,18 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	log.Info("First-time run install finished!")
-	// FIXME: This isn't really enough to completely take account of new configuration
-	// We should really be restarting:
-	// - On windows this is probably just a simple restart
-	// - On linux we can't just use graceful.RestartProcess() everything that was passed in on LISTEN_FDS
-	//   (active or not) needs to be passed out and everything new passed out too.
-	//   This means we need to prevent the cleanup goroutine from running prior to the second GlobalInit
+
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
-	ctx.Redirect(form.AppURL + "user/login")
+
+	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+	ctx.HTML(200, tplPostInstall)
+
+	// Now get the http.Server from this request and shut it down
+	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
+	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	go func() {
+		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
+			log.Error("Unable to shutdown the install server! Error: %v", err)
+		}
+	}()
 }
