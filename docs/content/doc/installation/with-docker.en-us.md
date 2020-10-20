@@ -371,7 +371,7 @@ config:
 
 ```
 [ssh]
-SSH_BACKUP_AUTHORIZED_KEYS=false
+SSH_AUTHORIZED_KEYS_BACKUP=false
 ```
 
 - mount your `.ssh` directory directly into the container i.e. add the
