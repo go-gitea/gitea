@@ -365,7 +365,7 @@ func Issues(ctx *context.Context) {
 	// Org:
 	// - Remember pre-determined string for later. Will be posted to ctx.Data.
 	// User:
-	// - Use ctx.Query("type") to determine filterMode. Q: Can there even be different values in ctx.Query("type")? How?
+	// - Use ctx.Query("type") to determine filterMode. The type is set when clicking for example "assigned to me" on the overview page.
 	// - Remember either this or a fallback. Will be posted to ctx.Data.
 
 	if ctxUser.IsOrganization() {
@@ -391,8 +391,7 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	// Parse ctx.Query("repos") and remember matched repo IDs for later.
-	// Q: Where can ctx.Query("repos") be filled? With the given routing, where can a value come from?
+	// Parse ctx.Query("repos") -- gets set when clicking filters -- and remember matched repo IDs for later.
 	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
 	if len(reposQuery) != 0 {
@@ -509,7 +508,7 @@ func Issues(ctx *context.Context) {
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
 
-	// Get IDs for labels. Q: What are labels? Where do they come from?
+	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
 	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
