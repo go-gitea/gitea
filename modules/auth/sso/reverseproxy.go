@@ -108,6 +108,9 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 		log.Error(fmt.Sprintf("VerifyAuthData: error updating user last login time [user: %d]", user.ID))
 	}
 
+	// Redirect to self to apply user language using cookie.
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.RequestURI())
+
 	return user
 }
 
