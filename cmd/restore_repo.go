@@ -29,21 +29,6 @@ var CmdRestoreRepository = cli.Command{
 			Usage: "Repository dir path",
 		},
 		cli.StringFlag{
-			Name:  "clone_addr",
-			Value: "",
-			Usage: "The URL will be clone, currently could be a github or gitlab http/https URL",
-		},
-		cli.StringFlag{
-			Name:  "auth_username",
-			Value: "",
-			Usage: "The username or personal token to visit the clone_addr, it's required",
-		},
-		cli.StringFlag{
-			Name:  "auth_password",
-			Value: "",
-			Usage: "The password to visit the clone_addr if auth_username is a real user name",
-		},
-		cli.StringFlag{
 			Name:  "owner_name",
 			Value: "",
 			Usage: "The data will be stored on a directory with owner name if not empty",
@@ -73,7 +58,9 @@ func runRestoreRepository(ctx *cli.Context) error {
 	log.Trace("Log path: %s", setting.LogRootPath)
 	setting.InitDBConfig()
 
-	var opts = base.MigrateOptions{}
+	var opts = base.MigrateOptions{
+		RepoName:     ctx.String("repo_name"),
+	}
 
 	if len(ctx.String("units")) == 0 {
 		opts.Wiki = true

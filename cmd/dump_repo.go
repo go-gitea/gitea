@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/urfave/cli"
 )
@@ -23,6 +24,11 @@ var CmdDumpRepository = cli.Command{
 	Description: "This is a command for dumping the repository data.",
 	Action:      runDumpRepository,
 	Flags: []cli.Flag{
+		cli.IntFlag{
+			Name:  "git_service",
+			Value: 1,
+			Usage: "Git service, 1 plain git, 2 github, 3 gitea, 4 gitlab",
+		},
 		cli.StringFlag{
 			Name:  "repo_dir, r",
 			Value: "./data",
@@ -74,6 +80,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	setting.InitDBConfig()
 
 	var opts = base.MigrateOptions{
+		GitServiceType: structs.GitServiceType(ctx.Int("git_service")),
 		CloneAddr:    ctx.String("clone_addr"),
 		AuthUsername: ctx.String("auth_username"),
 		AuthPassword: ctx.String("auth_password"),
@@ -122,6 +129,8 @@ func runDumpRepository(ctx *cli.Context) error {
 		log.Fatal("Failed to dump repository: %v", err)
 		return err
 	}
+
+	log.Trace("Dump finished!!!")
 
 	return nil
 }

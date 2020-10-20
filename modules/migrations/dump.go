@@ -254,7 +254,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
 	if g.migrateReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.Name)
+			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.TagName)
 			if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
 				return err
 			}
