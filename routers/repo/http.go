@@ -576,7 +576,7 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
+		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
 		return
 	}
 }

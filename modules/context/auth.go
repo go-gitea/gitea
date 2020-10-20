@@ -26,12 +26,6 @@ type ToggleOptions struct {
 // Toggle returns toggle options as middleware
 func Toggle(options *ToggleOptions) macaron.Handler {
 	return func(ctx *Context) {
-		// Cannot view any page before installation.
-		if !setting.InstallLock {
-			ctx.Redirect(setting.AppSubURL + "/install")
-			return
-		}
-
 		isAPIPath := auth.IsAPIPath(ctx.Req.URL.Path)
 
 		// Check prohibit login users.

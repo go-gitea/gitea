@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.13.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-RC1) - 2020-10-14
+## [1.13.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-rc1) - 2020-10-14
 
 * SECURITY
   * Mitigate Security vulnerability in the git hook feature (#13058)
