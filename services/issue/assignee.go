@@ -52,7 +52,7 @@ func ToggleAssignee(issue *models.Issue, doer *models.User, assigneeID int64) (r
 	return
 }
 
-// ReviewRequest add or remove a review for this PR, and make comment for it.
+// ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
 func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User, isAdd bool) (err error) {
 	var comment *models.Comment
 	if isAdd {
@@ -67,6 +67,43 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 
 	if comment != nil {
 		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
+	}
+
+	return nil
+}
+
+// TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
+func TeamReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.Team, isAdd bool) (err error) {
+	var comment *models.Comment
+	if isAdd {
+		comment, err = models.AddTeamReviewRequest(issue, reviewer, doer)
+	} else {
+		comment, err = models.RemoveTeamReviewRequest(issue, reviewer, doer)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if comment == nil || !isAdd {
+		return
+	}
+
+	// notify all user in this team
+	if err = comment.LoadIssue(); err != nil {
+		return
+	}
+
+	if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
+		return
+	}
+
+	for _, member := range reviewer.Members {
+		if member.ID == comment.Issue.PosterID {
+			continue
+		}
+		comment.AssigneeID = member.ID
+		notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
 	}
 
 	return nil

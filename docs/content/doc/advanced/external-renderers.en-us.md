@@ -36,7 +36,7 @@ FROM gitea/gitea:{{< version >}}
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev python-dev py-pip python3-dev py3-pip py3-pyzmq
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev py-pip python3-dev py3-pip py3-pyzmq
 # install any other package you need for your external renderers
 
 RUN pip3 install --upgrade pip

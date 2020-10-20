@@ -326,7 +326,7 @@ function uploadFile(file, callback) {
     }
   });
 
-  xhr.open('post', `${AppSubUrl}/attachments`, true);
+  xhr.open('post', $('#dropzone').data('upload-url'), true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -663,15 +663,16 @@ function initIssueComments() {
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
-    const isChecked = $(this).data('is-checked');
+    const isChecked = $(this).hasClass('checked');
 
     event.preventDefault();
     updateIssuesMeta(
       url,
-      isChecked === 'true' ? 'attach' : 'detach',
+      isChecked ? 'detach' : 'attach',
       issueId,
       id,
     ).then(reload);
+    return false;
   });
 
   $(document).on('click', (event) => {
@@ -902,7 +903,7 @@ async function initRepository() {
             headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
-            acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+            acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
             addRemoveLinks: true,
             dictDefaultMessage: $dropzone.data('default-message'),
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
@@ -923,10 +924,10 @@ async function initRepository() {
                   return;
                 }
                 $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: filenameDict[file.name].uuid,
-                    _csrf: $dropzone.data('csrf')
+                    _csrf: csrf,
                   });
                 }
               });
@@ -940,7 +941,7 @@ async function initRepository() {
                   dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
-                    const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
+                    const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
@@ -976,7 +977,9 @@ async function initRepository() {
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          dz.emit('reload');
+          if (dz) {
+            dz.emit('reload');
+          }
         });
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
@@ -990,26 +993,32 @@ async function initRepository() {
             context: $editContentZone.data('context'),
             files: $attachments
           }, (data) => {
-            if (data.length === 0) {
+            if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
             }
-            const $content = $segment.parent();
-            if (!$content.find('.ui.small.images').length) {
+            const $content = $segment;
+            if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
-                $content.append(
-                  '<div class="ui bottom attached segment"><div class="ui small images"></div></div>'
-                );
-                $content.find('.ui.small.images').html(data.attachments);
+                $content.append(`
+                  <div class="dropzone-attachments">
+                    <div class="ui clearing divider"></div>
+                    <div class="ui middle aligned padded grid">
+                    </div>
+                  </div>
+                `);
+                $content.find('.dropzone-attachments .grid').html(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.ui.small.images').parent().remove();
+              $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.ui.small.images').html(data.attachments);
+              $content.find('.dropzone-attachments .grid').html(data.attachments);
             }
-            dz.emit('submit');
-            dz.emit('reload');
+            if (dz) {
+              dz.emit('submit');
+              dz.emit('reload');
+            }
             renderMarkdownContent();
           });
         });
@@ -2323,7 +2332,7 @@ $(document).ready(async () => {
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
-      acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+      acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
       addRemoveLinks: true,
       dictDefaultMessage: $dropzone.data('default-message'),
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
@@ -2340,10 +2349,10 @@ $(document).ready(async () => {
           if (file.name in filenameDict) {
             $(`#${filenameDict[file.name]}`).remove();
           }
-          if ($dropzone.data('remove-url') && $dropzone.data('csrf')) {
+          if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: filenameDict[file.name],
-              _csrf: $dropzone.data('csrf')
+              _csrf: csrf
             });
           }
         });

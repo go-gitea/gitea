@@ -5,7 +5,10 @@
 				<div class="ui header">
 					<img class="ui image" src="{{.SizedRelAvatarLink 100}}">
 					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
-
+					<span class="org-visibility">
+						{{if .Visibility.IsLimited}}<div class="ui medium orange horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+						{{if .Visibility.IsPrivate}}<div class="ui medium red horizontal label">{{$.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					</span>
 					<div class="ui right">
 						<div class="ui menu">
 							<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">

@@ -112,6 +112,11 @@ func newIndexUsing(path string, mapping mapping.IndexMapping, indexType string, 
 		}
 		return nil, err
 	}
+	defer func(rv *indexImpl) {
+		if !rv.open {
+			rv.i.Close()
+		}
+	}(&rv)
 
 	// now persist the mapping
 	mappingBytes, err := json.Marshal(mapping)
@@ -177,6 +182,11 @@ func openIndexUsing(path string, runtimeConfig map[string]interface{}) (rv *inde
 		}
 		return nil, err
 	}
+	defer func(rv *indexImpl) {
+		if !rv.open {
+			rv.i.Close()
+		}
+	}(rv)
 
 	// now load the mapping
 	indexReader, err := rv.i.Reader()

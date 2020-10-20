@@ -5,7 +5,6 @@
 package task
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -39,10 +38,8 @@ func handleCreateError(owner *models.User, err error, name string) error {
 func runMigrateTask(t *models.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
+			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v\nStacktrace: %v", err, log.Stack(2))
+			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		if err == nil {
@@ -52,14 +49,14 @@ func runMigrateTask(t *models.Task) (err error) {
 				return
 			}
 
-			log.Error("FinishMigrateTask failed: %s", err.Error())
+			log.Error("FinishMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] failed: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Errors = err.Error()
 		if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
-			log.Error("Task UpdateCols failed: %s", err.Error())
+			log.Error("Task UpdateCols failed: %v", err)
 		}
 
 		if t.Repo != nil {

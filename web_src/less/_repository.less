@@ -101,6 +101,12 @@
         line-height: 2em;
       }
 
+      &.assignees .teamavatar {
+        margin-top: .125rem;
+        margin-left: 6.75px;
+        margin-right: 8.75px;
+      }
+
       .hide {
         display: none !important;
       }
@@ -394,6 +400,13 @@
         background-color: #ffffee;
       }
 
+      tr.has-parent a {
+        display: inline-block;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        width: calc(100% - 1.25rem);
+      }
+
       .jumpable-path {
         color: #888888;
       }
@@ -532,7 +545,7 @@
           .branch-name {
             display: inline-block;
             padding: 3px 6px;
-            font: 12px @monospaced-fonts, monospace;
+            font: 12px var(--fonts-monospace);
             color: rgba(0, 0, 0, .65);
             background-color: rgba(209, 227, 237, .45);
             border-radius: 3px;
@@ -996,11 +1009,9 @@
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
-
-            .text {
-              padding-top: 10px;
-              padding-bottom: 10px;
-            }
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
             &.arrow-top::before,
             &.arrow-top::after {
@@ -1017,11 +1028,16 @@
               left: 7px;
             }
 
-            .actions a {
-              color: rgba(0, 0, 0, .4);
+            .actions {
+              display: flex;
+              padding: 0 .5rem;
 
-              &:hover {
-                color: rgba(0, 0, 0, .8);
+              a {
+                color: rgba(0, 0, 0, .4);
+
+                &:hover {
+                  color: rgba(0, 0, 0, .8);
+                }
               }
             }
           }
@@ -1049,6 +1065,16 @@
 
             &.no-header {
               #avatar-arrow;
+            }
+
+            @media only screen and (max-width: 767px) {
+              .form .button {
+                width: 100%;
+
+                &:not(:last-child) {
+                  margin-bottom: 1rem;
+                }
+              }
             }
           }
 
@@ -1136,7 +1162,7 @@
 
           textarea {
             height: 200px;
-            font-family: @monospaced-fonts, monospace;
+            font-family: var(--fonts-monospace);
           }
         }
 
@@ -1201,6 +1227,16 @@
             display: block;
           }
         }
+
+        .tag {
+          color: black;
+          margin: 3px 0 0 5px;
+          padding: 2px 5px;
+          font-size: 12px;
+          border: 1px solid rgba(0, 0, 0, .1);
+          border-radius: 3px;
+          background-color: #fffbb2;
+        }
       }
     }
 
@@ -1241,7 +1277,7 @@
 
       textarea {
         height: 200px;
-        font-family: @monospaced-fonts, monospace;
+        font-family: var(--fonts-monospace);
       }
     }
   }
@@ -1399,7 +1435,8 @@
         position: relative;
         float: left;
         padding-bottom: 6px;
-        width: 90px;
+        width: 50%;
+        max-width: 90px;
 
         &:last-child {
           border-left: 1px solid #b4b4b4;
@@ -2059,7 +2096,7 @@
     &.new {
       .CodeMirror {
         .CodeMirror-code {
-          font-family: @monospaced-fonts, monospace;
+          font-family: var(--fonts-monospace);
 
           .cm-comment {
             background: inherit;

@@ -209,6 +209,38 @@ func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
 	return extarr
 }
 
+// MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullRequest) bool {
+	glob := protectBranch.GetProtectedFilePatterns()
+	if len(glob) == 0 {
+		return false
+	}
+
+	return len(pr.ChangedProtectedFiles) > 0
+}
+
+// IsProtectedFile return if path is protected
+func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) bool {
+	if len(patterns) == 0 {
+		patterns = protectBranch.GetProtectedFilePatterns()
+		if len(patterns) == 0 {
+			return false
+		}
+	}
+
+	lpath := strings.ToLower(strings.TrimSpace(path))
+
+	r := false
+	for _, pat := range patterns {
+		if pat.Match(lpath) {
+			r = true
+			break
+		}
+	}
+
+	return r
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
