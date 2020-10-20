@@ -23,7 +23,6 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type: models.UserTypeOrganization,

@@ -20,7 +20,6 @@ const (
 func DefaultOrSystemWebhooks(ctx *context.Context) {
 	var ws []*models.Webhook
 	var err error
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	// Are we looking at default webhooks?
 	if ctx.Params(":configType") == "hooks" {

@@ -28,7 +28,6 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	routers.RenderRepoSearch(ctx, &routers.RepoSearchOptions{
 		Private:  true,

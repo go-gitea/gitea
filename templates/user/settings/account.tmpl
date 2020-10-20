@@ -3,7 +3,7 @@
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-{{if not .DisableLocalUserManagement}}
+{{if not DisableLocalUserManagement}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "settings.password"}}
 		</h4>
@@ -71,7 +71,7 @@
 				</div>
 				{{range .Emails}}
 					<div class="item">
-{{if not $.DisableLocalUserManagement}}
+{{if not DisableLocalUserManagement}}
 						{{if not .IsPrimary}}
 							<div class="right floated content">
 								<button class="ui red tiny button delete-button" id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
@@ -106,7 +106,7 @@
 {{end}}
 						<div class="content">
 							<strong>{{.Email}}</strong>
-{{if not $.DisableLocalUserManagement}}
+{{if not DisableLocalUserManagement}}
 
 							{{if .IsPrimary}}
 								<div class="ui blue label">{{$.i18n.Tr "settings.primary"}}</div>
@@ -122,7 +122,7 @@
 				{{end}}
 			</div>
 		</div>
-{{if not .DisableLocalUserManagement}}
+{{if not DisableLocalUserManagement}}
 		<div class="ui attached bottom segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				{{.CsrfTokenHtml}}
@@ -174,7 +174,7 @@
 			</form>
 			</div>
 		</div>
-{{if not .DisableLocalUserManagement}}
+{{if not DisableLocalUserManagement}}
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "settings.delete_account"}}
 		</h4>

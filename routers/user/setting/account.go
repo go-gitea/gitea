@@ -29,7 +29,6 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	loadAccountData(ctx)
 
@@ -40,7 +39,6 @@ func Account(ctx *context.Context) {
 func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
@@ -86,7 +84,6 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	// Make emailaddress primary.
 	if ctx.Query("_method") == "PRIMARY" {
@@ -285,7 +282,6 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	if ctx.HasError() {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")

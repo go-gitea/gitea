@@ -33,7 +33,6 @@ func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type: models.UserTypeIndividual,
@@ -202,7 +201,6 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -217,7 +215,6 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DisableLocalUserManagement"] = setting.Service.DisableLocalUserManagement
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -243,10 +240,10 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	if len(form.Password) > 0 {
 		var err error
 		// Don't allow password changes if local user management is disabled.
-		//if setting.Service.DisableLocalUserManagement {
-		//ctx.ServerError("UpdateUser", fmt.Errorf("cannot change %s password; local user management disabled", u.Name))
-		//return
-		//}
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("UpdateUser", fmt.Errorf("cannot change %s password; local user management disabled", u.Name))
+			return
+		}
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
