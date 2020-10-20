@@ -17,7 +17,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		CountResult int
 		JSONResult  string
 	}{
-		{2, 1, `[{"timestamp":1571616000,"contributions":1}]`},
+		{2, 1, `[{"timestamp":1603152000,"contributions":1}]`},
 		{3, 0, `[]`},
 	}
 	// Prepare
