@@ -322,6 +322,10 @@ var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
+
+	// Distinguish Issues from Pulls. (Q: Why not make that distinction during routing and call different functions?)
+	// Return 404 if feature is disabled.
+
 	isPullList := ctx.Params(":type") == "pulls"
 	unitType := models.UnitTypeIssues
 	if isPullList {
@@ -357,6 +361,13 @@ func Issues(ctx *context.Context) {
 		filterMode = models.FilterModeAll
 	)
 
+	// Distinguish User from Organization. Q: Again, why not distinguish during routing?
+	// Org:
+	// - Remember pre-determined string for later. Will be posted to ctx.Data.
+	// User:
+	// - Use ctx.Query("type") to determine filterMode. Q: Can there even be different values in ctx.Query("type")? How?
+	// - Remember either this or a fallback. Will be posted to ctx.Data.
+
 	if ctxUser.IsOrganization() {
 		viewType = "your_repositories"
 	} else {
@@ -374,11 +385,14 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
+	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
+	// Parse ctx.Query("repos") and remember matched repo IDs for later.
+	// Q: Where can ctx.Query("repos") be filled? With the given routing, where can a value come from?
 	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
 	if len(reposQuery) != 0 {
@@ -400,9 +414,11 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
+	// No idea what this means.
 	isShowClosed := ctx.Query("state") == "closed"
 
-	// Get repositories.
+	// Get repository IDs where User/Org has access.
+	// Again, the distinction between User and Org could perhaps be handled more elegantly.
 	var err error
 	var userRepoIDs []int64
 	if ctxUser.IsOrganization() {
@@ -432,6 +448,8 @@ func Issues(ctx *context.Context) {
 		userRepoIDs = []int64{-1}
 	}
 
+	// Build IssuesOptions, which contains filter information.
+
 	opts := &models.IssuesOptions{
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
@@ -448,7 +466,11 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
+	// Execute keyword search for issues.
+
+	// Ensure issue list is emtpy if keyword search didn't produce any results.
 	var forceEmpty bool
+	// Required for IssuesOptions.
 	var issueIDsFromSearch []int64
 	var keyword = strings.Trim(ctx.Query("q"), " ")
 
@@ -474,6 +496,7 @@ func Issues(ctx *context.Context) {
 
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
+	// Filter repos and count issues in them. Count will be used later.
 	var counts map[int64]int64
 	if !forceEmpty {
 		counts, err = models.CountIssuesByRepo(opts)
@@ -485,6 +508,9 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
+
+	// Get IDs for labels. Q: What are labels? Where do they come from?
+	// Required for IssuesOptions.
 	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
 	if len(selectLabels) > 0 && selectLabels != "0" {
@@ -500,6 +526,7 @@ func Issues(ctx *context.Context) {
 		opts.RepoIDs = repoIDs
 	}
 
+	// Get issues as defined by opts.
 	var issues []*models.Issue
 	if !forceEmpty {
 		issues, err = models.Issues(opts)
@@ -517,6 +544,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	// showReposMap maps repository IDs to their Repository pointers.
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
 		if repoID > 0 {
@@ -545,6 +573,7 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
+	// a RepositoryList
 	showRepos := models.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 	if err = showRepos.LoadAttributes(); err != nil {
@@ -552,6 +581,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
 	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 	for _, issue := range issues {
 		issue.Repo = showReposMap[issue.RepoID]
@@ -571,12 +601,15 @@ func Issues(ctx *context.Context) {
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
 	}
+
+	// Will be posted to ctx.Data.
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats User", err)
 		return
 	}
 
+	// Will be posted to ctx.Data.
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
@@ -599,6 +632,7 @@ func Issues(ctx *context.Context) {
 		shownIssueStats = &models.IssueStats{}
 	}
 
+	// Will be posted to ctx.Data.
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
 		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
@@ -617,6 +651,7 @@ func Issues(ctx *context.Context) {
 		allIssueStats = &models.IssueStats{}
 	}
 
+	// Will be posted to ctx.Data.
 	var shownIssues int
 	var totalIssues int
 	if !isShowClosed {
