@@ -295,3 +295,15 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
 As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+
+## Customizing fonts
+
+Fonts can be customized using CSS variables:
+
+```css
+:root {
+  --fonts-proportional: /* custom proportional fonts */ !important;
+  --fonts-monospace: /* custom monospace fonts */ !important;
+  --fonts-emoji: /* custom emoji fonts */ !important;
+}
+```
