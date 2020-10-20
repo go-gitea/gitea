@@ -115,9 +115,6 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.RequestURI())
 	}
 
-	// Redirect to self to apply user language using cookie.
-	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.RequestURI())
-
 	return user
 }
 
