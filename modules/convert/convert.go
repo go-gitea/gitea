@@ -284,6 +284,10 @@ func ToOrganization(org *models.User) *api.Organization {
 
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
+	if team == nil {
+		return nil
+	}
+
 	return &api.Team{
 		ID:                      team.ID,
 		Name:                    team.Name,

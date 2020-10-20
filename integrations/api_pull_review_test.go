@@ -122,6 +122,29 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 0, review.CodeCommentsCount)
 	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
 	resp = session.MakeRequest(t, req, http.StatusNoContent)
+
+	// test get review requests
+	// to make it simple, use same api with get review
+	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	assert.NoError(t, pullIssue12.LoadAttributes())
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &reviews)
+	assert.EqualValues(t, 11, reviews[0].ID)
+	assert.EqualValues(t, "REQUEST_REVIEW", reviews[0].State)
+	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
+	assert.EqualValues(t, false, reviews[0].Stale)
+	assert.EqualValues(t, true, reviews[0].Official)
+	assert.EqualValues(t, "test_team", reviews[0].ReviewerTeam.Name)
+
+	assert.EqualValues(t, 12, reviews[1].ID)
+	assert.EqualValues(t, "REQUEST_REVIEW", reviews[1].State)
+	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
+	assert.EqualValues(t, false, reviews[1].Stale)
+	assert.EqualValues(t, true, reviews[1].Official)
+	assert.EqualValues(t, 1, reviews[1].Reviewer.ID)
 }
 
 func TestAPIPullReviewRequest(t *testing.T) {

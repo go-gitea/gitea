@@ -96,3 +96,12 @@
   official: true
   updated_unix: 1602936509
   created_unix: 1602936509
+
+-
+  id: 12
+  type: 4
+  reviewer_id: 1
+  issue_id: 12
+  official: true
+  updated_unix: 1603196749
+  created_unix: 1603196749

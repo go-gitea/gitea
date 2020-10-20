@@ -30,6 +30,7 @@ const (
 type PullReview struct {
 	ID                int64           `json:"id"`
 	Reviewer          *User           `json:"user"`
+	ReviewerTeam      *Team           `json:"team"`
 	State             ReviewStateType `json:"state"`
 	Body              string          `json:"body"`
 	CommitID          string          `json:"commit_id"`
