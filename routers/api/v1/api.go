@@ -828,8 +828,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 							})
 						})
 						m.Combo("/requested_reviewers").
-							Delete(reqToken(), bind(api.PullReviewRequestOptions{}), repo.DeletReviewRequests).
-							Post(reqToken(), bind(api.PullReviewRequestOptions{}), repo.CreatReviewRequests)
+							Delete(reqToken(), bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
+							Post(reqToken(), bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {

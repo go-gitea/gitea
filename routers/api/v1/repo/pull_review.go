@@ -541,11 +541,11 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 	return review, pr, false
 }
 
-// CreatReviewRequests create review requests to an pull request
-func CreatReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+// CreateReviewRequests create review requests to an pull request
+func CreateReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoCreatePullReviewRequests
 	// ---
-	// summary: create review requests to an pull request
+	// summary: create review requests for a pull request
 	// produces:
 	// - application/json
 	// parameters:
@@ -580,11 +580,11 @@ func CreatReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpti
 	apiReviewRequest(ctx, opts, true)
 }
 
-// DeletReviewRequests delet review requests to an pull request
-func DeletReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletPullReviewRequests
+// DeleteReviewRequests delete review requests to an pull request
+func DeleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletePullReviewRequests
 	// ---
-	// summary: delet review requests to an pull request
+	// summary: cancel review requests for a pull request
 	// produces:
 	// - application/json
 	// parameters:
