@@ -15,7 +15,7 @@ menu:
 
 # 配置说明
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
 ## Overall (`DEFAULT`)
 
@@ -30,6 +30,7 @@ menu:
 - `ANSI_CHARSET`: 默认字符编码。
 - `FORCE_PRIVATE`: 强制所有git工程必须私有。
 - `DEFAULT_PRIVATE`: 默认创建的git工程为私有。 可以是`last`, `private` 或 `public`。默认值是 `last`表示用户最后创建的Repo的选择。
+- `DEFAULT_PUSH_CREATE_PRIVATE`: **true**:  通过 ``push-to-create`` 方式创建的仓库是否默认为私有仓库.
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
@@ -69,8 +70,8 @@ menu:
 - `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
+
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
-- `LFS_CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 
 ## Database (`database`)
@@ -81,7 +82,7 @@ menu:
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
-- `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
+- `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
@@ -89,15 +90,21 @@ menu:
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve` 或 `db`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve`, `db` 和 `elasticsearch`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_CONN_STR`: ****: 工单索引连接字符串，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。例如: http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: 工单索引名称，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel`， `levelqueue` 或 `redis`。
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `redis` 时，保存Redis队列的连接字符串。
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
 
-- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间）。
+- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间，如果是bleve可能需要占用约6倍存储空间）。
+- `REPO_INDEXER_TYPE`: **bleve**: 代码搜索引擎类型，可以为 `bleve` 或者 `elasticsearch`。
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: 用于代码搜索的索引文件路径。
+- `REPO_INDEXER_CONN_STR`: ****: 代码搜索引擎连接字符串，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。例如： http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_NAME`: **gitea_codes**: 代码搜索引擎的名字，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。
+
 - `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 
@@ -148,12 +155,19 @@ menu:
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: 是否启用。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `ENABLED`: **true**: 是否启用。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
 
@@ -168,13 +182,35 @@ menu:
 - `DISABLE_GRAVATAR`: 开启则只使用内部头像。
 - `ENABLE_FEDERATED_AVATAR`: 启用头像联盟支持 (参见 http://www.libravatar.org)
 
+- `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
+- `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
+- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+
+- `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
+- `REPOSITORY_AVATAR_FALLBACK`: **none**: 当头像丢失时的处理方式
+  - none = 不显示头像
+  - random = 显示随机生成的头像
+  - image = 显示默认头像，通过 `REPOSITORY_AVATAR_FALLBACK_IMAGE` 设置
+- `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: 默认仓库头像
+
 ## Attachment (`attachment`)
 
 - `ENABLED`: 是否允许用户上传附件。
-- `PATH`: 附件存储路径
 - `ALLOWED_TYPES`: 允许上传的附件类型。比如：`image/jpeg|image/png`，用 `*/*` 表示允许任何类型。
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
+- `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORAGE_TYPE` 为 `local` 时有效。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
 关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
 
@@ -216,7 +252,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
 - `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
 
-### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
 - `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
@@ -277,6 +313,55 @@ IS_INPUT_FILE = false
 
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
+
+## LFS (`lfs`)
+
+LFS 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[storage]` 继承。如果不为 `local` 或者 `minio` 而为 `xxx`， 则从 `[storage.xxx]` 继承。当继承时， `PATH` 默认为 `data/lfs`，`MINIO_BASE_PATH` 默认为 `lfs/`。
+
+- `STORAGE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
+- `CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BASE_PATH`: **lfs/**: Minio base path ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
+
+## Storage (`storage`)
+
+Attachments, lfs, avatars and etc 的默认存储配置。
+
+- `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
+- `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
+
+你也可以自定义一个存储的名字如下：
+
+```ini
+[storage.my_minio]
+STORAGE_TYPE = minio
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+```
+
+然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
 
 ## Other (`other`)
 

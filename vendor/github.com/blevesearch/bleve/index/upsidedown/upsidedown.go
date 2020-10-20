@@ -820,7 +820,8 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 
 	if numUpdates > 0 {
 		go func() {
-			for _, doc := range batch.IndexOps {
+			for k := range batch.IndexOps {
+				doc := batch.IndexOps[k]
 				if doc != nil {
 					aw := index.NewAnalysisWork(udc, doc, resultChan)
 					// put the work on the queue

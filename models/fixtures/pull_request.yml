@@ -8,7 +8,7 @@
   base_repo_id: 1
   head_branch: branch1
   base_branch: master
-  merge_base: 1234567890abcdef
+  merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
   has_merged: true
   merger_id: 2
 
@@ -22,7 +22,7 @@
   base_repo_id: 1
   head_branch: branch2
   base_branch: master
-  merge_base: fedcba9876543210
+  merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
   has_merged: false
 
 -
@@ -49,4 +49,17 @@
   head_branch: branch1
   base_branch: master
   merge_base: abcdef1234567890
+  has_merged: false
+
+-
+  id: 5 # this PR is outdated (one commit behind branch1 )
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 11
+  index: 5
+  head_repo_id: 1
+  base_repo_id: 1
+  head_branch: pr-to-update
+  base_branch: branch1
+  merge_base: 1234567890abcdef
   has_merged: false

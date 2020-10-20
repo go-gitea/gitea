@@ -16,8 +16,19 @@ func copyReverse(dst []byte, src []byte) {
 	// Curve 25519 multiplication functions expect scalars in reverse
 	// order than PGP. To keep the curve25519Curve type consistent
 	// with other curves, we reverse it here.
-	for i, j := 0, len(src)-1; j >= 0; i, j = i+1, j-1 {
+	for i, j := 0, len(src)-1; j >= 0 && i < len(dst); i, j = i+1, j-1 {
 		dst[i] = src[j]
+	}
+}
+
+func copyTruncate(dst []byte, src []byte) {
+	lenDst, lenSrc := len(dst), len(src)
+	if lenDst == lenSrc {
+		copy(dst, src)
+	} else if lenDst > lenSrc {
+		copy(dst[lenDst-lenSrc:lenDst], src)
+	} else if lenDst < lenSrc {
+		copy(dst, src[:lenDst])
 	}
 }
 
@@ -27,8 +38,8 @@ func (cv25519Curve) ScalarMult(x1, y1 *big.Int, scalar []byte) (x, y *big.Int) {
 	var x1Bytes [32]byte
 	var scalarBytes [32]byte
 
-	copy(x1Bytes[:], x1.Bytes()[:32])
-	copyReverse(scalarBytes[:], scalar[:32])
+	copyTruncate(x1Bytes[:], x1.Bytes())
+	copyReverse(scalarBytes[:], scalar)
 
 	scalarMult(&dst, &scalarBytes, &x1Bytes)
 
@@ -63,7 +74,7 @@ func (cv25519Curve) MarshalType40(x, y *big.Int) []byte {
 	ret[0] = 0x40
 
 	xBytes := x.Bytes()
-	copy(ret[1+byteLen-len(xBytes):], xBytes)
+	copyTruncate(ret[1:], xBytes)
 	return ret
 }
 
@@ -91,10 +102,10 @@ func initCv25519() {
 	// Some code relies on these parameters being available for
 	// checking Curve coordinate length. They should not be used
 	// directly for any calculations.
-	cv25519.P, _ = new (big.Int).SetString("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed", 16)
-	cv25519.N, _ = new (big.Int).SetString("1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed", 16)
-	cv25519.Gx, _ = new (big.Int).SetString("9", 16)
-	cv25519.Gy, _ = new (big.Int).SetString("20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9", 16)
+	cv25519.P, _ = new(big.Int).SetString("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed", 16)
+	cv25519.N, _ = new(big.Int).SetString("1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed", 16)
+	cv25519.Gx, _ = new(big.Int).SetString("9", 16)
+	cv25519.Gy, _ = new(big.Int).SetString("20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9", 16)
 	cv25519.BitSize = 256
 }
 

@@ -3,9 +3,9 @@ sudo: false
 language: go
 
 go:
- - "1.10.x"
- - "1.11.x"
  - "1.12.x"
+ - "1.13.x"
+ - "1.14.x"
 
 script:
   - go get golang.org/x/tools/cmd/cover
@@ -16,11 +16,7 @@ script:
   - go test -race -v $(go list ./... | grep -v vendor/)
   - go vet $(go list ./... | grep -v vendor/)
   - go test ./test -v -indexType scorch
-  - if [[ ${TRAVIS_GO_VERSION} =~ ^1\.10 ]]; then
-        echo "errcheck skipped for go version" $TRAVIS_GO_VERSION;
-    else
-        errcheck -ignorepkg fmt $(go list ./... | grep -v vendor/);
-    fi
+  - errcheck -ignorepkg fmt $(go list ./... | grep -v vendor/);
   - docs/project-code-coverage.sh
   - docs/build_children.sh
 

@@ -46,7 +46,7 @@ func ServNoCommand(ctx *macaron.Context) {
 	}
 	results.Key = key
 
-	if key.Type == models.KeyTypeUser {
+	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
 		user, err := models.GetUserByID(key.OwnerID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -68,7 +68,6 @@ func ServNoCommand(ctx *macaron.Context) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *macaron.Context) {
-	// Although we provide the verbs we don't need them at present they're just for logging purposes
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
@@ -81,7 +80,7 @@ func ServCommand(ctx *macaron.Context) {
 		KeyID:     keyID,
 	}
 
-	// Now because we're not translating things properly let's just default some Engish strings here
+	// Now because we're not translating things properly let's just default some English strings here
 	modeString := "read"
 	if mode > models.AccessModeRead {
 		modeString = "write to"
@@ -105,6 +104,17 @@ func ServCommand(ctx *macaron.Context) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
+			for _, verb := range ctx.QueryStrings("verb") {
+				if "git-upload-pack" == verb {
+					// User is fetching/cloning a non-existent repository
+					ctx.JSON(http.StatusNotFound, map[string]interface{}{
+						"results": results,
+						"type":    "ErrRepoNotExist",
+						"err":     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+					})
+					return
+				}
+			}
 		} else {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -207,6 +217,18 @@ func ServCommand(ctx *macaron.Context) {
 		// so for now use the owner of the repository
 		results.UserName = results.OwnerName
 		results.UserID = repo.OwnerID
+		if err = repo.GetOwner(); err != nil {
+			log.Error("Unable to get owner for repo %-v. Error: %v", repo, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get owner for repo: %s/%s.", results.OwnerName, results.RepoName),
+			})
+			return
+		}
+		if !repo.Owner.KeepEmailPrivate {
+			results.UserEmail = repo.Owner.Email
+		}
 	} else {
 		// Get the user represented by the Key
 		var err error
@@ -229,6 +251,9 @@ func ServCommand(ctx *macaron.Context) {
 			return
 		}
 		results.UserName = user.Name
+		if !user.KeepEmailPrivate {
+			results.UserEmail = user.Email
+		}
 	}
 
 	// Don't allow pushing if the repo is archived
@@ -319,8 +344,27 @@ func ServCommand(ctx *macaron.Context) {
 		results.RepoID = repo.ID
 	}
 
-	// Finally if we're trying to touch the wiki we should init it
 	if results.IsWiki {
+		// Ensure the wiki is enabled before we allow access to it
+		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+			if models.IsErrUnitTypeNotExist(err) {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"results": results,
+					"type":    "ErrForbidden",
+					"err":     "repository wiki is disabled",
+				})
+				return
+			}
+			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+
+		// Finally if we're trying to touch the wiki we should init it
 		if err = wiki_service.InitWiki(repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

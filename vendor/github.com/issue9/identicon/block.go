@@ -21,14 +21,14 @@ var (
 	blocks = []blockFunc{b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16}
 )
 
-// 所有block函数的类型
+// 所有 block 函数的类型
 type blockFunc func(img *image.Paletted, x, y, size float64, angle int)
 
-// 将多边形points旋转angle个角度，然后输出到img上，起点为x,y坐标
+// 将多边形 points 旋转 angle 个角度，然后输出到 img 上，起点为 x,y 坐标
 func drawBlock(img *image.Paletted, x, y, size float64, angle int, points []float64) {
-	if angle > 0 { // 0角度不需要转换
-		// 中心坐标与x,y的距离，方便下面指定中心坐标(x+m,y+m)，
-		// 0.5的偏移值不能少，否则坐靠右，非正中央
+	if angle > 0 { // 0 角度不需要转换
+		// 中心坐标与 x、y 的距离，方便下面指定中心坐标(x+m,y+m)，
+		// 0.5 的偏移值不能少，否则坐标靠右，非正中央
 		m := size/2 - 0.5
 		rotate(points, x+m, y+m, angle)
 	}

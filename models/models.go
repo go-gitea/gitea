@@ -10,18 +10,21 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
+	"xorm.io/xorm/schemas"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
 
-	// Needed for the MSSSQL driver
+	// Needed for the MSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
@@ -44,7 +47,16 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Desc(colNames ...string) *xorm.Session
+	Limit(limit int, start ...int) *xorm.Session
+	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
+
+const (
+	// When queries are broken down in parts because of the number
+	// of parameters, attempt to break by this amount
+	maxQueryParameters = 300
+)
 
 var (
 	x      *xorm.Engine
@@ -114,11 +126,16 @@ func init() {
 		new(OAuth2AuthorizationCode),
 		new(OAuth2Grant),
 		new(Task),
+		new(LanguageStat),
+		new(EmailHash),
+		new(Project),
+		new(ProjectBoard),
+		new(ProjectIssue),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
 	for _, name := range gonicNames {
-		core.LintGonicMapper[name] = true
+		names.LintGonicMapper[name] = true
 	}
 }
 
@@ -128,18 +145,37 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	return xorm.NewEngine(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+	if setting.Database.Type == "mysql" {
+		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
+	} else if setting.Database.Type == "mssql" {
+		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
+	}
+	engine.SetSchema(setting.Database.Schema)
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// Add the schema to the search path
+		if _, err := engine.Exec(`SELECT set_config(
+			'search_path',
+			? || ',' || current_setting('search_path'),
+			false)`,
+			setting.Database.Schema); err != nil {
+			return nil, err
+		}
+	}
+	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(x *xorm.Engine) (err error) {
+func NewTestEngine() (err error) {
 	x, err = getEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
-	x.ShowExecTime(true)
-	x.SetMapper(core.GonicMapper{})
+	x.SetMapper(names.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
@@ -152,8 +188,7 @@ func SetEngine() (err error) {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 
-	x.ShowExecTime(true)
-	x.SetMapper(core.GonicMapper{})
+	x.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
@@ -165,6 +200,10 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
+// This function must never call .Sync2() if the provided migration function fails.
+// When called from the "doctor" command, the migration function is a version check
+// that prevents the doctor from fixing anything in the database if the migration level
+// is different from the expected value.
 func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
@@ -185,6 +224,36 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	}
 
 	return nil
+}
+
+// NamesToBean return a list of beans or an error
+func NamesToBean(names ...string) ([]interface{}, error) {
+	beans := []interface{}{}
+	if len(names) == 0 {
+		beans = append(beans, tables...)
+		return beans, nil
+	}
+	// Need to map provided names to beans...
+	beanMap := make(map[string]interface{})
+	for _, bean := range tables {
+
+		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
+		beanMap[strings.ToLower(x.TableName(bean))] = bean
+		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
+	}
+
+	gotBean := make(map[interface{}]bool)
+	for _, name := range names {
+		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
+		if !ok {
+			return nil, fmt.Errorf("No table found that matches: %s", name)
+		}
+		if !gotBean[bean] {
+			beans = append(beans, bean)
+			gotBean[bean] = true
+		}
+	}
+	return beans, nil
 }
 
 // Statistic contains the database statistics
@@ -235,21 +304,37 @@ func Ping() error {
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
 func DumpDatabase(filePath string, dbType string) error {
-	var tbs []*core.Table
+	var tbs []*schemas.Table
 	for _, t := range tables {
-		t := x.TableInfo(t)
-		t.Table.Name = t.Name
-		tbs = append(tbs, t.Table)
+		t, err := x.TableInfo(t)
+		if err != nil {
+			return err
+		}
+		tbs = append(tbs, t)
 	}
+
+	type Version struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Version int64
+	}
+	t, err := x.TableInfo(Version{})
+	if err != nil {
+		return err
+	}
+	tbs = append(tbs, t)
+
 	if len(dbType) > 0 {
-		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
+		return x.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
 }
 
 // MaxBatchInsertSize returns the table's max batch insert size
 func MaxBatchInsertSize(bean interface{}) int {
-	t := x.TableInfo(bean)
+	t, err := x.TableInfo(bean)
+	if err != nil {
+		return 50
+	}
 	return 999 / len(t.ColumnsSeq())
 }
 

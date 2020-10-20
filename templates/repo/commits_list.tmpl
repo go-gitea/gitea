@@ -28,34 +28,27 @@
 							{{if .Signature}}
 								{{$class = (printf "%s%s" $class " isSigned")}}
 								{{if .Verification.Verified}}
-									{{$class = (printf "%s%s" $class " isVerified")}}
+									{{if eq .Verification.TrustStatus "trusted"}}
+										{{$class = (printf "%s%s" $class " isVerified")}}
+									{{else if eq .Verification.TrustStatus "untrusted"}}
+										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+									{{else}}
+										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+									{{end}}
 								{{else if .Verification.Warning}}
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
 							{{end}}
-							{{if $.Reponame}}
+							{{if $.PageIsWiki}}
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+							{{else if $.Reponame}}
 								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
-								{{ShortSha .ID.String}}
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
-									<div class="ui detail icon button">
-										{{if .Verification.Verified}}
-											{{if ne .Verification.SigningUser.ID 0}}
-												<i title="{{.Verification.Reason}}" class="lock green icon"></i>
-											{{else}}
-												<i title="{{.Verification.Reason}}" class="icons">
-													<i class="green lock icon"></i>
-													<i class="tiny inverted cog icon centerlock"></i>
-												</i>
-											{{end}}
-										{{else if .Verification.Warning}}
-											<i title="{{$.i18n.Tr .Verification.Reason}}" class="red unlock icon"></i>
-										{{else}}
-											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
-										{{end}}
-									</div>
+									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
 							{{if $.Reponame}}
 								</a>
@@ -66,10 +59,10 @@
 						<td class="message">
 							<span class="message-wrapper">
 							{{if $.PageIsWiki}}
-								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
 								{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .ID }}
-								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}

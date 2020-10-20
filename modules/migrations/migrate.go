@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -33,18 +32,15 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
-		theFactory base.DownloaderFactory
+		err        error
 	)
 
 	for _, factory := range factories {
-		if match, err := factory.Match(opts); err != nil {
-			return nil, err
-		} else if match {
-			downloader, err = factory.New(opts)
+		if factory.GitServiceType() == opts.GitServiceType {
+			downloader, err = factory.New(ctx, opts)
 			if err != nil {
 				return nil, err
 			}
-			theFactory = factory
 			break
 		}
 	}
@@ -57,20 +53,15 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
-		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
 		log.Trace("Will migrate from git: %s", opts.OriginalURL)
-	} else if opts.GitServiceType == structs.NotMigrated {
-		opts.GitServiceType = theFactory.GitServiceType()
 	}
 
 	uploader.gitServiceType = opts.GitServiceType
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
-
-	downloader.SetContext(ctx)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
@@ -86,7 +77,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	return uploader.repo, nil
 }
 
-// migrateRepository will download informations and upload to Uploader, this is a simple
+// migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
@@ -169,7 +160,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err := uploader.CreateReleases(downloader, releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
@@ -181,7 +172,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 	}
 
-	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
+	var (
+		commentBatchSize = uploader.MaxBatchInsertSize("comment")
+		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
+	)
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
@@ -235,7 +229,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating pull requests and comments")
 		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
-			prs, err := downloader.GetPullRequests(i, prBatchSize)
+			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
 				return err
 			}
@@ -248,6 +242,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
+			// plain comments
 			var allComments = make([]*base.Comment, 0, commentBatchSize)
 			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
@@ -270,7 +265,42 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(prs) < prBatchSize {
+			// migrate reviews
+			var allReviews = make([]*base.Review, 0, reviewBatchSize)
+			for _, pr := range prs {
+				number := pr.Number
+
+				// on gitlab migrations pull number change
+				if pr.OriginalNumber > 0 {
+					number = pr.OriginalNumber
+				}
+
+				reviews, err := downloader.GetReviews(number)
+				if pr.OriginalNumber > 0 {
+					for i := range reviews {
+						reviews[i].IssueIndex = pr.Number
+					}
+				}
+				if err != nil {
+					return err
+				}
+
+				allReviews = append(allReviews, reviews...)
+
+				if len(allReviews) >= reviewBatchSize {
+					if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						return err
+					}
+					allReviews = allReviews[reviewBatchSize:]
+				}
+			}
+			if len(allReviews) > 0 {
+				if err := uploader.CreateReviews(allReviews...); err != nil {
+					return err
+				}
+			}
+
+			if isEnd {
 				break
 			}
 		}

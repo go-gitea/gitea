@@ -16,18 +16,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// createTemporaryRepo creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
+// it also create a second base branch called "original_base"
 func createTemporaryRepo(pr *models.PullRequest) (string, error) {
-	if err := pr.GetHeadRepo(); err != nil {
-		log.Error("GetHeadRepo: %v", err)
-		return "", fmt.Errorf("GetHeadRepo: %v", err)
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return "", fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
 		log.Error("Pr %d HeadRepo %d does not exist", pr.ID, pr.HeadRepoID)
 		return "", &models.ErrRepoNotExist{
 			ID: pr.HeadRepoID,
 		}
-	} else if err := pr.GetBaseRepo(); err != nil {
-		log.Error("GetBaseRepo: %v", err)
-		return "", fmt.Errorf("GetBaseRepo: %v", err)
+	} else if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	} else if pr.BaseRepo == nil {
 		log.Error("Pr %d BaseRepo %d does not exist", pr.ID, pr.BaseRepoID)
 		return "", &models.ErrRepoNotExist{
@@ -98,7 +100,7 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand("fetch", "origin", "--no-tags", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", "origin", "--no-tags", "--", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
@@ -138,7 +140,7 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 
 	trackingBranch := "tracking"
 	// Fetch head branch
-	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, git.BranchPrefix+pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)

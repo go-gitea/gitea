@@ -4,11 +4,16 @@
 
 package models
 
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+)
+
 // Star represents a starred repo by an user.
 type Star struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UID    int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	ID          int64              `xorm:"pk autoincr"`
+	UID         int64              `xorm:"UNIQUE(s)"`
+	RepoID      int64              `xorm:"UNIQUE(s)"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // StarRepo or unstar repository.
@@ -39,7 +44,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 			return nil
 		}
 
-		if _, err := sess.Delete(&Star{0, userID, repoID}); err != nil {
+		if _, err := sess.Delete(&Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
 		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
@@ -59,18 +64,22 @@ func IsStaring(userID, repoID int64) bool {
 }
 
 func isStaring(e Engine, userID, repoID int64) bool {
-	has, _ := e.Get(&Star{0, userID, repoID})
+	has, _ := e.Get(&Star{UID: userID, RepoID: repoID})
 	return has
 }
 
 // GetStargazers returns the users that starred the repo.
-func (repo *Repository) GetStargazers(page int) ([]*User, error) {
-	users := make([]*User, 0, ItemsPerPage)
+func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
 	sess := x.Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
-	if page > 0 {
-		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
+	if opts.Page > 0 {
+		sess = opts.setSessionPagination(sess)
+
+		users := make([]*User, 0, opts.PageSize)
+		return users, sess.Find(&users)
 	}
+
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 

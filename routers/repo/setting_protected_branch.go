@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ProtectedBranch render the page to protect the repository
@@ -246,6 +247,9 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		}
 		protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
 		protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
+		protectBranch.RequireSignedCommits = f.RequireSignedCommits
+		protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
+		protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,
@@ -257,6 +261,10 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		})
 		if err != nil {
 			ctx.ServerError("UpdateProtectBranch", err)
+			return
+		}
+		if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+			ctx.ServerError("CheckPrsForBaseBranch", err)
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", branch))

@@ -17,6 +17,7 @@ package collector
 import (
 	"context"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/blevesearch/bleve/index"
@@ -90,6 +91,18 @@ func NewTopNCollectorAfter(size int, sort search.SortOrder, after []string) *Top
 	rv.searchAfter = &search.DocumentMatch{
 		Sort: after,
 	}
+
+	for pos, ss := range sort {
+		if ss.RequiresDocID() {
+			rv.searchAfter.ID = after[pos]
+		}
+		if ss.RequiresScoring() {
+			if score, err := strconv.ParseFloat(after[pos], 64); err == nil {
+				rv.searchAfter.Score = score
+			}
+		}
+	}
+
 	return rv
 }
 

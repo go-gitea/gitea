@@ -8,15 +8,18 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -43,27 +46,114 @@ var (
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookUpdate = cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookPostReceive = cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 )
+
+type delayWriter struct {
+	internal io.Writer
+	buf      *bytes.Buffer
+	timer    *time.Timer
+}
+
+func newDelayWriter(internal io.Writer, delay time.Duration) *delayWriter {
+	timer := time.NewTimer(delay)
+	return &delayWriter{
+		internal: internal,
+		buf:      &bytes.Buffer{},
+		timer:    timer,
+	}
+}
+
+func (d *delayWriter) Write(p []byte) (n int, err error) {
+	if d.buf != nil {
+		select {
+		case <-d.timer.C:
+			_, err := d.internal.Write(d.buf.Bytes())
+			if err != nil {
+				return 0, err
+			}
+			d.buf = nil
+			return d.internal.Write(p)
+		default:
+			return d.buf.Write(p)
+		}
+	}
+	return d.internal.Write(p)
+}
+
+func (d *delayWriter) WriteString(s string) (n int, err error) {
+	if d.buf != nil {
+		select {
+		case <-d.timer.C:
+			_, err := d.internal.Write(d.buf.Bytes())
+			if err != nil {
+				return 0, err
+			}
+			d.buf = nil
+			return d.internal.Write([]byte(s))
+		default:
+			return d.buf.WriteString(s)
+		}
+	}
+	return d.internal.Write([]byte(s))
+}
+
+func (d *delayWriter) Close() error {
+	if d == nil {
+		return nil
+	}
+	stopped := util.StopTimer(d.timer)
+	if stopped || d.buf == nil {
+		return nil
+	}
+	_, err := d.internal.Write(d.buf.Bytes())
+	d.buf = nil
+	return err
+}
+
+type nilWriter struct{}
+
+func (n *nilWriter) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (n *nilWriter) WriteString(s string) (int, error) {
+	return len(s), nil
+}
 
 func runHookPreReceive(c *cli.Context) error {
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
 	}
 
-	setup("hooks/pre-receive.log", false)
+	setup("hooks/pre-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -80,7 +170,7 @@ Gitea or set your environment appropriately.`, "")
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(models.EnvPRID), 10, 64)
 	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
 	hookOptions := private.HookOptions{
@@ -88,6 +178,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 		ProtectedBranchID:               prID,
 		IsDeployKey:                     isDeployKey,
 	}
@@ -100,6 +191,18 @@ Gitea or set your environment appropriately.`, "")
 	count := 0
 	total := 0
 	lastline := 0
+
+	var out io.Writer
+	out = &nilWriter{}
+	if setting.Git.VerbosePush {
+		if setting.Git.VerbosePushDelay > 0 {
+			dWriter := newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
+			defer dWriter.Close()
+			out = dWriter
+		} else {
+			out = os.Stdout
+		}
+	}
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -124,12 +227,10 @@ Gitea or set your environment appropriately.`, "")
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
 			count++
-			fmt.Fprintf(os.Stdout, "*")
-			os.Stdout.Sync()
+			fmt.Fprintf(out, "*")
 
 			if count >= hookBatchSize {
-				fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
-				os.Stdout.Sync()
+				fmt.Fprintf(out, " Checking %d branches\n", count)
 
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
@@ -147,12 +248,10 @@ Gitea or set your environment appropriately.`, "")
 				lastline = 0
 			}
 		} else {
-			fmt.Fprintf(os.Stdout, ".")
-			os.Stdout.Sync()
+			fmt.Fprintf(out, ".")
 		}
 		if lastline >= hookBatchSize {
-			fmt.Fprintf(os.Stdout, "\n")
-			os.Stdout.Sync()
+			fmt.Fprintf(out, "\n")
 			lastline = 0
 		}
 	}
@@ -162,8 +261,7 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
-		fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
-		os.Stdout.Sync()
+		fmt.Fprintf(out, " Checking %d branches\n", count)
 
 		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 		switch statusCode {
@@ -173,14 +271,11 @@ Gitea or set your environment appropriately.`, "")
 			fail(msg, "")
 		}
 	} else if lastline > 0 {
-		fmt.Fprintf(os.Stdout, "\n")
-		os.Stdout.Sync()
+		fmt.Fprintf(out, "\n")
 		lastline = 0
 	}
 
-	fmt.Fprintf(os.Stdout, "Checked %d references in total\n", total)
-	os.Stdout.Sync()
-
+	fmt.Fprintf(out, "Checked %d references in total\n", total)
 	return nil
 }
 
@@ -190,11 +285,17 @@ func runHookUpdate(c *cli.Context) error {
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	// First of all run update-server-info no matter what
+	if _, err := git.NewCommand("update-server-info").Run(); err != nil {
+		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	// Now if we're an internal don't do anything else
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
 	}
 
-	setup("hooks/post-receive.log", false)
+	setup("hooks/post-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -203,6 +304,19 @@ If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		} else {
 			return nil
+		}
+	}
+
+	var out io.Writer
+	var dWriter *delayWriter
+	out = &nilWriter{}
+	if setting.Git.VerbosePush {
+		if setting.Git.VerbosePushDelay > 0 {
+			dWriter = newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
+			defer dWriter.Close()
+			out = dWriter
+		} else {
+			out = os.Stdout
 		}
 	}
 
@@ -219,6 +333,7 @@ Gitea or set your environment appropriately.`, "")
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		GitPushOptions:                  pushOptions(),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -241,7 +356,7 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fmt.Fprintf(os.Stdout, ".")
+		fmt.Fprintf(out, ".")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
@@ -250,16 +365,15 @@ Gitea or set your environment appropriately.`, "")
 		}
 		count++
 		total++
-		os.Stdout.Sync()
 
 		if count >= hookBatchSize {
-			fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
-			os.Stdout.Sync()
+			fmt.Fprintf(out, " Processing %d references\n", count)
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
 			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resp == nil {
+				_ = dWriter.Close()
 				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
@@ -277,9 +391,9 @@ Gitea or set your environment appropriately.`, "")
 				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 			}
 		}
-		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
-		os.Stdout.Sync()
+		fmt.Fprintf(out, "Processed %d references in total\n", total)
 
+		_ = dWriter.Close()
 		hookPrintResults(results)
 		return nil
 	}
@@ -288,19 +402,18 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.NewCommitIDs = newCommitIDs[:count]
 	hookOptions.RefFullNames = refFullNames[:count]
 
-	fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
-	os.Stdout.Sync()
+	fmt.Fprintf(out, " Processing %d references\n", count)
 
 	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resp == nil {
+		_ = dWriter.Close()
 		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
 	wasEmpty = wasEmpty || resp.RepoWasEmpty
 	results = append(results, resp.Results...)
 
-	fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
-	os.Stdout.Sync()
+	fmt.Fprintf(out, "Processed %d references in total\n", total)
 
 	if wasEmpty && masterPushed {
 		// We need to tell the repo to reset the default branch to master
@@ -309,7 +422,7 @@ Gitea or set your environment appropriately.`, "")
 			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 		}
 	}
-
+	_ = dWriter.Close()
 	hookPrintResults(results)
 
 	return nil
@@ -332,4 +445,18 @@ func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 		fmt.Fprintln(os.Stderr, "")
 		os.Stderr.Sync()
 	}
+}
+
+func pushOptions() map[string]string {
+	opts := make(map[string]string)
+	if pushCount, err := strconv.Atoi(os.Getenv(private.GitPushOptionCount)); err == nil {
+		for idx := 0; idx < pushCount; idx++ {
+			opt := os.Getenv(fmt.Sprintf("GIT_PUSH_OPTION_%d", idx))
+			kv := strings.SplitN(opt, "=", 2)
+			if len(kv) == 2 {
+				opts[kv[0]] = kv[1]
+			}
+		}
+	}
+	return opts
 }

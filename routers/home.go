@@ -15,6 +15,7 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
 )
@@ -71,10 +72,11 @@ func Home(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID  int64
-	Private  bool
-	PageSize int
-	TplName  base.TplName
+	OwnerID    int64
+	Private    bool
+	Restricted bool
+	PageSize   int
+	TplName    base.TplName
 }
 
 var (
@@ -135,8 +137,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		Page:               page,
-		PageSize:           opts.PageSize,
+		ListOptions: models.ListOptions{
+			Page:     page,
+			PageSize: opts.PageSize,
+		},
+		Actor:              ctx.User,
 		OrderBy:            orderBy,
 		Private:            opts.Private,
 		Keyword:            keyword,
@@ -228,6 +233,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
+	ctx.Data["UsersTwoFaStatus"] = models.UserList(users).GetTwoFaStatus()
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -246,10 +252,11 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
-		PageSize: setting.UI.ExplorePagingNum,
-		IsActive: util.OptionalBoolTrue,
-		Private:  true,
+		Actor:       ctx.User,
+		Type:        models.UserTypeIndividual,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		IsActive:    util.OptionalBoolTrue,
+		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
@@ -260,16 +267,16 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	var ownerID int64
-	if ctx.User != nil && !ctx.User.IsAdmin {
-		ownerID = ctx.User.ID
+	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
+	if ctx.User != nil {
+		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		PageSize: setting.UI.ExplorePagingNum,
-		Private:  ctx.User != nil,
-		OwnerID:  ownerID,
+		Actor:       ctx.User,
+		Type:        models.UserTypeOrganization,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		Visible:     visibleTypes,
 	}, tplExploreOrganizations)
 }
 
@@ -285,6 +292,7 @@ func ExploreCode(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 
+	language := strings.TrimSpace(ctx.Query("l"))
 	keyword := strings.TrimSpace(ctx.Query("q"))
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -295,16 +303,14 @@ func ExploreCode(ctx *context.Context) {
 		repoIDs []int64
 		err     error
 		isAdmin bool
-		userID  int64
 	)
 	if ctx.User != nil {
-		userID = ctx.User.ID
 		isAdmin = ctx.User.IsAdmin
 	}
 
 	// guest user or non-admin user
 	if ctx.User == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -312,8 +318,9 @@ func ExploreCode(ctx *context.Context) {
 	}
 
 	var (
-		total         int
-		searchResults []*code_indexer.Result
+		total                 int
+		searchResults         []*code_indexer.Result
+		searchResultLanguages []*code_indexer.SearchResultLanguages
 	)
 
 	// if non-admin login user, we need check UnitTypeCode at first
@@ -327,7 +334,7 @@ func ExploreCode(ctx *context.Context) {
 		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(userID, isAdmin, models.UnitTypeCode) {
+			if repo.CheckUnitUser(ctx.User, models.UnitTypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}
@@ -335,14 +342,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -372,12 +379,15 @@ func ExploreCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
 	ctx.Data["SearchResults"] = searchResults
+	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplExploreCode)

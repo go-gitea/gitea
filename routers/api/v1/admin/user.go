@@ -7,6 +7,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -85,10 +87,20 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		if err != nil {
+			log.Error(err.Error())
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
+			models.IsErrNameCharsNotAllowed(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -148,7 +160,15 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		var err error
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Data["Err_Password"] = true
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
@@ -223,6 +243,11 @@ func DeleteUser(ctx *context.APIContext) {
 
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	if u.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", u.Name))
 		return
 	}
 
@@ -328,16 +353,27 @@ func GetAllUsers(ctx *context.APIContext) {
 	// summary: List all users
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
-		OrderBy:  models.SearchOrderByAlphabetically,
-		PageSize: -1,
+	listOptions := utils.GetListOptions(ctx)
+
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		Type:        models.UserTypeIndividual,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
@@ -349,5 +385,8 @@ func GetAllUsers(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &results)
 }

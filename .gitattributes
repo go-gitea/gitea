@@ -1,7 +1,3 @@
 * text=auto eol=lf
-conf/* linguist-vendored
-docker/* linguist-vendored
-options/* linguist-vendored
-public/* linguist-vendored
-scripts/* linguist-vendored
-templates/* linguist-vendored
+/vendor/** -text -eol linguist-vendored
+/public/vendor/** -text -eol linguist-vendored

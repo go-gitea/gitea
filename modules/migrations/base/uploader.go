@@ -11,12 +11,13 @@ type Uploader interface {
 	CreateRepo(repo *Repository, opts MigrateOptions) error
 	CreateTopics(topic ...string) error
 	CreateMilestones(milestones ...*Milestone) error
-	CreateReleases(releases ...*Release) error
+	CreateReleases(downloader Downloader, releases ...*Release) error
 	SyncTags() error
 	CreateLabels(labels ...*Label) error
 	CreateIssues(issues ...*Issue) error
 	CreateComments(comments ...*Comment) error
 	CreatePullRequests(prs ...*PullRequest) error
+	CreateReviews(reviews ...*Review) error
 	Rollback() error
 	Close()
 }

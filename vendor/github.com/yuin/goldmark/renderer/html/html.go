@@ -564,7 +564,7 @@ func (r *Renderer) renderImage(w util.BufWriter, source []byte, node ast.Node, e
 		_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
 	}
 	_, _ = w.WriteString(`" alt="`)
-	_, _ = w.Write(n.Text(source))
+	_, _ = w.Write(util.EscapeHTML(n.Text(source)))
 	_ = w.WriteByte('"')
 	if n.Title != nil {
 		_, _ = w.WriteString(` title="`)
@@ -660,13 +660,13 @@ func RenderAttributes(w util.BufWriter, node ast.Node, filter util.BytesFilter) 
 	}
 }
 
-// A Writer interface wirtes textual contents to a writer.
+// A Writer interface writes textual contents to a writer.
 type Writer interface {
 	// Write writes the given source to writer with resolving references and unescaping
 	// backslash escaped characters.
 	Write(writer util.BufWriter, source []byte)
 
-	// RawWrite wirtes the given source to writer without resolving references and
+	// RawWrite writes the given source to writer without resolving references and
 	// unescaping backslash escaped characters.
 	RawWrite(writer util.BufWriter, source []byte)
 }

@@ -140,22 +140,7 @@ func Accept4(fd, flags int) (nfd int, sa Sockaddr, err error) {
 	return
 }
 
-const ImplementsGetwd = true
-
 //sys	Getcwd(buf []byte) (n int, err error) = SYS___GETCWD
-
-func Getwd() (string, error) {
-	var buf [PathMax]byte
-	_, err := Getcwd(buf[0:])
-	if err != nil {
-		return "", err
-	}
-	n := clen(buf[:])
-	if n < 1 {
-		return "", EINVAL
-	}
-	return string(buf[:n]), nil
-}
 
 func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 	var (
@@ -521,18 +506,8 @@ func PtraceGetFpRegs(pid int, fpregsout *FpReg) (err error) {
 	return ptrace(PTRACE_GETFPREGS, pid, uintptr(unsafe.Pointer(fpregsout)), 0)
 }
 
-func PtraceGetFsBase(pid int, fsbase *int64) (err error) {
-	return ptrace(PTRACE_GETFSBASE, pid, uintptr(unsafe.Pointer(fsbase)), 0)
-}
-
 func PtraceGetRegs(pid int, regsout *Reg) (err error) {
 	return ptrace(PTRACE_GETREGS, pid, uintptr(unsafe.Pointer(regsout)), 0)
-}
-
-func PtraceIO(req int, pid int, addr uintptr, out []byte, countin int) (count int, err error) {
-	ioDesc := PtraceIoDesc{Op: int32(req), Offs: (*byte)(unsafe.Pointer(addr)), Addr: (*byte)(unsafe.Pointer(&out[0])), Len: uint(countin)}
-	err = ptrace(PTRACE_IO, pid, uintptr(unsafe.Pointer(&ioDesc)), 0)
-	return int(ioDesc.Len), err
 }
 
 func PtraceLwpEvents(pid int, enable int) (err error) {

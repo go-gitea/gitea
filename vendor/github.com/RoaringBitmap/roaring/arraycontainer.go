@@ -24,6 +24,18 @@ func (ac *arrayContainer) fillLeastSignificant16bits(x []uint32, i int, mask uin
 	}
 }
 
+func (ac *arrayContainer) iterate(cb func(x uint16) bool) bool {
+	iterator := shortIterator{ac.content, 0}
+
+	for iterator.hasNext() {
+		if !cb(iterator.next()) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (ac *arrayContainer) getShortIterator() shortPeekable {
 	return &shortIterator{ac.content, 0}
 }
@@ -864,6 +876,41 @@ func (ac *arrayContainer) loadData(bitmapContainer *bitmapContainer) {
 	ac.content = make([]uint16, bitmapContainer.cardinality, bitmapContainer.cardinality)
 	bitmapContainer.fillArray(ac.content)
 }
+
+func (ac *arrayContainer) resetTo(a container) {
+	switch x := a.(type) {
+	case *arrayContainer:
+		ac.realloc(len(x.content))
+		copy(ac.content, x.content)
+
+	case *bitmapContainer:
+		ac.realloc(x.cardinality)
+		x.fillArray(ac.content)
+
+	case *runContainer16:
+		card := int(x.cardinality())
+		ac.realloc(card)
+		cur := 0
+		for _, r := range x.iv {
+			for val := r.start; val <= r.last(); val++ {
+				ac.content[cur] = val
+				cur++
+			}
+		}
+
+	default:
+		panic("unsupported container type")
+	}
+}
+
+func (ac *arrayContainer) realloc(size int) {
+	if cap(ac.content) < size {
+		ac.content = make([]uint16, size)
+	} else {
+		ac.content = ac.content[:size]
+	}
+}
+
 func newArrayContainer() *arrayContainer {
 	p := new(arrayContainer)
 	return p

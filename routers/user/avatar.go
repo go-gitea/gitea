@@ -5,10 +5,12 @@
 package user
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -40,4 +42,27 @@ func Avatar(ctx *context.Context) {
 	}
 
 	ctx.Redirect(user.RealSizedAvatarLink(size))
+}
+
+// AvatarByEmailHash redirects the browser to the appropriate Avatar link
+func AvatarByEmailHash(ctx *context.Context) {
+	hash := ctx.Params(":hash")
+	if len(hash) == 0 {
+		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
+		return
+	}
+	email, err := models.GetEmailForHash(hash)
+	if err != nil {
+		ctx.ServerError("invalid avatar hash", err)
+		return
+	}
+	if len(email) == 0 {
+		ctx.Redirect(base.DefaultAvatarLink())
+		return
+	}
+	size := ctx.QueryInt("size")
+	if size == 0 {
+		size = base.DefaultAvatarSize
+	}
+	ctx.Redirect(base.SizedAvatarLinkWithDomain(email, size))
 }

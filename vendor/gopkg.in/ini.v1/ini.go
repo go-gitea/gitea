@@ -18,8 +18,10 @@
 package ini
 
 import (
+	"os"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -29,13 +31,7 @@ const (
 
 	// Maximum allowed depth when recursively substituing variable names.
 	depthValues = 99
-	version     = "1.51.1"
 )
-
-// Version returns current package version literal.
-func Version() string {
-	return version
-}
 
 var (
 	// LineBreak is the delimiter to determine or compose a new line.
@@ -61,8 +57,10 @@ var (
 	DefaultFormatRight = ""
 )
 
+var inTest = len(os.Args) > 0 && strings.HasSuffix(strings.TrimSuffix(os.Args[0], ".exe"), ".test")
+
 func init() {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" && !inTest {
 		LineBreak = "\r\n"
 	}
 }
@@ -73,12 +71,18 @@ type LoadOptions struct {
 	Loose bool
 	// Insensitive indicates whether the parser forces all section and key names to lowercase.
 	Insensitive bool
+	// InsensitiveSections indicates whether the parser forces all section to lowercase.
+	InsensitiveSections bool
+	// InsensitiveKeys indicates whether the parser forces all key names to lowercase.
+	InsensitiveKeys bool
 	// IgnoreContinuation indicates whether to ignore continuation lines while parsing.
 	IgnoreContinuation bool
 	// IgnoreInlineComment indicates whether to ignore comments at the end of value and treat it as part of value.
 	IgnoreInlineComment bool
 	// SkipUnrecognizableLines indicates whether to skip unrecognizable lines that do not conform to key/value pairs.
 	SkipUnrecognizableLines bool
+	// ShortCircuit indicates whether to ignore other configuration sources after loaded the first available configuration source.
+	ShortCircuit bool
 	// AllowBooleanKeys indicates whether to allow boolean type keys or treat as value is missing.
 	// This type of keys are mostly used in my.cnf.
 	AllowBooleanKeys bool
@@ -109,12 +113,18 @@ type LoadOptions struct {
 	UnparseableSections []string
 	// KeyValueDelimiters is the sequence of delimiters that are used to separate key and value. By default, it is "=:".
 	KeyValueDelimiters string
+	// KeyValueDelimiterOnWrite is the delimiter that are used to separate key and value output. By default, it is "=".
+	KeyValueDelimiterOnWrite string
+	// ChildSectionDelimiter is the delimiter that is used to separate child sections. By default, it is ".".
+	ChildSectionDelimiter string
 	// PreserveSurroundedQuote indicates whether to preserve surrounded quote (single and double quotes).
 	PreserveSurroundedQuote bool
 	// DebugFunc is called to collect debug information (currently only useful to debug parsing Python-style multiline values).
 	DebugFunc DebugFunc
 	// ReaderBufferSize is the buffer size of the reader in bytes.
 	ReaderBufferSize int
+	// AllowNonUniqueSections indicates whether to allow sections with the same name multiple times.
+	AllowNonUniqueSections bool
 }
 
 // DebugFunc is the type of function called to log parse events.

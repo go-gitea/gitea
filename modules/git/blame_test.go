@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"io/ioutil"
 	"testing"
 
@@ -93,8 +94,10 @@ func TestReadingBlameOutput(t *testing.T) {
 	if _, err = tempFile.WriteString(exampleBlame); err != nil {
 		panic(err)
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	blameReader, err := createBlameReader("", "cat", tempFile.Name())
+	blameReader, err := createBlameReader(ctx, "", "cat", tempFile.Name())
 	if err != nil {
 		panic(err)
 	}

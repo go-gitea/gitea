@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -113,6 +112,11 @@ func newIndexUsing(path string, mapping mapping.IndexMapping, indexType string, 
 		}
 		return nil, err
 	}
+	defer func(rv *indexImpl) {
+		if !rv.open {
+			rv.i.Close()
+		}
+	}(&rv)
 
 	// now persist the mapping
 	mappingBytes, err := json.Marshal(mapping)
@@ -178,6 +182,11 @@ func openIndexUsing(path string, runtimeConfig map[string]interface{}) (rv *inde
 		}
 		return nil, err
 	}
+	defer func(rv *indexImpl) {
+		if !rv.open {
+			rv.i.Close()
+		}
+	}(rv)
 
 	// now load the mapping
 	indexReader, err := rv.i.Reader()
@@ -579,7 +588,7 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 		req.Sort.Reverse()
 		// resort using the original order
 		mhs := newSearchHitSorter(req.Sort, hits)
-		sort.Sort(mhs)
+		req.SortFunc()(mhs)
 		// reset request
 		req.SearchBefore = req.SearchAfter
 		req.SearchAfter = nil

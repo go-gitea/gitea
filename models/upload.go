@@ -13,8 +13,9 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 	"github.com/unknwon/com"
 )
 
@@ -46,7 +47,7 @@ func (upload *Upload) LocalPath() string {
 // NewUpload creates a new upload object.
 func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err error) {
 	upload := &Upload{
-		UUID: gouuid.NewV4().String(),
+		UUID: gouuid.New().String(),
 		Name: name,
 	}
 
@@ -76,8 +77,8 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 
 // GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
-	upload := &Upload{UUID: uuid}
-	has, err := x.Get(upload)
+	upload := &Upload{}
+	has, err := x.Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -129,7 +130,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 			continue
 		}
 
-		if err := os.Remove(localPath); err != nil {
+		if err := util.Remove(localPath); err != nil {
 			return fmt.Errorf("remove upload: %v", err)
 		}
 	}

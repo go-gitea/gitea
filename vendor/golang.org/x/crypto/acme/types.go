@@ -102,7 +102,12 @@ func (a *AuthorizationError) Error() string {
 	for i, err := range a.Errors {
 		e[i] = err.Error()
 	}
-	return fmt.Sprintf("acme: authorization error for %s: %s", a.Identifier, strings.Join(e, "; "))
+
+	if a.Identifier != "" {
+		return fmt.Sprintf("acme: authorization error for %s: %s", a.Identifier, strings.Join(e, "; "))
+	}
+
+	return fmt.Sprintf("acme: authorization error: %s", strings.Join(e, "; "))
 }
 
 // OrderError is returned from Client's order related methods.
@@ -407,6 +412,7 @@ type wireAuthz struct {
 	Wildcard     bool
 	Challenges   []wireChallenge
 	Combinations [][]int
+	Error        *wireError
 }
 
 func (z *wireAuthz) authorization(uri string) *Authorization {
@@ -430,11 +436,17 @@ func (z *wireAuthz) error(uri string) *AuthorizationError {
 		URI:        uri,
 		Identifier: z.Identifier.Value,
 	}
+
+	if z.Error != nil {
+		err.Errors = append(err.Errors, z.Error.error(nil))
+	}
+
 	for _, raw := range z.Challenges {
 		if raw.Error != nil {
 			err.Errors = append(err.Errors, raw.Error.error(nil))
 		}
 	}
+
 	return err
 }
 

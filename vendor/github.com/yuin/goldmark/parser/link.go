@@ -147,11 +147,6 @@ func (s *linkParser) Parse(parent ast.Node, block text.Reader, pc Context) ast.N
 		ast.MergeOrReplaceTextSegment(last.Parent(), last, last.Segment)
 		return nil
 	}
-	labelValue := block.Value(text.NewSegment(last.Segment.Start+1, segment.Start))
-	if util.IsBlank(labelValue) && !last.IsImage {
-		ast.MergeOrReplaceTextSegment(last.Parent(), last, last.Segment)
-		return nil
-	}
 
 	c := block.Peek()
 	l, pos := block.Position()
@@ -351,14 +346,31 @@ func parseLinkTitle(block text.Reader) ([]byte, bool) {
 	if opener == '(' {
 		closer = ')'
 	}
-	line, _ := block.PeekLine()
-	pos := util.FindClosure(line[1:], opener, closer, false, true)
-	if pos < 0 {
-		return nil, false
+	savedLine, savedPosition := block.Position()
+	var title []byte
+	for i := 0; ; i++ {
+		line, _ := block.PeekLine()
+		if line == nil {
+			block.SetPosition(savedLine, savedPosition)
+			return nil, false
+		}
+		offset := 0
+		if i == 0 {
+			offset = 1
+		}
+		pos := util.FindClosure(line[offset:], opener, closer, false, true)
+		if pos < 0 {
+			title = append(title, line[offset:]...)
+			block.AdvanceLine()
+			continue
+		}
+		pos += offset + 1 // 1: closer
+		block.Advance(pos)
+		if i == 0 { // avoid allocating new slice
+			return line[offset : pos-1], true
+		}
+		return append(title, line[offset:pos-1]...), true
 	}
-	pos += 2 // opener + closer
-	block.Advance(pos)
-	return line[1 : pos-1], true
 }
 
 func (s *linkParser) CloseBlock(parent ast.Node, block text.Reader, pc Context) {

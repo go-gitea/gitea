@@ -30,14 +30,14 @@
 			<div class="item">
 				<!-- TODO add regenerate secret functionality */ -->
 				{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
-				<form class="ui form ignore-dirty" action="{{$.AppSubURL}}/user/settings/applications/oauth2/{{.App.ID}}/regenerate_secret" method="post">
+				<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}/regenerate_secret" method="post">
 					{{.CsrfTokenHtml}}
 					<a href="#" onclick="event.target.parentNode.submit()">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
 				</form>
 			</div>
 		</div>
 		<div class="ui attached bottom segment">
-			<form class="ui form ignore-dirty" action="{{$.AppSubURL}}/user/settings/applications/oauth2/{{.App.ID}}" method="post">
+			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_AppName}}error{{end}}">
 					<label for="application-name">{{.i18n.Tr "settings.oauth2_application_name"}}</label>

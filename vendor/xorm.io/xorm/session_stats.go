@@ -17,17 +17,9 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 		defer session.Close()
 	}
 
-	var sqlStr string
-	var args []interface{}
-	var err error
-	if session.statement.RawSQL == "" {
-		sqlStr, args, err = session.statement.genCountSQL(bean...)
-		if err != nil {
-			return 0, err
-		}
-	} else {
-		sqlStr = session.statement.RawSQL
-		args = session.statement.RawParams
+	sqlStr, args, err := session.statement.GenCountSQL(bean...)
+	if err != nil {
+		return 0, err
 	}
 
 	var total int64
@@ -50,21 +42,12 @@ func (session *Session) sum(res interface{}, bean interface{}, columnNames ...st
 		return errors.New("need a pointer to a variable")
 	}
 
-	var isSlice = v.Elem().Kind() == reflect.Slice
-	var sqlStr string
-	var args []interface{}
-	var err error
-	if len(session.statement.RawSQL) == 0 {
-		sqlStr, args, err = session.statement.genSumSQL(bean, columnNames...)
-		if err != nil {
-			return err
-		}
-	} else {
-		sqlStr = session.statement.RawSQL
-		args = session.statement.RawParams
+	sqlStr, args, err := session.statement.GenSumSQL(bean, columnNames...)
+	if err != nil {
+		return err
 	}
 
-	if isSlice {
+	if v.Elem().Kind() == reflect.Slice {
 		err = session.queryRow(sqlStr, args...).ScanSlice(res)
 	} else {
 		err = session.queryRow(sqlStr, args...).Scan(res)

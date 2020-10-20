@@ -7,15 +7,13 @@ package xorm
 import (
 	"database/sql"
 	"reflect"
-	"time"
 
-	"xorm.io/builder"
-	"xorm.io/core"
+	"xorm.io/xorm/core"
 )
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
 	for _, filter := range session.engine.dialect.Filters() {
-		*sqlStr = filter.Do(*sqlStr, session.engine.dialect, session.statement.RefTable)
+		*sqlStr = filter.Do(*sqlStr)
 	}
 
 	session.lastSQL = *sqlStr
@@ -24,30 +22,14 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 
 func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Rows, error) {
 	defer session.resetStatement()
+	if session.statement.LastError != nil {
+		return nil, session.statement.LastError
+	}
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	if session.showSQL {
-		session.lastSQL = sqlStr
-		session.lastSQLArgs = args
-		if session.engine.showExecTime {
-			b4ExecTime := time.Now()
-			defer func() {
-				execDuration := time.Since(b4ExecTime)
-				if len(args) > 0 {
-					session.engine.logger.Infof("[SQL] %s %#v - took: %v", sqlStr, args, execDuration)
-				} else {
-					session.engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
-				}
-			}()
-		} else {
-			if len(args) > 0 {
-				session.engine.logger.Infof("[SQL] %v %#v", sqlStr, args)
-			} else {
-				session.engine.logger.Infof("[SQL] %v", sqlStr)
-			}
-		}
-	}
+	session.lastSQL = sqlStr
+	session.lastSQLArgs = args
 
 	if session.isAutoCommit {
 		var db *core.DB
@@ -156,25 +138,8 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	if session.engine.showSQL {
-		if session.engine.showExecTime {
-			b4ExecTime := time.Now()
-			defer func() {
-				execDuration := time.Since(b4ExecTime)
-				if len(args) > 0 {
-					session.engine.logger.Infof("[SQL] %s %#v - took: %v", sqlStr, args, execDuration)
-				} else {
-					session.engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
-				}
-			}()
-		} else {
-			if len(args) > 0 {
-				session.engine.logger.Infof("[SQL] %v %#v", sqlStr, args)
-			} else {
-				session.engine.logger.Infof("[SQL] %v", sqlStr)
-			}
-		}
-	}
+	session.lastSQL = sqlStr
+	session.lastSQLArgs = args
 
 	if !session.isAutoCommit {
 		return session.tx.ExecContext(session.ctx, sqlStr, args...)
@@ -196,20 +161,6 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 	return session.DB().ExecContext(session.ctx, sqlStr, args...)
 }
 
-func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
-	switch sqlOrArgs[0].(type) {
-	case string:
-		return sqlOrArgs[0].(string), sqlOrArgs[1:], nil
-	case *builder.Builder:
-		return sqlOrArgs[0].(*builder.Builder).ToSQL()
-	case builder.Builder:
-		bd := sqlOrArgs[0].(builder.Builder)
-		return bd.ToSQL()
-	}
-
-	return "", nil, ErrUnSupportedType
-}
-
 // Exec raw sql
 func (session *Session) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 	if session.isAutoClose {
@@ -220,7 +171,7 @@ func (session *Session) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 		return nil, ErrUnSupportedType
 	}
 
-	sqlStr, args, err := convertSQLOrArgs(sqlOrArgs...)
+	sqlStr, args, err := session.statement.ConvertSQLOrArgs(sqlOrArgs...)
 	if err != nil {
 		return nil, err
 	}

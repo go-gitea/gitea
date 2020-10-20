@@ -8,13 +8,13 @@ package pull
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -30,7 +30,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	// - Comments that are part of a review
 	// - Comments that reply to an existing review
 
-	if !isReview {
+	if !isReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
 		if existsReview, err = models.ReviewExists(issue, treePath, line); err != nil {
@@ -68,14 +68,13 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = models.CreateReview(models.CreateReviewOptions{
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
 			Official: false,
 			CommitID: latestCommitID,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, err
 		}
 	}
@@ -105,6 +104,8 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	return comment, nil
 }
 
+var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
+
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
@@ -112,8 +113,8 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
+	if err := pr.LoadBaseRepo(); err != nil {
+		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
@@ -128,7 +129,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
 		if err == nil {
 			commitID = commit.ID.String()
-		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
+		} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
 	}
@@ -140,10 +141,10 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
 		patchBuf := new(bytes.Buffer)
-		if err := gitdiff.GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, gitdiff.RawDiffNormal, treePath, patchBuf); err != nil {
+		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
 			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
-		patch = gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return models.CreateComment(&models.CreateCommentOptions{
 		Type:      models.CommentTypeCode,

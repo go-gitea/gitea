@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -60,25 +58,6 @@ func (t *TrackedTime) loadAttributes(e Engine) (err error) {
 	return
 }
 
-// APIFormat converts TrackedTime to API format
-func (t *TrackedTime) APIFormat() (apiT *api.TrackedTime) {
-	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
-	}
-	if t.Issue != nil {
-		apiT.Issue = t.Issue.APIFormat()
-	}
-	if t.User != nil {
-		apiT.UserName = t.User.Name
-	}
-	return
-}
-
 // LoadAttributes load Issue, User
 func (tl TrackedTimeList) LoadAttributes() (err error) {
 	for _, t := range tl {
@@ -89,17 +68,9 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 	return
 }
 
-// APIFormat converts TrackedTimeList to API format
-func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
-	result := make([]*api.TrackedTime, 0, len(tl))
-	for _, t := range tl {
-		result = append(result, t.APIFormat())
-	}
-	return result
-}
-
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
+	ListOptions
 	IssueID           int64
 	UserID            int64
 	RepositoryID      int64
@@ -133,11 +104,19 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 }
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
-func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
+func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
+	sess := e
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
-		return e.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(opts.ToCond())
+		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
-	return e.Where(opts.ToCond())
+
+	sess = sess.Where(opts.ToCond())
+
+	if opts.Page != 0 {
+		sess = opts.setEnginePagination(sess)
+	}
+
+	return sess
 }
 
 func getTrackedTimes(e Engine, options FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
@@ -281,6 +260,10 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
+	if err := t.loadAttributes(sess); err != nil {
+		return err
+	}
+
 	if err := deleteTime(sess, t); err != nil {
 		return err
 	}
@@ -320,10 +303,8 @@ func deleteTime(e Engine, t *TrackedTime) error {
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
 func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
-	time := &TrackedTime{
-		ID: id,
-	}
-	has, err := x.Get(time)
+	time := new(TrackedTime)
+	has, err := x.ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {

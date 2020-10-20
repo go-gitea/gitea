@@ -35,11 +35,12 @@ func getDefaultBranchSha(repo *models.Repository) (string, error) {
 
 // getRepoChanges returns changes to repo since last indexer update
 func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	if err := repo.GetIndexerStatus(); err != nil {
+	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeCode)
+	if err != nil {
 		return nil, err
 	}
 
-	if len(repo.IndexerStatus.CommitSha) == 0 {
+	if len(status.CommitSha) == 0 {
 		return genesisChanges(repo, revision)
 	}
 	return nonGenesisChanges(repo, revision)
@@ -98,7 +99,7 @@ func genesisChanges(repo *models.Repository, revision string) (*repoChanges, err
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
 	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.IndexerStatus.CommitSha, revision)
+		repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, err := diffCmd.RunInDir(repo.RepoPath())
 	if err != nil {
 		// previous commit sha may have been removed by a force push, so
@@ -116,7 +117,12 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		if len(line) == 0 {
 			continue
 		}
-		filename := strings.TrimSpace(line[1:])
+		fields := strings.Split(line, "\t")
+		if len(fields) < 2 {
+			log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+			continue
+		}
+		filename := fields[1]
 		if len(filename) == 0 {
 			continue
 		} else if filename[0] == '"' {
@@ -126,11 +132,31 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 			}
 		}
 
-		switch status := line[0]; status {
+		switch status := fields[0][0]; status {
 		case 'M', 'A':
 			updatedFilenames = append(updatedFilenames, filename)
 		case 'D':
 			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
+		case 'R', 'C':
+			if len(fields) < 3 {
+				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				continue
+			}
+			dest := fields[2]
+			if len(dest) == 0 {
+				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				continue
+			}
+			if dest[0] == '"' {
+				dest, err = strconv.Unquote(dest)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if status == 'R' {
+				changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
+			}
+			updatedFilenames = append(updatedFilenames, dest)
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}

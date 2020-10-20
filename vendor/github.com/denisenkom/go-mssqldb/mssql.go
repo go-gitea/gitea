@@ -397,7 +397,10 @@ func (s *Stmt) Close() error {
 }
 
 func (s *Stmt) SetQueryNotification(id, options string, timeout time.Duration) {
-	to := uint32(timeout / time.Second)
+	// 2.2.5.3.1 Query Notifications Header
+	// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/e168d373-a7b7-41aa-b6ca-25985466a7e0
+	// Timeout in milliseconds in TDS protocol.
+	to := uint32(timeout / time.Millisecond)
 	if to < 1 {
 		to = 1
 	}

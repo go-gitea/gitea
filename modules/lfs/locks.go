@@ -19,10 +19,12 @@ import (
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
 func checkIsValidRequest(ctx *context.Context) bool {
 	if !setting.LFS.StartServer {
+		log.Debug("Attempt to access LFS server but LFS server is disabled")
 		writeStatus(ctx, 404)
 		return false
 	}
 	if !MetaMatcher(ctx.Req) {
+		log.Info("Attempt access LOCKs without accepting the correct media type: %s", metaMediaType)
 		writeStatus(ctx, 400)
 		return false
 	}
@@ -47,7 +49,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 			return
 		}
 		ctx.JSON(500, api.LFSLockError{
-			Message: "unable to list locks : " + err.Error(),
+			Message: "unable to list locks : Internal Server Error",
 		})
 		return
 	}
@@ -65,6 +67,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
 	if !checkIsValidRequest(ctx) {
+		// Status is written in checkIsValidRequest
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -87,7 +90,17 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	//TODO handle query cursor and limit
+
+	cursor := ctx.QueryInt("cursor")
+	if cursor < 0 {
+		cursor = 0
+	}
+	limit := ctx.QueryInt("limit")
+	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
+		limit = setting.LFS.LocksPagingNum
+	} else if limit < 0 {
+		limit = 0
+	}
 	id := ctx.Query("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
@@ -98,6 +111,9 @@ func GetListLockHandler(ctx *context.Context) {
 			return
 		}
 		lock, err := models.GetLFSLockByID(v)
+		if err != nil && !models.IsErrLFSLockNotExist(err) {
+			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
+		}
 		handleLockListOut(ctx, repository, lock, err)
 		return
 	}
@@ -105,30 +121,40 @@ func GetListLockHandler(ctx *context.Context) {
 	path := ctx.Query("path")
 	if path != "" { //Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
+		if err != nil && !models.IsErrLFSLockNotExist(err) {
+			log.Error("Unable to get lock for repository %-v with path %s: Error: %v", repository, path, err)
+		}
 		handleLockListOut(ctx, repository, lock, err)
 		return
 	}
 
 	//If no query params path or id
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
+		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(500, api.LFSLockError{
-			Message: "unable to list locks : " + err.Error(),
+			Message: "unable to list locks : Internal Server Error",
 		})
 		return
 	}
 	lockListAPI := make([]*api.LFSLock, len(lockList))
+	next := ""
 	for i, l := range lockList {
 		lockListAPI[i] = l.APIFormat()
 	}
+	if limit > 0 && len(lockList) == limit {
+		next = strconv.Itoa(cursor + 1)
+	}
 	ctx.JSON(200, api.LFSLockList{
 		Locks: lockListAPI,
+		Next:  next,
 	})
 }
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
 	if !checkIsValidRequest(ctx) {
+		// Status is written in checkIsValidRequest
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -139,7 +165,7 @@ func PostLockHandler(ctx *context.Context) {
 
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
-		log.Debug("Could not find repository: %s/%s - %s", userName, repoName, err)
+		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -159,6 +185,7 @@ func PostLockHandler(ctx *context.Context) {
 	defer bodyReader.Close()
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
+		log.Warn("Failed to decode lock request as json. Error: %v", err)
 		writeStatus(ctx, 400)
 		return
 	}
@@ -183,8 +210,9 @@ func PostLockHandler(ctx *context.Context) {
 			})
 			return
 		}
+		log.Error("Unable to CreateLFSLock in repository %-v at %s for user %-v: Error: %v", repository, req.Path, ctx.User, err)
 		ctx.JSON(500, api.LFSLockError{
-			Message: "internal server error : " + err.Error(),
+			Message: "internal server error : Internal Server Error",
 		})
 		return
 	}
@@ -194,6 +222,7 @@ func PostLockHandler(ctx *context.Context) {
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
 	if !checkIsValidRequest(ctx) {
+		// Status is written in checkIsValidRequest
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -204,7 +233,7 @@ func VerifyLockHandler(ctx *context.Context) {
 
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
-		log.Debug("Could not find repository: %s/%s - %s", userName, repoName, err)
+		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -219,13 +248,27 @@ func VerifyLockHandler(ctx *context.Context) {
 		return
 	}
 
-	//TODO handle body json cursor and limit
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
+	cursor := ctx.QueryInt("cursor")
+	if cursor < 0 {
+		cursor = 0
+	}
+	limit := ctx.QueryInt("limit")
+	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
+		limit = setting.LFS.LocksPagingNum
+	} else if limit < 0 {
+		limit = 0
+	}
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
+		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(500, api.LFSLockError{
-			Message: "unable to list locks : " + err.Error(),
+			Message: "unable to list locks : Internal Server Error",
 		})
 		return
+	}
+	next := ""
+	if limit > 0 && len(lockList) == limit {
+		next = strconv.Itoa(cursor + 1)
 	}
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
@@ -239,12 +282,14 @@ func VerifyLockHandler(ctx *context.Context) {
 	ctx.JSON(200, api.LFSLockListVerify{
 		Ours:   lockOursListAPI,
 		Theirs: lockTheirsListAPI,
+		Next:   next,
 	})
 }
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
 	if !checkIsValidRequest(ctx) {
+		// Status is written in checkIsValidRequest
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -255,7 +300,7 @@ func UnLockHandler(ctx *context.Context) {
 
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
-		log.Debug("Could not find repository: %s/%s - %s", userName, repoName, err)
+		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -275,6 +320,7 @@ func UnLockHandler(ctx *context.Context) {
 	defer bodyReader.Close()
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
+		log.Warn("Failed to decode lock request as json. Error: %v", err)
 		writeStatus(ctx, 400)
 		return
 	}
@@ -288,8 +334,9 @@ func UnLockHandler(ctx *context.Context) {
 			})
 			return
 		}
+		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.ParamsInt64("lid"), ctx.User, req.Force, err)
 		ctx.JSON(500, api.LFSLockError{
-			Message: "unable to delete lock : " + err.Error(),
+			Message: "unable to delete lock : Internal Server Error",
 		})
 		return
 	}

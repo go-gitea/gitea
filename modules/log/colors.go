@@ -355,7 +355,7 @@ func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
 // The Value will be colored with FgCyan
 // If a ColoredValue is provided it is not changed
 func NewColoredIDValue(value interface{}) *ColoredValue {
-	return NewColoredValueBytes(&value, &fgCyanBytes)
+	return NewColoredValueBytes(value, &fgCyanBytes)
 }
 
 // Format will format the provided value and protect against ANSI color spoofing within the value

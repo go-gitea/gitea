@@ -139,7 +139,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find("#issue-title").Text()
 	assert.Equal(t, title, val)
-	val = htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
 
 	return issueURL
@@ -154,7 +154,7 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	link, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
-	commentCount := htmlDoc.doc.Find(".comment-list .comments .comment .render-content").Length()
+	commentCount := htmlDoc.doc.Find(".comment-list .comment .render-content").Length()
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":   htmlDoc.GetCSRF(),
@@ -168,10 +168,10 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").Eq(commentCount).Text()
+	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").Eq(commentCount).Text()
 	assert.Equal(t, content, val)
 
-	idAttr, has := htmlDoc.doc.Find(".comment-list .comments .comment").Eq(commentCount).Attr("id")
+	idAttr, has := htmlDoc.doc.Find(".comment-list .comment").Eq(commentCount).Attr("id")
 	idStr := idAttr[strings.LastIndexByte(idAttr, '-')+1:]
 	assert.True(t, has)
 	id, err := strconv.Atoi(idStr)
@@ -197,7 +197,7 @@ func TestIssueCommentClose(t *testing.T) {
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
 }
 

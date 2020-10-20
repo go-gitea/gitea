@@ -6,6 +6,7 @@ import (
 
 // contribOptionsOverride gives contributed templates the ability to override the options if they need
 func contribOptionsOverride(opts *generator.GenOpts) {
+	// nolint: gocritic
 	switch opts.Template {
 	case "stratoscale":
 		// Stratoscale template needs to regenerate the configureapi on every run.

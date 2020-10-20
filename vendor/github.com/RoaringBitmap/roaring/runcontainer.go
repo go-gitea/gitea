@@ -1162,6 +1162,18 @@ func (rc *runContainer16) newRunIterator16() *runIterator16 {
 	return &runIterator16{rc: rc, curIndex: 0, curPosInIndex: 0}
 }
 
+func (rc *runContainer16) iterate(cb func(x uint16) bool) bool {
+	iterator := runIterator16{rc, 0, 0}
+
+	for iterator.hasNext() {
+		if !cb(iterator.next()) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // hasNext returns false if calling next will panic. It
 // returns true when there is at least one more value
 // available in the iteration sequence.
@@ -1288,6 +1300,47 @@ func (ri *runIterator16) nextMany(hs uint32, buf []uint32) int {
 			buf2 := buf[n : n+moreVals]
 			for i := range buf2 {
 				buf2[i] = base + uint32(i)
+			}
+
+			// update values
+			n += moreVals
+		}
+
+		if moreVals+int(ri.curPosInIndex) > int(ri.rc.iv[ri.curIndex].length) {
+			ri.curPosInIndex = 0
+			ri.curIndex++
+
+			if ri.curIndex == int64(len(ri.rc.iv)) {
+				break
+			}
+		} else {
+			ri.curPosInIndex += uint16(moreVals) //moreVals always fits in uint16
+		}
+	}
+
+	return n
+}
+
+func (ri *runIterator16) nextMany64(hs uint64, buf []uint64) int {
+	n := 0
+
+	if !ri.hasNext() {
+		return n
+	}
+
+	// start and end are inclusive
+	for n < len(buf) {
+		moreVals := 0
+
+		if ri.rc.iv[ri.curIndex].length >= ri.curPosInIndex {
+			// add as many as you can from this seq
+			moreVals = minOfInt(int(ri.rc.iv[ri.curIndex].length-ri.curPosInIndex)+1, len(buf)-n)
+			base := uint64(ri.rc.iv[ri.curIndex].start+ri.curPosInIndex) | hs
+
+			// allows BCE
+			buf2 := buf[n : n+moreVals]
+			for i := range buf2 {
+				buf2[i] = base + uint64(i)
 			}
 
 			// update values

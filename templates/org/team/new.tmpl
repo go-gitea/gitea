@@ -81,10 +81,14 @@
 							<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
 							<br>
 							{{range $t, $unit := $.Units}}
+							{{if $unit.Type.UnitGlobalDisabled}}
+							<div class="field poping up" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
+							{{else}}
 							<div class="field">
+							{{end}}
 								<div class="ui toggle checkbox">
 									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type.Value}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
-									<label>{{$.i18n.Tr $unit.NameKey}}</label>
+									<label>{{$.i18n.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.i18n.Tr "org.team_unit_disabled"}}{{end}}</label>
 									<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
 								</div>
 							</div>

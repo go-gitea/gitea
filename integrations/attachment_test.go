@@ -9,14 +9,13 @@ import (
 	"image"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +43,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 
 	csrf := GetCSRF(t, session, repoURL)
 
-	req := NewRequestWithBody(t, "POST", "/attachments", body)
+	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, expectedStatus)
@@ -58,13 +57,13 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 }
 
 func TestCreateAnonymousAttachment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := emptyTestSession(t)
 	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
 	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
@@ -93,7 +92,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 }
 
 func TestGetAttachment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminSession := loginUser(t, "user1")
 	user2Session := loginUser(t, "user2")
 	user8Session := loginUser(t, "user8")
@@ -123,10 +122,7 @@ func TestGetAttachment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			//Write empty file to be available for response
 			if tc.createFile {
-				localPath := models.AttachmentLocalPath(tc.uuid)
-				err := os.MkdirAll(path.Dir(localPath), os.ModePerm)
-				assert.NoError(t, err)
-				err = ioutil.WriteFile(localPath, []byte("hello world"), 0644)
+				_, err := storage.Attachments.Save(models.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"))
 				assert.NoError(t, err)
 			}
 			//Actual test

@@ -138,7 +138,7 @@ func TestLinkedRepository(t *testing.T) {
 		expectedUnitType UnitType
 	}{
 		{"LinkedIssue", 1, &Repository{ID: 1}, UnitTypeIssues},
-		{"LinkedComment", 3, &Repository{ID: 1}, UnitTypeIssues},
+		{"LinkedComment", 3, &Repository{ID: 1}, UnitTypePullRequests},
 		{"LinkedRelease", 9, &Repository{ID: 1}, UnitTypeReleases},
 		{"Notlinked", 10, nil, -1},
 	}

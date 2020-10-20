@@ -6,7 +6,6 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -44,7 +43,7 @@ func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.R
 }
 
 // NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 }
 
 // NotifyPullRequestSynchronized places a place holder function
@@ -53,6 +52,10 @@ func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models
 
 // NotifyPullRequestChangeTargetBranch places a place holder function
 func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
+}
+
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func (*NullNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
 }
 
 // NotifyUpdateComment places a place holder function
@@ -87,12 +90,20 @@ func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.I
 func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 }
 
+// NotifyPullReviewRequest places a place holder function
+func (*NullNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+}
+
 // NotifyIssueClearLabels places a place holder function
 func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 }
 
 // NotifyIssueChangeTitle places a place holder function
 func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+}
+
+// NotifyIssueChangeRef places a place holder function
+func (*NullNotifier) NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldTitle string) {
 }
 
 // NotifyIssueChangeLabels places a place holder function

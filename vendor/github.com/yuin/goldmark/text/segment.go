@@ -7,7 +7,7 @@ import (
 
 var space = []byte(" ")
 
-// A Segment struct holds information about source potisions.
+// A Segment struct holds information about source positions.
 type Segment struct {
 	// Start is a start position of the segment.
 	Start int
@@ -197,7 +197,7 @@ func (s *Segments) Sliced(lo, hi int) []Segment {
 	return s.values[lo:hi]
 }
 
-// Clear delete all element of the collction.
+// Clear delete all element of the collection.
 func (s *Segments) Clear() {
 	s.values = nil
 }

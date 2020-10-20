@@ -105,10 +105,6 @@ func (e *EmptyDictionaryIterator) Contains(key []byte) (bool, error) {
 	return false, nil
 }
 
-func (e *EmptyPostingsIterator) Advance(uint64) (Posting, error) {
-	return nil, nil
-}
-
 type EmptyPostingsList struct{}
 
 func (e *EmptyPostingsList) Iterator(includeFreq, includeNorm, includeLocations bool,
@@ -127,6 +123,10 @@ func (e *EmptyPostingsList) Count() uint64 {
 type EmptyPostingsIterator struct{}
 
 func (e *EmptyPostingsIterator) Next() (Posting, error) {
+	return nil, nil
+}
+
+func (e *EmptyPostingsIterator) Advance(uint64) (Posting, error) {
 	return nil, nil
 }
 

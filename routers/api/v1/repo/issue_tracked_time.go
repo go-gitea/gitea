@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -50,6 +51,14 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   description: Only show times updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
@@ -71,6 +80,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
 	}
@@ -93,7 +103,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // AddTime add time manual to the given issue
@@ -178,7 +188,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTime.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTime(trackedTime))
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -307,7 +317,15 @@ func DeleteTime(ctx *context.APIContext) {
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
+		if models.IsErrNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err)
+		return
+	}
+	if time.Deleted {
+		ctx.NotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
 		return
 	}
 
@@ -399,7 +417,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -434,6 +452,14 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   description: Only show times updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
@@ -448,6 +474,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
@@ -486,7 +513,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -494,6 +521,15 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// parameters:
@@ -511,7 +547,10 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	opts := models.FindTrackedTimesOptions{UserID: ctx.User.ID}
+	opts := models.FindTrackedTimesOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
+	}
 
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
@@ -530,5 +569,5 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }

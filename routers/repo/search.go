@@ -22,26 +22,30 @@ func Search(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink, 302)
 		return
 	}
+	language := strings.TrimSpace(ctx.Query("l"))
 	keyword := strings.TrimSpace(ctx.Query("q"))
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
 	}
-	total, searchResults, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
-		keyword, page, setting.UI.RepoSearchPagingNum)
+	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
+		language, keyword, page, setting.UI.RepoSearchPagingNum)
 	if err != nil {
 		ctx.ServerError("SearchResults", err)
 		return
 	}
 	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" +
-		path.Join(ctx.Repo.Repository.Owner.Name, ctx.Repo.Repository.Name, "src", "branch", ctx.Repo.Repository.DefaultBranch)
+		path.Join(ctx.Repo.Repository.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.Data["SearchResults"] = searchResults
+	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplSearch)

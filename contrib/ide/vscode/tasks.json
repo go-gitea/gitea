@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "taskName": "Build",
+      "label": "Build",
       "type": "shell",
       "command": "go",
       "group": "build",
@@ -12,20 +12,19 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build"],
       "linux": {
-        "args": [ "-o", "gitea", "${workspaceRoot}/main.go" ]
+        "args": ["build", "-o", "gitea", "${workspaceRoot}/main.go" ]
       },
       "osx": {
-        "args": [ "-o", "gitea", "${workspaceRoot}/main.go" ]
+        "args": ["build", "-o", "gitea", "${workspaceRoot}/main.go" ]
       },
       "windows": {
-        "args": [ "-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
+        "args": ["build", "-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
       },
       "problemMatcher": ["$go"]
     },
     {
-      "taskName": "Build (with SQLite3)",
+      "label": "Build (with SQLite3)",
       "type": "shell",
       "command": "go",
       "group": "build",
@@ -35,15 +34,14 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\""],
       "linux": {
-        "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
+        "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\"", "-o", "gitea", "${workspaceRoot}/main.go"]
       },
       "osx": {
-        "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
+        "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\"", "-o", "gitea", "${workspaceRoot}/main.go"]
       },
       "windows": {
-        "args": ["-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
+        "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\"", "-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
       },
       "problemMatcher": ["$go"]
     }

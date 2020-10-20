@@ -6,6 +6,7 @@ package public
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 	"path"
@@ -18,8 +19,6 @@ import (
 	"gitea.com/macaron/macaron"
 )
 
-//go:generate go run -mod=vendor main.go
-
 // Options represents the available options to configure the macaron handler.
 type Options struct {
 	Directory   string
@@ -30,6 +29,15 @@ type Options struct {
 	ExpiresAfter time.Duration
 	FileSystem   http.FileSystem
 	Prefix       string
+}
+
+// KnownPublicEntries list all direct children in the `public` directory
+var KnownPublicEntries = []string{
+	"css",
+	"img",
+	"js",
+	"serviceworker.js",
+	"vendor",
 }
 
 // Custom implements the macaron static handler for serving custom assets.
@@ -101,6 +109,19 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 
 	f, err := opt.FileSystem.Open(file)
 	if err != nil {
+		// 404 requests to any known entries in `public`
+		if path.Base(opts.Directory) == "public" {
+			parts := strings.Split(file, "/")
+			if len(parts) < 2 {
+				return false
+			}
+			for _, entry := range KnownPublicEntries {
+				if entry == parts[1] {
+					ctx.Resp.WriteHeader(404)
+					return true
+				}
+			}
+		}
 		return false
 	}
 	defer f.Close()
@@ -138,7 +159,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	// Add an Expires header to the static content
 	if opt.ExpiresAfter > 0 {
 		ctx.Resp.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
-		tag := GenerateETag(string(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
+		tag := GenerateETag(fmt.Sprint(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
 		ctx.Resp.Header().Set("ETag", tag)
 		if ctx.Req.Header.Get("If-None-Match") == tag {
 			ctx.Resp.WriteHeader(304)
