@@ -63,22 +63,32 @@ func (r *ReverseProxy) IsEnabled() bool {
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
 func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
+
+	// Just return user if session is estabilshed already.
+	user := SessionUser(sess)
+	if user != nil {
+		return user
+	}
+
+	// If no session established, get username from header.
 	username := r.getUserName(ctx)
 	if len(username) == 0 {
 		return nil
 	}
 
-	var user *models.User
 	var err error
 
 	if r.isAutoRegisterAllowed() {
 		// Use auto registration from reverse proxy if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION enabled.
 		if user, err = models.GetUserByName(username); err != nil {
 			if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
-				return r.newUser(ctx)
+				if user = r.newUser(ctx); user == nil {
+					return nil
+				}
+			} else {
+				log.Error("GetUserByName: %v", err)
+				return nil
 			}
-			log.Error("GetUserByName: %v", err)
-			return nil
 		}
 	} else {
 		// Use auto registration from other backends if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION not enabled.
@@ -90,20 +100,9 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 		}
 	}
 
-	// If the user does not have a locale set, we save the current one.
-	if len(user.Language) == 0 {
-		user.Language = ctx.Locale.Language()
-		if err = models.UpdateUserCols(user, "language"); err != nil {
-			log.Error(fmt.Sprintf("VerifyAuthData: error updating user language [user: %d, locale: %s]", user.ID, user.Language))
-		}
-	}
+	// Initialize new session.
+	handleSignIn(ctx, sess, user)
 
-	ctx.SetCookie("lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
-
-	// Clear whatever CSRF has right now, force to generate a new one.
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
-
-	// Register last login.
 	user.SetLastLogin()
 	if err = models.UpdateUserCols(user, false, "last_login_unix"); err != nil {
 		log.Error(fmt.Sprintf("VerifyAuthData: error updating user last login time [user: %d]", user.ID))
