@@ -98,6 +98,17 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 		}
 	}
 
+	ctx.SetCookie("lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
+	// Clear whatever CSRF has right now, force to generate a new one.
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
+	// Register last login.
+	user.SetLastLogin()
+	if err = models.UpdateUserCols(user, false, "last_login_unix"); err != nil {
+		log.Error(fmt.Sprintf("VerifyAuthData: error updating user last login time [user: %d]", user.ID))
+	}
+
 	return user
 }
 
