@@ -167,9 +167,16 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
+		if len(commitID) == 0 {
+			commitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+			if err != nil {
+				return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			}
+		}
+
 		patchBuf := new(bytes.Buffer)
 		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, commitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, commitID, treePath)
+			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, commitID, treePath, err)
 		}
 		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
