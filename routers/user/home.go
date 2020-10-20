@@ -467,7 +467,7 @@ func Issues(ctx *context.Context) {
 
 	// Execute keyword search for issues.
 
-	// Ensure issue list is emtpy if keyword search didn't produce any results.
+	// Ensure issue list is empty if keyword search didn't produce any results.
 	var forceEmpty bool
 	// Required for IssuesOptions.
 	var issueIDsFromSearch []int64
