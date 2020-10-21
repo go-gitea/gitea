@@ -181,64 +181,60 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
-var addSpanRegex = regexp.MustCompile(`<span\s*[a-z="]*$`)
+var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+
+// shouldWriteInline represents combinations where we manually write inline changes
+func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
+	if true &&
+		diff.Type == diffmatchpatch.DiffEqual ||
+		diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd ||
+		diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel {
+		return true
+	}
+	return false
+}
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-	var addSpan string
-	for i := range diffs {
+	match := ""
+
+	for _, diff := range diffs {
+		if shouldWriteInline(diff, lineType) {
+			if len(match) > 0 {
+				diff.Text = match + diff.Text
+				match = ""
+			}
+			// Chroma HTML syntax highlighting is done before diffing individual lines in order to maintain consistency.
+			// Since inline changes might split in the middle of a chroma span tag, make we manually put it back together
+			// before writing so we don't try insert added/removed code spans in the middle of an existing chroma span
+			// and create broken HTML.
+			m := trailingSpanRegex.FindStringSubmatchIndex(diff.Text)
+			if m != nil {
+				match = diff.Text[m[0]:m[1]]
+				diff.Text = strings.TrimSuffix(diff.Text, match)
+			}
+			// Print an existing closing span first before opening added/remove-code span so it doesn't unintentionally close it
+			if strings.HasPrefix(diff.Text, "</span>") {
+				buf.WriteString("</span>")
+				diff.Text = strings.TrimPrefix(diff.Text, "</span>")
+			}
+			// If we weren't able to fix it then this should avoid broken HTML by not inserting more spans below
+			// The previous/next diff section will contain the rest of the tag that is missing here
+			if strings.Count(diff.Text, "<") != strings.Count(diff.Text, ">") {
+				buf.WriteString(diff.Text)
+				continue
+			}
+		}
 		switch {
-		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			// Looking for the case where our 3rd party diff library previously detected a string difference
-			// in the middle of a span class because we highlight them first. This happens when added/deleted code
-			// also changes the chroma class name, either partially or fully. If found, just move the openining span code forward into the next section
-			// see TestDiffToHTML for examples
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				buf.WriteString(strings.TrimSuffix(diffs[i].Text, addSpan))
-			} else {
-				addSpan = ""
-				buf.WriteString(getLineContent(diffs[i].Text))
-			}
-		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
-			if strings.HasPrefix(diffs[i].Text, "</span>") {
-				buf.WriteString("</span>")
-				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
-			}
+		case diff.Type == diffmatchpatch.DiffEqual:
+			buf.WriteString(diff.Text)
+		case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(diffs[i].Text)
+			buf.WriteString(diff.Text)
 			buf.Write(codeTagSuffix)
-		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			if strings.HasPrefix(diffs[i].Text, "</span>") {
-				buf.WriteString("</span>")
-				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
-			}
+		case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(diffs[i].Text)
+			buf.WriteString(diff.Text)
 			buf.Write(codeTagSuffix)
 		}
 	}
@@ -534,6 +530,8 @@ parsingLoop:
 				break parsingLoop
 			}
 			switch {
+			case strings.HasPrefix(line, cmdDiffHead):
+				break curFileLoop
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
 				if strings.HasSuffix(line, " 160000\n") {
@@ -854,7 +852,14 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	defer cancel()
 	var cmd *exec.Cmd
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		if len(whitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, whitespaceBehavior)
+		}
+		// append empty tree ref
+		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+		diffArgs = append(diffArgs, afterCommitID)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
