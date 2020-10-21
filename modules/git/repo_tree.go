@@ -89,11 +89,11 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if CheckGitVersionConstraint(">= 1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
+	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if CheckGitVersionConstraint(">= 2.0.0") == nil && opts.NoGPGSign {
+	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
