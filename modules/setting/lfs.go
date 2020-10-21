@@ -96,7 +96,7 @@ func CheckLFSVersion() {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
+		if git.CheckGitVersionAtLeast("2.1.2") != nil {
 			LFS.StartServer = false
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {

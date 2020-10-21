@@ -400,6 +400,13 @@
         background-color: #ffffee;
       }
 
+      tr.has-parent a {
+        display: inline-block;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        width: calc(100% - 1.25rem);
+      }
+
       .jumpable-path {
         color: #888888;
       }
@@ -538,7 +545,7 @@
           .branch-name {
             display: inline-block;
             padding: 3px 6px;
-            font: 12px @monospaced-fonts, monospace;
+            font: 12px var(--fonts-monospace);
             color: rgba(0, 0, 0, .65);
             background-color: rgba(209, 227, 237, .45);
             border-radius: 3px;
@@ -1143,7 +1150,7 @@
 
           textarea {
             height: 200px;
-            font-family: @monospaced-fonts, monospace;
+            font-family: var(--fonts-monospace);
           }
         }
 
@@ -1252,7 +1259,7 @@
 
       textarea {
         height: 200px;
-        font-family: @monospaced-fonts, monospace;
+        font-family: var(--fonts-monospace);
       }
     }
   }
@@ -2071,7 +2078,7 @@
     &.new {
       .CodeMirror {
         .CodeMirror-code {
-          font-family: @monospaced-fonts, monospace;
+          font-family: var(--fonts-monospace);
 
           .cm-comment {
             background: inherit;

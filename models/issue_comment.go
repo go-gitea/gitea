@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
@@ -352,20 +351,6 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 	return c.Issue.HTMLURL()
-}
-
-// APIFormat converts a Comment to the api.Comment format
-func (c *Comment) APIFormat() *api.Comment {
-	return &api.Comment{
-		ID:       c.ID,
-		Poster:   c.Poster.APIFormat(),
-		HTMLURL:  c.HTMLURL(),
-		IssueURL: c.IssueURL(),
-		PRURL:    c.PRURL(),
-		Body:     c.Content,
-		Created:  c.CreatedUnix.AsTime(),
-		Updated:  c.UpdatedUnix.AsTime(),
-	}
 }
 
 // CommentHashTag returns unique hash tag for comment id.
