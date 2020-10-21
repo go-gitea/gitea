@@ -134,7 +134,7 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
-	// Template contain al options to create a repo based on a template
+	// Template contains all options to generate a repo based on a template
 	Template *CreateRepoTemplateOption `json:"template,omitempty"`
 }
 
