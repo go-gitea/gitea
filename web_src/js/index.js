@@ -25,6 +25,7 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
+import {stripTags} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -1325,25 +1326,26 @@ function initWikiForm() {
       element: $editArea[0],
       forceSync: true,
       previewRender(plainText, preview) { // Async method
+        // FIXME: still send render request when return back to edit mode
+        const render = function () {
+          sideBySideChanges = 0;
+          if (sideBySideTimeout !== null) {
+            clearTimeout(sideBySideTimeout);
+            sideBySideTimeout = null;
+          }
+          $.post($editArea.data('url'), {
+            _csrf: csrf,
+            mode: 'gfm',
+            context: $editArea.data('context'),
+            text: plainText,
+            wiki: true
+          }, (data) => {
+            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+            renderMarkdownContent();
+          });
+        };
+
         setTimeout(() => {
-          // FIXME: still send render request when return back to edit mode
-          const render = function () {
-            sideBySideChanges = 0;
-            if (sideBySideTimeout !== null) {
-              clearTimeout(sideBySideTimeout);
-              sideBySideTimeout = null;
-            }
-            $.post($editArea.data('url'), {
-              _csrf: csrf,
-              mode: 'gfm',
-              context: $editArea.data('context'),
-              text: plainText,
-              wiki: true
-            }, (data) => {
-              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              renderMarkdownContent();
-            });
-          };
           if (!simplemde.isSideBySideActive()) {
             render();
           } else {
@@ -3367,10 +3369,6 @@ function initTopicbar() {
           success: false,
           results: [],
         };
-        const stripTags = function (text) {
-          return text.replace(/<[^>]*>?/gm, '');
-        };
-
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
