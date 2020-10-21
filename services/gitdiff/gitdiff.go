@@ -534,6 +534,8 @@ parsingLoop:
 				break parsingLoop
 			}
 			switch {
+			case strings.HasPrefix(line, cmdDiffHead):
+				break curFileLoop
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
 				if strings.HasSuffix(line, " 160000\n") {
