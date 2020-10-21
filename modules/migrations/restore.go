@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/migrations/base"
 
@@ -82,14 +83,30 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 
 // GetRepoInfo returns a repository information
 func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+	p := filepath.Join(r.baseDir, "repo.yml")
+	bs, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts = make(map[string]string)
+	err = yaml.Unmarshal(bs, &opts)
+	if err != nil {
+		return nil, err
+	}
+
+	isPrivate, _ := strconv.ParseBool(opts["is_private"])
+
 	return &base.Repository{
 		Owner:         r.repoOwner,
 		Name:          r.repoName,
-		IsPrivate:     true,
-		//Description:   gr.GetDescription(), // FIXME
-		//OriginalURL:   gr.GetHTMLURL(), // FIXME
-		CloneURL:      r.gitPath(), // FIXME
-		DefaultBranch: "master", // FIXME
+		IsPrivate:     isPrivate,
+		Description:   opts["description"],
+		OriginalURL:   opts["original_url"],
+		CloneURL:      opts["clone_addr"],
+		DefaultBranch: opts["default_branch"],
+		AuthUsername: opts["auth_username"],
+		AuthPassword: opts["auth_passwd"],
 	}, nil
 }
 

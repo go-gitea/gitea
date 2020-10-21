@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -110,6 +111,54 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
 		return err
 	}
+
+	var remoteAddr = repo.CloneURL
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(repo.CloneURL)
+		if err != nil {
+			return err
+		}
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
+		remoteAddr = u.String()
+	}
+
+	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	bs, err := yaml.Marshal(map[string]interface{}{
+		"name": repo.Name,
+		"owner": repo.Owner,
+		"description": repo.Description,
+		"clone_addr": remoteAddr,
+		"original_url": repo.OriginalURL,
+		"is_private": opts.Private,
+		"auth_username": opts.AuthUsername,
+		"auth_password": opts.AuthPassword,
+		"auth_token": opts.AuthToken,
+		"service_type": opts.GitServiceType,
+		"wiki": opts.Wiki,
+		"issues": opts.Issues,
+		"milestones": opts.Milestones,
+		"labels": opts.Labels,
+		"releases": opts.Releases,
+		"comments": opts.Comments,
+		"pulls": opts.PullRequests,
+		"assets": opts.ReleaseAssets,
+	})
+	if err != nil {
+		return err
+	}
+
+	if _, err := f.Write(bs); err != nil {
+		return err
+	}
+
 	repoPath := g.gitPath()
 	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 		return err
@@ -117,7 +166,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 
 	migrateTimeout := 2 * time.Hour
 
-	err := git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -128,7 +177,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
-		wikiRemotePath := repository.WikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := repository.WikiRemoteURL(remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)

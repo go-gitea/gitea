@@ -42,12 +42,17 @@ var CmdDumpRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "auth_username",
 			Value: "",
-			Usage: "The username or personal token to visit the clone_addr, it's required",
+			Usage: "The username to visit the clone_addr",
 		},
 		cli.StringFlag{
 			Name:  "auth_password",
 			Value: "",
-			Usage: "The password to visit the clone_addr if auth_username is a real user name",
+			Usage: "The password to visit the clone_addr",
+		},
+		cli.StringFlag{
+			Name:  "auth_token",
+			Value: "",
+			Usage: "The personal token to visit the clone_addr",
 		},
 		cli.StringFlag{
 			Name:  "owner_name",
@@ -84,6 +89,7 @@ func runDumpRepository(ctx *cli.Context) error {
 		CloneAddr:    ctx.String("clone_addr"),
 		AuthUsername: ctx.String("auth_username"),
 		AuthPassword: ctx.String("auth_password"),
+		AuthToken: ctx.String("auth_token"),
 		RepoName:     ctx.String("repo_name"),
 	}
 
