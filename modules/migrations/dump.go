@@ -36,9 +36,9 @@ type RepositoryDumper struct {
 	labelFile            *os.File
 	releaseFile          *os.File
 	issueFile            *os.File
-	commentFile          *os.File
+	commentFiles         map[int64]*os.File
 	pullrequestFile      *os.File
-	reviewFile           *os.File
+	reviewFiles          map[int64]*os.File
 	migrateReleaseAssets bool
 
 	gitRepo     *git.Repository
@@ -54,6 +54,8 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		repoOwner:            repoOwner,
 		repoName:             repoName,
 		prHeadCache:          make(map[string]struct{}),
+		commentFiles: make(map[int64]*os.File),
+		reviewFiles: make(map[int64]*os.File),
 		migrateReleaseAssets: migrateReleaseAssets,
 	}
 }
@@ -92,7 +94,7 @@ func (g *RepositoryDumper) issueDir() string {
 }
 
 func (g *RepositoryDumper) commentDir() string {
-	return filepath.Join(g.baseDir)
+	return filepath.Join(g.baseDir, "comments")
 }
 
 func (g *RepositoryDumper) pullrequestDir() string {
@@ -100,7 +102,7 @@ func (g *RepositoryDumper) pullrequestDir() string {
 }
 
 func (g *RepositoryDumper) reviewDir() string {
-	return filepath.Join(g.baseDir)
+	return filepath.Join(g.baseDir, "reviews")
 }
 
 // CreateRepo creates a repository
@@ -167,11 +169,14 @@ func (g *RepositoryDumper) Close() {
 	if g.issueFile != nil {
 		g.issueFile.Close()
 	}
+	for _, f := range g.commentFiles {
+		f.Close()
+	}
 	if g.pullrequestFile != nil {
 		g.pullrequestFile.Close()
 	}
-	if g.reviewFile != nil {
-		g.reviewFile.Close()
+	for _, f := range g.reviewFiles {
+		f.Close()
 	}
 }
 
@@ -341,24 +346,34 @@ func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
 
 // CreateComments creates comments of issues
 func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
-	var err error
-	if g.commentFile == nil {
-		if err := os.MkdirAll(g.commentDir(), os.ModePerm); err != nil {
-			return err
+	var commentsMap = make(map[int64][]*base.Comment, len(comments))
+	for _, comment := range comments {
+		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
+	}
+
+	if err := os.MkdirAll(g.commentDir(), os.ModePerm); err != nil {
+		return err
+	}
+
+	for issueNumber, comments := range commentsMap {
+		var err error
+		commentFile := g.commentFiles[issueNumber]
+		if commentFile == nil {
+			commentFile, err = os.Create(filepath.Join(g.commentDir(), fmt.Sprintf("%d.yml", issueNumber)))
+			if err != nil {
+				return err
+			}
+			g.commentFiles[issueNumber] = commentFile
 		}
-		g.commentFile, err = os.Create(filepath.Join(g.commentDir(), "comment.yml"))
+
+		bs, err := yaml.Marshal(comments)
 		if err != nil {
 			return err
 		}
-	}
 
-	bs, err := yaml.Marshal(comments)
-	if err != nil {
-		return err
-	}
-
-	if _, err := g.commentFile.Write(bs); err != nil {
-		return err
+		if _, err := commentFile.Write(bs); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -469,24 +484,34 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 // CreateReviews create pull request reviews
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
-	var err error
-	if g.reviewFile == nil {
-		if err := os.MkdirAll(g.reviewDir(), os.ModePerm); err != nil {
-			return err
+	var reviewsMap = make(map[int64][]*base.Review, len(reviews))
+	for _, review := range reviews {
+		reviewsMap[review.ID] = append(reviewsMap[review.ID], review)
+	}
+
+	if err := os.MkdirAll(g.reviewDir(), os.ModePerm); err != nil {
+		return err
+	}
+
+	for prNumber, reviews := range reviewsMap {
+		var err error
+		reviewFile := g.reviewFiles[prNumber]
+		if reviewFile == nil {
+			reviewFile, err = os.Create(filepath.Join(g.reviewDir(), fmt.Sprintf("%d.yml", prNumber)))
+			if err != nil {
+				return err
+			}
+			g.reviewFiles[prNumber] = reviewFile
 		}
-		g.reviewFile, err = os.Create(filepath.Join(g.reviewDir(), "review.yml"))
+
+		bs, err := yaml.Marshal(reviews)
 		if err != nil {
 			return err
 		}
-	}
 
-	bs, err := yaml.Marshal(reviews)
-	if err != nil {
-		return err
-	}
-
-	if _, err := g.reviewFile.Write(bs); err != nil {
-		return err
+		if _, err := reviewFile.Write(bs); err != nil {
+			return err
+		}
 	}
 
 	return nil

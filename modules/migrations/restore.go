@@ -6,9 +6,15 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/migrations/base"
+
+	"gopkg.in/yaml.v2"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory
@@ -57,7 +63,7 @@ func (g *RepositoryRestorer) issueDir() string {
 }
 
 func (g *RepositoryRestorer) commentDir() string {
-	return filepath.Join(g.baseDir)
+	return filepath.Join(g.baseDir, "comments")
 }
 
 func (g *RepositoryRestorer) pullrequestDir() string {
@@ -65,7 +71,7 @@ func (g *RepositoryRestorer) pullrequestDir() string {
 }
 
 func (g *RepositoryRestorer) reviewDir() string {
-	return filepath.Join(g.baseDir)
+	return filepath.Join(g.baseDir, "reviews")
 }
 
 func (r *RepositoryRestorer) SetContext(ctx context.Context) {
@@ -77,98 +83,131 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 }
 
 func (r *RepositoryRestorer) GetTopics() ([]string, error) {
-	p := filepath.Join(g.topicDir(), "topic.yml"))
+	p := filepath.Join(r.topicDir(), "topic.yml")
 	
 	var topics = struct {
 		Topics []string `yaml:"topics"`
+	}{}
+
+	bs, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
 	}
 
-	bs, err := ioutil.ReadAll(p)
+	err = yaml.Unmarshal(bs, &topics)
 	if err != nil {
-		return err
-	}
-
-	err := yaml.Unmarshal(bs, &topics)
-	if err != nil {
-		return err
+		return nil, err
 	}
 	return topics.Topics, nil
 }
 
 func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
-	var milestones = make([]*base.Milestone)
-	p := filepath.Join(g.milestoneDir(), "milestone.yml")
-	bs, err := ioutil.ReadAll(p)
+	var milestones = make([]*base.Milestone, 0, 10)
+	p := filepath.Join(r.milestoneDir(), "milestone.yml")
+	bs, err := ioutil.ReadFile(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err := yaml.Unmarshal(bs, &milestones)
+	err = yaml.Unmarshal(bs, &milestones)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return milestones, nil
 }
 
 func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
-	var releases = make([]*base.Release)
-	p := filepath.Join(g.releaseDir(), "release.yml")
-	bs, err := ioutil.ReadAll(p)
+	var releases = make([]*base.Release, 0, 10)
+	p := filepath.Join(r.releaseDir(), "release.yml")
+	bs, err := ioutil.ReadFile(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err := yaml.Unmarshal(bs, &releases)
+	err = yaml.Unmarshal(bs, &releases)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return releases, nil
 }
 
 func (r *RepositoryRestorer) GetAsset(tagName string, relID, assetID int64) (io.ReadCloser, error) {
-	attachDir := filepath.Join(g.releaseDir(), "release_assets", tagName)
-	attachLocalPath := filepath.Join(attachDir, asset.ID)
+	attachDir := filepath.Join(r.releaseDir(), "release_assets", tagName)
+	attachLocalPath := filepath.Join(attachDir, fmt.Sprintf("%d", assetID))
 	return os.Open(attachLocalPath)
 }
 
 func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
-	var labels = make([]*base.Label)
-	p := filepath.Join(g.labelDir(), "label.yml")
-	bs, err := ioutil.ReadAll(p)
+	var labels = make([]*base.Label, 0, 10)
+	p := filepath.Join(r.labelDir(), "label.yml")
+	bs, err := ioutil.ReadFile(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err := yaml.Unmarshal(bs, &labels)
+	err = yaml.Unmarshal(bs, &labels)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return labels, nil
 }
 
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-	var issues = make([]*base.Issue)
-	p := filepath.Join(g.issuesDir(), "issue.yml")
-	bs, err := ioutil.ReadAll(p)
+	var issues = make([]*base.Issue, 0, 10)
+	p := filepath.Join(r.issueDir(), "issue.yml")
+	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
 
-	err := yaml.Unmarshal(bs, &issues)
+	err = yaml.Unmarshal(bs, &issues)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
-	return issues, false, nil
+	return issues, true, nil
 }
 
 func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, error) {
-	return nil, nil
+	var comments = make([]*base.Comment, 0, 10)
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", issueNumber))
+	bs, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+
+	err = yaml.Unmarshal(bs, &comments)
+	if err != nil {
+		return nil, err
+	}
+	return comments, nil
 }
 
 func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
-	return nil, false, nil
+	var pulls = make([]*base.PullRequest, 0, 10)
+	p := filepath.Join(r.pullrequestDir(), "pull_request.yml")
+	bs, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = yaml.Unmarshal(bs, &pulls)
+	if err != nil {
+		return nil, false, err
+	}
+	return pulls, true, nil
 }
 
 func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	return nil, nil
+	var reviews = make([]*base.Review, 0, 10)
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", pullRequestNumber))
+	bs, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+
+	err = yaml.Unmarshal(bs, &reviews)
+	if err != nil {
+		return nil, err
+	}
+	return reviews, nil
 }
