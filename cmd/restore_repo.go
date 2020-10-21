@@ -101,7 +101,7 @@ func runRestoreRepository(ctx *cli.Context) error {
 		ctx.String("owner_name"),
 		ctx.String("repo_name"),
 	); err != nil {
-		log.Fatal("Failed to dump repository: %v", err)
+		log.Fatal("Failed to restore repository: %v", err)
 		return err
 	}
 

@@ -88,7 +88,7 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 		IsPrivate:     true,
 		//Description:   gr.GetDescription(), // FIXME
 		//OriginalURL:   gr.GetHTMLURL(), // FIXME
-		//CloneURL:      gr.GetCloneURL(), // FIXME
+		CloneURL:      r.gitPath(), // FIXME
 		DefaultBranch: "master", // FIXME
 	}, nil
 }
@@ -156,6 +156,14 @@ func (r *RepositoryRestorer) GetAsset(tagName string, relID, assetID int64) (io.
 func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 	var labels = make([]*base.Label, 0, 10)
 	p := filepath.Join(r.labelDir(), "label.yml")
+	_, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, err
@@ -172,6 +180,14 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	var issues = make([]*base.Issue, 0, 10)
 	p := filepath.Join(r.issueDir(), "issue.yml")
+	_, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, false, err
@@ -188,6 +204,14 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var comments = make([]*base.Comment, 0, 10)
 	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", issueNumber))
+	_, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, err
@@ -204,6 +228,14 @@ func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, er
 func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	var pulls = make([]*base.PullRequest, 0, 10)
 	p := filepath.Join(r.pullrequestDir(), "pull_request.yml")
+	_, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, false, err
@@ -220,6 +252,14 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
 	var reviews = make([]*base.Review, 0, 10)
 	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", pullRequestNumber))
+	_, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, err

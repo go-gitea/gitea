@@ -486,7 +486,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
 	var reviewsMap = make(map[int64][]*base.Review, len(reviews))
 	for _, review := range reviews {
-		reviewsMap[review.ID] = append(reviewsMap[review.ID], review)
+		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
 	}
 
 	if err := os.MkdirAll(g.reviewDir(), os.ModePerm); err != nil {
@@ -523,6 +523,10 @@ func (g *RepositoryDumper) Rollback() error {
 	return os.RemoveAll(g.baseDir)
 }
 
+func (g *RepositoryDumper) Finish() error {
+	return nil
+}
+
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
 	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts.ReleaseAssets)
@@ -537,5 +541,14 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	}
 	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
 	var downloader = NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
-	return DoMigrateRepository(downloader, uploader, base.MigrateOptions{})
+	return DoMigrateRepository(downloader, uploader, base.MigrateOptions{
+		Wiki: true,
+		Issues: true,
+		Milestones: true,
+		Labels: true,
+		Releases: true,
+		Comments: true,
+		PullRequests: true,
+		ReleaseAssets: true,
+	})
 }
