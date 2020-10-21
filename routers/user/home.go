@@ -392,26 +392,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	// Parse ctx.Query("repos") -- gets set when clicking filters -- and remember matched repo IDs for later.
-	reposQuery := ctx.Query("repos")
-	var repoIDs []int64
-	if len(reposQuery) != 0 {
-		if issueReposQueryPattern.MatchString(reposQuery) {
-			// remove "[" and "]" from string
-			reposQuery = reposQuery[1 : len(reposQuery)-1]
-			//for each ID (delimiter ",") add to int to repoIDs
-			for _, rID := range strings.Split(reposQuery, ",") {
-				// Ensure nonempty string entries
-				if rID != "" && rID != "0" {
-					rIDint64, err := strconv.ParseInt(rID, 10, 64)
-					if err == nil {
-						repoIDs = append(repoIDs, rIDint64)
-					}
-				}
-			}
-		} else {
-			log.Warn("issueReposQueryPattern not match with query")
-		}
-	}
+	repoIDs := repoIDs(ctx.Query("repos"))
 
 	// No idea what this means.
 	isShowClosed := ctx.Query("state") == "closed"
@@ -717,6 +698,29 @@ func Issues(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplIssues)
+}
+
+func repoIDs(reposQuery string) []int64 {
+	var repoIDs []int64
+	if len(reposQuery) != 0 {
+		if issueReposQueryPattern.MatchString(reposQuery) {
+			// remove "[" and "]" from string
+			reposQuery = reposQuery[1 : len(reposQuery)-1]
+			//for each ID (delimiter ",") add to int to repoIDs
+			for _, rID := range strings.Split(reposQuery, ",") {
+				// Ensure nonempty string entries
+				if rID != "" && rID != "0" {
+					rIDint64, err := strconv.ParseInt(rID, 10, 64)
+					if err == nil {
+						repoIDs = append(repoIDs, rIDint64)
+					}
+				}
+			}
+		} else {
+			log.Warn("issueReposQueryPattern not match with query")
+		}
+	}
+	return repoIDs
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
