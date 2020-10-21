@@ -74,6 +74,15 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
 	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"></span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
+		{Type: dmp.DiffInsert, Text: "<span"},
+		{Type: dmp.DiffEqual, Text: " "},
+		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
+		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
+		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
+	}, DiffLineAdd))
 }
 
 func TestParsePatch_singlefile(t *testing.T) {
@@ -181,6 +190,27 @@ rename to a b/a a/file b/b file
 `,
 			oldFilename: "a b/file b/a a/file",
 			filename:    "a b/a a/file b/b file",
+		},
+		{
+			name: "minuses-and-pluses",
+			gitdiff: `diff --git a/minuses-and-pluses b/minuses-and-pluses
+index 6961180..9ba1a00 100644
+--- a/minuses-and-pluses
++++ b/minuses-and-pluses
+@@ -1,4 +1,4 @@
+--- 1st line
+-++ 2nd line
+--- 3rd line
+-++ 4th line
++++ 1st line
++-- 2nd line
++++ 3rd line
++-- 4th line
+`,
+			oldFilename: "minuses-and-pluses",
+			filename:    "minuses-and-pluses",
+			addition:    4,
+			deletion:    4,
 		},
 	}
 

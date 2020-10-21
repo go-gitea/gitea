@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -1052,7 +1053,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := ctx.User.APIFormat()
+	apiUser := convert.ToUser(ctx.User, true, true)
 	p := &api.PushPayload{
 		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before: commit.ID.String(),
