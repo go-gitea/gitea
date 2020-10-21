@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	tplCreate base.TplName = "repo/create"
+	tplCreate       base.TplName = "repo/create"
+	tplAlertDetails base.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
