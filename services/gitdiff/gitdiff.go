@@ -181,7 +181,7 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
-var trailingSpanRegex = regexp.MustCompile(`<span[^>]*>*?$`)
+var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
 
 // shouldWriteInline represents combinations where we manually write inline changes
 func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
