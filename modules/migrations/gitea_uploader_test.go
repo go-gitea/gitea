@@ -33,7 +33,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	migratedRepo, err := migrateRepository(downloader, uploader, base.MigrateOptions{
+	err := migrateRepository(downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -49,12 +49,11 @@ func TestGiteaUploadRepo(t *testing.T) {
 		Mirror:       false,
 	})
 	assert.NoError(t, err)
-	assert.NotNil(t, migratedRepo)
-	assert.EqualValues(t, models.RepositoryReady, migratedRepo.Status)
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, migratedRepo.ID, repo.ID)
+	assert.EqualValues(t, models.RepositoryReady, repo.Status)
 
 	milestones, err := models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
