@@ -854,7 +854,13 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	defer cancel()
 	var cmd *exec.Cmd
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		if len(whitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, whitespaceBehavior)
+		}
+		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+		diffArgs = append(diffArgs, afterCommitID)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
