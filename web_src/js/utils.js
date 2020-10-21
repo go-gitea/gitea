@@ -24,7 +24,7 @@ export function uniq(arr) {
   return Array.from(new Set(arr));
 }
 
-// strip content inside <tags> from a string
+// strip <tags> from a string
 export function stripTags(text) {
   return text.replace(/<[^>]*>?/gm, '');
 }
