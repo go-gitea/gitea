@@ -112,19 +112,6 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	var remoteAddr = repo.CloneURL
-	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-		u, err := url.Parse(repo.CloneURL)
-		if err != nil {
-			return err
-		}
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
-		}
-		remoteAddr = u.String()
-	}
-
 	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
 	if err != nil {
 		return err
@@ -135,7 +122,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		"name": repo.Name,
 		"owner": repo.Owner,
 		"description": repo.Description,
-		"clone_addr": remoteAddr,
+		"clone_addr": opts.CloneAddr,
 		"original_url": repo.OriginalURL,
 		"is_private": opts.Private,
 		"auth_username": opts.AuthUsername,
@@ -165,6 +152,19 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	}
 
 	migrateTimeout := 2 * time.Hour
+
+	var remoteAddr = repo.CloneURL
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(repo.CloneURL)
+		if err != nil {
+			return err
+		}
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
+		remoteAddr = u.String()
+	}
 
 	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
