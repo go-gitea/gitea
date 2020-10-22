@@ -55,10 +55,17 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 
 // Releases render releases list page
 func Releases(ctx *context.Context) {
+	releasesOrTags(ctx, false)
+}
+
+// TagsList render tags list page
+func TagsList(ctx *context.Context) {
+	releasesOrTags(ctx, true)
+}
+
+func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
-
-	isTagList := ctx.Params(":type") == "tags"
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
@@ -377,13 +384,15 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	isDelTag := ctx.Params(":type") == "tags"
+	deleteReleaseOrTag(ctx, false)
+}
 
-	if isDelTag && !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Status(403)
-		return
-	}
+// DeleteTag delete a tag
+func DeleteTag(ctx *context.Context) {
+	deleteReleaseOrTag(ctx, true)
+}
 
+func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
