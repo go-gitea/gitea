@@ -29,7 +29,7 @@
 				{{if .CanCreateOrgRepo}}
 					<div class="text right">
             {{if not .DisabledMirrors}}
-						  <a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_mirror"}}</a>
+						  <a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
             {{end}}
 						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
 					</div>
