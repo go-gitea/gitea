@@ -953,22 +953,6 @@
 
       .comment {
 
-        .tag {
-          color: #767676;
-          margin-top: 3px;
-          padding: 2px 5px;
-          font-size: 12px;
-          border: 1px solid rgba(0, 0, 0, .1);
-          border-radius: 3px;
-          &.review {
-            margin-left: 5px;
-            &.pending {
-              color: black;
-              background-color: #fffbb2;
-            }
-          }
-        }
-
         .actions {
           .item {
             float: left;
@@ -1005,7 +989,7 @@
           > .header {
             #avatar-arrow;
             font-weight: normal;
-            padding: auto 15px;
+            padding: .5rem 1rem;
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
@@ -1031,6 +1015,10 @@
             .actions {
               display: flex;
               padding: 0 .5rem;
+
+              &.right {
+                margin: 0;
+              }
 
               a {
                 color: rgba(0, 0, 0, .4);
@@ -1226,16 +1214,10 @@
           .hide-outdated {
             display: block;
           }
-        }
 
-        .tag {
-          color: black;
-          margin: 3px 0 0 5px;
-          padding: 2px 5px;
-          font-size: 12px;
-          border: 1px solid rgba(0, 0, 0, .1);
-          border-radius: 3px;
-          background-color: #fffbb2;
+          .label {
+            margin-left: 6px;
+          }
         }
       }
     }
