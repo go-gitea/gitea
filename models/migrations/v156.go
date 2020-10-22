@@ -5,72 +5,134 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/log"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func updateCodeCommentReplies(x *xorm.Engine) error {
-	type Comment struct {
-		ID          int64  `xorm:"pk autoincr"`
-		CommitSHA   string `xorm:"VARCHAR(40)"`
-		Patch       string `xorm:"TEXT patch"`
-		Invalidated bool
+// Copy paste from models/repo.go because we cannot import models package
+func repoPath(userName, repoName string) string {
+	return filepath.Join(userPath(userName), strings.ToLower(repoName)+".git")
+}
 
-		// Not extracted but used in the below query
-		Type     int   `xorm:"INDEX"`
-		Line     int64 // - previous line / + proposed line
-		TreePath string
-		ReviewID int64 `xorm:"index"`
+func userPath(userName string) string {
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+}
+
+func fixPublisherIDforTagReleases(x *xorm.Engine) error {
+
+	type Release struct {
+		ID          int64
+		RepoID      int64
+		Sha1        string
+		TagName     string
+		PublisherID int64
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return err
+	type Repository struct {
+		ID      int64
+		OwnerID int64
+		Name    string
 	}
 
+	type User struct {
+		ID    int64
+		Name  string
+		Email string
+	}
+
+	const batchSize = 100
 	sess := x.NewSession()
 	defer sess.Close()
+
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	var start = 0
-	var batchSize = 100
-	for {
-		var comments = make([]*Comment, 0, batchSize)
-		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
-		FROM comment INNER JOIN (
-			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
-			FROM comment AS C 
-			WHERE C.type = 21
-				AND C.created_unix = 
-					(SELECT MIN(comment.created_unix)
-						FROM comment
-						WHERE comment.review_id = C.review_id
-						AND comment.type = 21
-						AND comment.line = C.line
-						AND comment.tree_path = C.tree_path)
-			) AS first
-			ON comment.review_id = first.review_id
-				AND comment.tree_path = first.tree_path AND comment.line = first.line
-		WHERE comment.type = 21
-			AND comment.id != first.id
-			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
-			log.Error("failed to select: %v", err)
+	var (
+		gitRepoCache = make(map[int64]*git.Repository)
+		gitRepo      *git.Repository
+		repoCache    = make(map[int64]*Repository)
+		userCache    = make(map[int64]*User)
+		ok           bool
+		err          error
+	)
+	defer func() {
+		for i := range gitRepoCache {
+			gitRepoCache[i].Close()
+		}
+	}()
+	for start := 0; ; start += batchSize {
+		releases := make([]*Release, 0, batchSize)
+
+		if err := sess.Limit(batchSize, start).Asc("id").Where("is_tag=?", true).Find(&releases); err != nil {
 			return err
 		}
 
-		for _, comment := range comments {
-			if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
-				log.Error("failed to update comment[%d]: %v %v", comment.ID, comment, err)
-				return err
-			}
+		if len(releases) == 0 {
+			break
 		}
 
-		start += len(comments)
+		for _, release := range releases {
+			gitRepo, ok = gitRepoCache[release.RepoID]
+			if !ok {
+				repo, ok := repoCache[release.RepoID]
+				if !ok {
+					repo = new(Repository)
+					has, err := sess.ID(release.RepoID).Get(repo)
+					if err != nil {
+						return err
+					} else if !has {
+						return fmt.Errorf("Repository %d is not exist", release.RepoID)
+					}
 
-		if len(comments) < batchSize {
-			break
+					repoCache[release.RepoID] = repo
+				}
+
+				user, ok := userCache[repo.OwnerID]
+				if !ok {
+					user = new(User)
+					has, err := sess.ID(repo.OwnerID).Get(user)
+					if err != nil {
+						return err
+					} else if !has {
+						return fmt.Errorf("User %d is not exist", repo.OwnerID)
+					}
+
+					userCache[repo.OwnerID] = user
+				}
+
+				gitRepo, err = git.OpenRepository(repoPath(user.Name, repo.Name))
+				if err != nil {
+					return err
+				}
+				gitRepoCache[release.RepoID] = gitRepo
+			}
+
+			commit, err := gitRepo.GetTagCommit(release.TagName)
+			if err != nil {
+				return fmt.Errorf("GetTagCommit: %v", err)
+			}
+
+			u := new(User)
+			exists, err := sess.Where("email=?", commit.Author.Email).Get(u)
+			if err != nil {
+				return err
+			}
+
+			if !exists {
+				continue
+			}
+
+			release.PublisherID = u.ID
+			if _, err := sess.ID(release.ID).Cols("publisher_id").Update(release); err != nil {
+				return err
+			}
 		}
 	}
 

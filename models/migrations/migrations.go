@@ -247,6 +247,8 @@ var migrations = []Migration{
 	// v155 -> v156
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
+	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
+	// v157 -> v158
 	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
 }
 
