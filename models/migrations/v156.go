@@ -50,9 +50,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+	
 
 	var (
 		gitRepoCache = make(map[int64]*git.Repository)
@@ -69,6 +67,10 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	}()
 	for start := 0; ; start += batchSize {
 		releases := make([]*Release, 0, batchSize)
+
+		if err := sess.Begin(); err != nil {
+			return err
+		}
 
 		if err := sess.Limit(batchSize, start).Asc("id").Where("is_tag=?", true).Find(&releases); err != nil {
 			return err
@@ -134,7 +136,11 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				return err
 			}
 		}
+
+		if err := sess.Commit(); err != nil {
+			return err
+		}
 	}
 
-	return sess.Commit()
+	return nil
 }
