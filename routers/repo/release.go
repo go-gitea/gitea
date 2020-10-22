@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -55,6 +56,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 // Releases render releases list page
 func Releases(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	isTagList := ctx.Params(":type") == "tags"
 
@@ -201,7 +203,6 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	renderAttachmentSettings(ctx)
 	if tagName := ctx.Query("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
@@ -216,6 +217,8 @@ func NewRelease(ctx *context.Context) {
 			ctx.Data["content"] = rel.Note
 		}
 	}
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -301,7 +304,8 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)

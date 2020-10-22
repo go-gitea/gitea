@@ -23,12 +23,18 @@ func brotli_ensure_capacity_uint8_t(a *[]byte, c *uint, r uint) {
 		for new_size < r {
 			new_size *= 2
 		}
-		var new_array []byte = make([]byte, new_size)
-		if *c != 0 {
-			copy(new_array, (*a)[:*c])
+
+		if cap(*a) < int(new_size) {
+			var new_array []byte = make([]byte, new_size)
+			if *c != 0 {
+				copy(new_array, (*a)[:*c])
+			}
+
+			*a = new_array
+		} else {
+			*a = (*a)[:new_size]
 		}
 
-		*a = new_array
 		*c = new_size
 	}
 }
@@ -45,12 +51,16 @@ func brotli_ensure_capacity_uint32_t(a *[]uint32, c *uint, r uint) {
 			new_size *= 2
 		}
 
-		new_array = make([]uint32, new_size)
-		if *c != 0 {
-			copy(new_array, (*a)[:*c])
-		}
+		if cap(*a) < int(new_size) {
+			new_array = make([]uint32, new_size)
+			if *c != 0 {
+				copy(new_array, (*a)[:*c])
+			}
 
-		*a = new_array
+			*a = new_array
+		} else {
+			*a = (*a)[:new_size]
+		}
 		*c = new_size
 	}
 }

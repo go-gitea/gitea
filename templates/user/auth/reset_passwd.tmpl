@@ -19,7 +19,7 @@
 					{{if .IsResetForm}}
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{.i18n.Tr "settings.new_password"}}</label>
-							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="off" autofocus required>
+							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
 						<div class="inline field">

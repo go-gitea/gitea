@@ -58,6 +58,12 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+
+		u, err := models.GetUserByEmail(commit.Author.Email)
+		if err == nil {
+			rel.PublisherID = u.ID
+		}
+
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}

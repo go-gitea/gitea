@@ -118,7 +118,7 @@ func isSetSymLink(m os.FileMode) bool {
 func (m FileMode) Bytes() []byte {
 	ret := make([]byte, 4)
 	binary.LittleEndian.PutUint32(ret, uint32(m))
-	return ret[:]
+	return ret
 }
 
 // IsMalformed returns if the FileMode should not appear in a git packfile,

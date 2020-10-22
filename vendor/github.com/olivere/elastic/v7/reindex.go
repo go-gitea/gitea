@@ -365,7 +365,7 @@ func (s *ReindexService) DoAsync(ctx context.Context) (*StartTaskResult, error) 
 		return nil, err
 	}
 
-	// DoAsync only makes sense with WaitForCompletion set to true
+	// DoAsync only makes sense with WaitForCompletion set to false
 	if s.waitForCompletion != nil && *s.waitForCompletion {
 		return nil, fmt.Errorf("cannot start a task with WaitForCompletion set to true")
 	}
@@ -623,13 +623,13 @@ func (ri *ReindexRemoteInfo) Source() (interface{}, error) {
 	return res, nil
 }
 
-// -source Destination of Reindex --
+// -- Destination of Reindex --
 
 // ReindexDestination is the destination of a Reindex API call.
 // It is basically the meta data of a BulkIndexRequest.
 //
 // See https://www.elastic.co/guide/en/elasticsearch/reference/7.0/docs-reindex.html
-// fsourcer details.
+// for details.
 type ReindexDestination struct {
 	index       string
 	typ         string
