@@ -398,34 +398,10 @@ func Issues(ctx *context.Context) {
 	isShowClosed := ctx.Query("state") == "closed"
 
 	// Get repository IDs where User/Org has access.
-	// Again, the distinction between User and Org could perhaps be handled more elegantly.
-	var err error
-	var userRepoIDs []int64
-	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
-		}
-		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
-		if err != nil {
-			ctx.ServerError("env.RepoIDs", err)
-			return
-		}
-		userRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctx.User, userRepoIDs, unitType)
-		if err != nil {
-			ctx.ServerError("FilterOutRepoIdsWithoutUnitAccess", err)
-			return
-		}
-	} else {
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
-		if err != nil {
-			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
-			return
-		}
-	}
-	if len(userRepoIDs) == 0 {
-		userRepoIDs = []int64{-1}
+	userRepoIDs, errorTitle, err := userRepoIDs(ctxUser, ctx.User, unitType)
+	if err != nil {
+		ctx.ServerError(errorTitle, err)
+		return
 	}
 
 	// Build IssuesOptions, which contains filter information.
@@ -721,6 +697,47 @@ func repoIDs(reposQuery string) []int64 {
 		}
 	}
 	return repoIDs
+}
+
+func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, string, error) {
+	var err error
+	var errorTitle string
+	var userRepoIDs []int64
+
+	if ctxUser.IsOrganization() {
+		userRepoIDs, errorTitle, err = orgRepoIds(ctxUser, user, unitType)
+	} else {
+		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
+		errorTitle = "ctxUser.GetAccessRepoIDs"
+	}
+
+	if err != nil {
+		return nil, errorTitle, err
+	}
+
+	if len(userRepoIDs) == 0 {
+		userRepoIDs = []int64{-1}
+	}
+
+	return userRepoIDs, "", nil
+}
+
+func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, string, error) {
+	var orgRepoIDs []int64
+	var err error
+	env, err := org.AccessibleReposEnv(user.ID)
+	if err != nil {
+		return nil, "AccessibleReposEnv", err
+	}
+	orgRepoIDs, err = env.RepoIDs(1, org.NumRepos)
+	if err != nil {
+		return nil, "env.RepoIDs", err
+	}
+	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(user, orgRepoIDs, unitType)
+	if err != nil {
+		return nil, "FilterOutRepoIdsWithoutUnitAccess", err
+	}
+	return orgRepoIDs, "", nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
