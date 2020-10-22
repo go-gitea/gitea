@@ -834,6 +834,9 @@ func CreateUser(u *User) (err error) {
 	if _, err = sess.Insert(u); err != nil {
 		return err
 	}
+	if err = addEmailAddress(sess, &EmailAddress{UID: u.ID, Email: u.Email}); err != nil {
+		return err
+	}
 
 	return sess.Commit()
 }
@@ -937,16 +940,24 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 // checkDupEmail checks whether there are the same email with the user
 func checkDupEmail(e Engine, u *User) error {
 	u.Email = strings.ToLower(u.Email)
-	has, err := e.
+	if has, err := e.
 		Where("id!=?", u.ID).
-		And("type=?", u.Type).
 		And("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
+		And("type=?", u.Type).
+		Get(new(User)); err != nil {
 		return err
 	} else if has {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
+	if has, err := e.
+		Where("uid!=?", u.ID).
+		And("email=?", u.Email).
+		Get(new(EmailAddress)); err != nil {
+		return err
+	} else if has {
+		return ErrEmailAlreadyUsed{u.Email}
+	}
+
 	return nil
 }
 
@@ -972,12 +983,34 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) error {
+	isEmailFound := false
+	sess := x.NewSession()
+
 	if !u.IsOrganization() {
-		if err := checkDupEmail(x, u); err != nil {
+		if err := checkDupEmail(sess, u); err != nil {
+			return err
+		}
+		emails, err := getEmailAddresses(sess, u.ID)
+		if err != nil {
+			return err
+		}
+		for _, email := range emails {
+			if email.Email == u.Email {
+				isEmailFound = true
+				break
+			}
+		}
+	}
+
+	if err := updateUser(sess, u); err != nil {
+		return err
+	}
+	if !isEmailFound {
+		if err := addEmailAddress(sess, &EmailAddress{UID: u.ID, Email: u.Email}); err != nil {
 			return err
 		}
 	}
-	return updateUser(x, u)
+	return sess.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.

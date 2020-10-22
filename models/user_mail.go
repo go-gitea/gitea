@@ -34,8 +34,12 @@ type EmailAddress struct {
 
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
+	return getEmailAddresses(x, uid)
+}
+
+func getEmailAddresses(e Engine, uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
-	if err := x.
+	if err := e.
 		Where("uid=?", uid).
 		Find(&emails); err != nil {
 		return nil, err
@@ -136,19 +140,21 @@ func IsEmailUsed(email string) (bool, error) {
 
 func addEmailAddress(e Engine, email *EmailAddress) error {
 	email.Email = strings.ToLower(strings.TrimSpace(email.Email))
-	used, err := isEmailUsed(e, email.Email)
+	_, err := e.Insert(email)
+	return err
+}
+
+// AddEmailAddress adds an email address to given user.
+func AddEmailAddress(email *EmailAddress) error {
+	email.Email = strings.ToLower(strings.TrimSpace(email.Email))
+
+	used, err := isEmailUsed(x, email.Email)
 	if err != nil {
 		return err
 	} else if used {
 		return ErrEmailAlreadyUsed{email.Email}
 	}
 
-	_, err = e.Insert(email)
-	return err
-}
-
-// AddEmailAddress adds an email address to given user.
-func AddEmailAddress(email *EmailAddress) error {
 	return addEmailAddress(x, email)
 }
 

@@ -329,6 +329,64 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(user))
 }
 
+func TestCreateUserInsertsEmailAddressRecord(t *testing.T) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	validUser := &User{
+		Name:  "GiteaBot",
+		Email: "GiteaBot@gitea.io",
+	}
+	invalidUser := &User{
+		Name:  "GiteaBot2",
+		Email: "GiteaBot@gitea.io",
+	}
+	assert.NoError(t, CreateUser(validUser))
+	email := new(EmailAddress)
+	found, err := sess.Where("email=?", validUser.Email).Get(email)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.EqualValues(t, email.UID, validUser.ID)
+	assert.Error(t, CreateUser(invalidUser))
+
+	assert.NoError(t, DeleteUser(validUser))
+}
+
+func TestUpdateUser(t *testing.T) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	users := []*User{
+		&User{
+			Name:  "GiteaBot",
+			Email: "GiteaBot@gitea.io",
+		},
+		&User{
+			Name:  "GiteaBot2",
+			Email: "GiteaBot2@gitea.io",
+		},
+	}
+	for _, u := range users {
+		assert.NoError(t, CreateUser(u))
+	}
+
+	users[0].Email = "GiteaBot2@gitea.io"
+	assert.Error(t, AddEmailAddress(&EmailAddress{UID: users[0].ID, Email: users[0].Email}))
+	assert.Error(t, UpdateUserSetting(users[0]))
+	users[0].Email = "GiteaBot3@gitea.io"
+	assert.NoError(t, UpdateUserSetting(users[0]))
+
+	email := new(EmailAddress)
+	found, err := sess.Where("email=?", users[0].Email).Get(email)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.EqualValues(t, email.UID, users[0].ID)
+
+	for _, u := range users {
+		assert.NoError(t, DeleteUser(u))
+	}
+}
+
 func TestCreateUser_Issue5882(t *testing.T) {
 
 	// Init settings

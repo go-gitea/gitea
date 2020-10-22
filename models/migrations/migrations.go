@@ -250,6 +250,8 @@ var migrations = []Migration{
 	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
 	// v157 -> v158
 	NewMigration("ensure repo topics are up-to-date", fixRepoTopics),
+	// v158 -> v159
+	NewMigration("Ensure user primary email address is in email address table", addUserPrimaryEmailToUserMails),
 }
 
 // GetCurrentDBVersion returns the current db version
