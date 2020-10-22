@@ -584,7 +584,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
-	if git.CheckGitVersionConstraint(">= 2.6.0") != nil {
+	if git.CheckGitVersionAtLeast("2.6.0") != nil {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)

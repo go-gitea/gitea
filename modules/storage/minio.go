@@ -32,7 +32,7 @@ type minioObject struct {
 func (m *minioObject) Stat() (os.FileInfo, error) {
 	oi, err := m.Object.Stat()
 	if err != nil {
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 
 	return &minioFileInfo{oi}, nil

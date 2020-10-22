@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -1698,154 +1699,6 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	})
 }
 
-func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
-	if reviewer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be added as reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be doer to add reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
-	if err != nil {
-		return err
-	}
-
-	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-
-	lastreview, err := models.GetReviewByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil && !models.IsErrReviewNotExist(err) {
-		return err
-	}
-
-	var pemResult bool
-	if isAdd {
-		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
-		if !pemResult {
-			return models.ErrNotValidReviewRequest{
-				Reason: "Reviewer can't read",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
-			return nil
-		}
-
-		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
-			if err != nil {
-				return err
-			}
-			if !pemResult {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-
-		if doer.ID == reviewer.ID {
-			return models.ErrNotValidReviewRequest{
-				Reason: "doer can't be reviewer",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-
-		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
-			return models.ErrNotValidReviewRequest{
-				Reason: "poster of pr can't be reviewer",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-	} else {
-		if lastreview != nil && lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
-			return nil
-		}
-
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return models.ErrNotValidReviewRequest{
-				Reason: "Doer is not admin",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-	}
-
-	return nil
-}
-
-func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
-	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be doer to add reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-		return err
-	}
-
-	if isAdd {
-		if issue.Repo.IsPrivate {
-			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
-
-			if !hasTeam {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Reviewing team can't read repo",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-
-		doerCanWrite := permission.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !doerCanWrite {
-			official, err := models.IsOfficialReviewer(issue, doer)
-			if err != nil {
-				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-				return err
-			}
-			if !official {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-	} else if !permission.IsAdmin() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Only admin users can remove team requests. Doer is not admin",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	return nil
-}
-
 // UpdatePullReviewRequest add or remove review request
 func UpdatePullReviewRequest(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -1906,7 +1759,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
+			err = issue_service.IsValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
 			if err != nil {
 				if models.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -1917,11 +1770,11 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(403)
 					return
 				}
-				ctx.ServerError("isValidTeamReviewRequest", err)
+				ctx.ServerError("IsValidTeamReviewRequest", err)
 				return
 			}
 
-			err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
+			_, err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
 			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
@@ -1944,7 +1797,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
+		err = issue_service.IsValidReviewRequest(reviewer, ctx.User, action == "attach", issue, nil)
 		if err != nil {
 			if models.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -1959,7 +1812,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
+		_, err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 		if err != nil {
 			ctx.ServerError("ReviewRequest", err)
 			return
@@ -2453,7 +2306,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	var attachments = make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = issue.Attachments[i].APIFormat()
+		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(200, attachments)
 }
@@ -2472,7 +2325,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, comment.Attachments[i].APIFormat())
+			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(200, attachments)
