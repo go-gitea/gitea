@@ -130,7 +130,7 @@ func (h *huffmanDecoder) readSym(r bitReader) (int, error) {
 	dist >>= maxCodeLength - bits
 
 	pos := h.pos[bits] + dist
-	if pos > len(h.symbol) {
+	if pos >= len(h.symbol) {
 		return 0, errHuffDecodeFailed
 	}
 

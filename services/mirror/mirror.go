@@ -46,7 +46,7 @@ func remoteAddress(repoPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if git.CheckGitVersionConstraint(">= 2.7") == nil {
+	if git.CheckGitVersionAtLeast("2.7") == nil {
 		cmd = git.NewCommand("remote", "get-url", "origin")
 	} else {
 		cmd = git.NewCommand("config", "--get", "remote.origin.url")

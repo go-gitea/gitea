@@ -1321,6 +1321,47 @@ func (ri *runIterator16) nextMany(hs uint32, buf []uint32) int {
 	return n
 }
 
+func (ri *runIterator16) nextMany64(hs uint64, buf []uint64) int {
+	n := 0
+
+	if !ri.hasNext() {
+		return n
+	}
+
+	// start and end are inclusive
+	for n < len(buf) {
+		moreVals := 0
+
+		if ri.rc.iv[ri.curIndex].length >= ri.curPosInIndex {
+			// add as many as you can from this seq
+			moreVals = minOfInt(int(ri.rc.iv[ri.curIndex].length-ri.curPosInIndex)+1, len(buf)-n)
+			base := uint64(ri.rc.iv[ri.curIndex].start+ri.curPosInIndex) | hs
+
+			// allows BCE
+			buf2 := buf[n : n+moreVals]
+			for i := range buf2 {
+				buf2[i] = base + uint64(i)
+			}
+
+			// update values
+			n += moreVals
+		}
+
+		if moreVals+int(ri.curPosInIndex) > int(ri.rc.iv[ri.curIndex].length) {
+			ri.curPosInIndex = 0
+			ri.curIndex++
+
+			if ri.curIndex == int64(len(ri.rc.iv)) {
+				break
+			}
+		} else {
+			ri.curPosInIndex += uint16(moreVals) //moreVals always fits in uint16
+		}
+	}
+
+	return n
+}
+
 // remove removes key from the container.
 func (rc *runContainer16) removeKey(key uint16) (wasPresent bool) {
 

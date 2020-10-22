@@ -85,7 +85,7 @@ readLiteral:
 						return
 					}
 					f.roffset++
-					b |= uint32(c) << (nb & 31)
+					b |= uint32(c) << (nb & regSizeMaskUint32)
 					nb += 8
 				}
 				chunk := f.hl.chunks[b&(huffmanNumChunks-1)]
@@ -104,7 +104,7 @@ readLiteral:
 						f.err = CorruptInputError(f.roffset)
 						return
 					}
-					f.b = b >> (n & 31)
+					f.b = b >> (n & regSizeMaskUint32)
 					f.nb = nb - n
 					v = int(chunk >> huffmanValueShift)
 					break
@@ -167,15 +167,15 @@ readLiteral:
 					return
 				}
 			}
-			length += int(f.b & uint32(1<<n-1))
-			f.b >>= n
+			length += int(f.b & uint32(1<<(n&regSizeMaskUint32)-1))
+			f.b >>= n & regSizeMaskUint32
 			f.nb -= n
 		}
 
-		var dist int
+		var dist uint32
 		if f.hd == nil {
 			for f.nb < 5 {
-				if err = moreBits(); err != nil {
+				if err = f.moreBits(); err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<5:", err)
 					}
@@ -183,17 +183,19 @@ readLiteral:
 					return
 				}
 			}
-			dist = int(bits.Reverse8(uint8(f.b & 0x1F << 3)))
+			dist = uint32(bits.Reverse8(uint8(f.b & 0x1F << 3)))
 			f.b >>= 5
 			f.nb -= 5
 		} else {
-			if dist, err = f.huffSym(f.hd); err != nil {
+			sym, err := f.huffSym(f.hd)
+			if err != nil {
 				if debugDecode {
 					fmt.Println("huffsym:", err)
 				}
 				f.err = err
 				return
 			}
+			dist = uint32(sym)
 		}
 
 		switch {
@@ -202,9 +204,9 @@ readLiteral:
 		case dist < maxNumDist:
 			nb := uint(dist-2) >> 1
 			// have 1 bit in bottom of dist, need nb more.
-			extra := (dist & 1) << nb
+			extra := (dist & 1) << (nb & regSizeMaskUint32)
 			for f.nb < nb {
-				if err = moreBits(); err != nil {
+				if err = f.moreBits(); err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<nb:", err)
 					}
@@ -212,10 +214,10 @@ readLiteral:
 					return
 				}
 			}
-			extra |= int(f.b & uint32(1<<nb-1))
-			f.b >>= nb
+			extra |= f.b & uint32(1<<(nb&regSizeMaskUint32)-1)
+			f.b >>= nb & regSizeMaskUint32
 			f.nb -= nb
-			dist = 1<<(nb+1) + 1 + extra
+			dist = 1<<((nb+1)&regSizeMaskUint32) + 1 + extra
 		default:
 			if debugDecode {
 				fmt.Println("dist too big:", dist, maxNumDist)
@@ -225,7 +227,7 @@ readLiteral:
 		}
 
 		// No check on length; encoding can be prescient.
-		if dist > f.dict.histSize() {
+		if dist > uint32(f.dict.histSize()) {
 			if debugDecode {
 				fmt.Println("dist > f.dict.histSize():", dist, f.dict.histSize())
 			}
@@ -233,7 +235,7 @@ readLiteral:
 			return
 		}
 
-		f.copyLen, f.copyDist = length, dist
+		f.copyLen, f.copyDist = length, int(dist)
 		goto copyHistory
 	}
 
