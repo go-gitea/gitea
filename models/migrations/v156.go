@@ -53,15 +53,12 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	defer sess.Close()
 
 	var (
-		gitRepoCache = make(map[int64]*git.Repository)
-		gitRepo      *git.Repository
-		repoCache    = make(map[int64]*Repository)
-		ok           bool
-		err          error
+		repo    *Repository
+		gitRepo *git.Repository
 	)
 	defer func() {
-		for i := range gitRepoCache {
-			gitRepoCache[i].Close()
+		if gitRepo != nil {
+			gitRepo.Close()
 		}
 	}()
 	for start := 0; ; start += batchSize {
@@ -71,7 +68,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.Limit(batchSize, start).Asc("id").Where("is_tag=?", true).Find(&releases); err != nil {
+		if err := sess.Limit(batchSize, start).Asc("repo_id", "id").Where("is_tag=?", true).Find(&releases); err != nil {
 			return err
 		}
 
@@ -80,45 +77,36 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 		}
 
 		for _, release := range releases {
-			gitRepo, ok = gitRepoCache[release.RepoID]
-			if !ok {
-				repo, ok := repoCache[release.RepoID]
-				if !ok {
-					repo = new(Repository)
-					has, err := sess.ID(release.RepoID).Get(repo)
-					if err != nil {
-						return err
-					} else if !has {
-						log.Warn("Release[%d] is orphaned and refers to non-existing repository %d", release.ID, release.RepoID)
-						log.Warn("This release should be deleted")
-						continue
-					}
-
-					if repo.OwnerName == "" {
-						// v120.go migration may not have been run correctly - we'll just replicate it here
-						// because this appears to be a common-ish problem.
-						if _, err := sess.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)"); err != nil {
-							return err
-						}
-
-						if _, err := sess.ID(release.RepoID).Get(repo); err != nil {
-							return err
-						}
-					}
-
-					repoCache[release.RepoID] = repo
+			if repo == nil || repo.ID != release.RepoID {
+				if gitRepo != nil {
+					gitRepo.Close()
+					gitRepo = nil
 				}
-
-				if repo.OwnerName == "" {
-					log.Warn("Release[%d] refers to Repo[%d] Name: %s with OwnerID: %d but does not have OwnerName set", release.ID, release.RepoID, repo.Name, repo.OwnerID)
+				repo = new(Repository)
+				has, err := sess.ID(release.RepoID).Get(repo)
+				if err != nil {
+					return err
+				} else if !has {
+					log.Warn("Release[%d] is orphaned and refers to non-existing repository %d", release.ID, release.RepoID)
+					log.Warn("This release should be deleted")
 					continue
 				}
 
+				if repo.OwnerName == "" {
+					// v120.go migration may not have been run correctly - we'll just replicate it here
+					// because this appears to be a common-ish problem.
+					if _, err := sess.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)"); err != nil {
+						return err
+					}
+
+					if _, err := sess.ID(release.RepoID).Get(repo); err != nil {
+						return err
+					}
+				}
 				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					return err
 				}
-				gitRepoCache[release.RepoID] = gitRepo
 			}
 
 			commit, err := gitRepo.GetTagCommit(release.TagName)
