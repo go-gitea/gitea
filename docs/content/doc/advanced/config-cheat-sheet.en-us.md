@@ -668,7 +668,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## Cron (`cron`)
 
-- `ENABLED`: **false**: Enable running all cron tasks periodically with default settings.
+- `ENABLED`: **false**: Enable to run all cron tasks periodically with default settings.
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 
@@ -706,7 +706,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
-### Extended cron tasts (not enabled by default)
+### Extended cron tasks (not enabled by default)
 
 #### Cron - Garbage collect all repositories ('cron.git_gc_repos')
 - `ENABLED`: **false**: Enable service.
