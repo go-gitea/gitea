@@ -668,41 +668,83 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## Cron (`cron`)
 
-- `ENABLED`: **true**: Run cron tasks periodically.
+- `ENABLED`: **false**: Enable to run all cron tasks periodically with default settings.
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 
-### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
+### Basic cron tasks - enabled by default
+
+#### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
 
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 - `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
-### Cron - Update Mirrors (`cron.update_mirrors`)
+#### Cron - Update Mirrors (`cron.update_mirrors`)
 
 - `SCHEDULE`: **@every 10m**: Cron syntax for scheduling update mirrors, e.g. `@every 3h`.
 - `NO_SUCCESS_NOTICE`: **true**: The cron task for update mirrors success report is not very useful - as it just means that the mirrors have been queued. Therefore this is turned off by default.
 
-### Cron - Repository Health Check (`cron.repo_health_check`)
+#### Cron - Repository Health Check (`cron.repo_health_check`)
 
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
-### Cron - Repository Statistics Check (`cron.check_repo_stats`)
+#### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
 
-### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
+#### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
 - `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
-### Cron - Sync External Users (`cron.sync_external_users`)
+#### Cron - Sync External Users (`cron.sync_external_users`)
 
 - `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
+
+### Extended cron tasks (not enabled by default)
+
+#### Cron - Garbage collect all repositories ('cron.git_gc_repos')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+- `TIMEOUT`: **60s**: Time duration syntax for garbage collection execution timeout.
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. The default value is same with [git] -> GC_ARGS
+
+#### Cron - Update the '.ssh/authorized_keys' file with Gitea SSH keys ('cron.resync_all_sshkeys')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+
+#### Cron - Resynchronize pre-receive, update and post-receive hooks of all repositories ('cron.resync_all_hooks')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+
+#### Cron - Reinitialize all missing Git repositories for which records exist ('cron.reinit_missing_repos')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+
+#### Cron - Delete all repositories missing their Git files ('cron.delete_missing_repos')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+
+#### Cron -  Delete generated repository avatars ('cron.delete_generated_repository_avatars')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 ## Git (`git`)
 
