@@ -48,7 +48,7 @@ export default async function initGitGraph() {
   });
   const url = new URL(window.location);
   const params = url.searchParams;
-  const updateGraph = () => {
+  const updateGraph = async () => {
     const queryString = params.toString();
     const ajaxUrl = new URL(url);
     ajaxUrl.searchParams.set('div-only', 'true');
@@ -62,14 +62,13 @@ export default async function initGitGraph() {
     $('#rev-container').addClass('hide');
     $('#loading-indicator').removeClass('hide');
 
-    $.ajax(ajaxUrl.toString()).then((div) => {
-      $('#pagination').html($($.parseHTML(div)).find('#pagination').html());
-      $('#rel-container').html($($.parseHTML(div)).find('#rel-container').html());
-      $('#rev-container').html($($.parseHTML(div)).find('#rev-container').html());
-      $('#loading-indicator').addClass('hide');
-      $('#rel-container').removeClass('hide');
-      $('#rev-container').removeClass('hide');
-    });
+    const div = await $.ajax(String(ajaxUrl));
+    $('#pagination').html($($.parseHTML(div)).find('#pagination').html());
+    $('#rel-container').html($($.parseHTML(div)).find('#rel-container').html());
+    $('#rev-container').html($($.parseHTML(div)).find('#rev-container').html());
+    $('#loading-indicator').addClass('hide');
+    $('#rel-container').removeClass('hide');
+    $('#rev-container').removeClass('hide');
   };
   const dropdownSelected = params.getAll('branch');
   if (params.has('hide-pr-refs') && params.get('hide-pr-refs') === 'true') {
