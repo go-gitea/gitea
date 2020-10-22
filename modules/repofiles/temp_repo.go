@@ -214,7 +214,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
 		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
@@ -231,7 +231,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 				}
 				committerSig = signer
 			}
-		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
@@ -335,7 +335,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if git.CheckGitVersionConstraint(">= 1.7.8") == nil {
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")
