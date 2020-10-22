@@ -21,11 +21,11 @@
 			<div class="ui right actions">
 			{{if and .Review}}
 				{{if eq .Review.Type 0}}
-					<div class="item tag review pending">
+					<div class="ui label basic small yellow">
 					{{$.root.i18n.Tr "repo.issues.review.pending"}}
 					</div>
 				{{else}}
-					<div class="item tag review">
+					<div class="ui label basic small">
 					{{$.root.i18n.Tr "repo.issues.review.review"}}
 					</div>
 				{{end}}
