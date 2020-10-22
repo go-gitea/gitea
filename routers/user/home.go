@@ -422,32 +422,19 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
+	// Required for IssuesOptions.
+	var keyword = strings.Trim(ctx.Query("q"), " ")
 	// Execute keyword search for issues.
+	issueIDsFromSearch, errorTitle, err := issueIDsFromSearch(ctxUser, keyword, opts)
 
 	// Ensure issue list is empty if keyword search didn't produce any results.
 	var forceEmpty bool
-	// Required for IssuesOptions.
-	var issueIDsFromSearch []int64
-	var keyword = strings.Trim(ctx.Query("q"), " ")
 
-	if len(keyword) > 0 {
-		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
-			return
-		}
-		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
-		if err != nil {
-			ctx.ServerError("SearchIssuesByKeyword", err)
-			return
-		}
-		if len(issueIDsFromSearch) > 0 {
-			opts.IssueIDs = issueIDsFromSearch
-		} else {
-			forceEmpty = true
-		}
+	if len(issueIDsFromSearch) > 0 {
+		opts.IssueIDs = issueIDsFromSearch
+	} else if len(keyword) > 0 {
+		forceEmpty = true
 	}
-
 	ctx.Data["Keyword"] = keyword
 
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
@@ -738,6 +725,21 @@ func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, stri
 		return nil, "FilterOutRepoIdsWithoutUnitAccess", err
 	}
 	return orgRepoIDs, "", nil
+}
+
+func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, string, error) {
+	var issueIDsFromSearch []int64
+	if len(keyword) > 0 {
+		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+		if err != nil {
+			return nil, "GetRepoIDsForIssuesOptions", err
+		}
+		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+		if err != nil {
+			return nil, "SearchIssuesByKeyword", err
+		}
+	}
+	return issueIDsFromSearch, "", nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
