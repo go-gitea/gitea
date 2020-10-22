@@ -7,9 +7,8 @@
 				{{.i18n.Tr "repo.commit_graph"}}
 				<div class="ui icon buttons tiny color-buttons">
 					<div class="ui multiple selection search dropdown" id="flow-select-refs-dropdown">
-						<input type="hidden">
+						<input type="hidden" name="flow">
 						<i class="dropdown icon"></i>
-						<input type="text" class="search">
 						<div class="default text">{{.i18n.Tr "repo.commit_graph.select"}}</div>
 						<div class="menu">
 							<div class="item" data-value="...flow-hide-pr-refs">
@@ -18,7 +17,6 @@
 								</span>
 								<!--<button id="flow-hide-pr-refs" class="ui labelled icon button {{if .HidePRRefs}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</button>-->
 							</div>
-							<div class="divider"></div>
 							{{range .AllRefs}}
 								{{$refGroup := .RefGroup}}
 								{{if eq $refGroup "pull"}}

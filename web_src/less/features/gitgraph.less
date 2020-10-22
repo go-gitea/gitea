@@ -24,19 +24,15 @@
   }
 
   #flow-select-refs-dropdown {
-    vertical-align: top;
-    height: 36.8438px;
-    max-height: 36.8438px;
-    min-width: 250px;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-
-    div.default.text {
-      padding-top: 6.715px;
-    }
+    min-width: 250px;
+    border-right: none;
 
     .ui.label {
       max-width: 180px;
+      display: inline-flex !important;
+      align-items: center;
 
       .truncate {
         display: inline-block;
@@ -46,6 +42,10 @@
         vertical-align: top;
         white-space: nowrap;
       }
+    }
+
+    .dropdown.icon {
+      display: none;
     }
   }
 
