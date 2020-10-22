@@ -62,10 +62,10 @@ export default async function initGitGraph() {
     $('#rev-container').addClass('hide');
     $('#loading-indicator').removeClass('hide');
 
-    const div = await $.ajax(String(ajaxUrl));
-    $('#pagination').html($($.parseHTML(div)).find('#pagination').html());
-    $('#rel-container').html($($.parseHTML(div)).find('#rel-container').html());
-    $('#rev-container').html($($.parseHTML(div)).find('#rev-container').html());
+    const div = $(await $.ajax(String(ajaxUrl)));
+    $('#pagination').html(div.find('#pagination').html());
+    $('#rel-container').html(div.find('#rel-container').html());
+    $('#rev-container').html(div.find('#rev-container').html());
     $('#loading-indicator').addClass('hide');
     $('#rel-container').removeClass('hide');
     $('#rev-container').removeClass('hide');
