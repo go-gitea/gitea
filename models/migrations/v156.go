@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -35,9 +36,10 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	}
 
 	type Repository struct {
-		ID      int64
-		OwnerID int64
-		Name    string
+		ID        int64
+		OwnerID   int64
+		OwnerName string
+		Name      string
 	}
 
 	type User struct {
@@ -50,13 +52,10 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	
-
 	var (
 		gitRepoCache = make(map[int64]*git.Repository)
 		gitRepo      *git.Repository
 		repoCache    = make(map[int64]*Repository)
-		userCache    = make(map[int64]*User)
 		ok           bool
 		err          error
 	)
@@ -90,26 +89,32 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 					if err != nil {
 						return err
 					} else if !has {
-						return fmt.Errorf("Repository %d is not exist", release.RepoID)
+						log.Warn("Release[%d] is orphaned and refers to non-existing repository %d", release.ID, release.RepoID)
+						log.Warn("This release should be deleted")
+						continue
+					}
+
+					if repo.OwnerName == "" {
+						// v120.go migration may not have been run correctly - we'll just replicate it here
+						// because this appears to be a common-ish problem.
+						if _, err := sess.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)"); err != nil {
+							return err
+						}
+
+						if _, err := sess.ID(release.RepoID).Get(repo); err != nil {
+							return err
+						}
 					}
 
 					repoCache[release.RepoID] = repo
 				}
 
-				user, ok := userCache[repo.OwnerID]
-				if !ok {
-					user = new(User)
-					has, err := sess.ID(repo.OwnerID).Get(user)
-					if err != nil {
-						return err
-					} else if !has {
-						return fmt.Errorf("User %d is not exist", repo.OwnerID)
-					}
-
-					userCache[repo.OwnerID] = user
+				if repo.OwnerName == "" {
+					log.Warn("Release[%d] refers to Repo[%d] Name: %s with OwnerID: %d but does not have OwnerName set", release.ID, release.RepoID, repo.Name, repo.OwnerID)
+					continue
 				}
 
-				gitRepo, err = git.OpenRepository(repoPath(user.Name, repo.Name))
+				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					return err
 				}
