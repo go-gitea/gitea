@@ -100,7 +100,7 @@ $ curl -H "X-Gitea-OTP: 123456" --request GET --url https://yourusername:yourpas
 
 The API allows admin users to sudo API requests as another user. Simply add either a `sudo=` parameter or `Sudo:` request header with the username of the user to sudo.
 
-## SDK's
+## SDKs
 
 * [Official go-sdk](https://gitea.com/gitea/go-sdk)
 * [more](https://gitea.com/gitea/awesome-gitea#user-content-sdk)
