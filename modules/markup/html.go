@@ -568,7 +568,7 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 	}
 }
 
-func mentionProcessor(ctx *postProcessCtx, node *html.Node) { // TODO
+func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	// We replace only the first mention; other mentions will be addressed later
 	found, loc := references.FindFirstMentionBytes([]byte(node.Data))
 	if !found {
