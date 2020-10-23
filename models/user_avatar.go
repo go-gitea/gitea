@@ -39,10 +39,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	if err != nil {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
-	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
-	// since random image is not a user's photo, there is no security for enumable
+
 	if u.Avatar == "" {
-		u.Avatar = fmt.Sprintf("%d", u.ID)
+		u.Avatar = base.HashEmail(u.AvatarEmail)
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {

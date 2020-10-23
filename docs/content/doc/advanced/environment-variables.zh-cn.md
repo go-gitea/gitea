@@ -1,7 +1,7 @@
 ---
 date: "2017-04-08T11:34:00+02:00"
 title: "环境变量清单"
-slug: "specific-variables"
+slug: "environment-variables"
 weight: 20
 toc: false
 draft: false
@@ -10,7 +10,7 @@ menu:
     parent: "advanced"
     name: "环境变量清单"
     weight: 20
-    identifier: "specific-variables"
+    identifier: "environment-variables"
 ---
 
 # 环境变量清单
