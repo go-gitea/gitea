@@ -86,11 +86,11 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	var opts = base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(ctx.Int("git_service")),
-		CloneAddr:    ctx.String("clone_addr"),
-		AuthUsername: ctx.String("auth_username"),
-		AuthPassword: ctx.String("auth_password"),
-		AuthToken: ctx.String("auth_token"),
-		RepoName:     ctx.String("repo_name"),
+		CloneAddr:      ctx.String("clone_addr"),
+		AuthUsername:   ctx.String("auth_username"),
+		AuthPassword:   ctx.String("auth_password"),
+		AuthToken:      ctx.String("auth_token"),
+		RepoName:       ctx.String("repo_name"),
 	}
 
 	if len(ctx.String("units")) == 0 {

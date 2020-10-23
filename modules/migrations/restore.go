@@ -97,15 +97,15 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 		OriginalURL:   opts["original_url"],
 		CloneURL:      opts["clone_addr"],
 		DefaultBranch: opts["default_branch"],
-		AuthUsername: opts["auth_username"],
-		AuthPassword: opts["auth_passwd"],
+		AuthUsername:  opts["auth_username"],
+		AuthPassword:  opts["auth_passwd"],
 	}, nil
 }
 
 // GetTopics return github topics
 func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 	p := filepath.Join(r.topicDir(), "topic.yml")
-	
+
 	var topics = struct {
 		Topics []string `yaml:"topics"`
 	}{}
