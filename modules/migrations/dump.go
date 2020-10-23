@@ -551,14 +551,26 @@ func (g *RepositoryDumper) Rollback() error {
 	return os.RemoveAll(g.baseDir)
 }
 
+// Finish when migrating succeed, this will update something.
 func (g *RepositoryDumper) Finish() error {
 	return nil
 }
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
+	downloader, err := newDownloader(ctx, ownerName, opts)
+	if err != nil {
+		return err
+	}
 	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts.ReleaseAssets)
-	return MigrateRepositoryWithUploader(ctx, ownerName, opts, uploader)
+
+	if err := migrateRepository(downloader, uploader, opts); err != nil {
+		if err1 := uploader.Rollback(); err1 != nil {
+			log.Error("rollback failed: %v", err1)
+		}
+		return err
+	}
+	return nil
 }
 
 // RestoreRepository restore a repository from the disk directory
@@ -569,7 +581,7 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	}
 	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
 	var downloader = NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
-	return DoMigrateRepository(downloader, uploader, base.MigrateOptions{
+	if err = migrateRepository(downloader, uploader, base.MigrateOptions{
 		Wiki:          true,
 		Issues:        true,
 		Milestones:    true,
@@ -578,5 +590,11 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 		Comments:      true,
 		PullRequests:  true,
 		ReleaseAssets: true,
-	})
+	}); err != nil {
+		if err1 := uploader.Rollback(); err1 != nil {
+			log.Error("rollback failed: %v", err1)
+		}
+		return err
+	}
+	return nil
 }
