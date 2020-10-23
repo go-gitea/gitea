@@ -55,8 +55,8 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		repoOwner:            repoOwner,
 		repoName:             repoName,
 		prHeadCache:          make(map[string]struct{}),
-		commentFiles: make(map[int64]*os.File),
-		reviewFiles: make(map[int64]*os.File),
+		commentFiles:         make(map[int64]*os.File),
+		reviewFiles:          make(map[int64]*os.File),
 		migrateReleaseAssets: migrateReleaseAssets,
 	}
 }
@@ -119,24 +119,24 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	defer f.Close()
 
 	bs, err := yaml.Marshal(map[string]interface{}{
-		"name": repo.Name,
-		"owner": repo.Owner,
-		"description": repo.Description,
-		"clone_addr": opts.CloneAddr,
-		"original_url": repo.OriginalURL,
-		"is_private": opts.Private,
+		"name":          repo.Name,
+		"owner":         repo.Owner,
+		"description":   repo.Description,
+		"clone_addr":    opts.CloneAddr,
+		"original_url":  repo.OriginalURL,
+		"is_private":    opts.Private,
 		"auth_username": opts.AuthUsername,
 		"auth_password": opts.AuthPassword,
-		"auth_token": opts.AuthToken,
-		"service_type": opts.GitServiceType,
-		"wiki": opts.Wiki,
-		"issues": opts.Issues,
-		"milestones": opts.Milestones,
-		"labels": opts.Labels,
-		"releases": opts.Releases,
-		"comments": opts.Comments,
-		"pulls": opts.PullRequests,
-		"assets": opts.ReleaseAssets,
+		"auth_token":    opts.AuthToken,
+		"service_type":  opts.GitServiceType,
+		"wiki":          opts.Wiki,
+		"issues":        opts.Issues,
+		"milestones":    opts.Milestones,
+		"labels":        opts.Labels,
+		"releases":      opts.Releases,
+		"comments":      opts.Comments,
+		"pulls":         opts.PullRequests,
+		"assets":        opts.ReleaseAssets,
 	})
 	if err != nil {
 		return err
@@ -393,39 +393,43 @@ func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
 	return nil
 }
 
-// CreateComments creates comments of issues
-func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
-	var commentsMap = make(map[int64][]*base.Comment, len(comments))
-	for _, comment := range comments {
-		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
-	}
-
-	if err := os.MkdirAll(g.commentDir(), os.ModePerm); err != nil {
+func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File, itemsMap map[int64][]interface{}) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
 
-	for issueNumber, comments := range commentsMap {
+	for number, items := range itemsMap {
 		var err error
-		commentFile := g.commentFiles[issueNumber]
-		if commentFile == nil {
-			commentFile, err = os.Create(filepath.Join(g.commentDir(), fmt.Sprintf("%d.yml", issueNumber)))
+		itemFile := itemFiles[number]
+		if itemFile == nil {
+			itemFile, err = os.Create(filepath.Join(dir, fmt.Sprintf("%d.yml", number)))
 			if err != nil {
 				return err
 			}
-			g.commentFiles[issueNumber] = commentFile
+			itemFiles[number] = itemFile
 		}
 
-		bs, err := yaml.Marshal(comments)
+		bs, err := yaml.Marshal(items)
 		if err != nil {
 			return err
 		}
 
-		if _, err := commentFile.Write(bs); err != nil {
+		if _, err := itemFile.Write(bs); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// CreateComments creates comments of issues
+func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
+	var commentsMap = make(map[int64][]interface{}, len(comments))
+	for _, comment := range comments {
+		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
+	}
+
+	return g.createItems(g.commentDir(), g.commentFiles, commentsMap)
 }
 
 // CreatePullRequests creates pull requests
@@ -533,37 +537,12 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 // CreateReviews create pull request reviews
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
-	var reviewsMap = make(map[int64][]*base.Review, len(reviews))
+	var reviewsMap = make(map[int64][]interface{}, len(reviews))
 	for _, review := range reviews {
 		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
 	}
 
-	if err := os.MkdirAll(g.reviewDir(), os.ModePerm); err != nil {
-		return err
-	}
-
-	for prNumber, reviews := range reviewsMap {
-		var err error
-		reviewFile := g.reviewFiles[prNumber]
-		if reviewFile == nil {
-			reviewFile, err = os.Create(filepath.Join(g.reviewDir(), fmt.Sprintf("%d.yml", prNumber)))
-			if err != nil {
-				return err
-			}
-			g.reviewFiles[prNumber] = reviewFile
-		}
-
-		bs, err := yaml.Marshal(reviews)
-		if err != nil {
-			return err
-		}
-
-		if _, err := reviewFile.Write(bs); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return g.createItems(g.reviewDir(), g.reviewFiles, reviewsMap)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
@@ -591,13 +570,13 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
 	var downloader = NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
 	return DoMigrateRepository(downloader, uploader, base.MigrateOptions{
-		Wiki: true,
-		Issues: true,
-		Milestones: true,
-		Labels: true,
-		Releases: true,
-		Comments: true,
-		PullRequests: true,
+		Wiki:          true,
+		Issues:        true,
+		Milestones:    true,
+		Labels:        true,
+		Releases:      true,
+		Comments:      true,
+		PullRequests:  true,
 		ReleaseAssets: true,
 	})
 }

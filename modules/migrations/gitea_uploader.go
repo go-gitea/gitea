@@ -862,7 +862,7 @@ func (g *GiteaLocalUploader) Rollback() error {
 
 // Finish when migrating success, this will do some status update things.
 func (g *GiteaLocalUploader) Finish() error {
-	if g.repo == nil || g.repo.ID <= 0{
+	if g.repo == nil || g.repo.ID <= 0 {
 		return ErrRepoNotCreated
 	}
 

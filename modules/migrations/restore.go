@@ -36,14 +36,6 @@ func NewRepositoryRestorer(ctx context.Context, baseDir string, owner, repoName 
 	}
 }
 
-func (r *RepositoryRestorer) gitPath() string {
-	return filepath.Join(r.baseDir, "git")
-}
-
-func (r *RepositoryRestorer) wikiPath() string {
-	return filepath.Join(r.baseDir, "wiki")
-}
-
 func (r *RepositoryRestorer) topicDir() string {
 	return filepath.Join(r.baseDir)
 }
