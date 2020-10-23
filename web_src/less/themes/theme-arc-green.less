@@ -384,6 +384,10 @@
   }
 }
 
+.repository .ui.segment.sub-menu .list .item a:hover {
+  color: #fff;
+}
+
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
 }
@@ -535,13 +539,24 @@ a:hover {
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
 .ui.secondary.menu a.item:hover,
-.ui.dropdown .menu .active.item {
-  color: #ffffff;
+.ui.dropdown .menu .active.item,
+.ui.link.menu .item:hover,
+.ui.menu .dropdown.item:hover,
+.ui.menu .link.item:hover,
+.ui.menu a.item:hover,
+.ui.menu .active.item {
+  color: #dbdbdb;
+  background: #454b5a;
 }
 
 .ui.menu .ui.dropdown .menu > .item {
-  background: #2c303a !important;
   color: #9e9e9e !important;
+}
+
+.ui.menu .ui.dropdown .menu > .item:hover,
+.ui.menu .ui.dropdown .menu > .selected.item {
+  color: #dbdbdb !important;
+  background: #454b5a !important;
 }
 
 .ui.secondary.menu .dropdown.item > .menu,
@@ -559,12 +574,8 @@ footer {
   background: #2c303a;
 }
 
-.ui.menu .ui.dropdown .menu > .item:hover,
-.ui.menu .ui.dropdown .menu > .selected.item {
-  color: #ffffff !important;
-}
-
-.ui.dropdown .menu > .header {
+.ui.dropdown .menu > .header,
+.ui.dropdown .menu > .header:not(.ui) {
   color: #dbdbdb;
 }
 
@@ -572,6 +583,12 @@ footer {
 .ui.red.labels .label {
   background-color: #7d3434 !important;
   border-color: #8a2121 !important;
+}
+
+.ui.yellow.label,
+.ui.yellow.labels .label {
+  border-color: #664d02 !important;
+  background-color: #936e00 !important;
 }
 
 .ui.menu {
@@ -583,19 +600,6 @@ footer {
 .ui.vertical.menu .active.item:hover {
   color: #dbdbdb;
   background: #4b5162;
-}
-
-.ui.link.menu .item:hover,
-.ui.menu .dropdown.item:hover,
-.ui.menu .link.item:hover,
-.ui.menu a.item:hover {
-  color: #dbdbdb;
-  background: #454b5a;
-}
-
-.ui.menu .active.item {
-  background: #4b5162;
-  color: #dbdbdb;
 }
 
 .ui.input input {
@@ -618,6 +622,7 @@ footer {
 .ui.label,
 .ui.label.basic {
   color: #dbdbdb;
+  border-color: rgb(152, 152, 152);
   background-color: #2a2e39;
 }
 
@@ -651,24 +656,10 @@ a.ui.basic.green.label:hover {
   color: #129c92;
 }
 
-.ui.basic.button,
-.ui.basic.buttons .button {
-  color: #797979;
-}
-
 .ui.basic.red.active.button,
 .ui.basic.red.buttons .active.button {
   box-shadow: 0 0 0 1px #c75252 inset !important;
   color: #c75252 !important;
-}
-
-.ui.basic.button:focus,
-.ui.basic.button:hover,
-.ui.basic.buttons .button:focus,
-.ui.basic.buttons .button:hover {
-  color: #dbdbdb;
-  box-shadow: 0 0 0 1px rgba(200, 200, 200, .35) inset;
-  background: rgba(0, 0, 0, .5);
 }
 
 .ui.menu .item {
@@ -861,6 +852,22 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
 }
 
+.ui.basic.button,
+.ui.basic.buttons .button {
+  color: #9e9e9e;
+  background: rgba(0, 0, 0, .08);
+  box-shadow: none;
+}
+
+.ui.basic.button:focus,
+.ui.basic.button:hover,
+.ui.basic.buttons .button:focus,
+.ui.basic.buttons .button:hover {
+  color: #dbdbdb;
+  background: rgba(255, 255, 255, .08);
+  box-shadow: none;
+}
+
 .ui.labeled.button:not([class*="left labeled"]) > .label,
 .ui[class*="left labeled"].button > .button {
   background: #404552;
@@ -1040,6 +1047,7 @@ a.ui.basic.green.label:hover {
 
 .ui.dropdown .menu > .item:hover {
   color: #dbdbdb;
+  background: #353945;
 }
 
 .ui.dropdown .menu > .item {
@@ -1121,13 +1129,17 @@ a.ui.basic.green.label:hover {
   color: #9e9e9e;
 }
 
-.repository.view.issue .comment-list .comment .tag {
-  color: #dbdbdb;
-  border-color: rgb(152, 152, 152);
-}
-
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
   background: radial-gradient(#383c4a 40%, transparent 40%) no-repeat;
+}
+
+.repository.file.editor .commit-form-wrapper .commit-form {
+  border-color: #505667;
+}
+
+.repository.file.editor .commit-form-wrapper .commit-form::before,
+.repository.file.editor .commit-form-wrapper .commit-form::after {
+  border-right-color: #505667;
 }
 
 .repository .comment.form .content .form:after {
@@ -1236,7 +1248,7 @@ td.blob-hunk {
 .ui.card,
 .ui.cards > .card {
   background: #353945;
-  box-shadow: 0 1px 3px 0 #4c505c, 0 0 0 1px #4c505c;
+  box-shadow: 0 0 0 1px #4c505c;
 }
 
 .ui.card > .content > .header,
@@ -1707,11 +1719,16 @@ a.ui.labels .label:hover {
   border-color: #634343 !important;
 }
 
+.organization.settings .labelspage .item,
 .organization.teams .repositories .item:not(:last-child),
 .organization.teams .members .item:not(:last-child),
 .organization.teams .detail .item:not(:last-child),
 .organization.members .list .item {
   border-bottom-color: #404552;
+}
+
+.organization.settings .labelspage .item a:hover {
+  color: #fff;
 }
 
 .ui.blue.button:active,
@@ -1770,7 +1787,7 @@ a.ui.labels .label:hover {
 }
 
 .editor-toolbar i.separator {
-  border-right-color: #7f98ad;
+  border-right-color: #87ab63;
 }
 
 .repository .diff-detail-box {
@@ -2056,6 +2073,10 @@ footer .container .links > * {
 
 .repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
   color: #2a2e3a;
+}
+
+img[src$="/img/matrix.svg"] {
+  filter: invert(80%);
 }
 
 #git-graph-container.monochrome #rel-container .flow-group {
