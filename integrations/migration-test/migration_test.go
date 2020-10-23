@@ -153,6 +153,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name))
 		assert.NoError(t, err)
+		db.Close()
 
 		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?multiStatements=true",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name))
@@ -183,6 +184,8 @@ func restoreOldDB(t *testing.T, version string) bool {
 			if !assert.NoError(t, err) {
 				return false
 			}
+			defer db.Close()
+
 			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
 			if !assert.NoError(t, err) || !assert.NotEmpty(t, schrows) {
 				return false
@@ -252,11 +255,27 @@ func doMigrationTest(t *testing.T, version string) {
 	}
 
 	setting.NewXORMLogService(false)
-	err := models.SetEngine()
+
+	err := models.NewEngine(context.Background(), wrappedMigrate)
+	assert.NoError(t, err)
+	currentEngine.Close()
+
+	beans, _ := models.NamesToBean()
+
+	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		currentEngine = x
+		return migrations.RecreateTables(beans...)(x)
+	})
+	assert.NoError(t, err)
+	currentEngine.Close()
+
+	// We do this a second time to ensure that there is not a problem with retained indices
+	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		currentEngine = x
+		return migrations.RecreateTables(beans...)(x)
+	})
 	assert.NoError(t, err)
 
-	err = models.NewEngine(context.Background(), wrappedMigrate)
-	assert.NoError(t, err)
 	currentEngine.Close()
 }
 

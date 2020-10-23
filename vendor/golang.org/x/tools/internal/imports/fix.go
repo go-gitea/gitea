@@ -615,7 +615,7 @@ func getCandidatePkgs(ctx context.Context, wrappedCallback *scanCallback, filena
 			packageName:     path.Base(importPath),
 			relevance:       MaxRelevance,
 		}
-		if notSelf(p) && wrappedCallback.packageNameLoaded(p) {
+		if notSelf(p) && wrappedCallback.dirFound(p) && wrappedCallback.packageNameLoaded(p) {
 			wrappedCallback.exportsLoaded(p, exports)
 		}
 	}
@@ -693,8 +693,8 @@ func candidateImportName(pkg *pkg) string {
 	return ""
 }
 
-// GetAllCandidates gets all of the packages starting with prefix that can be
-// imported by filename, sorted by import path.
+// GetAllCandidates calls wrapped for each package whose name starts with
+// searchPrefix, and can be imported from filename with the package name filePkg.
 func GetAllCandidates(ctx context.Context, wrapped func(ImportFix), searchPrefix, filename, filePkg string, env *ProcessEnv) error {
 	callback := &scanCallback{
 		rootFound: func(gopathwalk.Root) bool {
@@ -713,6 +713,35 @@ func GetAllCandidates(ctx context.Context, wrapped func(ImportFix), searchPrefix
 			if !strings.HasPrefix(pkg.packageName, searchPrefix) {
 				return false
 			}
+			wrapped(ImportFix{
+				StmtInfo: ImportInfo{
+					ImportPath: pkg.importPathShort,
+					Name:       candidateImportName(pkg),
+				},
+				IdentName: pkg.packageName,
+				FixType:   AddImport,
+				Relevance: pkg.relevance,
+			})
+			return false
+		},
+	}
+	return getCandidatePkgs(ctx, callback, filename, filePkg, env)
+}
+
+// GetImportPaths calls wrapped for each package whose import path starts with
+// searchPrefix, and can be imported from filename with the package name filePkg.
+func GetImportPaths(ctx context.Context, wrapped func(ImportFix), searchPrefix, filename, filePkg string, env *ProcessEnv) error {
+	callback := &scanCallback{
+		rootFound: func(gopathwalk.Root) bool {
+			return true
+		},
+		dirFound: func(pkg *pkg) bool {
+			if !canUse(filename, pkg.dir) {
+				return false
+			}
+			return strings.HasPrefix(pkg.importPathShort, searchPrefix)
+		},
+		packageNameLoaded: func(pkg *pkg) bool {
 			wrapped(ImportFix{
 				StmtInfo: ImportInfo{
 					ImportPath: pkg.importPathShort,
@@ -798,7 +827,11 @@ func (e *ProcessEnv) goEnv() (map[string]string, error) {
 }
 
 func (e *ProcessEnv) matchFile(dir, name string) (bool, error) {
-	return build.Default.MatchFile(dir, name)
+	bctx, err := e.buildContext()
+	if err != nil {
+		return false, err
+	}
+	return bctx.MatchFile(dir, name)
 }
 
 // CopyConfig copies the env's configuration into a new env.
@@ -891,14 +924,20 @@ func (e *ProcessEnv) buildContext() (*build.Context, error) {
 	// Populate it only if present.
 	rc := reflect.ValueOf(&ctx).Elem()
 	dir := rc.FieldByName("Dir")
-	if !dir.IsValid() {
-		// Working drafts of Go 1.14 named the field "WorkingDir" instead.
-		// TODO(bcmills): Remove this case after the Go 1.14 beta has been released.
-		dir = rc.FieldByName("WorkingDir")
-	}
 	if dir.IsValid() && dir.Kind() == reflect.String {
 		dir.SetString(e.WorkingDir)
 	}
+
+	// Since Go 1.11, go/build.Context.Import may invoke 'go list' depending on
+	// the value in GO111MODULE in the process's environment. We always want to
+	// run in GOPATH mode when calling Import, so we need to prevent this from
+	// happening. In Go 1.16, GO111MODULE defaults to "on", so this problem comes
+	// up more frequently.
+	//
+	// HACK: setting any of the Context I/O hooks prevents Import from invoking
+	// 'go list', regardless of GO111MODULE. This is undocumented, but it's
+	// unlikely to change before GOPATH support is removed.
+	ctx.ReadDir = ioutil.ReadDir
 
 	return &ctx, nil
 }

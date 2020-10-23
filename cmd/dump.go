@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/session"
@@ -57,6 +58,8 @@ func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose boo
 	if err != nil {
 		return fmt.Errorf("Could not open directory %s: %s", absPath, err)
 	}
+	defer dir.Close()
+
 	files, err := dir.Readdir(0)
 	if err != nil {
 		return fmt.Errorf("Unable to list files in %s: %s", absPath, err)
@@ -186,10 +189,18 @@ func runDump(ctx *cli.Context) error {
 	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
+	if !setting.InstallLock {
+		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
+		return fmt.Errorf("gitea is not initialized")
+	}
 	setting.NewServices() // cannot access session settings otherwise
 
 	err := models.SetEngine()
 	if err != nil {
+		return err
+	}
+
+	if err := storage.Init(); err != nil {
 		return err
 	}
 
@@ -227,11 +238,21 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if _, err := os.Stat(setting.LFS.ContentPath); !os.IsNotExist(err) {
-			log.Info("Dumping lfs... %s", setting.LFS.ContentPath)
-			if err := addRecursive(w, "lfs", setting.LFS.ContentPath, verbose); err != nil {
-				fatal("Failed to include lfs: %v", err)
+		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+			info, err := object.Stat()
+			if err != nil {
+				return err
 			}
+
+			return w.Write(archiver.File{
+				FileInfo: archiver.FileInfo{
+					FileInfo:   info,
+					CustomName: path.Join("data", "lfs", objPath),
+				},
+				ReadCloser: object,
+			})
+		}); err != nil {
+			fatal("Failed to dump LFS objects: %v", err)
 		}
 	}
 
@@ -298,11 +319,29 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.ContentPath)
+		excludes = append(excludes, setting.LFS.Path)
+		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.LogRootPath)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
+	}
+
+	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
+		}
+
+		return w.Write(archiver.File{
+			FileInfo: archiver.FileInfo{
+				FileInfo:   info,
+				CustomName: path.Join("data", "attachments", objPath),
+			},
+			ReadCloser: object,
+		})
+	}); err != nil {
+		fatal("Failed to dump attachments: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,

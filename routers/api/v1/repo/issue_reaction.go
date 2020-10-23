@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -75,7 +76,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     r.User.APIFormat(),
+			User:     convert.ToUser(r.User, ctx.IsSigned, false),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -193,7 +194,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     ctx.User.APIFormat(),
+					User:     convert.ToUser(ctx.User, true, true),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -204,7 +205,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     ctx.User.APIFormat(),
+			User:     convert.ToUser(ctx.User, true, true),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
@@ -289,7 +290,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     r.User.APIFormat(),
+			User:     convert.ToUser(r.User, ctx.IsSigned, false),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -402,7 +403,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     ctx.User.APIFormat(),
+					User:     convert.ToUser(ctx.User, true, true),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -413,7 +414,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     ctx.User.APIFormat(),
+			User:     convert.ToUser(ctx.User, true, true),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})

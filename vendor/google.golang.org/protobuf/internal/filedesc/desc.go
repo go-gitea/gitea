@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/internal/descfmt"
 	"google.golang.org/protobuf/internal/descopts"
 	"google.golang.org/protobuf/internal/encoding/defval"
+	"google.golang.org/protobuf/internal/genid"
 	"google.golang.org/protobuf/internal/pragma"
 	"google.golang.org/protobuf/internal/strs"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
@@ -302,13 +303,13 @@ func (fd *Field) MapKey() pref.FieldDescriptor {
 	if !fd.IsMap() {
 		return nil
 	}
-	return fd.Message().Fields().ByNumber(1)
+	return fd.Message().Fields().ByNumber(genid.MapEntry_Key_field_number)
 }
 func (fd *Field) MapValue() pref.FieldDescriptor {
 	if !fd.IsMap() {
 		return nil
 	}
-	return fd.Message().Fields().ByNumber(2)
+	return fd.Message().Fields().ByNumber(genid.MapEntry_Value_field_number)
 }
 func (fd *Field) HasDefault() bool                           { return fd.L1.Default.has }
 func (fd *Field) Default() pref.Value                        { return fd.L1.Default.get(fd) }
@@ -607,7 +608,7 @@ func (dv *defaultValue) get(fd pref.FieldDescriptor) pref.Value {
 		// TODO: Avoid panic if we're running with the race detector
 		// and instead spawn a goroutine that periodically resets
 		// this value back to the original to induce a race.
-		panic("detected mutation on the default bytes")
+		panic(fmt.Sprintf("detected mutation on the default bytes for %v", fd.FullName()))
 	}
 	return dv.val
 }

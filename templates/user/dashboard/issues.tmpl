@@ -7,26 +7,26 @@
 				<div class="ui secondary vertical filter menu">
 					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{.IssueStats.YourRepositoriesCount}}</strong>
+						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					{{if not .ContextUser.IsOrganization}}
 						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
-							<strong class="ui right">{{.IssueStats.AssignCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
 						</a>
 						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
-							<strong class="ui right">{{.IssueStats.CreateCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
 						</a>
 						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
-							<strong class="ui right">{{.IssueStats.MentionCount}}</strong>
+							<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
-						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
+						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt .TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
@@ -45,7 +45,7 @@
 									{{end}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
-								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
+								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt (index $.Counts $Repo.ID)}}</div>
 							</a>
 						{{end}}
 					{{end}}
@@ -56,11 +56,11 @@
 					<div class="column">
 						<div class="ui tiny basic status buttons">
 							<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-								{{svg "octicon-issue-opened" 16}}
+								{{svg "octicon-issue-opened"}}
 								{{.i18n.Tr "repo.issues.open_tab" .ShownIssueStats.OpenCount}}
 							</a>
 							<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-								{{svg "octicon-issue-closed" 16}}
+								{{svg "octicon-issue-closed"}}
 								{{.i18n.Tr "repo.issues.close_tab" .ShownIssueStats.ClosedCount}}
 							</a>
 						</div>
@@ -127,10 +127,10 @@
 							{{end}}
 
 							{{if .NumComments}}
-								<span class="comment ui right">{{svg "octicon-comment" 16}} {{.NumComments}}</span>
+								<span class="comment ui right">{{svg "octicon-comment"}} {{.NumComments}}</span>
 							{{end}}
 							{{if .TotalTrackedTime}}
-								<span class="comment ui right">{{svg "octicon-clock" 16}} {{.TotalTrackedTime | Sec2Time}}</span>
+								<span class="comment ui right">{{svg "octicon-clock"}} {{.TotalTrackedTime | Sec2Time}}</span>
 							{{end}}
 
 							<p class="desc">
@@ -143,12 +143,12 @@
 								{{end}}
 								{{if .Milestone}}
 									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/milestone/{{.Milestone.ID}}">
-										{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
+										{{svg "octicon-milestone"}} {{.Milestone.Name}}
 									</a>
 								{{end}}
 								{{if .Ref}}
 									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{index $.IssueRefURLs .ID}}">
-										{{svg "octicon-git-branch" 16}} {{index $.IssueRefEndNames .ID}}
+										{{svg "octicon-git-branch"}} {{index $.IssueRefEndNames .ID}}
 									</a>
 								{{end}}
 								{{range .Assignees}}
@@ -160,12 +160,12 @@
 								{{if gt $tasks 0}}
 									{{$tasksDone := .GetTasksDone}}
 									<span class="checklist">
-										{{svg "octicon-checklist" 16}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+										{{svg "octicon-checklist"}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 									</span>
 								{{end}}
 								{{if ne .DeadlineUnix 0}}
 									<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-										{{svg "octicon-calendar" 16}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+										{{svg "octicon-calendar"}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 									</span>
 								{{end}}
 								{{if .IsPull}}
@@ -173,25 +173,25 @@
 									{{$rejectOfficial := call $approvalCounts .ID "reject"}}
 									{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
 									{{if gt $approveOfficial 0}}
-										<span class="approvals">{{svg "octicon-check" 16}}
+										<span class="approvals">{{svg "octicon-check"}}
 											{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
 										</span>
 									{{end}}
 
 									{{if gt $rejectOfficial 0}}
-										<span class="rejects">{{svg "octicon-diff" 16}}
+										<span class="rejects">{{svg "octicon-diff"}}
 											{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 										</span>
 									{{end}}
 
 									{{if gt $waitingOfficial 0}}
-										<span class="waiting">{{svg "octicon-eye" 16}}
+										<span class="waiting">{{svg "octicon-eye"}}
 											{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
 										</span>
 									{{end}}
 
 									{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-										<span class="conflicting">{{svg "octicon-x" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+										<span class="conflicting">{{svg "octicon-x"}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
 								{{end}}
 							</p>

@@ -49,6 +49,7 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			Description: "Temporary repo",
 			Name:        ctx.Reponame,
 			Private:     true,
+			Template:    true,
 			Gitignores:  "",
 			License:     "WTFPL",
 			Readme:      "Default",

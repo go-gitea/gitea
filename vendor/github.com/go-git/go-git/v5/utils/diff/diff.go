@@ -29,7 +29,7 @@ func Do(src, dst string) (diffs []diffmatchpatch.Diff) {
 // a bulk delete+insert and the half-baked suboptimal result is returned at once.
 // The underlying algorithm is Meyers, its complexity is O(N*d) where N is
 // min(lines(src), lines(dst)) and d is the size of the diff.
-func DoWithTimeout (src, dst string, timeout time.Duration) (diffs []diffmatchpatch.Diff) {
+func DoWithTimeout(src, dst string, timeout time.Duration) (diffs []diffmatchpatch.Diff) {
 	dmp := diffmatchpatch.New()
 	dmp.DiffTimeout = timeout
 	wSrc, wDst, warray := dmp.DiffLinesToRunes(src, dst)

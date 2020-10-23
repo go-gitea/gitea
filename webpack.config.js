@@ -5,7 +5,6 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -50,6 +49,7 @@ module.exports = {
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
+      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
     ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
@@ -126,6 +126,7 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              sourceMaps: true,
               cacheDirectory: true,
               cacheCompression: false,
               cacheIdentifier: [
@@ -133,7 +134,6 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -167,19 +167,9 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 1,
+              sourceMap: true,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
-              sourceMap: true,
             },
           },
         ],
@@ -193,19 +183,10 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 2,
+              sourceMap: true,
+              importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
-              sourceMap: true,
             },
           },
           {

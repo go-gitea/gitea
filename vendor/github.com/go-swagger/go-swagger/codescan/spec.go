@@ -1,6 +1,8 @@
 package codescan
 
 import (
+	"go/ast"
+
 	"github.com/go-openapi/spec"
 )
 
@@ -193,11 +195,35 @@ func (s *specBuilder) buildModels() error {
 	if !s.scanModels {
 		return nil
 	}
+
 	for _, decl := range s.ctx.app.Models {
 		if err := s.buildDiscoveredSchema(decl); err != nil {
 			return err
 		}
 	}
+
+	return s.joinExtraModels()
+}
+
+func (s *specBuilder) joinExtraModels() error {
+	tmp := make(map[*ast.Ident]*entityDecl, len(s.ctx.app.ExtraModels))
+	for k, v := range s.ctx.app.ExtraModels {
+		tmp[k] = v
+		s.ctx.app.Models[k] = v
+		delete(s.ctx.app.ExtraModels, k)
+	}
+
+	// process extra models and see if there is any reference to a new extra one
+	for _, decl := range tmp {
+		if err := s.buildDiscoveredSchema(decl); err != nil {
+			return err
+		}
+	}
+
+	if len(s.ctx.app.ExtraModels) > 0 {
+		return s.joinExtraModels()
+	}
+
 	return nil
 }
 
