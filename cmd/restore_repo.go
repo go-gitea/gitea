@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/urfave/cli"
 )
@@ -58,8 +59,12 @@ func runRestoreRepository(ctx *cli.Context) error {
 	log.Trace("Log path: %s", setting.LogRootPath)
 	setting.InitDBConfig()
 
+	if err := storage.Init(); err != nil {
+		return err
+	}
+
 	var opts = base.MigrateOptions{
-		RepoName:     ctx.String("repo_name"),
+		RepoName: ctx.String("repo_name"),
 	}
 
 	if len(ctx.String("units")) == 0 {
