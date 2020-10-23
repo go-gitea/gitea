@@ -627,13 +627,14 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	if _, err = createReview(sess, CreateReviewOptions{
+	review, err = createReview(sess, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
 		Official: official,
 		Stale:    false,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -644,6 +645,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, err
@@ -732,7 +734,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		}
 	}
 
-	if _, err = createReview(sess, CreateReviewOptions{
+	if review, err = createReview(sess, CreateReviewOptions{
 		Type:         ReviewTypeRequest,
 		Issue:        issue,
 		ReviewerTeam: reviewer,
@@ -755,6 +757,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("createComment(): %v", err)
@@ -892,6 +895,10 @@ func DeleteReview(r *Review) error {
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
+	}
+
+	if r.Type == ReviewTypeRequest {
+		return fmt.Errorf("review request can not be deleted using this method")
 	}
 
 	opts := FindCommentsOptions{

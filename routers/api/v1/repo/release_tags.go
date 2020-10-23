@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetReleaseTag get a single release of a repository by its tagname
@@ -56,5 +57,5 @@ func GetReleaseTag(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, release.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }

@@ -189,6 +189,22 @@ func (s *CatIndicesService) buildURL() (string, url.Values, error) {
 		params.Set("master_timeout", s.masterTimeout)
 	}
 	if len(s.columns) > 0 {
+		// loop through all columns and apply alias if needed
+		for i, column := range s.columns {
+			if fullValueRaw, isAliased := catIndicesResponseRowAliasesMap[column]; isAliased {
+				// alias can be translated to multiple fields,
+				// so if translated value contains a comma, than replace the first value
+				// and append the others
+				if strings.Contains(fullValueRaw, ",") {
+					fullValues := strings.Split(fullValueRaw, ",")
+					s.columns[i] = fullValues[0]
+					s.columns = append(s.columns, fullValues[1:]...)
+				} else {
+					s.columns[i] = fullValueRaw
+				}
+			}
+		}
+
 		params.Set("h", strings.Join(s.columns, ","))
 	}
 	if s.health != "" {
@@ -371,4 +387,145 @@ type CatIndicesResponseRow struct {
 	PriSuggestTotal              int    `json:"pri.suggest.total,string"`            // number of suggest ops on primaries
 	MemoryTotal                  string `json:"memory.total"`                        // total user memory on primaries & replicas, e.g. "1.5kb"
 	PriMemoryTotal               string `json:"pri.memory.total"`                    // total user memory on primaries, e.g. "1.5kb"
+}
+
+// catIndicesResponseRowAliasesMap holds the global map for columns aliases
+// the map is used by CatIndicesService.buildURL
+// for backwards compatibility some fields are able to have the same aliases
+// that means that one alias can be translated to different columns (from different elastic versions)
+// example for understanding: rto -> RefreshTotal, RefreshExternalTotal
+var catIndicesResponseRowAliasesMap = map[string]string{
+	"qce":                       "query_cache.evictions",
+	"searchFetchTime":           "search.fetch_time",
+	"memoryTotal":               "memory.total",
+	"requestCacheEvictions":     "request_cache.evictions",
+	"ftt":                       "flush.total_time",
+	"iic":                       "indexing.index_current",
+	"mtt":                       "merges.total_time",
+	"scti":                      "search.scroll_time",
+	"searchScrollTime":          "search.scroll_time",
+	"segmentsCount":             "segments.count",
+	"getTotal":                  "get.total",
+	"sfti":                      "search.fetch_time",
+	"searchScrollCurrent":       "search.scroll_current",
+	"svmm":                      "segments.version_map_memory",
+	"warmerTotalTime":           "warmer.total_time",
+	"r":                         "rep",
+	"indexingIndexTime":         "indexing.index_time",
+	"refreshTotal":              "refresh.total,refresh.external_total",
+	"scc":                       "search.scroll_current",
+	"suggestTime":               "suggest.time",
+	"idc":                       "indexing.delete_current",
+	"rti":                       "refresh.time,refresh.external_time",
+	"sfto":                      "search.fetch_total",
+	"completionSize":            "completion.size",
+	"mt":                        "merges.total",
+	"segmentsVersionMapMemory":  "segments.version_map_memory",
+	"rto":                       "refresh.total,refresh.external_total",
+	"id":                        "uuid",
+	"dd":                        "docs.deleted",
+	"docsDeleted":               "docs.deleted",
+	"fielddataMemory":           "fielddata.memory_size",
+	"getTime":                   "get.time",
+	"getExistsTime":             "get.exists_time",
+	"mtd":                       "merges.total_docs",
+	"rli":                       "refresh.listeners",
+	"h":                         "health",
+	"cds":                       "creation.date.string",
+	"rcmc":                      "request_cache.miss_count",
+	"iif":                       "indexing.index_failed",
+	"warmerCurrent":             "warmer.current",
+	"gti":                       "get.time",
+	"indexingIndexFailed":       "indexing.index_failed",
+	"mts":                       "merges.total_size",
+	"sqti":                      "search.query_time",
+	"segmentsIndexWriterMemory": "segments.index_writer_memory",
+	"iiti":                      "indexing.index_time",
+	"iito":                      "indexing.index_total",
+	"cd":                        "creation.date",
+	"gc":                        "get.current",
+	"searchFetchTotal":          "search.fetch_total",
+	"sqc":                       "search.query_current",
+	"segmentsMemory":            "segments.memory",
+	"dc":                        "docs.count",
+	"qcm":                       "query_cache.memory_size",
+	"queryCacheMemory":          "query_cache.memory_size",
+	"mergesTotalDocs":           "merges.total_docs",
+	"searchOpenContexts":        "search.open_contexts",
+	"shards.primary":            "pri",
+	"cs":                        "completion.size",
+	"mergesTotalTIme":           "merges.total_time",
+	"wtt":                       "warmer.total_time",
+	"mergesCurrentSize":         "merges.current_size",
+	"mergesTotal":               "merges.total",
+	"refreshTime":               "refresh.time,refresh.external_time",
+	"wc":                        "warmer.current",
+	"p":                         "pri",
+	"idti":                      "indexing.delete_time",
+	"searchQueryCurrent":        "search.query_current",
+	"warmerTotal":               "warmer.total",
+	"suggestTotal":              "suggest.total",
+	"tm":                        "memory.total",
+	"ss":                        "store.size",
+	"ft":                        "flush.total",
+	"getExistsTotal":            "get.exists_total",
+	"scto":                      "search.scroll_total",
+	"s":                         "status",
+	"queryCacheEvictions":       "query_cache.evictions",
+	"rce":                       "request_cache.evictions",
+	"geto":                      "get.exists_total",
+	"refreshListeners":          "refresh.listeners",
+	"suto":                      "suggest.total",
+	"storeSize":                 "store.size",
+	"gmti":                      "get.missing_time",
+	"indexingIdexCurrent":       "indexing.index_current",
+	"searchFetchCurrent":        "search.fetch_current",
+	"idx":                       "index",
+	"fm":                        "fielddata.memory_size",
+	"geti":                      "get.exists_time",
+	"indexingDeleteCurrent":     "indexing.delete_current",
+	"mergesCurrentDocs":         "merges.current_docs",
+	"sth":                       "search.throttled",
+	"flushTotal":                "flush.total",
+	"sfc":                       "search.fetch_current",
+	"wto":                       "warmer.total",
+	"suti":                      "suggest.time",
+	"shardsReplica":             "rep",
+	"mergesCurrent":             "merges.current",
+	"mcs":                       "merges.current_size",
+	"so":                        "search.open_contexts",
+	"i":                         "index",
+	"siwm":                      "segments.index_writer_memory",
+	"sfbm":                      "segments.fixed_bitset_memory",
+	"fe":                        "fielddata.evictions",
+	"requestCacheMissCount":     "request_cache.miss_count",
+	"idto":                      "indexing.delete_total",
+	"mergesTotalSize":           "merges.total_size",
+	"suc":                       "suggest.current",
+	"suggestCurrent":            "suggest.current",
+	"flushTotalTime":            "flush.total_time",
+	"getMissingTotal":           "get.missing_total",
+	"sqto":                      "search.query_total",
+	"searchScrollTotal":         "search.scroll_total",
+	"fixedBitsetMemory":         "segments.fixed_bitset_memory",
+	"getMissingTime":            "get.missing_time",
+	"indexingDeleteTotal":       "indexing.delete_total",
+	"mcd":                       "merges.current_docs",
+	"docsCount":                 "docs.count",
+	"gto":                       "get.total",
+	"mc":                        "merges.current",
+	"fielddataEvictions":        "fielddata.evictions",
+	"rcm":                       "request_cache.memory_size",
+	"requestCacheHitCount":      "request_cache.hit_count",
+	"gmto":                      "get.missing_total",
+	"searchQueryTime":           "search.query_time",
+	"shards.replica":            "rep",
+	"requestCacheMemory":        "request_cache.memory_size",
+	"rchc":                      "request_cache.hit_count",
+	"getCurrent":                "get.current",
+	"indexingIndexTotal":        "indexing.index_total",
+	"sc":                        "segments.count,segments.memory",
+	"shardsPrimary":             "pri",
+	"indexingDeleteTime":        "indexing.delete_time",
+	"searchQueryTotal":          "search.query_total",
 }
