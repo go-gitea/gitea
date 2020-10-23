@@ -313,7 +313,7 @@ func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases .
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				attachLocalPath := filepath.Join(attachDir, asset.ID)
 				// download attachment
 
 				err := func(attachLocalPath string) error {
