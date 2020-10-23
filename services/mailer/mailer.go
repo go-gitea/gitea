@@ -335,13 +335,6 @@ func NewContext() {
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 }
 
-// FlushMessages a messages which were published to the mailQueue
-//
-// Function blocks until the queue become empty or an operation exceed timeout duration.
-func FlushMessages(timeout time.Duration) error {
-	return mailQueue.Flush(timeout)
-}
-
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
 	go func() {

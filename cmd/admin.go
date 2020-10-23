@@ -274,11 +274,6 @@ var (
 				Name:  "force,f",
 				Usage: "A flag to bypass a confirmation step",
 			},
-			cli.DurationFlag{
-				Name:  "timeout",
-				Usage: "A timeout of sending emails",
-				Value: 0,
-			},
 		},
 	}
 )

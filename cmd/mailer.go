@@ -5,12 +5,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"net/http"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/services/mailer"
-
+	"code.gitea.io/gitea/modules/private"
 	"github.com/urfave/cli"
 )
 
@@ -19,14 +17,9 @@ func runSendMail(c *cli.Context) error {
 		return err
 	}
 
-	if err := initDB(); err != nil {
-		return err
-	}
-
 	subject := c.String("title")
 	confirmSkiped := c.Bool("force")
 	body := c.String("content")
-	timeout := c.Duration("timeout")
 
 	if !confirmSkiped {
 		if len(body) == 0 {
@@ -43,28 +36,13 @@ func runSendMail(c *cli.Context) error {
 		}
 	}
 
-	var emails []string
-	err := models.IterateUser(func(user *models.User) error {
-		emails = append(emails, user.Email)
+	status, message := private.SendEmail(subject, body, nil)
+	if status != http.StatusOK {
+		fmt.Printf("error: %s", message)
 		return nil
-	})
-	if err != nil {
-		return errors.New("Cann't find users")
 	}
 
-	fmt.Printf("Sending %d emails", len(emails))
-
-	mailer.NewContext()
-
-	for _, email := range emails {
-		msg := mailer.NewMessage([]string{email}, subject, body)
-		mailer.SendAsync(msg)
-	}
-
-	err = mailer.FlushMessages(timeout)
-	if err != nil {
-		return err
-	}
+	fmt.Printf("Succseded: %s", message)
 
 	return nil
 }
