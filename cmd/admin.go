@@ -276,7 +276,7 @@ var (
 			},
 			cli.DurationFlag{
 				Name:  "timeout",
-				Usage: "A timeout of sending emails",
+				Usage: "A timeout of sending emails (3s, 10m, 1h, ...)",
 				Value: 0,
 			},
 		},
