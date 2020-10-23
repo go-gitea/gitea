@@ -42,7 +42,7 @@ func SendEmail(subject, message string, to []string) (int, string) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Responce body error: %v", err.Error())
+		return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 	}
 
 	return http.StatusOK, fmt.Sprintf("Was sent %s from %d", body, len(to))
