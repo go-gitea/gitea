@@ -215,7 +215,7 @@ function initRepoStatusChecker() {
               $('#repo_migrating').hide();
               $('#repo_migrating_failed').show();
               $('#repo_migrating_failed_image').show();
-              $('#repo_migrating_failed_error').html(xhr.responseJSON.err);
+              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
               return;
             }
             setTimeout(() => {
