@@ -1,19 +1,19 @@
 ---
 date: "2017-04-08T11:34:00+02:00"
-title: "Specific variables"
-slug: "specific-variables"
+title: "Environment variables"
+slug: "environment-variables"
 weight: 20
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "advanced"
-    name: "Specific variables"
+    name: "Environment variables"
     weight: 20
-    identifier: "specific-variables"
+    identifier: "environment-variables"
 ---
 
-# Specific variables
+# Environment variables
 
 This is an inventory of Gitea environment variables. They change Gitea behaviour.
 
