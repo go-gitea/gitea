@@ -293,10 +293,28 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplEditFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("editFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, utils.SanitizeFlashErrorString(err.Error())), tplEditFile, &form)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
+				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
+				"Details": utils.SanitizeFlashErrorString(err.Error()),
+			})
+			if err != nil {
+				ctx.ServerError("editFilePost.HTMLString", err)
+				return
+			}
+			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
 	}
 
@@ -464,7 +482,16 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplDeleteFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("DeleteFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplDeleteFile, &form)
 			}
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
@@ -656,7 +683,16 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplUploadFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("UploadFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplUploadFile, &form)
 			}
 		} else {
 			// os.ErrNotExist - upload file missing in the intervening time?!

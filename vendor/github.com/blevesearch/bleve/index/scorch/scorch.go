@@ -515,21 +515,17 @@ func (s *Scorch) diskFileStats(rootSegmentPaths map[string]struct{}) (uint64,
 	return numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot
 }
 
-func (s *Scorch) rootDiskSegmentsPaths() map[string]struct{} {
-	rv := make(map[string]struct{}, len(s.root.segment))
-	for _, segmentSnapshot := range s.root.segment {
-		if seg, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
-			rv[seg.Path()] = struct{}{}
-		}
-	}
-	return rv
-}
-
 func (s *Scorch) StatsMap() map[string]interface{} {
 	m := s.stats.ToMap()
 
+	indexSnapshot := s.currentSnapshot()
+	defer func() {
+		_ = indexSnapshot.Close()
+	}()
+
+	rootSegPaths := indexSnapshot.diskSegmentsPaths()
+
 	s.rootLock.RLock()
-	rootSegPaths := s.rootDiskSegmentsPaths()
 	m["CurFilesIneligibleForRemoval"] = uint64(len(s.ineligibleForRemoval))
 	s.rootLock.RUnlock()
 
@@ -556,6 +552,10 @@ func (s *Scorch) StatsMap() map[string]interface{} {
 	m["num_bytes_used_disk"] = numBytesUsedDisk
 	// total disk bytes by the latest root index, exclusive of older snapshots
 	m["num_bytes_used_disk_by_root"] = numBytesOnDiskByRoot
+	// num_bytes_used_disk_by_root_reclaimable is an approximation about the
+	// reclaimable disk space in an index. (eg: from a full compaction)
+	m["num_bytes_used_disk_by_root_reclaimable"] = uint64(float64(numBytesOnDiskByRoot) *
+		indexSnapshot.reClaimableDocsRatio())
 	m["num_files_on_disk"] = numFilesOnDisk
 	m["num_root_memorysegments"] = m["TotMemorySegmentsAtRoot"]
 	m["num_root_filesegments"] = m["TotFileSegmentsAtRoot"]

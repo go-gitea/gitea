@@ -36,8 +36,8 @@ type SearchSource struct {
 	suggesters               []Suggester // suggest
 	rescores                 []*Rescore  // rescore
 	defaultRescoreWindowSize *int
-	indexBoosts              map[string]float64 // indices_boost
-	stats                    []string           // stats
+	indexBoosts              IndexBoosts // indices_boost
+	stats                    []string    // stats
 	innerHits                map[string]*InnerHit
 	collapse                 *CollapseBuilder // collapse
 	profile                  bool             // profile
@@ -50,7 +50,6 @@ func NewSearchSource() *SearchSource {
 		from:         -1,
 		size:         -1,
 		aggregations: make(map[string]Aggregation),
-		indexBoosts:  make(map[string]float64),
 		innerHits:    make(map[string]*InnerHit),
 	}
 }
@@ -340,7 +339,13 @@ func (s *SearchSource) ScriptFields(scriptFields ...*ScriptField) *SearchSource 
 // IndexBoost sets the boost that a specific index will receive when the
 // query is executed against it.
 func (s *SearchSource) IndexBoost(index string, boost float64) *SearchSource {
-	s.indexBoosts[index] = boost
+	s.indexBoosts = append(s.indexBoosts, IndexBoost{Index: index, Boost: boost})
+	return s
+}
+
+// IndexBoosts sets the boosts for specific indices.
+func (s *SearchSource) IndexBoosts(boosts ...IndexBoost) *SearchSource {
+	s.indexBoosts = append(s.indexBoosts, boosts...)
 	return s
 }
 
@@ -465,7 +470,11 @@ func (s *SearchSource) Source() (interface{}, error) {
 		source["slice"] = src
 	}
 	if len(s.indexBoosts) > 0 {
-		source["indices_boost"] = s.indexBoosts
+		src, err := s.indexBoosts.Source()
+		if err != nil {
+			return nil, err
+		}
+		source["indices_boost"] = src
 	}
 	if len(s.aggregations) > 0 {
 		aggsMap := make(map[string]interface{})
@@ -589,4 +598,35 @@ func (s *SearchSource) Source() (interface{}, error) {
 	}
 
 	return source, nil
+}
+
+// -- IndexBoosts --
+
+// IndexBoost specifies an index by some boost factor.
+type IndexBoost struct {
+	Index string
+	Boost float64
+}
+
+// Source generates a JSON-serializable output for IndexBoost.
+func (b IndexBoost) Source() (interface{}, error) {
+	return map[string]interface{}{
+		b.Index: b.Boost,
+	}, nil
+}
+
+// IndexBoosts is a slice of IndexBoost entities.
+type IndexBoosts []IndexBoost
+
+// Source generates a JSON-serializable output for IndexBoosts.
+func (b IndexBoosts) Source() (interface{}, error) {
+	var boosts []interface{}
+	for _, ib := range b {
+		src, err := ib.Source()
+		if err != nil {
+			return nil, err
+		}
+		boosts = append(boosts, src)
+	}
+	return boosts, nil
 }

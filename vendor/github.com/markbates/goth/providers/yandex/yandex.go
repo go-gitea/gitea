@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	authEndpoint         string = "https://oauth.yandex.ru/authorize"
-	tokenEndpoint        string = "https://oauth.yandex.com/token"
-	profileEndpoint      string = "https://login.yandex.ru/info"
-	avatarURL            string = "https://avatars.yandex.net/get-yapic"
-	avatarSize           string = "islands-200"
+	authEndpoint    string = "https://oauth.yandex.ru/authorize"
+	tokenEndpoint   string = "https://oauth.yandex.com/token"
+	profileEndpoint string = "https://login.yandex.ru/info"
+	avatarURL       string = "https://avatars.yandex.net/get-yapic"
+	avatarSize      string = "islands-200"
 )
 
 // Provider is the implementation of `goth.Provider` for accessing Yandex.
@@ -89,7 +89,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	if err != nil {
 		return user, err
 	}
-	req.Header.Set("Authorization", "OAuth " + sess.AccessToken)
+	req.Header.Set("Authorization", "OAuth "+sess.AccessToken)
 	resp, err := p.Client().Do(req)
 	if err != nil {
 		if resp != nil {
@@ -140,14 +140,14 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 
 func userFromReader(r io.Reader, user *goth.User) error {
 	u := struct {
-		UserID    string `json:"id"`
-		Email     string `json:"default_email"`
-		Login     string `json:"login"`
-		Name      string `json:"real_name"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		AvatarID  string `json:"default_avatar_id"`
-		IsAvatarEmpty bool `json:"is_avatar_empty"`
+		UserID        string `json:"id"`
+		Email         string `json:"default_email"`
+		Login         string `json:"login"`
+		Name          string `json:"real_name"`
+		FirstName     string `json:"first_name"`
+		LastName      string `json:"last_name"`
+		AvatarID      string `json:"default_avatar_id"`
+		IsAvatarEmpty bool   `json:"is_avatar_empty"`
 	}{}
 
 	err := json.NewDecoder(r).Decode(&u)
@@ -161,7 +161,7 @@ func userFromReader(r io.Reader, user *goth.User) error {
 	user.FirstName = u.FirstName
 	user.LastName = u.LastName
 	if u.AvatarID != `` {
-	    user.AvatarURL = fmt.Sprintf("%s/%s/%s", avatarURL, u.AvatarID, avatarSize)
+		user.AvatarURL = fmt.Sprintf("%s/%s/%s", avatarURL, u.AvatarID, avatarSize)
 	}
 	return nil
 }

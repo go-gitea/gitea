@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	tplCreate base.TplName = "repo/create"
+	tplCreate       base.TplName = "repo/create"
+	tplAlertDetails base.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -400,20 +401,4 @@ func Download(ctx *context.Context) {
 	}
 
 	ctx.ServeFile(archivePath, ctx.Repo.Repository.Name+"-"+refName+ext)
-}
-
-// Status returns repository's status
-func Status(ctx *context.Context) {
-	task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err,
-		})
-		return
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"status": ctx.Repo.Repository.Status,
-		"err":    task.Errors,
-	})
 }

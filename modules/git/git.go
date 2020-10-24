@@ -150,13 +150,13 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	if CheckGitVersionConstraint(">= 2.10") == nil {
+	if CheckGitVersionAtLeast("2.10") == nil {
 		if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
 			return err
 		}
 	}
 
-	if CheckGitVersionConstraint(">= 2.18") == nil {
+	if CheckGitVersionAtLeast("2.18") == nil {
 		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
 			return err
 		}
@@ -173,17 +173,17 @@ func Init(ctx context.Context) error {
 	return nil
 }
 
-// CheckGitVersionConstraint check version constrain against local installed git version
-func CheckGitVersionConstraint(constraint string) error {
+// CheckGitVersionAtLeast check git version is at least the constraint version
+func CheckGitVersionAtLeast(atLeast string) error {
 	if err := LoadGitVersion(); err != nil {
 		return err
 	}
-	check, err := version.NewConstraint(constraint)
+	atLeastVersion, err := version.NewVersion(atLeast)
 	if err != nil {
 		return err
 	}
-	if !check.Check(gitVersion) {
-		return fmt.Errorf("installed git binary  %s does not satisfy version constraint %s", gitVersion.Original(), constraint)
+	if gitVersion.Compare(atLeastVersion) < 0 {
+		return fmt.Errorf("installed git binary version %s is not at least %s", gitVersion.Original(), atLeast)
 	}
 	return nil
 }

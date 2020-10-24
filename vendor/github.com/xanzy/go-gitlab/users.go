@@ -59,6 +59,7 @@ type User struct {
 	Email                     string             `json:"email"`
 	Name                      string             `json:"name"`
 	State                     string             `json:"state"`
+	WebURL                    string             `json:"web_url"`
 	CreatedAt                 *time.Time         `json:"created_at"`
 	Bio                       string             `json:"bio"`
 	Location                  string             `json:"location"`

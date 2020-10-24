@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
-
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
@@ -29,7 +28,7 @@ func NewCommitPathIterFromIter(pathFilter func(string) bool, commitIter CommitIt
 	return iterator
 }
 
-// this function is kept for compatibilty, can be replaced with NewCommitPathIterFromIter
+// NewCommitFileIterFromIter is kept for compatibility, can be replaced with NewCommitPathIterFromIter
 func NewCommitFileIterFromIter(fileName string, commitIter CommitIter, checkParent bool) CommitIter {
 	return NewCommitPathIterFromIter(
 		func(path string) bool {
