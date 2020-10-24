@@ -836,7 +836,6 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 # golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
 ## explicit
 golang.org/x/net/context
