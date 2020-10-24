@@ -47,5 +47,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 		m.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 		m.Post("/manager/remove-logger/:group/:name", RemoveLogger)
+		m.Post("/mail/send", SendEmail)
 	}, CheckInternalToken)
 }
