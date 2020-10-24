@@ -215,6 +215,7 @@ func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
