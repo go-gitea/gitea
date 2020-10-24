@@ -12,8 +12,6 @@ type Repository struct {
 	IsPrivate     bool `yaml:"is_private"`
 	IsMirror      bool `yaml:"is_mirror"`
 	Description   string
-	AuthUsername  string `yaml:"auth_username"`
-	AuthPassword  string `yaml:"auth_password"`
 	CloneURL      string `yaml:"clone_url"`
 	OriginalURL   string `yaml:"original_url"`
 	DefaultBranch string
