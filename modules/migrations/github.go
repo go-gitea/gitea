@@ -342,11 +342,6 @@ func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, err
 	return asset, nil
 }
 
-// GetMaxPerPage returns the max per page size
-func (g *GithubDownloaderV3) GetMaxPerPage() int {
-	return 100
-}
-
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {

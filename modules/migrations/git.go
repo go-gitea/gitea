@@ -89,8 +89,3 @@ func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequ
 func (g *PlainGitDownloader) GetReviews(issueNumber int64) ([]*base.Review, error) {
 	return nil, ErrNotSupported
 }
-
-// GetMaxPerPage returns the max per page size
-func (g *PlainGitDownloader) GetMaxPerPage() int {
-	return 100
-}

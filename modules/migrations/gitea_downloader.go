@@ -683,8 +683,3 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 	}
 	return allReviews, nil
 }
-
-// GetMaxPerPage returns the max per page size
-func (g *GiteaDownloader) GetMaxPerPage() int {
-	return g.maxPerPage
-}

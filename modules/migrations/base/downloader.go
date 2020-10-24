@@ -31,7 +31,6 @@ type Downloader interface {
 	GetComments(issueNumber int64) ([]*Comment, error)
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(pullRequestNumber int64) ([]*Review, error)
-	GetMaxPerPage() int
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
