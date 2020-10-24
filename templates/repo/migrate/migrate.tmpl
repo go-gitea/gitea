@@ -5,11 +5,11 @@
 			<div class="ui three stackable cards">
 				{{range .Services}}
 					<div class="ui card">
-						<a class="image" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">
+						<a class="image" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 							{{svg (Printf "gitea-%s" .Name) 184}}
 						</a>
 						<div class="content">
-							<a class="header" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}">{{.Title}}</a>
+							<a class="header" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">{{.Title}}</a>
 							<div class="description">
 								{{(Printf "repo.migrate.%s.description" .Name) | $.i18n.Tr }}
 							</div>
