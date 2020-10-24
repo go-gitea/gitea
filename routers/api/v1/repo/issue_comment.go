@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	comment_service "code.gitea.io/gitea/services/comments"
@@ -85,7 +86,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
-		apiComments[i] = comments[i].APIFormat()
+		apiComments[i] = convert.ToComment(comments[i])
 	}
 	ctx.JSON(http.StatusOK, &apiComments)
 }
@@ -167,7 +168,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 	for i := range comments {
-		apiComments[i] = comments[i].APIFormat()
+		apiComments[i] = convert.ToComment(comments[i])
 	}
 	ctx.JSON(http.StatusOK, &apiComments)
 }
@@ -225,7 +226,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, comment.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToComment(comment))
 }
 
 // GetIssueComment Get a comment by ID
@@ -293,7 +294,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comment.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToComment(comment))
 }
 
 // EditIssueComment modify a comment of an issue
@@ -414,7 +415,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comment.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToComment(comment))
 }
 
 // DeleteIssueComment delete a comment from an issue

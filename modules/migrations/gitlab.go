@@ -74,9 +74,7 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
-	var gitlabClient *gitlab.Client
-	var err error
-	gitlabClient, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
 	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
 	if token == "" && password != "" {
@@ -305,7 +303,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
+func (g *GitlabDownloader) GetAsset(tag string, _, id int64) (io.ReadCloser, error) {
 	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id), gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
@@ -466,7 +464,7 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
@@ -481,7 +479,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
-		return nil, fmt.Errorf("error while listing merge requests: %v", err)
+		return nil, false, fmt.Errorf("error while listing merge requests: %v", err)
 	}
 	for _, pr := range prs {
 
@@ -523,7 +521,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		for {
 			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
 			if err != nil {
-				return nil, fmt.Errorf("error while listing merge requests awards: %v", err)
+				return nil, false, fmt.Errorf("error while listing merge requests awards: %v", err)
 			}
 			if len(awards) < perPage {
 				break
@@ -571,7 +569,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		})
 	}
 
-	return allPRs, nil
+	return allPRs, len(prs) < perPage, nil
 }
 
 // GetReviews returns pull requests review

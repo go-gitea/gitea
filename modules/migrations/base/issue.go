@@ -23,4 +23,5 @@ type Issue struct {
 	Closed      *time.Time
 	Labels      []*Label
 	Reactions   []*Reaction
+	Assignees   []string
 }

@@ -262,7 +262,7 @@ type clusterBlock struct {
 
 type clusterStateMetadata struct {
 	ClusterUUID          string                            `json:"cluster_uuid"`
-	ClusterUUIDCommitted string                            `json:"cluster_uuid_committed"`
+	ClusterUUIDCommitted bool                              `json:"cluster_uuid_committed"`
 	ClusterCoordination  *clusterCoordinationMetaData      `json:"cluster_coordination"`
 	Templates            map[string]*indexTemplateMetaData `json:"templates"` // template name -> index template metadata
 	Indices              map[string]*indexMetaData         `json:"indices"`   // index name _> meta data
