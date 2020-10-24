@@ -7,6 +7,7 @@ package doctor
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
