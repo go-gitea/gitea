@@ -357,11 +357,11 @@ func TestUpdateUser(t *testing.T) {
 	defer sess.Close()
 
 	users := []*User{
-		&User{
+		{
 			Name:  "GiteaBot",
 			Email: "GiteaBot@gitea.io",
 		},
-		&User{
+		{
 			Name:  "GiteaBot2",
 			Email: "GiteaBot2@gitea.io",
 		},
