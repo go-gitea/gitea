@@ -61,7 +61,7 @@ require (
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	github.com/markbates/goth v1.61.2
+	github.com/markbates/goth v1.65.0
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-runewidth v0.0.9 // indirect
