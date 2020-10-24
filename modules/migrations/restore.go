@@ -280,3 +280,8 @@ func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review
 	}
 	return reviews, nil
 }
+
+// GetMaxPerPage returns per page
+func (r *RepositoryRestorer) GetMaxPerPage() int {
+	return 10000
+}

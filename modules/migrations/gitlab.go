@@ -648,3 +648,8 @@ func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.React
 		Content:  award.Name,
 	}
 }
+
+// GetMaxPerPage returns the max per page size
+func (g *GitlabDownloader) GetMaxPerPage() int {
+	return 100
+}

@@ -127,6 +127,13 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 	return downloader, nil
 }
 
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
@@ -156,6 +163,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 	}
+
+	maxPerpage := downloader.GetMaxPerPage()
 
 	if opts.Milestones {
 		log.Trace("migrating milestones")
@@ -232,7 +241,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		var issueBatchSize = uploader.MaxBatchInsertSize("issue")
 
 		for i := 1; ; i++ {
-			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
+			issues, isEnd, err := downloader.GetIssues(i, min(issueBatchSize, maxPerpage))
 			if err != nil {
 				return err
 			}
@@ -278,7 +287,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating pull requests and comments")
 		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
-			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
+			prs, isEnd, err := downloader.GetPullRequests(i, min(prBatchSize, maxPerpage))
 			if err != nil {
 				return err
 			}
