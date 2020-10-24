@@ -144,7 +144,7 @@ type UpdateGroupIssueBoardOptions struct {
 	Name        *string `url:"name,omitempty" json:"name,omitempty"`
 	AssigneeID  *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	MilestoneID *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
-	Labels      *Labels `url:"labels,omitempty" json:"labels,omitempty"`
+	Labels      Labels  `url:"labels,omitempty" json:"labels,omitempty"`
 	Weight      *int    `url:"weight,omitempty" json:"weight,omitempty"`
 }
 

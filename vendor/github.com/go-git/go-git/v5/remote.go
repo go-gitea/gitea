@@ -32,6 +32,19 @@ var (
 	ErrExactSHA1NotSupported = errors.New("server does not support exact SHA1 refspec")
 )
 
+type NoMatchingRefSpecError struct {
+	refSpec config.RefSpec
+}
+
+func (e NoMatchingRefSpecError) Error() string {
+	return fmt.Sprintf("couldn't find remote ref %q", e.refSpec.Src())
+}
+
+func (e NoMatchingRefSpecError) Is(target error) bool {
+	_, ok := target.(NoMatchingRefSpecError)
+	return ok
+}
+
 const (
 	// This describes the maximum number of commits to walk when
 	// computing the haves to send to a server, for each ref in the
@@ -126,7 +139,7 @@ func (r *Remote) PushContext(ctx context.Context, o *PushOptions) (err error) {
 	if o.Force {
 		for i := 0; i < len(o.RefSpecs); i++ {
 			rs := &o.RefSpecs[i]
-			if !rs.IsForceUpdate() {
+			if !rs.IsForceUpdate() && !rs.IsDelete() {
 				o.RefSpecs[i] = config.RefSpec("+" + rs.String())
 			}
 		}
@@ -218,9 +231,9 @@ func (r *Remote) newReferenceUpdateRequest(
 	if o.Progress != nil {
 		req.Progress = o.Progress
 		if ar.Capabilities.Supports(capability.Sideband64k) {
-			req.Capabilities.Set(capability.Sideband64k)
+			_ = req.Capabilities.Set(capability.Sideband64k)
 		} else if ar.Capabilities.Supports(capability.Sideband) {
-			req.Capabilities.Set(capability.Sideband)
+			_ = req.Capabilities.Set(capability.Sideband)
 		}
 	}
 
@@ -498,10 +511,8 @@ func (r *Remote) deleteReferences(rs config.RefSpec,
 			if _, ok := refsDict[rs.Dst(ref.Name()).String()]; ok {
 				return nil
 			}
-		} else {
-			if rs.Dst("") != ref.Name() {
-				return nil
-			}
+		} else if rs.Dst("") != ref.Name() {
+			return nil
 		}
 
 		cmd := &packp.Command{
@@ -753,7 +764,7 @@ func doCalculateRefs(
 	})
 
 	if !matched && !s.IsWildcard() {
-		return fmt.Errorf("couldn't find remote ref %q", s.Src())
+		return NoMatchingRefSpecError{refSpec: s}
 	}
 
 	return err
@@ -1037,21 +1048,22 @@ func (r *Remote) List(o *ListOptions) (rfs []*plumbing.Reference, err error) {
 	}
 
 	var resultRefs []*plumbing.Reference
-	refs.ForEach(func(ref *plumbing.Reference) error {
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		resultRefs = append(resultRefs, ref)
 		return nil
 	})
-
+	if err != nil {
+		return nil, err
+	}
 	return resultRefs, nil
 }
 
 func objectsToPush(commands []*packp.Command) []plumbing.Hash {
-	var objects []plumbing.Hash
+	objects := make([]plumbing.Hash, 0, len(commands))
 	for _, cmd := range commands {
 		if cmd.New == plumbing.ZeroHash {
 			continue
 		}
-
 		objects = append(objects, cmd.New)
 	}
 	return objects

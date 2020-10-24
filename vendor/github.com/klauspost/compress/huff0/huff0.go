@@ -119,6 +119,16 @@ type Scratch struct {
 	huffWeight     [maxSymbolValue + 1]byte
 }
 
+// TransferCTable will transfer the previously used compression table.
+func (s *Scratch) TransferCTable(src *Scratch) {
+	if cap(s.prevTable) < len(src.prevTable) {
+		s.prevTable = make(cTable, 0, maxSymbolValue+1)
+	}
+	s.prevTable = s.prevTable[:len(src.prevTable)]
+	copy(s.prevTable, src.prevTable)
+	s.prevTableLog = src.prevTableLog
+}
+
 func (s *Scratch) prepare(in []byte) (*Scratch, error) {
 	if len(in) > BlockSizeMax {
 		return nil, ErrTooBig

@@ -446,6 +446,8 @@ type SetCommitStatusOptions struct {
 	Context     *string         `url:"context,omitempty" json:"context,omitempty"`
 	TargetURL   *string         `url:"target_url,omitempty" json:"target_url,omitempty"`
 	Description *string         `url:"description,omitempty" json:"description,omitempty"`
+	Coverage    *float64        `url:"coverage,omitempty" json:"coverage,omitempty"`
+	PipelineID  *int            `url:"pipeline_id,omitempty" json:"pipeline_id,omitempty"`
 }
 
 // SetCommitStatus sets the status of a commit in a project.

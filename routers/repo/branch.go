@@ -355,7 +355,16 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 			if len(e.Message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
 			} else {
-				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(e.Message)))
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(e.Message),
+				})
+				if err != nil {
+					ctx.ServerError("UpdatePullRequest.HTMLString", err)
+					return
+				}
+				ctx.Flash.Error(flashError)
 			}
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return

@@ -41,7 +41,7 @@
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
 								{{if gt .Issue.ShowTag 0}}
-									<div class="item tag">
+									<div class="ui basic label">
 										{{if eq .Issue.ShowTag 2}}
 											{{$.i18n.Tr "repo.issues.collaborator"}}
 										{{else if eq .Issue.ShowTag 3}}
@@ -219,7 +219,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.branch.delete" .HeadTarget }}
 	</div>
 	<div class="content">

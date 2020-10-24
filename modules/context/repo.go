@@ -222,11 +222,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return editorconfig.ParseBytes(data)
+	return editorconfig.Parse(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
