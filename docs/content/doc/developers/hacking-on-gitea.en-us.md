@@ -7,7 +7,7 @@ toc: false
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
+    parent: "developers"
     name: "Hacking on Gitea"
     weight: 10
     identifier: "hacking-on-gitea"
@@ -24,9 +24,6 @@ Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
 version is {{< min-node-version >}} and the latest LTS version is recommended.
 
-You will also need make.
-<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
-
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
 necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
@@ -39,6 +36,38 @@ source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
 recommended to install the version of Go that our continuous integration is
 running. As of last update, it should be Go version {{< go-version >}}.
+
+## Installing Make
+
+Gitea makes heavy use of Make to automate tasks and improve development. This
+guide covers how to install Make.
+
+#### On Linux
+
+Install with the package manager.
+
+On Ubuntu/Debian:
+
+```bash
+sudo apt-get install make
+```
+
+On Fedora/RHEL/CentOS:
+
+```bash
+sudo yum install make
+```
+
+#### On Windows
+
+One of these three distributions of Make will run on Windows:
+
+- [Single binary build](http://www.equation.com/servlet/equation.cmd?fa=make). Copy somewhere and add to `PATH`.
+  - [32-bits version](ftp://ftp.equation.com/make/32/make.exe)
+  - [64-bits version](ftp://ftp.equation.com/make/64/make.exe)
+- [MinGW](http://www.mingw.org/) includes a build.
+  - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
+- [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
 ## Downloading and cloning the Gitea source code
 
