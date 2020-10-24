@@ -58,7 +58,8 @@ var OAuth2Providers = map[string]OAuth2Provider{
 			ProfileURL: oauth2.GetDefaultProfileURL("nextcloud"),
 		},
 	},
-	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/img/auth/yandex.png"},
+	"yandex":   {Name: "yandex", DisplayName: "Yandex", Image: "/img/auth/yandex.png"},
+	"mastodon": {Name: "mastodon", DisplayName: "Mastodon", Image: "/img/auth/mastodon.png"},
 }
 
 // OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls

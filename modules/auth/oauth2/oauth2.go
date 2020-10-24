@@ -215,7 +215,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
 		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
 	case "mastodon":
-		provider = mastodon.New(clientID, clientSecret, callbackURL)
+		provider = mastodon.NewCustomisedURL(clientID, clientSecret, callbackURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
