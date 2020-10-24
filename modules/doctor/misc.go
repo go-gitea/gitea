@@ -92,7 +92,7 @@ func checkEnablePushOptions(logger log.Logger, autofix bool) error {
 			return err
 		}
 
-		result, valid := git.ParseBool(value)
+		result, valid := git.ParseBool(strings.TrimSpace(value))
 		if !result || !valid {
 			numNeedUpdate++
 			logger.Info("%s: does not have receive.advertisePushOptions set correctly: %q", repo.FullName(), value)
