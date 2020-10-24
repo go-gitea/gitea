@@ -632,36 +632,86 @@
     .title {
       padding-bottom: 0 !important;
 
-      h1 {
-        font-weight: 300;
-        font-size: 2.3rem;
-        margin-bottom: 5px;
+      .issue-title {
+        margin-bottom: .5rem;
 
-        .ui.input {
-          font-size: .5em;
-          vertical-align: top;
-          width: 50%;
-          min-width: 600px;
+        &.edit-active {
+          display: flex;
+          align-items: center;
 
-          input {
-            font-size: 1.5em;
-            padding: 6px 10px;
+          h1 {
+            display: flex;
+            width: 100%;
+          }
+
+          @media only screen and (max-width: 768px) {
+            flex-direction: column;
+
+            h1 {
+              margin-right: 0;
+              margin-bottom: 1rem;
+              padding-right: 0;
+
+              .ui.input input {
+                width: calc(100% - 2rem);
+              }
+            }
+
+            .edit-buttons {
+              padding-bottom: 1rem;
+              width: 100%;
+
+              .button {
+                width: 100%;
+                margin-right: .5rem;
+
+                &:last-child {
+                  margin-right: 0;
+                }
+              }
+            }
           }
         }
-      }
 
-      .index {
-        font-weight: 300;
-        color: #aaaaaa;
-        letter-spacing: -1px;
-      }
+        h1 {
+          font-weight: 300;
+          font-size: 2.3rem;
+          margin: 0;
+          padding-right: .5rem;
 
-      .label {
-        margin-right: 10px;
-      }
+          .ui.input {
+            font-size: .5em;
+            width: 100%;
 
-      .edit-zone {
-        margin-top: 10px;
+            input {
+              font-size: 1.5em;
+              padding: 6px 1rem;
+            }
+          }
+        }
+
+        .edit-button {
+          float: right;
+          padding-left: 1rem;
+        }
+
+        .edit-buttons {
+          display: flex;
+        }
+
+        .index {
+          font-weight: 300;
+          color: #aaaaaa;
+          letter-spacing: -1px;
+        }
+
+        .label {
+          margin-right: 10px;
+        }
+
+        .edit-zone {
+          margin-top: 10px;
+        }
       }
     }
 
