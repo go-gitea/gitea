@@ -632,36 +632,47 @@
     .title {
       padding-bottom: 0 !important;
 
-      h1 {
-        font-weight: 300;
-        font-size: 2.3rem;
-        margin-bottom: 5px;
+      .issue-title {
 
-        .ui.input {
-          font-size: .5em;
-          vertical-align: top;
-          width: 50%;
-          min-width: 600px;
+        &.edit-active {
+          display: flex;
+        }
 
-          input {
-            font-size: 1.5em;
-            padding: 6px 10px;
+        h1 {
+          font-weight: 300;
+          font-size: 2.3rem;
+          margin-bottom: 5px;
+
+          .ui.input {
+            font-size: .5em;
+            vertical-align: top;
+            width: 50%;
+            min-width: 600px;
+
+            input {
+              font-size: 1.5em;
+              padding: 6px 10px;
+            }
           }
         }
-      }
 
-      .index {
-        font-weight: 300;
-        color: #aaaaaa;
-        letter-spacing: -1px;
-      }
+        .edit-buttons {
+          float: right;
+        }
 
-      .label {
-        margin-right: 10px;
-      }
+        .index {
+          font-weight: 300;
+          color: #aaaaaa;
+          letter-spacing: -1px;
+        }
 
-      .edit-zone {
-        margin-top: 10px;
+        .label {
+          margin-right: 10px;
+        }
+
+        .edit-zone {
+          margin-top: 10px;
+        }
       }
     }
 
