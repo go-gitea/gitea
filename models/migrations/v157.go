@@ -5,74 +5,64 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/log"
-
 	"xorm.io/xorm"
 )
 
-func updateCodeCommentReplies(x *xorm.Engine) error {
-	type Comment struct {
-		ID          int64  `xorm:"pk autoincr"`
-		CommitSHA   string `xorm:"VARCHAR(40)"`
-		Patch       string `xorm:"TEXT patch"`
-		Invalidated bool
+func fixRepoTopics(x *xorm.Engine) error {
 
-		// Not extracted but used in the below query
-		Type     int   `xorm:"INDEX"`
-		Line     int64 // - previous line / + proposed line
-		TreePath string
-		ReviewID int64 `xorm:"index"`
+	type Topic struct {
+		ID        int64  `xorm:"pk autoincr"`
+		Name      string `xorm:"UNIQUE VARCHAR(25)"`
+		RepoCount int
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return err
+	type RepoTopic struct {
+		RepoID  int64 `xorm:"pk"`
+		TopicID int64 `xorm:"pk"`
 	}
 
+	type Repository struct {
+		ID     int64    `xorm:"pk autoincr"`
+		Topics []string `xorm:"TEXT JSON"`
+	}
+
+	const batchSize = 100
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+	repos := make([]*Repository, 0, batchSize)
+	topics := make([]string, 0, batchSize)
+	for start := 0; ; start += batchSize {
+		repos = repos[:0]
 
-	var start = 0
-	var batchSize = 100
-	for {
-		var comments = make([]*Comment, 0, batchSize)
-		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
-		FROM comment INNER JOIN (
-			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
-			FROM comment AS C 
-			WHERE C.type = 21
-				AND C.created_unix = 
-					(SELECT MIN(comment.created_unix)
-						FROM comment
-						WHERE comment.review_id = C.review_id
-						AND comment.type = 21
-						AND comment.line = C.line
-						AND comment.tree_path = C.tree_path)
-			) AS first
-			ON comment.review_id = first.review_id
-				AND comment.tree_path = first.tree_path AND comment.line = first.line
-		WHERE comment.type = 21
-			AND comment.id != first.id
-			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
-			log.Error("failed to select: %v", err)
+		if err := sess.Begin(); err != nil {
 			return err
 		}
 
-		for _, comment := range comments {
-			if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
-				log.Error("failed to update comment[%d]: %v %v", comment.ID, comment, err)
+		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
+			return err
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+
+		for _, repo := range repos {
+			topics = topics[:0]
+			if err := sess.Select("name").Table("topic").
+				Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+				Where("repo_topic.repo_id = ?", repo.ID).Desc("topic.repo_count").Find(&topics); err != nil {
+				return err
+			}
+			repo.Topics = topics
+			if _, err := sess.ID(repo.ID).Cols("topics").Update(repo); err != nil {
 				return err
 			}
 		}
 
-		start += len(comments)
-
-		if len(comments) < batchSize {
-			break
+		if err := sess.Commit(); err != nil {
+			return err
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }

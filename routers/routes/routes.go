@@ -490,6 +490,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Post("/logout", user.SignOut)
+		m.Get("/task/:task", user.TaskStatus)
 	})
 	// ***** END: User *****
 
@@ -996,8 +997,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
-
-		m.Get("/status", reqRepoCodeReader, repo.Status)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
