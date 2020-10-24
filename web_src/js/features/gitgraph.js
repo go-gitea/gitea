@@ -52,11 +52,7 @@ export default async function initGitGraph() {
     const queryString = params.toString();
     const ajaxUrl = new URL(url);
     ajaxUrl.searchParams.set('div-only', 'true');
-    if (queryString) {
-      window.history.replaceState({}, '', `?${queryString}`);
-    } else {
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+    window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
     $('#pagination').empty();
     $('#rel-container').addClass('hide');
     $('#rev-container').addClass('hide');
