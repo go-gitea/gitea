@@ -248,7 +248,7 @@
       padding: 0 5px;
 
       &:first-child {
-        border-radius: .28571429rem 0 0 .28571429rem;
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
       }
     }
 
@@ -1898,7 +1898,7 @@
       }
 
       .clone.button:first-child {
-        border-radius: .28571429rem 0 0 .28571429rem;
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
       }
 
       .ui.action.small.input {
@@ -2340,7 +2340,14 @@
 
       .item {
         width: 100%;
-        border-radius: 3px;
+
+        &:first-of-type {
+          border-radius: var(--border-radius) 0 0 var(--border-radius);
+        }
+
+        &:last-of-type {
+          border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        }
 
         a {
           color: black;
@@ -2449,6 +2456,8 @@
   }
 
   .repository-summary {
+    box-shadow: none !important;
+
     .segment.language-stats-details,
     .segment.repository-summary {
       border-top: none;
@@ -2476,6 +2485,15 @@
         height: 100%;
       }
     }
+  }
+
+  .repository-menu {
+    padding: 0 !important;
+  }
+
+  .repository-menu .item {
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
   }
 
   &.diff .committed-by {
@@ -3178,11 +3196,11 @@ td.blob-excerpt {
 }
 
 .diff-file-box[data-folded="true"] .diff-file-header {
-  border-radius: .28571429rem !important;
+  border-radius: var(--border-radius) !important;
 }
 
 /* prevent page shaking on language bar click */
-.repository.file .repository-summary {
+.repository-summary-language-stats {
   height: 48px;
   overflow: hidden;
 }
