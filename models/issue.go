@@ -1848,7 +1848,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 
 	repoOwnerIsOrg := issue.Repo.Owner.IsOrganization()
 	if repoOwnerIsOrg {
-		mentionTeams = make([]string, 5)
+		mentionTeams = make([]string, 0, 5)
 	}
 
 	resolved[doer.LowerName] = true
