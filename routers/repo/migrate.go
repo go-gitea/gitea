@@ -28,6 +28,9 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	serviceType := ctx.QueryInt("service_type")
 	if serviceType == 0 {
+		ctx.Data["Org"] = ctx.Query("org")
+		ctx.Data["Mirror"] = ctx.Query("mirror")
+
 		ctx.HTML(200, tplMigrate)
 		return
 	}
