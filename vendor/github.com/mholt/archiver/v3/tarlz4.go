@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/pierrec/lz4"
+	"github.com/pierrec/lz4/v3"
 )
 
 // TarLz4 facilitates lz4 compression

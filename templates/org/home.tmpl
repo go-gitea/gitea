@@ -7,6 +7,10 @@
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
+				<span class="org-visibility">
+					{{if .Org.Visibility.IsLimited}}<div class="ui large orange horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<div class="ui large red horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+				</span>
 				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear"}}</a>{{end}}
 			</div>
 			{{if .Org.Description}}<p class="desc">{{.Org.Description}}</p>{{end}}
@@ -24,6 +28,9 @@
 			<div class="ui eleven wide column">
 				{{if .CanCreateOrgRepo}}
 					<div class="text right">
+            {{if not .DisabledMirrors}}
+						  <a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
+            {{end}}
 						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
 					</div>
 					<div class="ui divider"></div>

@@ -29,6 +29,7 @@ var (
 		AnsiCharset                             string
 		ForcePrivate                            bool
 		DefaultPrivate                          string
+		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
 		MirrorQueueLength                       int
 		PullRequestQueueLength                  int
@@ -57,7 +58,7 @@ var (
 		Upload struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
@@ -83,6 +84,10 @@ var (
 		Issue struct {
 			LockReasons []string
 		} `ini:"repository.issue"`
+
+		Release struct {
+			AllowedTypes string
+		} `ini:"repository.release"`
 
 		Signing struct {
 			SigningKey        string
@@ -134,6 +139,7 @@ var (
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
+		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
@@ -163,13 +169,13 @@ var (
 		Upload: struct {
 			Enabled      bool
 			TempPath     string
-			AllowedTypes []string `delim:"|"`
+			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		}{
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
-			AllowedTypes: []string{},
+			AllowedTypes: "",
 			FileMaxSize:  3,
 			MaxFiles:     5,
 		},
@@ -211,6 +217,12 @@ var (
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 		},
 
+		Release: struct {
+			AllowedTypes string
+		}{
+			AllowedTypes: "",
+		},
+
 		// Signing settings
 		Signing: struct {
 			SigningKey        string
@@ -241,7 +253,7 @@ func newRepository() {
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
-	homeDir = strings.Replace(homeDir, "\\", "/", -1)
+	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
 	// Determine and create root git repository path.
 	sec := Cfg.Section("repository")

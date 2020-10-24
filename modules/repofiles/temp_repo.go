@@ -214,7 +214,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
 		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
@@ -231,7 +231,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 				}
 				committerSig = signer
 			}
-		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
@@ -292,7 +292,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	var diff *gitdiff.Diff
 	var finalErr error
 
-	if err := git.NewCommand("diff-index", "--cached", "-p", "HEAD").
+	if err := git.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
 		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
@@ -335,7 +335,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if git.CheckGitVersionConstraint(">= 1.7.8") == nil {
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")

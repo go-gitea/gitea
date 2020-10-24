@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"time"
@@ -516,6 +517,36 @@ func (s *ObjectStorage) findObjectInPackfile(h plumbing.Hash) (plumbing.Hash, pl
 	}
 
 	return plumbing.ZeroHash, plumbing.ZeroHash, -1
+}
+
+func (s *ObjectStorage) HashesWithPrefix(prefix []byte) ([]plumbing.Hash, error) {
+	hashes, err := s.dir.ObjectsWithPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: This could be faster with some idxfile changes,
+	// or diving into the packfile.
+	for _, index := range s.index {
+		ei, err := index.Entries()
+		if err != nil {
+			return nil, err
+		}
+		for {
+			e, err := ei.Next()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, err
+			}
+			if bytes.HasPrefix(e.Hash[:], prefix) {
+				hashes = append(hashes, e.Hash)
+			}
+		}
+		ei.Close()
+	}
+
+	return hashes, nil
 }
 
 // IterEncodedObjects returns an iterator for all the objects in the packfile

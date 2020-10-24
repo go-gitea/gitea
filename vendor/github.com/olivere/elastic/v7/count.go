@@ -35,6 +35,7 @@ type CountService struct {
 	df                     string
 	expandWildcards        string
 	ignoreUnavailable      *bool
+	ignoreThrottled        *bool
 	lenient                *bool
 	lowercaseExpandedTerms *bool
 	minScore               interface{}
@@ -160,6 +161,13 @@ func (s *CountService) ExpandWildcards(expandWildcards string) *CountService {
 // ignored when unavailable (missing or closed).
 func (s *CountService) IgnoreUnavailable(ignoreUnavailable bool) *CountService {
 	s.ignoreUnavailable = &ignoreUnavailable
+	return s
+}
+
+// IgnoreThrottled indicates whether specified concrete, expanded or aliased
+// indices should be ignored when throttled.
+func (s *CountService) IgnoreThrottled(ignoreThrottled bool) *CountService {
+	s.ignoreThrottled = &ignoreThrottled
 	return s
 }
 
@@ -290,6 +298,9 @@ func (s *CountService) buildURL() (string, url.Values, error) {
 	}
 	if s.ignoreUnavailable != nil {
 		params.Set("ignore_unavailable", fmt.Sprintf("%v", *s.ignoreUnavailable))
+	}
+	if s.ignoreThrottled != nil {
+		params.Set("ignore_throttled", fmt.Sprintf("%v", *s.ignoreThrottled))
 	}
 	if s.lenient != nil {
 		params.Set("lenient", fmt.Sprintf("%v", *s.lenient))

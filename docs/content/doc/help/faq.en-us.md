@@ -129,7 +129,7 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 ## What is Swagger?
 [Swagger](https://swagger.io/) is what Gitea uses for its API.  
 All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
-For more information, refer to Gitea's [API docs]({{< relref "doc/advanced/api-usage.en-us.md" >}})
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
 
 [Swagger Example](https://try.gitea.io/api/swagger)
 
@@ -140,7 +140,7 @@ There are multiple things you can combine to prevent spammers.
 
 1. By only whitelisting certain domains with OpenID (see below)
 2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
+3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
 ### Only allow certain email domains
 You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
@@ -162,7 +162,7 @@ At some point, a customer or third party needs access to a specific repo and onl
 
 ### Enable Fail2ban
 
-Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
+Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  

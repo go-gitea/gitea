@@ -30,7 +30,6 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -202,8 +201,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
-			ctx.ServerError("SaveAddress", err)
+		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+			ctx.ServerError("UpdateAddress", err)
 			return
 		}
 
@@ -885,6 +884,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+		case models.IsErrDeployKeyNameAlreadyUsed(err):
+			ctx.Data["Err_Title"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
@@ -925,7 +927,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 		// No avatar is uploaded and we not removing it here.
 		// No random avatar generated here.
 		// Just exit, no action.
-		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+		if ctxRepo.CustomAvatarRelativePath() == "" {
 			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
 		}
 		return nil
@@ -937,7 +939,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	}
 	defer r.Close()
 
-	if form.Avatar.Size > setting.AvatarMaxFileSize {
+	if form.Avatar.Size > setting.Avatar.MaxFileSize {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 

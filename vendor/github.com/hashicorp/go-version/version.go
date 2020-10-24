@@ -18,10 +18,14 @@ var (
 // The raw regular expression string used for testing the validity
 // of a version.
 const (
-	VersionRegexpRaw string = `[vV]?([0-9]+(\.[0-9]+)*?)` +
-		`(-([0-9]+[0-9A-Za-z\-~]*(\.[0-9A-Za-z\-~]+)*)|(-?([A-Za-z\-~]+[0-9A-Za-z\-~]*(\.[0-9A-Za-z\-~]+)*)))?` +
-		`(\+([0-9A-Za-z\-~]+(\.[0-9A-Za-z\-~]+)*))?` +
-		`([\+\.\-~]g[0-9A-Fa-f]{10}$)?` +
+	VersionRegexpRaw string = `[vV]?` + // Optional [vV] prefix
+		`([0-9]+(\.[0-9]+)*?)` + // ( MajorNum ( '.' MinorNums ) *? )
+		`(-` + // Followed by (optionally): ( '-'
+		`([0-9]+[0-9A-Za-z\-~]*(\.[0-9A-Za-z\-~]+)*)` + // Either ( PreNum String ( '.' OtherString ) * )
+		`|` +
+		`([-\.]?([A-Za-z\-~]+[0-9A-Za-z\-~]*(\.[0-9A-Za-z\-~]+)*)))?` + // Or ( ['-' '.' ] ? ( AlphaHyphenTilde String * ( '.' String ) *  ))) ?
+		`(\+([0-9A-Za-z\-~]+(\.[0-9A-Za-z\-~]+)*))?` + // and more Optionally: ( '+' String ( '.' String ) * )
+		`([\+\.\-~]g[0-9A-Fa-f]{10}$)?` + // Optionally a: ( Punct 'g' Sha )
 		`?`
 
 	// SemverRegexpRaw requires a separator between version and prerelease

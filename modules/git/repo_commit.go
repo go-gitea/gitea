@@ -469,7 +469,7 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, err
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if CheckGitVersionConstraint(">= 2.7.0") == nil {
+	if CheckGitVersionAtLeast("2.7.0") == nil {
 		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
@@ -504,10 +504,6 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 
 // GetCommitsFromIDs get commits from commit IDs
 func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
-	if len(commitIDs) == 0 {
-		return nil
-	}
-
 	commits = list.New()
 
 	for _, commitID := range commitIDs {

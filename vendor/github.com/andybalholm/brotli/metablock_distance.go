@@ -43,9 +43,12 @@ func initBlockSplitterDistance(self *blockSplitterDistance, alphabet_size uint, 
 	brotli_ensure_capacity_uint8_t(&split.types, &split.types_alloc_size, max_num_blocks)
 	brotli_ensure_capacity_uint32_t(&split.lengths, &split.lengths_alloc_size, max_num_blocks)
 	self.split_.num_blocks = max_num_blocks
-	assert(*histograms == nil)
 	*histograms_size = max_num_types
-	*histograms = make([]histogramDistance, (*histograms_size))
+	if histograms == nil || cap(*histograms) < int(*histograms_size) {
+		*histograms = make([]histogramDistance, *histograms_size)
+	} else {
+		*histograms = (*histograms)[:*histograms_size]
+	}
 	self.histograms_ = *histograms
 
 	/* Clear only current histogram. */

@@ -8,31 +8,27 @@ package models
 import (
 	"container/list"
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
-	"image/png"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -194,9 +190,6 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
@@ -238,22 +231,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// APIFormat converts a User to api.User
-func (u *User) APIFormat() *api.User {
-	if u == nil {
-		return nil
-	}
-	return &api.User{
-		ID:        u.ID,
-		UserName:  u.Name,
-		FullName:  u.FullName,
-		Email:     u.GetEmail(),
-		AvatarURL: u.AvatarLink(),
-		Language:  u.Language,
-		IsAdmin:   u.IsAdmin,
-		LastLogin: u.LastLoginUnix.AsTime(),
-		Created:   u.CreatedUnix.AsTime(),
-	}
+// GetAllUsers returns a slice of all users found in DB.
+func GetAllUsers() ([]*User, error) {
+	users := make([]*User, 0)
+	return users, x.OrderBy("id").Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -347,104 +328,6 @@ func (u *User) GenerateActivateCode() string {
 	return u.GenerateEmailActivateCode(u.Email)
 }
 
-// CustomAvatarPath returns user custom avatar file path.
-func (u *User) CustomAvatarPath() string {
-	return filepath.Join(setting.AvatarUploadPath, u.Avatar)
-}
-
-// GenerateRandomAvatar generates a random avatar for user.
-func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(x)
-}
-
-func (u *User) generateRandomAvatar(e Engine) error {
-	seed := u.Email
-	if len(seed) == 0 {
-		seed = u.Name
-	}
-
-	img, err := avatar.RandomImage([]byte(seed))
-	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
-	}
-	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
-	// since random image is not a user's photo, there is no security for enumable
-	if u.Avatar == "" {
-		u.Avatar = fmt.Sprintf("%d", u.ID)
-	}
-	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
-		return fmt.Errorf("MkdirAll: %v", err)
-	}
-	fw, err := os.Create(u.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("Create: %v", err)
-	}
-	defer fw.Close()
-
-	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
-		return err
-	}
-
-	if err = png.Encode(fw, img); err != nil {
-		return fmt.Errorf("Encode: %v", err)
-	}
-
-	log.Info("New random avatar created: %d", u.ID)
-	return nil
-}
-
-// SizedRelAvatarLink returns a link to the user's avatar via
-// the local explore page. Function returns immediately.
-// When applicable, the link is for an avatar of the indicated size (in pixels).
-func (u *User) SizedRelAvatarLink(size int) string {
-	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
-}
-
-// RealSizedAvatarLink returns a link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
-//
-// This function make take time to return when federated avatars
-// are in use, due to a DNS lookup need
-//
-func (u *User) RealSizedAvatarLink(size int) string {
-	if u.ID == -1 {
-		return base.DefaultAvatarLink()
-	}
-
-	switch {
-	case u.UseCustomAvatar:
-		if !com.IsFile(u.CustomAvatarPath()) {
-			return base.DefaultAvatarLink()
-		}
-		return setting.AppSubURL + "/avatars/" + u.Avatar
-	case setting.DisableGravatar, setting.OfflineMode:
-		if !com.IsFile(u.CustomAvatarPath()) {
-			if err := u.GenerateRandomAvatar(); err != nil {
-				log.Error("GenerateRandomAvatar: %v", err)
-			}
-		}
-
-		return setting.AppSubURL + "/avatars/" + u.Avatar
-	}
-	return base.SizedAvatarLink(u.AvatarEmail, size)
-}
-
-// RelAvatarLink returns a relative link to the user's avatar. The link
-// may either be a sub-URL to this site, or a full URL to an external avatar
-// service.
-func (u *User) RelAvatarLink() string {
-	return u.SizedRelAvatarLink(base.DefaultAvatarSize)
-}
-
-// AvatarLink returns user avatar absolute link.
-func (u *User) AvatarLink() string {
-	link := u.RelAvatarLink()
-	if link[0] == '/' && link[1] != '/' {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-	}
-	return link
-}
-
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.
@@ -535,64 +418,6 @@ func (u *User) ValidatePassword(passwd string) bool {
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
 	return !u.ValidatePassword("")
-}
-
-// UploadAvatar saves custom avatar for user.
-// FIXME: split uploads to different subdirs in case we have massive users.
-func (u *User) UploadAvatar(data []byte) error {
-	m, err := avatar.Prepare(data)
-	if err != nil {
-		return err
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	u.UseCustomAvatar = true
-	// Different users can upload same image as avatar
-	// If we prefix it with u.ID, it will be separated
-	// Otherwise, if any of the users delete his avatar
-	// Other users will lose their avatars too.
-	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = updateUser(sess, u); err != nil {
-		return fmt.Errorf("updateUser: %v", err)
-	}
-
-	if err := os.MkdirAll(setting.AvatarUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", setting.AvatarUploadPath, err)
-	}
-
-	fw, err := os.Create(u.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("Create: %v", err)
-	}
-	defer fw.Close()
-
-	if err = png.Encode(fw, *m); err != nil {
-		return fmt.Errorf("Encode: %v", err)
-	}
-
-	return sess.Commit()
-}
-
-// DeleteAvatar deletes the user's custom avatar.
-func (u *User) DeleteAvatar() error {
-	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
-	if len(u.Avatar) > 0 {
-		if err := util.Remove(u.CustomAvatarPath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
-		}
-	}
-
-	u.UseCustomAvatar = false
-	u.Avatar = ""
-	if _, err := x.ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("UpdateUser: %v", err)
-	}
-	return nil
 }
 
 // IsOrganization returns true if user is actually a organization.
@@ -994,7 +819,6 @@ func CreateUser(u *User) (err error) {
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
-	u.Avatar = base.HashEmail(u.AvatarEmail)
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
@@ -1254,6 +1078,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err != nil {
 		return err
 	}
+	err = rewriteAllPrincipalKeys(e)
+	if err != nil {
+		return err
+	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
@@ -1281,17 +1109,14 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-
 	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := util.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		avatarPath := u.CustomAvatarRelativePath()
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
@@ -2029,4 +1854,26 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 		}
 	}
 	return nil
+}
+
+// IterateUser iterate users
+func IterateUser(f func(user *User) error) error {
+	var start int
+	var batchSize = setting.Database.IterateBufferSize
+	for {
+		var users = make([]*User, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&users); err != nil {
+			return err
+		}
+		if len(users) == 0 {
+			return nil
+		}
+		start += len(users)
+
+		for _, user := range users {
+			if err := f(user); err != nil {
+				return err
+			}
+		}
+	}
 }
