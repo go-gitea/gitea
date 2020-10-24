@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.46.3
+# cloud.google.com/go v0.67.0
 cloud.google.com/go/compute/metadata
 # code.gitea.io/gitea-vet v0.2.1
 ## explicit
@@ -534,11 +534,11 @@ github.com/markbates/goth/providers/gitea
 github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/google
+github.com/markbates/goth/providers/mastodon
 github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-github.com/markbates/goth/providers/mastodon
 # github.com/mattn/go-colorable v0.1.7
 ## explicit
 github.com/mattn/go-colorable
@@ -807,7 +807,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20200904194848-62affa334b73
+# golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -819,7 +819,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+# golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google
@@ -860,7 +860,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200921210052-fa0125251cc4
+# golang.org/x/tools v0.0.0-20200929161345-d7fc70abf50f
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis
