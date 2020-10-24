@@ -46,7 +46,7 @@ func getStorage(name, typ string, overrides ...*ini.Section) Storage {
 
 	var storage Storage
 
-	storage.Type = sec.Key("STORAGE_TYPE").MustString("")
+	storage.Type = sec.Key("STORAGE_TYPE").MustString(typ)
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 
 	// Global Defaults
