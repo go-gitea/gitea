@@ -5,6 +5,7 @@
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* other variables */
   --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
+  --border-radius: .28571429rem;
 }
 
 :root:lang(ja) {
@@ -114,7 +115,7 @@ a {
 }
 
 .rounded {
-  border-radius: .28571429rem !important;
+  border-radius: var(--border-radius) !important;
 }
 
 .wrap {
@@ -1228,6 +1229,18 @@ table th[data-sortt-desc] {
       min-height: 100px;
     }
   }
+}
+
+.ui.dropdown .menu .item {
+  border-radius: 0;
+}
+
+.ui.dropdown .menu .item:first-of-type {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.ui.dropdown .menu .item:last-of-type {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .text-label {
