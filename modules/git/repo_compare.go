@@ -131,12 +131,8 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Path, base+"..."+head)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		return GetDiffShortStat(repo.Path, base, head)
 	}
-	return
-}
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
