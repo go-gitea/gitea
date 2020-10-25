@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -82,16 +83,17 @@ func convertMinioErr(err error) error {
 func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
 	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
 	if err != nil {
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 	config := configInterface.(MinioStorageConfig)
 
+	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure: config.UseSSL,
 	})
 	if err != nil {
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 
 	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
@@ -100,7 +102,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 		// Check to see if we already own this bucket (which happens if you run this twice)
 		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
 		if !exists || errBucketExists != nil {
-			return nil, err
+			return nil, convertMinioErr(err)
 		}
 	}
 
@@ -121,7 +123,7 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 	var opts = minio.GetObjectOptions{}
 	object, err := m.client.GetObject(m.ctx, m.bucket, m.buildMinioPath(path), opts)
 	if err != nil {
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 	return &minioObject{object}, nil
 }
@@ -137,7 +139,7 @@ func (m *MinioStorage) Save(path string, r io.Reader) (int64, error) {
 		minio.PutObjectOptions{ContentType: "application/octet-stream"},
 	)
 	if err != nil {
-		return 0, err
+		return 0, convertMinioErr(err)
 	}
 	return uploadInfo.Size, nil
 }
@@ -184,14 +186,17 @@ func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 				return nil, os.ErrNotExist
 			}
 		}
-		return nil, err
+		return nil, convertMinioErr(err)
 	}
 	return &minioFileInfo{info}, nil
 }
 
 // Delete delete a file
 func (m *MinioStorage) Delete(path string) error {
-	return m.client.RemoveObject(m.ctx, m.bucket, m.buildMinioPath(path), minio.RemoveObjectOptions{})
+	if err := m.client.RemoveObject(m.ctx, m.bucket, m.buildMinioPath(path), minio.RemoveObjectOptions{}); err != nil {
+		return convertMinioErr(err)
+	}
+	return nil
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
@@ -199,7 +204,8 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 	reqParams := make(url.Values)
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
-	return m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+	return u, convertMinioErr(err)
 }
 
 // IterateObjects iterates across the objects in the miniostorage
@@ -213,13 +219,13 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 	}) {
 		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
 		if err != nil {
-			return err
+			return convertMinioErr(err)
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
 			return fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object})
 		}(object, fn); err != nil {
-			return err
+			return convertMinioErr(err)
 		}
 	}
 	return nil
