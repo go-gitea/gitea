@@ -2399,9 +2399,11 @@ func combineLabelComments(issue *models.Issue) {
 			shouldMerge = false
 		} else {
 			prev = issue.Comments[i-1]
-			// TODO check if they are within 60s apart, and if they are both adding.
-			// Also, update the comment's date to become the date of the latest one.
-			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60
+			removingPrev := prev.Content != "1"
+			removingCur := c.Content != "1"
+
+			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60 &&
+				removingPrev == removingCur && c.Type == prev.Type
 		}
 
 		if c.Type == models.CommentTypeLabel {
@@ -2412,7 +2414,9 @@ func combineLabelComments(issue *models.Issue) {
 				prev.Labels = append(prev.Labels, c.Label)
 				prev.CreatedUnix = c.CreatedUnix
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
 			}
 		}
+		i++
 	}
 }

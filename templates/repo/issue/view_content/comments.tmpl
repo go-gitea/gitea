@@ -161,7 +161,7 @@
 			</div>
 		</div>
 	{{else if eq .Type 7}}
-		{{if .Label}}
+		{{if .Labels}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-tag"}}</span>
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -169,7 +169,11 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{end}}
+					{{if .Content}}
+					{{$.i18n.Tr (TrN $.i18n.Lang (len .Labels) "repo.issues.add_label" "repo.issues.add_labels") (RenderLabels .Labels) $createdStr | Safe}}
+					{{else}}
+					{{$.i18n.Tr (TrN $.i18n.Lang (len .Labels) "repo.issues.remove_label" "repo.issues.remove_labels") (RenderLabels .Labels) $createdStr | Safe}}
+					{{end}}
 				</span>
 			</div>
 		{{end}}

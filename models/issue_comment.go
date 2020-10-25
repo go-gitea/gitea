@@ -124,8 +124,8 @@ type Comment struct {
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
-	Label            *Label `xorm:"-"`
-	Labels           []*Label
+	Label            *Label   `xorm:"-"`
+	Labels           []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
 	OldProject       *Project `xorm:"-"`
