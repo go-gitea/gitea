@@ -1798,6 +1798,7 @@ function initAdmin() {
       case 'gitlab':
       case 'gitea':
       case 'nextcloud':
+      case 'mastodon':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1830,6 +1831,10 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
+          break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
           break;
       }
     }
