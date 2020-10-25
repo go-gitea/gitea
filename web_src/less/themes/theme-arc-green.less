@@ -388,6 +388,14 @@
   color: #fff;
 }
 
+.repository .ui.segment.sub-menu .list .item.active {
+  background: #404552;
+}
+
+.ui.segments {
+  border-color: #454b5a;
+}
+
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
 }
@@ -431,6 +439,15 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #87ab63 !important;
+}
+
+::selection {
+  background: #87ab63 !important;
+  color: #fff !important;
+}
+
+::placeholder {
+  color: #7f7f7f !important;
 }
 
 a {
@@ -535,6 +552,7 @@ a:hover {
   border: 1px solid #333640;
 }
 
+.ui.secondary.menu .active.item,
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
@@ -547,6 +565,12 @@ a:hover {
 .ui.menu .active.item {
   color: #dbdbdb;
   background: #454b5a;
+}
+
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: #dbdbdb;
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -622,8 +646,8 @@ footer {
 .ui.label,
 .ui.label.basic {
   color: #dbdbdb;
-  border-color: rgb(152, 152, 152);
-  background-color: #2a2e39;
+  border-color: #6a737d;
+  background-color: #353945;
 }
 
 .issue.list > .item .title {
@@ -672,6 +696,7 @@ a.ui.basic.green.label:hover {
 .ui.ui.menu .item.disabled,
 .ui.ui.menu .item.disabled:hover {
   color: #626773;
+  opacity: 1;
 }
 
 .ui.disabled.checkbox label,
@@ -855,7 +880,7 @@ a.ui.basic.green.label:hover {
 .ui.basic.button,
 .ui.basic.buttons .button {
   color: #9e9e9e;
-  background: rgba(0, 0, 0, .08);
+  background: rgba(0, 0, 0, .06);
   box-shadow: none;
 }
 
@@ -915,8 +940,8 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.table tbody tr {
-  border-color: #333640;
-  background: #2a2e3a;
+  border-color: #404552;
+  background: #353945;
 }
 
 .ui .text.grey {
@@ -1243,6 +1268,11 @@ td.blob-hunk {
 
 .ui.menu .ui.dropdown .menu > .active.item {
   color: #dbdbdb !important;
+}
+
+.repository .filter.menu.labels .label-filter .menu .info,
+.repository .filter.menu.labels .label-filter .menu .info code {
+  border-color: #4e5361;
 }
 
 .ui.card,
@@ -1719,6 +1749,7 @@ a.ui.labels .label:hover {
   border-color: #634343 !important;
 }
 
+.repository .labelspage .item,
 .organization.settings .labelspage .item,
 .organization.teams .repositories .item:not(:last-child),
 .organization.teams .members .item:not(:last-child),
@@ -1727,8 +1758,14 @@ a.ui.labels .label:hover {
   border-bottom-color: #404552;
 }
 
+.repository .labelspage .item a,
+.organization.settings .labelspage .item a {
+  color: #6a737d;
+}
+
+.repository .labelspage .item a:hover,
 .organization.settings .labelspage .item a:hover {
-  color: #fff;
+  color: #9e9e9e;
 }
 
 .ui.blue.button:active,
@@ -1764,6 +1801,11 @@ a.ui.labels .label:hover {
 
 .ui.modal > .content {
   background: #383c4a;
+}
+
+.minicolors-panel {
+  background: #404552 !important;
+  border-color: #6a737d !important;
 }
 
 .editor-toolbar {
