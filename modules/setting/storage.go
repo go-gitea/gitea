@@ -21,7 +21,7 @@ type Storage struct {
 
 // MapTo implements the Mappable interface
 func (s *Storage) MapTo(v interface{}) error {
-	pathValue := reflect.ValueOf(v).FieldByName("Path")
+	pathValue := reflect.ValueOf(v).Elem().FieldByName("Path")
 	if pathValue.IsValid() && pathValue.Kind() == reflect.String {
 		pathValue.SetString(s.Path)
 	}
