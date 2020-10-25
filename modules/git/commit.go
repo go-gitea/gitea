@@ -477,7 +477,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	args := []string{
 		"name-rev",
 	}
-	if CheckGitVersionConstraint(">= 2.13.0") == nil {
+	if CheckGitVersionAtLeast("2.13.0") == nil {
 		args = append(args, "--exclude", "refs/tags/*")
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())

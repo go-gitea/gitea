@@ -162,7 +162,7 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
-	if err != nil && strings.Contains(err.Error(), "use of closed") {
+	if err == nil || strings.Contains(err.Error(), "use of closed") || strings.Contains(err.Error(), "http: Server closed") {
 		return nil
 	}
 	return err
