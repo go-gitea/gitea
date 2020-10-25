@@ -1834,7 +1834,7 @@ function initAdmin() {
           break;
         case 'mastodon':
           $('.oauth2_auth_url input').attr('required', 'required');
-          $('.oauth2_auth_url').show()
+          $('.oauth2_auth_url').show();
           break;
       }
     }
