@@ -2393,25 +2393,36 @@ func combineLabelComments(issue *models.Issue) {
 	for i := 0; i < len(issue.Comments); {
 		c := issue.Comments[i]
 		var shouldMerge bool
+		var removingCur bool
 		var prev *models.Comment
 
 		if i == 0 {
 			shouldMerge = false
 		} else {
 			prev = issue.Comments[i-1]
-			removingPrev := prev.Content != "1"
-			removingCur := c.Content != "1"
+			removingCur = c.Content != "1"
 
 			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60 &&
-				removingPrev == removingCur && c.Type == prev.Type
+				c.Type == prev.Type
 		}
 
 		if c.Type == models.CommentTypeLabel {
 			if !shouldMerge {
-				c.Labels = make([]*models.Label, 1)
-				c.Labels[0] = c.Label
+				if removingCur {
+					c.RemovedLabels = make([]*models.Label, 1)
+					c.AddedLabels = make([]*models.Label, 0)
+					c.RemovedLabels[0] = c.Label
+				} else {
+					c.RemovedLabels = make([]*models.Label, 0)
+					c.AddedLabels = make([]*models.Label, 1)
+					c.AddedLabels[0] = c.Label
+				}
 			} else {
-				prev.Labels = append(prev.Labels, c.Label)
+				if removingCur {
+					prev.RemovedLabels = append(prev.RemovedLabels, c.Label)
+				} else {
+					prev.AddedLabels = append(prev.AddedLabels, c.Label)
+				}
 				prev.CreatedUnix = c.CreatedUnix
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 				continue
