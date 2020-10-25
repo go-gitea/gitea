@@ -1354,6 +1354,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	// Combine multiple label assignments into a single comment
+	combineLabelComments(issue)
+
 	getBranchData(ctx, issue)
 	if issue.IsPull {
 		pull := issue.PullRequest
@@ -2384,4 +2387,32 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) str
 		return ""
 	}
 	return attachHTML
+}
+
+func combineLabelComments(issue *models.Issue) {
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		var shouldMerge bool
+		var prev *models.Comment
+
+		if i == 0 {
+			shouldMerge = false
+		} else {
+			prev = issue.Comments[i-1]
+			// TODO check if they are within 60s apart, and if they are both adding.
+			// Also, update the comment's date to become the date of the latest one.
+			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60
+		}
+
+		if c.Type == models.CommentTypeLabel {
+			if !shouldMerge {
+				c.Labels = make([]*models.Label, 1)
+				c.Labels[0] = c.Label
+			} else {
+				prev.Labels = append(prev.Labels, c.Label)
+				prev.CreatedUnix = c.CreatedUnix
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+			}
+		}
+	}
 }

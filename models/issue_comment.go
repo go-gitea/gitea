@@ -125,6 +125,7 @@ type Comment struct {
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
 	Label            *Label `xorm:"-"`
+	Labels           []*Label
 	OldProjectID     int64
 	ProjectID        int64
 	OldProject       *Project `xorm:"-"`
