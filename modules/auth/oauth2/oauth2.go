@@ -216,10 +216,8 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
 	case "mastodon":
 		instanceURL := mastodon.InstanceURL
-		if customURLMapping != nil {
-			if len(customURLMapping.AuthURL) > 0 {
-				instanceURL = customURLMapping.AuthURL
-			}
+		if customURLMapping != nil && len(customURLMapping.AuthURL) > 0 {
+			instanceURL = customURLMapping.AuthURL
 		}
 		provider = mastodon.NewCustomisedURL(clientID, clientSecret, callbackURL, instanceURL)
 	}
