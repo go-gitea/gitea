@@ -398,9 +398,9 @@ func Issues(ctx *context.Context) {
 	isShowClosed := ctx.Query("state") == "closed"
 
 	// Get repository IDs where User/Org has access.
-	userRepoIDs, errorTitle, err := userRepoIDs(ctxUser, ctx.User, unitType)
+	userRepoIDs, err := userRepoIDs(ctxUser, ctx.User, unitType)
 	if err != nil {
-		ctx.ServerError(errorTitle, err)
+		ctx.ServerError("userRepoIDs", err)
 		return
 	}
 
@@ -425,7 +425,11 @@ func Issues(ctx *context.Context) {
 	// Required for IssuesOptions.
 	var keyword = strings.Trim(ctx.Query("q"), " ")
 	// Execute keyword search for issues.
-	issueIDsFromSearch, errorTitle, err := issueIDsFromSearch(ctxUser, keyword, opts)
+	issueIDsFromSearch, err := issueIDsFromSearch(ctxUser, keyword, opts)
+	if err != nil {
+		ctx.ServerError("issueIDsFromSearch", err)
+		return
+	}
 
 	// Ensure issue list is empty if keyword search didn't produce any results.
 	var forceEmpty bool
@@ -686,60 +690,61 @@ func repoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, string, error) {
+func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, error) {
 	var err error
-	var errorTitle string
 	var userRepoIDs []int64
 
 	if ctxUser.IsOrganization() {
-		userRepoIDs, errorTitle, err = orgRepoIds(ctxUser, user, unitType)
+		userRepoIDs, err = orgRepoIds(ctxUser, user, unitType)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
-		errorTitle = "ctxUser.GetAccessRepoIDs"
-	}
 
-	if err != nil {
-		return nil, errorTitle, err
+		if err != nil {
+			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
+		}
 	}
 
 	if len(userRepoIDs) == 0 {
 		userRepoIDs = []int64{-1}
 	}
 
-	return userRepoIDs, "", nil
+	return userRepoIDs, nil
 }
 
-func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, string, error) {
+func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	env, err := org.AccessibleReposEnv(user.ID)
 	if err != nil {
-		return nil, "AccessibleReposEnv", err
+		return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
 	orgRepoIDs, err = env.RepoIDs(1, org.NumRepos)
 	if err != nil {
-		return nil, "env.RepoIDs", err
+		return nil, fmt.Errorf("env.RepoIDs: %v", err)
 	}
 	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(user, orgRepoIDs, unitType)
 	if err != nil {
-		return nil, "FilterOutRepoIdsWithoutUnitAccess", err
+		return nil, fmt.Errorf("FilterOutRepoIdsWithoutUnitAccess: %v", err)
 	}
-	return orgRepoIDs, "", nil
+	return orgRepoIDs, nil
 }
 
-func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, string, error) {
+func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
 	var issueIDsFromSearch []int64
 	if len(keyword) > 0 {
 		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
 		if err != nil {
-			return nil, "GetRepoIDsForIssuesOptions", err
+			return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
 		}
 		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
 		if err != nil {
-			return nil, "SearchIssuesByKeyword", err
+			return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
 		}
 	}
-	return issueIDsFromSearch, "", nil
+	return issueIDsFromSearch, nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
