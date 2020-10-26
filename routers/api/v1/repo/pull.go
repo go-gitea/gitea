@@ -286,7 +286,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 
 	if form.Head == form.Base {
 		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
-			"Invalid PullRequest: No changes presented. ( Head is equal to Base )")
+			"Invalid PullRequest: There are no changes between the head and the base")
 		return
 	}
 
