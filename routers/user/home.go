@@ -382,7 +382,6 @@ func Issues(ctx *context.Context) {
 
 	// TODO: distinguish during routing
 
-	// Organization does not have view type and filter mode.
 	if ctxUser.IsOrganization() {
 		viewType = "your_repositories"
 	} else {
@@ -431,8 +430,10 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
-	// keyword holds the search term entered in to the search field.
+	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.Query("q"), " ")
+	ctx.Data["Keyword"] = keyword
+
 	// Execute keyword search for issues.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
 	issueIDsFromSearch, err := issueIDsFromSearch(ctxUser, keyword, opts)
@@ -441,7 +442,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	// Ensure issue list is empty if keyword search didn't produce any results.
+	// Ensure no issues are returned if a keyword was provided that didn't match any issues.
 	var forceEmpty bool
 
 	if len(issueIDsFromSearch) > 0 {
@@ -449,7 +450,6 @@ func Issues(ctx *context.Context) {
 	} else if len(keyword) > 0 {
 		forceEmpty = true
 	}
-	ctx.Data["Keyword"] = keyword
 
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.Query("state") == "closed"
@@ -457,9 +457,9 @@ func Issues(ctx *context.Context) {
 
 	// Filter repos and count issues in them. Count will be used later.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	var counts map[int64]int64
+	var issueCountByRepo map[int64]int64
 	if !forceEmpty {
-		counts, err = models.CountIssuesByRepo(opts)
+		issueCountByRepo, err = models.CountIssuesByRepo(opts)
 		if err != nil {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
@@ -477,9 +477,9 @@ func Issues(ctx *context.Context) {
 	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
 	var labelIDs []int64
-	selectLabels := ctx.Query("labels")
-	if len(selectLabels) > 0 && selectLabels != "0" {
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+	selectedLabels := ctx.Query("labels")
+	if len(selectedLabels) > 0 && selectedLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
 			return
@@ -516,7 +516,7 @@ func Issues(ctx *context.Context) {
 	// ----------------------------------
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := repoIDMap(ctxUser, counts)
+	showReposMap, err := repoIDMap(ctxUser, issueCountByRepo)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
@@ -647,7 +647,7 @@ func Issues(ctx *context.Context) {
 	}
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
-	ctx.Data["Counts"] = counts
+	ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = userIssueStats
 	ctx.Data["ShownIssueStats"] = shownIssueStats
 	ctx.Data["ViewType"] = viewType
@@ -680,40 +680,42 @@ func Issues(ctx *context.Context) {
 }
 
 func repoIDs(reposQuery string) []int64 {
+	if len(reposQuery) == 0 {
+		return []int64{}
+	}
+	if !issueReposQueryPattern.MatchString(reposQuery) {
+		log.Warn("issueReposQueryPattern does not match query")
+		return []int64{}
+	}
+
 	var repoIDs []int64
-	if len(reposQuery) != 0 {
-		if issueReposQueryPattern.MatchString(reposQuery) {
-			// remove "[" and "]" from string
-			reposQuery = reposQuery[1 : len(reposQuery)-1]
-			//for each ID (delimiter ",") add to int to repoIDs
-			for _, rID := range strings.Split(reposQuery, ",") {
-				// Ensure nonempty string entries
-				if rID != "" && rID != "0" {
-					rIDint64, err := strconv.ParseInt(rID, 10, 64)
-					if err == nil {
-						repoIDs = append(repoIDs, rIDint64)
-					}
-				}
+	// remove "[" and "]" from string
+	reposQuery = reposQuery[1 : len(reposQuery)-1]
+	//for each ID (delimiter ",") add to int to repoIDs
+	for _, rID := range strings.Split(reposQuery, ",") {
+		// Ensure nonempty string entries
+		if rID != "" && rID != "0" {
+			rIDint64, err := strconv.ParseInt(rID, 10, 64)
+			if err == nil {
+				repoIDs = append(repoIDs, rIDint64)
 			}
-		} else {
-			log.Warn("issueReposQueryPattern not match with query")
 		}
 	}
+
 	return repoIDs
 }
 
 func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, error) {
-	var err error
 	var userRepoIDs []int64
+	var err error
 
 	if ctxUser.IsOrganization() {
 		userRepoIDs, err = orgRepoIds(ctxUser, user, unitType)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
 		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
-
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -729,6 +731,7 @@ func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64,
 func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
+
 	env, err := org.AccessibleReposEnv(user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
@@ -745,46 +748,49 @@ func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, erro
 }
 
 func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
-	var issueIDsFromSearch []int64
-	if len(keyword) > 0 {
-		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
-		if err != nil {
-			return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
-		}
-		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
-		if err != nil {
-			return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
-		}
+	if len(keyword) == 0 {
+		return []int64{}, nil
 	}
+
+	searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+	if err != nil {
+		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
+	}
+	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+	if err != nil {
+		return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
+	}
+
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, counts map[int64]int64) (map[int64]*models.Repository, error) {
-	showReposMap := make(map[int64]*models.Repository, len(counts))
-	for repoID := range counts {
-		if repoID > 0 {
-			if _, ok := showReposMap[repoID]; !ok {
-				repo, err := models.GetRepositoryByID(repoID)
-				if models.IsErrRepoNotExist(err) {
-					return nil, err
-				} else if err != nil {
-					return nil, fmt.Errorf("GetRepositoryByID: [%d]%v", repoID, err)
-				}
-				showReposMap[repoID] = repo
+func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64) (map[int64]*models.Repository, error) {
+	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
+	for id := range issueCountByRepo {
+		if id <= 0 {
+			continue
+		}
+		if _, ok := repoByID[id]; !ok {
+			repo, err := models.GetRepositoryByID(id)
+			if models.IsErrRepoNotExist(err) {
+				return nil, err
+			} else if err != nil {
+				return nil, fmt.Errorf("GetRepositoryByID: [%d]%v", id, err)
 			}
-			repo := showReposMap[repoID]
+			repoByID[id] = repo
+		}
+		repo := repoByID[id]
 
-			// Check if user has access to given repository.
-			perm, err := models.GetUserRepoPermission(repo, ctxUser)
-			if err != nil {
-				return nil, fmt.Errorf("GetUserRepoPermission: [%d]%v", repoID, err)
-			}
-			if !perm.CanRead(models.UnitTypeIssues) {
-				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
-			}
+		// Check if user has access to given repository.
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			return nil, fmt.Errorf("GetUserRepoPermission: [%d]%v", id, err)
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
+			log.Error("User created Issues in Repository which they no longer have access to: [%d]", id)
 		}
 	}
-	return showReposMap, nil
+	return repoByID, nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
