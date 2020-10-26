@@ -54,5 +54,5 @@ func SendEmail(subject, message string, to []string) (int, string) {
 		users = "all"
 	}
 
-	return http.StatusOK, fmt.Sprintf("Was sent %s from %s", body, users)
+	return http.StatusOK, fmt.Sprintf("Sent %s email(s) to %s users", body, users)
 }
