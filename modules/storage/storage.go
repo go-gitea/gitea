@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -141,21 +142,25 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 }
 
 func initAvatars() (err error) {
-	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
+	log.Info("Initialising Avatar storage with type: %s", setting.Avatar.Storage.Type)
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, &setting.Avatar.Storage)
 	return
 }
 
 func initAttachments() (err error) {
-	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
+	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
+	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
 	return
 }
 
 func initLFS() (err error) {
-	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
+	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
+	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
 	return
 }
 
 func initRepoAvatars() (err error) {
-	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
+	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, &setting.RepoAvatar.Storage)
 	return
 }
