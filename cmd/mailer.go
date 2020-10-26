@@ -9,10 +9,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
 
 func runSendMail(c *cli.Context) error {
+	setting.NewContext()
+
 	if err := argsSet(c, "title"); err != nil {
 		return err
 	}
