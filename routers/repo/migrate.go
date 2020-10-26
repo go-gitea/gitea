@@ -6,7 +6,7 @@
 package repo
 
 import (
-	"fmt"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -27,7 +27,7 @@ const (
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	if setting.Repository.DisableMigrations {
-		ctx.ServerError("MigratePost", fmt.Errorf("cannot migrate; migrations disabled"))
+		ctx.Error(http.StatusForbidden, "Migrate: the site administrator has disabled migrations")
 		return
 	}
 
@@ -64,7 +64,7 @@ func Migrate(ctx *context.Context) {
 
 func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
-		ctx.ServerError("MigrateError", fmt.Errorf("migrations disabled"))
+		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
 	}
 
@@ -116,7 +116,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
-		ctx.ServerError("MigratePost", fmt.Errorf("cannot migrate; migrations disabled"))
+		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
 		return
 	}
 
