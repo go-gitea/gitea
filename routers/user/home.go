@@ -516,32 +516,14 @@ func Issues(ctx *context.Context) {
 	// ----------------------------------
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap := make(map[int64]*models.Repository, len(counts))
-	for repoID := range counts {
-		if repoID > 0 {
-			if _, ok := showReposMap[repoID]; !ok {
-				repo, err := models.GetRepositoryByID(repoID)
-				if models.IsErrRepoNotExist(err) {
-					ctx.NotFound("GetRepositoryByID", err)
-					return
-				} else if err != nil {
-					ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
-					return
-				}
-				showReposMap[repoID] = repo
-			}
-			repo := showReposMap[repoID]
-
-			// Check if user has access to given repository.
-			perm, err := models.GetUserRepoPermission(repo, ctxUser)
-			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-				return
-			}
-			if !perm.CanRead(models.UnitTypeIssues) {
-				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
-			}
+	showReposMap, err := repoIDMap(ctxUser, counts)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.NotFound("GetRepositoryByID", err)
+			return
 		}
+		ctx.ServerError("repoIDMap", err)
+		return
 	}
 
 	// a RepositoryList
@@ -562,9 +544,9 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	// -----------
-	// Fill stats.
-	// -----------
+	// -------------------------------
+	// Fill stats to post to ctx.Data.
+	// -------------------------------
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
@@ -577,14 +559,12 @@ func Issues(ctx *context.Context) {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
 	}
 
-	// Will be posted to ctx.Data.
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats User", err)
 		return
 	}
 
-	// Will be posted to ctx.Data.
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
@@ -607,7 +587,6 @@ func Issues(ctx *context.Context) {
 		shownIssueStats = &models.IssueStats{}
 	}
 
-	// Will be posted to ctx.Data.
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
 		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
@@ -628,17 +607,15 @@ func Issues(ctx *context.Context) {
 
 	// Will be posted to ctx.Data.
 	var shownIssues int
-	var totalIssues int
 	if !isShowClosed {
 		shownIssues = int(shownIssueStats.OpenCount)
-		totalIssues = int(allIssueStats.OpenCount)
+		ctx.Data["TotalIssueCount"] = int(allIssueStats.OpenCount)
 	} else {
 		shownIssues = int(shownIssueStats.ClosedCount)
-		totalIssues = int(allIssueStats.ClosedCount)
+		ctx.Data["TotalIssueCount"] = int(allIssueStats.ClosedCount)
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["TotalIssueCount"] = totalIssues
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
 		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
@@ -780,6 +757,34 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 		}
 	}
 	return issueIDsFromSearch, nil
+}
+
+func repoIDMap(ctxUser *models.User, counts map[int64]int64) (map[int64]*models.Repository, error) {
+	showReposMap := make(map[int64]*models.Repository, len(counts))
+	for repoID := range counts {
+		if repoID > 0 {
+			if _, ok := showReposMap[repoID]; !ok {
+				repo, err := models.GetRepositoryByID(repoID)
+				if models.IsErrRepoNotExist(err) {
+					return nil, err
+				} else if err != nil {
+					return nil, fmt.Errorf("GetRepositoryByID: [%d]%v", repoID, err)
+				}
+				showReposMap[repoID] = repo
+			}
+			repo := showReposMap[repoID]
+
+			// Check if user has access to given repository.
+			perm, err := models.GetUserRepoPermission(repo, ctxUser)
+			if err != nil {
+				return nil, fmt.Errorf("GetUserRepoPermission: [%d]%v", repoID, err)
+			}
+			if !perm.CanRead(models.UnitTypeIssues) {
+				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			}
+		}
+	}
+	return showReposMap, nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
