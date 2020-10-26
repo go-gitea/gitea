@@ -5,6 +5,7 @@
 package private
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
 	"gitea.com/macaron/macaron"
 )
@@ -19,7 +21,25 @@ import (
 // SendEmail pushes messages to mail queue
 //
 // It doesn't wait before each message will be processed
-func SendEmail(ctx *macaron.Context, mail private.Email) {
+func SendEmail(ctx *macaron.Context) {
+	if setting.MailService == nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": "Mail service is not enabled.",
+		})
+		return
+	}
+
+	var mail private.Email
+	rd := ctx.Req.Body().ReadCloser()
+	defer rd.Close()
+	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
+		log.Error("%v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err,
+		})
+		return
+	}
+
 	var emails []string
 	if len(mail.To) > 0 {
 		for _, uname := range mail.To {
@@ -33,13 +53,15 @@ func SendEmail(ctx *macaron.Context, mail private.Email) {
 				return
 			}
 
-			if user != nil {
+			if user != nil && len(user.Email) > 0 {
 				emails = append(emails, user.Email)
 			}
 		}
 	} else {
 		err := models.IterateUser(func(user *models.User) error {
-			emails = append(emails, user.Email)
+			if len(user.Email) > 0 {
+				emails = append(emails, user.Email)
+			}
 			return nil
 		})
 		if err != nil {

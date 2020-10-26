@@ -41,11 +41,11 @@ func runSendMail(c *cli.Context) error {
 
 	status, message := private.SendEmail(subject, body, nil)
 	if status != http.StatusOK {
-		fmt.Printf("error: %s", message)
+		fmt.Printf("error: %s\n", message)
 		return nil
 	}
 
-	fmt.Printf("Succseded: %s", message)
+	fmt.Printf("Success: %s\n", message)
 
 	return nil
 }
