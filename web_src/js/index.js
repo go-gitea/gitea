@@ -25,6 +25,7 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
+import {stripTags} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -191,25 +192,32 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
 function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
+  $('#repo_migrating_failed_image').hide();
   if (migrating) {
-    const repo_name = migrating.attr('repo');
-    if (typeof repo_name === 'undefined') {
+    const task = migrating.attr('task');
+    if (typeof task === 'undefined') {
       return;
     }
     $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/${repo_name}/status`,
+      url: `${AppSubUrl}/user/task/${task}`,
       data: {
         _csrf: csrf,
       },
       complete(xhr) {
         if (xhr.status === 200) {
           if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 0) {
+            if (xhr.responseJSON.status === 4) {
               window.location.reload();
               return;
+            } else if (xhr.responseJSON.status === 3) {
+              $('#repo_migrating_progress').hide();
+              $('#repo_migrating').hide();
+              $('#repo_migrating_failed').show();
+              $('#repo_migrating_failed_image').show();
+              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+              return;
             }
-
             setTimeout(() => {
               initRepoStatusChecker();
             }, 2000);
@@ -217,7 +225,9 @@ function initRepoStatusChecker() {
           }
         }
         $('#repo_migrating_progress').hide();
+        $('#repo_migrating').hide();
         $('#repo_migrating_failed').show();
+        $('#repo_migrating_failed_image').show();
       }
     });
   }
@@ -782,6 +792,7 @@ async function initRepository() {
       $('#pull-desc').toggle();
       $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
+      $('#issue-title-wrapper').toggleClass('edit-active');
       $editInput.focus();
       return false;
     };
@@ -1325,25 +1336,26 @@ function initWikiForm() {
       element: $editArea[0],
       forceSync: true,
       previewRender(plainText, preview) { // Async method
+        // FIXME: still send render request when return back to edit mode
+        const render = function () {
+          sideBySideChanges = 0;
+          if (sideBySideTimeout !== null) {
+            clearTimeout(sideBySideTimeout);
+            sideBySideTimeout = null;
+          }
+          $.post($editArea.data('url'), {
+            _csrf: csrf,
+            mode: 'gfm',
+            context: $editArea.data('context'),
+            text: plainText,
+            wiki: true
+          }, (data) => {
+            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+            renderMarkdownContent();
+          });
+        };
+
         setTimeout(() => {
-          // FIXME: still send render request when return back to edit mode
-          const render = function () {
-            sideBySideChanges = 0;
-            if (sideBySideTimeout !== null) {
-              clearTimeout(sideBySideTimeout);
-              sideBySideTimeout = null;
-            }
-            $.post($editArea.data('url'), {
-              _csrf: csrf,
-              mode: 'gfm',
-              context: $editArea.data('context'),
-              text: plainText,
-              wiki: true
-            }, (data) => {
-              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              renderMarkdownContent();
-            });
-          };
           if (!simplemde.isSideBySideActive()) {
             render();
           } else {
@@ -1786,6 +1798,7 @@ function initAdmin() {
       case 'gitlab':
       case 'gitea':
       case 'nextcloud':
+      case 'mastodon':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1818,6 +1831,10 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
+          break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
           break;
       }
     }
@@ -3367,10 +3384,6 @@ function initTopicbar() {
           success: false,
           results: [],
         };
-        const stripTags = function (text) {
-          return text.replace(/<[^>]*>?/gm, '');
-        };
-
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];

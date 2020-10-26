@@ -1,116 +1,105 @@
+:root {
+  /* documented customizable variables */
+  --fonts-proportional: -apple-system, "BlinkMacSystemFont", system-ui, "Segoe UI", "Roboto", "Helvetica", "Arial";
+  --fonts-monospace: "SF Mono", "Consolas", "Menlo", "Liberation Mono", "Monaco", "Lucida Console", monospace;
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* other variables */
+  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
+  --border-radius: .28571429rem;
+}
+
+:root:lang(ja) {
+  --fonts-proportional: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Source Han Sans JP", "Noto Sans CJK JP", "Droid Sans Japanese", "Meiryo", "MS PGothic";
+}
+
+:root:lang(zh-CN) {
+  --fonts-proportional: "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", "SimHei";
+}
+
+:root:lang(zh-TW) {
+  --fonts-proportional: "PingFang TC", "Hiragino Sans TC", "Source Han Sans TW", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU";
+}
+
+:root:lang(zh-HK) {
+  --fonts-proportional: "PingFang HK", "Hiragino Sans TC", "Source Han Sans HK", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU_HKSCS", "PMingLiU";
+}
+
+:root:lang(ko) {
+  --fonts-proportional: "Apple SD Gothic Neo", "NanumBarunGothic", "Malgun Gothic", "Gulim", "Dotum", "Nanum Gothic", "Source Han Sans KR", "Noto Sans CJK KR";
+}
+
 @font-face {
-  font-family: 'Yu Gothic';
-  src: local('Yu Gothic Medium');
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Medium");
   font-weight: 400;
 }
 
 @font-face {
-  font-family: 'Yu Gothic';
-  src: local('Yu Gothic Bold');
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Bold");
   font-weight: 700;
 }
 
 @font-face {
-  font-family: 'Noto Color Emoji';
+  font-family: "Noto Color Emoji";
   src:
-    local('Noto Color Emoji'),
-    local('Noto-Color-Emoji'),
-    url('../fonts/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
+    local("Noto Color Emoji"),
+    local("Noto-Color-Emoji"),
+    url("../fonts/noto-color-emoji/NotoColorEmoji.ttf") format("truetype");
 }
 
-@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
-@monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
-
-.override-fonts(@fonts) {
-  textarea {
-    font-family: @fonts;
-  }
-
-  .markdown:not(code) {
-    font-family: @fonts;
-  }
-
-  /* We're going to just override the semantic fonts here */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5 {
-    font-family: @fonts;
-  }
-
-  .ui.accordion .title:not(.ui),
-  .ui.button,
-  .ui.card > .content > .header.ui.card > .content > .header,
-  .ui.category.search > .results .category > .name,
-  .ui.form input:not([type]),
-  .ui.form input[type="date"],
-  .ui.form input[type="datetime-local"],
-  .ui.form input[type="email"],
-  .ui.form input[type="file"],
-  .ui.form input[type="number"],
-  .ui.form input[type="password"],
-  .ui.form input[type="search"],
-  .ui.form input[type="tel"],
-  .ui.form input[type="text"],
-  .ui.form input[type="time"],
-  .ui.form input[type="url"],
-  .ui.header,
-  .ui.items > .item > .content > .header,
-  .ui.list .list > .item .header,
-  .ui.list > .item .header,
-  .ui.menu,
-  .ui.message .header,
-  .ui.modal > .header,
-  .ui.popup > .header,
-  .ui.search > .results .result .title,
-  .ui.search > .results > .message .header,
-  body,
-  .ui.input > input,
-  .ui.input input,
-  .ui.statistics .statistic > .value,
-  .ui.statistic > .value,
-  .ui.statistics .statistic > .label,
-  .ui.statistic > .label,
-  .ui.steps .step .title,
-  .ui.text.container,
-  .ui.language > .menu > .item& {
-    font-family: @fonts;
-  }
+/* Most of these selectors override fomantic ui */
+body,
+textarea,
+h1,
+h2,
+h3,
+h4,
+h5,
+.markdown:not(code),
+.ui.accordion .title:not(.ui),
+.ui.button,
+.ui.card > .content > .header.ui.card > .content > .header,
+.ui.category.search > .results .category > .name,
+.ui.form input:not([type]),
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="file"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="text"],
+.ui.form input[type="time"],
+.ui.form input[type="url"],
+.ui.header,
+.ui.items > .item > .content > .header,
+.ui.list .list > .item .header,
+.ui.list > .item .header,
+.ui.menu,
+.ui.message .header,
+.ui.modal > .header,
+.ui.popup > .header,
+.ui.search > .results .result .title,
+.ui.search > .results > .message .header,
+.ui.input > input,
+.ui.input input,
+.ui.statistics .statistic > .value,
+.ui.statistic > .value,
+.ui.statistics .statistic > .label,
+.ui.statistic > .label,
+.ui.steps .step .title,
+.ui.text.container,
+.ui.language > .menu > .item {
+  font-family: var(--fonts-regular);
 }
-
-.override-fonts(@default-fonts, sans-serif;);
 
 body {
   background-color: #ffffff;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-}
-
-@ja-fonts: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Source Han Sans JP', 'Noto Sans CJK JP', 'Droid Sans Japanese', 'Meiryo', 'MS PGothic';
-:lang(ja) {
-  .override-fonts(@default-fonts, @ja-fonts, sans-serif;);
-}
-
-@zh-CN-fonts: 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Heiti SC', SimHei;
-:lang(zh-CN) {
-  .override-fonts(@default-fonts, @zh-CN-fonts, sans-serif;);
-}
-
-@zh-TW-fonts: 'PingFang TC', 'Hiragino Sans TC', 'Source Han Sans TW', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU;
-:lang(zh-TW) {
-  .override-fonts(@default-fonts, @zh-TW-fonts, sans-serif;);
-}
-
-@zh-HK-fonts: 'PingFang HK', 'Hiragino Sans TC', 'Source Han Sans HK', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU_HKSCS, PMingLiU;
-:lang(zh-HK) {
-  .override-fonts(@default-fonts, @zh-HK-fonts, sans-serif;);
-}
-
-@ko-fonts: 'Apple SD Gothic Neo', 'NanumBarunGothic', 'Malgun Gothic', 'Gulim', 'Dotum', 'Nanum Gothic', 'Source Han Sans KR', 'Noto Sans CJK KR';
-:lang(ko) {
-  .override-fonts(@default-fonts, @ko-fonts, sans-serif;);
 }
 
 img {
@@ -126,7 +115,7 @@ a {
 }
 
 .rounded {
-  border-radius: .28571429rem !important;
+  border-radius: var(--border-radius) !important;
 }
 
 .wrap {
@@ -137,7 +126,7 @@ a {
 pre,
 code,
 .mono {
-  font: 12px @monospaced-fonts, monospace;
+  font: 12px var(--fonts-monospace);
 
   &.raw {
     padding: 7px 12px;
@@ -545,7 +534,7 @@ code,
   }
 
   .sha.label {
-    font-family: @monospaced-fonts, monospace;
+    font-family: var(--fonts-monospace);
     font-size: 13px;
     padding: 6px 10px 4px;
     font-weight: normal;
@@ -691,10 +680,27 @@ code,
       }
     }
   }
+
+  /* modal svg icons, copied from fomantic except width and height */
+  &.icon.header svg {
+    width: 3em;
+    height: 3em;
+    float: none;
+    display: block;
+    line-height: 1;
+    padding: 0;
+    margin: 0 auto .5rem;
+    opacity: 1;
+  }
+
+  /* center text in fomantic modal dialogs */
+  &.modal > .content {
+    text-align: center;
+  }
 }
 
 .file-comment {
-  font: 12px @monospaced-fonts, monospace;
+  font: 12px var(--fonts-monospace);
   color: rgba(0, 0, 0, .87);
 }
 
@@ -1008,7 +1014,7 @@ i.icon.centerlock {
   color: rgba(27, 31, 35, .3);
   width: 1%;
   user-select: none;
-  font-family: @monospaced-fonts, monospace;
+  font-family: var(--fonts-monospace);
 
   span {
     &.bottom-line {
@@ -1089,7 +1095,7 @@ i.icon.centerlock {
 
     .blame-data {
       display: flex;
-      font-family: @default-fonts, sans-serif;
+      font-family: var(--fonts-regular);
 
       .blame-message {
         flex-grow: 2;
@@ -1131,7 +1137,7 @@ i.icon.centerlock {
 
   *:not(.fa):not(.svg):not(.icon) {
     font-size: 12px;
-    font-family: @monospaced-fonts, monospace;
+    font-family: var(--fonts-monospace);
     line-height: 20px;
   }
 
@@ -1225,6 +1231,18 @@ table th[data-sortt-desc] {
   }
 }
 
+.ui.dropdown .menu .item {
+  border-radius: 0;
+}
+
+.ui.dropdown .menu .item:first-of-type {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.ui.dropdown .menu .item:last-of-type {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
 .text-label {
   display: inline-flex !important;
   align-items: center !important;
@@ -1279,4 +1297,9 @@ table th[data-sortt-desc] {
 
 .ui.header > .ui.label.compact {
   margin-top: inherit;
+}
+
+.flash-error details code {
+  display: block;
+  text-align: left;
 }

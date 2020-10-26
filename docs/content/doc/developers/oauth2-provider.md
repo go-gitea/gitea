@@ -7,7 +7,7 @@ toc: true
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
+    parent: "developers"
     name: "OAuth2 Provider"
     weight: 41
     identifier: "oauth2-provider"

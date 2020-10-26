@@ -301,6 +301,15 @@ func NewMacaron() *macaron.Macaron {
 	return m
 }
 
+// RegisterInstallRoute registers the install routes
+func RegisterInstallRoute(m *macaron.Macaron) {
+	m.Combo("/", routers.InstallInit).Get(routers.Install).
+		Post(binding.BindIgnErr(auth.InstallForm{}), routers.InstallPost)
+	m.NotFound(func(ctx *context.Context) {
+		ctx.Redirect(setting.AppURL, 302)
+	})
+}
+
 // RegisterRoutes routes routes to Macaron
 func RegisterRoutes(m *macaron.Macaron) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
@@ -481,6 +490,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Post("/logout", user.SignOut)
+		m.Get("/task/:task", user.TaskStatus)
 	})
 	// ***** END: User *****
 
@@ -987,8 +997,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
-
-		m.Get("/status", reqRepoCodeReader, repo.Status)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
