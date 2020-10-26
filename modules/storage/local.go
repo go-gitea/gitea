@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -39,7 +40,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 		return nil, err
 	}
 	config := configInterface.(LocalStorageConfig)
-
+	log.Info("Creating new Local Storage at %s", config.Path)
 	if err := os.MkdirAll(config.Path, os.ModePerm); err != nil {
 		return nil, err
 	}
