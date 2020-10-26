@@ -1427,6 +1427,124 @@
     }
   }
 
+  &.diff.rawdiff {
+    tr.inverse-explanation {
+      td {
+        font-size: 12px;
+        padding-top: .2em;
+        font-weight: bold;
+        padding-bottom: .2em;
+
+        span.message-wrapper {
+          text-decoration: line-through;
+        }
+      }
+    }
+  }
+
+  &.rangediff,
+  &.diff.rawdiff {
+    #commits-table tr {
+      &.created {
+        td:not(.null) {
+          color: green;
+        }
+
+        td.sha:not(.null) .sha.label {
+          border-color: green;
+          color: green;
+          background-color: #ecffd9;
+
+          .shortsha {
+            color: green;
+          }
+        }
+      }
+
+      &.removed {
+        td:not(.null) {
+          color: red;
+          text-decoration: line-through;
+        }
+
+        td.sha:not(.null) .sha.label {
+          border-color: red;
+          color: red;
+          text-decoration: line-through;
+          background-color: #ffe3e3;
+
+          .shortsha {
+            color: red;
+            text-decoration: line-through;
+          }
+        }
+      }
+
+      &.changed {
+        td:not(.null) {
+          color: #9e9e00;
+        }
+
+        td.sha:not(.null) .sha.label {
+          border-color: #9e9e00;
+          color: #9e9e00;
+          background-color: #ffffc7;
+
+          .shortsha {
+            color: #9e9e00;
+          }
+        }
+      }
+    }
+  }
+
+  &.rangediff {
+    .unified.message,
+    .pullexists.message {
+      display: block;
+      text-align: left;
+    }
+
+    .ui.meta {
+      margin-top: 1em;
+    }
+
+    div.ui.entry-detail {
+      &.container.fluid.padded.row {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+      }
+
+      div.diff-detail-box.diff-box {
+
+        background: transparent;
+
+        &.sticky {
+          &.stuck {
+            background: #ffffff;
+          }
+
+          &:not(.stuck) div.additional-message {
+            display: none;
+          }
+        }
+      }
+
+      div.attached.segment {
+        width: 100%;
+      }
+    }
+  }
+
+  &.diff {
+    .yshaped.message,
+    .pullexists.message,
+    .rangediff.message {
+      display: block;
+      text-align: left;
+    }
+  }
+
   &.compare.pull {
     .show-form-container {
       text-align: left;
@@ -1660,6 +1778,70 @@
     background: #ffffff;
     line-height: 30px;
 
+    &.diff-box {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      align-content: space-between;
+
+      &.sticky.stuck {
+        // hide the segment border next the sticky
+        border-width: 0 1px;
+        border-color: white;
+        border-style: solid;
+        margin-left: -1px;
+        margin-right: -1px;
+      }
+
+      > div {
+        flex: 0 0 auto;
+        align-self: center;
+      }
+
+      > h1,
+      > h2,
+      > h3,
+      > h4 {
+        flex: 0 0 100%;
+        align-self: center;
+      }
+
+      @transition-threshold: 800px;
+      @media (min-width: (@transition-threshold + 1)) {
+        > div:last-child {
+          margin-left: auto;
+        }
+      }
+
+      @media (max-width: @transition-threshold) {
+        > div {
+          flex: 100%;
+        }
+
+        flex-direction: column;
+        line-height: 15px;
+      }
+
+      div.additional-message {
+        flex: 1 1 auto;
+        max-width: 100%;
+        margin: 0 1em;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: #666;
+
+        @media (max-width: @transition-threshold) {
+          margin: 0;
+        }
+
+        font-size: 12px;
+        font-style: italic;
+      }
+    }
+
     &.sticky {
       position: sticky;
       top: 0;
@@ -1670,7 +1852,7 @@
       padding-right: 5px;
     }
 
-    > div:after {
+    &:not(.diff-box) > div:after {
       clear: both;
       content: "";
       display: block;

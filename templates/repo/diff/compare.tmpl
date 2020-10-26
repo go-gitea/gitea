@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository diff {{if .PageIsComparePull}}compare pull{{end}}">
+<div class="repository diff {{if .ShowsNegativeCommits}}rawdiff{{end}} {{if .PageIsComparePull}}compare pull{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 
@@ -83,12 +83,12 @@
 	{{end}}
 
 	{{if .IsNothingToCompare}}
-    	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
+		<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
-        	<div class="ui segment">
-        		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
-        	</div>
+			<div class="ui segment">
+				{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
+			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
 				<div class="ui info message show-form-container">
@@ -105,11 +105,37 @@
 				</div>
 			{{end}}
 			{{template "repo/commits_table" .}}
-			{{template "repo/diff/box" .}}
+			{{template "repo/diff/box" dict "root" . "Diff" .Diff}}
 		{{end}}
 	{{else}}
+		{{if .YShaped}}
+			<a class="ui message yshaped" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/{{if .ShowsNegativeCommits}}compare{{else}}rawdiff{{end}}/{{.BaseBranch}}...{{.HeadBranch}}">
+				{{svg "octicon-git-branch"}}
+				{{if .ShowsNegativeCommits}}
+					{{.i18n.Tr "repo.compare.yshaped_showing_inverse"}}
+				{{else}}
+					{{.i18n.Tr "repo.compare.yshaped"}}
+				{{end}}
+			</a>
+		{{end}}
+		{{if and .ShowsNegativeCommits .PatchRevisionsComparing}}
+			<a class="ui message rangediff" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/rangediff/{{.BaseBranch}}...{{.HeadBranch}}">
+				{{svg "octicon-git-compare"}}
+				{{if .PullIndex}}
+					{{.i18n.Tr "repo.compare.revisions_comparing_pull" .PullIndex}}
+				{{else}}
+					{{.i18n.Tr "repo.compare.revisions_comparing"}}
+				{{end}}
+			</a>
+		{{end}}
+		{{if and .ShowsNegativeCommits .PullIndex}}	
+			<a class="ui message pullexists" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/pulls/{{.PullIndex}}/revisions">
+				{{svg "octicon-git-pull-request"}}
+				{{.i18n.Tr "repo.compare.pull_exists" .PullIndex}}
+			</a>
+		{{end}}
 		{{template "repo/commits_table" .}}
-		{{template "repo/diff/box" .}}
+		{{template "repo/diff/box" dict "root" . "Diff" .Diff}}
 	{{end}}
 	</div>
 </div>

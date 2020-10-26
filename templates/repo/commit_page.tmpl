@@ -144,7 +144,7 @@
 				<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 			</div>
 		{{end}}
-		{{template "repo/diff/box" .}}
+		{{template "repo/diff/box" dict "root" . "Diff" .Diff}}
 	</div>
 </div>
 {{template "base/footer" .}}

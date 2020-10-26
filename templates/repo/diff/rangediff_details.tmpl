@@ -1,0 +1,22 @@
+{{range .Diff}}
+	<div class="ui {{if $.IsSplitStyle}}container fluid padded{{end}} row entry-detail">
+		<div class="ui {{if $.IsSplitStyle}}container fluid padded{{end}} info top attached segment">
+			<h3>
+				<span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{.GetChangeSummary}}<br/>{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_status" .SignedCommitWithStatuses.Status}}
+			</h3>
+			<div class="diff-detail-box diff-box sticky">
+				<div class="additional-message">
+					{{.GetShortSummary}}
+				</div>
+				<div>
+					<a class="ui tiny basic toggle button" href="?style={{if $.IsSplitStyle}}unified{{else}}split{{end}}">{{ if $.IsSplitStyle }}{{$.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{$.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+					{{template "repo/diff/options_dropdown" $}}
+				</div>
+			</div>
+			{{template "repo/diff/box_diff_files" dict "root" $ "Files" .ParsedMetaDiff "IsIncomplete" false "PageIsWiki" true}}
+		</div>
+		<div class="ui {{if $.IsSplitStyle}}container fluid padded{{end}} attached segment">
+			{{template "repo/diff/box" dict "root" $ "Diff" .ParsedInterDiff "AdditionalStickyMessage" .GetShortSummary}}
+		</div>
+	</div>
+{{end}}

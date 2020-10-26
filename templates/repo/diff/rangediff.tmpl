@@ -1,0 +1,65 @@
+{{template "base/head" .}}
+<div class="repository rangediff">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{if .IsNothingToCompare}}
+				<div class="ui row container">
+					<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
+				</div>
+			{{else}}
+				<a class="ui row message unified" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/rawdiff/{{.BaseBranch}}...{{.HeadBranch}}">
+					<div class="ui container">
+						{{svg "octicon-file-diff"}}
+						{{.i18n.Tr "repo.rangediff.show_unified" }}
+					</div>
+				</a>
+
+				{{if .PullIndex}}
+					<a class="ui row message pullexists" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/pulls/{{.PullIndex}}/revisions">
+						<div class="ui container">
+							{{svg "octicon-git-pull-request"}}
+							{{.i18n.Tr "repo.compare.pull_exists" .PullIndex}}
+						</div>
+					</a>
+				{{end}}
+
+				{{ if and .PageIsComparePull }}
+					<div class="ui row container">
+						{{if .HasPullRequest}}
+							<div class="ui segment">
+								{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
+							</div>
+						{{else}}
+							{{if and $.IsSigned (not .Repository.IsArchived)}}
+								<div class="ui info message show-form-container">
+									<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
+								</div>
+							{{else if .Repository.IsArchived}}
+								<div class="ui warning message">
+									{{.i18n.Tr "repo.archive.title"}}
+								</div>
+							{{end}}
+							{{if $.IsSigned}}
+								<div class="pullrequest-form" style="display: none">
+									{{template "repo/issue/new_form" .}}
+								</div>
+							{{end}}
+						{{end}}
+					</div>
+				{{end}}
+				<div class="ui row container">
+					{{template "repo/diff/rangediff_commit_summary" .}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+	{{if not .IsNothingToCompare}}
+		<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}} meta">
+			<div class="ui grid">
+				{{template "repo/diff/rangediff_details" .}}
+			</div>
+		</div>
+	{{end}}
+</div>
+{{template "base/footer" .}}

@@ -13,7 +13,7 @@
 		{{template "repo/pulls/tab_menu" .}}
 		{{template "base/alert" .}}
 		<div class="ui bottom attached tab pull active">
-			{{template "repo/diff/box" .}}
+			{{template "repo/diff/box" dict "root" . "Diff" .Diff}}
 		</div>
 	</div>
 </div>

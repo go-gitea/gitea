@@ -31,6 +31,10 @@ var (
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
 
+	// Interdiff is the command to diff diffs.
+	// Could be updated to an absolute path while initialization
+	Interdiff = "interdiff"
+
 	// DefaultContext is the default context to run git commands in
 	DefaultContext = context.Background()
 
@@ -117,6 +121,21 @@ func SetExecutablePath(path string) error {
 	if gitVersion.LessThan(versionRequired) {
 		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
 	}
+
+	return nil
+}
+
+// SetInterdiffPath changes the path of the interdiff executable.
+func SetInterdiffPath(path string) error {
+	// If path is empty, we use the default value of Interdiff "interdiff" to search for the location of interfdiff.
+	if path != "" {
+		Interdiff = path
+	}
+	absPath, err := exec.LookPath(Interdiff)
+	if err != nil {
+		return fmt.Errorf("Interdiff not found: %v", err)
+	}
+	Interdiff = absPath
 
 	return nil
 }

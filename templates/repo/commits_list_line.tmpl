@@ -1,0 +1,66 @@
+<tr class="{{$.class}}">
+	<td class="author">
+		{{$userName := $.commit.Author.Name}}
+		{{if $.commit.User}}
+			{{if $.commit.User.FullName}}
+				{{$userName = $.commit.User.FullName}}
+			{{end}}
+			<img class="ui avatar image" src="{{$.commit.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{$.commit.User.Name}}">{{$userName}}</a>
+		{{else}}
+			<img class="ui avatar image" src="{{AvatarLink $.commit.Author.Email}}" alt=""/>&nbsp;&nbsp;{{$userName}}
+		{{end}}
+	</td>
+	<td class="sha">
+		{{$class := "ui sha label"}}
+		{{if $.commit.Signature}}
+			{{$class = (printf "%s%s" $class " isSigned")}}
+			{{if $.commit.Verification.Verified}}
+				{{if eq $.commit.Verification.TrustStatus "trusted"}}
+					{{$class = (printf "%s%s" $class " isVerified")}}
+				{{else if eq $.commit.Verification.TrustStatus "untrusted"}}
+					{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+				{{else}}
+					{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+				{{end}}
+			{{else if $.commit.Verification.Warning}}
+				{{$class = (printf "%s%s" $class " isWarning")}}
+			{{end}}
+		{{end}}
+		{{if $.root.PageIsWiki}}
+			<a href="{{AppSubUrl}}/{{$.root.Username}}/{{$.root.Reponame}}/wiki/commit/{{$.commit.ID}}" rel="nofollow" class="{{$class}}">
+		{{else if $.root.Reponame}}
+			<a href="{{AppSubUrl}}/{{$.root.Username}}/{{$.root.Reponame}}/commit/{{$.commit.ID}}" rel="nofollow" class="{{$class}}">
+		{{else}}
+			<span class="{{$class}}">
+		{{end}}
+			<span class="shortsha">{{ShortSha $.commit.ID.String}}</span>
+			{{if $.commit.Signature}}
+				{{template "repo/shabox_badge" dict "root" $.root "verification" $.commit.Verification}}
+			{{end}}
+		{{if $.root.Reponame}}
+			</a>
+		{{else}}
+			</span>
+		{{end}}
+	</td>
+	<td class="message">
+		<span class="message-wrapper">
+		{{if $.root.PageIsWiki}}
+			<span class="commit-summary {{if gt $.commit.ParentCount 1}} grey text{{end}}" title="{{$.commit.Summary}}">{{$.commit.Summary | RenderEmoji}}</span>
+		{{else }}
+			{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.root.Username $.root.Reponame $.commit.ID }}
+			<span class="commit-summary {{if gt $.commit.ParentCount 1}} grey text{{end}}" title="{{$.commit.Summary}}">{{RenderCommitMessageLinkSubject $.commit.Message $.root.RepoLink $commitLink $.root.Repository.ComposeMetas}}</span>
+		{{end}}
+		</span>
+		{{if IsMultilineCommitMessage $.commit.Message}}
+		<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+		{{end}}
+		{{if eq (CommitType $.commit) "SignCommitWithStatuses"}}
+			{{template "repo/commit_status" $.commit.Status}}
+		{{end}}
+		{{if IsMultilineCommitMessage $.commit.Message}}
+		<pre class="commit-body" style="display: none;">{{RenderCommitBody $.commit.Message $.root.RepoLink $.root.Repository.ComposeMetas}}</pre>
+		{{end}}
+	</td>
+	<td class="text right aligned">{{TimeSince $.commit.Author.When $.root.Lang}}</td>
+</tr>

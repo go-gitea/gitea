@@ -825,7 +825,23 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 	return nil
 }
 
-// ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
+// ParseUserCommitWithSignature checks if signature of a commit is corresponding to users gpg keys.
+func ParseUserCommitWithSignature(commit UserCommit, repository *Repository, keyMapCache *map[string]bool) SignCommit {
+	if keyMapCache == nil {
+		keyMapCache = &map[string]bool{}
+	}
+
+	signCommit := SignCommit{
+		UserCommit:   &commit,
+		Verification: ParseCommitWithSignature(commit.Commit),
+	}
+
+	_ = CalculateTrustStatus(signCommit.Verification, repository, keyMapCache)
+
+	return signCommit
+}
+
+// ParseCommitsWithSignature checks if signature of commits are corresponding to users gpg keys.
 func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *list.List {
 	var (
 		newCommits = list.New()
@@ -835,14 +851,8 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 
 	for e != nil {
 		c := e.Value.(UserCommit)
-		signCommit := SignCommit{
-			UserCommit:   &c,
-			Verification: ParseCommitWithSignature(c.Commit),
-		}
 
-		_ = CalculateTrustStatus(signCommit.Verification, repository, &keyMap)
-
-		newCommits.PushBack(signCommit)
+		newCommits.PushBack(ParseUserCommitWithSignature(c, repository, &keyMap))
 		e = e.Next()
 	}
 	return newCommits

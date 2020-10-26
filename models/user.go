@@ -1325,10 +1325,34 @@ func ValidateCommitWithEmail(c *git.Commit) *User {
 	return u
 }
 
+// ValidateCommitWithEmails  checks if authors' e-mails of commits are corresponding to users.
+func ValidateCommitWithEmails(commit *git.Commit, emailCache *map[string]*User) UserCommit {
+	var u *User
+
+	if emailCache == nil {
+		emailCache = &map[string]*User{}
+	}
+
+	if commit.Author != nil {
+		if v, ok := (*emailCache)[commit.Author.Email]; !ok {
+			u, _ = GetUserByEmail(commit.Author.Email)
+			(*emailCache)[commit.Author.Email] = u
+		} else {
+			u = v
+		}
+	} else {
+		u = nil
+	}
+
+	return UserCommit{
+		User:   u,
+		Commit: commit,
+	}
+}
+
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
 func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 	var (
-		u          *User
 		emails     = map[string]*User{}
 		newCommits = list.New()
 		e          = oldCommits.Front()
@@ -1336,21 +1360,7 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 	for e != nil {
 		c := e.Value.(*git.Commit)
 
-		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
-			}
-		} else {
-			u = nil
-		}
-
-		newCommits.PushBack(UserCommit{
-			User:   u,
-			Commit: c,
-		})
+		newCommits.PushBack(ValidateCommitWithEmails(c, &emails))
 		e = e.Next()
 	}
 	return newCommits

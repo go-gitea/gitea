@@ -15,6 +15,7 @@ var (
 	// Git settings
 	Git = struct {
 		Path                      string
+		Interdiff                 string
 		DisableDiffHighlight      bool
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
@@ -68,6 +69,10 @@ func newGit() {
 		log.Fatal("Failed to initialize Git settings: %v", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
+
+	if err := git.SetInterdiffPath(Git.Interdiff); err != nil {
+		log.Fatal("Failed to initialize Git settings", err)
+	}
 
 	version, err := git.LocalVersion()
 	if err != nil {

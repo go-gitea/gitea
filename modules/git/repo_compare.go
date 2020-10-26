@@ -20,10 +20,16 @@ import (
 
 // CompareInfo represents needed information for comparing references.
 type CompareInfo struct {
-	MergeBase string
-	Commits   *list.List
-	NumFiles  int
+	MergeBase               string
+	Commits                 *list.List
+	NewCommitsOnBase        *list.List
+	PatchRevisionsComparing bool
+	PullIndex               int64
+	NumFiles                int
 }
+
+const patchRevisionsSimilarityDetectionThreshold = 0.5
+const patchRevisionsMinimalSizeForSimilarityDetection = 6
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
 func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (string, string, error) {
@@ -42,6 +48,42 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 
 	stdout, err := NewCommand("merge-base", "--", base, head).RunInDir(repo.Path)
 	return strings.TrimSpace(stdout), base, err
+}
+
+func getCommonPullIndex(baseHead, headHead *Commit) (*int64, error) {
+	baseRevisionRefs, err := baseHead.GetRevisionRefs()
+	if err != nil {
+		return nil, err
+	}
+
+	headRevisionRefs, err := headHead.GetRevisionRefs()
+	if err != nil {
+		return nil, err
+	}
+	var exists = struct{}{}
+	basePRs := make(map[int64]struct{})
+
+	for _, baseRevisionRef := range baseRevisionRefs {
+		index := GetPRIndexFromRef(baseRevisionRef)
+		if index == nil {
+			logger.Warn("Couldn't parse the PR id from the revision ref: %s", baseRevisionRef)
+			continue
+		}
+		basePRs[*index] = exists
+	}
+
+	for _, headRevisionRef := range headRevisionRefs {
+		index := GetPRIndexFromRef(headRevisionRef)
+		if index == nil {
+			logger.Warn("Couldn't parse the PR id from the revision ref: %s", headRevisionRef)
+			continue
+		}
+		if _, ok := basePRs[*index]; ok {
+			return index, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
@@ -76,6 +118,53 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
 		if err != nil {
 			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+		}
+		logs, err = NewCommand("log", compareInfo.MergeBase+"..."+baseBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+		compareInfo.NewCommitsOnBase, err = repo.parsePrettyFormatLogToList(logs)
+		if err != nil {
+			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+		}
+
+		if compareInfo.NewCommitsOnBase.Len() > 0 && compareInfo.Commits.Len() > 0 {
+
+			baseHead := compareInfo.NewCommitsOnBase.Front().Value.(*Commit)
+			headHead := compareInfo.Commits.Front().Value.(*Commit)
+
+			if repo.Path == basePath {
+				commonIndex, err := getCommonPullIndex(baseHead, headHead)
+				if err != nil {
+					logger.Warn("GetCompareInfo, getCommonPullIndex: %v", err)
+				}
+
+				if commonIndex != nil {
+					compareInfo.PullIndex = *commonIndex
+					compareInfo.PatchRevisionsComparing = true
+				}
+			}
+
+			if !compareInfo.PatchRevisionsComparing {
+				diffEntries, err := repo.GetRangeDiff(baseHead.ID.String(), headHead.ID.String())
+
+				if err != nil {
+					return nil, err
+				}
+
+				similar := 0
+				nonCorresponding := 0
+				for _, entry := range diffEntries {
+					if entry.Relation == "=" || entry.Relation == "!" {
+						similar++
+					} else {
+						nonCorresponding++
+					}
+				}
+
+				patchSimilarity := float32(similar) / float32(len(diffEntries))
+				compareInfo.PatchRevisionsComparing = nonCorresponding < patchRevisionsMinimalSizeForSimilarityDetection || patchSimilarity >= patchRevisionsSimilarityDetectionThreshold
+			}
 		}
 	} else {
 		compareInfo.Commits = list.New()
@@ -131,8 +220,8 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-		return GetDiffShortStat(repo.Path, base, head)
-	}
+	return GetDiffShortStat(repo.Path, base, head)
+}
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {

@@ -209,7 +209,7 @@ func FileHistory(ctx *context.Context) {
 	ctx.HTML(200, tplCommits)
 }
 
-// Diff show different from current commit to previous commit
+// Diff show difference from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true

@@ -2285,6 +2285,24 @@ function initTemplateSearch() {
   changeOwner();
 }
 
+function setSticky(element) {
+  element.classList.toggle('stuck', element.getBoundingClientRect().top <= 0 && element.getBoundingClientRect().bottom > 0);
+}
+
+function setStickies() {
+  $('.sticky').each((_index, element) => {
+    setSticky(element);
+  });
+}
+
+function initStickyHelper() {
+  $(document).on('scroll', () => {
+    setStickies();
+  });
+
+  setStickies();
+}
+
 $(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
@@ -2461,6 +2479,8 @@ $(document).ready(async () => {
       comment_id: id,
     }).then(reload);
   });
+
+  initStickyHelper();
 
   buttonsClickOnEnter();
   searchUsers();

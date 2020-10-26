@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -249,6 +250,29 @@ type SignCommitWithStatuses struct {
 	*SignCommit
 }
 
+// ParseGitCommitWithStatus parse a simple git.Commit directly into SignCommitWithStatuses
+func ParseGitCommitWithStatus(commit *git.Commit, repo *Repository, emailCache *map[string]*User, keyMapCache *map[string]bool) SignCommitWithStatuses {
+	withEmail := ValidateCommitWithEmails(commit, emailCache)
+	withSignature := ParseUserCommitWithSignature(withEmail, repo, keyMapCache)
+
+	return ParseCommitWithStatus(withSignature, repo)
+}
+
+// ParseCommitWithStatus checks the commit's latest status and calculates its worst status state
+func ParseCommitWithStatus(commit SignCommit, repo *Repository) SignCommitWithStatuses {
+	signCommitWithStatus := SignCommitWithStatuses{
+		SignCommit: &commit,
+	}
+	statuses, err := GetLatestCommitStatus(repo, signCommitWithStatus.ID.String(), 0)
+	if err != nil {
+		log.Error("GetLatestCommitStatus: %v", err)
+	} else {
+		signCommitWithStatus.Status = CalcCommitStatus(statuses)
+	}
+
+	return signCommitWithStatus
+}
+
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
 	var (
@@ -258,17 +282,8 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 
 	for e != nil {
 		c := e.Value.(SignCommit)
-		commit := SignCommitWithStatuses{
-			SignCommit: &c,
-		}
-		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		} else {
-			commit.Status = CalcCommitStatus(statuses)
-		}
 
-		newCommits.PushBack(commit)
+		newCommits.PushBack(ParseCommitWithStatus(c, repo))
 		e = e.Next()
 	}
 	return newCommits

@@ -1,0 +1,75 @@
+<table id="commits-table" class="ui compact small striped fixed table single line" id="commits-table">
+	<thead>
+		<tr>
+			<th class="right aligned one wide">#</th>
+			<th class="sha right aligned two wide">{{.i18n.Tr "rangediff.from"}}</th>
+			<th class="center aligned one wide">:</th>
+			<th class="sha two wide">{{.i18n.Tr "rangediff.to"}}</th>
+			<th class="one wide">#</th>
+			<th class="six wide message">{{.i18n.Tr "repo.commits.message"}}</th>
+			<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
+		</tr>
+	</thead>
+	<tbody cDlass="commit-list">
+		{{ $r:= .Diff}}
+		{{range $r}}
+			{{$class := ""}}
+			{{if eq .Relation "!"}}
+				{{$class = "changed"}}
+			{{else if eq .Relation ">"}}
+				{{$class = "created"}}
+			{{else if eq .Relation "<"}}
+				{{$class = "removed"}}
+			{{end}}
+			<tr class="{{$class}}">
+				<td class="old-index right aligned {{if not .OldIndex}}null{{end}}">{{if .OldIndex}}{{.OldIndex}}{{else}}-{{end}}</td>
+				<td class="sha right aligned {{if not .Old}}null{{end}}">
+					{{$class := "ui sha label"}}
+					{{if and $.Reponame .Old}}
+						<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.Old}}" rel="nofollow" class="{{$class}}">
+					{{else}}
+						<span class="{{$class}}">
+					{{end}}
+						<span class="shortsha">{{if .Old}}{{ShortSha .Old}}{{else}}-------{{end}}</span>
+					{{if and $.Reponame .Old}}
+						</a>
+					{{else}}
+						</span>
+					{{end}}
+				</td>
+				<td class="relation center aligned">{{.Relation}}</td>
+				<td class="sha {{if not .New}}null{{end}}">
+					{{$class := "ui sha label"}}
+					{{if and $.Reponame .New}}
+						<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.New}}" rel="nofollow" class="{{$class}}">
+					{{else}}
+						<span class="{{$class}}">
+					{{end}}
+						<span class="shortsha">{{if .New}}{{ShortSha .New}}{{else}}-------{{end}}</span>
+					{{if and $.Reponame .New}}
+						</a>
+					{{else}}
+						</span>
+					{{end}}
+				</td>
+				<td class="new-index {{if not .NewIndex}}null{{end}}">{{if .NewIndex}}{{.NewIndex}}{{else}}-{{end}}</td>
+				<td class="message">
+					<span class="message-wrapper">
+						{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .Commit.ID }}
+						<span class="commit-summary {{if gt .Commit.ParentCount 1}} grey text{{end}}" title="{{.Commit.Summary}}">{{RenderCommitMessageLinkSubject .Commit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+					</span>
+					{{if IsMultilineCommitMessage .Commit.Message}}
+					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+					{{end}}
+					{{if eq (CommitType .Commit) "SignCommitWithStatuses"}}
+						{{template "repo/commit_status" .Commit.Status}}
+					{{end}}
+					{{if IsMultilineCommitMessage .Commit.Message}}
+					<pre class="commit-body" style="display: none;">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+					{{end}}
+				</td>
+				<td class="text right aligned">{{TimeSince .Commit.Author.When $.Lang}}</td>
+			</tr>
+		{{end}}
+	</tbody>
+</table>

@@ -35,12 +35,12 @@
 						</td>
 						<td class="text right aligned">
 							(
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.PR.MergeBase}}...{{.ChangesetHeadRef}}" rel="nofollow">
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/rawdiff/{{.PR.MergeBase}}...{{.ChangesetHeadRef}}" rel="nofollow">
 									{{$.i18n.Tr "repo.revisions.base"}} 
 								</a>
 								|
 								{{if gt .Index 1}}
-									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.PrevChangesetHeadRef}}...{{.ChangesetHeadRef}}">
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/rangediff/{{.PrevChangesetHeadRef}}...{{.ChangesetHeadRef}}">
 								{{end}}
 								{{$.i18n.Tr "repo.revisions.prev"}}
 								{{if gt .Index 1}}
@@ -48,7 +48,7 @@
 								{{end}}
 								|
 								{{if lt .Index $.RevisionCount}}
-									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/compare/{{.ChangesetHeadRef}}...refs/pull/{{.PR.Index}}/head" rel="nofollow">
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/rangediff/{{.ChangesetHeadRef}}...refs/pull/{{.PR.Index}}/head" rel="nofollow">
 								{{end}}
 								{{$.i18n.Tr "repo.revisions.latest"}}
 								{{if lt .Index $.RevisionCount}}

@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -472,16 +473,30 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		readerSize = 4096
 	}
 
+	var line = ""
+	var err error
 	input := bufio.NewReaderSize(reader, readerSize)
-	line, err := input.ReadString('\n')
-	if err != nil {
-		if err == io.EOF {
-			return diff, nil
+	for len(line) == 0 {
+		line, err = input.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				return diff, nil
+			}
+			return diff, err
 		}
-		return diff, err
 	}
 parsingLoop:
 	for {
+		for len(line) == 0 {
+			log.Error("continue")
+			line, err = input.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					return diff, nil
+				}
+				return diff, err
+			}
+		}
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
 		// if it does not we have bad input!
 		if !strings.HasPrefix(line, cmdDiffHead) {
@@ -674,6 +689,9 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			err = fmt.Errorf("Unable to ReadLine: %v", err)
 			return
+		}
+		if len(lineBytes) == 0 {
+			continue
 		}
 		if lineBytes[0] == 'd' {
 			// End of hunks
@@ -965,4 +983,87 @@ func CommentMustAsDiff(c *models.Comment) *Diff {
 		log.Warn("CommentMustAsDiff: %v", err)
 	}
 	return diff
+}
+
+// ParsedRangeDiffEntry git range-diff entry.
+type ParsedRangeDiffEntry struct {
+	ParsedInterDiff          Diff
+	ParsedMetaDiff           []*DiffFile
+	SignedCommitWithStatuses *models.SignCommitWithStatuses
+	git.RangeDiffEntry
+}
+
+// GetChangeSummary describe how the commit was changed.
+func (entry ParsedRangeDiffEntry) GetChangeSummary() string {
+	if entry.Old != "" && entry.New != "" {
+		return base.ShortSha(entry.Old) + " " + entry.Relation + " " + base.ShortSha(entry.New)
+	}
+	return base.ShortSha(entry.Commit.ID.String())
+}
+
+// GetShortSummary short description of a rangediff entry
+func (entry ParsedRangeDiffEntry) GetShortSummary() string {
+	return entry.GetChangeSummary() + " " + entry.Commit.Summary()
+}
+
+// GetParsedRangeDiff Gets and parses git range-diff
+func GetParsedRangeDiff(repo *models.Repository, rev1, rev2 string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) ([]ParsedRangeDiffEntry, error) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := gitRepo.GetRangeDiff(rev1, rev2)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseRangeDiff(repo, entries, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
+}
+
+// ParseRangeDiff Parse the interdiffs in an array of RangeDiffEntry.
+func ParseRangeDiff(repo *models.Repository, diffs []git.RangeDiffEntry, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) ([]ParsedRangeDiffEntry, error) {
+	var parsed []ParsedRangeDiffEntry
+
+	var emailCache = map[string]*models.User{}
+	var keyMapCache = map[string]bool{}
+
+	for _, diff := range diffs {
+		parsedDiff, parsedMeta, err := ParsePatchWithMeta(maxLines, maxLineCharacters, maxFiles, &diff)
+		if err != nil {
+			return nil, err
+		}
+
+		signedCommitWithStatuses := models.ParseGitCommitWithStatus(diff.Commit, repo, &emailCache, &keyMapCache)
+
+		parsedEntry := ParsedRangeDiffEntry{
+			RangeDiffEntry:           diff,
+			ParsedInterDiff:          *parsedDiff,
+			SignedCommitWithStatuses: &signedCommitWithStatuses,
+			ParsedMetaDiff:           parsedMeta,
+		}
+
+		parsed = append(parsed, parsedEntry)
+	}
+
+	return parsed, nil
+}
+
+// ParsePatchWithMeta Parse the change in a rangediff entry into a diff
+func ParsePatchWithMeta(maxLines, maxLineCharacters, maxFiles int, entry *git.RangeDiffEntry) (*Diff, []*DiffFile, error) {
+	gitdiff := git.PatchToGitDiff(entry.InterDiff)
+
+	parsedDiff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, strings.NewReader(gitdiff))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	meta := entry.MetaDiff + "\n" + entry.CommitMessageDiff + "\n"
+
+	metaDiff, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, 3, strings.NewReader(meta))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return parsedDiff, metaDiff.Files, nil
 }
