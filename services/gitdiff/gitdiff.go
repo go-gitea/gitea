@@ -76,6 +76,7 @@ type DiffLine struct {
 	Content     string
 	Comments    []*models.Comment
 	SectionInfo *DiffLineSectionInfo
+	NEOF        bool
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -180,6 +181,7 @@ var (
 	addedCodePrefix   = []byte(`<span class="added-code">`)
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
+	neofSuffix        = []byte(`⍉⏎`)
 )
 var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
 
@@ -290,10 +292,28 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
+func getDiffLineContentForDisplay(diffLine *DiffLine) string {
+	content := getLineContent(diffLine.Content[1:])
+	if diffLine.NEOF {
+		content += string(neofSuffix)
+	}
+
+	return content
+}
+
+func getDiffLineContentForDiff(diffLine *DiffLine) string {
+	content := diffLine.Content[1:]
+	if diffLine.NEOF {
+		content += string(neofSuffix)
+	}
+
+	return content
+}
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return template.HTML(getDiffLineContentForDisplay(diffLine))
 	}
 
 	var (
@@ -305,29 +325,29 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return template.HTML(getLineContent(diffLine.Content))
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(highlight.Code(diffSection.FileName, getDiffLineContentForDisplay(diffLine)))
 		}
-		diff1 = compareDiffLine.Content
-		diff2 = diffLine.Content
+		diff1 = getDiffLineContentForDiff(compareDiffLine)
+		diff2 = getDiffLineContentForDiff(diffLine)
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(highlight.Code(diffSection.FileName, getDiffLineContentForDisplay(diffLine)))
 		}
-		diff1 = diffLine.Content
-		diff2 = compareDiffLine.Content
+		diff1 = getDiffLineContentForDiff(diffLine)
+		diff2 = getDiffLineContentForDiff(compareDiffLine)
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(highlight.Code(diffSection.FileName, getDiffLineContentForDiff(diffLine)))
 		}
 		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1), highlight.Code(diffSection.FileName, diff2), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }
@@ -707,8 +727,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				err = fmt.Errorf("Unexpected line in hunk: %s", string(lineBytes))
 				return
 			}
-			// Technically this should be the end the file!
-			// FIXME: we should be putting a marker at the end of the file if there is no terminal new line
+			curSection.Lines[len(curSection.Lines)-1].NEOF = true
 			continue
 		case '+':
 			curFileLinesCount++

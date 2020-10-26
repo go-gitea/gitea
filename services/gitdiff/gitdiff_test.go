@@ -370,3 +370,9 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		}
 	}
 }
+
+func TestGetComputedInlineDiffForDiffLineSection(t *testing.T) {
+	difflineSection := DiffLine{Type: DiffLineSection, Content: "@@ -270,6 +271,29 @@"}
+	var section = DiffSection{Lines: []*DiffLine{&difflineSection}, FileName: "a.txt"}
+	assert.Equal(t, template.HTML("@@ -270,6 +271,29 @@"), section.GetComputedInlineDiffFor(&difflineSection))
+}

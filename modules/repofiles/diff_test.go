@@ -86,6 +86,7 @@ func TestGetDiffPreview(t *testing.T) {
 								Type:     3,
 								Content:  "-Description for repo1",
 								Comments: nil,
+								NEOF:     true,
 							},
 							{
 								LeftIdx:  0,
@@ -100,6 +101,7 @@ func TestGetDiffPreview(t *testing.T) {
 								Type:     2,
 								Content:  "+this is a new line",
 								Comments: nil,
+								NEOF:     true,
 							},
 						},
 					},
