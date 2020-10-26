@@ -9,10 +9,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
 
 func runSendMail(c *cli.Context) error {
+	setting.NewContext()
+
 	if err := argsSet(c, "title"); err != nil {
 		return err
 	}
@@ -38,11 +41,11 @@ func runSendMail(c *cli.Context) error {
 
 	status, message := private.SendEmail(subject, body, nil)
 	if status != http.StatusOK {
-		fmt.Printf("error: %s", message)
+		fmt.Printf("error: %s\n", message)
 		return nil
 	}
 
-	fmt.Printf("Succseded: %s", message)
+	fmt.Printf("Success: %s\n", message)
 
 	return nil
 }
