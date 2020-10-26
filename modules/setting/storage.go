@@ -32,14 +32,12 @@ func (s *Storage) MapTo(v interface{}) error {
 }
 
 func getStorage(name, typ string, overrides ...*ini.Section) Storage {
-	sectionName := "storage"
-	if len(name) > 0 {
-		sectionName = sectionName + "." + typ
-	}
+	const sectionName = "storage"
 	sec := Cfg.Section(sectionName)
 
 	if len(overrides) == 0 {
 		overrides = []*ini.Section{
+			Cfg.Section(sectionName + "." + typ),
 			Cfg.Section(sectionName + "." + name),
 		}
 	}
