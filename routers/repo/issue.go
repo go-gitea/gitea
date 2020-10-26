@@ -2419,7 +2419,7 @@ func combineLabelComments(issue *models.Issue) {
 				}
 			} else {
 				// Remove duplicated "added" and "removed" labels
-				// This way, adding and imediately removing a label won't generate a comment.
+				// This way, adding and immediately removing a label won't generate a comment.
 				var appendingTo *[]*models.Label
 				var other *[]*models.Label
 
