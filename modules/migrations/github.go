@@ -65,23 +65,25 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
-	ctx       context.Context
-	client    *github.Client
-	repoOwner string
-	repoName  string
-	userName  string
-	password  string
-	rate      *github.Rate
+	ctx        context.Context
+	client     *github.Client
+	repoOwner  string
+	repoName   string
+	userName   string
+	password   string
+	rate       *github.Rate
+	maxPerPage int
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
 func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
-		userName:  userName,
-		password:  password,
-		ctx:       ctx,
-		repoOwner: repoOwner,
-		repoName:  repoName,
+		userName:   userName,
+		password:   password,
+		ctx:        ctx,
+		repoOwner:  repoOwner,
+		repoName:   repoName,
+		maxPerPage: 100,
 	}
 
 	client := &http.Client{
@@ -177,7 +179,7 @@ func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var milestones = make([]*base.Milestone, 0, perPage)
 	for i := 1; ; i++ {
 		g.sleep()
@@ -233,7 +235,7 @@ func convertGithubLabel(label *github.Label) *base.Label {
 
 // GetLabels returns labels
 func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
 		g.sleep()
@@ -304,7 +306,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 
 // GetReleases returns releases
 func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var releases = make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
 		g.sleep()
@@ -342,6 +344,9 @@ func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, err
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 	opt := &github.IssueListByRepoOptions{
 		Sort:      "created",
 		Direction: "asc",
@@ -429,7 +434,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var (
-		allComments = make([]*base.Comment, 0, 100)
+		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
 		asc         = "asc"
 	)
@@ -437,7 +442,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		Sort:      &created,
 		Direction: &asc,
 		ListOptions: github.ListOptions{
-			PerPage: 100,
+			PerPage: g.maxPerPage,
 		},
 	}
 	for {
@@ -459,7 +464,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				g.sleep()
 				res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
 					Page:    i,
-					PerPage: 100,
+					PerPage: g.maxPerPage,
 				})
 				if err != nil {
 					return nil, err
@@ -497,6 +502,9 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 	opt := &github.PullRequestListOptions{
 		Sort:      "created",
 		Direction: "asc",
@@ -650,7 +658,7 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 			g.sleep()
 			res, resp, err := g.client.Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
 				Page:    i,
-				PerPage: 100,
+				PerPage: g.maxPerPage,
 			})
 			if err != nil {
 				return nil, err
@@ -687,9 +695,9 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 
 // GetReviews returns pull requests review
 func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	var allReviews = make([]*base.Review, 0, 100)
+	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 	opt := &github.ListOptions{
-		PerPage: 100,
+		PerPage: g.maxPerPage,
 	}
 	for {
 		g.sleep()
@@ -703,7 +711,7 @@ func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review
 			r.IssueIndex = pullRequestNumber
 			// retrieve all review comments
 			opt2 := &github.ListOptions{
-				PerPage: 100,
+				PerPage: g.maxPerPage,
 			}
 			for {
 				g.sleep()
