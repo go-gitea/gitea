@@ -57,6 +57,9 @@ module.exports = {
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
     ],
+    'easymde': [
+      resolve(__dirname, 'web_src/js/easymde.js'),
+    ],
     ...themes,
   },
   devtool: false,
