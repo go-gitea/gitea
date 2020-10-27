@@ -47,7 +47,7 @@ func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptio
 
 	path := strings.Split(repoNameSpace, "/")
 	if len(path) < 2 {
-		return nil, fmt.Errorf("invalid path")
+		return nil, fmt.Errorf("invalid path: %s", repoNameSpace)
 	}
 
 	repoPath := strings.Join(path[len(path)-2:], "/")
@@ -87,7 +87,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		gitea_sdk.SetContext(ctx),
 	)
 	if err != nil {
-		log.Error(fmt.Sprintf("NewGiteaDownloader: %s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
 		return nil, err
 	}
 
@@ -395,7 +395,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while loading reactions: %v", err)
+			return nil, false, fmt.Errorf("error while loading reactions for issue #%d. Error: %v", issue.Index, err)
 		}
 
 		var assignees []string
@@ -446,13 +446,13 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 		// Page:     i,
 	}})
 	if err != nil {
-		return nil, fmt.Errorf("error while listing comments: %v", err)
+		return nil, fmt.Errorf("error while listing comments for issue #%d. Error: %v", index, err)
 	}
 
 	for _, comment := range comments {
 		reactions, err := g.getCommentReactions(comment.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing comment creactions: %v", err)
+			return nil, fmt.Errorf("error while listing reactions for comment %d in issue #%d. Error: %v", comment.ID, index, err)
 		}
 
 		allComments = append(allComments, &base.Comment{
@@ -490,7 +490,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		State: gitea_sdk.StateAll,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %v", page, perPage, err)
 	}
 	for _, pr := range prs {
 		var milestone string
@@ -521,7 +521,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			if headSHA == "" {
 				headCommit, _, err := g.client.GetSingleCommit(g.repoOwner, g.repoName, url.PathEscape(pr.Head.Ref))
 				if err != nil {
-					return nil, false, fmt.Errorf("error while resolving git ref: %v", err)
+					return nil, false, fmt.Errorf("error while resolving head git ref: %s for pull #%d. Error: %v", pr.Head.Ref, pr.Index, err)
 				}
 				headSHA = headCommit.SHA
 			}
@@ -534,7 +534,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while loading reactions: %v", err)
+			return nil, false, fmt.Errorf("error while loading reactions for pull #%d. Error: %v", pr.Index, err)
 		}
 
 		var assignees []string
