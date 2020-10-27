@@ -368,7 +368,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, ignSignIn)
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
-	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
+	m.Get("/issues", reqSignIn, user.Issues)
+	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
@@ -615,7 +616,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
-			m.Get("/^:type(issues|pulls)$", user.Issues)
+			m.Get("/issues", user.Issues)
+			m.Get("/pulls", user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
 			m.Post("/members/action/:action", org.MembersAction)

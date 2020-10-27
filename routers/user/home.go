@@ -317,41 +317,36 @@ func Milestones(ctx *context.Context) {
 	ctx.HTML(200, tplMilestones)
 }
 
+// Pulls renders the user's pull request overview page
+func Pulls(ctx *context.Context) {
+	if models.UnitTypePullRequests.UnitGlobalDisabled() {
+		log.Debug("Pull request overview page not available as it is globally disabled.")
+		ctx.Status(404)
+		return
+	}
+
+	ctx.Data["Title"] = ctx.Tr("pull_requests")
+	ctx.Data["PageIsPulls"] = true
+	buildIssueOverview(ctx, models.UnitTypePullRequests)
+}
+
+// Issues renders the user's issues overview page
+func Issues(ctx *context.Context) {
+	if models.UnitTypeIssues.UnitGlobalDisabled() {
+		log.Debug("Issues overview page not available as it is globally disabled.")
+		ctx.Status(404)
+		return
+	}
+
+	ctx.Data["Title"] = ctx.Tr("issues")
+	ctx.Data["PageIsIssues"] = true
+	buildIssueOverview(ctx, models.UnitTypeIssues)
+}
+
 // Regexp for repos query
 var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
-// Issues render the user issues page
-func Issues(ctx *context.Context) {
-
-	// ----------------------------------
-	// Distinguish Issues from Pulls.
-	// Return 404 if feature is disabled.
-	// ----------------------------------
-
-	// TODO: make that distinction during routing and call different functions
-
-	isPullList := ctx.Params(":type") == "pulls"
-	unitType := models.UnitTypeIssues
-	if isPullList {
-		if models.UnitTypePullRequests.UnitGlobalDisabled() {
-			log.Debug("Pull request overview page not available as it is globally disabled.")
-			ctx.Status(404)
-			return
-		}
-
-		ctx.Data["Title"] = ctx.Tr("pull_requests")
-		ctx.Data["PageIsPulls"] = true
-		unitType = models.UnitTypePullRequests
-	} else {
-		if models.UnitTypeIssues.UnitGlobalDisabled() {
-			log.Debug("Issues overview page not available as it is globally disabled.")
-			ctx.Status(404)
-			return
-		}
-
-		ctx.Data["Title"] = ctx.Tr("issues")
-		ctx.Data["PageIsIssues"] = true
-	}
+func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	// ----------------------------------------------------
 	// Determine user; can be either user or organization.
@@ -407,6 +402,7 @@ func Issues(ctx *context.Context) {
 	//       - Count Issues by repo
 	// --------------------------------------------------------------------------
 
+	isPullList := unitType == models.UnitTypePullRequests
 	opts := &models.IssuesOptions{
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
