@@ -59,6 +59,7 @@ module.exports = {
     ],
     'easymde': [
       resolve(__dirname, 'web_src/js/easymde.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
     ],
     ...themes,
   },
