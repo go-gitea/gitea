@@ -64,6 +64,8 @@
     height: 24px;
     line-height: 24px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 
     .node-relation {
       font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
@@ -109,11 +111,8 @@
       background-color: rgba(0, 0, 0, .05);
     }
 
-    li a.button {
-      padding-top: 2px;
-      padding-bottom: 2px;
-      vertical-align: top;
-      margin-top: 2px;
+    .tags a.button {
+      padding: 2px 4px;
     }
 
     .sha.label {
