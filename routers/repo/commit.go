@@ -89,6 +89,7 @@ func Commits(ctx *context.Context) {
 
 // Graph render commit graph - show commits from all branches.
 func Graph(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.commit_graph")
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 	mode := strings.ToLower(ctx.QueryTrim("mode"))
