@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -172,6 +173,11 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
 
 			err = errors.New(buf.String())
+		}
+
+		if err == nil {
+			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
+			return
 		}
 
 		if repo != nil {
