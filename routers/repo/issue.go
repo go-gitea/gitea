@@ -2418,11 +2418,34 @@ func combineLabelComments(issue *models.Issue) {
 					c.AddedLabels[0] = c.Label
 				}
 			} else {
+				// Remove duplicated "added" and "removed" labels
+				// This way, adding and immediately removing a label won't generate a comment.
+				var appendingTo *[]*models.Label
+				var other *[]*models.Label
+
 				if removingCur {
-					prev.RemovedLabels = append(prev.RemovedLabels, c.Label)
+					appendingTo = &prev.RemovedLabels
+					other = &prev.AddedLabels
 				} else {
-					prev.AddedLabels = append(prev.AddedLabels, c.Label)
+					appendingTo = &prev.AddedLabels
+					other = &prev.RemovedLabels
 				}
+
+				appending := true
+
+				for i := 0; i < len(*other); i++ {
+					l := (*other)[i]
+					if l.ID == c.Label.ID {
+						*other = append((*other)[:i], (*other)[i+1:]...)
+						appending = false
+						break
+					}
+				}
+
+				if appending {
+					*appendingTo = append(*appendingTo, c.Label)
+				}
+
 				prev.CreatedUnix = c.CreatedUnix
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 				continue
