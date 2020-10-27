@@ -205,6 +205,10 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		
+		if err := cfg.SaveTo(setting.CustomConf); err != nil {	
+			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)	
+		}	
 	}
 	return nil
 }
