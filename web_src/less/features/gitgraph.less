@@ -64,6 +64,8 @@
     height: 24px;
     line-height: 24px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 
     .node-relation {
       font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
@@ -76,10 +78,6 @@
     .time {
       color: #999999;
       font-size: 80%;
-    }
-
-    a {
-      color: #000000;
     }
 
     a:hover {
@@ -106,23 +104,15 @@
 
   #rev-list {
     margin: 0;
-    padding: 0 5px;
-    min-width: 95%;
+    padding: 0;
+    width: 100%;
 
-    li.highlight,
-    li.hover {
+    li.highlight.hover {
       background-color: rgba(0, 0, 0, .05);
     }
 
-    li.highlight.hover {
-      background-color: rgba(0, 0, 0, .1);
-    }
-
-    li a.button {
-      padding-top: 2px;
-      padding-bottom: 2px;
-      vertical-align: top;
-      margin-top: 2px;
+    .tags a.button {
+      padding: 2px 4px;
     }
 
     .sha.label {
