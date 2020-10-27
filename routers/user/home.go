@@ -397,7 +397,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
 	// Will eventually be used to retrieve issues relevant for the overview page.
-	// Note: Non-final states of opts are used inbetween, namely for:
+	// Note: Non-final states of opts are used in-between, namely for:
 	//       - Keyword search
 	//       - Count Issues by repo
 	// --------------------------------------------------------------------------
