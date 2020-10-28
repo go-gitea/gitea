@@ -352,11 +352,10 @@ function initImagePaste(target) {
     const field = this;
     field.addEventListener('paste', (event) => {
       retrieveImageFromClipboardAsBlob(event, (img) => {
-        const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(field, `![${name}]()`);
+        insertAtCursor(field, `![image]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![image]()`, `![image](${AppSubUrl}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -368,11 +367,10 @@ function initImagePaste(target) {
 function initSimpleMDEImagePaste(simplemde, files) {
   simplemde.codemirror.on('paste', (_, event) => {
     retrieveImageFromClipboardAsBlob(event, (img) => {
-      const name = img.name.substr(0, img.name.lastIndexOf('.'));
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![image](${AppSubUrl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
