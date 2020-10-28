@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/xorm"
 )
 
@@ -32,12 +34,17 @@ func addUserPrimaryEmailToUserMails(x *xorm.Engine) error {
 			return err
 		}
 		for _, user := range users {
-			if has, err := sess.Get(&EmailAddress{UID: user.ID, Email: user.Email}); err != nil {
+			email := new(EmailAddress)
+			if isExist, err := sess.Where("email=?", user.Email).Get(email); err != nil {
 				return err
-			} else if has {
+			} else if isExist {
+				if email.UID != user.ID {
+					log.Warn("Email (%s) from user with ID %d is taken by user with ID %d", email.Email, user.ID, email.UID)
+					log.Warn("Skipping to avoid conflicts, should be manually fixed")
+				}
 				continue
 			}
-			email := &EmailAddress{
+			email = &EmailAddress{
 				Email:       user.Email,
 				UID:         user.ID,
 				IsActivated: user.IsActive,
