@@ -210,7 +210,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES) $(FOMANTIC_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_ENTRIES)
 
 .PHONY: clean
 clean:
@@ -323,7 +323,7 @@ watch:
 	bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check $(FOMANTIC_DEST) node_modules
+watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
@@ -541,7 +541,7 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
+frontend: node-check $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
