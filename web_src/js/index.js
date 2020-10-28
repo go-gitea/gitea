@@ -1172,11 +1172,11 @@ async function initRepository() {
 }
 
 function initPullRequestReview() {
-  if (window.location.hash && window.location.hash !== '' && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = $(`${window.location.hash}`);
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
-      const groupID = commentDiv.parents('div[id^="code-comments-"]').attr('id');
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.substr(14);
         $(`#show-outdated-${id}`).addClass('hide');
