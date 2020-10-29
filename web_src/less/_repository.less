@@ -1002,27 +1002,6 @@
       }
 
       .comment {
-
-        .actions {
-          .item {
-            float: left;
-
-            &.context {
-              float: none;
-            }
-
-            &.tag {
-              margin-right: 5px;
-            }
-
-            &.action {
-              margin-top: 6px;
-              padding-left: 10px;
-              padding-right: 3px;
-            }
-          }
-        }
-
         > .content {
           > div:first-child {
             border-top-left-radius: 4px;
@@ -1062,15 +1041,14 @@
               left: 7px;
             }
 
+            .header-left > * + *,
+            .header-right > * + * {
+              margin-left: .25rem;
+            }
+
             .actions {
-              display: flex;
-              padding: 0 .5rem;
-
-              &.right {
-                margin: 0;
-              }
-
               a {
+                padding: .5rem;
                 color: rgba(0, 0, 0, .4);
 
                 &:hover {
