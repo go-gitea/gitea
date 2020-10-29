@@ -34,7 +34,7 @@ func TestIsEmailUsed(t *testing.T) {
 
 	isExist, _ := IsEmailUsed("")
 	assert.True(t, isExist)
-	isExist, _ = IsEmailUsed("user1-1@example.com")
+	isExist, _ = IsEmailUsed("user11@example.com")
 	assert.True(t, isExist)
 	isExist, _ = IsEmailUsed("user1234567890@example.com")
 	assert.False(t, isExist)
@@ -84,12 +84,12 @@ func TestDeleteEmailAddress(t *testing.T) {
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
 		UID:   int64(1),
 		ID:    int64(1),
-		Email: "user1-1@example.com",
+		Email: "user11@example.com",
 	}))
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
 		UID:   int64(1),
-		Email: "user1-2@example.com",
+		Email: "user12@example.com",
 	}))
 
 	// Email address does not exist
@@ -112,7 +112,7 @@ func TestDeleteEmailAddresses(t *testing.T) {
 	}
 	emails[1] = &EmailAddress{
 		UID:   int64(2),
-		Email: "user2-1@example.com",
+		Email: "user21@example.com",
 	}
 	assert.NoError(t, DeleteEmailAddresses(emails))
 
@@ -132,7 +132,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	assert.Equal(t, ErrEmailNotExist.Error(), err.Error())
 
 	email = &EmailAddress{
-		Email: "user1-1@example.com",
+		Email: "user11@example.com",
 	}
 	err = MakeEmailPrimary(email)
 	assert.Error(t, err)
@@ -161,7 +161,7 @@ func TestActivate(t *testing.T) {
 	email := &EmailAddress{
 		ID:    int64(1),
 		UID:   int64(1),
-		Email: "user1-1@example.com",
+		Email: "user11@example.com",
 	}
 	assert.NoError(t, email.Activate())
 
