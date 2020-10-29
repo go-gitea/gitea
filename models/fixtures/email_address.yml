@@ -1,13 +1,13 @@
 -
   id: 1
   uid: 1
-  email: user1001@example.com
+  email: user1-1@example.com
   is_activated: false
 
 -
   id: 2
   uid: 1
-  email: user1002@example.com
+  email: user1-2@example.com
   is_activated: false
 
 -
@@ -19,7 +19,7 @@
 -
   id: 4
   uid: 2
-  email: user2001@example.com
+  email: user2-1@example.com
   is_activated: false
 
 -
