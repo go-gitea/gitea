@@ -196,14 +196,14 @@ func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"AlphaDashDot;MaxSize(40)"`
-	FullName         string `binding:"MaxSize(100)"`
-	Email            string `binding:"Required;Email;MaxSize(254)"`
-	KeepEmailPrivate bool
-	Website          string `binding:"ValidUrl;MaxSize(255)"`
-	Location         string `binding:"MaxSize(50)"`
-	Language         string `binding:"Size(5)"`
-	Description      string `binding:"MaxSize(255)"`
+	Name                string `binding:"AlphaDashDot;MaxSize(40)"`
+	FullName            string `binding:"MaxSize(100)"`
+	KeepEmailPrivate    bool
+	Website             string `binding:"ValidUrl;MaxSize(255)"`
+	Location            string `binding:"MaxSize(50)"`
+	Language            string `binding:"Size(5)"`
+	Description         string `binding:"MaxSize(255)"`
+	KeepActivityPrivate bool
 }
 
 // Validate validates the fields
