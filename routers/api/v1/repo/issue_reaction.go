@@ -271,7 +271,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}
