@@ -186,14 +186,14 @@
   lower_name: user11
   name: user11
   full_name: User Eleven
-  email: user11@example.com
+  email: user011@example.com
   passwd_hash_algo: argon2
   passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar11
-  avatar_email: user11@example.com
+  avatar_email: user011@example.com
   num_repos: 1
   is_active: true
 
@@ -202,14 +202,14 @@
   lower_name: user12
   name: user12
   full_name: User 12
-  email: user12@example.com
+  email: user012@example.com
   passwd_hash_algo: argon2
   passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar12
-  avatar_email: user12@example.com
+  avatar_email: user012@example.com
   num_repos: 1
   is_active: true
 
@@ -350,14 +350,14 @@
   lower_name: user21
   name: user21
   full_name: User 21
-  email: user21@example.com
+  email: user021@example.com
   passwd_hash_algo: argon2
   passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar21
-  avatar_email: user21@example.com
+  avatar_email: user021@example.com
   num_repos: 2
   is_active: true
 
