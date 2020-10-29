@@ -86,6 +86,22 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	return 10
 }
 
+func fullURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
+	var fullRemoteAddr = remoteAddr
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(remoteAddr)
+		if err != nil {
+			return "", err
+		}
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
+		fullRemoteAddr = u.String()
+	}
+	return fullRemoteAddr, nil
+}
+
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
@@ -93,19 +109,10 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	var remoteAddr = repo.CloneURL
-	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-		u, err := url.Parse(repo.CloneURL)
-		if err != nil {
-			return err
-		}
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
-		}
-		remoteAddr = u.String()
+	remoteAddr, err := fullURL(opts, repo.CloneURL)
+	if err != nil {
+		return err
 	}
-
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
@@ -290,7 +297,11 @@ func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases
 						return err
 					}
 				} else {
-					resp, err := http.Get(*asset.DownloadURL)
+					remoteAddr, err := fullURL(opts, *asset.DownloadURL)
+					if err != nil {
+						return err
+					}
+					resp, err := http.Get(remoteAddr)
 					if err != nil {
 						return err
 					}
