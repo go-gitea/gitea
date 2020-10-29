@@ -35,7 +35,7 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 		return nil, err
 	}
 	if fromByte > 0 {
-		_, err = f.Seek(fromByte, os.SEEK_CUR)
+		_, err = f.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
 		}
