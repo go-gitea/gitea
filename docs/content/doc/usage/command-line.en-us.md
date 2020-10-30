@@ -82,13 +82,13 @@ Admin operations:
                 - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
             - Examples:
-                - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
+                - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
         - `change-password`:
             - Options:
                 - `--username value`, `-u value`: Username. Required.
                 - `--password value`, `-p value`: New password. Required.
             - Examples:
-                - `gitea admin change-password --username myname --password asecurepassword`
+                - `gitea admin user change-password --username myname --password asecurepassword`
     - `regenerate`
         - Options:
             - `hooks`: Regenerate git-hooks for all repositories
