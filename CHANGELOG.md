@@ -7,6 +7,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-10-15
 
 * BUGFIXES
+  * Fix permission check on get Reactions API endpoints (#13346)
+  * Remove obsolete change of email on profile page (#13341) (#13348)
+  * Add migrated pulls to pull request task queue (#13331) (#13335)
+  * API deny wrong pull creation options (#13308) (#13327) 
+  * Fix initial commit page & binary munching problem (#13249) (#13259)
   * Fix diff parsing (#13157) (#13136) (#13139)
   * Return error 404 not 500 from API if team does not exist (#13118) (#13119)
   * Prohibit automatic downgrades (#13108) (#13111)
