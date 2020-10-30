@@ -113,7 +113,7 @@ type LoadOptions struct {
 	UnparseableSections []string
 	// KeyValueDelimiters is the sequence of delimiters that are used to separate key and value. By default, it is "=:".
 	KeyValueDelimiters string
-	// KeyValueDelimiters is the delimiter that are used to separate key and value output. By default, it is "=".
+	// KeyValueDelimiterOnWrite is the delimiter that are used to separate key and value output. By default, it is "=".
 	KeyValueDelimiterOnWrite string
 	// ChildSectionDelimiter is the delimiter that is used to separate child sections. By default, it is ".".
 	ChildSectionDelimiter string

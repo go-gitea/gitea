@@ -101,6 +101,12 @@
         line-height: 2em;
       }
 
+      &.assignees .teamavatar {
+        margin-top: .125rem;
+        margin-left: 6.75px;
+        margin-right: 8.75px;
+      }
+
       .hide {
         display: none !important;
       }
@@ -242,7 +248,7 @@
       padding: 0 5px;
 
       &:first-child {
-        border-radius: .28571429rem 0 0 .28571429rem;
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
       }
     }
 
@@ -394,6 +400,13 @@
         background-color: #ffffee;
       }
 
+      tr.has-parent a {
+        display: inline-block;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        width: calc(100% - 1.25rem);
+      }
+
       .jumpable-path {
         color: #888888;
       }
@@ -532,7 +545,7 @@
           .branch-name {
             display: inline-block;
             padding: 3px 6px;
-            font: 12px @monospaced-fonts, monospace;
+            font: 12px var(--fonts-monospace);
             color: rgba(0, 0, 0, .65);
             background-color: rgba(209, 227, 237, .45);
             border-radius: 3px;
@@ -619,36 +632,86 @@
     .title {
       padding-bottom: 0 !important;
 
-      h1 {
-        font-weight: 300;
-        font-size: 2.3rem;
-        margin-bottom: 5px;
+      .issue-title {
+        margin-bottom: .5rem;
 
-        .ui.input {
-          font-size: .5em;
-          vertical-align: top;
-          width: 50%;
-          min-width: 600px;
+        &.edit-active {
+          display: flex;
+          align-items: center;
 
-          input {
-            font-size: 1.5em;
-            padding: 6px 10px;
+          h1 {
+            display: flex;
+            width: 100%;
+          }
+
+          @media only screen and (max-width: 768px) {
+            flex-direction: column;
+
+            h1 {
+              margin-right: 0;
+              margin-bottom: 1rem;
+              padding-right: 0;
+
+              .ui.input input {
+                width: calc(100% - 2rem);
+              }
+            }
+
+            .edit-buttons {
+              padding-bottom: 1rem;
+              width: 100%;
+
+              .button {
+                width: 100%;
+                margin-right: .5rem;
+
+                &:last-child {
+                  margin-right: 0;
+                }
+              }
+            }
           }
         }
-      }
 
-      .index {
-        font-weight: 300;
-        color: #aaaaaa;
-        letter-spacing: -1px;
-      }
+        h1 {
+          font-weight: 300;
+          font-size: 2.3rem;
+          margin: 0;
+          padding-right: .5rem;
 
-      .label {
-        margin-right: 10px;
-      }
+          .ui.input {
+            font-size: .5em;
+            width: 100%;
 
-      .edit-zone {
-        margin-top: 10px;
+            input {
+              font-size: 1.5em;
+              padding: 6px 1rem;
+            }
+          }
+        }
+
+        .edit-button {
+          float: right;
+          padding-left: 1rem;
+        }
+
+        .edit-buttons {
+          display: flex;
+        }
+
+        .index {
+          font-weight: 300;
+          color: #aaaaaa;
+          letter-spacing: -1px;
+        }
+
+        .label {
+          margin-right: 10px;
+        }
+
+        .edit-zone {
+          margin-top: 10px;
+        }
       }
     }
 
@@ -940,22 +1003,6 @@
 
       .comment {
 
-        .tag {
-          color: #767676;
-          margin-top: 3px;
-          padding: 2px 5px;
-          font-size: 12px;
-          border: 1px solid rgba(0, 0, 0, .1);
-          border-radius: 3px;
-          &.review {
-            margin-left: 5px;
-            &.pending {
-              color: black;
-              background-color: #fffbb2;
-            }
-          }
-        }
-
         .actions {
           .item {
             float: left;
@@ -992,7 +1039,7 @@
           > .header {
             #avatar-arrow;
             font-weight: normal;
-            padding: auto 15px;
+            padding: .5rem 1rem;
             position: relative;
             color: #767676;
             background-color: #f7f7f7;
@@ -1018,6 +1065,10 @@
             .actions {
               display: flex;
               padding: 0 .5rem;
+
+              &.right {
+                margin: 0;
+              }
 
               a {
                 color: rgba(0, 0, 0, .4);
@@ -1149,7 +1200,7 @@
 
           textarea {
             height: 200px;
-            font-family: @monospaced-fonts, monospace;
+            font-family: var(--fonts-monospace);
           }
         }
 
@@ -1213,6 +1264,10 @@
           .hide-outdated {
             display: block;
           }
+
+          .label {
+            margin-left: 6px;
+          }
         }
       }
     }
@@ -1254,7 +1309,7 @@
 
       textarea {
         height: 200px;
-        font-family: @monospaced-fonts, monospace;
+        font-family: var(--fonts-monospace);
       }
     }
   }
@@ -1893,7 +1948,7 @@
       }
 
       .clone.button:first-child {
-        border-radius: .28571429rem 0 0 .28571429rem;
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
       }
 
       .ui.action.small.input {
@@ -2073,7 +2128,7 @@
     &.new {
       .CodeMirror {
         .CodeMirror-code {
-          font-family: @monospaced-fonts, monospace;
+          font-family: var(--fonts-monospace);
 
           .cm-comment {
             background: inherit;
@@ -2335,7 +2390,14 @@
 
       .item {
         width: 100%;
-        border-radius: 3px;
+
+        &:first-of-type {
+          border-radius: var(--border-radius) 0 0 var(--border-radius);
+        }
+
+        &:last-of-type {
+          border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        }
 
         a {
           color: black;
@@ -2444,6 +2506,8 @@
   }
 
   .repository-summary {
+    box-shadow: none !important;
+
     .segment.language-stats-details,
     .segment.repository-summary {
       border-top: none;
@@ -2471,6 +2535,15 @@
         height: 100%;
       }
     }
+  }
+
+  .repository-menu {
+    padding: 0 !important;
+  }
+
+  .repository-menu .item {
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
   }
 
   &.diff .committed-by {
@@ -3173,11 +3246,11 @@ td.blob-excerpt {
 }
 
 .diff-file-box[data-folded="true"] .diff-file-header {
-  border-radius: .28571429rem !important;
+  border-radius: var(--border-radius) !important;
 }
 
 /* prevent page shaking on language bar click */
-.repository.file .repository-summary {
+.repository-summary-language-stats {
   height: 48px;
   overflow: hidden;
 }

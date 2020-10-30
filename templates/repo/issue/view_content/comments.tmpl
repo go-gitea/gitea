@@ -28,12 +28,12 @@
 					{{if not $.Repository.IsArchived}}
 						<div class="ui right actions">
 							{{if eq .PosterID .Issue.PosterID }}
-								<div class="item tag">
+								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
 							{{end}}
 							{{if gt .ShowTag 0}}
-								<div class="item tag">
+								<div class="ui basic label">
 									{{if eq .ShowTag 2}}
 										{{$.i18n.Tr "repo.issues.collaborator"}}
 									{{else if eq .ShowTag 3}}
@@ -161,7 +161,7 @@
 			</div>
 		</div>
 	{{else if eq .Type 7}}
-		{{if .Label}}
+		{{if or .AddedLabels .RemovedLabels}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-tag"}}</span>
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -169,7 +169,13 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|RenderEmoji) $createdStr | Safe}}{{end}}
+					{{if and .AddedLabels (not .RemovedLabels)}}
+						{{$.i18n.Tr (TrN $.i18n.Lang (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels") (RenderLabels .AddedLabels) $createdStr | Safe}}
+					{{else if and (not .AddedLabels) .RemovedLabels}}
+						{{$.i18n.Tr (TrN $.i18n.Lang (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels") (RenderLabels .RemovedLabels) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+					{{end}}
 				</span>
 			</div>
 		{{end}}
@@ -441,29 +447,34 @@
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
 									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 								{{if or $invalid $resolved}}
-									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
+									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated">
 										{{svg "octicon-unfold"}}
-										{{if $invalid }}
-											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
 										{{end}}
 									</button>
-									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated">
 										{{svg "octicon-fold"}}
-										{{if $invalid}}
-											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
-										{{else}}
+										{{if $resolved}}
 											{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 										{{end}}
 									</button>
 								{{end}}
-									<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+								{{if $invalid }}
+									<span class="ui label basic small yellow">
+										{{$.i18n.Tr "repo.issues.review.outdated"}}
+									</span>
+								{{end}}
 								</div>
 								{{$diff := (CommentMustAsDiff (index $comms 0))}}
 								{{if $diff}}
 									{{$file := (index $diff.Files 0)}}
-									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if or $invalid $resolved}} hide{{end}}">
+									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} hide{{end}}">
 										<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 											<div class="file-body file-code code-view code-diff code-diff-unified">
 												<table>
@@ -475,7 +486,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if or $invalid $resolved}} hide{{end}}">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $resolved}} hide{{end}}">
 									<div class="ui comments">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
@@ -595,14 +606,22 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{if .RemovedAssignee}}
-					{{if eq .PosterID .AssigneeID}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+				{{if (gt .AssigneeID 0)}}
+					{{if .RemovedAssignee}}
+						{{if eq .PosterID .AssigneeID}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{end}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 					{{end}}
 				{{else}}
-					{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+					{{if .RemovedAssignee}}
+						{{$.i18n.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+					{{end}}
 				{{end}}
 			</span>
 		</div>

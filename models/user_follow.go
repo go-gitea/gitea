@@ -4,11 +4,16 @@
 
 package models
 
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+)
+
 // Follow represents relations of user and his/her followers.
 type Follow struct {
-	ID       int64 `xorm:"pk autoincr"`
-	UserID   int64 `xorm:"UNIQUE(follow)"`
-	FollowID int64 `xorm:"UNIQUE(follow)"`
+	ID          int64              `xorm:"pk autoincr"`
+	UserID      int64              `xorm:"UNIQUE(follow)"`
+	FollowID    int64              `xorm:"UNIQUE(follow)"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // IsFollowing returns true if user is following followID.

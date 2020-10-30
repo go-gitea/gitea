@@ -2,6 +2,7 @@ package git
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -373,6 +374,30 @@ var (
 	ErrMissingAuthor = errors.New("author field is required")
 )
 
+// AddOptions describes how a add operation should be performed
+type AddOptions struct {
+	// All equivalent to `git add -A`, update the index not only where the
+	// working tree has a file matching `Path` but also where the index already
+	// has an entry. This adds, modifies, and removes index entries to match the
+	// working tree.  If no `Path` nor `Glob` is given when `All` option is
+	// used, all files in the entire working tree are updated.
+	All bool
+	// Path is the exact filepath to a the file or directory to be added.
+	Path string
+	// Glob adds all paths, matching pattern, to the index. If pattern matches a
+	// directory path, all directory contents are added to the index recursively.
+	Glob string
+}
+
+// Validate validates the fields and sets the default values.
+func (o *AddOptions) Validate(r *Repository) error {
+	if o.Path != "" && o.Glob != "" {
+		return fmt.Errorf("fields Path and Glob are mutual exclusive")
+	}
+
+	return nil
+}
+
 // CommitOptions describes how a commit operation should be performed.
 type CommitOptions struct {
 	// All automatically stage files that have been modified and deleted, but
@@ -464,7 +489,8 @@ var (
 
 // CreateTagOptions describes how a tag object should be created.
 type CreateTagOptions struct {
-	// Tagger defines the signature of the tag creator.
+	// Tagger defines the signature of the tag creator. If Tagger is empty the
+	// Name and Email is read from the config, and time.Now it's used as When.
 	Tagger *object.Signature
 	// Message defines the annotation of the tag. It is canonicalized during
 	// validation into the format expected by git - no leading whitespace and
@@ -478,7 +504,9 @@ type CreateTagOptions struct {
 // Validate validates the fields and sets the default values.
 func (o *CreateTagOptions) Validate(r *Repository, hash plumbing.Hash) error {
 	if o.Tagger == nil {
-		return ErrMissingTagger
+		if err := o.loadConfigTagger(r); err != nil {
+			return err
+		}
 	}
 
 	if o.Message == "" {
@@ -487,6 +515,35 @@ func (o *CreateTagOptions) Validate(r *Repository, hash plumbing.Hash) error {
 
 	// Canonicalize the message into the expected message format.
 	o.Message = strings.TrimSpace(o.Message) + "\n"
+
+	return nil
+}
+
+func (o *CreateTagOptions) loadConfigTagger(r *Repository) error {
+	cfg, err := r.ConfigScoped(config.SystemScope)
+	if err != nil {
+		return err
+	}
+
+	if o.Tagger == nil && cfg.Author.Email != "" && cfg.Author.Name != "" {
+		o.Tagger = &object.Signature{
+			Name:  cfg.Author.Name,
+			Email: cfg.Author.Email,
+			When:  time.Now(),
+		}
+	}
+
+	if o.Tagger == nil && cfg.User.Email != "" && cfg.User.Name != "" {
+		o.Tagger = &object.Signature{
+			Name:  cfg.User.Name,
+			Email: cfg.User.Email,
+			When:  time.Now(),
+		}
+	}
+
+	if o.Tagger == nil {
+		return ErrMissingTagger
+	}
 
 	return nil
 }
@@ -545,6 +602,9 @@ type PlainOpenOptions struct {
 	// DetectDotGit defines whether parent directories should be
 	// walked until a .git directory or file is found.
 	DetectDotGit bool
+	// Enable .git/commondir support (see https://git-scm.com/docs/gitrepository-layout#Documentation/gitrepository-layout.txt).
+	// NOTE: This option will only work with the filesystem storage.
+	EnableDotGitCommonDir bool
 }
 
 // Validate validates the fields and sets the default values.

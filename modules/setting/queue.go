@@ -16,8 +16,9 @@ import (
 
 // QueueSettings represent the settings for a queue from the ini
 type QueueSettings struct {
+	Name             string
 	DataDir          string
-	Length           int
+	QueueLength      int `ini:"LENGTH"`
 	BatchLength      int
 	ConnectionString string
 	Type             string
@@ -44,6 +45,8 @@ var Queue = QueueSettings{}
 func GetQueueSettings(name string) QueueSettings {
 	q := QueueSettings{}
 	sec := Cfg.Section("queue." + name)
+	q.Name = name
+
 	// DataDir is not directly inheritable
 	q.DataDir = filepath.Join(Queue.DataDir, name)
 	// QueueName is not directly inheritable either
@@ -65,8 +68,9 @@ func GetQueueSettings(name string) QueueSettings {
 		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
 	}
 	_, _ = sec.NewKey("DATADIR", q.DataDir)
+
 	// The rest are...
-	q.Length = sec.Key("LENGTH").MustInt(Queue.Length)
+	q.QueueLength = sec.Key("LENGTH").MustInt(Queue.QueueLength)
 	q.BatchLength = sec.Key("BATCH_LENGTH").MustInt(Queue.BatchLength)
 	q.ConnectionString = sec.Key("CONN_STR").MustString(Queue.ConnectionString)
 	q.Type = sec.Key("TYPE").MustString(Queue.Type)
@@ -91,7 +95,7 @@ func NewQueueService() {
 	if !filepath.IsAbs(Queue.DataDir) {
 		Queue.DataDir = filepath.Join(AppDataPath, Queue.DataDir)
 	}
-	Queue.Length = sec.Key("LENGTH").MustInt(20)
+	Queue.QueueLength = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
 	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")

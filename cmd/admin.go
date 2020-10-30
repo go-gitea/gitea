@@ -30,16 +30,39 @@ var (
 		Name:  "admin",
 		Usage: "Command line interface to perform common administrative operations",
 		Subcommands: []cli.Command{
-			subcmdCreateUser,
-			subcmdChangePassword,
+			subcmdUser,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
 			subcmdAuth,
+			subcmdSendMail,
 		},
 	}
 
-	subcmdCreateUser = cli.Command{
-		Name:   "create-user",
+	subcmdUser = cli.Command{
+		Name:  "user",
+		Usage: "Modify users",
+		Subcommands: []cli.Command{
+			microcmdUserCreate,
+			microcmdUserList,
+			microcmdUserChangePassword,
+			microcmdUserDelete,
+		},
+	}
+
+	microcmdUserList = cli.Command{
+		Name:   "list",
+		Usage:  "List users",
+		Action: runListUsers,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "admin",
+				Usage: "List only admin users",
+			},
+		},
+	}
+
+	microcmdUserCreate = cli.Command{
+		Name:   "create",
 		Usage:  "Create a new user in database",
 		Action: runCreateUser,
 		Flags: []cli.Flag{
@@ -83,7 +106,7 @@ var (
 		},
 	}
 
-	subcmdChangePassword = cli.Command{
+	microcmdUserChangePassword = cli.Command{
 		Name:   "change-password",
 		Usage:  "Change a user's password",
 		Action: runChangePassword,
@@ -99,6 +122,13 @@ var (
 				Usage: "New password to set for user",
 			},
 		},
+	}
+
+	microcmdUserDelete = cli.Command{
+		Name:   "delete",
+		Usage:  "Delete specific user",
+		Flags:  []cli.Flag{idFlag},
+		Action: runDeleteUser,
 	}
 
 	subcmdRepoSyncReleases = cli.Command{
@@ -253,6 +283,28 @@ var (
 		Action: runAddOauth,
 		Flags:  oauthCLIFlags,
 	}
+
+	subcmdSendMail = cli.Command{
+		Name:   "sendmail",
+		Usage:  "Send a message to all users",
+		Action: runSendMail,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "title",
+				Usage: `a title of a message`,
+				Value: "",
+			},
+			cli.StringFlag{
+				Name:  "content",
+				Usage: "a content of a message",
+				Value: "",
+			},
+			cli.BoolFlag{
+				Name:  "force,f",
+				Usage: "A flag to bypass a confirmation step",
+			},
+		},
+	}
 )
 
 func runChangePassword(c *cli.Context) error {
@@ -375,6 +427,56 @@ func runCreateUser(c *cli.Context) error {
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
+}
+
+func runListUsers(c *cli.Context) error {
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	users, err := models.GetAllUsers()
+
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 5, 0, 1, ' ', 0)
+
+	if c.IsSet("admin") {
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\n")
+		for _, u := range users {
+			if u.IsAdmin {
+				fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", u.ID, u.Name, u.Email, u.IsActive)
+			}
+		}
+	} else {
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
+		for _, u := range users {
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
+		}
+
+	}
+
+	w.Flush()
+	return nil
+
+}
+
+func runDeleteUser(c *cli.Context) error {
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	user, err := models.GetUserByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	return models.DeleteUser(user)
 }
 
 func runRepoSyncReleases(c *cli.Context) error {

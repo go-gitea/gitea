@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -48,7 +47,6 @@ func Generate(input http.FileSystem, opt Options) error {
 	}
 
 	// Write output file (all at once).
-	fmt.Println("writing", opt.Filename)
 	err = ioutil.WriteFile(opt.Filename, buf.Bytes(), 0644)
 	return err
 }
@@ -172,7 +170,7 @@ func writeCompressedFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 		return err
 	}
 	sw := &stringWriter{Writer: w}
-	gw := gzip.NewWriter(sw)
+	gw, _ := gzip.NewWriterLevel(sw, gzip.BestCompression)
 	_, err = io.Copy(gw, r)
 	if err != nil {
 		return err

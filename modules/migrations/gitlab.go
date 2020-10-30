@@ -68,6 +68,7 @@ type GitlabDownloader struct {
 	repoName        string
 	issueCount      int64
 	fetchPRcomments bool
+	maxPerPage      int
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
@@ -99,10 +100,11 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	}
 
 	return &GitlabDownloader{
-		ctx:      ctx,
-		client:   gitlabClient,
-		repoID:   gr.ID,
-		repoName: gr.Name,
+		ctx:        ctx,
+		client:     gitlabClient,
+		repoID:     gr.ID,
+		repoName:   gr.Name,
+		maxPerPage: 100,
 	}, nil
 }
 
@@ -159,7 +161,7 @@ func (g *GitlabDownloader) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var state = "all"
 	var milestones = make([]*base.Milestone, 0, perPage)
 	for i := 1; ; i++ {
@@ -230,7 +232,7 @@ func (g *GitlabDownloader) normalizeColor(val string) string {
 
 // GetLabels returns labels
 func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
 		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{ListOptions: gitlab.ListOptions{
@@ -281,7 +283,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 
 // GetReleases returns releases
 func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
-	var perPage = 100
+	var perPage = g.maxPerPage
 	var releases = make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
 		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
@@ -303,7 +305,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 // GetAsset returns an asset
-func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error) {
+func (g *GitlabDownloader) GetAsset(tag string, _, id int64) (io.ReadCloser, error) {
 	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id), gitlab.WithContext(g.ctx))
 	if err != nil {
 		return nil, err
@@ -329,6 +331,10 @@ func (g *GitlabDownloader) GetAsset(tag string, id int64) (io.ReadCloser, error)
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	state := "all"
 	sort := "asc"
+
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 
 	opt := &gitlab.ListProjectIssuesOptions{
 		State: &state,
@@ -401,7 +407,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 // GetComments returns comments according issueNumber
 // TODO: figure out how to transfer comment reactions
 func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
-	var allComments = make([]*base.Comment, 0, 100)
+	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
 	var page = 1
 	var realIssueNumber int64
@@ -415,14 +421,14 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 			realIssueNumber = issueNumber
 			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
-				PerPage: 100,
+				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
 			// If this is a PR, we need to figure out the Gitlab/original PR ID to be passed below
 			realIssueNumber = issueNumber - g.issueCount
 			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
-				PerPage: 100,
+				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
 		}
 
@@ -464,7 +470,11 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
@@ -479,7 +489,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
-		return nil, fmt.Errorf("error while listing merge requests: %v", err)
+		return nil, false, fmt.Errorf("error while listing merge requests: %v", err)
 	}
 	for _, pr := range prs {
 
@@ -521,7 +531,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		for {
 			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
 			if err != nil {
-				return nil, fmt.Errorf("error while listing merge requests awards: %v", err)
+				return nil, false, fmt.Errorf("error while listing merge requests awards: %v", err)
 			}
 			if len(awards) < perPage {
 				break
@@ -569,7 +579,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		})
 	}
 
-	return allPRs, nil
+	return allPRs, len(prs) < perPage, nil
 }
 
 // GetReviews returns pull requests review
