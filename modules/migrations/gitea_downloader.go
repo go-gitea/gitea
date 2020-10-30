@@ -457,7 +457,11 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 	for _, comment := range comments {
 		reactions, err := g.getCommentReactions(comment.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing reactions for comment %d in issue #%d. Error: %v", comment.ID, index, err)
+			log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", index, comment.ID, g.repoOwner, g.repoName, err)
+			if err2 := models.CreateRepositoryNotice(
+				fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", index, comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
+				log.Error("create repository notice failed: ", err2)
+			}
 		}
 
 		allComments = append(allComments, &base.Comment{
