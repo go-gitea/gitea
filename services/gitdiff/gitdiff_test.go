@@ -26,6 +26,21 @@ func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 	}
 }
 
+func TestUnsplitEntities(t *testing.T) {
+	left := "sh &#34;useradd -u 111 jenkins&#34;"
+	right := "sh &#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;"
+	diffRecord := diffMatchPatch.DiffMain(left, right, true)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	// Now we need to clean up the split entities
+	diffRecord = unsplitEntities(diffRecord)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	for _, record := range diffRecord {
+		assert.False(t, unterminatedEntityRE.MatchString(record.Text), "")
+	}
+}
+
 func TestDiffToHTML(t *testing.T) {
 	setting.Cfg = ini.Empty()
 	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
