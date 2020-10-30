@@ -102,7 +102,7 @@ func DeleteReleaseTag(ctx *context.APIContext) {
 	}
 
 	if !release.IsTag {
-		ctx.Error(http.StatusConflict, "IsTag", errors.New("tags attached to a release cannot be deleted directly"))
+		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
 		return
 	}
 
