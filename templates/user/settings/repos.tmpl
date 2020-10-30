@@ -119,7 +119,7 @@
 									{{else}}
 										<span class="iconFloat">{{svg "octicon-repo"}}</span>
 									{{end}}
-									<a class="name" href="{{AppSubUrl}}/{{$.OwnerName}}/{{.Name}}">{{$.OwnerName}}/{{.Name}}</a>
+									<a class="name" href="{{AppSubUrl}}/{{.OwnerName}}/{{.Name}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{SizeFmt .Size}}</span>
 									{{if .IsFork}}
 										{{$.i18n.Tr "repo.forked_from"}}
