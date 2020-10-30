@@ -40,6 +40,7 @@ Starts the server:
 
 - Options:
     - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
+    - `--install-port number`: Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
     - `--pid path`, `-P path`: Pidfile path. Optional.
 - Examples:
     - `gitea web`
