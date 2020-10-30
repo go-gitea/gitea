@@ -42,6 +42,11 @@ and it takes care of all the other things for you`,
 			Usage: "Temporary port number to prevent conflict",
 		},
 		cli.StringFlag{
+			Name:  "install-port",
+			Value: "3000",
+			Usage: "Temporary port number to run the install page on to prevent conflict",
+		},
+		cli.StringFlag{
 			Name:  "pid, P",
 			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
@@ -116,16 +121,20 @@ func runWeb(ctx *cli.Context) error {
 		setting.WritePIDFile = true
 	}
 
-	// Flag for port number in case first time run conflict.
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
-			return err
-		}
-	}
-
 	// Perform pre-initialization
 	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
 	if needsInstall {
+		// Flag for port number in case first time run conflict
+		if ctx.IsSet("port") {
+			if err := setPort(ctx.String("port")); err != nil {
+				return err
+			}
+		}
+		if ctx.IsSet("install-port") {
+			if err := setPort(ctx.String("install-port")); err != nil {
+				return err
+			}
+		}
 		m := routes.NewMacaron()
 		routes.RegisterInstallRoute(m)
 		err := listen(m, false)
@@ -152,6 +161,12 @@ func runWeb(ctx *cli.Context) error {
 	// Perform global initialization
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 
+	// Override the provided port number within the configuration
+	if ctx.IsSet("port") {
+		if err := setPort(ctx.String("port")); err != nil {
+			return err
+		}
+	}
 	// Set up Macaron
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
@@ -190,7 +205,6 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-
 		if err := cfg.SaveTo(setting.CustomConf); err != nil {
 			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
 		}
