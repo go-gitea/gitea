@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -36,9 +37,23 @@ func TestUnsplitEntities(t *testing.T) {
 	diffRecord = unsplitEntities(diffRecord)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
+	leftRecombined := ""
+	rightRecombined := ""
 	for _, record := range diffRecord {
 		assert.False(t, unterminatedEntityRE.MatchString(record.Text), "")
+		switch record.Type {
+		case diffmatchpatch.DiffDelete:
+			leftRecombined += record.Text
+		case diffmatchpatch.DiffInsert:
+			rightRecombined += record.Text
+		default:
+			leftRecombined += record.Text
+			rightRecombined += record.Text
+		}
 	}
+
+	assert.EqualValues(t, left, leftRecombined)
+	assert.EqualValues(t, right, rightRecombined)
 }
 
 func TestDiffToHTML(t *testing.T) {
