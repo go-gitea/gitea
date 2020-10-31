@@ -672,18 +672,27 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 	return labels
 }
 
-func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	var bytes []byte
+func getFileContentFromBranch(ctx *context.Context, branch, filename string) (string, bool) {
+	var (
+		bytes  []byte
+		commit *git.Commit
+	)
 
-	if ctx.Repo.Commit == nil {
+	if len(branch) == 0 {
+		branch = ctx.Repo.Repository.DefaultBranch
+	}
+
+	if ctx.Repo.Commit != nil && branch == ctx.Repo.Repository.DefaultBranch {
+		commit = ctx.Repo.Commit
+	} else {
 		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		commit, err = ctx.Repo.GitRepo.GetBranchCommit(branch)
 		if err != nil {
 			return "", false
 		}
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
+	entry, err := commit.GetTreeEntryByPath(filename)
 	if err != nil {
 		return "", false
 	}
@@ -702,7 +711,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	return string(bytes), true
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string, checkBranch string) bool {
 	templateCandidates := make([]string, 0, len(possibleFiles))
 	if ctx.Query("template") != "" {
 		for _, dirName := range possibleDirs {
@@ -711,14 +720,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
 	for _, filename := range templateCandidates {
-		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
+		templateContent, found := getFileContentFromBranch(ctx, checkBranch, filename)
 		if found {
 			var meta api.IssueTemplate
 			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
 			if err != nil {
 				log.Debug("could not extract metadata from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
 				ctx.Data[ctxDataKey] = templateContent
-				return
+				return true
 			}
 			ctx.Data[issueTemplateTitleKey] = meta.Title
 			ctx.Data[ctxDataKey] = templateBody
@@ -737,9 +746,11 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 			}
 			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-			return
+			return true
 		}
 	}
+
+	return false
 }
 
 // NewIssue render creating issue page
@@ -785,7 +796,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
-	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
+	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates, "")
 	if ctx.Written() {
 		return
 	}
