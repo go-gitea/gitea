@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
@@ -395,7 +396,11 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while loading reactions for issue #%d. Error: %v", issue.Index, err)
+			log.Warn("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)
+			if err2 := models.CreateRepositoryNotice(
+				fmt.Sprintf("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)); err2 != nil {
+				log.Error("create repository notice failed: ", err2)
+			}
 		}
 
 		var assignees []string
@@ -452,7 +457,11 @@ func (g *GiteaDownloader) GetComments(index int64) ([]*base.Comment, error) {
 	for _, comment := range comments {
 		reactions, err := g.getCommentReactions(comment.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing reactions for comment %d in issue #%d. Error: %v", comment.ID, index, err)
+			log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", index, comment.ID, g.repoOwner, g.repoName, err)
+			if err2 := models.CreateRepositoryNotice(
+				fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", index, comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
+				log.Error("create repository notice failed: ", err2)
+			}
 		}
 
 		allComments = append(allComments, &base.Comment{
@@ -534,7 +543,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while loading reactions for pull #%d. Error: %v", pr.Index, err)
+			log.Warn("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)
+			if err2 := models.CreateRepositoryNotice(
+				fmt.Sprintf("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)); err2 != nil {
+				log.Error("create repository notice failed: ", err2)
+			}
 		}
 
 		var assignees []string
