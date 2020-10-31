@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/pull"
 
 	gouuid "github.com/google/uuid"
 )
@@ -524,6 +525,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 	}
 	for _, pr := range gprs {
 		g.issues.Store(pr.Issue.Index, pr.Issue.ID)
+		pull.AddToTaskQueue(pr)
 	}
 	return nil
 }

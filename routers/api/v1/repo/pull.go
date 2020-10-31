@@ -284,6 +284,12 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	if form.Head == form.Base {
+		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
+			"Invalid PullRequest: There are no changes between the head and the base")
+		return
+	}
+
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64

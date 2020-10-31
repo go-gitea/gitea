@@ -57,7 +57,11 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
+	}
+
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -271,7 +275,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}

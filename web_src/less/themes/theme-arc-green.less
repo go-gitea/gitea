@@ -1,3 +1,22 @@
+:root {
+  --color-primary: #87ab63;
+  --color-primary-dark-1: #93b373;
+  --color-primary-dark-2: #9fbc82;
+  --color-primary-dark-3: #abc492;
+  --color-primary-dark-4: #b7cda1;
+  --color-primary-dark-5: #cfddc1;
+  --color-primary-dark-6: #e7eee0;
+  --color-primary-dark-7: #f8faf6;
+  --color-primary-light-1: #7a9e55;
+  --color-primary-light-2: #6c8c4c;
+  --color-primary-light-3: #5f7b42;
+  --color-primary-light-4: #516939;
+  --color-primary-light-5: #364626;
+  --color-primary-light-6: #1b2313;
+  --color-primary-light-7: #080b06;
+  --color-body: #383c4a;
+}
+
 /* Background */
 
 .chroma {
@@ -388,57 +407,24 @@
   color: #fff;
 }
 
+.repository .ui.segment.sub-menu .list .item.active {
+  background: #404552;
+}
+
+.ui.segments {
+  border-color: #454b5a;
+}
+
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
 }
 
 body {
-  background: #383c4a;
   color: #9e9e9e;
 }
 
-/* firefox scroll bars */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #87ab63 rgba(255, 255, 255, .1);
-}
-
-/* webkit scrollbars */
-
-::-webkit-scrollbar {
-  -webkit-appearance: none !important;
-  width: 10px !important;
-  height: 10px !important;
-}
-
-::-webkit-scrollbar-track {
-  border-radius: 0 !important;
-  background: rgba(255, 255, 255, .1) !important;
-}
-
-::-webkit-scrollbar-thumb {
-  cursor: pointer !important;
-  border-radius: 5px !important;
-  -webkit-transition: color .2s ease !important;
-  transition: color .2s ease !important;
-  background: #87ab63 !important;
-}
-
-::-webkit-scrollbar-thumb:window-inactive {
-  background: #87ab63 !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #87ab63 !important;
-}
-
-a {
-  color: #87ab63;
-}
-
-a:hover {
-  color: #a0cc75;
+::placeholder {
+  color: #7f7f7f !important;
 }
 
 .ui.card > .extra a:not(.ui):hover,
@@ -535,6 +521,7 @@ a:hover {
   border: 1px solid #333640;
 }
 
+.ui.secondary.menu .active.item,
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
@@ -547,6 +534,12 @@ a:hover {
 .ui.menu .active.item {
   color: #dbdbdb;
   background: #454b5a;
+}
+
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: #dbdbdb;
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -622,8 +615,8 @@ footer {
 .ui.label,
 .ui.label.basic {
   color: #dbdbdb;
-  border-color: rgb(152, 152, 152);
-  background-color: #2a2e39;
+  border-color: #6a737d;
+  background-color: #353945;
 }
 
 .issue.list > .item .title {
@@ -672,6 +665,7 @@ a.ui.basic.green.label:hover {
 .ui.ui.menu .item.disabled,
 .ui.ui.menu .item.disabled:hover {
   color: #626773;
+  opacity: 1;
 }
 
 .ui.disabled.checkbox label,
@@ -693,16 +687,7 @@ a.ui.basic.green.label:hover {
   color: #9e9e9e;
 }
 
-.ui.blue.label,
-.ui.blue.labels .label,
 .repository .segment.reactions .ui.label.basic.blue {
-  background-color: #26577b !important;
-  border-color: #26577b !important;
-}
-
-.repository .segment.reactions .ui.label.basic.blue {
-  color: #a0cc75 !important;
-  background: #305020 !important;
   border-color: #404552 !important;
 }
 
@@ -712,16 +697,6 @@ a.ui.basic.green.label:hover {
 
 .ui.menu .item > .label {
   background: #565454;
-}
-
-.ui.blue.button,
-.ui.blue.buttons .button {
-  background-color: #87ab63;
-}
-
-.ui.blue.button:hover,
-.ui.blue.buttons .button:hover {
-  background-color: #a0cc75;
 }
 
 .ui.form input:not([type]),
@@ -855,7 +830,7 @@ a.ui.basic.green.label:hover {
 .ui.basic.button,
 .ui.basic.buttons .button {
   color: #9e9e9e;
-  background: rgba(0, 0, 0, .08);
+  background: rgba(0, 0, 0, .06);
   box-shadow: none;
 }
 
@@ -866,6 +841,13 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
   background: rgba(255, 255, 255, .08);
   box-shadow: none;
+}
+
+.ui.blue.label,
+.ui.blue.labels .label,
+.repository .segment.reactions .ui.label.basic.blue {
+  background-color: var(--color-primary-light-2) !important;
+  border-color: var(--color-primary) !important;
 }
 
 .ui.labeled.button:not([class*="left labeled"]) > .label,
@@ -915,8 +897,8 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.table tbody tr {
-  border-color: #333640;
-  background: #2a2e3a;
+  border-color: #404552;
+  background: #353945;
 }
 
 .ui .text.grey {
@@ -1225,10 +1207,6 @@ td.blob-hunk {
   border-top: 1px solid #4c505c;
 }
 
-.ui .text.blue {
-  color: #87ab63 !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown .menu {
   border-color: #4e5361;
@@ -1243,6 +1221,11 @@ td.blob-hunk {
 
 .ui.menu .ui.dropdown .menu > .active.item {
   color: #dbdbdb !important;
+}
+
+.repository .filter.menu.labels .label-filter .menu .info,
+.repository .filter.menu.labels .label-filter .menu .info code {
+  border-color: #4e5361;
 }
 
 .ui.card,
@@ -1543,23 +1526,6 @@ input {
   color: #7c9b5e;
 }
 
-.ui.blue.button:focus,
-.ui.blue.buttons .button:focus {
-  background-color: #a27558;
-}
-
-.ui.basic.blue.button:hover,
-.ui.basic.blue.buttons .button:hover {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
-.ui.basic.blue.button:focus,
-.ui.basic.blue.buttons .button:focus {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
 .repository.labels .ui.basic.black.label {
   background-color: #bbbbbb !important;
 }
@@ -1682,12 +1648,6 @@ a.ui.labels .label:hover {
   border-bottom: 1px dashed #4c505c;
 }
 
-.ui.basic.blue.button,
-.ui.basic.blue.buttons .button {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
 .ui.text.yellow,
 .yellow.icon.icon.icon {
   color: #e4ac07 !important;
@@ -1719,6 +1679,7 @@ a.ui.labels .label:hover {
   border-color: #634343 !important;
 }
 
+.repository .labelspage .item,
 .organization.settings .labelspage .item,
 .organization.teams .repositories .item:not(:last-child),
 .organization.teams .members .item:not(:last-child),
@@ -1727,13 +1688,14 @@ a.ui.labels .label:hover {
   border-bottom-color: #404552;
 }
 
-.organization.settings .labelspage .item a:hover {
-  color: #fff;
+.repository .labelspage .item a,
+.organization.settings .labelspage .item a {
+  color: #6a737d;
 }
 
-.ui.blue.button:active,
-.ui.blue.buttons .button:active {
-  background-color: #a27558;
+.repository .labelspage .item a:hover,
+.organization.settings .labelspage .item a:hover {
+  color: #9e9e9e;
 }
 
 #git-graph-container li a {
@@ -1764,6 +1726,11 @@ a.ui.labels .label:hover {
 
 .ui.modal > .content {
   background: #383c4a;
+}
+
+.minicolors-panel {
+  background: #404552 !important;
+  border-color: #6a737d !important;
 }
 
 .editor-toolbar {
@@ -1908,12 +1875,6 @@ a.ui.labels .label:hover {
 
   .CodeMirror-gutters {
     background-color: #2e323e;
-  }
-
-  ::selection,
-  ::-moz-selection,
-  .CodeMirror-selected {
-    background: #42402f !important;
   }
 
   &.cm-s-default,
