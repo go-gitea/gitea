@@ -955,7 +955,6 @@
 
         .tag {
           color: #767676;
-          margin-top: 3px;
           padding: 2px 5px;
           font-size: 12px;
           border: 1px solid rgba(0, 0, 0, .1);
@@ -965,26 +964,6 @@
             &.pending {
               color: black;
               background-color: #fffbb2;
-            }
-          }
-        }
-
-        .actions {
-          .item {
-            float: left;
-
-            &.context {
-              float: none;
-            }
-
-            &.tag {
-              margin-right: 5px;
-            }
-
-            &.action {
-              margin-top: 6px;
-              padding-left: 10px;
-              padding-right: 3px;
             }
           }
         }
@@ -1028,11 +1007,14 @@
               left: 7px;
             }
 
-            .actions {
-              display: flex;
-              padding: 0 .5rem;
+            .header-left > * + *,
+            .header-right > * + * {
+              margin-left: .25rem;
+            }
 
+            .actions {
               a {
+                padding: .5rem;
                 color: rgba(0, 0, 0, .4);
 
                 &:hover {
