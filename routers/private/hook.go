@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -375,7 +376,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]*repo_service.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
@@ -402,7 +403,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repo_service.PushUpdateOptions{
+			option := repo_module.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
