@@ -28,7 +28,7 @@
 								{{.i18n.Tr "repo.release.target"}} :
 								<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
 							</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .Branches}}
 									<div class="item" data-value="{{.}}">{{.}}</div>

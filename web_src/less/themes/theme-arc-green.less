@@ -428,6 +428,10 @@
   background-color: #383c4a;
 }
 
+.repository .segment.reactions .ui.label.basic.blue {
+  background: var(--color-primary-alpha-20) !important;
+}
+
 body {
   color: #a5a5a8;
 }
@@ -511,7 +515,7 @@ body {
 }
 
 .following.bar .top.menu a.item:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
 .ui.attached.header {
@@ -629,7 +633,7 @@ footer {
 .ui.label.basic {
   color: #dbdbdb;
   border-color: #6a737d;
-  background-color: #353945;
+  background-color: #383c4a;
 }
 
 .issue.list > .item .title {
@@ -655,7 +659,7 @@ footer {
 a.ui.basic.green.label:hover {
   background-color: #16ab39 !important;
   border-color: #16ab39 !important;
-  color: #ffffff !important;
+  color: #fff !important;
 }
 
 .issue.list > .item .comment {
@@ -832,7 +836,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.button {
-  background: #383c4a;
+  background: #353846;
   border: 1px solid #4c505c;
   color: #dbdbdb;
 }
@@ -1061,15 +1065,6 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb !important;
 }
 
-.ui .comment .actions a {
-  color: #a5a5a8 !important;
-}
-
-.ui .comment .actions a.active,
-.ui .comment .actions a:hover {
-  color: #fff !important;
-}
-
 .repository.view.issue .comment-list .comment .content {
   > .bottom.segment {
     background: #353945;
@@ -1123,11 +1118,19 @@ a.ui.basic.green.label:hover {
 .repository.view.issue .comment-list .timeline-item .badge {
   background-color: #4c505c;
   border-color: #4c505c;
-  color: #a5a5a8;
+  color: #ccc;
 }
 
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
   background: radial-gradient(var(--color-body) 40%, transparent 40%) no-repeat;
+}
+
+.comment-header-right a {
+  color: #a5a5a8;
+}
+
+.comment-header-right a:hover {
+  color: #dedede;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form {
@@ -1206,6 +1209,10 @@ a.ui.basic.green.label:hover {
 .tag-code td.lines-type-marker,
 td.blob-hunk {
   color: #dbdbdb !important;
+}
+
+.lines-type-marker {
+  background: #2a2e3a;
 }
 
 .ui.vertical.menu .active.item {
@@ -1421,23 +1428,19 @@ input {
   background: #404552;
   opacity: 1;
   color: #dbdbdb;
-  border-color: #4b505f;
-}
-
-.ui.checkbox .box:hover::before,
-.ui.checkbox label:hover::before {
-  background: #404552;
-  border-color: #4b505f;
+  border-color: #505667;
 }
 
 .ui.checkbox .box:before,
 .ui.checkbox label:before {
   background: #404552;
-  border: 1px solid #4b505f;
+  border: 1px solid #505667;
 }
 
-.ui.checkbox label:before {
-  border-color: #4b505f;
+.ui.checkbox .box:hover::before,
+.ui.checkbox label:hover::before {
+  background: #404552;
+  border-color: #505667;
 }
 
 .ui.checkbox .box:active::before,
@@ -1448,8 +1451,8 @@ input {
 
 .ui.checkbox input:focus ~ .box:before,
 .ui.checkbox input:focus ~ label:before {
-  border-color: #6a737d;
   background: #404552;
+  border-color: #6a737d;
 }
 
 .ui.checkbox input:checked:focus ~ .box:before,
@@ -1564,7 +1567,7 @@ input {
 
 .lines-num {
   color: #a5a5a8 !important;
-  border-color: #2d2d2d !important;
+  border-color: #4b505f !important;
 }
 
 td.blob-excerpt {
@@ -1598,13 +1601,17 @@ a.ui.labels .label:hover {
 
 .sha.label,
 .repository #repo-files-table .sha.label,
+.repository #commits-table td.sha .sha.label,
+.repository .timeline-item.commits-list .singular-commit .sha.label,
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
-  border-color: #4c505c;
+  border-color: #505667;
 }
 
+.sha.label.isSigned .detail.icon,
 .repository #commits-table td.sha .sha.label.isSigned .detail.icon,
 .repository #repo-files-table .sha.label.isSigned .detail.icon,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon {
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon,
+.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned .detail.icon {
   background: none;
   border-left-color: #888;
 }
@@ -1793,11 +1800,7 @@ a.ui.labels .label:hover {
 }
 
 .comment-code-cloud {
-  border-color: #3a3a3a;
-
-  &:before {
-    border-bottom: 13px solid #5a5a5a;
-  }
+  border-color: transparent;
 
   .ui.attached.top.header {
     background: none transparent;
@@ -1813,7 +1816,7 @@ a.ui.labels .label:hover {
       background: #404552;
     }
 
-    border-color: rgba(255, 255, 255, .15);
+    border-color: #4c505c;
   }
 
   .footer {
@@ -1847,6 +1850,15 @@ a.ui.labels .label:hover {
   .text {
     color: #a5a5a8;
   }
+}
+
+.comment-header a {
+  color: #a5a5a8 !important;
+}
+
+.comment-header .actions a:hover,
+.comment-header .actions a.active {
+  color: #dedede !important;
 }
 
 .heatmap(@heat) {

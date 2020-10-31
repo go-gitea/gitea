@@ -17,9 +17,17 @@
   }
 }
 
+.repository .diff-file-box .code-diff .add-comment-left,
+.repository .diff-file-box .code-diff .add-comment-right,
+.repository .diff-file-box .code-diff .add-code-comment .add-comment-left,
+.repository .diff-file-box .code-diff .add-code-comment .add-comment-right,
+.repository .diff-file-box .code-diff .add-code-comment .lines-type-marker {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .add-comment-left.add-comment-right .ui.attached.header {
   border: 1px solid #d4d4d5;
-  margin-top: .5em;
 
   &:not(.top) {
     margin-bottom: .5em;
@@ -39,21 +47,9 @@
 
 .comment-code-cloud {
   padding: 4px;
+  padding-left: 0;
   position: relative;
-  border: 1px solid #f1f1f1;
-  margin: 13px 10px 5px auto;
-
-  &:before {
-    content: " ";
-    width: 0;
-    height: 0;
-    border-left: 13px solid transparent;
-    border-right: 13px solid transparent;
-    border-bottom: 13px solid #f1f1f1;
-    left: 20px;
-    position: absolute;
-    top: -13px;
-  }
+  margin: 0 auto;
 
   .attached {
     &.tab {
@@ -94,7 +90,7 @@
   }
 
   .comment-list {
-    padding-bottom: 10px;
+    padding-bottom: 5px;
   }
 
   .footer {
@@ -153,9 +149,9 @@ a.blob-excerpt:hover {
 }
 
 .btn-review > .dropdown.icon {
-  width: auto;
-  font-size: .85714286em;
-  margin: 0 0 0 1em;
+  float: right;
+  height: 12px !important;
+  margin-left: .5rem;
 }
 
 @media only screen and (max-width: 768px) {

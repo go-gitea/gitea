@@ -162,16 +162,6 @@
       padding: 0 8px;
     }
 
-    .svg {
-      float: left;
-      margin: 0 -7px 0 -5px;
-      width: 16px;
-    }
-
-    &.labels .svg {
-      margin: -2px -7px 0 -5px;
-    }
-
     &.labels {
       .label-filter .menu .info {
         display: inline-block;
@@ -191,20 +181,11 @@
       }
     }
 
-    .text {
-      margin-left: .9em;
-    }
-
     .menu {
       max-height: 300px;
       overflow-x: auto;
       right: 0 !important;
       left: auto !important;
-    }
-
-    .dropdown.item {
-      margin: 1px;
-      padding-right: 0;
     }
   }
 
@@ -883,8 +864,8 @@
           justify-content: center;
 
           .svg {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             padding: 3px;
 
             &.octicon-circle-slash {
@@ -1039,22 +1020,6 @@
             &.arrow-top::after {
               top: -8px;
               left: 7px;
-            }
-
-            .header-left > * + *,
-            .header-right > * + * {
-              margin-left: .25rem;
-            }
-
-            .actions {
-              a {
-                padding: .5rem;
-                color: rgba(0, 0, 0, .4);
-
-                &:hover {
-                  color: rgba(0, 0, 0, .8);
-                }
-              }
             }
           }
 
@@ -2047,11 +2012,6 @@
         margin-right: 5px;
       }
 
-      .dropdown.icon {
-        margin: 0;
-        padding-top: 3px;
-      }
-
       .selection.dropdown {
         padding-top: 10px;
         padding-bottom: 10px;
@@ -2458,12 +2418,16 @@
 
       &.disabled {
         cursor: default;
-        opacity: .5;
+        opacity: 1;
       }
     }
 
+    .ui.label.basic {
+      color: var(--color-primary) !important;
+    }
+
     .ui.label.basic.blue {
-      background-color: var(--color-primary-alpha-10) !important;
+      background-color: var(--color-primary-alpha-20) !important;
       border-color: inherit !important;
     }
 
@@ -2827,6 +2791,25 @@
     font-size: 1.1em;
     background: #f0f0f0;
   }
+}
+
+.comment-header .actions a {
+  margin-right: 0 !important;
+  padding: .5rem !important;
+}
+
+.comment-header a {
+  color: rgba(0, 0, 0, .4) !important;
+}
+
+.comment-header .actions a:hover,
+.comment-header .actions a.active {
+  color: rgba(0, 0, 0, .8) !important;
+}
+
+.comment-header-left > * + *,
+.comment-header-right > * + * {
+  margin-left: .25rem;
 }
 
 .edit-label.modal,
