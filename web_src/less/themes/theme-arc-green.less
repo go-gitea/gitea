@@ -1,3 +1,22 @@
+:root {
+  --color-primary: #87ab63;
+  --color-primary-dark-1: #93b373;
+  --color-primary-dark-2: #9fbc82;
+  --color-primary-dark-3: #abc492;
+  --color-primary-dark-4: #b7cda1;
+  --color-primary-dark-5: #cfddc1;
+  --color-primary-dark-6: #e7eee0;
+  --color-primary-dark-7: #f8faf6;
+  --color-primary-light-1: #7a9e55;
+  --color-primary-light-2: #6c8c4c;
+  --color-primary-light-3: #5f7b42;
+  --color-primary-light-4: #516939;
+  --color-primary-light-5: #364626;
+  --color-primary-light-6: #1b2313;
+  --color-primary-light-7: #080b06;
+  --color-body: #383c4a;
+}
+
 /* Background */
 
 .chroma {
@@ -401,61 +420,11 @@
 }
 
 body {
-  background: #383c4a;
   color: #9e9e9e;
-}
-
-/* firefox scroll bars */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #87ab63 rgba(255, 255, 255, .1);
-}
-
-/* webkit scrollbars */
-
-::-webkit-scrollbar {
-  -webkit-appearance: none !important;
-  width: 10px !important;
-  height: 10px !important;
-}
-
-::-webkit-scrollbar-track {
-  border-radius: 0 !important;
-  background: rgba(255, 255, 255, .1) !important;
-}
-
-::-webkit-scrollbar-thumb {
-  cursor: pointer !important;
-  border-radius: 5px !important;
-  -webkit-transition: color .2s ease !important;
-  transition: color .2s ease !important;
-  background: #87ab63 !important;
-}
-
-::-webkit-scrollbar-thumb:window-inactive {
-  background: #87ab63 !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #87ab63 !important;
-}
-
-::selection {
-  background: #87ab63 !important;
-  color: #fff !important;
 }
 
 ::placeholder {
   color: #7f7f7f !important;
-}
-
-a {
-  color: #87ab63;
-}
-
-a:hover {
-  color: #a0cc75;
 }
 
 .ui.card > .extra a:not(.ui):hover,
@@ -718,16 +687,7 @@ a.ui.basic.green.label:hover {
   color: #9e9e9e;
 }
 
-.ui.blue.label,
-.ui.blue.labels .label,
 .repository .segment.reactions .ui.label.basic.blue {
-  background-color: #26577b !important;
-  border-color: #26577b !important;
-}
-
-.repository .segment.reactions .ui.label.basic.blue {
-  color: #a0cc75 !important;
-  background: #305020 !important;
   border-color: #404552 !important;
 }
 
@@ -737,16 +697,6 @@ a.ui.basic.green.label:hover {
 
 .ui.menu .item > .label {
   background: #565454;
-}
-
-.ui.blue.button,
-.ui.blue.buttons .button {
-  background-color: #87ab63;
-}
-
-.ui.blue.button:hover,
-.ui.blue.buttons .button:hover {
-  background-color: #a0cc75;
 }
 
 .ui.form input:not([type]),
@@ -891,6 +841,13 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
   background: rgba(255, 255, 255, .08);
   box-shadow: none;
+}
+
+.ui.blue.label,
+.ui.blue.labels .label,
+.repository .segment.reactions .ui.label.basic.blue {
+  background-color: var(--color-primary-light-2) !important;
+  border-color: var(--color-primary) !important;
 }
 
 .ui.labeled.button:not([class*="left labeled"]) > .label,
@@ -1250,10 +1207,6 @@ td.blob-hunk {
   border-top: 1px solid #4c505c;
 }
 
-.ui .text.blue {
-  color: #87ab63 !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown .menu {
   border-color: #4e5361;
@@ -1573,23 +1526,6 @@ input {
   color: #7c9b5e;
 }
 
-.ui.blue.button:focus,
-.ui.blue.buttons .button:focus {
-  background-color: #a27558;
-}
-
-.ui.basic.blue.button:hover,
-.ui.basic.blue.buttons .button:hover {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
-.ui.basic.blue.button:focus,
-.ui.basic.blue.buttons .button:focus {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
 .repository.labels .ui.basic.black.label {
   background-color: #bbbbbb !important;
 }
@@ -1712,12 +1648,6 @@ a.ui.labels .label:hover {
   border-bottom: 1px dashed #4c505c;
 }
 
-.ui.basic.blue.button,
-.ui.basic.blue.buttons .button {
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-  color: #87ab63 !important;
-}
-
 .ui.text.yellow,
 .yellow.icon.icon.icon {
   color: #e4ac07 !important;
@@ -1766,11 +1696,6 @@ a.ui.labels .label:hover {
 .repository .labelspage .item a:hover,
 .organization.settings .labelspage .item a:hover {
   color: #9e9e9e;
-}
-
-.ui.blue.button:active,
-.ui.blue.buttons .button:active {
-  background-color: #a27558;
 }
 
 #git-graph-container li a {
@@ -1950,12 +1875,6 @@ a.ui.labels .label:hover {
 
   .CodeMirror-gutters {
     background-color: #2e323e;
-  }
-
-  ::selection,
-  ::-moz-selection,
-  .CodeMirror-selected {
-    background: #42402f !important;
   }
 
   &.cm-s-default,

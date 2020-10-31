@@ -27,11 +27,11 @@ type ElasticSearchIndexer struct {
 }
 
 type elasticLogger struct {
-	*log.Logger
+	log.LevelLogger
 }
 
 func (l elasticLogger) Printf(format string, args ...interface{}) {
-	_ = l.Logger.Log(2, l.Logger.GetLevel(), format, args...)
+	_ = l.Log(2, l.GetLevel(), format, args...)
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
