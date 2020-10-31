@@ -310,12 +310,15 @@ code,
   flex-direction: inherit;
 }
 
-/* dropdown button triangle, negative margins to prevent button resize */
-.dropdown .octicon-triangle-down {
-  margin-left: .25rem;
+.ui.dropdown:not(.labeled) > .dropdown.icon {
+  height: 14px;
   vertical-align: bottom;
-  margin-top: -1px;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
+  margin-left: .5rem;
+}
+
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  height: auto;
 }
 
 .ui {
