@@ -871,14 +871,14 @@
         .badge {
           width: 32px;
           height: 32px;
-          background-color: #fff;
+          background-color: #eee;
           border: 2px solid #eee;
           border-radius: 50%;
           display: flex;
           float: left;
           margin-left: -32px;
           margin-right: 8px;
-          color: #444;
+          color: #666;
           align-items: center;
           justify-content: center;
 
@@ -1666,14 +1666,23 @@
       z-index: 8;
       margin-bottom: 10px;
       border-bottom: 1px solid #d4d4d5;
-      padding-left: 5px;
-      padding-right: 5px;
+      padding-left: 2px;
+      padding-right: 2px;
     }
 
     > div:after {
       clear: both;
       content: "";
       display: block;
+    }
+
+    .diff-detail-stats strong {
+      margin-left: .25rem;
+      margin-right: .25rem;
+    }
+
+    .diff-detail-actions .btn-review {
+      margin-right: 0 !important;
     }
 
     span.status {
@@ -2447,7 +2456,7 @@
       }
 
       > .item:hover {
-        background: #4183c4;
+        background: var(--color-primary);
       }
     }
   }
@@ -2458,7 +2467,7 @@
 
     .ui.label {
       max-height: 40px;
-      padding: 7px 18px;
+      padding: 10px 18px !important;
       display: flex !important;
       align-items: center;
       border: 0;
@@ -2476,7 +2485,7 @@
     }
 
     .ui.label.basic.blue {
-      background-color: #f1f8ff !important;
+      background-color: var(--color-primary-alpha-10) !important;
       border-color: inherit !important;
     }
 

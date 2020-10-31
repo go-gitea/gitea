@@ -14,6 +14,15 @@
   --color-primary-light-5: #364626;
   --color-primary-light-6: #1b2313;
   --color-primary-light-7: #080b06;
+  --color-primary-alpha-10: #87ab6319;
+  --color-primary-alpha-20: #87ab6333;
+  --color-primary-alpha-30: #87ab634b;
+  --color-primary-alpha-40: #87ab6366;
+  --color-primary-alpha-50: #87ab6380;
+  --color-primary-alpha-60: #87ab6399;
+  --color-primary-alpha-70: #87ab63b3;
+  --color-primary-alpha-80: #87ab63cc;
+  --color-primary-alpha-90: #87ab63e1;
   --color-body: #383c4a;
 }
 
@@ -420,7 +429,7 @@
 }
 
 body {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 ::placeholder {
@@ -456,6 +465,10 @@ body {
   color: #a0cc75;
 }
 
+.repository .milestone.list > .item {
+  border-bottom-color: #4c505c;
+}
+
 .repository .milestone.list > .item > a {
   color: #87ab63;
 }
@@ -465,7 +478,7 @@ body {
 }
 
 .repository.release #release-list {
-  border-top: 1px solid #4c505c;
+  border-top-color: #4c505c;
 }
 
 .repository .milestone.list > .item .operate > a {
@@ -494,7 +507,7 @@ body {
 }
 
 .ui.secondary.menu .item {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .following.bar .top.menu a.item:hover {
@@ -543,7 +556,7 @@ body {
 }
 
 .ui.menu .ui.dropdown .menu > .item {
-  color: #9e9e9e !important;
+  color: #a5a5a8 !important;
 }
 
 .ui.menu .ui.dropdown .menu > .item:hover,
@@ -657,7 +670,7 @@ a.ui.basic.green.label:hover {
 
 .ui.menu .item {
   background: #404552;
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.menu .item.disabled,
@@ -670,7 +683,7 @@ a.ui.basic.green.label:hover {
 
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.pagination.menu .active.item {
@@ -684,15 +697,12 @@ a.ui.basic.green.label:hover {
 
 .ui.header,
 .ui.breadcrumb .divider {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
-.repository .segment.reactions .ui.label.basic.blue {
-  border-color: #404552 !important;
-}
-
-.repository .select-reaction .item:hover {
-  background: #305020 !important;
+.ui.divider:not(.vertical):not(.horizontal) {
+  border-bottom-color: #4b505f;
+  border-top-color: transparent;
 }
 
 .ui.menu .item > .label {
@@ -713,7 +723,7 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="time"],
 .ui.form input[type="url"],
 .ui.selection.dropdown {
-  color: #9e9e9e;
+  color: #a5a5a8;
   background: #404552;
   border: 1px solid #4b505f;
 }
@@ -829,7 +839,7 @@ a.ui.basic.green.label:hover {
 
 .ui.basic.button,
 .ui.basic.buttons .button {
-  color: #9e9e9e;
+  color: #a5a5a8;
   background: rgba(0, 0, 0, .06);
   box-shadow: none;
 }
@@ -844,8 +854,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.blue.label,
-.ui.blue.labels .label,
-.repository .segment.reactions .ui.label.basic.blue {
+.ui.blue.labels .label {
   background-color: var(--color-primary-light-2) !important;
   border-color: var(--color-primary) !important;
 }
@@ -915,18 +924,18 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.tabular.menu {
-  border-bottom-color: rgba(255, 255, 255, .1);
+  border-bottom-color: #4c505c;
 
   .item.active {
-    border-top-color: #404552;
-    border-left-color: #404552;
-    border-right-color: #404552;
-    background: #353945;
+    border-top-color: #4c505c;
+    border-left-color: #4c505c;
+    border-right-color: #4c505c;
+    background: #383c4a;
     color: #dbdbdb;
   }
 
   .item {
-    color: #9e9e9e;
+    color: #a5a5a8;
   }
 
   .item:hover {
@@ -1001,12 +1010,12 @@ a.ui.basic.green.label:hover {
 
 .ui.segment {
   background: #353945;
-  color: #9e9e9e !important;
+  color: #a5a5a8 !important;
   border: 1px solid #404552;
 }
 
 .ui.list > .item > .content {
-  color: #9e9e9e !important;
+  color: #a5a5a8 !important;
 }
 
 .ui.active.button:active,
@@ -1033,7 +1042,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.dropdown .menu > .item {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.attached.segment {
@@ -1053,7 +1062,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui .comment .actions a {
-  color: #9e9e9e !important;
+  color: #a5a5a8 !important;
 }
 
 .ui .comment .actions a.active,
@@ -1078,17 +1087,23 @@ a.ui.basic.green.label:hover {
 
   .merge-section {
     background-color: #404552;
-    border-top: 1px solid #353944;
+    border-color: #505667;
   }
 
-  .header:after,
-  > .merge-section.no-header:after {
+  .header:after {
     border-right-color: #404552;
   }
 
-  .header:before,
-  > .merge-section.no-header:before {
+  .merge-section.no-header:after {
     border-right-color: #404552;
+  }
+
+  .header:before {
+    border-right-color: #404552;
+  }
+
+  .merge-section.no-header:before {
+    border-right-color: #505667;
   }
 }
 
@@ -1102,17 +1117,17 @@ a.ui.basic.green.label:hover {
 
 .repository.view.issue .comment-list:not(.prevent-before-timeline):before,
 .repository.view.issue .comment-list .timeline:before {
-  background-color: #3b4954;
+  background-color: #4c505c;
 }
 
 .repository.view.issue .comment-list .timeline-item .badge {
-  background-color: #383c4a;
-  border-color: #3b4954;
-  color: #9e9e9e;
+  background-color: #4c505c;
+  border-color: #4c505c;
+  color: #a5a5a8;
 }
 
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
-  background: radial-gradient(#383c4a 40%, transparent 40%) no-repeat;
+  background: radial-gradient(var(--color-body) 40%, transparent 40%) no-repeat;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form {
@@ -1140,6 +1155,13 @@ a.ui.basic.green.label:hover {
 .ui.basic.green.buttons .active.button {
   color: #13ae38 !important;
   box-shadow: 0 0 0 1px #13ae38 inset !important;
+}
+
+.ui.green.buttons .active.button,
+.ui.green.buttons .active.button:active,
+.ui.green.active.button,
+.ui.green.button .active.button:active {
+  background: #87ab63;
 }
 
 .ui .info.segment.top {
@@ -1245,7 +1267,7 @@ td.blob-hunk {
 }
 
 .ui .text.black {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui .text.black:hover {
@@ -1285,7 +1307,7 @@ td.blob-hunk {
 .ui.checkbox label,
 .ui.checkbox + label,
 .ui.form .field > label {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.form .inline.field > label,
@@ -1293,7 +1315,7 @@ td.blob-hunk {
 .ui.form .inline.fields .field > label,
 .ui.form .inline.fields .field > p,
 .ui.form .inline.fields > label {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .user.settings .email.list .item:not(:first-child) {
@@ -1469,7 +1491,7 @@ input {
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.positive.message {
@@ -1514,7 +1536,7 @@ input {
 
 .ui.list .list > .item .description,
 .ui.list > .item .description {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.user.list .item .description a {
@@ -1541,7 +1563,7 @@ input {
 }
 
 .lines-num {
-  color: #9e9e9e !important;
+  color: #a5a5a8 !important;
   border-color: #2d2d2d !important;
 }
 
@@ -1574,9 +1596,10 @@ a.ui.labels .label:hover {
   color: #dbdbdb !important;
 }
 
-.repository #commits-table td.sha .sha.label,
-.repository #repo-files-table .sha.label {
-  border-color: #888;
+.sha.label,
+.repository #repo-files-table .sha.label,
+.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
+  border-color: #4c505c;
 }
 
 .repository #commits-table td.sha .sha.label.isSigned .detail.icon,
@@ -1588,12 +1611,12 @@ a.ui.labels .label:hover {
 
 .repository .ui.attached.message.isSigned.isVerified {
   background-color: #394829;
-  color: #9e9e9e;
+  color: #a5a5a8;
 
   &.message {
     color: #87ab63;
     .ui.text {
-      color: #9e9e9e;
+      color: #a5a5a8;
     }
     .pull-right {
       color: #87ab63;
@@ -1603,11 +1626,11 @@ a.ui.labels .label:hover {
 
 .repository .ui.attached.message.isSigned.isVerifiedUntrusted {
   background-color: #4a3903;
-  color: #9e9e9e;
+  color: #a5a5a8;
   &.message {
     color: #c2c193;
     .ui.text {
-      color: #9e9e9e;
+      color: #a5a5a8;
     }
     .pull-right,
     a {
@@ -1618,11 +1641,11 @@ a.ui.labels .label:hover {
 
 .repository .ui.attached.message.isSigned.isVerifiedUnmatched {
   background-color: #4e3321;
-  color: #9e9e9e;
+  color: #a5a5a8;
   &.message {
     color: #c2a893;
     .ui.text {
-      color: #9e9e9e;
+      color: #a5a5a8;
     }
     .pull-right,
     a {
@@ -1639,7 +1662,7 @@ a.ui.labels .label:hover {
       color: #d07d7d;
     }
     .pull-right {
-      color: #9e9e9e;
+      color: #a5a5a8;
     }
   }
 }
@@ -1695,7 +1718,7 @@ a.ui.labels .label:hover {
 
 .repository .labelspage .item a:hover,
 .organization.settings .labelspage .item a:hover {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 #git-graph-container li a {
@@ -1707,7 +1730,7 @@ a.ui.labels .label:hover {
 }
 
 .ui.header .sub.header {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .ui.dividing.header {
@@ -1765,7 +1788,7 @@ a.ui.labels .label:hover {
   }
 
   &.sticky {
-    border-bottom-color: rgba(255, 255, 255, .1);
+    border-bottom-color: #4c505c;
   }
 }
 
@@ -1809,7 +1832,7 @@ a.ui.labels .label:hover {
 }
 
 .file-comment {
-  color: #888888;
+  color: #a5a5a8;
 }
 
 .ui.comments .comment {
@@ -1822,7 +1845,7 @@ a.ui.labels .label:hover {
   }
 
   .text {
-    color: #9e9e9e;
+    color: #a5a5a8;
   }
 }
 
@@ -1858,7 +1881,7 @@ a.ui.labels .label:hover {
 
 .activity-bar-graph {
   background-color: #a0cc75;
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 /* code mirror dark theme */
@@ -1870,7 +1893,7 @@ a.ui.labels .label:hover {
   border-top: 0;
 
   div.CodeMirror-cursor {
-    border-left: 1px solid #9e9e9e;
+    border-left: 1px solid #a5a5a8;
   }
 
   .CodeMirror-gutters {
@@ -1969,12 +1992,18 @@ a.ui.labels .label:hover {
 
 .ui.popup {
   background-color: #383c4a;
-  color: #9e9e9e;
-  border-color: #9e9e9e;
+  color: #a5a5a8;
+  border-color: #4c505c;
+}
 
-  &.top::before {
-    background-color: #383c4a;
-  }
+.ui.popup.top:before,
+.ui.popup.bottom:before {
+  background-color: #383c4a;
+}
+
+.ui.bottom.left.popup:before,
+.ui.bottom.right.popup:before {
+  box-shadow: -1px -1px 0 0 #4c505c;
 }
 
 .markdown:not(code) h1 {
@@ -1995,7 +2024,7 @@ footer .container .links > * {
 }
 
 .repository.file.list #repo-files-table tbody .svg {
-  color: #9e9e9e;
+  color: #a5a5a8;
 }
 
 .repository.release #release-list > li .detail {

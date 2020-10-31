@@ -21,6 +21,15 @@
   --color-primary-light-5: #b3cde7;
   --color-primary-light-6: #d9e6f3;
   --color-primary-light-7: #f4f8fb;
+  --color-primary-alpha-10: #4183c419;
+  --color-primary-alpha-20: #4183c433;
+  --color-primary-alpha-30: #4183c44b;
+  --color-primary-alpha-40: #4183c466;
+  --color-primary-alpha-50: #4183c480;
+  --color-primary-alpha-60: #4183c499;
+  --color-primary-alpha-70: #4183c4b3;
+  --color-primary-alpha-80: #4183c4cc;
+  --color-primary-alpha-90: #4183c4e1;
   --color-body: #fff;
 }
 
@@ -278,6 +287,10 @@ code,
 
   #navbar .brand {
     margin: 0;
+  }
+
+  #navbar .dropdown .avatar {
+    margin-right: 0 !important;
   }
 
   @media only screen and (max-width: 767px) {
@@ -750,11 +763,6 @@ code,
   &.modal > .content {
     text-align: center;
   }
-}
-
-.file-comment {
-  font: 12px var(--fonts-monospace);
-  color: rgba(0, 0, 0, .87);
 }
 
 .ui.floating.dropdown {
@@ -1235,10 +1243,16 @@ i.icon.centerlock {
 }
 
 .ui.blue.label,
-.ui.blue.labels .label,
-.repository .segment.reactions .ui.label.basic.blue {
+.ui.blue.labels .label {
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary-dark-2) !important;
+}
+
+.ui.basic.labels .blue.label,
+.ui.ui.ui.basic.blue.label {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .ui.label > img {
