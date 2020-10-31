@@ -310,6 +310,17 @@ code,
   flex-direction: inherit;
 }
 
+.ui.dropdown:not(.labeled) > .dropdown.icon {
+  height: 14px;
+  vertical-align: bottom;
+  margin-bottom: -2px;
+  margin-left: .5rem;
+}
+
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  height: auto;
+}
+
 .ui {
   &.left:not(.action) {
     float: left;
@@ -1116,6 +1127,10 @@ i.icon.centerlock {
       padding-left: 1ch;
     }
   }
+}
+
+.lines-code {
+  padding-left: 5px;
 }
 
 .lines-code code {
