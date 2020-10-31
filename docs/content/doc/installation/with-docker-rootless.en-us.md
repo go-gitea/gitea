@@ -291,4 +291,6 @@ docker-compose up -d
 
 # SSH Container Passthrough (not tested)
 
-TODO maybe possible by forcing `authorized_keys` generation
+This should be possible by forcing `authorized_keys` generation via `gitea admin regenerate keys`.
+
+We should use directly [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) when it will be based on internal api.
