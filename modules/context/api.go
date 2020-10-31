@@ -61,6 +61,10 @@ type APIForbiddenError struct {
 // swagger:response notFound
 type APINotFound struct{}
 
+//APIConflict is a conflict empty response
+// swagger:response conflict
+type APIConflict struct{}
+
 //APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}
