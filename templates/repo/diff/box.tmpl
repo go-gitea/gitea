@@ -17,9 +17,11 @@
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
-		<div class="diff-detail-box diff-box sticky">
-			{{svg "octicon-diff"}} {{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
-			<div class="ui right">
+		<div class="diff-detail-box diff-box sticky df sb ac">
+			<div class="diff-detail-stats df ac">
+				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+			</div>
+			<div class="diff-detail-actions df ac">
 				{{if .PageIsPullFiles}}
 					{{template "repo/diff/whitespace_dropdown" .}}
 				{{else}}

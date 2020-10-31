@@ -37,7 +37,6 @@ RUN apk --no-cache add \
     openssh \
     s6 \
     sqlite \
-    socat \
     su-exec \
     gnupg
 
