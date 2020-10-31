@@ -30,7 +30,7 @@ the official [install instructions](https://docs.docker.com/compose/install/).
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest-rootless`
 image as a service. Since there is no database available, one can be initialized using SQLite3.
 Create a directory for `data` and `config` then paste the following content into a file named `docker-compose.yml`.
-Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
+Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command: `sudo chown 1000:1000 config/ data/`
 If you don't give the volume correct permissions, the container may not start.
 Also be aware that the tag `:latest-rootless` will install the current development version.
 For a stable release you can use `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`.
@@ -77,7 +77,7 @@ services:
 +      - "22:2222"
 ```
 
-## MySQL database (not tested)
+## MySQL database
 
 To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
@@ -100,9 +100,9 @@ services:
       - ./config:/etc/gitea  
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-     ports:
-       - "3000:3000"
-       - "222:22"
+    ports:
+      - "3000:3000"
+      - "222:22"
 +    depends_on:
 +      - db
 +
@@ -118,7 +118,7 @@ services:
 +      - ./mysql:/var/lib/mysql
 ```
 
-## PostgreSQL database (not tested)
+## PostgreSQL database
 
 To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
@@ -190,10 +190,11 @@ services:
 
 MySQL or PostgreSQL containers will need to be created separately.
 
-## Custom user (not tested)
+## Custom user
 
 You can choose to use a custom user (following --user flag definition https://docs.docker.com/engine/reference/run/#user).
-As an example to clone the host user `git` definition:
+As an example to clone the host user `git` definition use the command `id -u git` and add it to `docker-compose.yml` file:
+Please make sure that the mounted folders are writable by the user.
 
 ```diff
 version: "2"
@@ -202,7 +203,7 @@ services:
   server:
     image: gitea/gitea:latest-rootless
     restart: always
-+    user: git
++    user: 1001
     volumes:
       - ./data:/var/lib/gitea
       - ./config:/etc/gitea

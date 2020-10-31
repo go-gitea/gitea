@@ -5,8 +5,7 @@ mkdir -p ${HOME} && chmod 0700 ${HOME}
 if [ ! -w ${HOME} ]; then echo "${HOME} is not writable"; exit 1; fi
 
 # Prepare custom folder
-mkdir -p ${GITEA_CUSTOM} && chmod 0700 ${GITEA_CUSTOM}
-if [ ! -w ${GITEA_CUSTOM} ]; then echo "${GITEA_CUSTOM} is not writable"; exit 1; fi
+mkdir -p ${GITEA_CUSTOM} && chmod 0500 ${GITEA_CUSTOM}
 
 # Prepare temp folder
 mkdir -p ${GITEA_TEMP} && chmod 0700 ${GITEA_TEMP}
