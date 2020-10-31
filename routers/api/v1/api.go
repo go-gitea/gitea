@@ -798,7 +798,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 					})
 					m.Group("/tags", func() {
-						m.Get("/:tag", repo.GetReleaseTag)
+						m.Combo("/:tag").
+							Get(repo.GetReleaseTag).
+							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseTag)
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
