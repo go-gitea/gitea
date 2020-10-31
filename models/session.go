@@ -97,7 +97,7 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 		}
 	}
 
-	if _, err := sess.Exec("UPDATE "+x.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
+	if _, err := sess.Exec("UPDATE "+sess.Engine().TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
 		return nil, err
 	}
 

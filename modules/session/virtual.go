@@ -40,6 +40,8 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &session.FileProvider{}
 	case "redis":
 		o.provider = &RedisProvider{}
+	case "xorm":
+		o.provider = &XormProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":
