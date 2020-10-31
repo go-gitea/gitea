@@ -32,7 +32,7 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 16,
 			commitRepoActionOptions: commitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: "refName",
 					OldCommitID: "oldCommitID",
 					NewCommitID: "newCommitID",
@@ -68,7 +68,7 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: commitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.TagPrefix + "v1.1",
 					OldCommitID: git.EmptySHA,
 					NewCommitID: "newCommitID",
@@ -84,7 +84,7 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: commitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.TagPrefix + "v1.1",
 					OldCommitID: "oldCommitID",
 					NewCommitID: git.EmptySHA,
@@ -100,7 +100,7 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: commitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.BranchPrefix + "feature/1",
 					OldCommitID: "oldCommitID",
 					NewCommitID: git.EmptySHA,
