@@ -85,6 +85,7 @@ type Repository struct {
 	HasPullRequests           bool             `json:"has_pull_requests"`
 	HasProjects               bool             `json:"has_projects"`
 	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
+	UseTemplateInBaseBranch   bool             `json:"use_template_in_base_branch"`
 	AllowMerge                bool             `json:"allow_merge_commits"`
 	AllowRebase               bool             `json:"allow_rebase"`
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
@@ -158,6 +159,8 @@ type EditRepoOption struct {
 	HasProjects *bool `json:"has_projects,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
+	// either `true` to use template in base branch, or `false` to not use template in base branch. `has_pull_requests` must be `true`.
+	UseTemplateInBaseBranch *bool `json:"use_template_in_base_branch,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
 	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.

@@ -696,6 +696,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:               true,
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
+					UseTemplateInBaseBranch:   false,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -703,6 +704,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			if opts.IgnoreWhitespaceConflicts != nil {
 				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+			}
+			if opts.UseTemplateInBaseBranch != nil {
+				config.UseTemplateInBaseBranch = *opts.UseTemplateInBaseBranch
 			}
 			if opts.AllowMerge != nil {
 				config.AllowMerge = *opts.AllowMerge

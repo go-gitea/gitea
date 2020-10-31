@@ -391,6 +391,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
+	useTemplateInBaseBranch := false
 	if unit, err := repo.getUnit(e, UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -399,6 +400,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		useTemplateInBaseBranch = config.UseTemplateInBaseBranch
 	}
 	hasProjects := false
 	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
@@ -454,6 +456,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		ExternalWiki:              externalWiki,
 		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
+		UseTemplateInBaseBranch:   useTemplateInBaseBranch,
 		AllowMerge:                allowMerge,
 		AllowRebase:               allowRebase,
 		AllowRebaseMerge:          allowRebaseMerge,

@@ -140,6 +140,7 @@ type RepoSettingForm struct {
 	PullsAllowRebase                 bool
 	PullsAllowRebaseMerge            bool
 	PullsAllowSquash                 bool
+	PullsUseTemplateInBaseBranch     bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool

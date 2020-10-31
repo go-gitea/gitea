@@ -13028,6 +13028,11 @@
           "type": "boolean",
           "x-go-name": "Template"
         },
+        "use_template_in_base_branch": {
+          "description": "either `true` to use template in base branch, or `false` to not use template in base branch. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "UseTemplateInBaseBranch"
+        },
         "website": {
           "description": "a URL with more information about the repository.",
           "type": "string",
@@ -15101,6 +15106,10 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        },
+        "use_template_in_base_branch": {
+          "type": "boolean",
+          "x-go-name": "UseTemplateInBaseBranch"
         },
         "watchers_count": {
           "type": "integer",

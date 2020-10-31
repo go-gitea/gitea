@@ -89,6 +89,7 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 // PullRequestsConfig describes pull requests config
 type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts bool
+	UseTemplateInBaseBranch   bool
 	AllowMerge                bool
 	AllowRebase               bool
 	AllowRebaseMerge          bool
