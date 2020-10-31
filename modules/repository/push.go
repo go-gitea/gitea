@@ -5,11 +5,10 @@
 package repository
 
 import (
-	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // PushUpdateOptions defines the push update options
@@ -105,7 +104,7 @@ func IsForcePush(opts *PushUpdateOptions) (bool, error) {
 	}
 
 	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).
-		RunInDir(filepath.Join(setting.RepoRootPath, opts.RepoUserName, opts.RepoName))
+		RunInDir(models.RepoPath(opts.RepoUserName, opts.RepoName))
 	if err != nil {
 		return false, err
 	} else if len(output) > 0 {
