@@ -20,8 +20,8 @@
 				</a>
 			{{end}}
 				<div class="content">
-					<div class="ui top attached header">
-						<div class="header-left df ac">
+					<div class="ui top attached header comment-header df ac sb">
+						<div class="comment-header-left df ac">
 							{{if .Issue.OriginalAuthor }}
 								<span class="text black">
 									<i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
@@ -40,7 +40,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="header-right actions df ac">
+						<div class="comment-header-right actions df ac">
 							{{if not $.Repository.IsArchived}}
 								{{if gt .Issue.ShowTag 0}}
 									<div class="ui basic label">
