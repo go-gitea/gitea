@@ -104,9 +104,15 @@
 							{{end}}
 							</div>
 						{{else}}
-							<h3 class="release-list-title">
-								<a href="{{$.RepoLink}}/releases/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
-								{{if $.CanCreateRelease}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
+							<h3 class="release-list-title df ac">
+								<a href="{{$.RepoLink}}/releases/tag/{{.TagName | EscapePound}}">
+									{{.Title}}
+								</a>
+								{{if $.CanCreateRelease}}
+									<small class="ml-2">
+										(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)
+									</small>
+								{{end}}
 							</h3>
 							<p class="text grey">
 								<span class="author">
