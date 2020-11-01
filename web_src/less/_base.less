@@ -30,6 +30,7 @@
   --color-primary-alpha-70: #4183c4b3;
   --color-primary-alpha-80: #4183c4cc;
   --color-primary-alpha-90: #4183c4e1;
+  --color-secondary: rgba(34, 36, 38, .15);
   --color-body: #fff;
 }
 
@@ -185,9 +186,12 @@ a:hover,
   word-break: break-all;
 }
 
-pre,
-code,
 .mono {
+  font-family: var(--fonts-monospace);
+}
+
+pre,
+code {
   font: 12px var(--fonts-monospace);
 
   &.raw {
@@ -781,7 +785,7 @@ code,
     .scrolling.menu.items {
       border-radius: 0 !important;
       box-shadow: none !important;
-      border-bottom: 1px solid rgba(34, 36, 38, .15);
+      border-bottom: 1px solid var(--color-secondary);
     }
   }
 }

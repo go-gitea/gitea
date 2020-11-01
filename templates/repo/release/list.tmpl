@@ -28,17 +28,17 @@
 								<span class="ui green label">{{$.i18n.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</span>
 							<span class="commit">
-								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 							</span>
 						{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
 						{{if .IsTag}}
 							<h4>
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</h4>
 							<p class="text grey">
 								{{ if gt .Publisher.ID 0 }}
@@ -51,7 +51,7 @@
 							</p>
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
-								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							{{end}}
@@ -64,7 +64,7 @@
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
-									<i class="fa fa-github" aria-hidden="true"></i>
+									{{svg "octicon-mark-github"}}
 									{{.OriginalAuthor}}
 								{{else if .Publisher}}
 									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
