@@ -1,6 +1,5 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
-const AddAssetPlugin = require('add-asset-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -36,6 +35,57 @@ const filterCssImport = (url, ...args) => {
 
   return true;
 };
+
+const plugins = [
+  new VueLoaderPlugin(),
+  // avoid generating useless js output files for css--only chunks
+  new FixStyleOnlyEntriesPlugin({
+    extensions: ['less', 'scss', 'css'],
+    silent: true,
+  }),
+  new MiniCssExtractPlugin({
+    filename: 'css/[name].css',
+    chunkFilename: 'css/[name].css',
+  }),
+  new SourceMapDevToolPlugin({
+    filename: '[file].map',
+    include: [
+      'js/index.js',
+      'css/index.css',
+    ],
+  }),
+  new MonacoWebpackPlugin({
+    filename: 'js/monaco-[name].worker.js',
+  }),
+];
+
+if (isProduction) {
+  plugins.push(new LicenseWebpackPlugin({
+    outputFilename: 'js/licenses.txt',
+    perChunkOutput: false,
+    addBanner: false,
+    skipChildCompilers: true,
+    modulesDirectories: [
+      resolve(__dirname, 'node_modules'),
+    ],
+    additionalModules: [
+      '@primer/octicons',
+    ].map((name) => ({name, directory: resolve(__dirname, `node_modules/${name}`)})),
+    renderLicenses: (modules) => {
+      const line = '-'.repeat(80);
+      return modules.map((module) => {
+        const {name, version} = module.packageJson;
+        const {licenseId, licenseText} = module;
+        const body = wrapAnsi(licenseText || '', 80);
+        return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+      }).join('\n');
+    },
+    stats: {
+      warnings: false,
+      errors: true,
+    },
+  }));
+}
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
@@ -234,53 +284,7 @@ module.exports = {
       },
     ],
   },
-  plugins: [
-    new VueLoaderPlugin(),
-    // avoid generating useless js output files for css--only chunks
-    new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css'],
-      silent: true,
-    }),
-    new MiniCssExtractPlugin({
-      filename: 'css/[name].css',
-      chunkFilename: 'css/[name].css',
-    }),
-    new SourceMapDevToolPlugin({
-      filename: '[file].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
-    }),
-    new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].worker.js',
-    }),
-    isProduction ? new LicenseWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
-      perChunkOutput: false,
-      addBanner: false,
-      skipChildCompilers: true,
-      modulesDirectories: [
-        resolve(__dirname, 'node_modules'),
-      ],
-      additionalModules: [
-        '@primer/octicons',
-      ].map((name) => ({name, directory: resolve(__dirname, `node_modules/${name}`)})),
-      renderLicenses: (modules) => {
-        const line = '-'.repeat(80);
-        return modules.map((module) => {
-          const {name, version} = module.packageJson;
-          const {licenseId, licenseText} = module;
-          const body = wrapAnsi(licenseText || '', 80);
-          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
-        }).join('\n');
-      },
-      stats: {
-        warnings: false,
-        errors: true,
-      },
-    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
-  ],
+  plugins,
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,
