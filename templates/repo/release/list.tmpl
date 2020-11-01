@@ -31,9 +31,9 @@
 					{{range $idx, $release := .Releases}}
 						<tr>
 							<td class="tag">
-								<h4>
+								<h3 class="release-tag-name mb-3">
 									<a class="df ac" href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow">{{.TagName}}</a>
-								</h4>
+								</h3>
 								<div class="download df ac">
 									{{if $.Permission.CanRead $.UnitTypeCode}}
 										<a class="mr-3 commit-sha" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
@@ -104,7 +104,7 @@
 							{{end}}
 							</div>
 						{{else}}
-							<h3>
+							<h3 class="release-list-title">
 								<a href="{{$.RepoLink}}/releases/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
 								{{if $.CanCreateRelease}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
 							</h3>
@@ -119,41 +119,44 @@
 									Ghost
 								{{end}}
 								</span>
-								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span> | {{end}}
+								<span class="released">
+									{{$.i18n.Tr "repo.released_this"}}
+								</span>
+								{{if .CreatedUnix}}
+									<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span> | 
+								{{end}}
 								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}...{{.Target}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" .Target}}</span>
 							</p>
 							<div class="markdown desc">
 								{{Str2html .Note}}
 							</div>
-							<div class="download">
-								<div class="ui accordion">
-									<h2 class="title {{if eq $idx 0}}active{{end}}">
-										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-										{{$.i18n.Tr "repo.release.downloads"}}
-									</h2>
-									<div class="content {{if eq $idx 0}}active{{end}}">
-										<ul class="list">
-											{{if $.Permission.CanRead $.UnitTypeCode}}
+							<div class="ui accordion download">
+								<h2 class="title {{if eq $idx 0}}active{{end}} df ac mb-0">
+									{{svg "octicon-triangle-right" 14 "dropdown icon"}}
+									{{$.i18n.Tr "repo.release.downloads"}}
+								</h2>
+								<div class="content {{if eq $idx 0}}active{{end}}">
+									<ul class="list">
+										{{if $.Permission.CanRead $.UnitTypeCode}}
+											<li>
+												<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+											</li>
+											<li>
+												<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+											</li>
+										{{end}}
+										{{if .Attachments}}
+											{{range .Attachments}}
 												<li>
-													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
-												</li>
-												<li>
-													<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+													<span class="ui text right" data-tooltip="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}" data-position="bottom right">{{svg "octicon-info"}}</span>
+													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
+														<span class="ui text grey right">{{.Size | FileSize}}</span>
+													</a>
 												</li>
 											{{end}}
-											{{if .Attachments}}
-												{{range .Attachments}}
-													<li>
-														<span class="ui text right" data-tooltip="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}" data-position="bottom right">{{svg "octicon-info"}}</span>
-														<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-															<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
-															<span class="ui text grey right">{{.Size | FileSize}}</span>
-														</a>
-													</li>
-												{{end}}
-											{{end}}
-										</ul>
-									</div>
+										{{end}}
+									</ul>
 								</div>
 							</div>
 						{{end}}
