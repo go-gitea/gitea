@@ -445,6 +445,17 @@ body {
   color: #7f7f7f !important;
 }
 
+[data-tooltip]::before,
+[data-tooltip]::after {
+  background: #1b1c1d !important; /* .ui.inverted.popup */
+  border-color: #1b1c1d !important; /* .ui.inverted.popup */
+  color: #dbdbdb !important;
+}
+
+[data-tooltip]::before {
+  box-shadow: 1px 1px 0 0 #1b1c1d !important; /* .ui.inverted.popup */
+}
+
 .ui.card > .extra a:not(.ui):hover,
 .ui.cards > .card > .extra a:not(.ui):hover {
   color: #a0cc75;
