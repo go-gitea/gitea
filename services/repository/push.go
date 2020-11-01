@@ -128,12 +128,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				// Push new branch.
 				var l *list.List
 				if opts.IsNewRef() {
-					l, err = newCommit.CommitsBeforeLimit(10)
-					if err != nil {
-						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
-					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
-				} else {
 					if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
@@ -150,6 +144,12 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						}
 					}
 
+					l, err = newCommit.CommitsBeforeLimit(10)
+					if err != nil {
+						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
+					}
+					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
@@ -170,11 +170,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
+				commits = repo_module.ListToPushCommits(l)
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-				commits = repo_module.ListToPushCommits(l)
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
 				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
