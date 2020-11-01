@@ -792,6 +792,18 @@ platform:
   arch: amd64
 
 steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: false
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
   - name: manifest
     pull: always
     image: plugins/manifest
@@ -804,17 +816,6 @@ steps:
       username:
         from_secret: docker_username
 
-  - name: manifest-rootless
-    pull: always
-    image: plugins/manifest
-    settings:
-      auto_tag: true
-      ignore_missing: true
-      spec: docker/manifest.rootless.tmpl
-      password:
-        from_secret: docker_password
-      username:
-        from_secret: docker_username
 trigger:
   ref:
   - refs/heads/master
