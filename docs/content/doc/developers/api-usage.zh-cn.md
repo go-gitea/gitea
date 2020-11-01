@@ -7,7 +7,7 @@ toc: true
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
+    parent: "developers"
     name: "API 使用指南"
     weight: 40
     identifier: "api-usage"

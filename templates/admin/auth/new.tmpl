@@ -15,7 +15,7 @@
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
 						<div class="text">{{.CurrentTypeName}}</div>
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range .AuthSources}}
 								<div class="item" data-value="{{.Type}}">{{.Name}}</div>
@@ -119,6 +119,8 @@
 				<span>{{.i18n.Tr "admin.auths.tip.nextcloud"}}</span>
 				<li>Yandex</li>
 				<span>{{.i18n.Tr "admin.auths.tip.yandex"}}</span>
+        <li>Mastodon</li>
+        <span>{{.i18n.Tr "admin.auths.tip.mastodon"}}</span>
 			</div>
 		</div>
 	</div>

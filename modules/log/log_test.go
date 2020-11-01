@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func baseConsoleTest(t *testing.T, logger *Logger) (chan []byte, chan bool) {
+func baseConsoleTest(t *testing.T, logger *MultiChannelledLogger) (chan []byte, chan bool) {
 	written := make(chan []byte)
 	closed := make(chan bool)
 

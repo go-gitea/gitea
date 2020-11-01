@@ -192,25 +192,32 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
 function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
+  $('#repo_migrating_failed_image').hide();
   if (migrating) {
-    const repo_name = migrating.attr('repo');
-    if (typeof repo_name === 'undefined') {
+    const task = migrating.attr('task');
+    if (typeof task === 'undefined') {
       return;
     }
     $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/${repo_name}/status`,
+      url: `${AppSubUrl}/user/task/${task}`,
       data: {
         _csrf: csrf,
       },
       complete(xhr) {
         if (xhr.status === 200) {
           if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 0) {
+            if (xhr.responseJSON.status === 4) {
               window.location.reload();
               return;
+            } else if (xhr.responseJSON.status === 3) {
+              $('#repo_migrating_progress').hide();
+              $('#repo_migrating').hide();
+              $('#repo_migrating_failed').show();
+              $('#repo_migrating_failed_image').show();
+              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+              return;
             }
-
             setTimeout(() => {
               initRepoStatusChecker();
             }, 2000);
@@ -218,7 +225,9 @@ function initRepoStatusChecker() {
           }
         }
         $('#repo_migrating_progress').hide();
+        $('#repo_migrating').hide();
         $('#repo_migrating_failed').show();
+        $('#repo_migrating_failed_image').show();
       }
     });
   }
@@ -783,6 +792,7 @@ async function initRepository() {
       $('#pull-desc').toggle();
       $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
+      $('#issue-title-wrapper').toggleClass('edit-active');
       $editInput.focus();
       return false;
     };
@@ -1162,6 +1172,22 @@ async function initRepository() {
 }
 
 function initPullRequestReview() {
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      if (groupID && groupID.startsWith('code-comments-')) {
+        const id = groupID.substr(14);
+        $(`#show-outdated-${id}`).addClass('hide');
+        $(`#code-comments-${id}`).removeClass('hide');
+        $(`#code-preview-${id}`).removeClass('hide');
+        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(window).scrollTop(commentDiv.offset().top);
+      }
+    }
+  }
+
   $('.show-outdated').on('click', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
@@ -1788,6 +1814,7 @@ function initAdmin() {
       case 'gitlab':
       case 'gitea':
       case 'nextcloud':
+      case 'mastodon':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1820,6 +1847,10 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
+          break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
           break;
       }
     }
