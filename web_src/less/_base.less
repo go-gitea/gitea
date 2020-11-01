@@ -30,6 +30,7 @@
   --color-primary-alpha-70: #4183c4b3;
   --color-primary-alpha-80: #4183c4cc;
   --color-primary-alpha-90: #4183c4e1;
+  --color-secondary: rgba(34, 36, 38, .15);
   --color-body: #fff;
 }
 
@@ -185,9 +186,12 @@ a:hover,
   word-break: break-all;
 }
 
-pre,
-code,
 .mono {
+  font-family: var(--fonts-monospace);
+}
+
+pre,
+code {
   font: 12px var(--fonts-monospace);
 
   &.raw {
@@ -781,7 +785,7 @@ code,
     .scrolling.menu.items {
       border-radius: 0 !important;
       box-shadow: none !important;
-      border-bottom: 1px solid rgba(34, 36, 38, .15);
+      border-bottom: 1px solid var(--color-secondary);
     }
   }
 }
@@ -1227,44 +1231,60 @@ i.icon.centerlock {
 }
 
 .ui.blue.button,
-.ui.blue.buttons .button {
+.ui.blue.buttons .button,
+.ui.primary.button,
+.ui.primary.buttons .button {
   background-color: var(--color-primary) !important;
 }
 
 .ui.blue.button:hover,
-.ui.blue.buttons .button:hover {
+.ui.blue.buttons .button:hover,
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover {
   background-color: var(--color-primary-dark-2) !important;
 }
 
 .ui.blue.button:focus,
-.ui.blue.buttons .button:focus {
+.ui.blue.buttons .button:focus,
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
   background-color: var(--color-primary-dark-3) !important;
 }
 
 .ui.basic.blue.button,
-.ui.basic.blue.buttons .button {
+.ui.basic.blue.buttons .button,
+.ui.basic.primary.button,
+.ui.basic.primary.buttons .button {
   box-shadow: inset 0 0 0 1px var(--color-primary) !important;
   color: #fff !important;
 }
 
 .ui.basic.blue.button:hover,
-.ui.basic.blue.buttons .button:hover {
+.ui.basic.blue.buttons .button:hover,
+.ui.basic.primary.button:hover,
+.ui.basic.primary.buttons .button:hover {
   box-shadow: inset 0 0 0 1px var(--color-primary-dark-2) !important;
 }
 
 .ui.basic.blue.button:focus,
-.ui.basic.blue.buttons .button:focus {
+.ui.basic.blue.buttons .button:focus,
+.ui.basic.primary.button:focus,
+.ui.basic.primary.buttons .button:focus {
   box-shadow: inset 0 0 0 1px var(--color-primary-dark-3) !important;
 }
 
 .ui.blue.label,
-.ui.blue.labels .label {
+.ui.blue.labels .label,
+.ui.primary.label,
+.ui.primary.labels .label {
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary-dark-2) !important;
 }
 
 .ui.basic.labels .blue.label,
-.ui.ui.ui.basic.blue.label {
+.ui.ui.ui.basic.blue.label,
+.ui.basic.labels .primary.label,
+.ui.ui.ui.basic.primary.label {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
@@ -1407,6 +1427,10 @@ table th[data-sortt-desc] {
 
 .ui.secondary.pointing.menu .item {
   padding: 12px;
+}
+
+.ui.header .ui.label {
+  margin-left: .25rem;
 }
 
 .ui.header > .ui.label.compact {

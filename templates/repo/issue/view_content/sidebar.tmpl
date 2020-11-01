@@ -301,7 +301,7 @@
 
 			<div class="ui watching">
 				<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
-				<div>
+				<div class="mt-3">
 					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
 						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
 						{{$.CsrfTokenHtml}}
@@ -519,7 +519,7 @@
 			<div class="ui divider"></div>
 			<div class="ui watching">
 				<div>
-					<button class="fluid ui  show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
+					<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
 							{{if .Issue.IsLocked}}
 								{{svg "octicon-key"}}
 								{{.i18n.Tr "repo.issues.unlock"}}

@@ -23,6 +23,7 @@
   --color-primary-alpha-70: #87ab63b3;
   --color-primary-alpha-80: #87ab63cc;
   --color-primary-alpha-90: #87ab63e1;
+  --color-secondary: #454a57;
   --color-body: #383c4a;
 }
 
@@ -417,11 +418,15 @@
 }
 
 .repository .ui.segment.sub-menu .list .item.active {
-  background: #404552;
+  background: var(--color-secondary);
 }
 
-.ui.segments {
-  border-color: #454b5a;
+.repository.branches .commit-divergence .bar {
+  background: #6a737d;
+}
+
+.repository.branches .commit-divergence .bar-group:last-child {
+  border-color: #6a737d;
 }
 
 .ui.horizontal.segments > .segment {
@@ -438,6 +443,17 @@ body {
 
 ::placeholder {
   color: #7f7f7f !important;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+  background: #1b1c1d !important; /* .ui.inverted.popup */
+  border-color: #1b1c1d !important; /* .ui.inverted.popup */
+  color: #dbdbdb !important;
+}
+
+[data-tooltip]::before {
+  box-shadow: 1px 1px 0 0 #1b1c1d !important; /* .ui.inverted.popup */
 }
 
 .ui.card > .extra a:not(.ui):hover,
@@ -470,7 +486,7 @@ body {
 }
 
 .repository .milestone.list > .item {
-  border-bottom-color: #4c505c;
+  border-bottom-color: var(--color-secondary);
 }
 
 .repository .milestone.list > .item > a {
@@ -482,7 +498,7 @@ body {
 }
 
 .repository.release #release-list {
-  border-top-color: #4c505c;
+  border-top-color: var(--color-secondary);
 }
 
 .repository .milestone.list > .item .operate > a {
@@ -519,8 +535,8 @@ body {
 }
 
 .ui.attached.header {
-  background: #404552;
-  border: 1px solid #404552;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
   color: #dbdbdb;
 }
 
@@ -602,7 +618,7 @@ footer {
 }
 
 .ui.menu {
-  background: #404552;
+  background: var(--color-secondary);
   border: 1px solid #353945;
 }
 
@@ -613,14 +629,14 @@ footer {
 }
 
 .ui.input input {
-  background: #404552;
-  border: 1px solid #4b505f;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
   color: #dbdbdb;
 }
 
 .ui.input input:focus,
 .ui.input.focus input {
-  background: #404552;
+  background: var(--color-secondary);
   border: 1px solid #6a737d;
   color: #dbdbdb;
 }
@@ -655,25 +671,27 @@ footer {
   border-color: #2d693b !important;
 }
 
+.ui.green.labels a.label:hover,
 .ui.basic.green.labels a.label:hover,
+a.ui.ui.ui.green.label:hover,
 a.ui.basic.green.label:hover {
-  background-color: #16ab39 !important;
-  border-color: #16ab39 !important;
+  background-color: #3d794b !important;
+  border-color: #3d794b !important;
   color: #fff !important;
 }
 
 .issue.list > .item .comment {
-  color: #129c92;
+  color: #a5a5a8;
 }
 
 .ui.basic.red.active.button,
 .ui.basic.red.buttons .active.button {
-  box-shadow: 0 0 0 1px #c75252 inset !important;
-  color: #c75252 !important;
+  box-shadow: 0 0 0 1px #b75252 inset !important;
+  color: #b75252 !important;
 }
 
 .ui.menu .item {
-  background: #404552;
+  background: var(--color-secondary);
   color: #a5a5a8;
 }
 
@@ -705,7 +723,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.divider:not(.vertical):not(.horizontal) {
-  border-bottom-color: #4b505f;
+  border-bottom-color: var(--color-secondary);
   border-top-color: transparent;
 }
 
@@ -728,8 +746,8 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="url"],
 .ui.selection.dropdown {
   color: #a5a5a8;
-  background: #404552;
-  border: 1px solid #4b505f;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
 }
 
 .ui.form input:not([type]):hover,
@@ -746,8 +764,8 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="time"]:hover,
 .ui.form input[type="url"]:hover,
 .ui.selection.dropdown:hover {
-  background: #404552;
-  border: 1px solid #4b505f;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
   color: #dbdbdb;
 }
 
@@ -765,7 +783,7 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="time"]:focus,
 .ui.form input[type="url"]:focus,
 .ui.selection.dropdown:focus {
-  background: #404552;
+  background: var(--color-secondary);
   border: 1px solid #6a737d;
   color: #dbdbdb;
 }
@@ -837,7 +855,7 @@ a.ui.basic.green.label:hover {
 
 .ui.button {
   background: #353846;
-  border: 1px solid #4c505c;
+  border: 1px solid var(--color-secondary);
   color: #dbdbdb;
 }
 
@@ -865,24 +883,24 @@ a.ui.basic.green.label:hover {
 
 .ui.labeled.button:not([class*="left labeled"]) > .label,
 .ui[class*="left labeled"].button > .button {
-  background: #404552;
-  border: 1px solid #4c505c;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
   color: #87ab63;
 }
 
 .ui.button:hover {
-  background-color: #404552;
+  background-color: var(--color-secondary);
   color: #dbdbdb;
 }
 
 .ui.search > .results {
   background: #383c4a;
-  border-color: #4c505c;
+  border-color: var(--color-secondary);
 }
 
 .ui.search > .results .result:hover,
 .ui.category.search > .results .category .result:hover {
-  background: #404552;
+  background: var(--color-secondary);
 }
 
 .ui.search > .results .result .title {
@@ -891,7 +909,7 @@ a.ui.basic.green.label:hover {
 
 .ui.table thead th,
 .ui.table > thead > tr > th {
-  background: #404552;
+  background: var(--color-secondary);
   color: #dbdbdb !important;
 }
 
@@ -905,12 +923,12 @@ a.ui.basic.green.label:hover {
 
 .ui.table {
   color: #a5a5a5 !important;
-  border-color: #4c505c;
+  border-color: var(--color-secondary);
   background: #353945;
 }
 
 .ui.table tbody tr {
-  border-color: #404552;
+  border-color: var(--color-secondary);
   background: #353945;
 }
 
@@ -928,12 +946,12 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.tabular.menu {
-  border-bottom-color: #4c505c;
+  border-bottom-color: var(--color-secondary);
 
   .item.active {
-    border-top-color: #4c505c;
-    border-left-color: #4c505c;
-    border-right-color: #4c505c;
+    border-top-color: var(--color-secondary);
+    border-left-color: var(--color-secondary);
+    border-right-color: var(--color-secondary);
     background: #383c4a;
     color: #dbdbdb;
   }
@@ -959,7 +977,7 @@ a.ui.basic.green.label:hover {
 .markdown:not(code) .highlight pre,
 .markdown:not(code) pre {
   background-color: #2a2e3a;
-  border: 1px solid #404552;
+  border: 1px solid var(--color-secondary);
 }
 
 .markdown:not(code) table tr:nth-child(2n) {
@@ -976,7 +994,7 @@ a.ui.basic.green.label:hover {
 
 .markdown:not(code) table td,
 .markdown:not(code) table th {
-  border-color: #4c505c !important;
+  border-color: var(--color-secondary) !important;
 }
 
 .repository.file.editor.edit,
@@ -1015,7 +1033,12 @@ a.ui.basic.green.label:hover {
 .ui.segment {
   background: #353945;
   color: #a5a5a8 !important;
-  border: 1px solid #404552;
+}
+
+.ui.segment,
+.ui.segments,
+.ui.attached.segment {
+  border: 1px solid var(--color-secondary);
 }
 
 .ui.list > .item > .content {
@@ -1049,10 +1072,6 @@ a.ui.basic.green.label:hover {
   color: #a5a5a8;
 }
 
-.ui.attached.segment {
-  border: 1px solid #404552;
-}
-
 .repository.view.issue .comment-list .event > .svg.issue-symbol {
   background: #3b4954;
 }
@@ -1069,32 +1088,32 @@ a.ui.basic.green.label:hover {
   > .bottom.segment {
     background: #353945;
     a {
-      border: solid 1px #353945;
+      border-color: var(--color-secondary);
       background-color: #353945;
     }
   }
 
   .header {
     color: #dbdbdb;
-    background-color: #404552;
-    border-bottom: 1px solid #353944;
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
   }
 
   .merge-section {
-    background-color: #404552;
+    background-color: var(--color-secondary);
     border-color: #505667;
   }
 
   .header:after {
-    border-right-color: #404552;
+    border-right-color: var(--color-secondary);
   }
 
   .merge-section.no-header:after {
-    border-right-color: #404552;
+    border-right-color: var(--color-secondary);
   }
 
   .header:before {
-    border-right-color: #404552;
+    border-right-color: var(--color-secondary);
   }
 
   .merge-section.no-header:before {
@@ -1112,12 +1131,12 @@ a.ui.basic.green.label:hover {
 
 .repository.view.issue .comment-list:not(.prevent-before-timeline):before,
 .repository.view.issue .comment-list .timeline:before {
-  background-color: #4c505c;
+  background-color: var(--color-secondary);
 }
 
 .repository.view.issue .comment-list .timeline-item .badge {
-  background-color: #4c505c;
-  border-color: #4c505c;
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
   color: #ccc;
 }
 
@@ -1143,11 +1162,15 @@ a.ui.basic.green.label:hover {
 }
 
 .repository .comment.form .content .form:after {
-  border-right-color: #313c47;
+  border-right-color: #353945;
 }
 
 .repository .comment.form .content .form:before {
-  border-right-color: #313c47;
+  border-right-color: var(--color-secondary);
+}
+
+.repository .comment.form .ui.tabular.menu .item.active {
+  background: #353945;
 }
 
 .ui .text.grey a:hover {
@@ -1156,8 +1179,8 @@ a.ui.basic.green.label:hover {
 
 .ui.basic.green.active.button,
 .ui.basic.green.buttons .active.button {
-  color: #13ae38 !important;
-  box-shadow: 0 0 0 1px #13ae38 inset !important;
+  color: #87ab63 !important;
+  box-shadow: 0 0 0 1px #87ab63 inset !important;
 }
 
 .ui.green.buttons .active.button,
@@ -1168,7 +1191,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui .info.segment.top {
-  background-color: #404552 !important;
+  background-color: var(--color-secondary) !important;
 }
 
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td {
@@ -1187,6 +1210,10 @@ a.ui.basic.green.label:hover {
 
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
   background-color: #2c4632 !important;
+}
+
+.repository .diff-stats li {
+  border-color: var(--color-secondary);
 }
 
 .removed-code {
@@ -1215,6 +1242,10 @@ td.blob-hunk {
   background: #2a2e3a;
 }
 
+.code-diff-split .same-code .lines-type-marker {
+  background: #353945;
+}
+
 .ui.vertical.menu .active.item {
   background: #4b5162;
 }
@@ -1224,7 +1255,7 @@ td.blob-hunk {
 }
 
 .ui.vertical.menu .header.item {
-  background: #404552;
+  background: var(--color-secondary);
 }
 
 .ui.vertical.menu {
@@ -1233,19 +1264,19 @@ td.blob-hunk {
 }
 
 .ui.repository.list .item:not(:first-child) {
-  border-top: 1px solid #4c505c;
+  border-top: 1px solid var(--color-secondary);
 }
 
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown .menu {
   border-color: #4e5361;
-  box-shadow: 0 2px 3px 0 rgba(34, 36, 38, .15);
+  box-shadow: 0 2px 3px 0 rgba(0, 0, 0, .1);
 }
 
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown:hover .menu {
   border-color: #4e5361;
-  box-shadow: 0 2px 3px 0 rgba(34, 36, 38, .15);
+  box-shadow: 0 2px 3px 0 rgba(0, 0, 0, .1);
 }
 
 .ui.menu .ui.dropdown .menu > .active.item {
@@ -1260,7 +1291,7 @@ td.blob-hunk {
 .ui.card,
 .ui.cards > .card {
   background: #353945;
-  box-shadow: 0 0 0 1px #4c505c;
+  box-shadow: 0 0 0 1px var(--color-secondary);
 }
 
 .ui.card > .content > .header,
@@ -1294,7 +1325,7 @@ td.blob-hunk {
 }
 
 .ui.user.list .item:not(:first-child) {
-  border-top: 1px solid #4c505c;
+  border-top: 1px solid var(--color-secondary);
 }
 
 .ui.secondary.pointing.menu .active.item:hover {
@@ -1349,7 +1380,7 @@ input {
 }
 
 .settings .key.list .item:not(:first-child) {
-  border-top: 1px solid #404552;
+  border-top: 1px solid var(--color-secondary);
 }
 
 .ui.attached.info.message,
@@ -1425,7 +1456,7 @@ input {
 
 .ui.checkbox input:checked ~ .box:before,
 .ui.checkbox input:checked ~ label:before {
-  background: #404552;
+  background: var(--color-secondary);
   opacity: 1;
   color: #dbdbdb;
   border-color: #505667;
@@ -1433,25 +1464,25 @@ input {
 
 .ui.checkbox .box:before,
 .ui.checkbox label:before {
-  background: #404552;
+  background: var(--color-secondary);
   border: 1px solid #505667;
 }
 
 .ui.checkbox .box:hover::before,
 .ui.checkbox label:hover::before {
-  background: #404552;
+  background: var(--color-secondary);
   border-color: #505667;
 }
 
 .ui.checkbox .box:active::before,
 .ui.checkbox label:active::before {
-  background: #404552;
+  background: var(--color-secondary);
   border-color: #6a737d;
 }
 
 .ui.checkbox input:focus ~ .box:before,
 .ui.checkbox input:focus ~ label:before {
-  background: #404552;
+  background: var(--color-secondary);
   border-color: #6a737d;
 }
 
@@ -1460,7 +1491,7 @@ input {
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ .box:before,
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label:before {
   border-color: #6a737d;
-  background: #404552;
+  background: var(--color-secondary);
 }
 
 .ui.checkbox input:checked:focus ~ .box:after,
@@ -1510,11 +1541,11 @@ input {
 }
 
 .user.profile .ui.card .extra.content ul li:not(:last-child) {
-  border-bottom: 1px solid #4c505c;
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .ui.form .dropzone {
-  border: 1px dashed #7f98ad;
+  border: 1px dashed var(--color-secondary);
   background-color: #2e323e;
 
   .dz-button {
@@ -1567,7 +1598,7 @@ input {
 
 .lines-num {
   color: #a5a5a8 !important;
-  border-color: #4b505f !important;
+  border-color: var(--color-secondary) !important;
 }
 
 td.blob-excerpt {
@@ -1675,7 +1706,7 @@ a.ui.labels .label:hover {
 }
 
 .repository .label.list .item {
-  border-bottom: 1px dashed #4c505c;
+  border-bottom: 1px dashed var(--color-secondary);
 }
 
 .ui.text.yellow,
@@ -1715,7 +1746,7 @@ a.ui.labels .label:hover {
 .organization.teams .members .item:not(:last-child),
 .organization.teams .detail .item:not(:last-child),
 .organization.members .list .item {
-  border-bottom-color: #404552;
+  border-bottom-color: var(--color-secondary);
 }
 
 .repository .labelspage .item a,
@@ -1741,17 +1772,17 @@ a.ui.labels .label:hover {
 }
 
 .ui.dividing.header {
-  border-bottom: 1px solid #4c505c;
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .ui.modal > .header {
-  background: #404552;
+  background: var(--color-secondary);
   color: #dbdbdb;
 }
 
 .ui.modal > .actions {
-  background: #404552;
-  border-top: 1px solid #404552;
+  background: var(--color-secondary);
+  border-top: 1px solid var(--color-secondary);
 }
 
 .ui.modal > .content {
@@ -1759,18 +1790,18 @@ a.ui.labels .label:hover {
 }
 
 .minicolors-panel {
-  background: #404552 !important;
+  background: var(--color-secondary) !important;
   border-color: #6a737d !important;
 }
 
 .editor-toolbar {
-  background-color: #404552;
-  border-color: #4b505f;
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .edit-diff > div > .ui.table {
-  border-left-color: #404552 !important;
-  border-right-color: #404552 !important;
+  border-left-color: var(--color-secondary) !important;
+  border-right-color: var(--color-secondary) !important;
 }
 
 .editor-toolbar a {
@@ -1795,7 +1826,7 @@ a.ui.labels .label:hover {
   }
 
   &.sticky {
-    border-bottom-color: #4c505c;
+    border-bottom-color: var(--color-secondary);
   }
 }
 
@@ -1813,10 +1844,10 @@ a.ui.labels .label:hover {
         border: none;
       }
 
-      background: #404552;
+      background: var(--color-secondary);
     }
 
-    border-color: #4c505c;
+    border-color: var(--color-secondary);
   }
 
   .footer {
@@ -1901,7 +1932,7 @@ a.ui.labels .label:hover {
 .CodeMirror {
   color: #9daccc;
   background-color: #2e323e;
-  border-color: #4b505f;
+  border-color: var(--color-secondary);
   border-top: 0;
 
   div.CodeMirror-cursor {
@@ -2005,7 +2036,7 @@ a.ui.labels .label:hover {
 .ui.popup {
   background-color: #383c4a;
   color: #a5a5a8;
-  border-color: #4c505c;
+  border-color: var(--color-secondary);
 }
 
 .ui.popup.top:before,
@@ -2015,7 +2046,7 @@ a.ui.labels .label:hover {
 
 .ui.bottom.left.popup:before,
 .ui.bottom.right.popup:before {
-  box-shadow: -1px -1px 0 0 #4c505c;
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
 .markdown:not(code) h1 {
@@ -2040,7 +2071,7 @@ footer .container .links > * {
 }
 
 .repository.release #release-list > li .detail {
-  border-left-color: #4c505c;
+  border-left-color: var(--color-secondary);
 }
 
 .repository.release #release-list > li .detail .dot {
@@ -2049,11 +2080,11 @@ footer .container .links > * {
 }
 
 .repository.release #release-list > li .detail .download .list {
-  border-top-color: #404552;
+  border-top-color: var(--color-secondary);
 }
 
 .repository.release #release-list > li .detail .download .list li {
-  border-bottom-color: #404552;
+  border-bottom-color: var(--color-secondary);
 }
 
 .board-column {
