@@ -472,7 +472,11 @@ func syncMirror(repoID string) {
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+			RefFullName: result.refName,
+			OldCommitID: oldCommitID,
+			NewCommitID: newCommitID,
+		}, theCommits)
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
