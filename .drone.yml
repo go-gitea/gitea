@@ -796,7 +796,7 @@ steps:
     pull: always
     image: plugins/manifest
     settings:
-      auto_tag: false
+      auto_tag: true
       ignore_missing: true
       spec: docker/manifest.rootless.tmpl
       password:

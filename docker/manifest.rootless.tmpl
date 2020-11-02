@@ -2,7 +2,7 @@ image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}latest{{
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
-  - {{this}}
+  - {{this}}-rootless
 {{/each}}
 {{/if}}
 manifests:
