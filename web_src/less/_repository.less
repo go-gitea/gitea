@@ -1901,6 +1901,12 @@
       margin-top: 20px;
       padding-top: 15px;
 
+      .release-list-title {
+        font-size: 2rem;
+        font-weight: normal;
+        margin-top: -6px;
+      }
+
       > li {
         list-style: none;
 
@@ -1926,7 +1932,7 @@
         }
 
         .detail {
-          border-left: 1px solid #dddddd;
+          border-left: 2px solid #dddddd;
 
           .author {
             img {
@@ -1965,7 +1971,7 @@
           .dot {
             width: 9px;
             height: 9px;
-            background-color: #cccccc;
+            background-color: #ddd;
             z-index: 999;
             position: absolute;
             display: block;
@@ -1975,6 +1981,13 @@
             border: 1px solid #ffffff;
           }
         }
+      }
+    }
+
+    #tags-table {
+      .release-tag-name {
+        font-size: 1.5rem;
+        font-weight: normal;
       }
     }
   }
