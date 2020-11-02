@@ -173,13 +173,13 @@
 																<td class="lines-type-marker"></td>
 																<td class="add-comment-left">
 																	{{if and $resolved  (eq $line.GetCommentSide "previous")}}
-																		<div class="ui top attached header">
+																		<div class="ui top attached header resolved-placeholder">
 																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui tiny right labeled button show-outdated">
 																				{{svg "octicon-unfold"}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
 																			</button>
-																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
 																				{{svg "octicon-fold"}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
 																			</button>
@@ -207,15 +207,15 @@
 																</td>
 																<td class="lines-num"></td>
 																<td class="lines-type-marker"></td>
-																<td class="add-comment-right">
+																<td class="add-comment-right resolved-placeholder">
 																	{{if and $resolved (eq $line.GetCommentSide "proposed")}}
 																		<div class="ui top attached header">
 																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui tiny right labeled button show-outdated">
 																				{{svg "octicon-unfold"}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
 																			</button>
-																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
 																				{{svg "octicon-fold"}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
 																			</button>
