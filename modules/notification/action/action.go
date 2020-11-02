@@ -314,7 +314,7 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncCreate,
+		OpType:    models.ActionMirrorSyncDelete,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
