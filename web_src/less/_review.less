@@ -1,7 +1,7 @@
 .ui.button.add-code-comment {
   font-size: 14px;
   height: 16px;
-  line-height: 16px !important;
+  line-height: 12px !important;
   padding: 0;
   position: relative;
   width: 16px;
@@ -17,6 +17,10 @@
   }
 }
 
+.diff-file-box .lines-code:hover .ui.button.add-code-comment {
+  opacity: 1;
+}
+
 .add-comment-left.add-comment-right .ui.attached.header {
   border: 1px solid #d4d4d5;
   margin-top: .5em;
@@ -30,11 +34,6 @@
     display: block;
     margin-left: auto;
   }
-}
-
-.focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
-.focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
-  opacity: 1;
 }
 
 .comment-code-cloud {
