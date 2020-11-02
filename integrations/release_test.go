@@ -52,7 +52,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	labelText := htmlDoc.doc.Find("#release-list > li .meta .label").First().Text()
 	assert.EqualValues(t, label, labelText)
-	titleText := htmlDoc.doc.Find("#release-list > li .detail h3 a").First().Text()
+	titleText := htmlDoc.doc.Find("#release-list > li .detail h4 a").First().Text()
 	assert.EqualValues(t, version, titleText)
 
 	releaseList := htmlDoc.doc.Find("#release-list > li")
@@ -83,7 +83,7 @@ func TestCreateRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 3)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 2)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
@@ -92,7 +92,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 3)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 2)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
@@ -101,7 +101,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 3)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 2)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
