@@ -614,9 +614,7 @@ OPTIONS:
 
 
 EXAMPLES:
-   gitea doctor recreate-table user    recreate tables and copy the old data into the new table with the defaults set appropriately
-   gitea doctor recreate-table table1 table2 ...   recreate multiple tables
-   gitea doctor recreate-table     recreate all tables
+   gitea doctor --run hooks --fix  Check if hook files are up-to-date and executable (and automatically fix)
 ```
 
 For contributors: if you want to add more checks, you can write a new function like `func(ctx *cli.Context) ([]string, error)` and append it to `doctor.go`.
