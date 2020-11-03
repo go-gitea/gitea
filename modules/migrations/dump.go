@@ -33,6 +33,7 @@ type RepositoryDumper struct {
 	baseDir              string
 	repoOwner            string
 	repoName             string
+	opts                 base.MigrateOptions
 	milestoneFile        *os.File
 	labelFile            *os.File
 	releaseFile          *os.File
@@ -47,17 +48,17 @@ type RepositoryDumper struct {
 }
 
 // NewRepositoryDumper creates an gitea Uploader
-func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, migrateReleaseAssets bool) *RepositoryDumper {
+func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) *RepositoryDumper {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	return &RepositoryDumper{
-		ctx:                  ctx,
-		baseDir:              baseDir,
-		repoOwner:            repoOwner,
-		repoName:             repoName,
-		prHeadCache:          make(map[string]struct{}),
-		commentFiles:         make(map[int64]*os.File),
-		reviewFiles:          make(map[int64]*os.File),
-		migrateReleaseAssets: migrateReleaseAssets,
+		ctx:          ctx,
+		opts:         opts,
+		baseDir:      baseDir,
+		repoOwner:    repoOwner,
+		repoName:     repoName,
+		prHeadCache:  make(map[string]struct{}),
+		commentFiles: make(map[int64]*os.File),
+		reviewFiles:  make(map[int64]*os.File),
 	}
 }
 
@@ -106,6 +107,22 @@ func (g *RepositoryDumper) reviewDir() string {
 	return filepath.Join(g.baseDir, "reviews")
 }
 
+func (g *RepositoryDumper) setURLToken(remoteAddr string) (string, error) {
+	if len(g.opts.AuthToken) > 0 || len(g.opts.AuthUsername) > 0 {
+		u, err := url.Parse(remoteAddr)
+		if err != nil {
+			return "", err
+		}
+		u.User = url.UserPassword(g.opts.AuthUsername, g.opts.AuthPassword)
+		if len(g.opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", g.opts.AuthToken)
+		}
+		remoteAddr = u.String()
+	}
+
+	return remoteAddr, nil
+}
+
 // CreateRepo creates a repository
 func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
@@ -150,17 +167,9 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 
 	migrateTimeout := 2 * time.Hour
 
-	var remoteAddr = repo.CloneURL
-	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-		u, err := url.Parse(repo.CloneURL)
-		if err != nil {
-			return err
-		}
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
-		}
-		remoteAddr = u.String()
+	remoteAddr, err := g.setURLToken(repo.CloneURL)
+	if err != nil {
+		return err
 	}
 
 	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
@@ -434,7 +443,11 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 	for _, pr := range prs {
 		// download patch file
 		err := func() error {
-			resp, err := http.Get(pr.PatchURL)
+			u, err := g.setURLToken(pr.PatchURL)
+			if err != nil {
+				return err
+			}
+			resp, err := http.Get(u)
 			if err != nil {
 				return err
 			}
@@ -476,6 +489,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				_, ok := g.prHeadCache[remote]
 				if !ok {
 					// git remote add
+					// TODO: how to handle private CloneURL?
 					err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
 					if err != nil {
 						log.Error("AddRemote failed: %s", err)
@@ -559,7 +573,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	if err != nil {
 		return err
 	}
-	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts.ReleaseAssets)
+	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
