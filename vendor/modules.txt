@@ -43,7 +43,7 @@ gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 ## explicit
 gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.5.0
+# gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 ## explicit
 gitea.com/macaron/macaron
 # gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
