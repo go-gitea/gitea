@@ -23,10 +23,6 @@ func addUserPrimaryEmailToUserMails(x *xorm.Engine) error {
 		IsActivated bool
 	}
 
-	if err := x.Sync2(new(User), new(EmailAddress)); err != nil {
-		return err
-	}
-
 	updateUsers := func(users []*User) error {
 		sess := x.NewSession()
 		defer sess.Close()
