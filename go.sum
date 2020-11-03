@@ -68,6 +68,8 @@ gitea.com/macaron/macaron v1.3.3-0.20190803174002-53e005ff4827/go.mod h1:/rvxMjI
 gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb/go.mod h1:0coI+mSPSwbsyAbOuFllVS38awuk9mevhLD52l50Gjs=
 gitea.com/macaron/macaron v1.5.0 h1:TvWEcHw1/zaHlo0GTuKEukLh3A99+QsU2mjBrXLXjVQ=
 gitea.com/macaron/macaron v1.5.0/go.mod h1:P7hfDbQjcW22lkYkXlxdRIfWOXxH2+K4EogN4Q0UlLY=
+gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804 h1:yUiJVZKzdXsBe2tumTAXHBZa1qPGoGXM3fBG4RJ5fQg=
+gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804/go.mod h1:P7hfDbQjcW22lkYkXlxdRIfWOXxH2+K4EogN4Q0UlLY=
 gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705/go.mod h1:1ujH0jD6Ca4iK9NL0Q2a7fG2chvXx5hVa7hBfABwpkA=
 gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee h1:8/N3a56RXRJ66nnep0z+T7oHCB0bY6lpvtjv9Y9FPhE=
 gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee/go.mod h1:5tJCkDbrwpGv+MQUSIZSOW0wFrkh0exsonJgOvBs1Dw=

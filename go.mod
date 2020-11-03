@@ -14,7 +14,7 @@ require (
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 	gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-	gitea.com/macaron/macaron v1.5.0
+	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
