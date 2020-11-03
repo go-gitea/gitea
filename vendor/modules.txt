@@ -25,7 +25,7 @@ gitea.com/macaron/binding
 ## explicit
 gitea.com/macaron/cache
 gitea.com/macaron/cache/memcache
-# gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
+# gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 ## explicit
 gitea.com/macaron/captcha
 # gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
