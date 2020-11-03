@@ -53,8 +53,8 @@ gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76 h1:mMsMEg90c5KXQgRWsH
 gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76/go.mod h1:NFHb9Of+LUnU86bU20CiXXg6ZlgCJ4XytP14UsHOXFs=
 gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b h1:2ZE0JE3bKVBcP1VTrWeE1jqWwCAMIzfOQm1U9EGbBKU=
 gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b/go.mod h1:W5hKG8T1GBfypp5CRQlgoJU4figIL0jhx02y4XA/NOA=
-gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae h1:9C31eOCpMPbW9rDVq8M1UJ+5HZVYA38HHaKCVcRYDpI=
-gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae/go.mod h1:J5h3N+1nKTXtU1x4GxexaQKgAz8UiWecNwi/CfX7CtQ=
+gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca h1:f5P41nXmXd/YOh8f6098Q0F1Y0QfpyRPSSIkni2XH4Q=
+gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca/go.mod h1:J5h3N+1nKTXtU1x4GxexaQKgAz8UiWecNwi/CfX7CtQ=
 gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4 h1:e2rAFDejB0qN8OrY4xP4XSu8/yT6QmWxDZpB3J7r2GU=
 gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4/go.mod h1:rtOK4J20kpMD9XcNsnO5YA843YSTe/MUMbDj/TJ/Q7A=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439 h1:88c34YM29a1GlWLrLBaG/GTT2htDdJz1u3n9+lmPolg=
