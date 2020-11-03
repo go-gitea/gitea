@@ -117,7 +117,7 @@ require (
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/testfixtures.v2 v2.5.0
 	gopkg.in/yaml.v2 v2.2.8
-	mvdan.cc/xurls/v2 v2.1.0
+	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
 	xorm.io/xorm v1.0.1
