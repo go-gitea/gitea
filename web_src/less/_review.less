@@ -1,7 +1,7 @@
 .ui.button.add-code-comment {
   font-size: 14px;
   height: 16px;
-  line-height: 16px !important;
+  line-height: 12px !important;
   padding: 0;
   position: relative;
   width: 16px;
@@ -17,9 +17,21 @@
   }
 }
 
+.diff-file-box .lines-code:hover .ui.button.add-code-comment {
+  opacity: 1;
+}
+
+.repository .diff-file-box .code-diff .add-comment-left,
+.repository .diff-file-box .code-diff .add-comment-right,
+.repository .diff-file-box .code-diff .add-code-comment .add-comment-left,
+.repository .diff-file-box .code-diff .add-code-comment .add-comment-right,
+.repository .diff-file-box .code-diff .add-code-comment .lines-type-marker {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .add-comment-left.add-comment-right .ui.attached.header {
-  border: 1px solid #d4d4d5;
-  margin-top: .5em;
+  border: 1px solid var(--color-secondary);
 
   &:not(.top) {
     margin-bottom: .5em;
@@ -32,28 +44,11 @@
   }
 }
 
-.focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
-.focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
-  opacity: 1;
-}
-
 .comment-code-cloud {
   padding: 4px;
+  padding-left: 0;
   position: relative;
-  border: 1px solid #f1f1f1;
-  margin: 13px 10px 5px auto;
-
-  &:before {
-    content: " ";
-    width: 0;
-    height: 0;
-    border-left: 13px solid transparent;
-    border-right: 13px solid transparent;
-    border-bottom: 13px solid #f1f1f1;
-    left: 20px;
-    position: absolute;
-    top: -13px;
-  }
+  margin: 0 auto;
 
   .attached {
     &.tab {
@@ -93,10 +88,6 @@
     margin: .5em;
   }
 
-  .comment-list {
-    padding-bottom: 10px;
-  }
-
   .footer {
     border-top: 1px solid #f1f1f1;
     padding: 10px 0;
@@ -129,7 +120,6 @@
 }
 
 .file-comment {
-  font: 12px var(--fonts-monospace);
   color: rgba(0, 0, 0, .87);
 }
 
@@ -145,18 +135,18 @@ a.blob-excerpt {
   justify-content: center;
   align-items: center;
   width: 100%;
-  background: #daecfe;
+  background: var(--color-primary-light-5);
 }
 
 a.blob-excerpt:hover {
-  background: #428bca;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .btn-review > .dropdown.icon {
-  width: auto;
-  font-size: .85714286em;
-  margin: 0 0 0 1em;
+  float: right;
+  height: 12px !important;
+  margin-left: .5rem;
 }
 
 @media only screen and (max-width: 768px) {

@@ -89,6 +89,9 @@ type UprEvent struct {
 // FailoverLog containing vvuid and sequnce number
 type FailoverLog [][2]uint64
 
+// Containing a pair of vbno and the high seqno
+type VBSeqnos [][2]uint64
+
 func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFromDCP int) *UprEvent {
 	event := &UprEvent{
 		Opcode:       rq.Opcode,
@@ -148,6 +151,8 @@ func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFrom
 		event.SnapshotType = binary.BigEndian.Uint32(rq.Extras[16:20])
 	} else if event.IsSystemEvent() {
 		event.PopulateEvent(rq.Extras)
+	} else if event.IsSeqnoAdv() {
+		event.PopulateSeqnoAdv(rq.Extras)
 	}
 
 	return event
@@ -199,15 +204,29 @@ func (event *UprEvent) IsSystemEvent() bool {
 	return event.Opcode == gomemcached.DCP_SYSTEM_EVENT
 }
 
+func (event *UprEvent) IsSeqnoAdv() bool {
+	return event.Opcode == gomemcached.DCP_SEQNO_ADV
+}
+
 func (event *UprEvent) PopulateEvent(extras []byte) {
 	if len(extras) < dcpSystemEventExtraLen {
 		// Wrong length, don't parse
 		return
 	}
+
 	event.Seqno = binary.BigEndian.Uint64(extras[:8])
 	event.SystemEvent = SystemEventType(binary.BigEndian.Uint32(extras[8:12]))
 	var versionTemp uint16 = binary.BigEndian.Uint16(extras[12:14])
 	event.SysEventVersion = uint8(versionTemp >> 8)
+}
+
+func (event *UprEvent) PopulateSeqnoAdv(extras []byte) {
+	if len(extras) < dcpSeqnoAdvExtraLen {
+		// Wrong length, don't parse
+		return
+	}
+
+	event.Seqno = binary.BigEndian.Uint64(extras[:8])
 }
 
 func (event *UprEvent) GetSystemEventName() (string, error) {

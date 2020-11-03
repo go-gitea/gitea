@@ -305,42 +305,32 @@ function replaceAndKeepCursor(field, oldval, newval) {
   }
 }
 
-function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
-  if (!pasteEvent.clipboardData) {
-    return;
+function getPastedImages(e) {
+  if (!e.clipboardData) return [];
+
+  const files = [];
+  for (const item of e.clipboardData.items || []) {
+    if (!item.type || !item.type.startsWith('image/')) continue;
+    files.push(item.getAsFile());
   }
 
-  const {items} = pasteEvent.clipboardData;
-  if (typeof items === 'undefined') {
-    return;
+  if (files.length) {
+    e.preventDefault();
+    e.stopPropagation();
   }
-
-  for (let i = 0; i < items.length; i++) {
-    if (!items[i].type.includes('image')) continue;
-    const blob = items[i].getAsFile();
-
-    if (typeof (callback) === 'function') {
-      pasteEvent.preventDefault();
-      pasteEvent.stopPropagation();
-      callback(blob);
-    }
-  }
+  return files;
 }
 
-function uploadFile(file, callback) {
-  const xhr = new XMLHttpRequest();
-
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      callback(xhr.responseText);
-    }
-  });
-
-  xhr.open('post', $('#dropzone').data('upload-url'), true);
-  xhr.setRequestHeader('X-Csrf-Token', csrf);
+async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file, file.name);
-  xhr.send(formData);
+
+  const res = await fetch($('#dropzone').data('upload-url'), {
+    method: 'POST',
+    headers: {'X-Csrf-Token': csrf},
+    body: formData,
+  });
+  return await res.json();
 }
 
 function reload() {
@@ -350,33 +340,29 @@ function reload() {
 function initImagePaste(target) {
   target.each(function () {
     const field = this;
-    field.addEventListener('paste', (event) => {
-      retrieveImageFromClipboardAsBlob(event, (img) => {
+    field.addEventListener('paste', async (e) => {
+      for (const img of getPastedImages(e)) {
         const name = img.name.substr(0, img.name.lastIndexOf('.'));
         insertAtCursor(field, `![${name}]()`);
-        uploadFile(img, (res) => {
-          const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
-        });
-      });
+        const data = await uploadFile(img);
+        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $('.files').append(input);
+      }
     }, false);
   });
 }
 
 function initSimpleMDEImagePaste(simplemde, files) {
-  simplemde.codemirror.on('paste', (_, event) => {
-    retrieveImageFromClipboardAsBlob(event, (img) => {
+  simplemde.codemirror.on('paste', async (_, e) => {
+    for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      uploadFile(img, (res) => {
-        const data = JSON.parse(res);
-        const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        files.append(input);
-      });
-    });
+      const data = await uploadFile(img);
+      const pos = simplemde.codemirror.getCursor();
+      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+      files.append(input);
+    }
   });
 }
 
@@ -1172,6 +1158,22 @@ async function initRepository() {
 }
 
 function initPullRequestReview() {
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      if (groupID && groupID.startsWith('code-comments-')) {
+        const id = groupID.substr(14);
+        $(`#show-outdated-${id}`).addClass('hide');
+        $(`#code-comments-${id}`).removeClass('hide');
+        $(`#code-preview-${id}`).removeClass('hide');
+        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(window).scrollTop(commentDiv.offset().top);
+      }
+    }
+  }
+
   $('.show-outdated').on('click', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
@@ -1222,16 +1224,6 @@ function initPullRequestReview() {
       $(this).closest('.menu').toggle('visible');
     });
 
-  $('.code-view .lines-code,.code-view .lines-num')
-    .on('mouseenter', function () {
-      const parent = $(this).closest('td');
-      $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
-      );
-    })
-    .on('mouseleave', function () {
-      $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
-    });
   $('.add-code-comment').on('click', function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
