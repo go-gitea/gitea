@@ -12,7 +12,7 @@ require (
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
+	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
@@ -113,7 +113,7 @@ require (
 	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20200929161345-d7fc70abf50f
 	google.golang.org/appengine v1.6.7 // indirect
