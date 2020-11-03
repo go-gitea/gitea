@@ -99,6 +99,8 @@ h5,
 .ui.form input[type="text"],
 .ui.form input[type="time"],
 .ui.form input[type="url"],
+.ui.input textarea,
+.ui.form textarea,
 .ui.header,
 .ui.items > .item > .content > .header,
 .ui.list .list > .item .header,
@@ -164,6 +166,12 @@ table {
 .CodeMirror-selected {
   background: var(--color-primary-light-1) !important;
   color: #fff !important;
+}
+
+::placeholder,
+.CodeMirror-placeholder {
+  color: #aaa !important;
+  opacity: 1 !important;
 }
 
 a,

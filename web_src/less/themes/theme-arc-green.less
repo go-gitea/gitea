@@ -351,7 +351,7 @@
 /* GenericEmph */
 
 .chroma .ge {
-  font-style: italic;
+  color: #ef5;
 }
 /* GenericError */
 
@@ -441,8 +441,9 @@ body {
   color: #a5a5a8;
 }
 
-::placeholder {
-  color: #7f7f7f !important;
+::placeholder,
+.CodeMirror-placeholder {
+  color: #6a737d !important;
 }
 
 [data-tooltip]::before,
@@ -746,7 +747,7 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="url"],
 .ui.selection.dropdown {
   color: #a5a5a8;
-  background: var(--color-secondary);
+  background: #2e323e;
   border: 1px solid var(--color-secondary);
 }
 
@@ -764,8 +765,8 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="time"]:hover,
 .ui.form input[type="url"]:hover,
 .ui.selection.dropdown:hover {
-  background: var(--color-secondary);
-  border: 1px solid var(--color-secondary);
+  background: #2e323e;
+  border: 1px solid #505667;
   color: #dbdbdb;
 }
 
@@ -783,7 +784,7 @@ a.ui.basic.green.label:hover {
 .ui.form input[type="time"]:focus,
 .ui.form input[type="url"]:focus,
 .ui.selection.dropdown:focus {
-  background: var(--color-secondary);
+  background: #2e323e;
   border: 1px solid #6a737d;
   color: #dbdbdb;
 }
@@ -1449,6 +1450,28 @@ input {
   color: #dbdbdb !important;
 }
 
+.ui.checkbox .box:before,
+.ui.checkbox label:before {
+  background: #2e323e;
+  border: 1px solid var(--color-secondary);
+}
+
+.ui.checkbox .box:hover:before,
+.ui.checkbox label:hover:before,
+.ui.checkbox .box:active:before,
+.ui.checkbox label:active:before {
+  background: #2e323e;
+  border-color: #6a737d;
+}
+
+.ui.checkbox input:focus ~ .box:before,
+.ui.checkbox input:focus ~ label:before,
+.ui.checkbox input:checked:focus ~ .box:before,
+.ui.checkbox input:checked:focus ~ label:before {
+  background: #2e323e;
+  border-color: #6a737d;
+}
+
 .ui.checkbox input:checked ~ .box:after,
 .ui.checkbox input:checked ~ label:after {
   color: #dbdbdb;
@@ -1456,48 +1479,25 @@ input {
 
 .ui.checkbox input:checked ~ .box:before,
 .ui.checkbox input:checked ~ label:before {
-  background: var(--color-secondary);
+  background: #2e323e;
   opacity: 1;
   color: #dbdbdb;
   border-color: #505667;
-}
-
-.ui.checkbox .box:before,
-.ui.checkbox label:before {
-  background: var(--color-secondary);
-  border: 1px solid #505667;
-}
-
-.ui.checkbox .box:hover::before,
-.ui.checkbox label:hover::before {
-  background: var(--color-secondary);
-  border-color: #505667;
-}
-
-.ui.checkbox .box:active::before,
-.ui.checkbox label:active::before {
-  background: var(--color-secondary);
-  border-color: #6a737d;
-}
-
-.ui.checkbox input:focus ~ .box:before,
-.ui.checkbox input:focus ~ label:before {
-  background: var(--color-secondary);
-  border-color: #6a737d;
 }
 
 .ui.checkbox input:checked:focus ~ .box:before,
 .ui.checkbox input:checked:focus ~ label:before,
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ .box:before,
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label:before {
+  background: #2e323e;
   border-color: #6a737d;
-  background: var(--color-secondary);
 }
 
 .ui.checkbox input:checked:focus ~ .box:after,
 .ui.checkbox input:checked:focus ~ label:after,
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ .box:after,
 .ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label:after {
+  background: #2e323e;
   color: #dbdbdb;
 }
 
@@ -1838,20 +1838,8 @@ a.ui.labels .label:hover {
     border: 0;
   }
 
-  .ui.active.tab {
-    &:not(.markdown) {
-      textarea:focus {
-        border: none;
-      }
-
-      background: var(--color-secondary);
-    }
-
-    border-color: var(--color-secondary);
-  }
-
   .footer {
-    border-top-color: #5a5a5a;
+    border-top-color: var(--color-secondary);
 
     .markdown-info {
       color: inherit;
@@ -1861,7 +1849,7 @@ a.ui.labels .label:hover {
 }
 
 .add-comment-left.add-comment-right .ui.attached.header {
-  border-color: #5d5c5c;
+  border-color: var(--color-secondary);
   border-right: none;
 }
 
@@ -2037,6 +2025,10 @@ a.ui.labels .label:hover {
   background-color: #383c4a;
   color: #a5a5a8;
   border-color: var(--color-secondary);
+}
+
+.ui.popup:before {
+  box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
 .ui.popup.top:before,
