@@ -177,42 +177,6 @@ a:hover,
   color: var(--color-primary-dark-2);
 }
 
-.rounded {
-  border-radius: var(--border-radius) !important;
-}
-
-.wrap {
-  word-wrap: break-word;
-  word-break: break-all;
-}
-
-.mono {
-  font-family: var(--fonts-monospace);
-}
-
-pre,
-code {
-  font: 12px var(--fonts-monospace);
-
-  &.raw {
-    padding: 7px 12px;
-    margin: 10px 0;
-    background-color: #f8f8f8;
-    border: 1px solid #dddddd;
-    border-radius: 3px;
-    font-size: 13px;
-    line-height: 1.5;
-    overflow: auto;
-  }
-
-  &.wrap {
-    white-space: pre-wrap;
-    word-break: break-all;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-  }
-}
-
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1137,10 +1101,6 @@ i.icon.centerlock {
   padding-left: 5px;
 }
 
-.lines-code code {
-  white-space: pre;
-}
-
 .lines-code.active,
 .lines-code .active {
   background: #fffbdd !important;
@@ -1153,6 +1113,18 @@ i.icon.centerlock {
 
 .blame .lines-code {
   padding: 0 !important;
+}
+
+.code-inner {
+  font: 12px var(--fonts-monospace);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.blame .code-inner {
+  white-space: pre;
 }
 
 .lines-commit {
