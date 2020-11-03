@@ -2,7 +2,7 @@
 
 [![GoDoc](https://godoc.org/mvdan.cc/xurls?status.svg)](https://godoc.org/mvdan.cc/xurls)
 
-Extract urls from text using regular expressions. Requires Go 1.12 or later.
+Extract urls from text using regular expressions. Requires Go 1.13 or later.
 
 ```go
 import "mvdan.cc/xurls/v2"
@@ -18,13 +18,18 @@ func main() {
 }
 ```
 
-Note that the funcs compile regexes, so avoid calling them repeatedly.
+Since API is centered around [regexp.Regexp](https://golang.org/pkg/regexp/#Regexp),
+many other methods are available, such as finding the [byte indexes](https://golang.org/pkg/regexp/#Regexp.FindAllIndex)
+for all matches.
+
+Note that calling the exposed functions means compiling a regular expression, so
+repeated calls should be avoided.
 
 #### cmd/xurls
 
 To install the tool globally:
 
-	go get mvdan.cc/xurls/cmd/xurls
+	cd $(mktemp -d); go mod init tmp; GO111MODULE=on go get mvdan.cc/xurls/v2/cmd/xurls
 
 ```shell
 $ echo "Do gophers live in http://golang.org?" | xurls
