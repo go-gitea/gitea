@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -24,6 +25,35 @@ func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 	if s1 != string(s2) {
 		t.Errorf("%s should be equal %s", s2, s1)
 	}
+}
+
+func TestUnsplitEntities(t *testing.T) {
+	left := "sh &#34;useradd -u 111 jenkins&#34;"
+	right := "sh &#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;"
+	diffRecord := diffMatchPatch.DiffMain(left, right, true)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	// Now we need to clean up the split entities
+	diffRecord = unsplitEntities(diffRecord)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	leftRecombined := ""
+	rightRecombined := ""
+	for _, record := range diffRecord {
+		assert.False(t, unterminatedEntityRE.MatchString(record.Text), "")
+		switch record.Type {
+		case diffmatchpatch.DiffDelete:
+			leftRecombined += record.Text
+		case diffmatchpatch.DiffInsert:
+			rightRecombined += record.Text
+		default:
+			leftRecombined += record.Text
+			rightRecombined += record.Text
+		}
+	}
+
+	assert.EqualValues(t, left, leftRecombined)
+	assert.EqualValues(t, right, rightRecombined)
 }
 
 func TestDiffToHTML(t *testing.T) {

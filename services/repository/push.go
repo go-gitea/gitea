@@ -8,7 +8,6 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -24,114 +23,13 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-// PushUpdateOptions defines the push update options
-type PushUpdateOptions struct {
-	PusherID     int64
-	PusherName   string
-	RepoUserName string
-	RepoName     string
-	RefFullName  string // branch, tag or other name to push
-	OldCommitID  string
-	NewCommitID  string
-}
-
-// IsNewRef return true if it's a first-time push to a branch, tag or etc.
-func (opts PushUpdateOptions) IsNewRef() bool {
-	return opts.OldCommitID == git.EmptySHA
-}
-
-// IsDelRef return true if it's a deletion to a branch or tag
-func (opts PushUpdateOptions) IsDelRef() bool {
-	return opts.NewCommitID == git.EmptySHA
-}
-
-// IsUpdateRef return true if it's an update operation
-func (opts PushUpdateOptions) IsUpdateRef() bool {
-	return !opts.IsNewRef() && !opts.IsDelRef()
-}
-
-// IsTag return true if it's an operation to a tag
-func (opts PushUpdateOptions) IsTag() bool {
-	return strings.HasPrefix(opts.RefFullName, git.TagPrefix)
-}
-
-// IsNewTag return true if it's a creation to a tag
-func (opts PushUpdateOptions) IsNewTag() bool {
-	return opts.IsTag() && opts.IsNewRef()
-}
-
-// IsDelTag return true if it's a deletion to a tag
-func (opts PushUpdateOptions) IsDelTag() bool {
-	return opts.IsTag() && opts.IsDelRef()
-}
-
-// IsBranch return true if it's a push to branch
-func (opts PushUpdateOptions) IsBranch() bool {
-	return strings.HasPrefix(opts.RefFullName, git.BranchPrefix)
-}
-
-// IsNewBranch return true if it's the first-time push to a branch
-func (opts PushUpdateOptions) IsNewBranch() bool {
-	return opts.IsBranch() && opts.IsNewRef()
-}
-
-// IsUpdateBranch return true if it's not the first push to a branch
-func (opts PushUpdateOptions) IsUpdateBranch() bool {
-	return opts.IsBranch() && opts.IsUpdateRef()
-}
-
-// IsDelBranch return true if it's a deletion to a branch
-func (opts PushUpdateOptions) IsDelBranch() bool {
-	return opts.IsBranch() && opts.IsDelRef()
-}
-
-// TagName returns simple tag name if it's an operation to a tag
-func (opts PushUpdateOptions) TagName() string {
-	return opts.RefFullName[len(git.TagPrefix):]
-}
-
-// BranchName returns simple branch name if it's an operation to branch
-func (opts PushUpdateOptions) BranchName() string {
-	return opts.RefFullName[len(git.BranchPrefix):]
-}
-
-// RefName returns simple name for ref
-func (opts PushUpdateOptions) RefName() string {
-	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
-		return opts.RefFullName[len(git.TagPrefix):]
-	} else if strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
-		return opts.RefFullName[len(git.BranchPrefix):]
-	}
-	return ""
-}
-
-// RepoFullName returns repo full name
-func (opts PushUpdateOptions) RepoFullName() string {
-	return opts.RepoUserName + "/" + opts.RepoName
-}
-
-// isForcePush detect if a push is a force push
-func isForcePush(repoPath string, opts *PushUpdateOptions) (bool, error) {
-	if !opts.IsUpdateBranch() {
-		return false, nil
-	}
-
-	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repoPath)
-	if err != nil {
-		return false, err
-	} else if len(output) > 0 {
-		return true, nil
-	}
-	return false, nil
-}
-
 // pushQueue represents a queue to handle update pull request tests
 var pushQueue queue.Queue
 
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
 	for _, datum := range data {
-		opts := datum.([]*PushUpdateOptions)
+		opts := datum.([]*repo_module.PushUpdateOptions)
 		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
@@ -139,7 +37,7 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
 	if pushQueue == nil {
 		return fmt.Errorf("Unable to create push_update Queue")
 	}
@@ -149,12 +47,12 @@ func initPushQueue() error {
 }
 
 // PushUpdate is an alias of PushUpdates for single push update options
-func PushUpdate(opts *PushUpdateOptions) error {
-	return PushUpdates([]*PushUpdateOptions{opts})
+func PushUpdate(opts *repo_module.PushUpdateOptions) error {
+	return PushUpdates([]*repo_module.PushUpdateOptions{opts})
 }
 
 // PushUpdates adds a push update to push queue
-func PushUpdates(opts []*PushUpdateOptions) error {
+func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 	if len(opts) == 0 {
 		return nil
 	}
@@ -169,7 +67,7 @@ func PushUpdates(opts []*PushUpdateOptions) error {
 }
 
 // pushUpdates generates push action history feeds for push updating multiple refs
-func pushUpdates(optsList []*PushUpdateOptions) error {
+func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	if len(optsList) == 0 {
 		return nil
 	}
@@ -238,9 +136,9 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := isForcePush(repo.RepoPath(), opts)
+					isForce, err := repo_module.IsForcePush(opts)
 					if err != nil {
-						log.Error("isForcePush %s/%s failed: %v", repo.ID, branch, err)
+						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
 
 					if isForce {
@@ -293,7 +191,7 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 
 // commitRepoActionOptions represent options of a new commit action.
 type commitRepoActionOptions struct {
-	PushUpdateOptions
+	repo_module.PushUpdateOptions
 
 	Pusher      *models.User
 	RepoOwnerID int64
@@ -395,7 +293,7 @@ func commitRepoAction(repo *models.Repository, gitRepo *git.Repository, optsList
 		}
 
 		if isHookEventPush {
-			notification.NotifyPushCommits(opts.Pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
+			notification.NotifyPushCommits(opts.Pusher, repo, &opts.PushUpdateOptions, opts.Commits)
 		}
 	}
 

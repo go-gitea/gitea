@@ -6,6 +6,32 @@
   /* other variables */
   --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
   --border-radius: .28571429rem;
+  --color-primary: #4183c4;
+  --color-primary-dark-1: #3876b3;
+  --color-primary-dark-2: #31699f;
+  --color-primary-dark-3: #2b5c8b;
+  --color-primary-dark-4: #254f77;
+  --color-primary-dark-5: #193450;
+  --color-primary-dark-6: #0c1a28;
+  --color-primary-dark-7: #04080c;
+  --color-primary-light-1: #548fca;
+  --color-primary-light-2: #679cd0;
+  --color-primary-light-3: #7aa8d6;
+  --color-primary-light-4: #8db5dc;
+  --color-primary-light-5: #b3cde7;
+  --color-primary-light-6: #d9e6f3;
+  --color-primary-light-7: #f4f8fb;
+  --color-primary-alpha-10: #4183c419;
+  --color-primary-alpha-20: #4183c433;
+  --color-primary-alpha-30: #4183c44b;
+  --color-primary-alpha-40: #4183c466;
+  --color-primary-alpha-50: #4183c480;
+  --color-primary-alpha-60: #4183c499;
+  --color-primary-alpha-70: #4183c4b3;
+  --color-primary-alpha-80: #4183c4cc;
+  --color-primary-alpha-90: #4183c4e1;
+  --color-secondary: rgba(34, 36, 38, .15);
+  --color-body: #fff;
 }
 
 :root:lang(ja) {
@@ -96,7 +122,7 @@ h5,
 }
 
 body {
-  background-color: #ffffff;
+  background-color: var(--color-body);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -110,8 +136,45 @@ table {
   border-collapse: collapse;
 }
 
-a {
+/* firefox scroll bars */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+/* webkit scrollbars */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 0 6px var(--color-primary);
+  border: 2px solid transparent;
+  border-radius: 5px !important;
+}
+::-webkit-scrollbar-thumb:window-inactive {
+  box-shadow: inset 0 0 0 6px var(--color-primary);
+}
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: inset 0 0 0 6px var(--color-primary-dark-2);
+}
+
+::selection,
+.CodeMirror-selected {
+  background: var(--color-primary-light-1) !important;
+  color: #fff !important;
+}
+
+a,
+.ui.breadcrumb a {
+  color: var(--color-primary);
   cursor: pointer;
+}
+
+a:hover,
+.ui.breadcrumb a:hover {
+  color: var(--color-primary-dark-2);
 }
 
 .rounded {
@@ -123,9 +186,12 @@ a {
   word-break: break-all;
 }
 
-pre,
-code,
 .mono {
+  font-family: var(--fonts-monospace);
+}
+
+pre,
+code {
   font: 12px var(--fonts-monospace);
 
   &.raw {
@@ -227,6 +293,10 @@ code,
     margin: 0;
   }
 
+  #navbar .dropdown .avatar {
+    margin-right: 0 !important;
+  }
+
   @media only screen and (max-width: 767px) {
     #navbar:not(.shown) > *:not(:first-child) {
       display: none;
@@ -242,6 +312,17 @@ code,
   display: flex;
   align-items: inherit;
   flex-direction: inherit;
+}
+
+.ui.dropdown:not(.labeled) > .dropdown.icon {
+  height: 14px;
+  vertical-align: bottom;
+  margin-bottom: -2px;
+  margin-left: .5rem;
+}
+
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  height: auto;
 }
 
 .ui {
@@ -331,13 +412,13 @@ code,
     }
 
     &.blue {
-      color: #428bca !important;
+      color: var(--color-primary-dark-1) !important;
 
       a {
-        color: #1155cc !important;
+        color: var(--color-primary) !important;
 
         &:hover {
-          color: #428bca !important;
+          color: var(--color-primary-dark-2) !important;
         }
       }
     }
@@ -568,7 +649,7 @@ code,
     }
 
     &.blue {
-      background-color: #428bca !important;
+      background-color: var(--color-primary) !important;
     }
 
     &.black {
@@ -623,7 +704,7 @@ code,
     }
 
     &.blue {
-      border-color: #428bca !important;
+      border-color: var(--color-primary) !important;
     }
 
     &.black {
@@ -699,17 +780,12 @@ code,
   }
 }
 
-.file-comment {
-  font: 12px var(--fonts-monospace);
-  color: rgba(0, 0, 0, .87);
-}
-
 .ui.floating.dropdown {
   .overflow.menu {
     .scrolling.menu.items {
       border-radius: 0 !important;
       box-shadow: none !important;
-      border-bottom: 1px solid rgba(34, 36, 38, .15);
+      border-bottom: 1px solid var(--color-secondary);
     }
   }
 }
@@ -740,7 +816,7 @@ footer {
     .fa {
       width: 16px;
       text-align: center;
-      color: #428bca;
+      color: var(--color-primary);
     }
 
     .links > * {
@@ -1057,6 +1133,10 @@ i.icon.centerlock {
   }
 }
 
+.lines-code {
+  padding-left: 5px;
+}
+
 .lines-code code {
   white-space: pre;
 }
@@ -1150,10 +1230,64 @@ i.icon.centerlock {
   font-size: .85714286rem;
 }
 
+.ui.blue.button,
+.ui.blue.buttons .button,
+.ui.primary.button,
+.ui.primary.buttons .button {
+  background-color: var(--color-primary) !important;
+}
+
+.ui.blue.button:hover,
+.ui.blue.buttons .button:hover,
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover {
+  background-color: var(--color-primary-dark-2) !important;
+}
+
+.ui.blue.button:focus,
+.ui.blue.buttons .button:focus,
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
+  background-color: var(--color-primary-dark-3) !important;
+}
+
 .ui.basic.blue.button,
-.ui.basic.blue.buttons .button {
-  box-shadow: inset 0 0 0 1px #1678c2 !important;
-  color: #1678c2 !important;
+.ui.basic.blue.buttons .button,
+.ui.basic.primary.button,
+.ui.basic.primary.buttons .button {
+  box-shadow: inset 0 0 0 1px var(--color-primary) !important;
+  color: #fff !important;
+}
+
+.ui.basic.blue.button:hover,
+.ui.basic.blue.buttons .button:hover,
+.ui.basic.primary.button:hover,
+.ui.basic.primary.buttons .button:hover {
+  box-shadow: inset 0 0 0 1px var(--color-primary-dark-2) !important;
+}
+
+.ui.basic.blue.button:focus,
+.ui.basic.blue.buttons .button:focus,
+.ui.basic.primary.button:focus,
+.ui.basic.primary.buttons .button:focus {
+  box-shadow: inset 0 0 0 1px var(--color-primary-dark-3) !important;
+}
+
+.ui.blue.label,
+.ui.blue.labels .label,
+.ui.primary.label,
+.ui.primary.labels .label {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary-dark-2) !important;
+}
+
+.ui.basic.labels .blue.label,
+.ui.ui.ui.basic.blue.label,
+.ui.basic.labels .primary.label,
+.ui.ui.ui.basic.primary.label {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .ui.label > img {
@@ -1293,6 +1427,10 @@ table th[data-sortt-desc] {
 
 .ui.secondary.pointing.menu .item {
   padding: 12px;
+}
+
+.ui.header .ui.label {
+  margin-left: .25rem;
 }
 
 .ui.header > .ui.label.compact {
