@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"unicode/utf8"
 
 	// Needed for jpeg support
@@ -27,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -990,13 +990,8 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
-func (repo *Repository) DescriptionHTML() template.HTML {
-	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
-	if err != nil {
-		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
-		return template.HTML(markup.Sanitize(repo.Description))
-	}
-	return template.HTML(markup.Sanitize(string(desc)))
+func (repo *Repository) DescriptionHTML() string {
+	return string(markdown.Render([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas()))
 }
 
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
