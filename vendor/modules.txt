@@ -21,7 +21,7 @@ gitea.com/lunny/nodb/store/goleveldb
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 ## explicit
 gitea.com/macaron/binding
-# gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
+# gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
 ## explicit
 gitea.com/macaron/cache
 gitea.com/macaron/cache/memcache
