@@ -162,7 +162,7 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
-		&repo_service.PushUpdateOptions{
+		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + ctx.Repo.BranchName,
 			OldCommitID:  c.ID.String(),
 			NewCommitID:  git.EmptySHA,

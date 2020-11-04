@@ -7,6 +7,7 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -127,7 +128,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
 			u, err := objStore.URL(rPath, path.Base(rPath))
 			if err != nil {
-				if err == os.ErrNotExist {
+				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
 					ctx.Error(404, "file not found")
 					return
@@ -160,7 +161,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 		//If we have matched and access to release or issue
 		fr, err := objStore.Open(rPath)
 		if err != nil {
-			if err == os.ErrNotExist {
+			if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 				log.Warn("Unable to find %s %s", prefix, rPath)
 				ctx.Error(404, "file not found")
 				return
@@ -298,6 +299,15 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(context.Recovery())
 	m.SetAutoHead(true)
 	return m
+}
+
+// RegisterInstallRoute registers the install routes
+func RegisterInstallRoute(m *macaron.Macaron) {
+	m.Combo("/", routers.InstallInit).Get(routers.Install).
+		Post(binding.BindIgnErr(auth.InstallForm{}), routers.InstallPost)
+	m.NotFound(func(ctx *context.Context) {
+		ctx.Redirect(setting.AppURL, 302)
+	})
 }
 
 // RegisterRoutes routes routes to Macaron
@@ -480,6 +490,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Post("/logout", user.SignOut)
+		m.Get("/task/:task", user.TaskStatus)
 	})
 	// ***** END: User *****
 
@@ -885,12 +896,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	// Releases
 	m.Group("/:username/:reponame", func() {
+		m.Get("/tags", repo.TagsList, repo.MustBeNotEmpty,
+			reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
 			m.Get("/attachments/:uuid", repo.GetAttachment)
-		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
+		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
@@ -898,6 +911,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
+		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
+			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
@@ -986,8 +1001,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
-
-		m.Get("/status", reqRepoCodeReader, repo.Status)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

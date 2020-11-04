@@ -1,0 +1,24 @@
+{{template "base/head" .}}
+<div class="install">
+    <div class="ui container">
+		<div class="ui grid">
+			<div class="sixteen wide column content">
+				<div class="home">
+					<div class="ui stackable middle very relaxed page grid">
+						<div id="repo_migrating" class="sixteen wide center aligned centered column">
+							<div>
+								<img src="{{StaticUrlPrefix}}/img/loading.png"/>
+							</div>
+						</div>
+					</div>
+					<div class="ui stackable middle very relaxed page grid">
+						<div class="sixteen wide center aligned centered column">
+							<p><a href="{{AppUrl}}user/login">{{AppUrl}}user/login</a></p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

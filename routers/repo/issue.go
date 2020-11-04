@@ -1354,6 +1354,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	// Combine multiple label assignments into a single comment
+	combineLabelComments(issue)
+
 	getBranchData(ctx, issue)
 	if issue.IsPull {
 		pull := issue.PullRequest
@@ -1699,154 +1702,6 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	})
 }
 
-func isValidReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
-	if reviewer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be added as reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be doer to add reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
-	if err != nil {
-		return err
-	}
-
-	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-
-	lastreview, err := models.GetReviewByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil && !models.IsErrReviewNotExist(err) {
-		return err
-	}
-
-	var pemResult bool
-	if isAdd {
-		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
-		if !pemResult {
-			return models.ErrNotValidReviewRequest{
-				Reason: "Reviewer can't read",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
-			return nil
-		}
-
-		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
-			if err != nil {
-				return err
-			}
-			if !pemResult {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-
-		if doer.ID == reviewer.ID {
-			return models.ErrNotValidReviewRequest{
-				Reason: "doer can't be reviewer",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-
-		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
-			return models.ErrNotValidReviewRequest{
-				Reason: "poster of pr can't be reviewer",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-	} else {
-		if lastreview != nil && lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
-			return nil
-		}
-
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return models.ErrNotValidReviewRequest{
-				Reason: "Doer is not admin",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-	}
-
-	return nil
-}
-
-func isValidTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
-	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Organization can't be doer to add reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-		return err
-	}
-
-	if isAdd {
-		if issue.Repo.IsPrivate {
-			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
-
-			if !hasTeam {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Reviewing team can't read repo",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-
-		doerCanWrite := permission.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !doerCanWrite {
-			official, err := models.IsOfficialReviewer(issue, doer)
-			if err != nil {
-				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-				return err
-			}
-			if !official {
-				return models.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
-		}
-	} else if !permission.IsAdmin() {
-		return models.ErrNotValidReviewRequest{
-			Reason: "Only admin users can remove team requests. Doer is not admin",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
-	}
-
-	return nil
-}
-
 // UpdatePullReviewRequest add or remove review request
 func UpdatePullReviewRequest(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -1907,7 +1762,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
+			err = issue_service.IsValidTeamReviewRequest(team, ctx.User, action == "attach", issue)
 			if err != nil {
 				if models.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -1918,11 +1773,11 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(403)
 					return
 				}
-				ctx.ServerError("isValidTeamReviewRequest", err)
+				ctx.ServerError("IsValidTeamReviewRequest", err)
 				return
 			}
 
-			err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
+			_, err = issue_service.TeamReviewRequest(issue, ctx.User, team, action == "attach")
 			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
@@ -1945,7 +1800,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = isValidReviewRequest(reviewer, ctx.User, action == "attach", issue)
+		err = issue_service.IsValidReviewRequest(reviewer, ctx.User, action == "attach", issue, nil)
 		if err != nil {
 			if models.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -1960,7 +1815,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
+		_, err = issue_service.ReviewRequest(issue, ctx.User, reviewer, action == "attach")
 		if err != nil {
 			ctx.ServerError("ReviewRequest", err)
 			return
@@ -2532,4 +2387,70 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) str
 		return ""
 	}
 	return attachHTML
+}
+
+func combineLabelComments(issue *models.Issue) {
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		var shouldMerge bool
+		var removingCur bool
+		var prev *models.Comment
+
+		if i == 0 {
+			shouldMerge = false
+		} else {
+			prev = issue.Comments[i-1]
+			removingCur = c.Content != "1"
+
+			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60 &&
+				c.Type == prev.Type
+		}
+
+		if c.Type == models.CommentTypeLabel {
+			if !shouldMerge {
+				if removingCur {
+					c.RemovedLabels = make([]*models.Label, 1)
+					c.AddedLabels = make([]*models.Label, 0)
+					c.RemovedLabels[0] = c.Label
+				} else {
+					c.RemovedLabels = make([]*models.Label, 0)
+					c.AddedLabels = make([]*models.Label, 1)
+					c.AddedLabels[0] = c.Label
+				}
+			} else {
+				// Remove duplicated "added" and "removed" labels
+				// This way, adding and immediately removing a label won't generate a comment.
+				var appendingTo *[]*models.Label
+				var other *[]*models.Label
+
+				if removingCur {
+					appendingTo = &prev.RemovedLabels
+					other = &prev.AddedLabels
+				} else {
+					appendingTo = &prev.AddedLabels
+					other = &prev.RemovedLabels
+				}
+
+				appending := true
+
+				for i := 0; i < len(*other); i++ {
+					l := (*other)[i]
+					if l.ID == c.Label.ID {
+						*other = append((*other)[:i], (*other)[i+1:]...)
+						appending = false
+						break
+					}
+				}
+
+				if appending {
+					*appendingTo = append(*appendingTo, c.Label)
+				}
+
+				prev.CreatedUnix = c.CreatedUnix
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
+			}
+		}
+		i++
+	}
 }

@@ -28,7 +28,7 @@
 			<div class="ui dropdown type jump item">
 				<span class="text">
 					{{.i18n.Tr "repo.issues.filter_sort"}}
-					<i class="dropdown icon"></i>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="menu">
 					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
@@ -95,7 +95,7 @@
 {{if or .CanWriteIssues .CanWritePulls}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			<i class="trash icon"></i>
+			{{svg "octicon-trashcan"}}
 			{{.i18n.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">

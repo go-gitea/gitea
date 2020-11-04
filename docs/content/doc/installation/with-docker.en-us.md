@@ -262,7 +262,7 @@ You can configure some of Gitea's settings via environment variables:
 * `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
 * `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
-* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
+* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available. If you want to disable SSH feature, you should set SSH port to `0` when installing Gitea.
 * `HTTP_PORT`: **3000**: HTTP listen port.
 * `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
 * `LFS_START_SERVER`: **false**: Enables git-lfs support.
@@ -371,7 +371,7 @@ config:
 
 ```
 [ssh]
-SSH_BACKUP_AUTHORIZED_KEYS=false
+SSH_AUTHORIZED_KEYS_BACKUP=false
 ```
 
 - mount your `.ssh` directory directly into the container i.e. add the

@@ -35,7 +35,7 @@ gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-a
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment

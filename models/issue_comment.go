@@ -124,7 +124,9 @@ type Comment struct {
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
-	Label            *Label `xorm:"-"`
+	Label            *Label   `xorm:"-"`
+	AddedLabels      []*Label `xorm:"-"`
+	RemovedLabels    []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
 	OldProject       *Project `xorm:"-"`
@@ -1106,6 +1108,10 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 
 	for _, comment := range comments {
 		if err := comment.LoadResolveDoer(); err != nil {
+			return nil, err
+		}
+
+		if err := comment.LoadReactions(issue.Repo); err != nil {
 			return nil, err
 		}
 

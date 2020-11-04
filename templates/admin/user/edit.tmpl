@@ -19,7 +19,7 @@
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
 						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
@@ -123,7 +123,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">

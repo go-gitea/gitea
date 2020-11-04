@@ -34,6 +34,7 @@ var (
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
 			subcmdAuth,
+			subcmdSendMail,
 		},
 	}
 
@@ -281,6 +282,28 @@ var (
 		Usage:  "Add new Oauth authentication source",
 		Action: runAddOauth,
 		Flags:  oauthCLIFlags,
+	}
+
+	subcmdSendMail = cli.Command{
+		Name:   "sendmail",
+		Usage:  "Send a message to all users",
+		Action: runSendMail,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "title",
+				Usage: `a title of a message`,
+				Value: "",
+			},
+			cli.StringFlag{
+				Name:  "content",
+				Usage: "a content of a message",
+				Value: "",
+			},
+			cli.BoolFlag{
+				Name:  "force,f",
+				Usage: "A flag to bypass a confirmation step",
+			},
+		},
 	}
 )
 

@@ -181,64 +181,60 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
-var addSpanRegex = regexp.MustCompile(`<span [class="[a-z]*]*$`)
+var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+
+// shouldWriteInline represents combinations where we manually write inline changes
+func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
+	if true &&
+		diff.Type == diffmatchpatch.DiffEqual ||
+		diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd ||
+		diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel {
+		return true
+	}
+	return false
+}
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-	var addSpan string
-	for i := range diffs {
+	match := ""
+
+	for _, diff := range diffs {
+		if shouldWriteInline(diff, lineType) {
+			if len(match) > 0 {
+				diff.Text = match + diff.Text
+				match = ""
+			}
+			// Chroma HTML syntax highlighting is done before diffing individual lines in order to maintain consistency.
+			// Since inline changes might split in the middle of a chroma span tag, make we manually put it back together
+			// before writing so we don't try insert added/removed code spans in the middle of an existing chroma span
+			// and create broken HTML.
+			m := trailingSpanRegex.FindStringSubmatchIndex(diff.Text)
+			if m != nil {
+				match = diff.Text[m[0]:m[1]]
+				diff.Text = strings.TrimSuffix(diff.Text, match)
+			}
+			// Print an existing closing span first before opening added/remove-code span so it doesn't unintentionally close it
+			if strings.HasPrefix(diff.Text, "</span>") {
+				buf.WriteString("</span>")
+				diff.Text = strings.TrimPrefix(diff.Text, "</span>")
+			}
+			// If we weren't able to fix it then this should avoid broken HTML by not inserting more spans below
+			// The previous/next diff section will contain the rest of the tag that is missing here
+			if strings.Count(diff.Text, "<") != strings.Count(diff.Text, ">") {
+				buf.WriteString(diff.Text)
+				continue
+			}
+		}
 		switch {
-		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			// Looking for the case where our 3rd party diff library previously detected a string difference
-			// in the middle of a span class because we highlight them first. This happens when added/deleted code
-			// also changes the chroma class name, either partially or fully. If found, just move the openining span code forward into the next section
-			// see TestDiffToHTML for examples
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				buf.WriteString(strings.TrimSuffix(diffs[i].Text, addSpan))
-			} else {
-				addSpan = ""
-				buf.WriteString(getLineContent(diffs[i].Text))
-			}
-		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
-			if strings.HasPrefix(diffs[i].Text, "</span>") {
-				buf.WriteString("</span>")
-				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
-			}
+		case diff.Type == diffmatchpatch.DiffEqual:
+			buf.WriteString(diff.Text)
+		case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(getLineContent(diffs[i].Text))
+			buf.WriteString(diff.Text)
 			buf.Write(codeTagSuffix)
-		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-			if len(addSpan) > 0 {
-				diffs[i].Text = addSpan + diffs[i].Text
-				addSpan = ""
-			}
-			if strings.HasPrefix(diffs[i].Text, "</span>") {
-				buf.WriteString("</span>")
-				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
-			}
-			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
-			if m != nil {
-				addSpan = diffs[i].Text[m[0]:m[1]]
-				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
-			}
+		case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(getLineContent(diffs[i].Text))
+			buf.WriteString(diff.Text)
 			buf.Write(codeTagSuffix)
 		}
 	}
@@ -294,6 +290,9 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
+var unterminatedEntityRE = regexp.MustCompile(`&[^ ;]*$`)
+var unstartedEntiyRE = regexp.MustCompile(`^[^ ;]*;`)
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
@@ -333,7 +332,88 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	// Now we need to clean up the split entities
+	diffRecord = unsplitEntities(diffRecord)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
+}
+
+// unsplitEntities looks for broken up html entities. It relies on records being presimplified and the data being passed in being valid html
+func unsplitEntities(records []diffmatchpatch.Diff) []diffmatchpatch.Diff {
+	// Unsplitting entities is simple...
+	//
+	// Iterate through all be the last records because if we're the last record then there's nothing we can do
+	for i := 0; i+1 < len(records); i++ {
+		record := &records[i]
+
+		// Look for an unterminated entity at the end of the line
+		unterminated := unterminatedEntityRE.FindString(record.Text)
+		if len(unterminated) == 0 {
+			continue
+		}
+
+		switch record.Type {
+		case diffmatchpatch.DiffEqual:
+			// If we're an diff equal we want to give this unterminated entity to our next delete and insert
+			record.Text = record.Text[0 : len(record.Text)-len(unterminated)]
+			records[i+1].Text = unterminated + records[i+1].Text
+
+			nextType := records[i+1].Type
+
+			if nextType == diffmatchpatch.DiffEqual {
+				continue
+			}
+
+			// if the next in line is a delete then we will want the thing after that to be an insert and so on.
+			oneAfterType := diffmatchpatch.DiffInsert
+			if nextType == diffmatchpatch.DiffInsert {
+				oneAfterType = diffmatchpatch.DiffDelete
+			}
+
+			if i+2 < len(records) && records[i+2].Type == oneAfterType {
+				records[i+2].Text = unterminated + records[i+2].Text
+			} else {
+				records = append(records[:i+2], append([]diffmatchpatch.Diff{
+					{
+						Type: oneAfterType,
+						Text: unterminated,
+					}}, records[i+2:]...)...)
+			}
+		case diffmatchpatch.DiffDelete:
+			fallthrough
+		case diffmatchpatch.DiffInsert:
+			// if we're an insert or delete we want to claim the terminal bit of the entity from the next equal in line
+			targetType := diffmatchpatch.DiffInsert
+			if record.Type == diffmatchpatch.DiffInsert {
+				targetType = diffmatchpatch.DiffDelete
+			}
+			next := &records[i+1]
+			if next.Type == diffmatchpatch.DiffEqual {
+				// if the next is an equal we need to snaffle the entity end off the start and add an delete/insert
+				if terminal := unstartedEntiyRE.FindString(next.Text); len(terminal) > 0 {
+					record.Text += terminal
+					next.Text = next.Text[len(terminal):]
+					records = append(records[:i+2], append([]diffmatchpatch.Diff{
+						{
+							Type: targetType,
+							Text: unterminated,
+						}}, records[i+2:]...)...)
+				}
+			} else if next.Type == targetType {
+				// if the next is an insert we need to snaffle the entity end off the one after that and add it to both.
+				if i+2 < len(records) && records[i+2].Type == diffmatchpatch.DiffEqual {
+					if terminal := unstartedEntiyRE.FindString(records[i+2].Text); len(terminal) > 0 {
+						record.Text += terminal
+						next.Text += terminal
+						records[i+2].Text = records[i+2].Text[len(terminal):]
+					}
+				}
+			}
+		}
+	}
+	return records
 }
 
 // DiffFile represents a file diff.
@@ -534,6 +614,8 @@ parsingLoop:
 				break parsingLoop
 			}
 			switch {
+			case strings.HasPrefix(line, cmdDiffHead):
+				break curFileLoop
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
 				if strings.HasSuffix(line, " 160000\n") {
@@ -854,7 +936,14 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	defer cancel()
 	var cmd *exec.Cmd
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
+		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		if len(whitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, whitespaceBehavior)
+		}
+		// append empty tree ref
+		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+		diffArgs = append(diffArgs, afterCommitID)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
