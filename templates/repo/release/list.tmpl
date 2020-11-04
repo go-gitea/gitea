@@ -59,7 +59,7 @@
 									{{.OriginalAuthor}}
 								{{else if .Publisher}}
 									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
-									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
+									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.GetDisplayName}}</a>
 								{{else}}
 									Ghost
 								{{end}}
