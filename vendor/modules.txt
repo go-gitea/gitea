@@ -10,14 +10,22 @@ code.gitea.io/sdk/gitea
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
+# gitea.com/lunny/log v0.0.0-20190322053110-01b5df579c4e
+gitea.com/lunny/log
+# gitea.com/lunny/nodb v0.0.0-20200923032308-3238c4655727
+gitea.com/lunny/nodb
+gitea.com/lunny/nodb/config
+gitea.com/lunny/nodb/store
+gitea.com/lunny/nodb/store/driver
+gitea.com/lunny/nodb/store/goleveldb
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 ## explicit
 gitea.com/macaron/binding
-# gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
+# gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
 ## explicit
 gitea.com/macaron/cache
 gitea.com/macaron/cache/memcache
-# gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
+# gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 ## explicit
 gitea.com/macaron/captcha
 # gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
@@ -29,16 +37,16 @@ gitea.com/macaron/csrf
 # gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 ## explicit
 gitea.com/macaron/gzip
-# gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
+# gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
 ## explicit
 gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 ## explicit
 gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.5.0
+# gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 ## explicit
 gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
+# gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
 ## explicit
 gitea.com/macaron/session
 gitea.com/macaron/session/couchbase
@@ -51,8 +59,6 @@ gitea.com/macaron/session/postgres
 gitea.com/macaron/toolbox
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
-# github.com/BurntSushi/toml v0.3.1
-github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
 github.com/PuerkitoBio/goquery
@@ -180,11 +186,12 @@ github.com/bradfitz/gomemcache/memcache
 github.com/cespare/xxhash/v2
 # github.com/chris-ramon/douceur v0.2.0
 github.com/chris-ramon/douceur/parser
-# github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2
-## explicit
+# github.com/couchbase/go-couchbase v0.0.0-20201026062457-7b3be89bbd89
+github.com/couchbase/go-couchbase
+# github.com/couchbase/gomemcached v0.1.0
 github.com/couchbase/gomemcached
 github.com/couchbase/gomemcached/client
-# github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85
+# github.com/couchbase/goutils v0.0.0-20201030094643-5e82bb967e67
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
 # github.com/couchbase/vellum v1.0.2
@@ -192,8 +199,6 @@ github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
 github.com/couchbase/vellum/utf8
-# github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7
-github.com/couchbaselabs/go-couchbase
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d
@@ -416,7 +421,6 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.2
-## explicit
 github.com/golang/snappy
 # github.com/google/go-github/v32 v32.1.0
 ## explicit
@@ -502,7 +506,7 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.11.1
+# github.com/klauspost/compress v1.11.2
 ## explicit
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -532,14 +536,6 @@ github.com/lib/pq/scram
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 ## explicit
 github.com/lunny/dingtalk_webhook
-# github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de
-github.com/lunny/log
-# github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af
-github.com/lunny/nodb
-github.com/lunny/nodb/config
-github.com/lunny/nodb/store
-github.com/lunny/nodb/store/driver
-github.com/lunny/nodb/store/goleveldb
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.6
@@ -805,7 +801,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+# golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -863,7 +859,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/debug
-# golang.org/x/text v0.3.3
+# golang.org/x/text v0.3.4
 ## explicit
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap

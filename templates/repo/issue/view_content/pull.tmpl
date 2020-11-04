@@ -15,7 +15,7 @@
 							{{end}}
 							<span class="text grey">
 								{{if .User}}
-									<a href="{{.User.HomeLink}}">{{.User.Name}}</a>
+									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
 									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 								{{end}}
