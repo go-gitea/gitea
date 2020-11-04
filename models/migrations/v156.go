@@ -68,7 +68,10 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.Limit(batchSize, start).Asc("repo_id", "id").Where("is_tag=?", true).Find(&releases); err != nil {
+		if err := sess.Limit(batchSize, start).
+			Where("publisher_id = 0").
+			Asc("repo_id", "id").Where("is_tag=?", true).
+			Find(&releases); err != nil {
 			return err
 		}
 

@@ -667,6 +667,25 @@ steps:
         exclude:
         - pull_request
 
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-amd64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 name: docker-linux-arm64-dry-run
@@ -745,6 +764,25 @@ steps:
         exclude:
         - pull_request
 
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 name: docker-manifest
@@ -754,6 +792,18 @@ platform:
   arch: amd64
 
 steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
   - name: manifest
     pull: always
     image: plugins/manifest

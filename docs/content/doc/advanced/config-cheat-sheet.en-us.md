@@ -141,15 +141,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
 
-## Repository - Upload (`repository.upload`)
-
-- `ENABLED`: **true**: Whether repository file uploads are enabled. Defaults to `true`
-- `TEMP_PATH`: **data/tmp/uploads**: Path for uploads. Defaults to `data/tmp/uploads` (tmp gets deleted on gitea restart)
-- `ALLOWED_TYPES`: **_empty_**:; One or more allowed types, e.g. image/jpeg|image/png. Nothing means any file type
-- `FILE_MAX_SIZE`: **3**: Max size of each file in megabytes. Defaults to 3MB
-- `MAX_FILES`: **5**: Max number of files per upload. Defaults to 5
-
-
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)

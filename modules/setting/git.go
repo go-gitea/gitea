@@ -74,6 +74,9 @@ func newGit() {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
 
+	// force cleanup args
+	git.GlobalCommandArgs = []string{}
+
 	if git.CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")

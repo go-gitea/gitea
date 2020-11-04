@@ -343,6 +343,16 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
+		"RenderLabels": func(labels []*models.Label) template.HTML {
+			html := ""
+
+			for _, label := range labels {
+				html = fmt.Sprintf("%s<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
+					html, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+			}
+
+			return template.HTML(html)
+		},
 	}}
 }
 
