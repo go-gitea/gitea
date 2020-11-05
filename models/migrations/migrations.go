@@ -248,6 +248,10 @@ var migrations = []Migration{
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
 	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
+	// v157 -> v158
+	NewMigration("ensure repo topics are up-to-date", fixRepoTopics),
+	// v158 -> v159
+	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
 }
 
 // GetCurrentDBVersion returns the current db version

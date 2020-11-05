@@ -1,6 +1,6 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
-	<h4 class="file-header ui top attached header">
-		<div class="file-header-left">
+	<h4 class="file-header ui top attached header df ac sb">
+		<div class="file-header-left df ac">
 			<div class="file-info text grey normal mono">
 				<div class="file-info-entry">
 					{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
@@ -8,16 +8,14 @@
 				<div class="file-info-entry">{{FileSize .FileSize}}</div>
 			</div>
 		</div>
-		<div class="file-header-right">
-			<div class="ui right file-actions">
-				<div class="ui buttons">
-					<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
-					{{if not .IsViewCommit}}
-						<a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
-					{{end}}
-					<a class="ui button" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.normal_view"}}</a>
-					<a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
-				</div>
+		<div class="file-header-right file-actions df ac">
+			<div class="ui buttons">
+				<a class="ui tiny button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
+				{{if not .IsViewCommit}}
+					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+				{{end}}
+				<a class="ui tiny button" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.normal_view"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
 			</div>
 		</div>
 	</h4>
@@ -28,7 +26,7 @@
 					<tr>
 						<td class="lines-commit">{{.BlameCommitInfo}}</td>
 						<td class="lines-num">{{.BlameLineNums}}</td>
-						<td class="lines-code"><pre><code class="chroma"><ol class="linenums">{{.BlameContent}}</ol></code></pre></td>
+						<td class="lines-code"><code class="chroma"><ol class="linenums">{{.BlameContent}}</ol></code></td>
 					</tr>
 				</tbody>
 			</table>

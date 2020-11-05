@@ -52,7 +52,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	labelText := htmlDoc.doc.Find("#release-list > li .meta .label").First().Text()
 	assert.EqualValues(t, label, labelText)
-	titleText := htmlDoc.doc.Find("#release-list > li .detail h3 a").First().Text()
+	titleText := htmlDoc.doc.Find("#release-list > li .detail h4 a").First().Text()
 	assert.EqualValues(t, version, titleText)
 
 	releaseList := htmlDoc.doc.Find("#release-list > li")
