@@ -450,7 +450,7 @@ func RepoAssignment() macaron.Handler {
 		}
 
 		ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-			IncludeTags:   true,
+			IncludeTags: true,
 		})
 		if err != nil {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
