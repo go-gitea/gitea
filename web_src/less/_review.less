@@ -1,19 +1,16 @@
 .ui.button.add-code-comment {
-  font-size: 14px;
-  height: 16px;
-  line-height: 12px !important;
-  padding: 0;
-  position: relative;
-  width: 16px;
+  padding: 2px;
+  position: absolute;
+  margin-left: -22px;
   z-index: 5;
-  float: left;
-  margin: 2px -10px 2px -20px;
   opacity: 0;
   transition: transform .1s ease-in-out;
-  transform: scale(1, 1);
+  transform: scale(1);
+  box-shadow: none !important;
+  border: none !important;
 
   &:hover {
-    transform: scale(1.2, 1.2);
+    transform: scale(1.1);
   }
 }
 
@@ -69,10 +66,6 @@
   .right.menu.options .item {
     padding: .85714286em .442857em;
     cursor: pointer;
-  }
-
-  .ui.form textarea {
-    border: 0;
   }
 
   .ui.active.tab {
