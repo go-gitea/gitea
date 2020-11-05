@@ -155,7 +155,30 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorEnablePushOptions,
 	},
+	{
+		title:     "Recalculate Code-comment-replies commitID",
+		name:      "recalculate_code_comment_replies",
+		isDefault: true,
+		f:         runDoctorUpdateCodeCommentReplies,
+	},
 	// more checks please append here
+}
+
+func runDoctorUpdateCodeCommentReplies(ctx *cli.Context) ([]string, error) {
+	if ctx.Bool("fix") {
+		_, result, err := models.CountOrFixUpdatableCodeCommentReplies(true)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	} else {
+		count, _, err := models.CountOrFixUpdatableCodeCommentReplies(false)
+		if err != nil {
+			return nil, err
+		}
+		result := fmt.Sprintf("%d code comment replies without commitID exist", count)
+		return []string{result}, nil
+	}
 }
 
 func runRecreateTable(ctx *cli.Context) error {

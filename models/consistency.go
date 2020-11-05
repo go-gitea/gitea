@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -294,4 +295,64 @@ func FixNullArchivedRepository() (int64, error) {
 	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").Update(&Repository{
 		IsArchived: false,
 	})
+}
+
+func CountOrFixUpdatableCodeCommentReplies(fix bool) (int64, []string, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return 0, nil, err
+	}
+
+	var (
+		start     = 0
+		batchSize = 100
+		count     int64
+		result    []string
+	)
+
+	for {
+		var comments = make([]*Comment, 0, batchSize)
+		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
+		FROM comment INNER JOIN (
+			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
+			FROM comment AS C
+			WHERE C.type = 21
+				AND C.created_unix =
+					(SELECT MIN(comment.created_unix)
+						FROM comment
+						WHERE comment.review_id = C.review_id
+						AND comment.type = 21
+						AND comment.line = C.line
+						AND comment.tree_path = C.tree_path)
+			) AS first
+			ON comment.review_id = first.review_id
+				AND comment.tree_path = first.tree_path AND comment.line = first.line
+		WHERE comment.type = 21
+			AND comment.id != first.id
+			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
+			return 0, nil, fmt.Errorf("failed to select: %v", err)
+		}
+
+		if fix {
+			for _, comment := range comments {
+				if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
+					return 0, nil, fmt.Errorf("failed to update comment[%d]: %v %v", comment.ID, comment, err)
+				}
+				result = append(result, fmt.Sprintf("update comment[%d]: %s\n", comment.ID, comment.CommitSHA))
+			}
+		}
+
+		count += int64(len(comments))
+		start += len(comments)
+		if len(comments) < batchSize {
+			break
+		}
+	}
+
+	if fix {
+		return count, result, sess.Commit()
+	}
+
+	return count, nil, nil
 }
