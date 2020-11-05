@@ -171,14 +171,13 @@ func runDoctorUpdateCodeCommentReplies(ctx *cli.Context) ([]string, error) {
 			return nil, err
 		}
 		return result, nil
-	} else {
-		count, _, err := models.CountOrFixUpdatableCodeCommentReplies(false)
-		if err != nil {
-			return nil, err
-		}
-		result := fmt.Sprintf("%d code comment replies without commitID exist", count)
-		return []string{result}, nil
 	}
+	count, _, err := models.CountOrFixUpdatableCodeCommentReplies(false)
+	if err != nil {
+		return nil, err
+	}
+	result := fmt.Sprintf("%d code comment replies without commitID exist", count)
+	return []string{result}, nil
 }
 
 func runRecreateTable(ctx *cli.Context) error {
