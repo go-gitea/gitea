@@ -182,6 +182,7 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
 
 // shouldWriteInline represents combinations where we manually write inline changes
 func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
@@ -205,10 +206,36 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 				match = ""
 			}
 			// Chroma HTML syntax highlighting is done before diffing individual lines in order to maintain consistency.
-			// Since inline changes might split in the middle of a chroma span tag, make we manually put it back together
-			// before writing so we don't try insert added/removed code spans in the middle of an existing chroma span
-			// and create broken HTML.
+			// Since inline changes might split in the middle of a chroma span tag or HTML entity, make we manually put it back together
+			// before writing so we don't try insert added/removed code spans in the middle of one of those
+			// and create broken HTML. This is done by moving incomplete HTML forward until it no longer matches our pattern of
+			// a line ending with an incomplete HTML entity or partial/opening <span>.
+
+			// EX:
+			// diffs[{Type: dmp.DiffDelete, Text: "language</span><span "},
+			// {Type: dmp.DiffEqual, Text: "c"},
+			// {Type: dmp.DiffDelete, Text: "lass="p">}]
+
+			// After first iteration
+			// diffs[{Type: dmp.DiffDelete, Text: "language</span>"}, //write out
+			// {Type: dmp.DiffEqual, Text: "<span c"},
+			// {Type: dmp.DiffDelete, Text: "lass="p">,</span>}]
+
+			// After second iteration
+			// {Type: dmp.DiffEqual, Text: ""}, // write out
+			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
+
+			// Final
+			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
+			// end up writing <span class="removed-code"><span class="p">,</span></span>
+			// Instead of <span class="removed-code">lass="p",</span></span>
+
 			m := trailingSpanRegex.FindStringSubmatchIndex(diff.Text)
+			if m != nil {
+				match = diff.Text[m[0]:m[1]]
+				diff.Text = strings.TrimSuffix(diff.Text, match)
+			}
+			m = entityRegex.FindStringSubmatchIndex(diff.Text)
 			if m != nil {
 				match = diff.Text[m[0]:m[1]]
 				diff.Text = strings.TrimSuffix(diff.Text, match)
@@ -290,9 +317,6 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
-var unterminatedEntityRE = regexp.MustCompile(`&[^ ;]*$`)
-var unstartedEntiyRE = regexp.MustCompile(`^[^ ;]*;`)
-
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
@@ -333,87 +357,9 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	// Now we need to clean up the split entities
-	diffRecord = unsplitEntities(diffRecord)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
-}
-
-// unsplitEntities looks for broken up html entities. It relies on records being presimplified and the data being passed in being valid html
-func unsplitEntities(records []diffmatchpatch.Diff) []diffmatchpatch.Diff {
-	// Unsplitting entities is simple...
-	//
-	// Iterate through all be the last records because if we're the last record then there's nothing we can do
-	for i := 0; i+1 < len(records); i++ {
-		record := &records[i]
-
-		// Look for an unterminated entity at the end of the line
-		unterminated := unterminatedEntityRE.FindString(record.Text)
-		if len(unterminated) == 0 {
-			continue
-		}
-
-		switch record.Type {
-		case diffmatchpatch.DiffEqual:
-			// If we're an diff equal we want to give this unterminated entity to our next delete and insert
-			record.Text = record.Text[0 : len(record.Text)-len(unterminated)]
-			records[i+1].Text = unterminated + records[i+1].Text
-
-			nextType := records[i+1].Type
-
-			if nextType == diffmatchpatch.DiffEqual {
-				continue
-			}
-
-			// if the next in line is a delete then we will want the thing after that to be an insert and so on.
-			oneAfterType := diffmatchpatch.DiffInsert
-			if nextType == diffmatchpatch.DiffInsert {
-				oneAfterType = diffmatchpatch.DiffDelete
-			}
-
-			if i+2 < len(records) && records[i+2].Type == oneAfterType {
-				records[i+2].Text = unterminated + records[i+2].Text
-			} else {
-				records = append(records[:i+2], append([]diffmatchpatch.Diff{
-					{
-						Type: oneAfterType,
-						Text: unterminated,
-					}}, records[i+2:]...)...)
-			}
-		case diffmatchpatch.DiffDelete:
-			fallthrough
-		case diffmatchpatch.DiffInsert:
-			// if we're an insert or delete we want to claim the terminal bit of the entity from the next equal in line
-			targetType := diffmatchpatch.DiffInsert
-			if record.Type == diffmatchpatch.DiffInsert {
-				targetType = diffmatchpatch.DiffDelete
-			}
-			next := &records[i+1]
-			if next.Type == diffmatchpatch.DiffEqual {
-				// if the next is an equal we need to snaffle the entity end off the start and add an delete/insert
-				if terminal := unstartedEntiyRE.FindString(next.Text); len(terminal) > 0 {
-					record.Text += terminal
-					next.Text = next.Text[len(terminal):]
-					records = append(records[:i+2], append([]diffmatchpatch.Diff{
-						{
-							Type: targetType,
-							Text: unterminated,
-						}}, records[i+2:]...)...)
-				}
-			} else if next.Type == targetType {
-				// if the next is an insert we need to snaffle the entity end off the one after that and add it to both.
-				if i+2 < len(records) && records[i+2].Type == diffmatchpatch.DiffEqual {
-					if terminal := unstartedEntiyRE.FindString(records[i+2].Text); len(terminal) > 0 {
-						record.Text += terminal
-						next.Text += terminal
-						records[i+2].Text = records[i+2].Text[len(terminal):]
-					}
-				}
-			}
-		}
-	}
-	return records
 }
 
 // DiffFile represents a file diff.
