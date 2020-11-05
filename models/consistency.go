@@ -297,6 +297,7 @@ func FixNullArchivedRepository() (int64, error) {
 	})
 }
 
+// CountOrFixUpdatableCodeCommentReplies count or fix CodeCommentReplies missing the CommitSHA
 func CountOrFixUpdatableCodeCommentReplies(fix bool) (int64, []string, error) {
 	sess := x.NewSession()
 	defer sess.Close()
