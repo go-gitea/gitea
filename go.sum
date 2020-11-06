@@ -855,8 +855,8 @@ github.com/olekukonko/tablewriter v0.0.4 h1:vHD/YYe1Wolo78koG299f7V/VAS08c6IpCLn
 github.com/olekukonko/tablewriter v0.0.4/go.mod h1:zq6QwlOf5SlnkVbMSr5EoBv3636FWnp+qbPhuoO21uA=
 github.com/oliamb/cutter v0.2.2 h1:Lfwkya0HHNU1YLnGv2hTkzHfasrSMkgv4Dn+5rmlk3k=
 github.com/oliamb/cutter v0.2.2/go.mod h1:4BenG2/4GuRBDbVm/OPahDVqbrOemzpPiG5mi1iryBU=
-github.com/olivere/elastic/v7 v7.0.20 h1:5FFpGPVJlBSlWBOdict406Y3yNTIpVpAiUvdFZeSbAo=
-github.com/olivere/elastic/v7 v7.0.20/go.mod h1:Kh7iIsXIBl5qRQOBFoylCsXVTtye3keQU2Y/YbR7HD8=
+github.com/olivere/elastic/v7 v7.0.21 h1:58a2pMlLketCsLyKg8kJNJG+OZIFKrSQXX6gJBpqqlg=
+github.com/olivere/elastic/v7 v7.0.21/go.mod h1:Kh7iIsXIBl5qRQOBFoylCsXVTtye3keQU2Y/YbR7HD8=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.8.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

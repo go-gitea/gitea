@@ -83,7 +83,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
-	github.com/olivere/elastic/v7 v7.0.20
+	github.com/olivere/elastic/v7 v7.0.21
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect

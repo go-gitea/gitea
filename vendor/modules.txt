@@ -635,7 +635,7 @@ github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
 github.com/oliamb/cutter
-# github.com/olivere/elastic/v7 v7.0.20
+# github.com/olivere/elastic/v7 v7.0.21
 ## explicit
 github.com/olivere/elastic/v7
 github.com/olivere/elastic/v7/config
