@@ -446,7 +446,7 @@ github.com/gorilla/securecookie
 github.com/gorilla/sessions
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.6.7
+# github.com/hashicorp/go-retryablehttp v0.6.8
 ## explicit
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-version v1.2.1 => github.com/6543/go-version v1.2.4
@@ -767,7 +767,7 @@ github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
 ## explicit
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.38.1
+# github.com/xanzy/go-gitlab v0.39.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -841,7 +841,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
+# golang.org/x/net v0.0.0-20201031054903-ff519b6c9102
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
