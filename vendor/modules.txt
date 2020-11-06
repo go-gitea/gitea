@@ -487,7 +487,7 @@ github.com/jessevdk/go-flags
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
+# github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
