@@ -71,7 +71,7 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
 		case setting.Database.UseMSSQL:
 			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + sqlCmd[6:] +
-				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + sqlCmd[6:] + "))"
+				" AND (id NOT IN ( SELECT TOP " + strconv.Itoa(start) + sqlCmd[6:] + "))"
 		default:
 			return fmt.Errorf("Unsupported database type")
 		}
