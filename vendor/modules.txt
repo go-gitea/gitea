@@ -211,7 +211,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 github.com/danwakefield/fnmatch
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
+# github.com/denisenkom/go-mssqldb v0.9.0
 ## explicit
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
