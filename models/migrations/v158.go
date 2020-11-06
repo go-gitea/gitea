@@ -5,7 +5,11 @@
 package migrations
 
 import (
+	"fmt"
+	"strconv"
+
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
@@ -38,7 +42,8 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 	var batchSize = 100
 	for {
 		var comments = make([]*Comment, 0, batchSize)
-		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
+
+		sqlCmd := `SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
 		FROM comment INNER JOIN (
 			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
 			FROM comment AS C
@@ -55,13 +60,29 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 				AND comment.tree_path = first.tree_path AND comment.line = first.line
 		WHERE comment.type = 21
 			AND comment.id != first.id
-			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
+			AND comment.commit_sha != first.commit_sha`
+
+		switch {
+		case setting.Database.UseMySQL:
+			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + ", " + strconv.Itoa(start)
+		case setting.Database.UsePostgreSQL:
+			fallthrough
+		case setting.Database.UseSQLite3:
+			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
+		case setting.Database.UseMSSQL:
+			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + sqlCmd[6:] +
+				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + sqlCmd[6:] + "))"
+		default:
+			return fmt.Errorf("Unsupported database type")
+		}
+
+		if err := sess.SQL(sqlCmd).Find(&comments); err != nil {
 			log.Error("failed to select: %v", err)
 			return err
 		}
 
 		for _, comment := range comments {
-			if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
+			if _, err := sess.Table("comment").ID(comment.ID).Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
 				log.Error("failed to update comment[%d]: %v %v", comment.ID, comment, err)
 				return err
 			}
