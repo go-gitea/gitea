@@ -3150,17 +3150,13 @@ function initFilterBranchTagDropdown(selector) {
       },
 
       beforeMount() {
-        const vm = this;
-
-        this.noResults = vm.$el.getAttribute('data-no-results');
-        this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
+        this.noResults = this.$el.getAttribute('data-no-results');
+        this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
 
         document.body.addEventListener('click', (event) => {
-          if (vm.$el.contains(event.target)) {
-            return;
-          }
-          if (vm.menuVisible) {
-            Vue.set(vm, 'menuVisible', false);
+          if (this.$el.contains(event.target)) return;
+          if (this.menuVisible) {
+            Vue.set(this, 'menuVisible', false);
           }
         });
       },
@@ -3175,15 +3171,12 @@ function initFilterBranchTagDropdown(selector) {
           window.location.href = item.url;
         },
         createNewBranch() {
-          if (!this.showCreateNewBranch) {
-            return;
-          }
+          if (!this.showCreateNewBranch) return;
           $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
-          const vm = this;
           Vue.nextTick(() => {
-            vm.$refs.searchField.focus();
+            this.$refs.searchField.focus();
           });
         },
         getSelected() {
@@ -3200,15 +3193,12 @@ function initFilterBranchTagDropdown(selector) {
         },
         scrollToActive() {
           let el = this.$refs[`listItem${this.active}`];
-          if (!el || el.length === 0) {
-            return;
-          }
+          if (!el || !el.length) return;
           if (Array.isArray(el)) {
             el = el[0];
           }
 
           const cont = this.$refs.scrollContainer;
-
           if (el.offsetTop < cont.scrollTop) {
             cont.scrollTop = el.offsetTop;
           } else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
@@ -3216,49 +3206,41 @@ function initFilterBranchTagDropdown(selector) {
           }
         },
         keydown(event) {
-          const vm = this;
-          if (event.keyCode === 40) {
-            // arrow down
+          if (event.keyCode === 40) { // arrow down
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+            if (this.active + (this.showCreateNewBranch ? 0 : 1) >= this.filteredItems.length) {
               return;
             }
-            vm.active++;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 38) {
-            // arrow up
+            this.active++;
+            this.scrollToActive();
+          } else if (event.keyCode === 38) { // arrow up
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active <= 0) {
+            if (this.active <= 0) {
               return;
             }
-            vm.active--;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 13) {
-            // enter
+            this.active--;
+            this.scrollToActive();
+          } else if (event.keyCode === 13) { // enter
             event.preventDefault();
 
-            if (vm.active >= vm.filteredItems.length) {
-              vm.createNewBranch();
-            } else if (vm.active >= 0) {
-              vm.selectItem(vm.filteredItems[vm.active]);
+            if (this.active >= this.filteredItems.length) {
+              this.createNewBranch();
+            } else if (this.active >= 0) {
+              this.selectItem(this.filteredItems[this.active]);
             }
-          }
-          if (event.keyCode === 27) {
-            // escape
+          } else if (event.keyCode === 27) { // escape
             event.preventDefault();
-            vm.menuVisible = false;
+            this.menuVisible = false;
           }
         }
       }

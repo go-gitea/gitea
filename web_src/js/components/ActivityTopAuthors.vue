@@ -48,26 +48,21 @@
     </vue-bar-graph>
   </div>
 </template>
-
 <script>
 import VueBarGraph from 'vue-bar-graph';
 
 export default {
-  components: {
-    VueBarGraph,
-  },
+  components: {VueBarGraph},
   props: {
     data: {type: Array, default: () => []},
   },
-  data() {
-    return {
-      colors: {
-        barColor: 'green',
-        textColor: 'black',
-        textAltColor: 'white',
-      },
-    };
-  },
+  data: () => ({
+    colors: {
+      barColor: 'green',
+      textColor: 'black',
+      textAltColor: 'white',
+    },
+  }),
   computed: {
     graphData() {
       return this.data.map((item) => {

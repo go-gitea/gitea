@@ -17,7 +17,6 @@
     />
   </div>
 </template>
-
 <script>
 import {CalendarHeatmap} from 'vue-calendar-heatmap';
 const {AppSubUrl, heatmapUser} = window.config;
@@ -25,20 +24,18 @@ const {AppSubUrl, heatmapUser} = window.config;
 export default {
   name: 'ActivityHeatmap',
   components: {CalendarHeatmap},
-  data() {
-    return {
-      isLoading: true,
-      colorRange: [],
-      endDate: null,
-      values: [],
-      suburl: AppSubUrl,
-      user: heatmapUser,
-      locale: {
-        contributions: 'contributions',
-        no_contributions: 'No contributions',
-      },
-    };
-  },
+  data: () => ({
+    isLoading: true,
+    colorRange: [],
+    endDate: null,
+    values: [],
+    suburl: AppSubUrl,
+    user: heatmapUser,
+    locale: {
+      contributions: 'contributions',
+      no_contributions: 'No contributions',
+    },
+  }),
   mounted() {
     this.colorRange = [
       this.getColor(0),
@@ -71,7 +68,4 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-
-</style>
+<style scoped/>
