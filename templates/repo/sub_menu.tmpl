@@ -10,7 +10,7 @@
 				</div>
 				{{if $.Permission.CanRead $.UnitTypeCode}}
 					<div class="item">
-						<a class="ui" href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumReleases}}</b> {{.i18n.Tr (TrN .i18n.Lang .NumReleases "repo.release" "repo.releases") }}</a>
+						<a class="ui" href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.i18n.Tr (TrN .i18n.Lang .NumTags "repo.tag" "repo.tags") }}</a>
 					</div>
 				{{end}}
 				<div class="item">

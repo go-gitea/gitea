@@ -998,6 +998,9 @@
         }
 
         .content {
+          border: 1px solid var(--color-secondary);
+          border-radius: var(--border-radius);
+
           > .merge-section {
             background-color: #f7f7f7;
 
@@ -1089,18 +1092,6 @@
           }
         }
 
-        &:target > .content {
-          box-shadow: 0 0 10px #8c8c8c;
-        }
-
-        &:target > .content > .code-comment-content {
-          padding: 4px;
-        }
-
-        &:target > .content > .code-comment-content > .text {
-          margin-bottom: 0;
-        }
-
         .ui.form {
           .field {
             &:first-child {
@@ -1124,6 +1115,15 @@
 
         .edit.buttons {
           margin-top: 10px;
+        }
+      }
+
+      .code-comment {
+        border: 1px solid transparent;
+        padding: 6px 6px 3px;
+
+        .content {
+          border: none !important;
         }
       }
 
@@ -2395,6 +2395,11 @@
   .segment.reactions {
     padding: 0;
     display: flex;
+    border: none !important;
+    border-top: 1px solid var(--color-secondary) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
 
     .ui.label {
       max-height: 40px;
@@ -2407,7 +2412,7 @@
       margin: 0;
       font-size: 14px;
       font-weight: normal;
-      border-color: inherit !important;
+      border-color: var(--color-secondary) !important;
 
       &.disabled {
         cursor: default;
@@ -2421,7 +2426,7 @@
 
     .ui.label.basic.blue {
       background-color: var(--color-primary-alpha-20) !important;
-      border-color: inherit !important;
+      border-color: var(--color-secondary) !important;
     }
 
     .reaction-count {
@@ -2786,8 +2791,30 @@
   }
 }
 
+.comment:target .content {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
+}
+
+.comment:target .header:before {
+  border-right-color: var(--color-primary) !important;
+  filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
+}
+
+.code-comment:target {
+  border-color: var(--color-primary) !important;
+  border-radius: var(--border-radius) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
+}
+
+.code-comment:target .content {
+  box-shadow: none !important;
+}
+
 .comment-header {
   #avatar-arrow;
+  border: none !important;
+  border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
   padding: .5rem 1rem !important;
   margin: 0 !important;
@@ -2831,6 +2858,13 @@
 .comment-header-left > * + *,
 .comment-header-right > * + * {
   margin-left: .25rem;
+}
+
+.comment-body {
+  border: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
 }
 
 .edit-label.modal,
