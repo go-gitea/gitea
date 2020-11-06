@@ -28,7 +28,7 @@ globals:
   u2fApi: false
 
 overrides:
-  - files: ["web_src/**/*.js"]
+  - files: ["web_src/**/*.js", "web_src/**/*.vue"]
     env:
       browser: true
       jquery: true
