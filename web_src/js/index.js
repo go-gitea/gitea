@@ -2687,7 +2687,15 @@ function initVueComponents() {
       .replace(/height="[0-9]+"/, 'v-bind:height="size"')
       .replace(/width="[0-9]+"/, 'v-bind:width="size"');
 
-    Vue.component(name, {props: ['size'], template});
+    Vue.component(name, {
+      props: {
+        size: {
+          type: String,
+          default: '16',
+        },
+      },
+      template,
+    });
   }
 
   const vueDelimeters = ['${', '}'];
@@ -2710,7 +2718,7 @@ function initVueComponents() {
       },
       organizations: {
         type: Array,
-        default: []
+        default: () => [],
       },
       isOrganization: {
         type: Boolean,
@@ -3050,16 +3058,18 @@ function initVueApp() {
   initVueComponents();
 
   new Vue({
-    delimiters: ['${', '}'],
     el,
-    data: {
-      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
-      suburl: AppSubUrl,
-      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
-      activityTopAuthors: window.ActivityTopAuthors || [],
-    },
+    delimiters: ['${', '}'],
     components: {
       ActivityTopAuthors,
+    },
+    data: () => {
+      return {
+        searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+        suburl: AppSubUrl,
+        uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+        activityTopAuthors: window.ActivityTopAuthors || [],
+      };
     },
   });
 }
@@ -3105,9 +3115,39 @@ function initFilterBranchTagDropdown(selector) {
     });
     $data.remove();
     new Vue({
-      delimiters: ['${', '}'],
       el: this,
+      delimiters: ['${', '}'],
       data,
+      computed: {
+        filteredItems() {
+          const items = this.items.filter((item) => {
+            return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+              (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          });
+
+          // no idea how to fix this so linting rule is disabled instead
+          this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1); // eslint-disable-line vue/no-side-effects-in-computed-properties
+          return items;
+        },
+        showNoResults() {
+          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+        },
+        showCreateNewBranch() {
+          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+            return false;
+          }
+
+          return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+        }
+      },
+
+      watch: {
+        menuVisible(visible) {
+          if (visible) {
+            this.focusSearchField();
+          }
+        }
+      },
 
       beforeMount() {
         const vm = this;
@@ -3123,40 +3163,6 @@ function initFilterBranchTagDropdown(selector) {
             Vue.set(vm, 'menuVisible', false);
           }
         });
-      },
-
-      watch: {
-        menuVisible(visible) {
-          if (visible) {
-            this.focusSearchField();
-          }
-        }
-      },
-
-      computed: {
-        filteredItems() {
-          const vm = this;
-
-          const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
-              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
-          });
-
-          vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
-
-          return items;
-        },
-        showNoResults() {
-          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
-        },
-        showCreateNewBranch() {
-          const vm = this;
-          if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
-            return false;
-          }
-
-          return vm.items.filter((item) => item.name.toLowerCase() === vm.searchTerm.toLowerCase()).length === 0;
-        }
       },
 
       methods: {

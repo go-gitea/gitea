@@ -312,7 +312,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint web_src/js build webpack.config.js
+	npx eslint --ext .js,.vue web_src/js build webpack.config.js
 	npx stylelint web_src/less
 
 .PHONY: lint-backend

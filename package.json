@@ -54,6 +54,7 @@
     "eslint": "7.11.0",
     "eslint-plugin-import": "2.22.1",
     "eslint-plugin-unicorn": "23.0.0",
+    "eslint-plugin-vue": "7.1.0",
     "stylelint": "13.7.2",
     "stylelint-config-standard": "20.0.0",
     "svgo": "1.3.2",
