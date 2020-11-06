@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // GenerateRepoOptions contains the template units to generate
@@ -139,7 +139,7 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 // GenerateAvatar generates the avatar from a template repository
 func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error {
 	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
-	if err := com.Copy(templateRepo.CustomAvatarPath(), generateRepo.CustomAvatarPath()); err != nil {
+	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
 		return err
 	}
 

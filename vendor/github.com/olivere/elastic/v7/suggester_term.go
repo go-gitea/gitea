@@ -217,7 +217,7 @@ func (q *TermSuggester) Source(includeName bool) (interface{}, error) {
 		suggester["prefix_length"] = *q.prefixLength
 	}
 	if q.minWordLength != nil {
-		suggester["min_word_len"] = *q.minWordLength
+		suggester["min_word_length"] = *q.minWordLength
 	}
 	if q.minDocFreq != nil {
 		suggester["min_doc_freq"] = *q.minDocFreq

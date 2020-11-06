@@ -23,6 +23,10 @@ groups:
     labels:
       - kind/security
   -
+    name: API
+    labels:
+      - kind/api
+  -
     name: BUGFIXES
     labels:
       - kind/bug

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -61,7 +62,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	if !has {
-		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -82,7 +83,11 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
 	}
-	defer os.RemoveAll(indexTmpPath)
+	defer func() {
+		if err := util.RemoveAll(indexTmpPath); err != nil {
+			log.Warn("Unable to remove temporary index path: %s: Error: %v", indexTmpPath, err)
+		}
+	}()
 
 	headFile := pr.GetGitRefName()
 
@@ -221,6 +226,20 @@ func handle(data ...queue.Data) {
 		}
 		checkAndUpdateStatus(pr)
 	}
+}
+
+// CheckPrsForBaseBranch check all pulls with bseBrannch
+func CheckPrsForBaseBranch(baseRepo *models.Repository, baseBranchName string) error {
+	prs, err := models.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
+	if err != nil {
+		return err
+	}
+
+	for _, pr := range prs {
+		AddToTaskQueue(pr)
+	}
+
+	return nil
 }
 
 // Init runs the task queue to test all the checking status pull requests

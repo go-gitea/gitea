@@ -23,15 +23,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
-	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
+	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
-	"strk.kbt.io/projects/go/libravatar"
 )
 
 // Scheme describes protocol types
@@ -61,6 +59,7 @@ const (
 const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
+	HCaptcha     = "hcaptcha"
 )
 
 // settings
@@ -104,44 +103,42 @@ var (
 	StaticURLPrefix      string
 
 	SSH = struct {
-		Disabled                 bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer       bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser        string         `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain                   string         `ini:"SSH_DOMAIN"`
-		Port                     int            `ini:"SSH_PORT"`
-		ListenHost               string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort               int            `ini:"SSH_LISTEN_PORT"`
-		RootPath                 string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers            []string       `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges       []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs               []string       `ini:"SSH_SERVER_MACS"`
-		KeyTestPath              string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath               string         `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup     bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		MinimumKeySizeCheck      bool           `ini:"-"`
-		MinimumKeySizes          map[string]int `ini:"-"`
-		CreateAuthorizedKeysFile bool           `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
-		ExposeAnonymous          bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
+		Disabled                       bool              `ini:"DISABLE_SSH"`
+		StartBuiltinServer             bool              `ini:"START_SSH_SERVER"`
+		BuiltinServerUser              string            `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                         string            `ini:"SSH_DOMAIN"`
+		Port                           int               `ini:"SSH_PORT"`
+		ListenHost                     string            `ini:"SSH_LISTEN_HOST"`
+		ListenPort                     int               `ini:"SSH_LISTEN_PORT"`
+		RootPath                       string            `ini:"SSH_ROOT_PATH"`
+		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
+		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		AuthorizedPrincipalsBackup     bool              `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
+		MinimumKeySizeCheck            bool              `ini:"-"`
+		MinimumKeySizes                map[string]int    `ini:"-"`
+		CreateAuthorizedKeysFile       bool              `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
+		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
+		AuthorizedPrincipalsAllow      []string          `ini:"SSH_AUTHORIZED_PRINCIPALS_ALLOW"`
+		AuthorizedPrincipalsEnabled    bool              `ini:"-"`
+		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
+		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
+		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
 	}{
-		Disabled:           false,
-		StartBuiltinServer: false,
-		Domain:             "",
-		Port:               22,
-		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
-		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
-		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
-		KeygenPath:         "ssh-keygen",
-		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
-	}
-
-	LFS struct {
-		StartServer     bool          `ini:"LFS_START_SERVER"`
-		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes  []byte        `ini:"-"`
-		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
-		MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
-		LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
+		Disabled:            false,
+		StartBuiltinServer:  false,
+		Domain:              "",
+		Port:                22,
+		ServerCiphers:       []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges:  []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:          []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
+		KeygenPath:          "ssh-keygen",
+		MinimumKeySizeCheck: true,
+		MinimumKeySizes:     map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048},
 	}
 
 	// Security settings
@@ -158,6 +155,7 @@ var (
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
+	PasswordCheckPwn                   bool
 
 	// UI settings
 	UI = struct {
@@ -166,6 +164,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -207,6 +206,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -271,20 +271,6 @@ var (
 		DefaultEmailNotification  string
 	}
 
-	// Picture settings
-	AvatarUploadPath              string
-	AvatarMaxWidth                int
-	AvatarMaxHeight               int
-	GravatarSource                string
-	GravatarSourceURL             *url.URL
-	DisableGravatar               bool
-	EnableFederatedAvatar         bool
-	LibravatarService             *libravatar.Libravatar
-	AvatarMaxFileSize             int64
-	RepositoryAvatarUploadPath    string
-	RepositoryAvatarFallback      string
-	RepositoryAvatarFallbackImage string
-
 	// Log settings
 	LogLevel           string
 	StacktraceLogLevel string
@@ -296,13 +282,6 @@ var (
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
-
-	// Attachment settings
-	AttachmentPath         string
-	AttachmentAllowedTypes string
-	AttachmentMaxSize      int64
-	AttachmentMaxFiles     int
-	AttachmentEnabled      bool
 
 	// Time settings
 	TimeFormat string
@@ -380,7 +359,8 @@ var (
 	Cfg           *ini.File
 	CustomPath    string // Custom directory path
 	CustomConf    string
-	CustomPID     string
+	PIDFile       = "/run/gitea.pid"
+	WritePIDFile  bool
 	ProdMode      bool
 	RunUser       string
 	IsWindows     bool
@@ -410,7 +390,7 @@ func getAppPath() (string, error) {
 	}
 	// Note: we don't use path.Dir here because it does not handle case
 	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.Replace(appPath, "\\", "/", -1), err
+	return strings.ReplaceAll(appPath, "\\", "/"), err
 }
 
 func getWorkPath(appPath string) string {
@@ -427,7 +407,7 @@ func getWorkPath(appPath string) string {
 			workPath = appPath[:i]
 		}
 	}
-	return strings.Replace(workPath, "\\", "/", -1)
+	return strings.ReplaceAll(workPath, "\\", "/")
 }
 
 func init() {
@@ -477,27 +457,6 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
-func CheckLFSVersion() {
-	if LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			log.Fatal("Error retrieving git version: %v", err)
-		}
-
-		if !version.Compare(binVersion, "2.1.2", ">=") {
-			LFS.StartServer = false
-			log.Error("LFS server support needs at least Git v2.1.2")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-		}
-	}
-}
-
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
@@ -533,8 +492,8 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 func NewContext() {
 	Cfg = ini.Empty()
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if WritePIDFile && len(PIDFile) > 0 {
+		createPIDFile(PIDFile)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -550,7 +509,7 @@ func NewContext() {
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
-	homeDir = strings.Replace(homeDir, "\\", "/", -1)
+	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
 	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
@@ -652,7 +611,10 @@ func NewContext() {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
+	}
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
@@ -703,15 +665,41 @@ func NewContext() {
 		SSH.StartBuiltinServer = false
 	}
 
+	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+	for _, caKey := range trustedUserCaKeys {
+		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
+		if err != nil {
+			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+		}
+
+		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
+	}
+	if len(trustedUserCaKeys) > 0 {
+		// Set the default as email,username otherwise we can leave it empty
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
+	} else {
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
+	}
+
+	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
+
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
 		} else if err = os.MkdirAll(SSH.KeyTestPath, 0644); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
+
+		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
+			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
+			if err := ioutil.WriteFile(fname,
+				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
+				log.Fatal("Failed to create '%s': %v", fname, err)
+			}
+		}
 	}
 
-	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
+	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
@@ -720,55 +708,18 @@ func NewContext() {
 			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
+
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
+
+	SSH.AuthorizedPrincipalsBackup = false
+	SSH.CreateAuthorizedPrincipalsFile = false
+	if SSH.AuthorizedPrincipalsEnabled {
+		SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
+		SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
+	}
+
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
-
-	sec = Cfg.Section("server")
-	if err = sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
-	}
-	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
-	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
-	}
-	if LFS.LocksPagingNum == 0 {
-		LFS.LocksPagingNum = 50
-	}
-
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
-
-	if LFS.StartServer {
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
-			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
-			}
-
-			// Save secret
-			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
-				// Keeps custom settings if there is already something.
-				if err := cfg.Append(CustomConf); err != nil {
-					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-				}
-			}
-
-			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-
-			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal("Failed to create '%s': %v", CustomConf, err)
-			}
-			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
-				return
-			}
-		}
-	}
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
@@ -818,14 +769,18 @@ func NewContext() {
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
-	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 
 	InternalToken = loadInternalToken(sec)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
 	PasswordComplexity = make([]string, 0, len(cfgdata))
 	for _, name := range cfgdata {
 		name := strings.ToLower(strings.Trim(name, `"`))
@@ -834,15 +789,8 @@ func NewContext() {
 		}
 	}
 
-	sec = Cfg.Section("attachment")
-	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
-	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
-	}
-	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
-	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
-	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
+	newAttachmentService()
+	newLFSService()
 
 	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
@@ -901,59 +849,7 @@ func NewContext() {
 
 	newRepository()
 
-	sec = Cfg.Section("picture")
-	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
-	forcePathSeparator(AvatarUploadPath)
-	if !filepath.IsAbs(AvatarUploadPath) {
-		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
-	}
-	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
-	forcePathSeparator(RepositoryAvatarUploadPath)
-	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
-		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
-	}
-	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
-	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
-	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
-	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
-	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
-	case "duoshuo":
-		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
-	case "gravatar":
-		GravatarSource = "https://secure.gravatar.com/avatar/"
-	case "libravatar":
-		GravatarSource = "https://seccdn.libravatar.org/avatar/"
-	default:
-		GravatarSource = source
-	}
-	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
-	if OfflineMode {
-		DisableGravatar = true
-		EnableFederatedAvatar = false
-	}
-	if DisableGravatar {
-		EnableFederatedAvatar = false
-	}
-	if EnableFederatedAvatar || !DisableGravatar {
-		GravatarSourceURL, err = url.Parse(GravatarSource)
-		if err != nil {
-			log.Fatal("Failed to parse Gravatar URL(%s): %v",
-				GravatarSource, err)
-		}
-	}
-
-	if EnableFederatedAvatar {
-		LibravatarService = libravatar.New()
-		if GravatarSourceURL.Scheme == "https" {
-			LibravatarService.SetUseHTTPS(true)
-			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
-		} else {
-			LibravatarService.SetUseHTTPS(false)
-			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
-		}
-	}
+	newPictureService()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
@@ -1014,13 +910,45 @@ func NewContext() {
 	newMarkup()
 
 	sec = Cfg.Section("U2F")
-	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimSuffix(AppURL, AppSubURL+"/")))
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
 	}
+}
+
+func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
+	anything := false
+	email := false
+	username := false
+	for _, value := range values {
+		v := strings.ToLower(strings.TrimSpace(value))
+		switch v {
+		case "off":
+			return []string{"off"}, false
+		case "email":
+			email = true
+		case "username":
+			username = true
+		case "anything":
+			anything = true
+		}
+	}
+	if anything {
+		return []string{"anything"}, true
+	}
+
+	authorizedPrincipalsAllow := []string{}
+	if username {
+		authorizedPrincipalsAllow = append(authorizedPrincipalsAllow, "username")
+	}
+	if email {
+		authorizedPrincipalsAllow = append(authorizedPrincipalsAllow, "email")
+	}
+
+	return authorizedPrincipalsAllow, true
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1093,20 +1021,11 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
-func ensureLFSDirectory() {
-	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
-		}
-	}
-}
-
 // NewServices initializes the services
 func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
-	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()
@@ -1118,4 +1037,5 @@ func NewServices() {
 	newIndexerService()
 	newTaskService()
 	NewQueueService()
+	newProject()
 }

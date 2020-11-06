@@ -15,7 +15,7 @@
                     {{$.CsrfTokenHtml}}
                     <div class="{{if not $notificationUnreadCount}}hide{{end}}">
                         <button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
-                            {{svg "octicon-checklist" 16}}
+                            {{svg "octicon-checklist"}}
                         </button>
                     </div>
                 </form>
@@ -38,22 +38,22 @@
                             <tr id="notification_{{.ID}}">
                                 <td class="collapsing" data-href="{{.HTMLURL}}">
                                     {{if eq .Status 3}}
-                                        <span class="blue">{{svg "octicon-pin" 16}}</span>
+                                        <span class="blue">{{svg "octicon-pin"}}</span>
                                     {{else if $issue.IsPull}}
                                         {{if $issue.IsClosed}}
                                             {{if $issue.GetPullRequest.HasMerged}}
-                                                <span class="purple">{{svg "octicon-git-merge" 16}}</span>
+                                                <span class="purple">{{svg "octicon-git-merge"}}</span>
                                             {{else}}
-                                                <span class="red">{{svg "octicon-git-pull-request" 16}}</span>
+                                                <span class="red">{{svg "octicon-git-pull-request"}}</span>
                                             {{end}}
                                         {{else}}
-                                            <span class="green">{{svg "octicon-git-pull-request" 16}}</span>
+                                            <span class="green">{{svg "octicon-git-pull-request"}}</span>
                                         {{end}}
                                     {{else}}
                                         {{if $issue.IsClosed}}
-                                            <span class="red">{{svg "octicon-issue-closed" 16}}</span>
+                                            <span class="red">{{svg "octicon-issue-closed"}}</span>
                                         {{else}}
-                                            <span class="green">{{svg "octicon-issue-opened" 16}}</span>
+                                            <span class="green">{{svg "octicon-issue-opened"}}</span>
                                         {{end}}
                                     {{end}}
                                 </td>
@@ -79,7 +79,7 @@
                                                 data-page="{{$.Page.Paginater.Current}}"
                                                 data-notification-id="{{.ID}}"
                                                 data-q="{{$.Keyword}}">
-                                                {{svg "octicon-pin" 16}}
+                                                {{svg "octicon-pin"}}
                                             </button>
                                         </form>
                                     {{end}}
@@ -97,7 +97,7 @@
                                                 data-page="{{$.Page.Paginater.Current}}"
                                                 data-notification-id="{{.ID}}"
                                                 data-q="{{$.Keyword}}">
-                                                {{svg "octicon-check" 16}}
+                                                {{svg "octicon-check"}}
                                             </button>
                                         </form>
                                     {{else if eq .Status 2}}
@@ -112,7 +112,7 @@
                                                 data-page="{{$.Page.Paginater.Current}}"
                                                 data-notification-id="{{.ID}}"
                                                 data-q="{{$.Keyword}}">
-                                                {{svg "octicon-bell" 16}}
+                                                {{svg "octicon-bell"}}
                                             </button>
                                         </form>
                                     {{end}}

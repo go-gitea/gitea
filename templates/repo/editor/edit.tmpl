@@ -6,6 +6,7 @@
 		<form class="ui edit form" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="ui secondary menu">
 				<div class="fitted item treepath">
 					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
@@ -16,7 +17,7 @@
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
-								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info" 16}}</span>
+								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info"}}</span>
 							{{else}}
 								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
 							{{end}}
@@ -28,10 +29,10 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL | EscapePound}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye" 16}} {{.i18n.Tr "preview"}}</a>
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | EscapePound}}/{{.TreePath | EscapePound}}" data-context="{{.BranchLink}}">{{svg "octicon-diff" 16}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL | EscapePound}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
+					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | EscapePound}}/{{.TreePath | EscapePound}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">

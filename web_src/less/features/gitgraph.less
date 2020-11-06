@@ -1,256 +1,256 @@
 #git-graph-container {
-    float: left;
-    display: block;
+  float: left;
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+
+  .color-buttons {
+    margin-right: 0;
+  }
+
+  .ui.header.dividing {
+    padding-bottom: 10px;
+  }
+
+  li {
+    list-style-type: none;
+    height: 20px;
+    line-height: 20px;
+    white-space: nowrap;
+
+    .node-relation {
+      font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
+    }
+
+    .author {
+      color: #666666;
+    }
+
+    .time {
+      color: #999999;
+      font-size: 80%;
+    }
+
+    a {
+      color: #000000;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    a em {
+      color: #bb0000;
+      border-bottom: 1px dotted #bbbbbb;
+      text-decoration: none;
+      font-style: normal;
+    }
+  }
+
+  #rel-container {
+    max-width: 30%;
     overflow-x: auto;
+    float: left;
+  }
+
+  #rev-container {
     width: 100%;
+  }
 
-    .color-buttons {
-        margin-right: 0;
+  #rev-list {
+    margin: 0;
+    padding: 0 5px;
+    min-width: 95%;
+
+    li.highlight,
+    li.hover {
+      background-color: rgba(0, 0, 0, .05);
     }
 
-    .ui.header.dividing {
-        padding-bottom: 10px;
+    li.highlight.hover {
+      background-color: rgba(0, 0, 0, .1);
+    }
+  }
+
+  #graph-raw-list {
+    margin: 0;
+  }
+
+  &.monochrome #rel-container {
+    .flow-group {
+      stroke: grey;
+      fill: grey;
     }
 
-    li {
-        list-style-type: none;
-        height: 20px;
-        line-height: 20px;
-        white-space: nowrap;
+    .flow-group.highlight {
+      stroke: black;
+      fill: black;
+    }
+  }
 
-        .node-relation {
-            font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
-        }
+  &:not(.monochrome) #rel-container {
+    .flow-group {
+      &.flow-color-16-1 {
+        stroke: #499a37;
+        fill: #499a37;
+      }
 
-        .author {
-            color: #666666;
-        }
+      &.flow-color-16-2 {
+        stroke: hsl(356, 58%, 54%);
+        fill: #ce4751;
+      }
 
-        .time {
-            color: #999999;
-            font-size: 80%;
-        }
+      &.flow-color-16-3 {
+        stroke: #8f9121;
+        fill: #8f9121;
+      }
 
-        a {
-            color: #000000;
-        }
+      &.flow-color-16-4 {
+        stroke: #ac32a6;
+        fill: #ac32a6;
+      }
 
-        a:hover {
-            text-decoration: underline;
-        }
+      &.flow-color-16-5 {
+        stroke: #3d27aa;
+        fill: #3d27aa;
+      }
 
-        a em {
-            color: #bb0000;
-            border-bottom: 1px dotted #bbbbbb;
-            text-decoration: none;
-            font-style: normal;
-        }
+      &.flow-color-16-6 {
+        stroke: #c67d28;
+        fill: #c67d28;
+      }
+
+      &.flow-color-16-7 {
+        stroke: #4db392;
+        fill: #4db392;
+      }
+
+      &.flow-color-16-8 {
+        stroke: #aa4d30;
+        fill: #aa4d30;
+      }
+
+      &.flow-color-16-9 {
+        stroke: #2a6f84;
+        fill: #2a6f84;
+      }
+
+      &.flow-color-16-10 {
+        stroke: #c45327;
+        fill: #c45327;
+      }
+
+      &.flow-color-16-11 {
+        stroke: #3d965c;
+        fill: #3d965c;
+      }
+
+      &.flow-color-16-12 {
+        stroke: #792a93;
+        fill: #792a93;
+      }
+
+      &.flow-color-16-13 {
+        stroke: #439d73;
+        fill: #439d73;
+      }
+
+      &.flow-color-16-14 {
+        stroke: #103aad;
+        fill: #103aad;
+      }
+
+      &.flow-color-16-15 {
+        stroke: #982e85;
+        fill: #982e85;
+      }
+
+      &.flow-color-16-0 {
+        stroke: #7db233;
+        fill: #7db233;
+      }
     }
 
-    #rel-container {
-        max-width: 30%;
-        overflow-x: auto;
-        float: left;
+    .flow-group.highlight {
+      &.flow-color-16-1 {
+        stroke: #5ac144;
+        fill: #5ac144;
+      }
+
+      &.flow-color-16-2 {
+        stroke: #ed5a8b;
+        fill: #ed5a8b;
+      }
+
+      &.flow-color-16-3 {
+        stroke: #ced049;
+        fill: #ced048;
+      }
+
+      &.flow-color-16-4 {
+        stroke: #db61d7;
+        fill: #db62d6;
+      }
+
+      &.flow-color-16-5 {
+        stroke: #4e33d1;
+        fill: #4f35d1;
+      }
+
+      &.flow-color-16-6 {
+        stroke: #e6a151;
+        fill: #e6a151;
+      }
+
+      &.flow-color-16-7 {
+        stroke: #44daaa;
+        fill: #44daaa;
+      }
+
+      &.flow-color-16-8 {
+        stroke: #dd7a5c;
+        fill: #dd7a5c;
+      }
+
+      &.flow-color-16-9 {
+        stroke: #38859c;
+        fill: #38859c;
+      }
+
+      &.flow-color-16-10 {
+        stroke: #d95520;
+        fill: #d95520;
+      }
+
+      &.flow-color-16-11 {
+        stroke: #42ae68;
+        fill: #42ae68;
+      }
+
+      &.flow-color-16-12 {
+        stroke: #9126b5;
+        fill: #9126b5;
+      }
+
+      &.flow-color-16-13 {
+        stroke: #4ab080;
+        fill: #4ab080;
+      }
+
+      &.flow-color-16-14 {
+        stroke: #284fb8;
+        fill: #284fb8;
+      }
+
+      &.flow-color-16-15 {
+        stroke: #971c80;
+        fill: #971c80;
+      }
+
+      &.flow-color-16-0 {
+        stroke: #87ca28;
+        fill: #87ca28;
+      }
     }
-
-    #rev-container {
-        width: 100%;
-    }
-
-    #rev-list {
-        margin: 0;
-        padding: 0 5px;
-        min-width: 95%;
-
-        li.highlight,
-        li.hover {
-            background-color: rgba(0, 0, 0, .05);
-        }
-
-        li.highlight.hover {
-            background-color: rgba(0, 0, 0, .1);
-        }
-    }
-
-    #graph-raw-list {
-        margin: 0;
-    }
-
-    &.monochrome #rel-container {
-        .flow-group {
-            stroke: grey;
-            fill: grey;
-        }
-
-        .flow-group.highlight {
-            stroke: black;
-            fill: black;
-        }
-    }
-
-    &:not(.monochrome) #rel-container {
-        .flow-group {
-            &.flow-color-16-1 {
-                stroke: #499a37;
-                fill: #499a37;
-            }
-
-            &.flow-color-16-2 {
-                stroke: hsl(356, 58%, 54%);
-                fill: #ce4751;
-            }
-
-            &.flow-color-16-3 {
-                stroke: #8f9121;
-                fill: #8f9121;
-            }
-
-            &.flow-color-16-4 {
-                stroke: #ac32a6;
-                fill: #ac32a6;
-            }
-
-            &.flow-color-16-5 {
-                stroke: #3d27aa;
-                fill: #3d27aa;
-            }
-
-            &.flow-color-16-6 {
-                stroke: #c67d28;
-                fill: #c67d28;
-            }
-
-            &.flow-color-16-7 {
-                stroke: #4db392;
-                fill: #4db392;
-            }
-
-            &.flow-color-16-8 {
-                stroke: #aa4d30;
-                fill: #aa4d30;
-            }
-
-            &.flow-color-16-9 {
-                stroke: #2a6f84;
-                fill: #2a6f84;
-            }
-
-            &.flow-color-16-10 {
-                stroke: #c45327;
-                fill: #c45327;
-            }
-
-            &.flow-color-16-11 {
-                stroke: #3d965c;
-                fill: #3d965c;
-            }
-
-            &.flow-color-16-12 {
-                stroke: #792a93;
-                fill: #792a93;
-            }
-
-            &.flow-color-16-13 {
-                stroke: #439d73;
-                fill: #439d73;
-            }
-
-            &.flow-color-16-14 {
-                stroke: #103aad;
-                fill: #103aad;
-            }
-
-            &.flow-color-16-15 {
-                stroke: #982e85;
-                fill: #982e85;
-            }
-
-            &.flow-color-16-0 {
-                stroke: #7db233;
-                fill: #7db233;
-            }
-        }
-
-        .flow-group.highlight {
-            &.flow-color-16-1 {
-                stroke: #5ac144;
-                fill: #5ac144;
-            }
-
-            &.flow-color-16-2 {
-                stroke: #ed5a8b;
-                fill: #ed5a8b;
-            }
-
-            &.flow-color-16-3 {
-                stroke: #ced049;
-                fill: #ced048;
-            }
-
-            &.flow-color-16-4 {
-                stroke: #db61d7;
-                fill: #db62d6;
-            }
-
-            &.flow-color-16-5 {
-                stroke: #4e33d1;
-                fill: #4f35d1;
-            }
-
-            &.flow-color-16-6 {
-                stroke: #e6a151;
-                fill: #e6a151;
-            }
-
-            &.flow-color-16-7 {
-                stroke: #44daaa;
-                fill: #44daaa;
-            }
-
-            &.flow-color-16-8 {
-                stroke: #dd7a5c;
-                fill: #dd7a5c;
-            }
-
-            &.flow-color-16-9 {
-                stroke: #38859c;
-                fill: #38859c;
-            }
-
-            &.flow-color-16-10 {
-                stroke: #d95520;
-                fill: #d95520;
-            }
-
-            &.flow-color-16-11 {
-                stroke: #42ae68;
-                fill: #42ae68;
-            }
-
-            &.flow-color-16-12 {
-                stroke: #9126b5;
-                fill: #9126b5;
-            }
-
-            &.flow-color-16-13 {
-                stroke: #4ab080;
-                fill: #4ab080;
-            }
-
-            &.flow-color-16-14 {
-                stroke: #284fb8;
-                fill: #284fb8;
-            }
-
-            &.flow-color-16-15 {
-                stroke: #971c80;
-                fill: #971c80;
-            }
-
-            &.flow-color-16-0 {
-                stroke: #87ca28;
-                fill: #87ca28;
-            }
-        }
-    }
+  }
 }

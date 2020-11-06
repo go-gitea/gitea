@@ -72,7 +72,8 @@ const (
 )
 
 type Writer struct {
-	dst io.Writer
+	dst     io.Writer
+	options WriterOptions
 
 	params              encoderParams
 	hasher_             hasherHandle

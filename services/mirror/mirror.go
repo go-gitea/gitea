@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 )
 
@@ -43,11 +42,11 @@ func readAddress(m *models.Mirror) {
 
 func remoteAddress(repoPath string) (string, error) {
 	var cmd *git.Command
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		return "", err
 	}
-	if version.Compare(binVersion, "2.7", ">=") {
+	if git.CheckGitVersionAtLeast("2.7") == nil {
 		cmd = git.NewCommand("remote", "get-url", "origin")
 	} else {
 		cmd = git.NewCommand("config", "--get", "remote.origin.url")
@@ -90,8 +89,8 @@ func AddressNoCredentials(m *models.Mirror) string {
 	return u.String()
 }
 
-// SaveAddress writes new address to Git repository config.
-func SaveAddress(m *models.Mirror, addr string) error {
+// UpdateAddress writes new address to Git repository and database
+func UpdateAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
 	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
@@ -118,7 +117,9 @@ func SaveAddress(m *models.Mirror, addr string) error {
 			return err
 		}
 	}
-	return nil
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // gitShortEmptySha Git short empty SHA
@@ -157,6 +158,25 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				refName:     refName,
 				newCommitID: gitShortEmptySha,
 			})
+		case strings.HasPrefix(lines[i], " + "): // Force update
+			if idx := strings.Index(refName, " "); idx > -1 {
+				refName = refName[:idx]
+			}
+			delimIdx := strings.Index(lines[i][3:], " ")
+			if delimIdx == -1 {
+				log.Error("SHA delimiter not found: %q", lines[i])
+				continue
+			}
+			shas := strings.Split(lines[i][3:delimIdx+3], "...")
+			if len(shas) != 2 {
+				log.Error("Expect two SHAs but not what found: %q", lines[i])
+				continue
+			}
+			results = append(results, &mirrorSyncResult{
+				refName:     refName,
+				oldCommitID: shas[0],
+				newCommitID: shas[1],
+			})
 		case strings.HasPrefix(lines[i], "   "): // New commits of a reference
 			delimIdx := strings.Index(lines[i][3:], " ")
 			if delimIdx == -1 {
@@ -187,6 +207,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 	gitArgs := []string{"remote", "update"}
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
@@ -228,17 +249,21 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+
+	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
 	gitRepo.Close()
 
+	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
 	if m.Repo.HasWiki() {
+		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 		if err := git.NewCommand("remote", "update", "--prune").
@@ -268,16 +293,18 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 			}
 			return nil, false
 		}
+		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
 	branches, err := repo_module.GetBranches(m.Repo)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
 	}
 
-	for i := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
+	for _, branch := range branches {
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name, true))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
@@ -371,11 +398,13 @@ func syncMirror(repoID string) {
 
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(m)
 	if !ok {
 		return
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	if err = models.UpdateMirror(m); err != nil {
 		log.Error("UpdateMirror [%s]: %v", repoID, err)
@@ -384,14 +413,19 @@ func syncMirror(repoID string) {
 
 	var gitRepo *git.Repository
 	if len(results) == 0 {
-		log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
+		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
+		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
 		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
 			return
 		}
 		defer gitRepo.Close()
+
+		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
+			return
+		}
 	}
 
 	for _, result := range results {
@@ -438,8 +472,13 @@ func syncMirror(repoID string) {
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+			RefFullName: result.refName,
+			OldCommitID: oldCommitID,
+			NewCommitID: newCommitID,
+		}, theCommits)
 	}
+	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
 	// Get latest commit date and update to current repository updated time
 	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
@@ -452,6 +491,69 @@ func syncMirror(repoID string) {
 		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
 		return
 	}
+
+	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
+}
+
+func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+	if !m.Repo.IsEmpty {
+		return true
+	}
+
+	hasDefault := false
+	hasMaster := false
+	defaultBranchName := m.Repo.DefaultBranch
+	if len(defaultBranchName) == 0 {
+		defaultBranchName = setting.Repository.DefaultBranch
+	}
+	firstName := ""
+	for _, result := range results {
+		if strings.HasPrefix(result.refName, "refs/pull/") {
+			continue
+		}
+		tp, name := git.SplitRefName(result.refName)
+		if len(tp) > 0 && tp != git.BranchPrefix {
+			continue
+		}
+		if len(firstName) == 0 {
+			firstName = name
+		}
+
+		hasDefault = hasDefault || name == defaultBranchName
+		hasMaster = hasMaster || name == "master"
+	}
+
+	if len(firstName) > 0 {
+		if hasDefault {
+			m.Repo.DefaultBranch = defaultBranchName
+		} else if hasMaster {
+			m.Repo.DefaultBranch = "master"
+		} else {
+			m.Repo.DefaultBranch = firstName
+		}
+		// Update the git repository default branch
+		if err := gitRepo.SetDefaultBranch(m.Repo.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
+				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
+				if err = models.CreateRepositoryNotice(desc); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+				return false
+			}
+		}
+		m.Repo.IsEmpty = false
+		// Update the is empty and default_branch columns
+		if err := models.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
+			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
+			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			if err = models.CreateRepositoryNotice(desc); err != nil {
+				log.Error("CreateRepositoryNotice: %v", err)
+			}
+			return false
+		}
+	}
+	return true
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors

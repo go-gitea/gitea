@@ -111,7 +111,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 			// Add empty last block
 			r.block.reset(nil)
 			r.block.last = true
-			err := r.block.encodeLits(false)
+			err := r.block.encodeLits(r.block.literals, false)
 			if err != nil {
 				return written, err
 			}
@@ -178,7 +178,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 				r.err = ErrSnappyCorrupt
 				return written, r.err
 			}
-			err = r.block.encode(false)
+			err = r.block.encode(nil, false, false)
 			switch err {
 			case errIncompressible:
 				r.block.popOffsets()
@@ -188,7 +188,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 					println("snappy.Decode:", err)
 					return written, err
 				}
-				err = r.block.encodeLits(false)
+				err = r.block.encodeLits(r.block.literals, false)
 				if err != nil {
 					return written, err
 				}
@@ -235,7 +235,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 				r.err = ErrSnappyCorrupt
 				return written, r.err
 			}
-			err := r.block.encodeLits(false)
+			err := r.block.encodeLits(r.block.literals, false)
 			if err != nil {
 				return written, err
 			}

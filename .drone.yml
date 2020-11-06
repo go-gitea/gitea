@@ -13,20 +13,20 @@ workspace:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:12
+    image: node:14
     commands:
       - make node_modules
 
   - name: lint-frontend
     pull: always
-    image: node:12
+    image: node:14
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
 
   - name: lint-backend
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make lint-backend
     environment:
@@ -34,26 +34,40 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: checks-frontend
+    pull: always
+    image: node:14
+    commands:
+      - make checks-frontend
+    depends_on: [deps-frontend]
+
+  - name: checks-backend
+    pull: always
+    image: golang:1.14
+    commands:
+      - make checks-backend
+    depends_on: [lint-backend]
+
   - name: build-frontend
     pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
+    image: node:14
     commands:
       - make frontend
     depends_on: [lint-frontend]
 
   - name: build-backend-no-gcc
     pull: always
-    image: golang:1.12 # this step is kept as the lowest version of golang that we support
+    image: golang:1.13 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-arm64
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -63,11 +77,11 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
   - name: build-backend-386
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -75,7 +89,7 @@ steps:
       GOARCH: 386
     commands:
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [lint-backend]
+    depends_on: [checks-backend]
 
 ---
 kind: pipeline
@@ -99,18 +113,6 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: test
-      GOPROXY: off
-      TAGS: bindata sqlite sqlite_unlock_notify
-      GITLAB_READ_TOKEN:
-        from_secret: gitlab_read_token
-    depends_on:
-      - build
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
   - name: mysql8
     pull: default
@@ -137,6 +139,14 @@ services:
       discovery.type: single-node
     image: elasticsearch:7.5.0
 
+  - name: minio
+    image: minio/minio:RELEASE.2020-10-09T22-55-05Z
+    commands:
+    - minio server /data
+    environment:
+      MINIO_ACCESS_KEY: 123456
+      MINIO_SECRET_KEY: 12345678
+
 steps:
   - name: fetch-tags
     pull: default
@@ -150,7 +160,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make backend
     environment:
@@ -166,7 +176,7 @@ steps:
 
   - name: unit-test
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -177,7 +187,7 @@ steps:
 
   - name: test-mysql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -187,12 +197,13 @@ steps:
       TAGS: bindata
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
+      TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
     depends_on:
       - build
 
   - name: test-mysql8
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -207,7 +218,7 @@ steps:
 
   - name: test-mssql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -222,7 +233,7 @@ steps:
 
   - name: generate-coverage
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make coverage
     environment:
@@ -238,14 +249,13 @@ steps:
         - push
         - pull_request
 
-  - name: coverage
+  - name: coverage-codecov
     pull: always
-    image: robertstettner/drone-codecov
+    image: plugins/codecov
     settings:
       files:
         - coverage.all
-    environment:
-      CODECOV_TOKEN:
+      token:
         from_secret: codecov_token
     depends_on:
       - generate-coverage
@@ -296,7 +306,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make backend
     environment:
@@ -306,7 +316,7 @@ steps:
 
   - name: test-sqlite
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -320,7 +330,7 @@ steps:
 
   - name: test-pgsql
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -428,10 +438,9 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.14.x
+    image: techknowlogick/xgo:go-1.15.x
     commands:
-      - apt update && apt -y install curl
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -526,10 +535,9 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.14.x
+    image: techknowlogick/xgo:go-1.15.x
     commands:
-      - apt update && apt -y install curl
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -659,6 +667,28 @@ steps:
         exclude:
         - pull_request
 
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-amd64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 name: docker-linux-arm64-dry-run
@@ -688,6 +718,9 @@ steps:
       tags: linux-arm64
       build_args:
         - GOPROXY=off
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         - pull_request
@@ -732,6 +765,31 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -746,6 +804,18 @@ platform:
   arch: amd64
 
 steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
   - name: manifest
     pull: always
     image: plugins/manifest

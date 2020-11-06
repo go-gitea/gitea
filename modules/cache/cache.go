@@ -13,7 +13,6 @@ import (
 	mc "gitea.com/macaron/cache"
 
 	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
-	_ "gitea.com/macaron/cache/redis"
 )
 
 var (

@@ -9,6 +9,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,6 +31,25 @@ func argsSet(c *cli.Context, args ...string) error {
 		}
 	}
 	return nil
+}
+
+// confirm waits for user input which confirms an action
+func confirm() (bool, error) {
+	var response string
+
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		return false, err
+	}
+
+	switch strings.ToLower(response) {
+	case "y", "yes":
+		return true, nil
+	case "n", "no":
+		return false, nil
+	default:
+		return false, errors.New(response + " isn't a correct confirmation string")
+	}
 }
 
 func initDB() error {

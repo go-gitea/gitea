@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -577,8 +578,9 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-	renderAttachmentSettings(ctx)
+	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
@@ -598,7 +600,7 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.Query("direction")
 	filePath := ctx.Query("path")
 	gitRepo := ctx.Repo.GitRepo
-	chunkSize := gitdiff.BlobExceprtChunkSize
+	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		ctx.Error(500, "GetCommit")
