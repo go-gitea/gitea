@@ -1,0 +1,11 @@
+kind: pipeline
+name: default
+
+steps:
+- name: test
+  image: golang:1.12
+  environment:
+      GOPROXY: https://goproxy.cn
+  commands:
+  - go build -v
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic

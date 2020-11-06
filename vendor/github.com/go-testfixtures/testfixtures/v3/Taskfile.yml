@@ -1,0 +1,65 @@
+# https://taskfile.org
+
+version: '2'
+
+tasks:
+  build:
+    cmds:
+      - go build -v -tags sqlite -o ./testfixtures{{exeExt}} ./cmd/testfixtures
+
+  test-cli:
+    cmds:
+      - ./testfixtures -d sqlite -c testdb.sqlite3 -D testdata/fixtures
+
+  test:pg:
+    desc: Test PostgreSQL
+    cmds:
+      - task: test-db
+        vars: {DATABASE: postgresql}
+
+  test:mysql:
+    desc: Test MySQL
+    cmds:
+      - task: test-db
+        vars: {DATABASE: mysql}
+
+  test:sqlite:
+    desc: Test SQLite
+    cmds:
+      - task: test-db
+        vars: {DATABASE: sqlite}
+
+  test:sqlserver:
+    desc: Test SQLServer
+    cmds:
+      - task: test-db
+        vars: {DATABASE: sqlserver}
+
+  test:crdb:
+    desc: Test CockroachDB
+    cmds:
+      - task: test-db
+        vars: {DATABASE: cockroachdb}
+
+  test-db:
+    cmds:
+      - go test -v -tags {{.DATABASE}}
+
+  goreleaser:test:
+    desc: Tests release process without publishing
+    cmds:
+      - goreleaser --snapshot --rm-dist
+
+  docker:
+    cmds:
+      - task: docker:build
+      - task: docker:test
+
+  docker:build:
+    cmds:
+      - docker build -t testfixtures .
+
+  docker:test:
+    cmds:
+      - docker-compose down -v
+      - docker-compose run testfixtures go test -v -tags 'postgresql sqlite mysql sqlserver cockroachdb'
