@@ -791,7 +791,7 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 ## explicit
 github.com/yuin/goldmark-highlighting
-# github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
+# github.com/yuin/goldmark-meta v1.0.0
 ## explicit
 github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.5
