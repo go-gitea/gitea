@@ -18,7 +18,7 @@ require (
 	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/RoaringBitmap/roaring v0.5.1 // indirect
+	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/alecthomas/chroma v0.8.1
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
@@ -33,7 +33,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.3.8
 	github.com/emirpasic/gods v1.12.0
-	github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
+	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
@@ -86,6 +86,7 @@ require (
 	github.com/olivere/elastic/v7 v7.0.21
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
+	github.com/philhofer/fwd v1.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
@@ -117,7 +118,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/net v0.0.0-20201031054903-ff519b6c9102
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
+	golang.org/x/sys v0.0.0-20201106081118-db71ae66460a
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20200929161345-d7fc70abf50f

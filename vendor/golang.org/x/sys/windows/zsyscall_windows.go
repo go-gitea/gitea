@@ -17,6 +17,7 @@ const (
 
 var (
 	errERROR_IO_PENDING error = syscall.Errno(errnoERROR_IO_PENDING)
+	errERROR_EINVAL     error = syscall.EINVAL
 )
 
 // errnoErr returns common boxed Errno values, to prevent
@@ -24,7 +25,7 @@ var (
 func errnoErr(e syscall.Errno) error {
 	switch e {
 	case 0:
-		return syscall.EINVAL
+		return errERROR_EINVAL
 	case errnoERROR_IO_PENDING:
 		return errERROR_IO_PENDING
 	}
@@ -137,6 +138,7 @@ var (
 	procCertAddCertificateContextToStore                     = modcrypt32.NewProc("CertAddCertificateContextToStore")
 	procCertCloseStore                                       = modcrypt32.NewProc("CertCloseStore")
 	procCertCreateCertificateContext                         = modcrypt32.NewProc("CertCreateCertificateContext")
+	procCertDeleteCertificateFromStore                       = modcrypt32.NewProc("CertDeleteCertificateFromStore")
 	procCertEnumCertificatesInStore                          = modcrypt32.NewProc("CertEnumCertificatesInStore")
 	procCertFreeCertificateChain                             = modcrypt32.NewProc("CertFreeCertificateChain")
 	procCertFreeCertificateContext                           = modcrypt32.NewProc("CertFreeCertificateContext")
@@ -208,6 +210,7 @@ var (
 	procGetFileInformationByHandle                           = modkernel32.NewProc("GetFileInformationByHandle")
 	procGetFileInformationByHandleEx                         = modkernel32.NewProc("GetFileInformationByHandleEx")
 	procGetFileType                                          = modkernel32.NewProc("GetFileType")
+	procGetFinalPathNameByHandleW                            = modkernel32.NewProc("GetFinalPathNameByHandleW")
 	procGetFullPathNameW                                     = modkernel32.NewProc("GetFullPathNameW")
 	procGetLastError                                         = modkernel32.NewProc("GetLastError")
 	procGetLogicalDriveStringsW                              = modkernel32.NewProc("GetLogicalDriveStringsW")
@@ -1123,6 +1126,14 @@ func CertCreateCertificateContext(certEncodingType uint32, certEncoded *byte, en
 	return
 }
 
+func CertDeleteCertificateFromStore(certContext *CertContext) (err error) {
+	r1, _, e1 := syscall.Syscall(procCertDeleteCertificateFromStore.Addr(), 1, uintptr(unsafe.Pointer(certContext)), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
 func CertEnumCertificatesInStore(store Handle, prevContext *CertContext) (context *CertContext, err error) {
 	r0, _, e1 := syscall.Syscall(procCertEnumCertificatesInStore.Addr(), 2, uintptr(store), uintptr(unsafe.Pointer(prevContext)), 0)
 	context = (*CertContext)(unsafe.Pointer(r0))
@@ -1709,6 +1720,15 @@ func GetFileInformationByHandleEx(handle Handle, class uint32, outBuffer *byte, 
 
 func GetFileType(filehandle Handle) (n uint32, err error) {
 	r0, _, e1 := syscall.Syscall(procGetFileType.Addr(), 1, uintptr(filehandle), 0, 0)
+	n = uint32(r0)
+	if n == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func GetFinalPathNameByHandleW(file syscall.Handle, filePath *uint16, filePathSize uint32, flags uint32) (n uint32, err error) {
+	r0, _, e1 := syscall.Syscall6(procGetFinalPathNameByHandleW.Addr(), 4, uintptr(file), uintptr(unsafe.Pointer(filePath)), uintptr(filePathSize), uintptr(flags), 0, 0)
 	n = uint32(r0)
 	if n == 0 {
 		err = errnoErr(e1)

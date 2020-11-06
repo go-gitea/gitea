@@ -66,7 +66,7 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.5.1
+# github.com/RoaringBitmap/roaring v0.5.5
 ## explicit
 github.com/RoaringBitmap/roaring
 # github.com/alecthomas/chroma v0.8.1
@@ -246,7 +246,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
+# github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 ## explicit
 github.com/ethantkoenig/rupture
 # github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51
@@ -645,7 +645,8 @@ github.com/olivere/elastic/v7/uritemplates
 # github.com/pelletier/go-toml v1.8.1
 ## explicit
 github.com/pelletier/go-toml
-# github.com/philhofer/fwd v1.0.0
+# github.com/philhofer/fwd v1.1.0
+## explicit
 github.com/philhofer/fwd
 # github.com/pierrec/lz4/v4 v4.1.1
 ## explicit
@@ -860,7 +861,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
+# golang.org/x/sys v0.0.0-20201106081118-db71ae66460a
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

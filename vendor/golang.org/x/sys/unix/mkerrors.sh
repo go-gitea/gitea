@@ -59,12 +59,14 @@ includes_Darwin='
 #include <stdint.h>
 #include <sys/attr.h>
 #include <sys/clonefile.h>
+#include <sys/kern_control.h>
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/ptrace.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
+#include <sys/sys_domain.h>
 #include <sys/sysctl.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
@@ -231,6 +233,7 @@ struct ltchars {
 #include <linux/net_namespace.h>
 #include <linux/nsfs.h>
 #include <linux/perf_event.h>
+#include <linux/pps.h>
 #include <linux/ptrace.h>
 #include <linux/random.h>
 #include <linux/reboot.h>
@@ -519,6 +522,7 @@ ccflags="$@"
 		$2 ~ /^CAP_/ ||
 		$2 ~ /^CP_/ ||
 		$2 ~ /^CPUSTATES$/ ||
+		$2 ~ /^CTLIOCGINFO$/ ||
 		$2 ~ /^ALG_/ ||
 		$2 ~ /^FI(CLONE|DEDUPERANGE)/ ||
 		$2 ~ /^FS_(POLICY_FLAGS|KEY_DESC|ENCRYPTION_MODE|[A-Z0-9_]+_KEY_SIZE)/ ||
