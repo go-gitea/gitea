@@ -619,7 +619,7 @@ github.com/modern-go/reflect2
 github.com/mrjones/oauth
 # github.com/mschoch/smat v0.2.0
 github.com/mschoch/smat
-# github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
+# github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 ## explicit
 github.com/msteinert/pam
 # github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646

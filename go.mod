@@ -79,7 +79,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/minio/minio-go/v7 v7.0.5
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
+	github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
