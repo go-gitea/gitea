@@ -116,8 +116,17 @@ func (f *StringSliceFlag) GetValue() string {
 
 // Apply populates the flag given the flag set and environment
 func (f *StringSliceFlag) Apply(set *flag.FlagSet) error {
+
+	if f.Destination != nil && f.Value != nil {
+		f.Destination.slice = make([]string, len(f.Value.slice))
+		copy(f.Destination.slice, f.Value.slice)
+
+	}
+
 	if val, ok := flagFromEnvOrFile(f.EnvVars, f.FilePath); ok {
-		f.Value = &StringSlice{}
+		if f.Value == nil {
+			f.Value = &StringSlice{}
+		}
 		destination := f.Value
 		if f.Destination != nil {
 			destination = f.Destination

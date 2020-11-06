@@ -118,7 +118,9 @@ func (f *TimestampFlag) Apply(set *flag.FlagSet) error {
 	if f.Layout == "" {
 		return fmt.Errorf("timestamp Layout is required")
 	}
-	f.Value = &Timestamp{}
+	if f.Value == nil {
+		f.Value = &Timestamp{}
+	}
 	f.Value.SetLayout(f.Layout)
 
 	if val, ok := flagFromEnvOrFile(f.EnvVars, f.FilePath); ok {

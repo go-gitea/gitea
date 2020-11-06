@@ -150,7 +150,6 @@ func (c *Command) Run(ctx *Context) (err error) {
 	if c.Before != nil {
 		err = c.Before(context)
 		if err != nil {
-			_ = ShowCommandHelp(context, c.Name)
 			context.App.handleExitCoder(context, err)
 			return err
 		}
@@ -242,7 +241,7 @@ func (c *Command) startApp(ctx *Context) error {
 	app.HideHelpCommand = c.HideHelpCommand
 
 	app.Version = ctx.App.Version
-	app.HideVersion = ctx.App.HideVersion
+	app.HideVersion = true
 	app.Compiled = ctx.App.Compiled
 	app.Writer = ctx.App.Writer
 	app.ErrWriter = ctx.App.ErrWriter

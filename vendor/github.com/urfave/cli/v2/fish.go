@@ -171,6 +171,10 @@ func fishAddFileFlag(flag Flag, completion *strings.Builder) {
 		if f.TakesFile {
 			return
 		}
+	case *PathFlag:
+		if f.TakesFile {
+			return
+		}
 	}
 	completion.WriteString(" -f")
 }

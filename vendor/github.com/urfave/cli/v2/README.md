@@ -17,11 +17,15 @@ Usage documentation exists for each major version. Don't know what version you'r
 - `v2` - [./docs/v2/manual.md](./docs/v2/manual.md)
 - `v1` - [./docs/v1/manual.md](./docs/v1/manual.md)
 
+Guides for migrating to newer versions:
+
+- `v1-to-v2` - [./docs/migrate-v1-to-v2.md](./docs/migrate-v1-to-v2.md)
+
 ## Installation
 
-Make sure you have a working Go environment.  Go version 1.11+ is supported. [See the install instructions for Go](http://golang.org/doc/install.html).
+Using this package requires a working Go environment. [See the install instructions for Go](http://golang.org/doc/install.html).
 
-Go Modules are strongly recommended when using this package. [See the go blog guide on using Go Modules](https://blog.golang.org/using-go-modules).
+Go Modules are required when using this package. [See the go blog guide on using Go Modules](https://blog.golang.org/using-go-modules).
 
 ### Using `v2` releases
 
@@ -63,4 +67,4 @@ export PATH=$PATH:$GOPATH/bin
 
 cli is tested against multiple versions of Go on Linux, and against the latest
 released version of Go on OS X and Windows. This project uses Github Actions for
-builds. For more build info, please look at the [./.github/workflows/cli.yml](https://github.com/urfave/cli/blob/master/.github/workflows/cli.yml).
+builds. To see our currently supported go versions and platforms, look at the [./.github/workflows/cli.yml](https://github.com/urfave/cli/blob/master/.github/workflows/cli.yml).

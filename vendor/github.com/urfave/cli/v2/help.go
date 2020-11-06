@@ -72,13 +72,13 @@ func ShowAppHelpAndExit(c *Context, exitCode int) {
 
 // ShowAppHelp is an action that displays the help.
 func ShowAppHelp(c *Context) error {
-	template := c.App.CustomAppHelpTemplate
-	if template == "" {
-		template = AppHelpTemplate
+	tpl := c.App.CustomAppHelpTemplate
+	if tpl == "" {
+		tpl = AppHelpTemplate
 	}
 
 	if c.App.ExtraInfo == nil {
-		HelpPrinter(c.App.Writer, template, c.App)
+		HelpPrinter(c.App.Writer, tpl, c.App)
 		return nil
 	}
 
@@ -87,7 +87,7 @@ func ShowAppHelp(c *Context) error {
 			"ExtraInfo": c.App.ExtraInfo,
 		}
 	}
-	HelpPrinterCustom(c.App.Writer, template, c.App, customAppData())
+	HelpPrinterCustom(c.App.Writer, tpl, c.App, customAppData())
 
 	return nil
 }
@@ -214,6 +214,12 @@ func ShowCommandHelp(ctx *Context, command string) error {
 	return nil
 }
 
+// ShowSubcommandHelpAndExit - Prints help for the given subcommand and exits with exit code.
+func ShowSubcommandHelpAndExit(c *Context, exitCode int) {
+	_ = ShowSubcommandHelp(c)
+	os.Exit(exitCode)
+}
+
 // ShowSubcommandHelp prints help for the given subcommand
 func ShowSubcommandHelp(c *Context) error {
 	if c == nil {
@@ -263,7 +269,10 @@ func ShowCommandCompletions(ctx *Context, command string) {
 // allow using arbitrary functions in template rendering.
 func printHelpCustom(out io.Writer, templ string, data interface{}, customFuncs map[string]interface{}) {
 	funcMap := template.FuncMap{
-		"join": strings.Join,
+		"join":    strings.Join,
+		"indent":  indent,
+		"nindent": nindent,
+		"trim":    strings.TrimSpace,
 	}
 	for key, value := range customFuncs {
 		funcMap[key] = value
@@ -365,4 +374,13 @@ func checkCommandCompletions(c *Context, name string) bool {
 
 	ShowCommandCompletions(c, name)
 	return true
+}
+
+func indent(spaces int, v string) string {
+	pad := strings.Repeat(" ", spaces)
+	return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+}
+
+func nindent(spaces int, v string) string {
+	return "\n" + indent(spaces, v)
 }

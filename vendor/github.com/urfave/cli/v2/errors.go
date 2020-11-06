@@ -17,11 +17,10 @@ var ErrWriter io.Writer = os.Stderr
 // MultiError is an error that wraps multiple errors.
 type MultiError interface {
 	error
-	// Errors returns a copy of the errors slice
 	Errors() []error
 }
 
-// NewMultiError creates a new MultiError. Pass in one or more errors.
+// newMultiError creates a new MultiError. Pass in one or more errors.
 func newMultiError(err ...error) MultiError {
 	ret := multiError(err)
 	return &ret
@@ -65,13 +64,20 @@ type exitError struct {
 	message  interface{}
 }
 
-// NewExitError makes a new *exitError
+// NewExitError calls Exit to create a new ExitCoder.
+//
+// Deprecated: This function is a duplicate of Exit and will eventually be removed.
 func NewExitError(message interface{}, exitCode int) ExitCoder {
 	return Exit(message, exitCode)
 }
 
-// Exit wraps a message and exit code into an ExitCoder suitable for handling by
-// HandleExitCoder
+// Exit wraps a message and exit code into an error, which by default is
+// handled with a call to os.Exit during default error handling.
+//
+// This is the simplest way to trigger a non-zero exit code for an App without
+// having to call os.Exit manually. During testing, this behavior can be avoided
+// by overiding the ExitErrHandler function on an App or the package-global
+// OsExiter function.
 func Exit(message interface{}, exitCode int) ExitCoder {
 	return &exitError{
 		message:  message,
@@ -87,10 +93,14 @@ func (ee *exitError) ExitCode() int {
 	return ee.exitCode
 }
 
-// HandleExitCoder checks if the error fulfills the ExitCoder interface, and if
-// so prints the error to stderr (if it is non-empty) and calls OsExiter with the
-// given exit code.  If the given error is a MultiError, then this func is
-// called on all members of the Errors slice and calls OsExiter with the last exit code.
+// HandleExitCoder handles errors implementing ExitCoder by printing their
+// message and calling OsExiter with the given exit code.
+//
+// If the given error instead implements MultiError, each error will be checked
+// for the ExitCoder interface, and OsExiter will be called with the last exit
+// code found, or exit code 1 if no ExitCoder is found.
+//
+// This function is the default error-handling behavior for an App.
 func HandleExitCoder(err error) {
 	if err == nil {
 		return
