@@ -474,7 +474,7 @@ github.com/imdario/mergo
 # github.com/issue9/identicon v1.0.1
 ## explicit
 github.com/issue9/identicon
-# github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
+# github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 ## explicit
 github.com/jaytaylor/html2text
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
@@ -715,6 +715,9 @@ github.com/spf13/pflag
 # github.com/spf13/viper v1.7.1
 ## explicit
 github.com/spf13/viper
+# github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf
+## explicit
+github.com/ssor/bom
 # github.com/steveyen/gtreap v0.1.0
 github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.6.1

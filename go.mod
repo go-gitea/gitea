@@ -59,7 +59,7 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1
-	github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
+	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
@@ -97,6 +97,7 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/spf13/viper v1.7.1 // indirect
+	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
