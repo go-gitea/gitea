@@ -1,0 +1,19 @@
+language: go
+
+env:
+  - GO111MODULE=off
+
+go:
+  - 1.13.x
+  - 1.14.x
+
+matrix:
+ fast_finish: true
+
+sudo: false
+
+script: 
+ - go test -v -cpu=2
+ - go test -v -cpu=2 -race
+ - go test -v -cpu=2 -tags noasm
+ - go test -v -cpu=2 -race -tags noasm
