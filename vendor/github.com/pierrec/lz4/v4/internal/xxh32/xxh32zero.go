@@ -20,10 +20,7 @@ const (
 
 // XXHZero represents an xxhash32 object with seed 0.
 type XXHZero struct {
-	v1       uint32
-	v2       uint32
-	v3       uint32
-	v4       uint32
+	v        [4]uint32
 	totalLen uint64
 	buf      [16]byte
 	bufused  int
@@ -38,10 +35,10 @@ func (xxh XXHZero) Sum(b []byte) []byte {
 
 // Reset resets the Hash to its initial state.
 func (xxh *XXHZero) Reset() {
-	xxh.v1 = prime1plus2
-	xxh.v2 = prime2
-	xxh.v3 = 0
-	xxh.v4 = prime1minus
+	xxh.v[0] = prime1plus2
+	xxh.v[1] = prime2
+	xxh.v[2] = 0
+	xxh.v[3] = prime1minus
 	xxh.totalLen = 0
 	xxh.bufused = 0
 }
@@ -51,7 +48,7 @@ func (xxh *XXHZero) Size() int {
 	return 4
 }
 
-// BlockSize gives the minimum number of bytes accepted by Write().
+// BlockSizeIndex gives the minimum number of bytes accepted by Write().
 func (xxh *XXHZero) BlockSize() int {
 	return 1
 }
@@ -74,44 +71,48 @@ func (xxh *XXHZero) Write(input []byte) (int, error) {
 		return n, nil
 	}
 
-	p := 0
-	// Causes compiler to work directly from registers instead of stack:
-	v1, v2, v3, v4 := xxh.v1, xxh.v2, xxh.v3, xxh.v4
-	if m > 0 {
+	var buf *[16]byte
+	if m != 0 {
 		// some data left from previous update
-		copy(xxh.buf[xxh.bufused:], input[:r])
-		xxh.bufused += len(input) - r
+		buf = &xxh.buf
+		c := copy(buf[m:], input)
+		n -= c
+		input = input[c:]
+	}
+	update(&xxh.v, buf, input)
+	xxh.bufused = copy(xxh.buf[:], input[n-n%16:])
 
-		// fast rotl(13)
-		buf := xxh.buf[:16] // BCE hint.
+	return n, nil
+}
+
+// Portable version of update. This updates v by processing all of buf
+// (if not nil) and all full 16-byte blocks of input.
+func updateGo(v *[4]uint32, buf *[16]byte, input []byte) {
+	// Causes compiler to work directly from registers instead of stack:
+	v1, v2, v3, v4 := v[0], v[1], v[2], v[3]
+
+	if buf != nil {
 		v1 = rol13(v1+binary.LittleEndian.Uint32(buf[:])*prime2) * prime1
 		v2 = rol13(v2+binary.LittleEndian.Uint32(buf[4:])*prime2) * prime1
 		v3 = rol13(v3+binary.LittleEndian.Uint32(buf[8:])*prime2) * prime1
 		v4 = rol13(v4+binary.LittleEndian.Uint32(buf[12:])*prime2) * prime1
-		p = r
-		xxh.bufused = 0
 	}
 
-	for n := n - 16; p <= n; p += 16 {
-		sub := input[p:][:16] //BCE hint for compiler
+	for ; len(input) >= 16; input = input[16:] {
+		sub := input[:16] //BCE hint for compiler
 		v1 = rol13(v1+binary.LittleEndian.Uint32(sub[:])*prime2) * prime1
 		v2 = rol13(v2+binary.LittleEndian.Uint32(sub[4:])*prime2) * prime1
 		v3 = rol13(v3+binary.LittleEndian.Uint32(sub[8:])*prime2) * prime1
 		v4 = rol13(v4+binary.LittleEndian.Uint32(sub[12:])*prime2) * prime1
 	}
-	xxh.v1, xxh.v2, xxh.v3, xxh.v4 = v1, v2, v3, v4
-
-	copy(xxh.buf[xxh.bufused:], input[p:])
-	xxh.bufused += len(input) - p
-
-	return n, nil
+	v[0], v[1], v[2], v[3] = v1, v2, v3, v4
 }
 
 // Sum32 returns the 32 bits Hash value.
 func (xxh *XXHZero) Sum32() uint32 {
 	h32 := uint32(xxh.totalLen)
 	if h32 >= 16 {
-		h32 += rol1(xxh.v1) + rol7(xxh.v2) + rol12(xxh.v3) + rol18(xxh.v4)
+		h32 += rol1(xxh.v[0]) + rol7(xxh.v[1]) + rol12(xxh.v[2]) + rol18(xxh.v[3])
 	} else {
 		h32 += prime5
 	}
@@ -137,8 +138,8 @@ func (xxh *XXHZero) Sum32() uint32 {
 	return h32
 }
 
-// ChecksumZero returns the 32bits Hash value.
-func ChecksumZero(input []byte) uint32 {
+// Portable version of ChecksumZero.
+func checksumZeroGo(input []byte) uint32 {
 	n := len(input)
 	h32 := uint32(n)
 
@@ -180,18 +181,6 @@ func ChecksumZero(input []byte) uint32 {
 	h32 ^= h32 >> 16
 
 	return h32
-}
-
-// Uint32Zero hashes x with seed 0.
-func Uint32Zero(x uint32) uint32 {
-	h := prime5 + 4 + x*prime3
-	h = rol17(h) * prime4
-	h ^= h >> 15
-	h *= prime2
-	h ^= h >> 13
-	h *= prime3
-	h ^= h >> 16
-	return h
 }
 
 func rol1(u uint32) uint32 {

@@ -200,6 +200,7 @@ github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
 github.com/couchbase/vellum/utf8
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
+## explicit
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d
 ## explicit
@@ -561,6 +562,7 @@ github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
 # github.com/mattn/go-colorable v0.1.7
+## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
@@ -581,7 +583,7 @@ github.com/mgechev/dots
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
 github.com/mgechev/revive/rule
-# github.com/mholt/archiver/v3 v3.3.2
+# github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
 # github.com/microcosm-cc/bluemonday v1.0.4
@@ -638,14 +640,20 @@ github.com/oliamb/cutter
 github.com/olivere/elastic/v7
 github.com/olivere/elastic/v7/config
 github.com/olivere/elastic/v7/uritemplates
+# github.com/onsi/ginkgo v1.13.0
+## explicit
 # github.com/pelletier/go-toml v1.8.1
 ## explicit
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
-# github.com/pierrec/lz4/v3 v3.3.2
-github.com/pierrec/lz4/v3
-github.com/pierrec/lz4/v3/internal/xxh32
+# github.com/pierrec/lz4/v4 v4.1.1
+## explicit
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -704,6 +712,7 @@ github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.1
+## explicit
 github.com/spf13/viper
 # github.com/steveyen/gtreap v0.1.0
 github.com/steveyen/gtreap

@@ -1,10 +1,35 @@
-package lz4
+package lz4block
 
 import (
 	"encoding/binary"
 	"math/bits"
 	"sync"
+
+	"github.com/pierrec/lz4/v4/internal/lz4errors"
 )
+
+const (
+	// The following constants are used to setup the compression algorithm.
+	minMatch   = 4  // the minimum size of the match sequence size (4 bytes)
+	winSizeLog = 16 // LZ4 64Kb window size limit
+	winSize    = 1 << winSizeLog
+	winMask    = winSize - 1 // 64Kb window of previous data for dependent blocks
+
+	// hashLog determines the size of the hash table used to quickly find a previous match position.
+	// Its value influences the compression speed and memory usage, the lower the faster,
+	// but at the expense of the compression ratio.
+	// 16 seems to be the best compromise for fast compression.
+	hashLog = 16
+	htSize  = 1 << hashLog
+
+	mfLimit = 10 + minMatch // The last match cannot start within the last 14 bytes.
+)
+
+func recoverBlock(e *error) {
+	if r := recover(); r != nil && *e == nil {
+		*e = lz4errors.ErrInvalidSourceShortBuffer
+	}
+}
 
 // blockHash hashes the lower 6 bytes into a value < htSize.
 func blockHash(x uint64) uint32 {
@@ -12,17 +37,10 @@ func blockHash(x uint64) uint32 {
 	return uint32(((x << (64 - 48)) * prime6bytes) >> (64 - hashLog))
 }
 
-// CompressBlockBound returns the maximum size of a given buffer of size n, when not compressible.
 func CompressBlockBound(n int) int {
 	return n + n/255 + 16
 }
 
-// UncompressBlock uncompresses the source buffer into the destination one,
-// and returns the uncompressed size.
-//
-// The destination buffer must be sized appropriately.
-//
-// An error is returned if the source data is invalid or the destination buffer is too small.
 func UncompressBlock(src, dst []byte) (int, error) {
 	if len(src) == 0 {
 		return 0, nil
@@ -30,24 +48,57 @@ func UncompressBlock(src, dst []byte) (int, error) {
 	if di := decodeBlock(dst, src); di >= 0 {
 		return di, nil
 	}
-	return 0, ErrInvalidSourceShortBuffer
+	return 0, lz4errors.ErrInvalidSourceShortBuffer
 }
 
-// CompressBlock compresses the source buffer into the destination one.
-// This is the fast version of LZ4 compression and also the default one.
-//
-// The argument hashTable is scratch space for a hash table used by the
-// compressor. If provided, it should have length at least 1<<16. If it is
-// shorter (or nil), CompressBlock allocates its own hash table.
-//
-// The size of the compressed data is returned.
-//
-// If the destination buffer size is lower than CompressBlockBound and
-// the compressed size is 0 and no error, then the data is incompressible.
-//
-// An error is returned if the destination buffer is too small.
-func CompressBlock(src, dst []byte, hashTable []int) (_ int, err error) {
-	defer recoverBlock(&err)
+type Compressor struct {
+	// Offsets are at most 64kiB, so we can store only the lower 16 bits of
+	// match positions: effectively, an offset from some 64kiB block boundary.
+	//
+	// When we retrieve such an offset, we interpret it as relative to the last
+	// block boundary si &^ 0xffff, or the one before, (si &^ 0xffff) - 0x10000,
+	// depending on which of these is inside the current window. If a table
+	// entry was generated more than 64kiB back in the input, we find out by
+	// inspecting the input stream.
+	table [htSize]uint16
+
+	needsReset bool
+}
+
+// Get returns the position of a presumptive match for the hash h.
+// The match may be a false positive due to a hash collision or an old entry.
+// If si < winSize, the return value may be negative.
+func (c *Compressor) get(h uint32, si int) int {
+	h &= htSize - 1
+	i := int(c.table[h])
+	i += si &^ winMask
+	if i >= si {
+		// Try previous 64kiB block (negative when in first block).
+		i -= winSize
+	}
+	return i
+}
+
+func (c *Compressor) put(h uint32, si int) {
+	h &= htSize - 1
+	c.table[h] = uint16(si)
+}
+
+var compressorPool = sync.Pool{New: func() interface{} { return new(Compressor) }}
+
+func CompressBlock(src, dst []byte) (int, error) {
+	c := compressorPool.Get().(*Compressor)
+	n, err := c.CompressBlock(src, dst)
+	compressorPool.Put(c)
+	return n, err
+}
+
+func (c *Compressor) CompressBlock(src, dst []byte) (int, error) {
+	if c.needsReset {
+		// Zero out reused table to avoid non-deterministic output (issue #65).
+		c.table = [htSize]uint16{}
+	}
+	c.needsReset = true // Only false on first call.
 
 	// Return 0, nil only if the destination buffer size is < CompressBlockBound.
 	isNotCompressible := len(dst) < CompressBlockBound(len(src))
@@ -56,14 +107,6 @@ func CompressBlock(src, dst []byte, hashTable []int) (_ int, err error) {
 	// This significantly speeds up incompressible data and usually has very small impact on compression.
 	// bytes to skip =  1 + (bytes since last match >> adaptSkipLog)
 	const adaptSkipLog = 7
-	if len(hashTable) < htSize {
-		htIface := htPool.Get()
-		defer htPool.Put(htIface)
-		hashTable = (*(htIface).(*[htSize]int))[:]
-	}
-	// Prove to the compiler the table has at least htSize elements.
-	// The compiler can see that "uint32() >> hashShift" cannot be out of bounds.
-	hashTable = hashTable[:htSize]
 
 	// si: Current position of the search.
 	// anchor: Position of the current literals.
@@ -82,33 +125,30 @@ func CompressBlock(src, dst []byte, hashTable []int) (_ int, err error) {
 
 		// We check a match at s, s+1 and s+2 and pick the first one we get.
 		// Checking 3 only requires us to load the source one.
-		ref := hashTable[h]
-		ref2 := hashTable[h2]
-		hashTable[h] = si
-		hashTable[h2] = si + 1
+		ref := c.get(h, si)
+		ref2 := c.get(h2, si)
+		c.put(h, si)
+		c.put(h2, si+1)
+
 		offset := si - ref
 
-		// If offset <= 0 we got an old entry in the hash table.
-		if offset <= 0 || offset >= winSize || // Out of window.
-			uint32(match) != binary.LittleEndian.Uint32(src[ref:]) { // Hash collision on different matches.
+		if offset <= 0 || offset >= winSize || uint32(match) != binary.LittleEndian.Uint32(src[ref:]) {
 			// No match. Start calculating another hash.
 			// The processor can usually do this out-of-order.
 			h = blockHash(match >> 16)
-			ref = hashTable[h]
+			ref3 := c.get(h, si+2)
 
 			// Check the second match at si+1
 			si += 1
 			offset = si - ref2
 
-			if offset <= 0 || offset >= winSize ||
-				uint32(match>>8) != binary.LittleEndian.Uint32(src[ref2:]) {
+			if offset <= 0 || offset >= winSize || uint32(match>>8) != binary.LittleEndian.Uint32(src[ref2:]) {
 				// No match. Check the third match at si+2
 				si += 1
-				offset = si - ref
-				hashTable[h] = si
+				offset = si - ref3
+				c.put(h, si)
 
-				if offset <= 0 || offset >= winSize ||
-					uint32(match>>16) != binary.LittleEndian.Uint32(src[ref:]) {
+				if offset <= 0 || offset >= winSize || uint32(match>>16) != binary.LittleEndian.Uint32(src[ref3:]) {
 					// Skip one extra byte (at si+3) before we check 3 matches again.
 					si += 2 + (si-anchor)>>adaptSkipLog
 					continue
@@ -169,19 +209,27 @@ func CompressBlock(src, dst []byte, hashTable []int) (_ int, err error) {
 		di++
 
 		// Literals.
+		if di+lLen > len(dst) {
+			return 0, lz4errors.ErrInvalidSourceShortBuffer
+		}
 		copy(dst[di:di+lLen], src[anchor:anchor+lLen])
 		di += lLen + 2
 		anchor = si
 
 		// Encode offset.
-		_ = dst[di] // Bound check elimination.
+		if di > len(dst) {
+			return 0, lz4errors.ErrInvalidSourceShortBuffer
+		}
 		dst[di-2], dst[di-1] = byte(offset), byte(offset>>8)
 
 		// Encode match length part 2.
 		if mLen >= 0xF {
-			for mLen -= 0xF; mLen >= 0xFF; mLen -= 0xFF {
+			for mLen -= 0xF; mLen >= 0xFF && di < len(dst); mLen -= 0xFF {
 				dst[di] = 0xFF
 				di++
+			}
+			if di >= len(dst) {
+				return 0, lz4errors.ErrInvalidSourceShortBuffer
 			}
 			dst[di] = byte(mLen)
 			di++
@@ -192,7 +240,7 @@ func CompressBlock(src, dst []byte, hashTable []int) (_ int, err error) {
 		}
 		// Hash match end-2
 		h = blockHash(binary.LittleEndian.Uint64(src[si-2:]))
-		hashTable[h] = si - 2
+		c.put(h, si-2)
 	}
 
 lastLiterals:
@@ -202,15 +250,21 @@ lastLiterals:
 	}
 
 	// Last literals.
+	if di >= len(dst) {
+		return 0, lz4errors.ErrInvalidSourceShortBuffer
+	}
 	lLen := len(src) - anchor
 	if lLen < 0xF {
 		dst[di] = byte(lLen << 4)
 	} else {
 		dst[di] = 0xF0
 		di++
-		for lLen -= 0xF; lLen >= 0xFF; lLen -= 0xFF {
+		for lLen -= 0xF; lLen >= 0xFF && di < len(dst); lLen -= 0xFF {
 			dst[di] = 0xFF
 			di++
+		}
+		if di >= len(dst) {
+			return 0, lz4errors.ErrInvalidSourceShortBuffer
 		}
 		dst[di] = byte(lLen)
 	}
@@ -221,15 +275,11 @@ lastLiterals:
 		// Incompressible.
 		return 0, nil
 	}
+	if di+len(src)-anchor > len(dst) {
+		return 0, lz4errors.ErrInvalidSourceShortBuffer
+	}
 	di += copy(dst[di:di+len(src)-anchor], src[anchor:])
 	return di, nil
-}
-
-// Pool of hash tables for CompressBlock.
-var htPool = sync.Pool{
-	New: func() interface{} {
-		return new([htSize]int)
-	},
 }
 
 // blockHash hashes 4 bytes into a value < winSize.
@@ -238,18 +288,30 @@ func blockHashHC(x uint32) uint32 {
 	return x * hasher >> (32 - winSizeLog)
 }
 
-// CompressBlockHC compresses the source buffer src into the destination dst
-// with max search depth (use 0 or negative value for no max).
-//
-// CompressBlockHC compression ratio is better than CompressBlock but it is also slower.
-//
-// The size of the compressed data is returned.
-//
-// If the destination buffer size is lower than CompressBlockBound and
-// the compressed size is 0 and no error, then the data is incompressible.
-//
-// An error is returned if the destination buffer is too small.
-func CompressBlockHC(src, dst []byte, depth int) (_ int, err error) {
+type CompressorHC struct {
+	// hashTable: stores the last position found for a given hash
+	// chainTable: stores previous positions for a given hash
+	hashTable, chainTable [htSize]int
+	needsReset            bool
+}
+
+var compressorHCPool = sync.Pool{New: func() interface{} { return new(CompressorHC) }}
+
+func CompressBlockHC(src, dst []byte, depth CompressionLevel) (int, error) {
+	c := compressorHCPool.Get().(*CompressorHC)
+	n, err := c.CompressBlock(src, dst, depth)
+	compressorHCPool.Put(c)
+	return n, err
+}
+
+func (c *CompressorHC) CompressBlock(src, dst []byte, depth CompressionLevel) (_ int, err error) {
+	if c.needsReset {
+		// Zero out reused table to avoid non-deterministic output (issue #65).
+		c.hashTable = [htSize]int{}
+		c.chainTable = [htSize]int{}
+	}
+	c.needsReset = true // Only false on first call.
+
 	defer recoverBlock(&err)
 
 	// Return 0, nil only if the destination buffer size is < CompressBlockBound.
@@ -261,18 +323,13 @@ func CompressBlockHC(src, dst []byte, depth int) (_ int, err error) {
 	const adaptSkipLog = 7
 
 	var si, di, anchor int
-
-	// hashTable: stores the last position found for a given hash
-	// chainTable: stores previous positions for a given hash
-	var hashTable, chainTable [winSize]int
-
-	if depth <= 0 {
-		depth = winSize
-	}
-
 	sn := len(src) - mfLimit
 	if sn <= 0 {
 		goto lastLiterals
+	}
+
+	if depth == 0 {
+		depth = winSize
 	}
 
 	for si < sn {
@@ -283,7 +340,7 @@ func CompressBlockHC(src, dst []byte, depth int) (_ int, err error) {
 		// Follow the chain until out of window and give the longest match.
 		mLen := 0
 		offset := 0
-		for next, try := hashTable[h], depth; try > 0 && next > 0 && si-next < winSize; next = chainTable[next&winMask] {
+		for next, try := c.hashTable[h], depth; try > 0 && next > 0 && si-next < winSize; next, try = c.chainTable[next&winMask], try-1 {
 			// The first (mLen==0) or next byte (mLen>=minMatch) at current match length
 			// must match to improve on the match length.
 			if src[next+mLen] != src[si+mLen] {
@@ -309,10 +366,9 @@ func CompressBlockHC(src, dst []byte, depth int) (_ int, err error) {
 			mLen = ml
 			offset = si - next
 			// Try another previous position with the same hash.
-			try--
 		}
-		chainTable[si&winMask] = hashTable[h]
-		hashTable[h] = si
+		c.chainTable[si&winMask] = c.hashTable[h]
+		c.hashTable[h] = si
 
 		// No match found.
 		if mLen == 0 {
@@ -331,8 +387,8 @@ func CompressBlockHC(src, dst []byte, depth int) (_ int, err error) {
 			match >>= 8
 			match |= uint32(src[si+3]) << 24
 			h := blockHashHC(match)
-			chainTable[si&winMask] = hashTable[h]
-			hashTable[h] = si
+			c.chainTable[si&winMask] = c.hashTable[h]
+			c.hashTable[h] = si
 			si++
 		}
 

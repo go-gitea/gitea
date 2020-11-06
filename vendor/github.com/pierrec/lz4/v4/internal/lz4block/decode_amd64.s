@@ -26,6 +26,8 @@ TEXT ·decodeBlock(SB), NOSPLIT, $64-56
 
 	MOVQ src_base+24(FP), SI
 	MOVQ src_len+32(FP), R9
+	CMPQ R9, $0
+	JE   err_corrupt
 	ADDQ SI, R9
 
 	// shortcut ends
@@ -109,8 +111,7 @@ loop:
 	MOVW 16(AX), BX
 	MOVW BX, 16(DI)
 
-	ADDQ $4, DI // minmatch
-	ADDQ CX, DI
+	LEAQ 4(DI)(CX*1), DI // minmatch
 
 	// shortcut complete, load next token
 	JMP loop
@@ -128,8 +129,7 @@ lit_len_loop:
 	JNE lit_len_finalise
 
 	// bounds check src[si+1]
-	MOVQ SI, AX
-	ADDQ $1, AX
+	LEAQ 1(SI), AX
 	CMPQ AX, R9
 	JGT err_short_buf
 
@@ -147,13 +147,11 @@ lit_len_finalise:
 
 copy_literal:
 	// bounds check src and dst
-	MOVQ SI, AX
-	ADDQ CX, AX
+	LEAQ (SI)(CX*1), AX
 	CMPQ AX, R9
 	JGT err_short_buf
 
-	MOVQ DI, AX
-	ADDQ CX, AX
+	LEAQ (DI)(CX*1), AX
 	CMPQ AX, R8
 	JGT err_short_buf
 
@@ -219,8 +217,7 @@ offset:
 	// free up DX to use for offset
 	MOVQ DX, CX
 
-	MOVQ SI, AX
-	ADDQ $2, AX
+	LEAQ 2(SI), AX
 	CMPQ AX, R9
 	JGT err_short_buf
 
@@ -247,8 +244,7 @@ match_len_loop:
 	JNE match_len_finalise
 
 	// bounds check src[si+1]
-	MOVQ SI, AX
-	ADDQ $1, AX
+	LEAQ 1(SI), AX
 	CMPQ AX, R9
 	JGT err_short_buf
 
@@ -269,8 +265,7 @@ copy_match:
 
 	// check we have match_len bytes left in dst
 	// di+match_len < len(dst)
-	MOVQ DI, AX
-	ADDQ CX, AX
+	LEAQ (DI)(CX*1), AX
 	CMPQ AX, R8
 	JGT err_short_buf
 
@@ -286,8 +281,7 @@ copy_match:
 	JLT err_short_buf
 
 	// if offset + match_len < di
-	MOVQ BX, AX
-	ADDQ CX, AX
+	LEAQ (BX)(CX*1), AX
 	CMPQ DI, AX
 	JGT copy_interior_match
 
