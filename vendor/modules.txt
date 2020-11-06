@@ -762,7 +762,7 @@ github.com/unknwon/com
 # github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 ## explicit
 github.com/unknwon/i18n
-# github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
+# github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 ## explicit
 github.com/unknwon/paginater
 # github.com/urfave/cli v1.22.5
