@@ -7,15 +7,15 @@ require (
 	code.gitea.io/sdk/gitea v0.13.1
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
-	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
-	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
+	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
+	gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20200910171939-7bbf54aa4c76
+	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-	gitea.com/macaron/macaron v1.5.0
-	gitea.com/macaron/session v0.0.0-20200902202411-e3a87877db6e
+	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
+	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.1 // indirect
@@ -23,7 +23,6 @@ require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/blevesearch/bleve v1.0.12
-	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
@@ -50,7 +49,6 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/context v1.1.1
@@ -64,7 +62,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.11.1
+	github.com/klauspost/compress v1.11.2
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
@@ -111,11 +109,11 @@ require (
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20200929161345-d7fc70abf50f
 	google.golang.org/appengine v1.6.7 // indirect

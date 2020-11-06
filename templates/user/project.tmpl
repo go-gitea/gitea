@@ -17,7 +17,7 @@
 								<img class="ui mini image" src="{{.ContextUser.RelAvatarLink}}">
 								{{.ContextUser.ShortName 20}}
 							</span>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
 									<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}"> {{.SignedUser.ShortName 20}}

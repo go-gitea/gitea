@@ -712,6 +712,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RefAction:        opts.RefAction,
 		RefIsPull:        opts.RefIsPull,
 		IsForcePush:      opts.IsForcePush,
+		Invalidated:      opts.Invalidated,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -878,6 +879,7 @@ type CreateCommentOptions struct {
 	RefAction        references.XRefAction
 	RefIsPull        bool
 	IsForcePush      bool
+	Invalidated      bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -953,6 +955,8 @@ type FindCommentsOptions struct {
 	ReviewID int64
 	Since    int64
 	Before   int64
+	Line     int64
+	TreePath string
 	Type     CommentType
 }
 
@@ -976,6 +980,12 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
+	if opts.Line > 0 {
+		cond = cond.And(builder.Eq{"comment.line": opts.Line})
+	}
+	if len(opts.TreePath) > 0 {
+		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
+	}
 	return cond
 }
 
@@ -989,6 +999,8 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
+
+	// WARNING: If you change this order you will need to fix createCodeComment
 
 	return comments, sess.
 		Asc("comment.created_unix").
@@ -1108,6 +1120,10 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 
 	for _, comment := range comments {
 		if err := comment.LoadResolveDoer(); err != nil {
+			return nil, err
+		}
+
+		if err := comment.LoadReactions(issue.Repo); err != nil {
 			return nil, err
 		}
 

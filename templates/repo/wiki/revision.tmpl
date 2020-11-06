@@ -31,7 +31,7 @@
 			<div class="ui header eight wide column">
 				<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
 				{{$title}}
-				<div class="ui sub header wrap">
+				<div class="ui sub header word-break">
 					{{$timeSince := TimeSince .Author.When $.Lang}}
 					{{.i18n.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
 				</div>
