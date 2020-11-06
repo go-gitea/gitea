@@ -6,5 +6,5 @@ require (
 	github.com/google/go-cmp v0.5.2
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	golang.org/x/mod v0.3.0
-	gopkg.in/ini.v1 v1.60.2
+	gopkg.in/ini.v1 v1.62.0
 )

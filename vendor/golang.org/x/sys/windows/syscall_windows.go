@@ -92,11 +92,11 @@ func UTF16FromString(s string) ([]uint16, error) {
 }
 
 // UTF16ToString returns the UTF-8 encoding of the UTF-16 sequence s,
-// with a terminating NUL removed.
+// with a terminating NUL and any bytes after the NUL removed.
 func UTF16ToString(s []uint16) string {
 	for i, v := range s {
 		if v == 0 {
-			s = s[0:i]
+			s = s[:i]
 			break
 		}
 	}
@@ -120,7 +120,7 @@ func UTF16PtrFromString(s string) (*uint16, error) {
 }
 
 // UTF16PtrToString takes a pointer to a UTF-16 sequence and returns the corresponding UTF-8 encoded string.
-// If the pointer is nil, this returns the empty string. This assumes that the UTF-16 sequence is terminated
+// If the pointer is nil, it returns the empty string. It assumes that the UTF-16 sequence is terminated
 // at a zero word; if the zero word is not present, the program may crash.
 func UTF16PtrToString(p *uint16) string {
 	if p == nil {
@@ -259,6 +259,7 @@ func NewCallbackCDecl(fn interface{}) uintptr {
 //sys	CertEnumCertificatesInStore(store Handle, prevContext *CertContext) (context *CertContext, err error) [failretval==nil] = crypt32.CertEnumCertificatesInStore
 //sys   CertAddCertificateContextToStore(store Handle, certContext *CertContext, addDisposition uint32, storeContext **CertContext) (err error) = crypt32.CertAddCertificateContextToStore
 //sys	CertCloseStore(store Handle, flags uint32) (err error) = crypt32.CertCloseStore
+//sys	CertDeleteCertificateFromStore(certContext *CertContext) (err error) = crypt32.CertDeleteCertificateFromStore
 //sys   CertGetCertificateChain(engine Handle, leaf *CertContext, time *Filetime, additionalStore Handle, para *CertChainPara, flags uint32, reserved uintptr, chainCtx **CertChainContext) (err error) = crypt32.CertGetCertificateChain
 //sys   CertFreeCertificateChain(ctx *CertChainContext) = crypt32.CertFreeCertificateChain
 //sys   CertCreateCertificateContext(certEncodingType uint32, certEncoded *byte, encodedLen uint32) (context *CertContext, err error) [failretval==nil] = crypt32.CertCreateCertificateContext
@@ -350,6 +351,7 @@ func NewCallbackCDecl(fn interface{}) uintptr {
 //sys	getThreadPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetThreadPreferredUILanguages
 //sys	getUserPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetUserPreferredUILanguages
 //sys	getSystemPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetSystemPreferredUILanguages
+//sys   GetFinalPathNameByHandleW(file syscall.Handle, filePath *uint16, filePathSize uint32, flags uint32) (n uint32, err error) = kernel32.GetFinalPathNameByHandleW
 
 // Process Status API (PSAPI)
 //sys	EnumProcesses(processIds []uint32, bytesReturned *uint32) (err error) = psapi.EnumProcesses
