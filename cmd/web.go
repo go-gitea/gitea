@@ -50,8 +50,8 @@ and it takes care of all the other things for you`,
 		&cli.StringFlag{
 			Name:    "pid",
 			Aliases: []string{"P"},
-			Value: setting.PIDFile,
-			Usage: "Custom pid file path",
+			Value:   setting.PIDFile,
+			Usage:   "Custom pid file path",
 		},
 	},
 }

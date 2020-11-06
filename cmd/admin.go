@@ -41,11 +41,11 @@ var (
 	subcmdUser = cli.Command{
 		Name:  "user",
 		Usage: "Modify users",
-		Subcommands: []cli.Command{
-			microcmdUserCreate,
-			microcmdUserList,
-			microcmdUserChangePassword,
-			microcmdUserDelete,
+		Subcommands: []*cli.Command{
+			&microcmdUserCreate,
+			&microcmdUserList,
+			&microcmdUserChangePassword,
+			&microcmdUserDelete,
 		},
 	}
 
@@ -54,7 +54,7 @@ var (
 		Usage:  "List users",
 		Action: runListUsers,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "admin",
 				Usage: "List only admin users",
 			},
@@ -127,9 +127,11 @@ var (
 	}
 
 	microcmdUserDelete = cli.Command{
-		Name:   "delete",
-		Usage:  "Delete specific user",
-		Flags:  []cli.Flag{idFlag},
+		Name:  "delete",
+		Usage: "Delete specific user",
+		Flags: []cli.Flag{
+			&idFlag,
+		},
 		Action: runDeleteUser,
 	}
 
@@ -291,17 +293,17 @@ var (
 		Usage:  "Send a message to all users",
 		Action: runSendMail,
 		Flags: []cli.Flag{
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "title",
 				Usage: `a title of a message`,
 				Value: "",
 			},
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "content",
 				Usage: "a content of a message",
 				Value: "",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "force,f",
 				Usage: "A flag to bypass a confirmation step",
 			},

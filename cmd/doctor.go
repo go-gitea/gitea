@@ -63,8 +63,8 @@ var CmdDoctor = cli.Command{
 			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
 		},
 	},
-	Subcommands: []cli.Command{
-		cmdRecreateTable,
+	Subcommands: []*cli.Command{
+		&cmdRecreateTable,
 	},
 }
 
@@ -73,7 +73,7 @@ var cmdRecreateTable = cli.Command{
 	Usage:     "Recreate tables from XORM definitions and copy the data.",
 	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "debug",
 			Usage: "Print SQL commands sent",
 		},
