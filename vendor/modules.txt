@@ -761,7 +761,7 @@ github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 ## explicit
 github.com/unknwon/paginater
-# github.com/urfave/cli v1.22.4
+# github.com/urfave/cli v1.22.5
 ## explicit
 github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
