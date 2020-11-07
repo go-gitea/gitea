@@ -690,6 +690,54 @@ function initIssueComments() {
   });
 }
 
+function getArchive($target, url, first) {
+  $.ajax({
+    url,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          // XXX Shouldn't happen?
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (!xhr.responseJSON.complete) {
+          $target.closest('.dropdown').children('i').addClass('loading');
+          // Wait for only three quarters of a second initially, in case it's
+          // quickly archived.
+          setTimeout(() => {
+            getArchive($target, url, false);
+          }, first ? 750 : 2000);
+        } else {
+          // We don't need to continue checking.
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          window.location.href = url;
+        }
+      }
+    }
+  });
+}
+
+function initArchiveLinks() {
+  if ($('.archive-link').length === 0) {
+    return;
+  }
+
+  $('.archive-link').on('click', function (event) {
+    const url = $(this).data('url');
+    if (typeof url === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    getArchive($(event.target), url, true);
+  });
+}
+
 async function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -2462,6 +2510,7 @@ $(document).ready(async () => {
   initMarkdownAnchors();
   initCommentForm();
   initInstall();
+  initArchiveLinks();
   initRepository();
   initMigration();
   initWikiForm();

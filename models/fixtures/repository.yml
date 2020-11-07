@@ -680,3 +680,16 @@
   num_pulls: 1
   is_mirror: false
   status: 0
+
+-
+  id: 49
+  owner_id: 27
+  owner_name: user27
+  lower_name: repo49
+  name: repo49
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
