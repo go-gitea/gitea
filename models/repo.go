@@ -230,6 +230,7 @@ type Repository struct {
 	TemplateID                      int64              `xorm:"INDEX"`
 	TemplateRepo                    *Repository        `xorm:"-"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
+	SizeLimit                       int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
@@ -860,18 +861,27 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-func (repo *Repository) updateSize(e Engine) error {
+func (repo *Repository) computeSize() (int64, error) {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("updateSize: %v", err)
+		return 0, fmt.Errorf("computeSize: %v", err)
 	}
 
 	objs, err := repo.GetLFSMetaObjects(-1, 0)
 	if err != nil {
-		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+		return 0, fmt.Errorf("computeSize: GetLFSMetaObjects: %v", err)
 	}
 	for _, obj := range objs {
 		size += obj.Size
+	}
+
+	return size, nil
+}
+
+func (repo *Repository) updateSize(e Engine) error {
+	size, err := repo.computeSize()
+	if err != nil {
+		return fmt.Errorf("updateSize: %v", err)
 	}
 
 	repo.Size = size
@@ -882,6 +892,11 @@ func (repo *Repository) updateSize(e Engine) error {
 // UpdateSize updates the repository size, calculating it using util.GetDirectorySize
 func (repo *Repository) UpdateSize(ctx DBContext) error {
 	return repo.updateSize(ctx.e)
+}
+
+// RepoSizeIsOversized return if is over size limitation
+func (repo *Repository) RepoSizeIsOversized(additionalSize int64) bool {
+	return repo.SizeLimit > 0 && repo.Size+additionalSize > repo.SizeLimit
 }
 
 // CanUserFork returns true if specified user can fork repository.
@@ -1101,6 +1116,7 @@ type CreateRepoOptions struct {
 	AutoInit       bool
 	Status         RepositoryStatus
 	TrustModel     TrustModelType
+	SizeLimit      int64
 }
 
 // GetRepoInitFile returns repository init files

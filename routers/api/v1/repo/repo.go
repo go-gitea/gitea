@@ -246,6 +246,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		DefaultBranch: opt.DefaultBranch,
 		TrustModel:    models.ToTrustModel(opt.TrustModel),
 		IsTemplate:    opt.Template,
+		SizeLimit:     opt.SizeLimit,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -568,6 +569,9 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
+	if opts.SizeLimit != nil {
+		repo.SizeLimit = *opts.SizeLimit
+	}
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err

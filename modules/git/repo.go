@@ -352,8 +352,13 @@ const (
 
 // CountObjects returns the results of git count-objects on the repoPath
 func CountObjects(repoPath string) (*CountObject, error) {
+	return CountObjectsWithEnv(repoPath, nil)
+}
+
+// CountObjectsWithEnv returns the results of git count-objects on the repoPath with custom env setup
+func CountObjectsWithEnv(repoPath string, env []string) (*CountObject, error) {
 	cmd := NewCommand("count-objects", "-v")
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, err := cmd.RunInDirWithEnv(repoPath, env)
 	if err != nil {
 		return nil, err
 	}

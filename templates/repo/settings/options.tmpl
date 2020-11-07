@@ -17,7 +17,11 @@
 				</div>
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.repo_size"}}</label>
-					<span>{{SizeFmt .Repository.Size}}</span>
+					<span {{if .Err_RepoSize}}class="ui text red"{{end}}>{{SizeFmt .Repository.Size}}{{if .Repository.SizeLimit}}/{{SizeFmt .Repository.SizeLimit}}{{end}}</span>
+				</div>
+				<div class="field {{if .Err_RepoSizeLimit}}error{{end}}" {{if not .IsAdmin}}style="display:none;"{{end}}>
+					<label for="repo_size_limit">{{.i18n.Tr "repo.repo_size_limit"}}</label>
+					<input id="repo_size_limit" name="repo_size_limit" type="number" value="{{.Repository.SizeLimit}}" data-repo-size-limit="{{.Repository.SizeLimit}}">
 				</div>
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.template"}}</label>

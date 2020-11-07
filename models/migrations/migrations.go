@@ -254,6 +254,8 @@ var migrations = []Migration{
 	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
 	// v159 -> v160
 	NewMigration("update reactions constraint", updateReactionConstraint),
+	// v160 -> v161
+	NewMigration("add size limit on repository", addSizeLimitOnRepo),
 }
 
 // GetCurrentDBVersion returns the current db version

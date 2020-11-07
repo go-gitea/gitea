@@ -45,6 +45,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
+		SizeLimit:                       opts.SizeLimit,
 	}
 
 	if err := models.WithTx(func(ctx models.DBContext) error {

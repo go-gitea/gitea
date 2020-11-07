@@ -50,6 +50,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.RepoSizeIsOversized(ctx.Repo.Repository.SizeLimit / 10) // less than 10% left
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -64,6 +65,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	ctx.Data["PageIsSettingsOptions"] = true
 
 	repo := ctx.Repo.Repository
+	ctx.Data["Err_RepoSize"] = repo.RepoSizeIsOversized(repo.SizeLimit / 10) // less than 10% left
 
 	switch ctx.Query("action") {
 	case "update":
@@ -127,6 +129,19 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
 			return
 		}
+
+		if form.RepoSizeLimit < 0 {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_negative"), tplSettingsOptions, &form)
+			return
+		}
+
+		if !ctx.User.IsAdmin && repo.SizeLimit != form.RepoSizeLimit {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
+			return
+		}
+		repo.SizeLimit = form.RepoSizeLimit
 
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {

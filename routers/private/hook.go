@@ -155,11 +155,32 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 
+	pushSize, err := git.CountObjectsWithEnv(repo.RepoPath(), env)
+	if err != nil {
+		log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), env, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	log.Trace("Push size %d", pushSize.Size)
+
 	// Iterate across the provided old commit IDs
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
+
+		//Check size
+		if newCommitID != git.EmptySHA && repo.RepoSizeIsOversized(pushSize.Size) { //Check next size if we are not deleting a reference
+			log.Warn("Forbidden: new repo size is over limitation: %d", repo.SizeLimit)
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": fmt.Sprintf("new repo size is over limitation: %d", repo.SizeLimit),
+			})
+		}
+		//TODO investigate why on force push some git objects are not cleaned on server side.
+		//TODO corner-case force push and branch creation -> git.EmptySHA == oldCommitID
+		//TODO calculate pushed LFS objects size
 
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 		if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {

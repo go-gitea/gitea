@@ -122,6 +122,8 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
+	// SizeLimit of the repository
+	SizeLimit int64 `json:"size_limit"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -168,6 +170,8 @@ type EditRepoOption struct {
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
+	// SizeLimit of the repository.
+	SizeLimit *int64 `json:"size_limit,omitempty"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
