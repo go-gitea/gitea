@@ -79,8 +79,8 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		case setting.Database.UseSQLite3:
 			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
 		case setting.Database.UseMSSQL:
-			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " FROM #temp_comments WHERE " +
-				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " FROM #temp_comments))"
+			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " * FROM #temp_comments WHERE " +
+				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " id FROM #temp_comments ORDER BY id )) ORDER BY id"
 		default:
 			return fmt.Errorf("Unsupported database type")
 		}
