@@ -82,7 +82,6 @@
 
 &.feeds {
   .news {
-
     li {
       display: flex;
       align-items: baseline;
@@ -138,6 +137,10 @@
       border-radius: 3px;
       word-break: break-all;
     }
+
+    &:last-of-type .divider {
+      display: none !important;
+    }
   }
 
   .list {
@@ -160,7 +163,7 @@
 
       li {
         &:not(:last-child) {
-          border-bottom: 1px solid #ebebeb;
+          border-bottom: 1px solid var(--color-secondary);
         }
 
         &.private {
@@ -172,7 +175,7 @@
           display: block;
 
           .svg {
-            color: #888888;
+            color: var(--color-secondary-dark-6);
 
             &.rear {
               font-size: 15px;
