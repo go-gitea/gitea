@@ -36,14 +36,13 @@ export default {
     ],
     endDate: new Date(),
     values: [],
-    user: heatmapUser,
     locale: {
       contributions: 'contributions',
       no_contributions: 'No contributions',
     },
   }),
   async mounted() {
-    const res = await fetch(`${AppSubUrl}/api/v1/users/${this.user}/heatmap`);
+    const res = await fetch(`${AppSubUrl}/api/v1/users/${heatmapUser}/heatmap`);
     const data = await res.json();
     this.values = data.map(({contributions, timestamp}) => {
       return {date: new Date(timestamp * 1000), count: contributions};
