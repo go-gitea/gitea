@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -25,35 +24,6 @@ func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 	if s1 != string(s2) {
 		t.Errorf("%s should be equal %s", s2, s1)
 	}
-}
-
-func TestUnsplitEntities(t *testing.T) {
-	left := "sh &#34;useradd -u 111 jenkins&#34;"
-	right := "sh &#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;"
-	diffRecord := diffMatchPatch.DiffMain(left, right, true)
-	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
-	// Now we need to clean up the split entities
-	diffRecord = unsplitEntities(diffRecord)
-	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
-	leftRecombined := ""
-	rightRecombined := ""
-	for _, record := range diffRecord {
-		assert.False(t, unterminatedEntityRE.MatchString(record.Text), "")
-		switch record.Type {
-		case diffmatchpatch.DiffDelete:
-			leftRecombined += record.Text
-		case diffmatchpatch.DiffInsert:
-			rightRecombined += record.Text
-		default:
-			leftRecombined += record.Text
-			rightRecombined += record.Text
-		}
-	}
-
-	assert.EqualValues(t, left, leftRecombined)
-	assert.EqualValues(t, right, rightRecombined)
 }
 
 func TestDiffToHTML(t *testing.T) {
@@ -112,6 +82,21 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
 		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
 		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins</span>&#39;", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "sh &#3"},
+		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
+		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
+		{Type: dmp.DiffEqual, Text: ";"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=</span><span class=\"added-code\">&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
+		{Type: dmp.DiffInsert, Text: "4 class=&#"},
+		{Type: dmp.DiffEqual, Text: "3"},
+		{Type: dmp.DiffInsert, Text: "4;release-list-title df ac&#34;"},
+		{Type: dmp.DiffEqual, Text: "&gt;</span>"},
 	}, DiffLineAdd))
 }
 

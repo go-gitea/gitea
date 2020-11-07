@@ -109,7 +109,7 @@ There are a few `With...` option functions that can be used to customize
 the API client. For example, to set a custom base URL:
 
 ```go
-git, err := gitlab.NewClient("yourtokengoeshere", WithBaseURL("https://git.mydomain.com/api/v4"))
+git, err := gitlab.NewClient("yourtokengoeshere", gitlab.WithBaseURL("https://git.mydomain.com/api/v4"))
 if err != nil {
   log.Fatalf("Failed to create client: %v", err)
 }

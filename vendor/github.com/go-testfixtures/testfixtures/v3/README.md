@@ -1,6 +1,6 @@
 # testfixtures
 
-[![GoDoc](https://godoc.org/github.com/go-testfixtures/testfixtures?status.svg)][doc]
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/go-testfixtures/testfixtures/v3?tab=doc)](https://pkg.go.dev/github.com/go-testfixtures/testfixtures/v3?tab=doc)
 
 > ***Warning***: this package will wipe the database data before loading the
 fixtures! It is supposed to be used on a test database. Please, double check
@@ -436,8 +436,15 @@ each test run in a transaction.
 ## CLI
 
 We also have a CLI to load fixtures in a given database.
+
 Grab it from the [releases page](https://github.com/go-testfixtures/testfixtures/releases)
-and use it like:
+or install with Homebrew:
+
+```bash
+brew install go-testfixtures/tap/testfixtures
+```
+
+Usage is like this:
 
 ```bash
 testfixtures -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
@@ -445,7 +452,7 @@ testfixtures -d postgres -c "postgres://user:password@localhost/database" -D tes
 
 The connection string changes for each database driver.
 
-Use `--help` for all flags.
+Use `testfixtures --help` for all flags.
 
 ## Contributing
 
@@ -490,7 +497,6 @@ unit test database code without having to connect to a real database
 - [dbcleaner][dbcleaner] - Clean database for testing, inspired by
 database_cleaner for Ruby
 
-[doc]: https://pkg.go.dev/github.com/go-testfixtures/testfixtures/v3?tab=doc
 [railstests]: http://guides.rubyonrails.org/testing.html#the-test-database
 [gotxdb]: https://github.com/DATA-DOG/go-txdb
 [gosqlmock]: https://github.com/DATA-DOG/go-sqlmock

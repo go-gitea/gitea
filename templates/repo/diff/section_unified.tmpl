@@ -27,9 +27,9 @@
 				{{end}}
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
-					<td class="chroma lines-code blob-hunk"><span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+					<td class="chroma lines-code blob-hunk"><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{else}}
-					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}
