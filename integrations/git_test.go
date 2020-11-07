@@ -76,7 +76,7 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("Over", func(t *testing.T) {
 				PrintCurrentTest(t)
 				doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize)
-				//TODO fix this doCommitAndPushWithExpectedError(t, bigSize, dstPath, "data-file-")
+				doCommitAndPushWithExpectedError(t, bigSize, dstPath, "data-file-")
 			})
 			t.Run("UnderAfterResize", func(t *testing.T) {
 				PrintCurrentTest(t)
@@ -85,8 +85,7 @@ func testGit(t *testing.T, u *url.URL) {
 			})
 			t.Run("Deletion", func(t *testing.T) {
 				PrintCurrentTest(t)
-				//TODO delete a file
-				//doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
+				//TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			//TODO delete branch
 			//TODO delete tag
