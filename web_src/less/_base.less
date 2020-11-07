@@ -30,7 +30,33 @@
   --color-primary-alpha-70: #4183c4b3;
   --color-primary-alpha-80: #4183c4cc;
   --color-primary-alpha-90: #4183c4e1;
-  --color-secondary: rgba(34, 36, 38, .15);
+  --color-secondary: #dedede;
+  --color-secondary-dark-1: #cecece;
+  --color-secondary-dark-2: #bfbfbf;
+  --color-secondary-dark-3: #a0a0a0;
+  --color-secondary-dark-4: #909090;
+  --color-secondary-dark-5: #818181;
+  --color-secondary-dark-6: #717171;
+  --color-secondary-dark-7: #626262;
+  --color-secondary-dark-7: #525252;
+  --color-secondary-dark-8: #434343;
+  --color-secondary-dark-8: #333333;
+  --color-secondary-dark-9: #242424;
+  --color-secondary-dark-10: #141414;
+  --color-secondary-dark-11: #040404;
+  --color-secondary-light-1: #e5e5e5;
+  --color-secondary-light-2: #ebebeb;
+  --color-secondary-light-3: #f2f2f2;
+  --color-secondary-light-4: #f8f8f8;
+  --color-secondary-alpha-10: #dedede19;
+  --color-secondary-alpha-20: #dedede33;
+  --color-secondary-alpha-30: #dedede4b;
+  --color-secondary-alpha-40: #dedede66;
+  --color-secondary-alpha-50: #dedede80;
+  --color-secondary-alpha-60: #dedede99;
+  --color-secondary-alpha-70: #dededeb3;
+  --color-secondary-alpha-80: #dededecc;
+  --color-secondary-alpha-90: #dededee1;
   --color-body: #fff;
 }
 
@@ -190,6 +216,43 @@ a,
 a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary-dark-2);
+}
+
+.ui.input.focus > input,
+.ui.input > input:focus {
+  border-color: var(--color-primary);
+}
+
+.ui.action.input:not([class*="left action"]) > input:focus {
+  border-right-color: var(--color-primary);
+}
+
+.ui.form input:not([type]):focus,
+.ui.form textarea:focus,
+.ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"]:focus,
+.ui.form input[type="email"]:focus,
+.ui.form input[type="file"]:focus,
+.ui.form input[type="number"]:focus,
+.ui.form input[type="password"]:focus,
+.ui.form input[type="search"]:focus,
+.ui.form input[type="tel"]:focus,
+.ui.form input[type="text"]:focus,
+.ui.form input[type="time"]:focus,
+.ui.form input[type="url"]:focus,
+.ui.selection.dropdown:focus {
+  border-color: var(--color-primary);
+}
+
+.ui.selection.active.dropdown,
+.ui.selection.active.dropdown:hover,
+.ui.selection.active.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu {
+  border-color: var(--color-primary-light-2);
+}
+
+.ui.selection.dropdown .menu {
+  margin: 0 -1.25px;
 }
 
 .dont-break-out {
@@ -963,59 +1026,13 @@ footer {
   margin-bottom: 2px !important;
 }
 
-#user-heatmap {
-  width: 107%; // Fixes newest contributions not showing
-  text-align: center;
-
-  svg:not(:root) {
-    overflow: inherit;
-    padding: 0 !important;
-  }
-
-  @media only screen and (max-width: 1200px) {
-    & {
-      display: none;
-    }
-  }
-
-  .total-contributions {
-    text-align: left;
-    font-weight: 500;
-    margin-top: 0;
-  }
-}
-
-.heatmap-color-0 {
-  background-color: #f4f4f4;
-}
-
-.heatmap-color-1 {
-  background-color: #d8efbf;
-}
-
-.heatmap-color-2 {
-  background-color: #9fdb81;
-}
-
-.heatmap-color-3 {
-  background-color: #66c74b;
-}
-
-.heatmap-color-4 {
-  background-color: #609926;
-}
-
-.heatmap-color-5 {
-  background-color: #025900;
-}
-
 .activity-bar-graph {
-  background-color: #6cc644;
-  color: #000000;
+  background-color: var(--color-primary);
+  color: #fff;
 }
 
 .activity-bar-graph-alt {
-  color: #000000;
+  color: #fff;
 }
 
 .archived-icon {
