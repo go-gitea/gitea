@@ -43,8 +43,8 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 	for {
 		var comments = make([]*Comment, 0, batchSize)
 
-		sqlCmd := `SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
-		FROM comment INNER JOIN (
+		sqlSelect := `SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated`
+		sqlTail := ` FROM comment INNER JOIN (
 			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
 			FROM comment AS C
 			WHERE C.type = 21
@@ -62,6 +62,7 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 			AND comment.id != first.id
 			AND comment.commit_sha != first.commit_sha`
 
+		sqlCmd := sqlSelect + sqlTail
 		switch {
 		case setting.Database.UseMySQL:
 			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + ", " + strconv.Itoa(start)
@@ -70,8 +71,12 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		case setting.Database.UseSQLite3:
 			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
 		case setting.Database.UseMSSQL:
-			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + sqlCmd[6:] +
-				" AND (id NOT IN ( SELECT TOP " + strconv.Itoa(start) + sqlCmd[6:] + "))"
+			if _, err := sess.Exec(sqlSelect + " INTO temp_comments" + sqlTail); err != nil {
+				log.Error("unable to create temporary table")
+				return err
+			}
+			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " FROM temp_comments WHERE " +
+				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " FROM temp_comments))"
 		default:
 			return fmt.Errorf("Unsupported database type")
 		}
