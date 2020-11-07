@@ -12271,6 +12271,12 @@
           "type": "string",
           "x-go-name": "Readme"
         },
+        "size_limit": {
+          "description": "SizeLimit of the repository",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SizeLimit"
+        },
         "template": {
           "description": "Whether the repository is template",
           "type": "boolean",
@@ -13028,6 +13034,12 @@
           "description": "either `true` to make the repository private or `false` to make it public.\nNote: you will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "size_limit": {
+          "description": "SizeLimit of the repository.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SizeLimit"
         },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
