@@ -120,8 +120,9 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": base.FileSize,
-		"List":    List,
+		"SizeFmt":  base.FileSize,
+		"CountFmt": base.FormatNumberSI,
+		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -342,6 +343,16 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
+		"RenderLabels": func(labels []*models.Label) template.HTML {
+			html := ""
+
+			for _, label := range labels {
+				html = fmt.Sprintf("%s<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
+					html, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+			}
+
+			return template.HTML(html)
+		},
 	}}
 }
 
@@ -470,7 +481,10 @@ var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
 // SVG render icons - arguments icon name (string), size (int), class (string)
 func SVG(icon string, others ...interface{}) template.HTML {
-	var size = others[0].(int)
+	size := 16
+	if len(others) > 0 && others[0].(int) != 0 {
+		size = others[0].(int)
+	}
 
 	class := ""
 	if len(others) > 1 && others[1].(string) != "" {
@@ -694,7 +708,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 // DiffTypeToStr returns diff type name
 func DiffTypeToStr(diffType int) string {
 	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename",
+		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
 	}
 	return diffTypes[diffType]
 }

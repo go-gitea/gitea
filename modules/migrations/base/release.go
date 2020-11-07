@@ -15,6 +15,7 @@ type ReleaseAsset struct {
 	DownloadCount *int
 	Created       time.Time
 	Updated       time.Time
+	DownloadURL   *string
 }
 
 // Release represents a release

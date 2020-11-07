@@ -10,7 +10,7 @@
 
 				<p>{{.i18n.Tr "install.docker_helper" "https://docs.gitea.io/en-us/install-with-docker/" | Safe}}</p>
 
-				<form class="ui form" action="{{AppSubUrl}}/install" method="post">
+				<form class="ui form" action="{{AppSubUrl}}/" method="post">
 					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
 					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
@@ -19,7 +19,7 @@
 						<div class="ui selection database type dropdown">
 							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbOption}}">
 							<div class="text">{{.CurDbOption}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .DbOptions}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
@@ -54,7 +54,7 @@
 							<div class="ui selection database type dropdown">
 								<input type="hidden" name="ssl_mode" value="{{if .ssl_mode}}{{.ssl_mode}}{{else}}disable{{end}}">
 								<div class="default text">disable</div>
-								<i class="dropdown icon"></i>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="item" data-value="disable">Disable</div>
 									<div class="item" data-value="require">Require</div>
@@ -75,7 +75,7 @@
 							<div class="ui selection database type dropdown">
 								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
 								<div class="default text">utf8mb4</div>
-								<i class="dropdown icon"></i>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="item" data-value="utf8mb4">utf8mb4</div>
 									<div class="item" data-value="utf8">utf8</div>
@@ -284,11 +284,11 @@
 							</div>
 							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 								<label for="admin_passwd">{{.i18n.Tr "install.admin_password"}}</label>
-								<input id="admin_passwd" name="admin_passwd" type="password" value="{{.admin_passwd}}">
+								<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
 							</div>
 							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 								<label for="admin_confirm_passwd">{{.i18n.Tr "install.confirm_password"}}</label>
-								<input id="admin_confirm_passwd" name="admin_confirm_passwd" type="password" value="{{.admin_confirm_passwd}}">
+								<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
 							</div>
 							<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
 								<label for="admin_email">{{.i18n.Tr "install.admin_email"}}</label>
@@ -307,4 +307,5 @@
 		</div>
 	</div>
 </div>
+<img style="display: none" src="{{StaticUrlPrefix}}/img/loading.png"/>
 {{template "base/footer" .}}

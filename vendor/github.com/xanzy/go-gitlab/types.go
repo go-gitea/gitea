@@ -41,12 +41,13 @@ type AccessLevelValue int
 //
 // GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
 const (
-	NoPermissions         AccessLevelValue = 0
-	GuestPermissions      AccessLevelValue = 10
-	ReporterPermissions   AccessLevelValue = 20
-	DeveloperPermissions  AccessLevelValue = 30
-	MaintainerPermissions AccessLevelValue = 40
-	OwnerPermissions      AccessLevelValue = 50
+	NoPermissions            AccessLevelValue = 0
+	MinimalAccessPermissions AccessLevelValue = 5
+	GuestPermissions         AccessLevelValue = 10
+	ReporterPermissions      AccessLevelValue = 20
+	DeveloperPermissions     AccessLevelValue = 30
+	MaintainerPermissions    AccessLevelValue = 40
+	OwnerPermissions         AccessLevelValue = 50
 
 	// These are deprecated and should be removed in a future version
 	MasterPermissions AccessLevelValue = 40
@@ -103,6 +104,19 @@ func DeploymentStatus(v DeploymentStatusValue) *DeploymentStatusValue {
 	*p = v
 	return p
 }
+
+// FileAction represents the available actions that can be performed on a file.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
+type FileAction string
+
+// The available file actions.
+const (
+	FileCreate FileAction = "create"
+	FileDelete FileAction = "delete"
+	FileMove   FileAction = "move"
+	FileUpdate FileAction = "update"
+)
 
 // ISOTime represents an ISO 8601 formatted date
 type ISOTime time.Time

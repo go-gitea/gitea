@@ -61,6 +61,11 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 4)
 
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%s?token=%s", owner.Name, repo.Name, apiMilestones[2].Title, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiMilestone)
+	assert.EqualValues(t, apiMilestones[2], apiMilestone)
+
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s&name=%s&token=%s", owner.Name, repo.Name, "all", "milestone2", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)

@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -310,11 +310,9 @@ func deleteOrg(e *xorm.Session, u *User) error {
 	}
 
 	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := util.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		avatarPath := u.CustomAvatarRelativePath()
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
@@ -478,7 +476,8 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
 		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
-		Desc("`user`.updated_unix").Find(&orgs)
+		Asc("`user`.name").
+		Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.

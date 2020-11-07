@@ -34,7 +34,7 @@ Also be aware that the tag `:latest` will install the current development versio
 For a stable release you can use `:1` or specify a certain release like `:{{< version >}}`.
 
 ```yaml
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -43,6 +43,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -65,7 +66,7 @@ the port section. It's common to just change the host port and keep the ports wi
 the container like they are.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -74,6 +75,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -97,7 +99,7 @@ To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -106,6 +108,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -147,7 +150,7 @@ To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -156,6 +159,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -198,7 +202,7 @@ create the required volume. You don't need to worry about permissions with
 named volumes; Docker will deal with that automatically.
 
 ```diff
-version: "2"
+version: "3"
 
 networks:
   gitea:
@@ -211,6 +215,7 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    container_name: gitea
     restart: always
     networks:
       - gitea
@@ -257,7 +262,7 @@ You can configure some of Gitea's settings via environment variables:
 * `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
 * `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
-* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
+* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available. If you want to disable SSH feature, you should set SSH port to `0` when installing Gitea.
 * `HTTP_PORT`: **3000**: HTTP listen port.
 * `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
 * `LFS_START_SERVER`: **false**: Enables git-lfs support.
@@ -306,9 +311,12 @@ UID/GID as the container values `USER_UID`/`USER_GID`. You should also create th
 `/var/lib/gitea` on the host, owned by the `git` user and mounted in the container, e.g.
 
 ```
+version: "3"
+
   services:
     server:
       image: gitea/gitea:latest
+      container_name: gitea
       environment:
         - USER_UID=1000
         - USER_GID=1000
@@ -341,7 +349,9 @@ Your `git` user needs to have an SSH key generated:
 sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 ```
 
-Still on the host, symlink the container `.ssh/authorized_keys` file to your git user `.ssh/authorized_keys`.
+Now, proceed with one of the points given below:
+
+- symlink the container `.ssh/authorized_keys` file to your git user `.ssh/authorized_keys`.
 This can be done on the host as the `/var/lib/gitea` directory is mounted inside the container under `/data`:
 
 ```
@@ -352,6 +362,23 @@ Then echo the `git` user SSH key into the authorized_keys file so the host can t
 
 ```
 echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /home/git/.ssh/id_rsa.pub)" >> /var/lib/gitea/git/.ssh/authorized_keys
+```
+
+Lastly, Gitea makes `authorized_keys` backups by default. This could be a problem
+as the symbolic link made to `authorized_keys` previously could end up pointing
+to an old backup. To resolve this, please put the following into your Gitea
+config:
+
+```
+[ssh]
+SSH_AUTHORIZED_KEYS_BACKUP=false
+```
+
+- mount your `.ssh` directory directly into the container i.e. add the
+  following to the `volumes` section of your Docker container config:
+
+```
+- /home/git/.ssh/:/data/git/.ssh/
 ```
 
 Now you should be able to use Git over SSH to your container without disrupting SSH access to the host.

@@ -38,8 +38,10 @@ import (
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplCommand       = "%s --config=%q serv key-%d"
-	tplPublicKey     = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommand       = "%s --config=%s serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+
+	authorizedPrincipalsFile = "authorized_principals"
 )
 
 var sshOpLocker sync.Mutex
@@ -52,6 +54,8 @@ const (
 	KeyTypeUser = iota + 1
 	// KeyTypeDeploy specifies the deploy key
 	KeyTypeDeploy
+	// KeyTypePrincipal specifies the authorized principal key
+	KeyTypePrincipal
 )
 
 // PublicKey represents a user or deploy SSH public key.
@@ -84,7 +88,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, fmt.Sprintf(tplCommand, setting.AppPath, setting.CustomConf, key.ID), key.Content)
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID)), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
@@ -358,7 +362,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
 func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -401,6 +405,9 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	}
 
 	for _, key := range keys {
+		if key.Type == KeyTypePrincipal {
+			continue
+		}
 		if _, err = f.WriteString(key.AuthorizedString()); err != nil {
 			return err
 		}
@@ -571,6 +578,25 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return searchPublicKeyByContentWithEngine(x, content)
 }
 
+func searchPublicKeyByContentExactWithEngine(e Engine, content string) (*PublicKey, error) {
+	key := new(PublicKey)
+	has, err := e.
+		Where("content = ?", content).
+		Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrKeyNotExist{}
+	}
+	return key, nil
+}
+
+// SearchPublicKeyByContentExact searches content
+// and returns public key found.
+func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentExactWithEngine(x, content)
+}
+
 // SearchPublicKey returns a list of public keys matching the provided arguments.
 func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
@@ -586,7 +612,7 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 
 // ListPublicKeys returns a list of public keys belongs to given user.
 func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
-	sess := x.Where("owner_id = ?", uid)
+	sess := x.Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 
@@ -662,6 +688,10 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	}
 	sess.Close()
 
+	if key.Type == KeyTypePrincipal {
+		return RewriteAllPrincipalKeys()
+	}
+
 	return RewriteAllPublicKeys()
 }
 
@@ -727,11 +757,10 @@ func RegeneratePublicKeys(t io.StringWriter) error {
 }
 
 func regeneratePublicKeys(e Engine, t io.StringWriter) error {
-	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := e.Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -1040,4 +1069,205 @@ func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployK
 		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
 	}
 	return keys, x.Where(cond).Find(&keys)
+}
+
+// __________       .__              .__             .__
+// \______   _______|__| ____   ____ |_____________  |  |   ______
+//  |     ___\_  __ |  |/    \_/ ___\|  \____ \__  \ |  |  /  ___/
+//  |    |    |  | \|  |   |  \  \___|  |  |_> / __ \|  |__\___ \
+//  |____|    |__|  |__|___|  /\___  |__|   __(____  |____/____  >
+//                          \/     \/   |__|       \/          \/
+
+// AddPrincipalKey adds new principal to database and authorized_principals file.
+func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	// Principals cannot be duplicated.
+	has, err := sess.
+		Where("content = ? AND type = ?", content, KeyTypePrincipal).
+		Get(new(PublicKey))
+	if err != nil {
+		return nil, err
+	} else if has {
+		return nil, ErrKeyAlreadyExist{0, "", content}
+	}
+
+	key := &PublicKey{
+		OwnerID:       ownerID,
+		Name:          content,
+		Content:       content,
+		Mode:          AccessModeWrite,
+		Type:          KeyTypePrincipal,
+		LoginSourceID: loginSourceID,
+	}
+	if err = addPrincipalKey(sess, key); err != nil {
+		return nil, fmt.Errorf("addKey: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	sess.Close()
+
+	return key, RewriteAllPrincipalKeys()
+}
+
+func addPrincipalKey(e Engine, key *PublicKey) (err error) {
+	// Save Key representing a principal.
+	if _, err = e.Insert(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
+func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
+	if setting.SSH.Disabled {
+		return "", ErrSSHDisabled{}
+	}
+
+	content = strings.TrimSpace(content)
+	if strings.ContainsAny(content, "\r\n") {
+		return "", errors.New("only a single line with a single principal please")
+	}
+
+	// check all the allowed principals, email, username or anything
+	// if any matches, return ok
+	for _, v := range setting.SSH.AuthorizedPrincipalsAllow {
+		switch v {
+		case "anything":
+			return content, nil
+		case "email":
+			emails, err := GetEmailAddresses(user.ID)
+			if err != nil {
+				return "", err
+			}
+			for _, email := range emails {
+				if !email.IsActivated {
+					continue
+				}
+				if content == email.Email {
+					return content, nil
+				}
+			}
+
+		case "username":
+			if content == user.Name {
+				return content, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
+}
+
+// RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
+// Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
+// outside any session scope independently.
+func RewriteAllPrincipalKeys() error {
+	return rewriteAllPrincipalKeys(x)
+}
+
+func rewriteAllPrincipalKeys(e Engine) error {
+	// Don't rewrite key if internal server
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
+		return nil
+	}
+
+	sshOpLocker.Lock()
+	defer sshOpLocker.Unlock()
+
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
+	tmpPath := fPath + ".tmp"
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		t.Close()
+		os.Remove(tmpPath)
+	}()
+
+	if setting.SSH.AuthorizedPrincipalsBackup && com.IsExist(fPath) {
+		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+		if err = com.Copy(fPath, bakPath); err != nil {
+			return err
+		}
+	}
+
+	if err := regeneratePrincipalKeys(e, t); err != nil {
+		return err
+	}
+
+	t.Close()
+	return os.Rename(tmpPath, fPath)
+}
+
+// ListPrincipalKeys returns a list of principals belongs to given user.
+func ListPrincipalKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
+	keys := make([]*PublicKey, 0, 5)
+	return keys, sess.Find(&keys)
+}
+
+// RegeneratePrincipalKeys regenerates the authorized_principals file
+func RegeneratePrincipalKeys(t io.StringWriter) error {
+	return regeneratePrincipalKeys(x, t)
+}
+
+func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
+	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+		return err
+	}); err != nil {
+		return err
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
+	if com.IsExist(fPath) {
+		f, err := os.Open(fPath)
+		if err != nil {
+			return err
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, tplCommentPrefix) {
+				scanner.Scan()
+				continue
+			}
+			_, err = t.WriteString(line + "\n")
+			if err != nil {
+				f.Close()
+				return err
+			}
+		}
+		f.Close()
+	}
+	return nil
 }

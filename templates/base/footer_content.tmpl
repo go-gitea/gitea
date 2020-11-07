@@ -5,14 +5,14 @@
 		</div>
 		<div class="ui right links">
 			{{if .ShowFooterBranding}}
-				<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
+				<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">{{svg "octicon-mark-github"}}<span class="sr-only">GitHub</span></a>
 			{{end}}
 			<div class="ui language bottom floating slide up dropdown link item">
-				<i class="world icon"></i>
+				{{svg "octicon-globe"}}
 				<div class="text">{{.LangName}}</div>
-				<div class="menu">
+				<div class="menu language-menu">
 					{{range .AllLangs}}
-						<a lang="{{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}" href="{{if eq $.Lang .Lang}}#{{else}}{{$.Link}}?lang={{.Lang}}{{end}}">{{.Name}}</a>
+						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>

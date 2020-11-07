@@ -404,44 +404,9 @@ func DefaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bo
 		return false, ctx.Err()
 	}
 
-	if err != nil {
-		if v, ok := err.(*url.Error); ok {
-			// Don't retry if the error was due to too many redirects.
-			if redirectsErrorRe.MatchString(v.Error()) {
-				return false, nil
-			}
-
-			// Don't retry if the error was due to an invalid protocol scheme.
-			if schemeErrorRe.MatchString(v.Error()) {
-				return false, nil
-			}
-
-			// Don't retry if the error was due to TLS cert verification failure.
-			if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
-				return false, nil
-			}
-		}
-
-		// The error is likely recoverable so retry.
-		return true, nil
-	}
-
-	// 429 Too Many Requests is recoverable. Sometimes the server puts
-	// a Retry-After response header to indicate when the server is
-	// available to start processing request from client.
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return true, nil
-	}
-
-	// Check the response code. We retry on 500-range responses to allow
-	// the server time to recover, as 500's are typically not permanent
-	// errors and may relate to outages on the server side. This will catch
-	// invalid response codes as well, like 0 and 999.
-	if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != 501) {
-		return true, nil
-	}
-
-	return false, nil
+	// don't propagate other errors
+	shouldRetry, _ := baseRetryPolicy(resp, err)
+	return shouldRetry, nil
 }
 
 // ErrorPropagatedRetryPolicy is the same as DefaultRetryPolicy, except it
@@ -453,6 +418,10 @@ func ErrorPropagatedRetryPolicy(ctx context.Context, resp *http.Response, err er
 		return false, ctx.Err()
 	}
 
+	return baseRetryPolicy(resp, err)
+}
+
+func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
 			// Don't retry if the error was due to too many redirects.
@@ -472,6 +441,13 @@ func ErrorPropagatedRetryPolicy(ctx context.Context, resp *http.Response, err er
 		}
 
 		// The error is likely recoverable so retry.
+		return true, nil
+	}
+
+	// 429 Too Many Requests is recoverable. Sometimes the server puts
+	// a Retry-After response header to indicate when the server is
+	// available to start processing request from client.
+	if resp.StatusCode == http.StatusTooManyRequests {
 		return true, nil
 	}
 

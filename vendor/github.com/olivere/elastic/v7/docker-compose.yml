@@ -2,12 +2,13 @@ version: '3'
 
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.4.2
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.9.2
     hostname: elasticsearch
     environment:
       - cluster.name=elasticsearch
       - bootstrap.memory_lock=true
       - discovery.type=single-node
+      # - http.publish_host=localhost
       # - http.host=0.0.0.0
       # - transport.host=127.0.0.1
       # - network.host=_local_
@@ -27,16 +28,16 @@ services:
     ports:
       - 9200:9200
   platinum:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.2
     hostname: elasticsearch-platinum
     environment:
       - cluster.name=platinum
       - bootstrap.memory_lock=true
       - discovery.type=single-node
-      - xpack.ilm.enabled=true
       - xpack.license.self_generated.type=trial
       - xpack.security.enabled=true
       - xpack.watcher.enabled=true
+      # - http.publish_host=localhost
       # - http.host=0.0.0.0
       # - transport.host=127.0.0.1
       # - network.host=_local_

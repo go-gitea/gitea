@@ -62,7 +62,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
+func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
 	err := LoadGitVersion()
 	if err != nil {
 		return SHA1{}, err
@@ -72,11 +72,11 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_NAME="+author.Name,
+		"GIT_AUTHOR_EMAIL="+author.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+committer.Name,
+		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	cmd := NewCommand("commit-tree", tree.ID.String())
@@ -89,11 +89,11 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if CheckGitVersionConstraint(">= 1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
+	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if CheckGitVersionConstraint(">= 2.0.0") == nil && opts.NoGPGSign {
+	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 

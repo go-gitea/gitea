@@ -113,18 +113,6 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: test
-      GOPROXY: off
-      TAGS: bindata sqlite sqlite_unlock_notify
-      GITLAB_READ_TOKEN:
-        from_secret: gitlab_read_token
-    depends_on:
-      - build
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
   - name: mysql8
     pull: default
@@ -152,7 +140,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2020-05-16T01-33-21Z
+    image: minio/minio:RELEASE.2020-10-09T22-55-05Z
     commands:
     - minio server /data
     environment:
@@ -679,6 +667,28 @@ steps:
         exclude:
         - pull_request
 
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-amd64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 name: docker-linux-arm64-dry-run
@@ -708,6 +718,9 @@ steps:
       tags: linux-arm64
       build_args:
         - GOPROXY=off
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         - pull_request
@@ -752,6 +765,31 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: true
+      auto_tag_suffix: linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -766,6 +804,18 @@ platform:
   arch: amd64
 
 steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
   - name: manifest
     pull: always
     image: plugins/manifest

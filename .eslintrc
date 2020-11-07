@@ -11,6 +11,10 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
+  - eslint-plugin-vue
+
+extends:
+  - plugin:vue/recommended
 
 env:
   es2021: true
@@ -24,7 +28,7 @@ globals:
   u2fApi: false
 
 overrides:
-  - files: ["web_src/**/*.js"]
+  - files: ["web_src/**/*.js", "web_src/**/*.vue"]
     env:
       browser: true
       jquery: true
@@ -99,7 +103,7 @@ rules:
   import/no-amd: [0]
   import/no-anonymous-default-export: [0]
   import/no-commonjs: [0]
-  import/no-cycle: [0]
+  import/no-cycle: [2, {ignoreExternal: true}]
   import/no-default-export: [0]
   import/no-deprecated: [0]
   import/no-dynamic-require: [0]
@@ -117,7 +121,7 @@ rules:
   import/no-self-import: [2]
   import/no-unassigned-import: [0]
   import/no-unresolved: [2, {commonjs: true}]
-  import/no-unused-modules: [0]
+  import/no-unused-modules: [2, {unusedExports: true}]
   import/no-useless-path-segments: [2, {commonjs: true}]
   import/no-webpack-loader-syntax: [2]
   import/order: [0]
@@ -211,7 +215,7 @@ rules:
   no-mixed-operators: [0]
   no-mixed-spaces-and-tabs: [2]
   no-multi-assign: [0]
-  no-multi-spaces: [2, {ignoreEOLComments: true, exceptions: {Property: true, VariableDeclarator: true}}]
+  no-multi-spaces: [2, {ignoreEOLComments: true, exceptions: {Property: true}}]
   no-multi-str: [2]
   no-negated-condition: [0]
   no-nested-ternary: [0]
@@ -336,6 +340,7 @@ rules:
   unicorn/explicit-length-check: [0]
   unicorn/filename-case: [0]
   unicorn/import-index: [0]
+  unicorn/import-style: [0]
   unicorn/new-for-builtins: [2]
   unicorn/no-abusive-eslint-disable: [0]
   unicorn/no-array-instanceof: [0]
@@ -356,11 +361,13 @@ rules:
   unicorn/no-useless-undefined: [0]
   unicorn/no-zero-fractions: [2]
   unicorn/number-literal-case: [0]
+  unicorn/numeric-separators-style: [0]
   unicorn/prefer-add-event-listener: [2]
   unicorn/prefer-array-find: [2]
   unicorn/prefer-dataset: [2]
   unicorn/prefer-event-key: [2]
   unicorn/prefer-includes: [2]
+  unicorn/prefer-math-trunc: [2]
   unicorn/prefer-modern-dom-apis: [0]
   unicorn/prefer-negative-index: [2]
   unicorn/prefer-node-append: [0]
@@ -374,6 +381,7 @@ rules:
   unicorn/prefer-spread: [0]
   unicorn/prefer-starts-ends-with: [2]
   unicorn/prefer-string-slice: [0]
+  unicorn/prefer-ternary: [0]
   unicorn/prefer-text-content: [2]
   unicorn/prefer-trim-start-end: [2]
   unicorn/prefer-type-error: [0]
@@ -383,6 +391,11 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
+  vue/attributes-order: [0]
+  vue/component-definition-name-casing: [0]
+  vue/html-closing-bracket-spacing: [0]
+  vue/max-attributes-per-line: [0]
+  vue/one-component-per-file: [0]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]
