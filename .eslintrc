@@ -11,6 +11,10 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
+  - eslint-plugin-vue
+
+extends:
+  - plugin:vue/recommended
 
 env:
   es2021: true
@@ -24,7 +28,7 @@ globals:
   u2fApi: false
 
 overrides:
-  - files: ["web_src/**/*.js"]
+  - files: ["web_src/**/*.js", "web_src/**/*.vue"]
     env:
       browser: true
       jquery: true
@@ -387,6 +391,11 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
+  vue/attributes-order: [0]
+  vue/component-definition-name-casing: [0]
+  vue/html-closing-bracket-spacing: [0]
+  vue/max-attributes-per-line: [0]
+  vue/one-component-per-file: [0]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]

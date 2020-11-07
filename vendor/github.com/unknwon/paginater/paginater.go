@@ -96,6 +96,11 @@ func (p *Paginater) Current() int {
 	return p.current
 }
 
+// PagingNum returns number of page size.
+func (p *Paginater) PagingNum() int {
+	return p.pagingNum
+}
+
 // Page presents a page in the paginater.
 type Page struct {
 	num       int
@@ -137,7 +142,6 @@ func (p *Paginater) Pages() []*Page {
 	}
 
 	numPages := p.numPages
-	maxIdx := numPages - 1
 	offsetIdx := 0
 	hasMoreNext := false
 
@@ -156,7 +160,6 @@ func (p *Paginater) Pages() []*Page {
 	offsetVal := p.current - previousNum
 	if offsetVal > 1 {
 		numPages++
-		maxIdx++
 		offsetIdx = 1
 	}
 
