@@ -34,7 +34,11 @@ Usage of easyjson:
   -all
     	generate marshaler/unmarshalers for all structs in a file
   -build_tags string
-    	build tags to add to generated file
+        build tags to add to generated file
+  -gen_build_flags string
+        build flags when running the generator while bootstrapping
+  -byte
+        use simple bytes instead of Base64Bytes for slice of bytes
   -leave_temps
     	do not delete temporary files
   -no_std_marshalers
@@ -55,10 +59,20 @@ Usage of easyjson:
     	only generate stubs for marshaler/unmarshaler funcs
   -disallow_unknown_fields
         return error if some unknown field in json appeared
+  -disable_members_unescape
+        disable unescaping of \uXXXX string sequences in member names
 ```
 
 Using `-all` will generate marshalers/unmarshalers for all Go structs in the
-file. If `-all` is not provided, then only those structs whose preceding
+file excluding those structs whose preceding comment starts with `easyjson:skip`.
+For example: 
+
+```go
+//easyjson:skip
+type A struct {}
+```
+
+If `-all` is not provided, then only those structs whose preceding
 comment starts with `easyjson:json` will have marshalers/unmarshalers
 generated. For example:
 
@@ -76,10 +90,26 @@ Additional option notes:
 
 * `-build_tags` will add the specified build tags to generated Go sources.
 
+* `-gen_build_flags` will execute the easyjson bootstapping code to launch the 
+  actual generator command with provided flags. Multiple arguments should be
+  separated by space e.g. `-gen_build_flags="-mod=mod -x"`.
+
+## Structure json tag options
+
+Besides standart json tag options like 'omitempty' the following are supported:
+
+* 'nocopy' - disables allocation and copying of string values, making them
+  refer to original json buffer memory. This works great for short lived
+  objects which are not hold in memory after decoding and immediate usage.
+  Note if string requires unescaping it will be processed as normally.
+* 'intern' - string "interning" (deduplication) to save memory when the very
+  same string dictionary values are often met all over the structure.
+  See below for more details.
+
 ## Generated Marshaler/Unmarshaler Funcs
 
 For Go struct types, easyjson generates the funcs `MarshalEasyJSON` /
-`UnmarshalEasyJSON` for marshaling/unmarshaling JSON. In turn, these satisify
+`UnmarshalEasyJSON` for marshaling/unmarshaling JSON. In turn, these satisfy
 the `easyjson.Marshaler` and `easyjson.Unmarshaler` interfaces and when used in
 conjunction with `easyjson.Marshal` / `easyjson.Unmarshal` avoid unnecessary
 reflection / type assertions during marshaling/unmarshaling to/from JSON for Go
@@ -102,17 +132,17 @@ utility funcs that are available.
 ## Controlling easyjson Marshaling and Unmarshaling Behavior
 
 Go types can provide their own `MarshalEasyJSON` and `UnmarshalEasyJSON` funcs
-that satisify the `easyjson.Marshaler` / `easyjson.Unmarshaler` interfaces.
+that satisfy the `easyjson.Marshaler` / `easyjson.Unmarshaler` interfaces.
 These will be used by `easyjson.Marshal` and `easyjson.Unmarshal` when defined
 for a Go type.
 
-Go types can also satisify the `easyjson.Optional` interface, which allows the
+Go types can also satisfy the `easyjson.Optional` interface, which allows the
 type to define its own `omitempty` logic.
 
 ## Type Wrappers
 
 easyjson provides additional type wrappers defined in the `easyjson/opt`
-package. These wrap the standard Go primitives and in turn satisify the
+package. These wrap the standard Go primitives and in turn satisfy the
 easyjson interfaces.
 
 The `easyjson/opt` type wrappers are useful when needing to distinguish between
@@ -132,6 +162,27 @@ package, and the default behavior pool behavior can be modified (if necessary)
 through a call to `buffer.Init()` prior to any marshaling or unmarshaling.
 Please see the [GoDoc listing](https://godoc.org/github.com/mailru/easyjson/buffer)
 for more information.
+
+## String interning
+
+During unmarshaling, `string` field values can be optionally
+[interned](https://en.wikipedia.org/wiki/String_interning) to reduce memory
+allocations and usage by deduplicating strings in memory, at the expense of slightly
+increased CPU usage.
+
+This will work effectively only for `string` fields being decoded that have frequently
+the same value (e.g. if you have a string field that can only assume a small number
+of possible values).
+
+To enable string interning, add the `intern` keyword tag to your `json` tag on `string`
+fields, e.g.:
+
+```go
+type Foo struct {
+  UUID  string `json:"uuid"`         // will not be interned during unmarshaling
+  State string `json:"state,intern"` // will be interned during unmarshaling
+}
+```
 
 ## Issues, Notes, and Limitations
 
@@ -174,7 +225,7 @@ for more information.
   needs to be known prior to sending the data. Currently this is not possible
   with easyjson's architecture.
   
-* easyjson parser and codegen based on reflection, so it wont works on `package main` 
+* easyjson parser and codegen based on reflection, so it won't work on `package main` 
   files, because they cant be imported by parser.
 
 ## Benchmarks
@@ -239,7 +290,7 @@ since the memory is not freed between marshaling operations.
 ### easyjson vs 'ujson' python module
 
 [ujson](https://github.com/esnme/ultrajson) is using C code for parsing, so it
-is interesting to see how plain golang compares to that. It is imporant to note
+is interesting to see how plain golang compares to that. It is important to note
 that the resulting object for python is slower to access, since the library
 parses JSON object into dictionaries.
 

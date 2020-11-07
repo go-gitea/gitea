@@ -11,6 +11,8 @@ import (
 // The current limit, 20MB, is the size limit supported by ep-engine.
 var MaxBodyLen = int(20 * 1024 * 1024)
 
+const _BUFLEN = 256
+
 // MCRequest is memcached Request
 type MCRequest struct {
 	// The command being issued
@@ -27,6 +29,10 @@ type MCRequest struct {
 	DataType uint8
 	// len() calls are expensive - cache this in case for collection
 	Keylen int
+	// Collection id for collection based operations
+	CollId [binary.MaxVarintLen32]byte
+	// Length of collection id
+	CollIdLen int
 	// Flexible Framing Extras
 	FramingExtras []FrameInfo
 	// Stored length of incoming framing extras
@@ -34,8 +40,12 @@ type MCRequest struct {
 }
 
 // Size gives the number of bytes this request requires.
+func (req *MCRequest) HdrSize() int {
+	return HDR_LEN + len(req.Extras) + req.CollIdLen + req.FramingElen + len(req.Key)
+}
+
 func (req *MCRequest) Size() int {
-	return HDR_LEN + len(req.Extras) + len(req.Key) + len(req.Body) + len(req.ExtMeta) + req.FramingElen
+	return req.HdrSize() + len(req.Body) + len(req.ExtMeta)
 }
 
 // A debugging string representation of this request
@@ -68,7 +78,7 @@ func (req *MCRequest) fillRegularHeaderBytes(data []byte) int {
 	data[pos] = byte(req.Opcode)
 	pos++
 	binary.BigEndian.PutUint16(data[pos:pos+2],
-		uint16(len(req.Key)))
+		uint16(req.CollIdLen+len(req.Key)))
 	pos += 2
 
 	// 4
@@ -84,7 +94,7 @@ func (req *MCRequest) fillRegularHeaderBytes(data []byte) int {
 
 	// 8
 	binary.BigEndian.PutUint32(data[pos:pos+4],
-		uint32(len(req.Body)+len(req.Key)+len(req.Extras)+len(req.ExtMeta)))
+		uint32(len(req.Body)+req.CollIdLen+len(req.Key)+len(req.Extras)+len(req.ExtMeta)))
 	pos += 4
 
 	// 12
@@ -97,15 +107,21 @@ func (req *MCRequest) fillRegularHeaderBytes(data []byte) int {
 	}
 	pos += 8
 
+	// 24 - extras
 	if len(req.Extras) > 0 {
 		copy(data[pos:pos+len(req.Extras)], req.Extras)
 		pos += len(req.Extras)
 	}
 
 	if len(req.Key) > 0 {
+		if req.CollIdLen > 0 {
+			copy(data[pos:pos+req.CollIdLen], req.CollId[:])
+			pos += req.CollIdLen
+		}
 		copy(data[pos:pos+len(req.Key)], req.Key)
 		pos += len(req.Key)
 	}
+
 	return pos
 }
 
@@ -132,7 +148,7 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 	data[0] = FLEX_MAGIC
 	data[1] = byte(req.Opcode)
 	data[2] = byte(req.FramingElen)
-	data[3] = byte(req.Keylen)
+	data[3] = byte(req.Keylen + req.CollIdLen)
 	elen := len(req.Extras)
 	data[4] = byte(elen)
 	if req.DataType != 0 {
@@ -140,7 +156,7 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 	}
 	binary.BigEndian.PutUint16(data[6:8], req.VBucket)
 	binary.BigEndian.PutUint32(data[8:12],
-		uint32(len(req.Body)+req.Keylen+elen+len(req.ExtMeta)+req.FramingElen))
+		uint32(len(req.Body)+req.Keylen+req.CollIdLen+elen+len(req.ExtMeta)+req.FramingElen))
 	binary.BigEndian.PutUint32(data[12:16], req.Opaque)
 	if req.Cas != 0 {
 		binary.BigEndian.PutUint64(data[16:24], req.Cas)
@@ -205,12 +221,27 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 	// Add keys
 	if req.Keylen > 0 {
 		if mergeMode {
+			var key []byte
+			var keylen int
+			if req.CollIdLen == 0 {
+				key = req.Key
+				keylen = req.Keylen
+			} else {
+				key = append(key, req.CollId[:]...)
+				key = append(key, req.Key...)
+				keylen = req.Keylen + req.CollIdLen
+			}
 			outputBytes = ShiftByteSliceRight4Bits(req.Key)
 			data = Merge2HalfByteSlices(data, outputBytes)
+			pos += keylen
 		} else {
+			if req.CollIdLen > 0 {
+				copy(data[pos:pos+req.CollIdLen], req.CollId[:])
+				pos += req.CollIdLen
+			}
 			copy(data[pos:pos+req.Keylen], req.Key)
+			pos += req.Keylen
 		}
-		pos += req.Keylen
 	}
 
 	return pos, mergeMode
@@ -227,7 +258,7 @@ func (req *MCRequest) FillHeaderBytes(data []byte) (int, bool) {
 // HeaderBytes will return the wire representation of the request header
 // (with the extras and key).
 func (req *MCRequest) HeaderBytes() []byte {
-	data := make([]byte, HDR_LEN+len(req.Extras)+len(req.Key)+req.FramingElen)
+	data := make([]byte, HDR_LEN+len(req.Extras)+req.CollIdLen+len(req.Key)+req.FramingElen)
 
 	req.FillHeaderBytes(data)
 
@@ -237,7 +268,11 @@ func (req *MCRequest) HeaderBytes() []byte {
 // Bytes will return the wire representation of this request.
 func (req *MCRequest) Bytes() []byte {
 	data := make([]byte, req.Size())
+	req.bytes(data)
+	return data
+}
 
+func (req *MCRequest) bytes(data []byte) {
 	pos, halfByteMode := req.FillHeaderBytes(data)
 	// TODO - the halfByteMode should be revisited for a more efficient
 	// way of doing things
@@ -259,15 +294,19 @@ func (req *MCRequest) Bytes() []byte {
 			copy(data[pos+len(req.Body):pos+len(req.Body)+len(req.ExtMeta)], req.ExtMeta)
 		}
 	}
-	return data
 }
 
 // Transmit will send this request message across a writer.
 func (req *MCRequest) Transmit(w io.Writer) (n int, err error) {
-	if len(req.Body) < 128 {
-		n, err = w.Write(req.Bytes())
+	l := req.Size()
+	if l < _BUFLEN {
+		data := make([]byte, l)
+		req.bytes(data)
+		n, err = w.Write(data)
 	} else {
-		n, err = w.Write(req.HeaderBytes())
+		data := make([]byte, req.HdrSize())
+		req.FillHeaderBytes(data)
+		n, err = w.Write(data)
 		if err == nil {
 			m := 0
 			m, err = w.Write(req.Body)

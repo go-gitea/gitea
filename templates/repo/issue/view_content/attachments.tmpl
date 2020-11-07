@@ -2,7 +2,7 @@
 <div class="twelve wide column" style="padding: 6px;">
 	<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
 	{{if FilenameIsImage .Name}}
-		<span class="ui image">{{svg "octicon-file-media"}}</span>
+		<span class="ui image">{{svg "octicon-file"}}</span>
 	{{else}}
 		<span class="ui image">{{svg "octicon-desktop-download"}}</span>
 	{{end}}

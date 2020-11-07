@@ -44,6 +44,7 @@
   reviewer_id: 2
   issue_id: 3
   content: "New review 3"
+  original_author_id: 0
   updated_unix: 946684811
   created_unix: 946684811
 -
@@ -52,6 +53,7 @@
   reviewer_id: 3
   issue_id: 3
   content: "New review 4"
+  original_author_id: 0
   updated_unix: 946684812
   created_unix: 946684812
 -
@@ -59,6 +61,7 @@
   type: 1
   reviewer_id: 4
   issue_id: 3
+  original_author_id: 0
   content: "New review 5"
   commit_id: 8091a55037cd59e47293aca02981b5a67076b364
   stale: true
@@ -72,6 +75,7 @@
   content: "New review 3 rejected"
   updated_unix: 946684814
   created_unix: 946684814
+  original_author_id: 0
 
 -
   id: 10
@@ -82,3 +86,22 @@
   official: true
   updated_unix: 946684815
   created_unix: 946684815
+
+-
+  id: 11
+  type: 4
+  reviewer_id: 0
+  reviewer_team_id: 7
+  issue_id: 12
+  official: true
+  updated_unix: 1602936509
+  created_unix: 1602936509
+
+-
+  id: 12
+  type: 4
+  reviewer_id: 1
+  issue_id: 12
+  official: true
+  updated_unix: 1603196749
+  created_unix: 1603196749

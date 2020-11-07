@@ -222,11 +222,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return editorconfig.ParseBytes(data)
+	return editorconfig.Parse(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
@@ -453,10 +449,14 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-			IncludeDrafts: false,
-			IncludeTags:   true,
+		ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeTags: true,
 		})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID", err)
+			return
+		}
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
 		if err != nil {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return

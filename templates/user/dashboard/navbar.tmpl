@@ -5,7 +5,13 @@
 				<span class="text">
 					<img class="ui avatar image" src="{{.ContextUser.RelAvatarLink}}" title="{{.ContextUser.Name}}" width="28" height="28">
 					{{.ContextUser.ShortName 20}}
-					<i class="dropdown icon"></i>
+					{{if .ContextUser.IsOrganization}}
+						<span class="org-visibility">
+							{{if .ContextUser.Visibility.IsLimited}}<div class="ui orange tiny horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+							{{if .ContextUser.Visibility.IsPrivate}}<div class="ui red tiny horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+						</span>
+					{{end}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="context user overflow menu" tabindex="-1">
 					<div class="ui header">
@@ -20,6 +26,10 @@
 							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}" width="28" height="28">
 								{{.ShortName 20}}
+								<span class="org-visibility">
+									{{if .Visibility.IsLimited}}<div class="ui orange tiny horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+									{{if .Visibility.IsPrivate}}<div class="ui red tiny horizontal label">{{$.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+								</span>
 							</a>
 						{{end}}
 					</div>

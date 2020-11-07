@@ -19,6 +19,8 @@ import "errors"
 type FiltersAggregation struct {
 	unnamedFilters  []Query
 	namedFilters    map[string]Query
+	otherBucket     *bool
+	otherBucketKey  string
 	subAggregations map[string]Aggregation
 	meta            map[string]interface{}
 }
@@ -52,6 +54,20 @@ func (a *FiltersAggregation) Filters(filters ...Query) *FiltersAggregation {
 // either use named or unnamed filters, but not both.
 func (a *FiltersAggregation) FilterWithName(name string, filter Query) *FiltersAggregation {
 	a.namedFilters[name] = filter
+	return a
+}
+
+// OtherBucket indicates whether to include a bucket for documents not
+// matching any filter.
+func (a *FiltersAggregation) OtherBucket(otherBucket bool) *FiltersAggregation {
+	a.otherBucket = &otherBucket
+	return a
+}
+
+// OtherBucketKey sets the key to use for the bucket for documents not
+// matching any filter.
+func (a *FiltersAggregation) OtherBucketKey(key string) *FiltersAggregation {
+	a.otherBucketKey = key
 	return a
 }
 
@@ -114,6 +130,13 @@ func (a *FiltersAggregation) Source() (interface{}, error) {
 			dict[key] = src
 		}
 		filters["filters"] = dict
+	}
+
+	if v := a.otherBucket; v != nil {
+		filters["other_bucket"] = *v
+	}
+	if v := a.otherBucketKey; v != "" {
+		filters["other_bucket_key"] = v
 	}
 
 	// AggregationBuilder (SubAggregations)

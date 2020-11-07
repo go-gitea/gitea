@@ -1,24 +1,31 @@
-{{if gt (len .PullReviewers) 0}}
+{{if or .PullReviewers .OriginalReviews }}
 	<div class="comment box">
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
 				{{range .PullReviewers}}
-					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
+					{{ $createdStr:= TimeSinceUnix .Review.UpdatedUnix $.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
-								<img src="{{.Reviewer.RelAvatarLink}}">
-							</a>
-							<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
-								{{if eq .Type 1}}
+							{{if .User}}
+								<a class="ui avatar image" href="{{.User.HomeLink}}">
+									<img src="{{.User.RelAvatarLink}}">
+								</a>
+							{{end}}
+							<span class="text grey">
+								{{if .User}}
+									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
+								{{else if .Team}}
+									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+								{{end}}
+								{{if eq .Review.Type 1}}
 									{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
-								{{else if eq .Type 2}}
+								{{else if eq .Review.Type 2}}
 									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-								{{else if eq .Type 3}}
+								{{else if eq .Review.Type 3}}
 									{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-								{{else if eq .Type 4}}
+								{{else if eq .Review.Type 4}}
 									{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 								{{else}}
 									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
@@ -26,33 +33,40 @@
 							</span>
 						</div>
 						<div class="review-item-right">
-							{{if .Stale}}
+							{{if .Review.Stale}}
 							<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
 								<i class="octicon icon fa-hourglass-end"></i>
 							</span>
 							{{end}}
+							<span class="type-icon text {{if eq .Review.Type 1}}green
+								{{- else if eq .Review.Type 2}}grey
+								{{- else if eq .Review.Type 3}}red
+								{{- else if eq .Review.Type 4}}yellow
+								{{else}}grey{{end}}">
+
+								{{if .CanChange }}
+									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{svg "octicon-sync"}}
+									</a>
+								{{end}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
+							</span>
+						</div>
+					</div>
+				{{end}}
+				{{range .OriginalReviews}}
+					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
+					<div class="ui divider"></div>
+					<div class="review-item">
+						<div class="review-item-left">
+							<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
+						</div>
+						<div class="review-item-right">
 							<span class="type-icon text {{if eq .Type 1}}green
 								{{- else if eq .Type 2}}grey
 								{{- else if eq .Type 3}}red
 								{{- else if eq .Type 4}}yellow
 								{{else}}grey{{end}}">
-
-								{{$canChoose := false}}
-								{{if eq .Type 4}}
-									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-										{{$canChoose = true}}
-									{{end}}
-								{{else}}
-									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-										{{$canChoose = true}}
-									{{end}}
-								{{end}}
-
-								{{if $canChoose }}
-									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}true{{else}}false{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{svg "octicon-sync"}}
-									</a>
-								{{end}}
 								{{svg (printf "octicon-%s" .Type.Icon)}}
 							</span>
 						</div>
@@ -71,6 +85,7 @@
 	{{- else if .IsBlockedByApprovals}}red
 	{{- else if .IsBlockedByRejection}}red
 	{{- else if .IsBlockedByOutdatedBranch}}red
+	{{- else if .IsBlockedByChangedProtectedFiles}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
 	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
@@ -149,6 +164,16 @@
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
+				{{else if .IsBlockedByChangedProtectedFiles}}
+					<div class="item text red">
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
+						<div class="ui ordered list">
+							{{range .ChangedProtectedFiles}}
+								<div data-value="-" class="item">{{.}}</div>
+							{{end}}
+						</div>
+					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
@@ -169,7 +194,7 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
@@ -311,7 +336,7 @@
 									</span>
 								</button>
 								<div class="ui dropdown icon button">
-									<i class="dropdown icon"></i>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
 										{{if $prUnit.PullRequestsConfig.AllowMerge}}
 										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
@@ -363,6 +388,16 @@
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
+					</div>
+				{{else if .IsBlockedByChangedProtectedFiles}}
+					<div class="item text red">
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
+						<div class="ui ordered list">
+							{{range .ChangedProtectedFiles}}
+								<div data-value="-" class="item">{{.}}</div>
+							{{end}}
+						</div>
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">

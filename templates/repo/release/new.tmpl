@@ -28,7 +28,7 @@
 								{{.i18n.Tr "repo.release.target"}} :
 								<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
 							</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .Branches}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
@@ -49,10 +49,10 @@
 					<textarea name="content">{{.content}}</textarea>
 				</div>
 				{{if .IsAttachmentEnabled}}
-				<div class="field">
-					<div class="files"></div>
-					<div class="ui dropzone" id="dropzone" data-upload-url="{{AppSubUrl}}/attachments" data-accepts="{{.AttachmentAllowedTypes}}" data-max-file="{{.AttachmentMaxFiles}}" data-max-size="{{.AttachmentMaxSize}}" data-default-message="{{.i18n.Tr "dropzone.default_message"}}" data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}" data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}" data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"></div>
-				</div>
+					<div class="field">
+						<div class="files"></div>
+						{{template "repo/upload" .}}
+					</div>
 				{{end}}
 			</div>
 			<div class="ui container">
@@ -99,7 +99,7 @@
 {{if .PageIsEditRelease}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			<i class="trash icon"></i>
+			{{svg "octicon-trashcan"}}
 			{{.i18n.Tr "repo.release.deletion"}}
 		</div>
 		<div class="content">

@@ -107,7 +107,7 @@
 							<input class="fake" type="password">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
+								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 							</div>
 						</div>
 					</div>
@@ -284,7 +284,7 @@
 					</div>
 				</div>
 
-				{{if and (not .IsMirror) (.Repository.UnitEnabled $.UnitTypePullRequests)}}
+				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
@@ -414,10 +414,10 @@
 		{{end}}
 
 		{{if .Permission.IsOwner}}
-		<h4 class="ui top attached warning header">
+		<h4 class="ui top attached error header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached warning table danger segment">
+		<div class="ui attached error table danger segment">
 			{{if .Repository.IsMirror}}
 				<div class="item">
 					<div class="ui right">

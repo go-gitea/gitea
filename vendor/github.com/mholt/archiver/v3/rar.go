@@ -40,6 +40,10 @@ type Rar struct {
 	// especially on extraction.
 	ImplicitTopLevelFolder bool
 
+	// Strip number of leading paths. This feature is available
+	// only during unpacking of the entire archive.
+	StripComponents int
+
 	// If true, errors encountered during reading
 	// or writing a single file will be logged and
 	// the operation will continue on remaining files.
@@ -56,6 +60,17 @@ type Rar struct {
 func (*Rar) CheckExt(filename string) error {
 	if !strings.HasSuffix(filename, ".rar") {
 		return fmt.Errorf("filename must have a .rar extension")
+	}
+	return nil
+}
+
+// CheckPath ensures that the filename has not been crafted to perform path traversal attacks
+func (*Rar) CheckPath(to, filename string) error {
+	to, _ = filepath.Abs(to) //explicit the destination folder to prevent that 'string.HasPrefix' check can be 'bypassed' when no destination folder is supplied in input
+	dest := filepath.Join(to, filename)
+	//prevent path traversal attacks
+	if !strings.HasPrefix(dest, to) {
+		return &IllegalPathError{AbsolutePath: dest, Filename: filename}
 	}
 	return nil
 }
@@ -94,7 +109,7 @@ func (r *Rar) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if r.ContinueOnError {
+			if r.ContinueOnError || IsIllegalPathError(err) {
 				log.Printf("[ERROR] Reading file in rar archive: %v", err)
 				continue
 			}
@@ -145,10 +160,29 @@ func (r *Rar) unrarNext(to string) error {
 	if err != nil {
 		return err // don't wrap error; calling loop must break on io.EOF
 	}
+	defer f.Close()
+
 	header, ok := f.Header.(*rardecode.FileHeader)
 	if !ok {
 		return fmt.Errorf("expected header to be *rardecode.FileHeader but was %T", f.Header)
 	}
+
+	errPath := r.CheckPath(to, header.Name)
+	if errPath != nil {
+		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+
+	if r.StripComponents > 0 {
+		if strings.Count(header.Name, "/") < r.StripComponents {
+			return nil // skip path with fewer components
+		}
+
+		for i := 0; i < r.StripComponents; i++ {
+			slash := strings.Index(header.Name, "/")
+			header.Name = header.Name[slash+1:]
+		}
+	}
+
 	return r.unrarFile(f, filepath.Join(to, header.Name))
 }
 
@@ -363,7 +397,9 @@ func (*Rar) Match(file io.ReadSeeker) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer file.Seek(currentPos, io.SeekStart)
+	defer func() {
+		_, _ = file.Seek(currentPos, io.SeekStart)
+	}()
 
 	buf := make([]byte, 8)
 	if n, err := file.Read(buf); err != nil || n < 8 {
@@ -402,6 +438,7 @@ var (
 	_ = Extractor(new(Rar))
 	_ = Matcher(new(Rar))
 	_ = ExtensionChecker(new(Rar))
+	_ = FilenameChecker(new(Rar))
 	_ = os.FileInfo(rarFileInfo{})
 )
 

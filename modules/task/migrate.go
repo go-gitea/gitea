@@ -5,7 +5,6 @@
 package task
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func handleCreateError(owner *models.User, err error, name string) error {
+func handleCreateError(owner *models.User, err error) error {
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
 		return fmt.Errorf("You have already reached your limit of %d repositories", owner.MaxCreationLimit())
@@ -39,10 +38,8 @@ func handleCreateError(owner *models.User, err error, name string) error {
 func runMigrateTask(t *models.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
+			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
+			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
 
 		if err == nil {
@@ -52,14 +49,15 @@ func runMigrateTask(t *models.Task) (err error) {
 				return
 			}
 
-			log.Error("FinishMigrateTask failed: %s", err.Error())
+			log.Error("FinishMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] failed: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Errors = err.Error()
-		if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
-			log.Error("Task UpdateCols failed: %s", err.Error())
+		t.RepoID = 0
+		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
+			log.Error("Task UpdateCols failed: %v", err)
 		}
 
 		if t.Repo != nil {
@@ -69,8 +67,8 @@ func runMigrateTask(t *models.Task) (err error) {
 		}
 	}()
 
-	if err := t.LoadRepo(); err != nil {
-		return err
+	if err = t.LoadRepo(); err != nil {
+		return
 	}
 
 	// if repository is ready, then just finsih the task
@@ -78,33 +76,35 @@ func runMigrateTask(t *models.Task) (err error) {
 		return nil
 	}
 
-	if err := t.LoadDoer(); err != nil {
-		return err
+	if err = t.LoadDoer(); err != nil {
+		return
 	}
-	if err := t.LoadOwner(); err != nil {
-		return err
+	if err = t.LoadOwner(); err != nil {
+		return
 	}
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning
-	if err := t.UpdateCols("start_time", "status"); err != nil {
-		return err
+	if err = t.UpdateCols("start_time", "status"); err != nil {
+		return
 	}
 
 	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
 	if err != nil {
-		return err
+		return
 	}
 
 	opts.MigrateToRepoID = t.RepoID
-	repo, err := migrations.MigrateRepository(graceful.GetManager().HammerContext(), t.Doer, t.Owner.Name, *opts)
+	var repo *models.Repository
+	repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), t.Doer, t.Owner.Name, *opts)
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
-		return nil
+		return
 	}
 
 	if models.IsErrRepoAlreadyExist(err) {
-		return errors.New("The repository name is already used")
+		err = errors.New("The repository name is already used")
+		return
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it
@@ -116,5 +116,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return fmt.Errorf("Migration failed: %v", err.Error())
 	}
 
-	return handleCreateError(t.Owner, err, "MigratePost")
+	// do not be tempted to coalesce this line with the return
+	err = handleCreateError(t.Owner, err)
+	return
 }

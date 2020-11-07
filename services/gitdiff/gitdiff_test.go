@@ -50,7 +50,7 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "</span> <span class=\"p\">{</span>"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"removed-code\"><span class=\"nx\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\"</span></span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">BaseURL</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Owner</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Repo</span><span class=\"p\">,</span> <span class=\"nx\"><span class=\"removed-code\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)</span></span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"removed-code\"><span class=\"nx\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\"</span></span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">BaseURL</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Owner</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Repo</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)</span></span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"n"},
 		{Type: dmp.DiffDelete, Text: "x\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\""},
 		{Type: dmp.DiffInsert, Text: "f\">getGiteaTagURL</span><span class=\"p\">(</span><span class=\"nx\">client"},
@@ -60,7 +60,7 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">)</span>"},
 	}, DiffLineDel))
 
-	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"nx\"><span class=\"removed-code\">language</span></span><span class=\"removed-code\"><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">language</span></span><span class=\"removed-code\"><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"nx\">"},
 		{Type: dmp.DiffDelete, Text: "language</span><span "},
 		{Type: dmp.DiffEqual, Text: "c"},
@@ -73,6 +73,30 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "c"},
 		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"></span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
+		{Type: dmp.DiffInsert, Text: "<span"},
+		{Type: dmp.DiffEqual, Text: " "},
+		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
+		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
+		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins</span>&#39;", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "sh &#3"},
+		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
+		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
+		{Type: dmp.DiffEqual, Text: ";"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=</span><span class=\"added-code\">&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
+		{Type: dmp.DiffInsert, Text: "4 class=&#"},
+		{Type: dmp.DiffEqual, Text: "3"},
+		{Type: dmp.DiffInsert, Text: "4;release-list-title df ac&#34;"},
+		{Type: dmp.DiffEqual, Text: "&gt;</span>"},
 	}, DiffLineAdd))
 }
 
@@ -90,9 +114,9 @@ func TestParsePatch_singlefile(t *testing.T) {
 	tests := []testcase{
 		{
 			name: "readme.md2readme.md",
-			gitdiff: `diff --git "a/README.md" "b/README.md"
---- a/README.md
-+++ b/README.md
+			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
+--- "\\a/README.md"
++++ "\\b/README.md"
 @@ -1,3 +1,6 @@
  # gitea-github-migrator
 +
@@ -102,9 +126,10 @@ func TestParsePatch_singlefile(t *testing.T) {
 + cut off
 + cut off
 `,
-			addition: 4,
-			deletion: 1,
-			filename: "README.md",
+			addition:    4,
+			deletion:    1,
+			filename:    "README.md",
+			oldFilename: "README.md",
 		},
 		{
 			name: "A \\ B",
@@ -119,16 +144,17 @@ func TestParsePatch_singlefile(t *testing.T) {
  Docker Pulls
 + cut off
 + cut off`,
-			addition: 4,
-			deletion: 1,
-			filename: "A \\ B",
+			addition:    4,
+			deletion:    1,
+			filename:    "A \\ B",
+			oldFilename: "A \\ B",
 		},
 		{
 			name: "really weird filename",
-			gitdiff: `diff --git a/a b/file b/a a/file b/a b/file b/a a/file
+			gitdiff: `diff --git "\\a/a b/file b/a a/file" "\\b/a b/file b/a a/file"
 index d2186f1..f5c8ed2 100644
---- a/a b/file b/a a/file	
-+++ b/a b/file b/a a/file	
+--- "\\a/a b/file b/a a/file"	
++++ "\\b/a b/file b/a a/file"	
 @@ -1,3 +1,2 @@
  Create a weird file.
  
@@ -141,10 +167,10 @@ index d2186f1..f5c8ed2 100644
 		},
 		{
 			name: "delete file with blanks",
-			gitdiff: `diff --git a/file with blanks b/file with blanks
+			gitdiff: `diff --git "\\a/file with blanks" "\\b/file with blanks"
 deleted file mode 100644
 index 898651a..0000000
---- a/file with blanks	
+--- "\\a/file with blanks"	
 +++ /dev/null
 @@ -1,5 +0,0 @@
 -a blank file
@@ -153,9 +179,10 @@ index 898651a..0000000
 -
 -the 5th line is the last
 `,
-			addition: 0,
-			deletion: 5,
-			filename: "file with blanks",
+			addition:    0,
+			deletion:    5,
+			filename:    "file with blanks",
+			oldFilename: "file with blanks",
 		},
 		{
 			name: "rename a—as",
@@ -171,13 +198,34 @@ rename to "a\342\200\224as"
 		},
 		{
 			name: "rename with spaces",
-			gitdiff: `diff --git a/a b/file b/a a/file b/a b/a a/file b/b file
+			gitdiff: `diff --git "\\a/a b/file b/a a/file" "\\b/a b/a a/file b/b file"
 similarity index 100%
 rename from a b/file b/a a/file
 rename to a b/a a/file b/b file
 `,
 			oldFilename: "a b/file b/a a/file",
 			filename:    "a b/a a/file b/b file",
+		},
+		{
+			name: "minuses-and-pluses",
+			gitdiff: `diff --git a/minuses-and-pluses b/minuses-and-pluses
+index 6961180..9ba1a00 100644
+--- a/minuses-and-pluses
++++ b/minuses-and-pluses
+@@ -1,4 +1,4 @@
+--- 1st line
+-++ 2nd line
+--- 3rd line
+-++ 4th line
++++ 1st line
++-- 2nd line
++++ 3rd line
++-- 4th line
+`,
+			oldFilename: "minuses-and-pluses",
+			filename:    "minuses-and-pluses",
+			addition:    4,
+			deletion:    4,
 		},
 	}
 
