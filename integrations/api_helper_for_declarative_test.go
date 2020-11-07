@@ -371,3 +371,17 @@ func doAPIAddRepoToOrganizationTeam(ctx APITestContext, teamID int64, orgName, r
 		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
 	}
 }
+
+func doAPISetRepoSizeLimit(ctx APITestContext, owner, repo string, size int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s",
+			owner, repo, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditRepoOption{SizeLimit: &size})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
+	}
+}
