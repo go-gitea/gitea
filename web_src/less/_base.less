@@ -362,10 +362,6 @@ a:hover,
     background-color: transparent;
   }
 
-  &.nopadding {
-    padding: 0;
-  }
-
   &.menu,
   &.vertical.menu,
   &.segment {
@@ -505,14 +501,6 @@ a:hover,
 
     &.middle {
       vertical-align: middle;
-    }
-
-    &.nopadding {
-      padding: 0;
-    }
-
-    &.nomargin {
-      margin: 0;
     }
   }
 
@@ -952,7 +940,7 @@ footer {
     background: rgba(0, 0, 0, .2);
   }
 
-  .ui.menu.new-menu:after {
+  .ui.menu.new-menu::after {
     position: absolute;
     margin-top: -15px;
     display: block;
@@ -1049,12 +1037,12 @@ i.icon.centerlock {
 
   span {
     &.bottom-line {
-      &:after {
+      &::after {
         border-bottom: 1px solid #eaecef;
       }
     }
 
-    &:after {
+    &::after {
       content: attr(data-line-number);
       line-height: 20px !important;
       padding: 0 10px;
@@ -1269,6 +1257,37 @@ i.icon.centerlock {
   span.purple & {
     color: #a333c8;
   }
+}
+
+.ui.popup {
+  background-color: var(--color-body);
+  color: var(--color-secondary-dark-6);
+  border-color: var(--color-secondary);
+}
+
+.ui.popup::before {
+  box-shadow: 1px 1px 0 0 var(--color-secondary);
+}
+
+.ui.bottom.popup::before,
+.ui.top.popup::before,
+.ui.right.center.popup::before,
+.ui.left.center.popup::before {
+  background-color: var(--color-body);
+}
+
+.ui.bottom.left.popup::before,
+.ui.bottom.right.popup::before,
+.ui.bottom.center.popup::before {
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.left.center.popup::before {
+  box-shadow: 1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.right.center.popup::before {
+  box-shadow: -1px 1px 0 0 var(--color-secondary);
 }
 
 .ui.popup .ui.label {
