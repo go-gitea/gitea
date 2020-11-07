@@ -71,7 +71,7 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		case setting.Database.UseSQLite3:
 			sqlCmd += " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
 		case setting.Database.UseMSSQL:
-			if _, err := sess.Exec(sqlSelect + " INTO temp_comments" + sqlTail); err != nil {
+			if _, err := sess.Exec(sqlSelect + " INTO #temp_comments" + sqlTail); err != nil {
 				log.Error("unable to create temporary table")
 				return err
 			}
