@@ -53,22 +53,22 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 
 	sqlCmd := sqlSelect + sqlTail
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if setting.Database.UseMSSQL {
-		if _, err := sess.Exec(sqlSelect + " INTO #temp_comments" + sqlTail); err != nil {
-			log.Error("unable to create temporary table")
-			return err
-		}
-	}
-
 	var start = 0
 	var batchSize = 100
 	for {
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+
+		if setting.Database.UseMSSQL {
+			if _, err := sess.Exec(sqlSelect + " INTO #temp_comments" + sqlTail); err != nil {
+				log.Error("unable to create temporary table")
+				return err
+			}
+		}
+
 		var comments = make([]*Comment, 0, batchSize)
 
 		switch {
@@ -99,10 +99,13 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 
 		start += len(comments)
 
+		if err := sess.Commit(); err != nil {
+			return err
+		}
 		if len(comments) < batchSize {
 			break
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }
