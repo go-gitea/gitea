@@ -252,3 +252,11 @@ func TestRelease_createTag(t *testing.T) {
 	assert.NoError(t, createTag(gitRepo, release))
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
+
+func TestCreateNewTag(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+
+	assert.NoError(t, CreateNewTag(user, repo, "master", "v2.0"))
+}

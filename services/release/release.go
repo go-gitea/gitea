@@ -105,6 +105,44 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	return nil
 }
 
+// CreateNewTag creates a new repository tag
+func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName string) error {
+	isExist, err := models.IsReleaseExist(repo.ID, tagName)
+	if err != nil {
+		return err
+	} else if isExist {
+		return models.ErrTagAlreadyExists{
+			TagName: tagName,
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	rel := &models.Release{
+		RepoID:       repo.ID,
+		PublisherID:  doer.ID,
+		TagName:      tagName,
+		Target:       commit,
+		IsDraft:      false,
+		IsPrerelease: false,
+		IsTag:        true,
+	}
+
+	if err = createTag(gitRepo, rel); err != nil {
+		return err
+	}
+
+	if err = models.InsertRelease(rel); err != nil {
+		return err
+	}
+
+	return err
+}
+
 // UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
 func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {

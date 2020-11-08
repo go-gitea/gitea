@@ -3151,6 +3151,7 @@ function initFilterBranchTagDropdown(selector) {
       noResults: '',
       canCreateBranch: false,
       menuVisible: false,
+      createTag: false,
       active: 0
     };
     $data.find('.item').each(function () {
@@ -3182,7 +3183,7 @@ function initFilterBranchTagDropdown(selector) {
           return this.filteredItems.length === 0 && !this.showCreateNewBranch;
         },
         showCreateNewBranch() {
-          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+          if (!this.canCreateBranch || !this.searchTerm) {
             return false;
           }
 
