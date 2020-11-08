@@ -77,7 +77,7 @@ func (tsz *TarSz) Extract(source, target, destination string) error {
 func (tsz *TarSz) wrapWriter() {
 	var sw *snappy.Writer
 	tsz.Tar.writerWrapFn = func(w io.Writer) (io.Writer, error) {
-		sw = snappy.NewWriter(w)
+		sw = snappy.NewBufferedWriter(w)
 		return sw, nil
 	}
 	tsz.Tar.cleanupWrapFn = func() {

@@ -25,14 +25,6 @@
 		<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
 			<h4 class="ui top attached header">
 				{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
-				{{if or (not .ContextUser.IsOrganization) .IsOrganizationOwner}}
-				<div class="ui right">
-					<a class="poping up" :href="suburl + '/repo/create{{if .ContextUser.IsOrganization}}?org={{.ContextUser.ID}}{{end}}'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
-						<i class="plus icon"></i>
-						<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
-					</a>
-				</div>
-				{{end}}
 			</h4>
 			<div class="ui attached secondary segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
@@ -61,15 +53,15 @@
 								<a @click="togglePrivateFilter()">
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock" 16}}{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock"}}{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_public"}}" v-if="privateFilter === 'public'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock" 16}}</svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock"}}</svg>{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock" 16}}</svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock"}}</svg>{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 								</a>
 							</div>
@@ -107,7 +99,7 @@
 							<strong class="text truncate item-name">${repo.full_name}</strong>
 							<i v-if="repo.archived" class="archive icon archived-icon"></i>
 							<span class="ui right text light grey">
-								${repo.stars_count} <span class="rear">{{svg "octicon-star" 16}}</span>
+								${repo.stars_count} <span class="rear">{{svg "octicon-star"}}</span>
 							</span>
 						</a>
 					</li>
@@ -151,10 +143,10 @@
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
 						<a :href="suburl + '/' + org.name">
-							{{svg "octicon-organization" 16}}
+							{{svg "octicon-organization"}}
 							<strong class="text truncate item-name">${org.name}</strong>
 							<span class="ui right text light grey">
-								${org.num_repos} <span class="rear">{{svg "octicon-repo" 16}}</span>
+								${org.num_repos} <span class="rear">{{svg "octicon-repo"}}</span>
 							</span>
 						</a>
 					</li>

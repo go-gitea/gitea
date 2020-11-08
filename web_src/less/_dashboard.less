@@ -74,12 +74,14 @@
   .dashboard-navbar {
     width: 100vw;
     padding: 0 .5rem;
+    .org-visibility .label {
+      margin-left: 5px;
+    }
   }
 }
 
 &.feeds {
   .news {
-
     li {
       display: flex;
       align-items: baseline;
@@ -125,7 +127,7 @@
     }
 
     .commit-id {
-      font-family: @monospaced-fonts, monospace;
+      font-family: var(--fonts-monospace);
     }
 
     code {
@@ -134,6 +136,10 @@
       background-color: rgba(0, 0, 0, .04);
       border-radius: 3px;
       word-break: break-all;
+    }
+
+    &:last-of-type .divider {
+      display: none !important;
     }
   }
 
@@ -157,7 +163,7 @@
 
       li {
         &:not(:last-child) {
-          border-bottom: 1px solid #ebebeb;
+          border-bottom: 1px solid var(--color-secondary);
         }
 
         &.private {
@@ -169,7 +175,7 @@
           display: block;
 
           .svg {
-            color: #888888;
+            color: var(--color-secondary-dark-6);
 
             &.rear {
               font-size: 15px;

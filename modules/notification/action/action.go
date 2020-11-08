@@ -92,13 +92,22 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, comment.Content),
 		RepoID:    issue.Repo.ID,
 		Repo:      issue.Repo,
 		Comment:   comment,
 		CommentID: comment.ID,
 		IsPrivate: issue.Repo.IsPrivate,
 	}
+
+	content := ""
+
+	if len(comment.Content) > 200 {
+		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
+	} else {
+		content = comment.Content
+	}
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+
 	if issue.IsPull {
 		act.OpType = models.ActionCommentPull
 	} else {
@@ -286,7 +295,7 @@ func (*actionNotifier) NotifyPullRevieweDismiss(doer *models.User, review *model
 	}
 }
 
-func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)
@@ -300,7 +309,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
+		RefName:   opts.RefFullName,
 		Content:   string(data),
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)
@@ -325,7 +334,7 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncCreate,
+		OpType:    models.ActionMirrorSyncDelete,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,

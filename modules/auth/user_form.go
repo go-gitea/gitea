@@ -83,6 +83,7 @@ type RegisterForm struct {
 	Password           string `binding:"MaxSize(255)"`
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
+	HcaptchaResponse   string `form:"h-captcha-response"`
 }
 
 // Validate validates the fields
@@ -198,7 +199,6 @@ func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 type UpdateProfileForm struct {
 	Name                string `binding:"AlphaDashDot;MaxSize(40)"`
 	FullName            string `binding:"MaxSize(100)"`
-	Email               string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`

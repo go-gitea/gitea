@@ -30,6 +30,7 @@ const (
 type PullReview struct {
 	ID                int64           `json:"id"`
 	Reviewer          *User           `json:"user"`
+	ReviewerTeam      *Team           `json:"team"`
 	State             ReviewStateType `json:"state"`
 	Body              string          `json:"body"`
 	CommitID          string          `json:"commit_id"`
@@ -95,4 +96,10 @@ type SubmitPullReviewOptions struct {
 // DismissPullReviewOptions are options to dismiss a pull review
 type DismissPullReviewOptions struct {
 	Message string `json:"message"`
+}
+
+// PullReviewRequestOptions are options to add or remove pull review requests
+type PullReviewRequestOptions struct {
+	Reviewers     []string `json:"reviewers"`
+	TeamReviewers []string `json:"team_reviewers"`
 }

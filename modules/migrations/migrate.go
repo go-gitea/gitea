@@ -69,7 +69,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		}
 
 		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create respotiry notice failed: ", err2)
+			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating pull requests and comments")
 		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
-			prs, err := downloader.GetPullRequests(i, prBatchSize)
+			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
 				return err
 			}
@@ -300,7 +300,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(prs) < prBatchSize {
+			if isEnd {
 				break
 			}
 		}

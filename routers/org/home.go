@@ -32,6 +32,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy models.SearchOrderBy
@@ -119,11 +120,14 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
+
+	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

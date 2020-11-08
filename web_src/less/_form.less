@@ -10,13 +10,9 @@
 .ui.attached.header {
   background: #f0f0f0;
 
-  .right {
-    margin-top: -5px;
-
-    .button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
+  .right .button {
+    padding: 8px 10px;
+    font-weight: normal;
   }
 }
 
@@ -99,7 +95,8 @@
 }
 
 @media only screen and (min-width: 768px) {
-  .g-recaptcha {
+  .g-recaptcha,
+  .h-captcha {
     margin: 0 auto !important;
     width: 304px;
     padding-left: 30px;
@@ -108,7 +105,8 @@
 
 @media screen and (max-height: 575px) {
   #rc-imageselect,
-  .g-recaptcha {
+  .g-recaptcha,
+  .h-captcha {
     transform: scale(.77);
     transform-origin: 0 0;
   }
@@ -160,19 +158,8 @@
     #create-page-form;
 
     form {
-      .dropdown {
-        .dropdown.icon {
-          margin-top: -7px !important;
-          padding-bottom: 5px;
-        }
-
-        .text {
-          margin-right: 0 !important;
-
-          i {
-            margin-right: 0 !important;
-          }
-        }
+      .dropdown .text {
+        margin-right: 0 !important;
       }
 
       .header {
@@ -236,7 +223,7 @@
 
 .githook {
   textarea {
-    font-family: @monospaced-fonts, monospace;
+    font-family: var(--fonts-monospace);
   }
 }
 

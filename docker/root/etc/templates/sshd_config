@@ -8,11 +8,18 @@ ListenAddress ::
 LogLevel INFO
 
 HostKey /data/ssh/ssh_host_ed25519_key
+HostCertificate /data/ssh/ssh_host_ed25519_cert
 HostKey /data/ssh/ssh_host_rsa_key
-HostKey /data/ssh/ssh_host_dsa_key
+HostCertificate /data/ssh/ssh_host_rsa_cert
 HostKey /data/ssh/ssh_host_ecdsa_key
+HostCertificate /data/ssh/ssh_host_ecdsa_cert
+HostKey /data/ssh/ssh_host_dsa_key
+HostCertificate /data/ssh/ssh_host_dsa_cert
 
 AuthorizedKeysFile .ssh/authorized_keys
+AuthorizedPrincipalsFile .ssh/authorized_principals
+TrustedUserCAKeys /data/git/.ssh/gitea-trusted-user-ca-keys.pem
+CASignatureAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,sk-ecdsa-sha2-nistp256@openssh.com,ssh-ed25519,sk-ssh-ed25519@openssh.com,rsa-sha2-512,rsa-sha2-256,ssh-rsa
 
 UseDNS no
 AllowAgentForwarding no

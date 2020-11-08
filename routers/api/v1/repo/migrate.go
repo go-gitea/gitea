@@ -9,12 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -26,7 +26,7 @@ import (
 )
 
 // Migrate migrate remote git repository to gitea
-func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
+func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	// swagger:operation POST /repos/migrate repository repoMigrate
 	// ---
 	// summary: Migrate a remote git repository
@@ -38,7 +38,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/MigrateRepoForm"
+	//     "$ref": "#/definitions/MigrateRepoOptions"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
@@ -47,20 +47,25 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	ctxUser := ctx.User
-	// Not equal means context user is an organization,
-	// or is another user/organization if current user is admin.
-	if form.UID != ctxUser.ID {
-		org, err := models.GetUserByID(form.UID)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
-			}
-			return
+	//get repoOwner
+	var (
+		repoOwner *models.User
+		err       error
+	)
+	if len(form.RepoOwner) != 0 {
+		repoOwner, err = models.GetUserByName(form.RepoOwner)
+	} else if form.RepoOwnerID != 0 {
+		repoOwner, err = models.GetUserByID(form.RepoOwnerID)
+	} else {
+		repoOwner = ctx.User
+	}
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetUser", err)
 		}
-		ctxUser = org
+		return
 	}
 
 	if ctx.HasError() {
@@ -69,14 +74,14 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	if !ctx.User.IsAdmin {
-		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+		if !repoOwner.IsOrganization() && ctx.User.ID != repoOwner.ID {
 			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
 			return
 		}
 
-		if ctxUser.IsOrganization() {
+		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+			isOwner, err := repoOwner.IsOwnedBy(ctx.User.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -87,7 +92,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		}
 	}
 
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
+	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, ctx.User)
 	if err != nil {
 		if models.IsErrInvalidCloneAddr(err) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
@@ -107,11 +112,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = api.PlainGitService
-	u, err := url.Parse(remoteAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = api.GithubService
-	}
+	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Repository.DisableMirrors {
 		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
@@ -126,6 +127,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		Mirror:         form.Mirror,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
+		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
@@ -144,7 +146,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(ctx.User, repoOwner, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -154,7 +156,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		Status:         models.RepositoryBeingMigrated,
 	})
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
 
@@ -171,24 +173,24 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		if err == nil {
 			repo.Status = models.RepositoryReady
 			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
 				return
 			}
 		}
 
 		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
+			if errDelete := models.DeleteRepository(ctx.User, repoOwner.ID, repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, ctxUser.Name, opts); err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts); err != nil {
+		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
 	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
 }
 
@@ -196,6 +198,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):

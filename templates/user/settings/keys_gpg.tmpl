@@ -36,7 +36,7 @@
 	</div>
 </div>
 <br>
-<p>{{.i18n.Tr "settings.gpg_helper" "https://help.github.com/articles/about-gpg/" | Str2html}}</p>
+<p>{{.i18n.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
 <div {{if not .HasGPGError}}class="hide"{{end}} id="add-gpg-key-panel">
 	<h4 class="ui top attached header">
 		 {{.i18n.Tr "settings.add_new_gpg_key"}}
@@ -59,7 +59,7 @@
 
 <div class="ui small basic delete modal" id="delete-gpg">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.gpg_key_deletion"}}
 	</div>
 	<div class="content">

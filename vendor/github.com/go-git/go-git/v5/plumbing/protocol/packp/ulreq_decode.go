@@ -14,9 +14,9 @@ import (
 
 // Decode reads the next upload-request form its input and
 // stores it in the UploadRequest.
-func (u *UploadRequest) Decode(r io.Reader) error {
+func (req *UploadRequest) Decode(r io.Reader) error {
 	d := newUlReqDecoder(r)
-	return d.Decode(u)
+	return d.Decode(req)
 }
 
 type ulReqDecoder struct {

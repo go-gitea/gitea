@@ -5,18 +5,10 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addDismissedReviewColumn(x *xorm.Engine) error {
-	type Review struct {
-		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+func purgeInvalidDependenciesComments(x *xorm.Engine) error {
+	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id != 0 AND dependent_issue_id NOT IN (SELECT id FROM issue)")
+	return err
 }

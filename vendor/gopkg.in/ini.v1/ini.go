@@ -81,6 +81,8 @@ type LoadOptions struct {
 	IgnoreInlineComment bool
 	// SkipUnrecognizableLines indicates whether to skip unrecognizable lines that do not conform to key/value pairs.
 	SkipUnrecognizableLines bool
+	// ShortCircuit indicates whether to ignore other configuration sources after loaded the first available configuration source.
+	ShortCircuit bool
 	// AllowBooleanKeys indicates whether to allow boolean type keys or treat as value is missing.
 	// This type of keys are mostly used in my.cnf.
 	AllowBooleanKeys bool
@@ -111,7 +113,7 @@ type LoadOptions struct {
 	UnparseableSections []string
 	// KeyValueDelimiters is the sequence of delimiters that are used to separate key and value. By default, it is "=:".
 	KeyValueDelimiters string
-	// KeyValueDelimiters is the delimiter that are used to separate key and value output. By default, it is "=".
+	// KeyValueDelimiterOnWrite is the delimiter that are used to separate key and value output. By default, it is "=".
 	KeyValueDelimiterOnWrite string
 	// ChildSectionDelimiter is the delimiter that is used to separate child sections. By default, it is ".".
 	ChildSectionDelimiter string
