@@ -1,8 +1,21 @@
 #git-graph-container {
   float: left;
   display: block;
-  overflow-x: auto;
+  overflow-x: scroll;
   width: 100%;
+  min-height: 350px;
+
+  > .ui.segment.loading {
+    border: 0;
+    z-index: 1;
+    min-height: 246px;
+  }
+
+  h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
   .color-buttons {
     margin-right: 0;
@@ -12,11 +25,49 @@
     padding-bottom: 10px;
   }
 
+  #flow-select-refs-dropdown {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    min-width: 250px;
+    border-right: none;
+
+    .ui.label {
+      max-width: 180px;
+      display: inline-flex !important;
+      align-items: center;
+
+      .truncate {
+        display: inline-block;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+    }
+
+    .dropdown.icon {
+      display: none;
+    }
+
+    .default.text {
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+
+    input.search {
+      position: relative;
+      top: 1px;
+    }
+  }
+
   li {
     list-style-type: none;
-    height: 20px;
-    line-height: 20px;
+    height: 24px;
+    line-height: 24px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 
     .node-relation {
       font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
@@ -29,10 +80,6 @@
     .time {
       color: #999999;
       font-size: 80%;
-    }
-
-    a {
-      color: #000000;
     }
 
     a:hover {
@@ -59,16 +106,39 @@
 
   #rev-list {
     margin: 0;
-    padding: 0 5px;
-    min-width: 95%;
+    padding: 0;
+    width: 100%;
 
-    li.highlight,
-    li.hover {
+    li.highlight.hover {
       background-color: rgba(0, 0, 0, .05);
     }
 
-    li.highlight.hover {
-      background-color: rgba(0, 0, 0, .1);
+    .tags a.button {
+      padding: 2px 4px;
+    }
+
+    .sha.label {
+      padding-top: 5px;
+      padding-bottom: 3px;
+    }
+
+    .sha.label .shortsha {
+      padding-top: 0;
+    }
+
+    .sha.label .shortsha-pad {
+      padding-right: 10px;
+    }
+
+    .sha.label .ui.detail.icon.button {
+      padding-top: 3px;
+      margin-top: -5px;
+      padding-bottom: 1px;
+    }
+
+    .author .ui.avatar.image {
+      width: auto;
+      height: 18px;
     }
   }
 
