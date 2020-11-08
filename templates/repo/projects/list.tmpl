@@ -57,7 +57,7 @@
 						{{if .IsClosed}}
 							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.i18n.Tr "repo.projects.open"}}</a>
 						{{else}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x"}} {{$.i18n.Tr "repo.projects.close"}}</a>
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.i18n.Tr "repo.projects.close"}}</a>
 						{{end}}
 						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 					</div>
