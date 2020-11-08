@@ -1,1 +1,4 @@
-@fontName : 'Roboto';
+/* https://github.com/fomantic/Fomantic-UI/blob/develop/src/themes/default/globals/site.variables */
+
+@headerFont: var(--fonts-regular);
+@pageFont: var(--fonts-regular);
