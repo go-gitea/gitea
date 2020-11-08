@@ -16,7 +16,7 @@
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
 				{{if .Reviewers}}
 					<div class="ui icon search input">
-						<i class="search icon"></i>
+						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
@@ -101,7 +101,7 @@
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_labels_title"}}</div>
 				{{if or .Labels .OrgLabels}}
 				<div class="ui icon search input">
-					<i class="search icon"></i>
+					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_labels"}}">
 				</div>
 				{{end}}
@@ -149,7 +149,7 @@
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_milestone_title"}}</div>
 				{{if or .OpenMilestones .ClosedMilestones}}
 				<div class="ui icon search input">
-					<i class="search icon"></i>
+					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_milestones"}}">
 				</div>
 				{{end}}
@@ -246,7 +246,7 @@
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
-					<i class="search icon"></i>
+					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_assignees"}}">
 				</div>
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
