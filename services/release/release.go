@@ -157,10 +157,6 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		}
 	} else {
 		rel.IsTag = true
-		rel.IsDraft = false
-		rel.IsPrerelease = false
-		rel.Title = ""
-		rel.Note = ""
 
 		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)

@@ -237,6 +237,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, line)
+			line = `<code class="code-inner">` + line + `</code>`
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {

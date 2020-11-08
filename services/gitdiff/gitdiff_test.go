@@ -83,6 +83,21 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
 		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
 	}, DiffLineAdd))
+
+	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins</span>&#39;", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "sh &#3"},
+		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
+		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
+		{Type: dmp.DiffEqual, Text: ";"},
+	}, DiffLineAdd))
+
+	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=</span><span class=\"added-code\">&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
+		{Type: dmp.DiffInsert, Text: "4 class=&#"},
+		{Type: dmp.DiffEqual, Text: "3"},
+		{Type: dmp.DiffInsert, Text: "4;release-list-title df ac&#34;"},
+		{Type: dmp.DiffEqual, Text: "&gt;</span>"},
+	}, DiffLineAdd))
 }
 
 func TestParsePatch_singlefile(t *testing.T) {

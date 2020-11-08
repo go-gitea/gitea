@@ -328,6 +328,17 @@ func (ra *roaringArray) getFastContainerAtIndex(i int, needsWriteable bool) cont
 	return c
 }
 
+// getUnionedWritableContainer switches behavior for in-place Or
+// depending on whether the container requires a copy on write.
+// If it does using the non-inplace or() method leads to fewer allocations.
+func (ra *roaringArray) getUnionedWritableContainer(pos int, other container) container {
+	if ra.needCopyOnWrite[pos] {
+		return ra.getContainerAtIndex(pos).or(other)
+	}
+	return ra.getContainerAtIndex(pos).ior(other)
+
+}
+
 func (ra *roaringArray) getWritableContainerAtIndex(i int) container {
 	if ra.needCopyOnWrite[i] {
 		ra.containers[i] = ra.containers[i].clone()
