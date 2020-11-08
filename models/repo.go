@@ -1501,6 +1501,10 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		return fmt.Errorf("update: %v", err)
 	}
 
+	if err = repo.updateSize(e); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
 	if visibilityChanged {
 		if err = repo.getOwner(e); err != nil {
 			return fmt.Errorf("getOwner: %v", err)
@@ -1545,10 +1549,6 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
-		}
-
-		if err = repo.updateSize(e); err != nil {
-			log.Error("Failed to update size for repository: %v", err)
 		}
 	}
 
