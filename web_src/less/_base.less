@@ -57,7 +57,11 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
-  --color-body: #fff;
+  --color-body: #ffffff;
+  --color-text: #212121;
+  --color-box-header: #f7f7f7;
+  --color-box-body: #ffffff;
+  --color-timeline: #ececec;
 }
 
 :root:lang(ja) {
@@ -1334,6 +1338,24 @@ i.icon.centerlock {
 
 .invisible {
   visibility: hidden;
+}
+
+.ui.segment,
+.ui.segments,
+.ui.attached.segment {
+  background: var(--color-box-body);
+  color: var(--color-text);
+  border-color: var(--color-secondary);
+}
+
+.ui.attached.header {
+  background: var(--color-box-header);
+  border-color: var(--color-secondary);
+
+  .right .button {
+    padding: 8px 10px;
+    font-weight: normal;
+  }
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */

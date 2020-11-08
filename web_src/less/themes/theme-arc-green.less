@@ -51,6 +51,10 @@
   --color-secondary-alpha-80: #454a57cc;
   --color-secondary-alpha-90: #454a57e1;
   --color-body: #383c4a;
+  --color-box-header: #454a57;
+  --color-box-body: #353945;
+  --color-text: #9aa0af;
+  --color-timeline: #454a57;
 }
 
 /* Background */
@@ -561,12 +565,6 @@ body {
   color: #fff;
 }
 
-.ui.attached.header {
-  background: var(--color-secondary);
-  border-color: var(--color-secondary);
-  color: #dbdbdb;
-}
-
 .ui.attached.table {
   border: 1px solid #304251;
 }
@@ -749,7 +747,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.menu .item > .label {
-  background: #565454;
+  background: #505667;
 }
 
 .ui.form input:not([type]),
@@ -1049,17 +1047,6 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
 }
 
-.ui.segment {
-  background: #353945;
-  color: var(--color-secondary-dark-6) !important;
-}
-
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  border-color: var(--color-secondary);
-}
-
 .ui.list > .item > .content {
   color: var(--color-secondary-dark-6) !important;
 }
@@ -1118,11 +1105,6 @@ a.ui.basic.green.label:hover {
     border-color: var(--color-secondary);
   }
 
-  .merge-section {
-    background-color: var(--color-secondary);
-    border-color: #505667;
-  }
-
   .header:after {
     border-right-color: var(--color-secondary);
   }
@@ -1148,19 +1130,8 @@ a.ui.basic.green.label:hover {
   border-right-color: #353945;
 }
 
-.repository.view.issue .comment-list:not(.prevent-before-timeline):before,
-.repository.view.issue .comment-list .timeline:before {
-  background-color: var(--color-secondary);
-}
-
 .repository.view.issue .comment-list .timeline-item .badge {
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
   color: #ccc;
-}
-
-.repository.view.issue .comment-list .timeline-item .badge.badge-commit {
-  background: radial-gradient(var(--color-body) 40%, transparent 40%) no-repeat;
 }
 
 .comment-header-right a {
