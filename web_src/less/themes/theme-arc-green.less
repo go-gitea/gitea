@@ -1360,10 +1360,6 @@ td.blob-hunk {
   }
 }
 
-input {
-  background: #2e323e;
-}
-
 .settings .key.list .item:not(:first-child) {
   border-top: 1px solid var(--color-secondary);
 }
@@ -1608,6 +1604,12 @@ a.blob-excerpt:hover {
   color: #dbdbdb;
 }
 
+.ui.active.label {
+  background: #393d4a;
+  border-color: #393d4a;
+  color: #dbdbdb;
+}
+
 a.ui.label:hover,
 a.ui.labels .label:hover {
   background-color: #505667 !important;
@@ -1617,6 +1619,7 @@ a.ui.labels .label:hover {
 .sha.label,
 .repository #repo-files-table .sha.label,
 .repository #commits-table td.sha .sha.label,
+#rev-list .sha.label,
 .repository .timeline-item.commits-list .singular-commit .sha.label,
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
   border-color: #505667;
@@ -1624,6 +1627,7 @@ a.ui.labels .label:hover {
 
 .sha.label.isSigned .detail.icon,
 .repository #commits-table td.sha .sha.label.isSigned .detail.icon,
+#rev-list .sha.label.isSigned .detail.icon,
 .repository #repo-files-table .sha.label.isSigned .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon,
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned .detail.icon {
@@ -1741,14 +1745,6 @@ a.ui.labels .label:hover {
 .repository .labelspage .item a:hover,
 .organization.settings .labelspage .item a:hover {
   color: var(--color-secondary-dark-6);
-}
-
-#git-graph-container li a {
-  color: #c79575;
-}
-
-#git-graph-container li .author {
-  color: #c79575;
 }
 
 .ui.header .sub.header {
@@ -1970,6 +1966,10 @@ a.ui.labels .label:hover {
   }
 }
 
+.ui.loading.segment:before {
+  background: #353945;
+}
+
 .ui.popup {
   background-color: #383c4a;
   color: var(--color-secondary-dark-6);
@@ -2053,6 +2053,10 @@ img[src$="/img/matrix.svg"] {
   filter: invert(80%);
 }
 
+#git-graph-container li .time {
+  color: #6a737d;
+}
+
 #git-graph-container.monochrome #rel-container .flow-group {
   stroke: dimgrey;
   fill: dimgrey;
@@ -2075,11 +2079,6 @@ img[src$="/img/matrix.svg"] {
     stroke: #7058e6;
     fill: #7058e6;
   }
-}
-
-#git-graph-container #rev-list li.highlight,
-#git-graph-container #rev-list li.hover {
-  background-color: rgba(255, 255, 255, .05);
 }
 
 #git-graph-container #rev-list li.highlight.hover {
