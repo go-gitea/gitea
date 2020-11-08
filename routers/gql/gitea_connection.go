@@ -144,7 +144,7 @@ func cursorToOffset(cursor relay.ConnectionCursor) (int, error) {
 	if err == nil {
 		str = string(b)
 	}
-	str = strings.Replace(str, prefix, "", -1)
+	str = strings.ReplaceAll(str, prefix, "")
 	offset, err := strconv.Atoi(str)
 	if err != nil {
 		return 0, errors.New("Invalid cursor")
