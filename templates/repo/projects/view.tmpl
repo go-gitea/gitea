@@ -178,25 +178,25 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
-		{{.i18n.Tr "repo.projects.deletion"}}
-	</div>
-	<div class="content">
-		<p>{{.i18n.Tr "repo.projects.deletion_desc"}}</p>
-	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+	<div class="ui small basic delete modal">
+		<div class="ui icon header">
+			{{svg "octicon-trashcan"}}
+			{{.i18n.Tr "repo.projects.deletion"}}
 		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+		<div class="content">
+			<p>{{.i18n.Tr "repo.projects.deletion_desc"}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "modal.no"}}
+			</div>
+			<div class="ui green basic inverted ok button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "modal.yes"}}
+			</div>
 		</div>
 	</div>
-</div>
 {{end}}
 
 {{template "base/footer" .}}
