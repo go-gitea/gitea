@@ -38,8 +38,8 @@
 									<i class="octicon icon fa-hourglass-end"></i>
 								</span>
 							{{end}}
-							{{if (and $.Permission.IsAdmin (or (eq .Type 1) (eq .Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}">
+							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
+								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -50,9 +50,9 @@
 										<div class="ui warning message text left">
 											{{$.i18n.Tr "repo.issues.dismiss_review_warning"}}
 										</div>
-										<form class="ui form dismiss-review-form" id="dismiss-review-{{.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
+										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="review_id" value="{{.ID}}">
+											<input type="hidden" name="review_id" value="{{.Review.ID}}">
 											<div class="field">
 												<label for="message">{{$.i18n.Tr "action.review_dismissed_reason"}}</label>
 												<input id="message" name="message">
