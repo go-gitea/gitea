@@ -781,7 +781,7 @@
         bottom: 0;
         left: 96px;
         width: 2px;
-        background-color: #f3f3f3;
+        background-color: var(--color-timeline);
         z-index: -1;
       }
 
@@ -801,7 +801,7 @@
           bottom: 0;
           left: 30px;
           width: 2px;
-          background-color: #f3f3f3;
+          background-color: var(--color-timeline);
           z-index: -1;
         }
       }
@@ -848,14 +848,14 @@
 
         .badge.badge-commit {
           border-color: transparent;
-          background: radial-gradient(white 40%, transparent 40%) no-repeat;
+          background: radial-gradient(var(--color-body) 40%, transparent 40%) no-repeat;
         }
 
         .badge {
           width: 32px;
           height: 32px;
-          background-color: #eee;
-          border: 2px solid #eee;
+          background-color: var(--color-timeline);
+          border: 2px solid var(--color-timeline);
           border-radius: 50%;
           display: flex;
           float: left;
@@ -1002,7 +1002,7 @@
           border-radius: var(--border-radius);
 
           > .merge-section {
-            background-color: #f7f7f7;
+            background-color: var(--color-box-body);
 
             .item {
               padding: .25rem 0;
@@ -1677,7 +1677,7 @@
 
   .diff-file-box {
     .header {
-      background-color: #f7f7f7;
+      background-color: var(--color-box-header);
     }
 
     .file-body.file-code {
@@ -2727,7 +2727,7 @@
 
     > .header,
     .segment {
-      box-shadow: 0 1px 2px 0 var(--color-secondary);
+      box-shadow: 0 1px 2px 0 var(--color-box-header);
     }
   }
 
@@ -2787,7 +2787,7 @@
 .ui.vertical.menu {
   .header.item {
     font-size: 1.1em;
-    background: #f0f0f0;
+    background: var(--color-box-header);
   }
 }
 
@@ -2820,7 +2820,8 @@
   margin: 0 !important;
   position: relative;
   color: #767676;
-  background-color: #f7f7f7;
+  min-height: 41px;
+  background-color: var(--color-box-header);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2932,7 +2933,7 @@
   }
 
   &:after {
-    border-right-color: #f7f7f7;
+    border-right-color: var(--color-box-header);
     border-width: 8px;
     margin-top: -8px;
   }
