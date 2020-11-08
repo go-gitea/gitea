@@ -54,9 +54,9 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 	var sqlCmd string
 	var start = 0
 	var batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
 	for {
-		sess := x.NewSession()
-		defer sess.Close()
 		if err := sess.Begin(); err != nil {
 			return err
 		}
