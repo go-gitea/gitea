@@ -40,29 +40,29 @@
 				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
 			</div>
 			{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
-			<div class="column right aligned">
-				<div class="ui compact right small menu">
-					<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
-						{{svg "octicon-pencil"}}
-						<span class="mx-3">{{$.i18n.Tr "repo.issues.label_edit"}}</span>
-					</a>
-					{{if .Project.IsClosed}}
-						<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/open">
-							{{svg "octicon-check"}}
-							<span class="mx-3">{{$.i18n.Tr "repo.projects.open"}}</span>
+				<div class="column right aligned">
+					<div class="ui compact right small menu">
+						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+							{{svg "octicon-pencil"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_edit"}}</span>
 						</a>
-					{{else}}
-						<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/close">
-							{{svg "octicon-skip"}}
-							<span class="mx-3">{{$.i18n.Tr "repo.projects.close"}}</span>
+						{{if .Project.IsClosed}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/open">
+								{{svg "octicon-check"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.open"}}</span>
+							</a>
+						{{else}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/close">
+								{{svg "octicon-skip"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.close"}}</span>
+							</a>
+						{{end}}
+						<a class="item delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/delete" data-id="{{.Project.ID}}">
+							{{svg "octicon-trashcan"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_delete"}}</span>
 						</a>
-					{{end}}
-					<a class="item delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/delete" data-id="{{.Project.ID}}">
-						{{svg "octicon-trashcan"}}
-						<span class="mx-3">{{$.i18n.Tr "repo.issues.label_delete"}}</span>
-					</a>
+					</div>
 				</div>
-			</div>
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
