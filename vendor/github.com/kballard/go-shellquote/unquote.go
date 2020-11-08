@@ -40,6 +40,18 @@ func Split(input string) (words []string, err error) {
 		if strings.ContainsRune(splitChars, c) {
 			input = input[l:]
 			continue
+		} else if c == escapeChar {
+			// Look ahead for escaped newline so we can skip over it
+			next := input[l:]
+			if len(next) == 0 {
+				err = UnterminatedEscapeError
+				return
+			}
+			c2, l2 := utf8.DecodeRuneInString(next)
+			if c2 == '\n' {
+				input = next[l2:]
+				continue
+			}
 		}
 
 		var word string

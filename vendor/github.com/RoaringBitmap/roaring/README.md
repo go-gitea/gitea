@@ -3,7 +3,6 @@ roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https
 ![Go-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-CI/badge.svg)
 ![Go-ARM-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-ARM-CI/badge.svg)
 ![Go-Windows-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-Windows-CI/badge.svg)
-![Go-macos-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-macos-CI/badge.svg)
 =============
 
 This is a go version of the Roaring bitmap data structure. 
@@ -55,6 +54,93 @@ from a Java program and load them back in Go, and vice versa. We have a [format 
 This code is licensed under Apache License, Version 2.0 (ASL2.0).
 
 Copyright 2016-... by the authors.
+
+When should you use a bitmap?
+===================================
+
+
+Sets are a fundamental abstraction in
+software. They can be implemented in various
+ways, as hash sets, as trees, and so forth.
+In databases and search engines, sets are often an integral
+part of indexes. For example, we may need to maintain a set
+of all documents or rows  (represented by numerical identifier)
+that satisfy some property. Besides adding or removing
+elements from the set, we need fast functions
+to compute the intersection, the union, the difference between sets, and so on.
+
+
+To implement a set
+of integers, a particularly appealing strategy is the
+bitmap (also called bitset or bit vector). Using n bits,
+we can represent any set made of the integers from the range
+[0,n): the ith bit is set to one if integer i is present in the set.
+Commodity processors use words of W=32 or W=64 bits. By combining many such words, we can
+support large values of n. Intersections, unions and differences can then be implemented
+ as bitwise AND, OR and ANDNOT operations.
+More complicated set functions can also be implemented as bitwise operations.
+
+When the bitset approach is applicable, it can be orders of
+magnitude faster than other possible implementation of a set (e.g., as a hash set)
+while using several times less memory.
+
+However, a bitset, even a compressed one is not always applicable. For example, if the
+you have 1000 random-looking integers, then a simple array might be the best representation.
+We refer to this case as the "sparse" scenario.
+
+When should you use compressed bitmaps?
+===================================
+
+An uncompressed BitSet can use a lot of memory. For example, if you take a BitSet
+and set the bit at position 1,000,000 to true and you have just over 100kB. That is over 100kB
+to store the position of one bit. This is wasteful  even if you do not care about memory:
+suppose that you need to compute the intersection between this BitSet and another one
+that has a bit at position 1,000,001 to true, then you need to go through all these zeroes,
+whether you like it or not. That can become very wasteful.
+
+This being said, there are definitively cases where attempting to use compressed bitmaps is wasteful.
+For example, if you have a small universe size. E.g., your bitmaps represent sets of integers
+from [0,n) where n is small (e.g., n=64 or n=128). If you are able to uncompressed BitSet and
+it does not blow up your memory usage,  then compressed bitmaps are probably not useful
+to you. In fact, if you do not need compression, then a BitSet offers remarkable speed.
+
+The sparse scenario is another use case where compressed bitmaps should not be used.
+Keep in mind that random-looking data is usually not compressible. E.g., if you have a small set of
+32-bit random integers, it is not mathematically possible to use far less than 32 bits per integer,
+and attempts at compression can be counterproductive.
+
+How does Roaring compares with the alternatives?
+==================================================
+
+
+Most alternatives to Roaring are part of a larger family of compressed bitmaps that are run-length-encoded
+bitmaps. They identify long runs of 1s or 0s and they represent them with a marker word.
+If you have a local mix of 1s and 0, you use an uncompressed word.
+
+There are many formats in this family:
+
+* Oracle's BBC is an obsolete format at this point: though it may provide good compression,
+it is likely much slower than more recent alternatives due to excessive branching.
+* WAH is a patented variation on BBC that provides better performance.
+* Concise is a variation on the patented WAH. It some specific instances, it can compress
+much better than WAH (up to 2x better), but it is generally slower.
+* EWAH is both free of patent, and it is faster than all the above. On the downside, it
+does not compress quite as well. It is faster because it allows some form of "skipping"
+over uncompressed words. So though none of these formats are great at random access, EWAH
+is better than the alternatives.
+
+
+
+There is a big problem with these formats however that can hurt you badly in some cases: there is no random access. If you want to check whether a given value is present in the set, you have to start from the beginning and "uncompress" the whole thing. This means that if you want to intersect a big set with a large set, you still have to uncompress the whole big set in the worst case...
+
+Roaring solves this problem. It works in the following manner. It divides the data into chunks of 2<sup>16</sup> integers
+(e.g., [0, 2<sup>16</sup>), [2<sup>16</sup>, 2 x 2<sup>16</sup>), ...). Within a chunk, it can use an uncompressed bitmap, a simple list of integers,
+or a list of runs. Whatever format it uses, they all allow you to check for the present of any one value quickly
+(e.g., with a binary search). The net result is that Roaring can compute many operations much faster than run-length-encoded
+formats like WAH, EWAH, Concise... Maybe surprisingly, Roaring also generally offers better compression ratios.
+
+
+
 
 
 ### References

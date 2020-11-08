@@ -120,7 +120,7 @@ func RestoreBranchPost(ctx *context.Context) {
 
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
-		&repo_service.PushUpdateOptions{
+		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + deletedBranch.Name,
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
@@ -157,7 +157,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
-		&repo_service.PushUpdateOptions{
+		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,

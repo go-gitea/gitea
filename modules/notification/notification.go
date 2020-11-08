@@ -236,9 +236,9 @@ func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+		notifier.NotifyPushCommits(pusher, repo, opts, commits)
 	}
 }
 
@@ -257,9 +257,9 @@ func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refF
 }
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
-func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
-		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+		notifier.NotifySyncPushCommits(pusher, repo, opts, commits)
 	}
 }
 

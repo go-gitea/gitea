@@ -301,7 +301,7 @@
 
 			<div class="ui watching">
 				<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
-				<div>
+				<div class="mt-3">
 					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
 						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
 						{{$.CsrfTokenHtml}}
@@ -502,7 +502,7 @@
 							<div class="ui fluid action input">
 								<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
 									<input name="newDependency" type="hidden">
-									<i class="dropdown icon"></i>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<input type="text" class="search">
 									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
 								</div>
@@ -519,7 +519,7 @@
 			<div class="ui divider"></div>
 			<div class="ui watching">
 				<div>
-					<button class="fluid ui  show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
+					<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
 							{{if .Issue.IsLocked}}
 								{{svg "octicon-key"}}
 								{{.i18n.Tr "repo.issues.unlock"}}
@@ -571,7 +571,7 @@
 									<option value="{{.}}">{{.}}</option>
 								{{end}}
 							</select>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 
 							<div class="default text"> </div>
 
