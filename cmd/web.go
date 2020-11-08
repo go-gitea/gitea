@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/gql"
 	"code.gitea.io/gitea/routers/routes"
 
 	"gitea.com/macaron/macaron"
@@ -163,7 +164,7 @@ func runWeb(ctx *cli.Context) error {
 
 	//initialize graphql
 	gql.Init(gql.Schema)
-	
+
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
 		if err := setPort(ctx.String("port")); err != nil {

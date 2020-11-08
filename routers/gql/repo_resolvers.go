@@ -158,7 +158,7 @@ func UserByIDResolver(goCtx context.Context, id string) (interface{}, error) {
 	if err != nil {
 		return nil, errors.New("Unable to find user")
 	}
-	return user.APIFormat(), nil
+	return convert.ToUser(user, false, false), nil
 }
 
 func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
