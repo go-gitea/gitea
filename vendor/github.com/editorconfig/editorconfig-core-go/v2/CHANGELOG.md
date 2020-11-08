@@ -1,5 +1,14 @@
 # Change log
 
+## v2.3.8 - 2020-10-17
+
+- Feat more tests
+  ([#83](https://github.com/editorconfig/editorconfig-core-go/pull/83));
+- Upgrade go-ini v1.61.0
+  ([#84](https://github.com/editorconfig/editorconfig-core-go/pull/84));
+- Upgrade go-ini v1.62.0
+  ([#85](https://github.com/editorconfig/editorconfig-core-go/pull/85)).
+
 ## v2.3.7 - 2020-09-05
 
 - Upgrade go-ini v1.60.2, and go-cmp v0.5.2

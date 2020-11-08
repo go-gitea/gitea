@@ -104,30 +104,6 @@ func (s *CommitsService) ListCommits(pid interface{}, opt *ListCommitsOptions, o
 	return c, resp, err
 }
 
-// FileAction represents the available actions that can be performed on a file.
-//
-// GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
-type FileAction string
-
-// The available file actions.
-const (
-	FileCreate FileAction = "create"
-	FileDelete FileAction = "delete"
-	FileMove   FileAction = "move"
-	FileUpdate FileAction = "update"
-)
-
-// CommitAction represents a single file action within a commit.
-type CommitAction struct {
-	Action          FileAction `url:"action" json:"action"`
-	FilePath        string     `url:"file_path" json:"file_path"`
-	PreviousPath    string     `url:"previous_path,omitempty" json:"previous_path,omitempty"`
-	Content         string     `url:"content,omitempty" json:"content,omitempty"`
-	Encoding        string     `url:"encoding,omitempty" json:"encoding,omitempty"`
-	LastCommitID    string     `url:"last_commit_id,omitempty" json:"last_commit_id,omitempty"`
-	ExecuteFilemode bool       `url:"execute_filemode,omitempty" json:"execute_filemode,omitempty"`
-}
-
 // CommitRef represents the reference of branches/tags in a commit.
 //
 // GitLab API docs:
@@ -203,16 +179,30 @@ func (s *CommitsService) GetCommit(pid interface{}, sha string, options ...Reque
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
 type CreateCommitOptions struct {
-	Branch        *string         `url:"branch" json:"branch"`
-	CommitMessage *string         `url:"commit_message" json:"commit_message"`
-	StartBranch   *string         `url:"start_branch,omitempty" json:"start_branch,omitempty"`
-	StartSHA      *string         `url:"start_sha,omitempty" json:"start_sha,omitempty"`
-	StartProject  *string         `url:"start_project,omitempty" json:"start_project,omitempty"`
-	Actions       []*CommitAction `url:"actions" json:"actions"`
-	AuthorEmail   *string         `url:"author_email,omitempty" json:"author_email,omitempty"`
-	AuthorName    *string         `url:"author_name,omitempty" json:"author_name,omitempty"`
-	Stats         *bool           `url:"stats,omitempty" json:"stats,omitempty"`
-	Force         *bool           `url:"force,omitempty" json:"force,omitempty"`
+	Branch        *string                `url:"branch,omitempty" json:"branch,omitempty"`
+	CommitMessage *string                `url:"commit_message,omitempty" json:"commit_message,omitempty"`
+	StartBranch   *string                `url:"start_branch,omitempty" json:"start_branch,omitempty"`
+	StartSHA      *string                `url:"start_sha,omitempty" json:"start_sha,omitempty"`
+	StartProject  *string                `url:"start_project,omitempty" json:"start_project,omitempty"`
+	Actions       []*CommitActionOptions `url:"actions,omitempty" json:"actions,omitempty"`
+	AuthorEmail   *string                `url:"author_email,omitempty" json:"author_email,omitempty"`
+	AuthorName    *string                `url:"author_name,omitempty" json:"author_name,omitempty"`
+	Stats         *bool                  `url:"stats,omitempty" json:"stats,omitempty"`
+	Force         *bool                  `url:"force,omitempty" json:"force,omitempty"`
+}
+
+// CommitActionOptions represents the available options for a new single
+// file action.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
+type CommitActionOptions struct {
+	Action          *FileAction `url:"action,omitempty" json:"action,omitempty"`
+	FilePath        *string     `url:"file_path,omitempty" json:"file_path,omitempty"`
+	PreviousPath    *string     `url:"previous_path,omitempty" json:"previous_path,omitempty"`
+	Content         *string     `url:"content,omitempty" json:"content,omitempty"`
+	Encoding        *string     `url:"encoding,omitempty" json:"encoding,omitempty"`
+	LastCommitID    *string     `url:"last_commit_id,omitempty" json:"last_commit_id,omitempty"`
+	ExecuteFilemode *bool       `url:"execute_filemode,omitempty" json:"execute_filemode,omitempty"`
 }
 
 // CreateCommit creates a commit with multiple files and actions.
