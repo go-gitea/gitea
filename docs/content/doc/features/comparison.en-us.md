@@ -47,7 +47,7 @@ _Symbols used in table:_
 | Built-in Container Registry | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | External git mirroring | ✓ | ✓ | ✘ | ✘ | ✓ | ✓ | ✓ |
 | FIDO U2F (2FA) | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
-| Built-in CI/CD | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Built-in CI/CD | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Subgroups: groups within groups | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✓ |
 
 #### Code management
