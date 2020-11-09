@@ -125,7 +125,7 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil,""))
+	}, nil, ""))
 	release, err := models.GetRelease(repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
@@ -259,5 +259,5 @@ func TestCreateNewTag(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	assert.NoError(t, CreateNewTag(user, repo, "master", "v2.0",
-	 "v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
 }

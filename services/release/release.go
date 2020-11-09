@@ -37,7 +37,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
 					}
 					return err
 				}
-			}else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
+			} else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
 					return models.ErrInvalidTagName{
 						TagName: rel.TagName,
