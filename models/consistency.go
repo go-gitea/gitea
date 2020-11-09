@@ -7,8 +7,11 @@ package models
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -299,45 +302,70 @@ func FixNullArchivedRepository() (int64, error) {
 
 // CountOrFixUpdatableCodeCommentReplies count or fix CodeCommentReplies missing the CommitSHA
 func CountOrFixUpdatableCodeCommentReplies(fix bool) (int64, []string, error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return 0, nil, err
-	}
 
 	var (
 		start     = 0
 		batchSize = 100
+		sqlCmd    string
 		count     int64
 		result    []string
 	)
 
+	sqlSelect := `SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated`
+	sqlTail := ` FROM comment INNER JOIN (
+		SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
+		FROM comment AS C
+		WHERE C.type = 21
+			AND C.created_unix =
+				(SELECT MIN(comment.created_unix)
+					FROM comment
+					WHERE comment.review_id = C.review_id
+					AND comment.type = 21
+					AND comment.line = C.line
+					AND comment.tree_path = C.tree_path)
+		) AS first
+		ON comment.review_id = first.review_id
+			AND comment.tree_path = first.tree_path AND comment.line = first.line
+	WHERE comment.type = 21
+		AND comment.id != first.id
+		AND comment.commit_sha != first.commit_sha`
+
+	sess := x.NewSession()
+	defer sess.Close()
 	for {
+		if err := sess.Begin(); err != nil {
+			return 0, nil, err
+		}
+
+		if setting.Database.UseMSSQL {
+			if _, err := sess.Exec(sqlSelect + " INTO #temp_comments" + sqlTail); err != nil {
+				return 0, nil, fmt.Errorf("unable to create temporary table")
+			}
+		}
+
 		var comments = make([]*Comment, 0, batchSize)
-		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
-		FROM comment INNER JOIN (
-			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
-			FROM comment AS C
-			WHERE C.type = 21
-				AND C.created_unix =
-					(SELECT MIN(comment.created_unix)
-						FROM comment
-						WHERE comment.review_id = C.review_id
-						AND comment.type = 21
-						AND comment.line = C.line
-						AND comment.tree_path = C.tree_path)
-			) AS first
-			ON comment.review_id = first.review_id
-				AND comment.tree_path = first.tree_path AND comment.line = first.line
-		WHERE comment.type = 21
-			AND comment.id != first.id
-			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
+
+		switch {
+		case setting.Database.UseMySQL:
+			sqlCmd = sqlSelect + sqlTail + " LIMIT " + strconv.Itoa(batchSize) + ", " + strconv.Itoa(start)
+		case setting.Database.UsePostgreSQL:
+			fallthrough
+		case setting.Database.UseSQLite3:
+			sqlCmd = sqlSelect + sqlTail + " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
+		case setting.Database.UseMSSQL:
+			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " * FROM #temp_comments WHERE " +
+				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " id FROM #temp_comments ORDER BY id )) ORDER BY id"
+		default:
+			return 0, nil, fmt.Errorf("Unsupported database type")
+		}
+
+		if err := sess.SQL(sqlCmd).Find(&comments); err != nil {
 			return 0, nil, fmt.Errorf("failed to select: %v", err)
 		}
 
 		if fix {
 			for _, comment := range comments {
-				if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
+				if _, err := sess.Table("comment").ID(comment.ID).Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
 					return 0, nil, fmt.Errorf("failed to update comment[%d]: %v %v", comment.ID, comment, err)
 				}
 				result = append(result, fmt.Sprintf("update comment[%d]: %s\n", comment.ID, comment.CommitSHA))
@@ -346,14 +374,17 @@ func CountOrFixUpdatableCodeCommentReplies(fix bool) (int64, []string, error) {
 
 		count += int64(len(comments))
 		start += len(comments)
+
+		if fix {
+			if err := sess.Commit(); err != nil {
+				return count, result, err
+			}
+		}
+
 		if len(comments) < batchSize {
 			break
 		}
 	}
 
-	if fix {
-		return count, result, sess.Commit()
-	}
-
-	return count, nil, nil
+	return count, result, nil
 }
