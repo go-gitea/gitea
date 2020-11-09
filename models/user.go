@@ -970,16 +970,7 @@ func UpdateUser(u *User) error {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	isExist, err := sess.
-		Where("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
-	}
-
-	_, err = mail.ParseAddress(u.Email)
+	_, err := mail.ParseAddress(u.Email)
 	if err != nil {
 		return ErrEmailInvalid{u.Email}
 	}
