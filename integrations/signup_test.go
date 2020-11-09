@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -32,21 +33,36 @@ func TestSignup(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestSignupInvalidEmail(t *testing.T) {
+func TestSignupEmail(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 
-	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-		"user_name": "exampleUser",
-		"email":     "exampleUser@example.com\r\n",
-		"password":  "examplePassword!1",
-		"retype":    "examplePassword!1",
-	})
-	resp := MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.Equal(t,
-		i18n.Tr("en", "form.email_invalid", nil),
-		strings.TrimSpace(htmlDoc.doc.Find(".ui.message").Text()),
-	)
+	tests := []struct {
+		email      string
+		wantStatus int
+		wantMsg    string
+	}{
+		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
+		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
+		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
+		{"exampleUser@example.com", http.StatusFound, ""},
+	}
+
+	for i, test := range tests {
+		req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+			"user_name": fmt.Sprintf("exampleUser%d", i),
+			"email":     test.email,
+			"password":  "examplePassword!1",
+			"retype":    "examplePassword!1",
+		})
+		resp := MakeRequest(t, req, test.wantStatus)
+		if test.wantMsg != "" {
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			assert.Equal(t,
+				test.wantMsg,
+				strings.TrimSpace(htmlDoc.doc.Find(".ui.message").Text()),
+			)
+		}
+	}
 }
