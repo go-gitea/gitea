@@ -144,6 +144,40 @@ func TestLDAPUserSignin(t *testing.T) {
 	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
 }
 
+func TestLDAPUserSyncAdmin(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	defer prepareTestEnv(t)()
+	addAuthSourceLDAP(t, "")
+
+	models.SyncExternalUsers(context.Background(), true)
+
+	for _, u := range gitLDAPUsers {
+		user := models.AssertExistsAndLoadBean(t, models.User{
+			Name: u.UserName,
+		}).(*models.User)
+		assert.True(t, user.IsAdmin == u.IsAdmin)
+		assert.True(t, user.IsRestricted == u.IsRestricted)
+		user.IsAdmin = !user.IsAdmin
+		models.UpdateUserCols(user, "is_admin")
+		user = models.AssertExistsAndLoadBean(t, models.User{
+			Name: u.UserName,
+		}).(*models.User)
+		assert.False(t, user.IsAdmin == u.IsAdmin)
+	}
+
+	models.SyncExternalUsers(context.Background(), true)
+	for _, u := range gitLDAPUsers {
+		user := models.AssertExistsAndLoadBean(t, models.User{
+			Name: u.UserName,
+		}).(*models.User)
+		assert.True(t, user.IsAdmin == u.IsAdmin)
+		assert.True(t, user.IsRestricted == u.IsRestricted)
+	}
+}
+
 func TestLDAPUserSync(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
