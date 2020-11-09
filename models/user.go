@@ -963,12 +963,6 @@ func updateUser(e Engine, u *User) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(u *User) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
 	u.Email = strings.ToLower(u.Email)
 	_, err := mail.ParseAddress(u.Email)
 	if err != nil {
