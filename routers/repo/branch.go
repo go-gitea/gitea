@@ -329,11 +329,11 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 
 	if form.CreateTag {
 		if ctx.Repo.IsViewBranch {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
 		} else if ctx.Repo.IsViewTag {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName, "")
 		} else {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
 		}
 	} else if ctx.Repo.IsViewBranch {
 		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)

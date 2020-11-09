@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-func createTag(gitRepo *git.Repository, rel *models.Release) error {
+func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
 	// Only actual create when publish.
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
@@ -28,7 +28,16 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
 			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
-			if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
+			if len(msg) > 0 {
+				if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, commit.ID.String()); err != nil {
+					if strings.Contains(err.Error(), "is not a valid tag name") {
+						return models.ErrInvalidTagName{
+							TagName: rel.TagName,
+						}
+					}
+					return err
+				}
+			}else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
 					return models.ErrInvalidTagName{
 						TagName: rel.TagName,
@@ -75,7 +84,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 }
 
 // CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string) error {
+func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, msg string) error {
 	isExist, err := models.IsReleaseExist(rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
@@ -85,7 +94,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		}
 	}
 
-	if err = createTag(gitRepo, rel); err != nil {
+	if err = createTag(gitRepo, rel, msg); err != nil {
 		return err
 	}
 
@@ -106,7 +115,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 }
 
 // CreateNewTag creates a new repository tag
-func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName string) error {
+func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, msg string) error {
 	isExist, err := models.IsReleaseExist(repo.ID, tagName)
 	if err != nil {
 		return err
@@ -132,7 +141,7 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName st
 		IsTag:        true,
 	}
 
-	if err = createTag(gitRepo, rel); err != nil {
+	if err = createTag(gitRepo, rel, msg); err != nil {
 		return err
 	}
 
@@ -145,7 +154,7 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName st
 
 // UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
 func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
-	if err = createTag(gitRepo, rel); err != nil {
+	if err = createTag(gitRepo, rel, ""); err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)

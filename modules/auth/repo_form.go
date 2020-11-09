@@ -597,7 +597,9 @@ type NewReleaseForm struct {
 	Title      string `binding:"Required;MaxSize(255)"`
 	Content    string
 	Draft      string
+	TagOnly    string
 	Prerelease bool
+	AddTagMsg  bool
 	Files      []string
 }
 
