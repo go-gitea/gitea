@@ -666,7 +666,6 @@ steps:
       event:
         exclude:
         - pull_request
-
 ---
 kind: pipeline
 name: docker-linux-arm64-dry-run
@@ -696,6 +695,9 @@ steps:
       tags: linux-arm64
       build_args:
         - GOPROXY=off
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         - pull_request
@@ -740,11 +742,13 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
     when:
       event:
         exclude:
         - pull_request
-
 ---
 kind: pipeline
 name: docker-manifest
