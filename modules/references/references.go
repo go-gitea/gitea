@@ -257,9 +257,8 @@ func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byt
 		if match == nil {
 			break
 		}
-		// match is a bunch of indices into the content from pos onwards so if our content is:
-
-		// To simplify things let's just add pos to all of the indices in match
+		// match is a bunch of indices into the content from pos onwards so
+		// to simplify things let's just add pos to all of the indices in match
 		for i := range match {
 			match[i] += pos
 		}
