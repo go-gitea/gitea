@@ -240,8 +240,6 @@ func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byt
 	//
 	// We want to transform something like:
 	//
-	// 0         1         2         3         4         5         6
-	// 012345678901234567890123456789012345678901234567890123456789012345789
 	// this is a https://ourgitea.com/git/owner/repo/issues/123456789, foo
 	// https://ourgitea.com/git/owner/repo/pulls/123456789
 	//
