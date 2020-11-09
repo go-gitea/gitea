@@ -5,6 +5,7 @@
 package references
 
 import (
+	"regexp"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -27,6 +28,26 @@ type testResult struct {
 	RefLocation    *RefSpan
 	ActionLocation *RefSpan
 	TimeLog        string
+}
+
+func TestConvertFullHTMLReferencesToShortRefs(t *testing.T) {
+	re := regexp.MustCompile(`(\s|^|\(|\[)` +
+		regexp.QuoteMeta("https://ourgitea.com/git/") +
+		`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
+		`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	test := `this is a https://ourgitea.com/git/owner/repo/issues/123456789, foo
+https://ourgitea.com/git/owner/repo/pulls/123456789
+  And https://ourgitea.com/git/owner/repo/pulls/123
+`
+	expect := `this is a owner/repo#123456789, foo
+owner/repo!123456789
+  And owner/repo!123
+`
+
+	contentBytes := []byte(test)
+	convertFullHTMLReferencesToShortRefs(re, &contentBytes)
+	result := string(contentBytes)
+	assert.EqualValues(t, expect, result)
 }
 
 func TestFindAllIssueReferences(t *testing.T) {
