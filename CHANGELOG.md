@@ -22,7 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug isEnd detection on getIssues/getPullRequests (#13299) (#13301)
   * When the git ref is unable to be found return broken pr (#13218) (#13303)
   * Ensure topics added using the API are added to the repository (#13285) (#13302)
-  * Fix avatar autogeneration (#13282)
+  * Fix avatar autogeneration (#13233) (#13282)
   * Add migrated pulls to pull request task queue (#13331) (#13334)
   * Fix scrolling to resolved comment anchors (#13343) (#13371)
   * When creating line diffs do not split within an html entity (#13357) (#13375) (#13425) (#13427)
