@@ -26,5 +26,13 @@ func updateReactionConstraint(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	return recreateTable(sess, &Reaction{})
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := recreateTable(sess, &Reaction{}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
