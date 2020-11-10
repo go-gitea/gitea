@@ -1101,7 +1101,8 @@ type IssuesOptions struct {
 	SortType           string
 	IssueIDs           []int64
 	// prioritize issues from this repo
-	PriorityRepoID int64
+	PriorityRepoID       int64
+	ExcludeArchivedRepos util.OptionalBool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1196,6 +1197,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.And("issue.is_pull=?", true)
 	case util.OptionalBoolFalse:
 		sess.And("issue.is_pull=?", false)
+	}
+
+	if opts.ExcludeArchivedRepos == util.OptionalBoolTrue {
+		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And("repository.is_archived <> true")
 	}
 
 	if opts.LabelIDs != nil {
@@ -1484,13 +1489,14 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID      int64
-	RepoIDs     []int64
-	UserRepoIDs []int64
-	FilterMode  int
-	IsPull      bool
-	IsClosed    bool
-	IssueIDs    []int64
+	UserID               int64
+	RepoIDs              []int64
+	UserRepoIDs          []int64
+	FilterMode           int
+	IsPull               bool
+	IsClosed             bool
+	IssueIDs             []int64
+	ExcludeArchivedRepos bool
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1505,6 +1511,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+	if opts.ExcludeArchivedRepos {
+		activeRepoIDs := []int64{}
+		r := []*Repository{}
+		s := x.Table("repository").Where("is_archived <> true")
+		s.Select("id").Find(&activeRepoIDs)
+		s.Find(&r)
+		cond = cond.And(builder.In("issue.repo_id", activeRepoIDs))
 	}
 
 	switch opts.FilterMode {

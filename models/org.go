@@ -737,6 +737,7 @@ func (org *User) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
+	ActiveRepoIDs(page, pageSize int) ([]int64, error)
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
 	AddKeyword(keyword string)
@@ -752,7 +753,7 @@ type accessibleReposEnv struct {
 	orderBy SearchOrderBy
 }
 
-// AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// AccessibleReposEnv builds an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
 	return org.accessibleReposEnv(x, userID)
@@ -821,6 +822,24 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
+		GroupBy("`repository`.id,`repository`."+strings.Fields(string(env.orderBy))[0]).
+		OrderBy(string(env.orderBy)).
+		Limit(pageSize, (page-1)*pageSize).
+		Cols("`repository`.id").
+		Find(&repoIDs)
+}
+
+func (env *accessibleReposEnv) ActiveRepoIDs(page, pageSize int) ([]int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	repoIDs := make([]int64, 0, pageSize)
+	return repoIDs, env.e.
+		Table("repository").
+		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
+		Where(env.cond()).
+		Where("is_archived <> true").
 		GroupBy("`repository`.id,`repository`."+strings.Fields(string(env.orderBy))[0]).
 		OrderBy(string(env.orderBy)).
 		Limit(pageSize, (page-1)*pageSize).

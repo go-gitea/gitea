@@ -404,12 +404,13 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	isPullList := unitType == models.UnitTypePullRequests
 	opts := &models.IssuesOptions{
-		IsPull:   util.OptionalBoolOf(isPullList),
-		SortType: sortType,
+		IsPull:               util.OptionalBoolOf(isPullList),
+		SortType:             sortType,
+		ExcludeArchivedRepos: util.OptionalBoolTrue,
 	}
 
 	// Get repository IDs where User/Org has access.
-	userRepoIDs, err := userRepoIDs(ctxUser, ctx.User, unitType)
+	userRepoIDs, err := getActiveUserRepoIDs(ctxUser, ctx.User, unitType)
 	if err != nil {
 		ctx.ServerError("userRepoIDs", err)
 		return
@@ -485,7 +486,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	// Parse ctx.Query("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := repoIDs(ctx.Query("repos"))
+	repoIDs := getRepoIDs(ctx.Query("repos"))
 	if len(repoIDs) > 0 {
 		opts.RepoIDs = repoIDs
 	}
@@ -545,11 +546,12 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// -------------------------------
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
-		UserRepoIDs: userRepoIDs,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-		IsClosed:    isShowClosed,
+		UserID:               ctxUser.ID,
+		UserRepoIDs:          userRepoIDs,
+		FilterMode:           filterMode,
+		IsPull:               isPullList,
+		IsClosed:             isShowClosed,
+		ExcludeArchivedRepos: true,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
@@ -564,12 +566,13 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
-			UserRepoIDs: userRepoIDs,
-			FilterMode:  filterMode,
-			IsPull:      isPullList,
-			IsClosed:    isShowClosed,
-			IssueIDs:    issueIDsFromSearch,
+			UserID:               ctxUser.ID,
+			UserRepoIDs:          userRepoIDs,
+			FilterMode:           filterMode,
+			IsPull:               isPullList,
+			IsClosed:             isShowClosed,
+			IssueIDs:             issueIDsFromSearch,
+			ExcludeArchivedRepos: true,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
@@ -586,12 +589,13 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
 		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
-			UserRepoIDs: userRepoIDs,
-			FilterMode:  filterMode,
-			IsPull:      isPullList,
-			IsClosed:    isShowClosed,
-			IssueIDs:    issueIDsFromSearch,
+			UserID:               ctxUser.ID,
+			UserRepoIDs:          userRepoIDs,
+			FilterMode:           filterMode,
+			IsPull:               isPullList,
+			IsClosed:             isShowClosed,
+			IssueIDs:             issueIDsFromSearch,
+			ExcludeArchivedRepos: true,
 		})
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)
@@ -675,7 +679,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	ctx.HTML(200, tplIssues)
 }
 
-func repoIDs(reposQuery string) []int64 {
+func getRepoIDs(reposQuery string) []int64 {
 	if len(reposQuery) == 0 {
 		return []int64{}
 	}
@@ -701,17 +705,17 @@ func repoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
 	if ctxUser.IsOrganization() {
-		userRepoIDs, err = orgRepoIds(ctxUser, user, unitType)
+		userRepoIDs, err = getActiveOrgRepoIds(ctxUser, user, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
+		userRepoIDs, err = ctxUser.GetActiveAccessRepoIDs(unitType)
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -724,7 +728,7 @@ func userRepoIDs(ctxUser, user *models.User, unitType models.UnitType) ([]int64,
 	return userRepoIDs, nil
 }
 
-func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, error) {
+func getActiveOrgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 
@@ -732,7 +736,7 @@ func orgRepoIds(org, user *models.User, unitType models.UnitType) ([]int64, erro
 	if err != nil {
 		return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
-	orgRepoIDs, err = env.RepoIDs(1, org.NumRepos)
+	orgRepoIDs, err = env.ActiveRepoIDs(1, org.NumRepos)
 	if err != nil {
 		return nil, fmt.Errorf("env.RepoIDs: %v", err)
 	}
