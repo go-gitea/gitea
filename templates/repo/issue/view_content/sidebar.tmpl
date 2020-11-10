@@ -434,32 +434,35 @@
 				{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
 					<br>
-					<p>{{if .Issue.IsPull}}
+					<p>
+						{{if .Issue.IsPull}}
 							{{.i18n.Tr "repo.issues.dependency.pr_no_dependencies"}}
 						{{else}}
 							{{.i18n.Tr "repo.issues.dependency.issue_no_dependencies"}}
-						{{end}}</p>
+						{{end}}
+					</p>
 				{{end}}
 
 				{{if .BlockingDependencies}}
-					<span class="text" data-tooltip="{{if .Issue.IsPull}}
-							{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
-						{{else}}
-							{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
-						{{end}}" data-inverted="">
-					<strong>{{.i18n.Tr "repo.issues.dependency.blocks_short"}}</strong>
+					<span class="text poping up" data-content="{{if .Issue.IsPull}}{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
+						<strong>{{.i18n.Tr "repo.issues.dependency.blocks_short"}}</strong>
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
-								<span class="text grey right floated">#{{.Issue.Index}}</span>
-								<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
-								<div class="ui transparent label right floated nopadding">
+							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+								<div class="item-left df jc fc f1">
+									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									</a>
+									<div class="text small">
+										{{.Repository.OwnerName}}/{{.Repository.Name}}
+									</div>
+								</div>
+								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
-											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon text red nopadding nomargin"></i>
+										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
+											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											{{svg "octicon-trashcan" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -469,24 +472,25 @@
 				{{end}}
 
 				{{if .BlockedByDependencies}}
-					<span class="text" data-tooltip="{{if .Issue.IsPull}}
-						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
-					{{else}}
-						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
-					{{end}}" data-inverted="">
-					<strong>{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
+					<span class="text poping up" data-content="{{if .Issue.IsPull}}{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
+						<strong>{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
-								<span class="text grey right floated">#{{.Issue.Index}}</span>
-								<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
-								<div class="ui transparent label right floated nopadding">
+							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+								<div class="item-left df jc fc f1">
+									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									</a>
+									<div class="text small">
+										{{.Repository.OwnerName}}/{{.Repository.Name}}
+									</div>
+								</div>
+								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
-											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon text red nopadding nomargin"></i>
+										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
+											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											{{svg "octicon-trashcan" 16}}
 										</a>
 									{{end}}
 								</div>
