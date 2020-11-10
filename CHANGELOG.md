@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix Italian language file parsing error (#13156)
   * Show outdated comments in pull request (#13148) (#13162)
   * Fix parsing of pre-release git version (#13169) (#13172)
-  * Fix diff skipping lines (#13155)
+  * Fix diff skipping lines (#13154) (#13155)
   * When handling errors in storageHandler check underlying error (#13178) (#13193)
   * Fix size and clickable area on file table back link (#13205) (#13207)
   * Add better error checking for inline html diff code (#13251)
@@ -30,7 +30,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing full names when DEFAULT_SHOW_FULL_NAME is enabled (#13424)
   * Replies to outdated code comments should also be outdated (#13217) (#13433)
   * Fix panic bug in handling multiple references in commit (#13486) (#13487)
-  * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13491)
+  * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13470) (#13491)
 
 ## [1.13.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-rc1) - 2020-10-14
 
