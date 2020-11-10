@@ -27,7 +27,7 @@ type BlameReader struct {
 	cmd     *exec.Cmd
 	pid     int64
 	output  io.ReadCloser
-	scanner *bufio.Scanner
+	reader  *bufio.Reader
 	lastSha *string
 	cancel  context.CancelFunc
 }
@@ -38,23 +38,30 @@ var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
 
-	scanner := r.scanner
+	reader := r.reader
 
 	if r.lastSha != nil {
 		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
 	}
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	var line []byte
+	var isPrefix bool
+	var err error
 
-		// Skip empty lines
+	for err != io.EOF {
+		line, isPrefix, err = reader.ReadLine()
+		if err != nil && err != io.EOF {
+			return blamePart, err
+		}
+
 		if len(line) == 0 {
+			// isPrefix will be false
 			continue
 		}
 
-		lines := shaLineRegex.FindStringSubmatch(line)
+		lines := shaLineRegex.FindSubmatch(line)
 		if lines != nil {
-			sha1 := lines[1]
+			sha1 := string(lines[1])
 
 			if blamePart == nil {
 				blamePart = &BlamePart{sha1, make([]string, 0)}
@@ -62,12 +69,27 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 			if blamePart.Sha != sha1 {
 				r.lastSha = &sha1
+				// need to munch to end of line...
+				for isPrefix {
+					_, isPrefix, err = reader.ReadLine()
+					if err != nil && err != io.EOF {
+						return blamePart, err
+					}
+				}
 				return blamePart, nil
 			}
 		} else if line[0] == '\t' {
 			code := line[1:]
 
-			blamePart.Lines = append(blamePart.Lines, code)
+			blamePart.Lines = append(blamePart.Lines, string(code))
+		}
+
+		// need to munch to end of line...
+		for isPrefix {
+			_, isPrefix, err = reader.ReadLine()
+			if err != nil && err != io.EOF {
+				return blamePart, err
+			}
 		}
 	}
 
@@ -121,13 +143,13 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 
 	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cancel)
 
-	scanner := bufio.NewScanner(stdout)
+	reader := bufio.NewReader(stdout)
 
 	return &BlameReader{
 		cmd,
 		pid,
 		stdout,
-		scanner,
+		reader,
 		nil,
 		cancel,
 	}, nil
