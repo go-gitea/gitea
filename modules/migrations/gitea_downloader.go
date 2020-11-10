@@ -354,6 +354,9 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 func (g *GiteaDownloader) convertReactions(rl []*gitea_sdk.Reaction) []*base.Reaction {
 	var reactions []*base.Reaction
 	for i := range rl {
+		if rl[i].User.ID <= 0 {
+			continue
+		}
 		reactions = append(reactions, &base.Reaction{
 			UserID:   rl[i].User.ID,
 			UserName: rl[i].User.UserName,
