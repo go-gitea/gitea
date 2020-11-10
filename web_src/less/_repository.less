@@ -113,23 +113,30 @@
 
       .item {
         padding: 0;
+        white-space: nowrap;
+      }
+
+      .title {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      @media (max-width: 1200px) {
+        .title {
+          max-width: 150px;
+        }
+      }
+
+      @media (max-width: 1000px) {
+        .title {
+          max-width: 100px;
+        }
       }
 
       .label.color {
         padding: 0 8px;
         margin-right: 5px;
-      }
-
-      a {
-        margin: 2px 0;
-
-        .text {
-          color: #444444;
-
-          &:hover {
-            color: #000000;
-          }
-        }
       }
     }
 
@@ -520,7 +527,7 @@
         border-radius: 3px;
         #avatar-arrow;
 
-        &:after {
+        &::after {
           border-right-color: #ffffff;
         }
 
@@ -590,7 +597,7 @@
         margin-left: 4em;
         #avatar-arrow;
 
-        &:after {
+        &::after {
           border-right-color: #ffffff;
         }
 
@@ -771,7 +778,7 @@
     }
 
     .comment-list {
-      &:not(.prevent-before-timeline):before {
+      &:not(.prevent-before-timeline)::before {
         display: block;
         content: "";
         position: absolute;
@@ -791,7 +798,7 @@
         margin-left: 40px;
         padding-left: 16px;
 
-        &:before { //ciara
+        &::before { //ciara
           display: block;
           content: "";
           position: absolute;
@@ -1068,7 +1075,7 @@
               max-width: 150px;
               background-color: #ffffff;
 
-              &:before {
+              &::before {
                 content: ' ';
                 display: inline-block;
                 height: 100%;
@@ -1222,7 +1229,7 @@
       .form {
         #avatar-arrow;
 
-        &:after {
+        &::after {
           border-right-color: #ffffff;
         }
       }
@@ -1362,7 +1369,7 @@
       .content {
         #avatar-arrow;
 
-        &:after {
+        &::after {
           border-right-color: #ffffff;
         }
       }
@@ -1596,7 +1603,7 @@
       padding-right: 2px;
     }
 
-    > div:after {
+    > div::after {
       clear: both;
       content: "";
       display: block;
@@ -2799,7 +2806,7 @@
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
 }
 
-.comment:target .header:before {
+.comment:target .header::before {
   border-right-color: var(--color-primary) !important;
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
@@ -2917,8 +2924,8 @@
 
 #avatar-arrow {
 
-  &:before,
-  &:after {
+  &::before,
+  &::after {
     right: 100%;
     top: 20px;
     border: solid transparent;
@@ -2929,13 +2936,13 @@
     pointer-events: none;
   }
 
-  &:before {
+  &::before {
     border-right-color: var(--color-secondary);
     border-width: 9px;
     margin-top: -9px;
   }
 
-  &:after {
+  &::after {
     border-right-color: var(--color-box-header);
     border-width: 8px;
     margin-top: -8px;
@@ -3323,7 +3330,7 @@ td.blob-excerpt {
   background: none !important;
 
   @media only screen and (max-width: 1200px) {
-    &:after {
+    &::after {
       background: none !important;
     }
   }
