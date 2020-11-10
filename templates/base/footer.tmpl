@@ -12,7 +12,7 @@
 
 	{{template "base/footer_content" .}}
 {{if .RequireSimpleMDE}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
 	<script>

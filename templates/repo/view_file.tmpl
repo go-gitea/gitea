@@ -22,7 +22,7 @@
 						</div>
 					{{end}}
 					{{if .LFSLock}}
-						<div class="file-info-entry ui" data-tooltip="{{.LFSLockHint}}" data-inverted="">
+						<div class="file-info-entry ui poping up" data-content="{{.LFSLockHint}}">
 							{{svg "octicon-lock" 16 "mr-2"}}
 							<a href="{{AppSubUrl}}/{{.LFSLock.Owner.Name}}">{{.LFSLockOwner}}</a>
 						</div>
