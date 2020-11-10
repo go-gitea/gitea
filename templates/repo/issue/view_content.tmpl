@@ -19,27 +19,29 @@
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
 			{{end}}
-				<div class="content">
-					<div class="ui top attached header">
-					{{if .Issue.OriginalAuthor }}
-						<span class="text black">
-							<i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
-							{{ .Issue.OriginalAuthor }}
-						</span>
-						<span class="text grey">
-							{{ .i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe }}
-						</span>
-						<span class="text migrate">
-							{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}
-						</span>
-					{{else}}
-						<span class="text grey">
-							<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-							{{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}
-						</span>
-					{{end}}
-						{{if not $.Repository.IsArchived}}
-							<div class="ui right actions">
+				<div class="content comment-container">
+					<div class="ui top attached header comment-header df ac sb">
+						<div class="comment-header-left df ac">
+							{{if .Issue.OriginalAuthor }}
+								<span class="text black">
+									<i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
+									{{ .Issue.OriginalAuthor }}
+								</span>
+								<span class="text grey">
+									{{ .i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe }}
+								</span>
+								<span class="text migrate">
+									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}
+								</span>
+							{{else}}
+								<span class="text grey">
+									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+									{{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}
+								</span>
+							{{end}}
+						</div>
+						<div class="comment-header-right actions df ac">
+							{{if not $.Repository.IsArchived}}
 								{{if gt .Issue.ShowTag 0}}
 									<div class="ui basic label">
 										{{if eq .Issue.ShowTag 2}}
@@ -51,10 +53,10 @@
 								{{end}}
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false "IsCommentPoster" $.IsIssuePoster}}
-							</div>
-						{{end}}
+							{{end}}
+						</div>
 					</div>
-					<div class="ui attached segment">
+					<div class="ui attached segment comment-body">
 						<div class="render-content markdown">
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}

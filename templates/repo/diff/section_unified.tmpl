@@ -27,9 +27,9 @@
 				{{end}}
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
-					<td class="chroma lines-code blob-hunk"><span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+					<td class="chroma lines-code blob-hunk"><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{else}}
-					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}
@@ -40,13 +40,13 @@
 					<td colspan="2" class="lines-num"></td>
 					<td class="add-comment-left add-comment-right" colspan="2">
 						{{if $resolved}}
-							<div class = "ui attached header">
+							<div class="ui attached header resolved-placeholder">
 								<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-								<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+								<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui tiny right labeled button show-outdated">
 									{{svg "octicon-unfold"}}
 									{{$.root.i18n.Tr "repo.issues.review.show_resolved"}}
 								</button>
-								<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+								<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
 									{{svg "octicon-fold"}}
 									{{$.root.i18n.Tr "repo.issues.review.hide_resolved"}}
 								</button>

@@ -15,7 +15,7 @@
 							<div class="ui action input">
 								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
 								<button class="ui icon button" type="submit">
-									<i class="search icon"></i>
+									{{svg "octicon-search"}}
 								</button>
 							</div>
 						</div>
@@ -34,7 +34,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
+						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}{{svg "octicon-x" 16 "delete icon ml-3 mt-1"}}</div>
 						{{end}}
 						<div class="text"></div>
 					</div>
@@ -131,10 +131,10 @@
 							</button>
 						{{end}}
 						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
-							<i class="download icon"></i>
+							{{svg "octicon-download"}}
 							<div class="menu">
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							</div>
 						</div>
 					</div>

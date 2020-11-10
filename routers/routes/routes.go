@@ -896,12 +896,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	// Releases
 	m.Group("/:username/:reponame", func() {
+		m.Get("/tags", repo.TagsList, repo.MustBeNotEmpty,
+			reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
 			m.Get("/attachments/:uuid", repo.GetAttachment)
-		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
+		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
@@ -909,6 +911,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
+		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
+			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
@@ -996,7 +1000,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:period", repo.ActivityAuthors)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
-		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
+		m.Group("/archive", func() {
+			m.Get("/*", repo.Download)
+			m.Post("/*", repo.InitiateDownload)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

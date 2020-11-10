@@ -21,9 +21,9 @@
 					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
 				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "email"}}</label>
-					<input id="email" name="email" value="{{.SignedUser.Email}}">
+					<p>{{.SignedUser.Email}}</p>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
@@ -48,7 +48,7 @@
 						<label for="language">{{.i18n.Tr "settings.language"}}</label>
 						<div class="ui language selection dropdown" id="language">
 							<input name="language" type="hidden" value="{{.SignedUser.Language}}">
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
 							<div class="menu">
 							{{range .AllLangs}}

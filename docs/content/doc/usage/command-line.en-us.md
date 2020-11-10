@@ -40,6 +40,7 @@ Starts the server:
 
 - Options:
     - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
+    - `--install-port number`: Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
     - `--pid path`, `-P path`: Pidfile path. Optional.
 - Examples:
     - `gitea web`
@@ -82,13 +83,13 @@ Admin operations:
                 - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
             - Examples:
-                - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
+                - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
         - `change-password`:
             - Options:
                 - `--username value`, `-u value`: Username. Required.
                 - `--password value`, `-p value`: New password. Required.
             - Examples:
-                - `gitea admin change-password --username myname --password asecurepassword`
+                - `gitea admin user change-password --username myname --password asecurepassword`
     - `regenerate`
         - Options:
             - `hooks`: Regenerate git-hooks for all repositories

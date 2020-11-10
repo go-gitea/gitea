@@ -15,7 +15,7 @@
 							{{end}}
 							<span class="text grey">
 								{{if .User}}
-									<a href="{{.User.HomeLink}}">{{.User.Name}}</a>
+									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
 									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 								{{end}}
@@ -336,7 +336,7 @@
 									</span>
 								</button>
 								<div class="ui dropdown icon button">
-									<i class="dropdown icon"></i>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
 										{{if $prUnit.PullRequestsConfig.AllowMerge}}
 										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>

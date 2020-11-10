@@ -215,6 +215,7 @@ type ListIssuesOptions struct {
 	MyReactionEmoji    *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	NotMyReactionEmoji []string   `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
 	IIDs               []int      `url:"iids[],omitempty" json:"iids,omitempty"`
+	In                 *string    `url:"in,omitempty" json:"in,omitempty"`
 	OrderBy            *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
 	Sort               *string    `url:"sort,omitempty" json:"sort,omitempty"`
 	Search             *string    `url:"search,omitempty" json:"search,omitempty"`

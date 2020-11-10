@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -20,6 +21,21 @@ var (
 	errHashMismatch = errors.New("Content hash does not match OID")
 	errSizeMismatch = errors.New("Content size does not match")
 )
+
+// ErrRangeNotSatisfiable represents an error which request range is not satisfiable.
+type ErrRangeNotSatisfiable struct {
+	FromByte int64
+}
+
+func (err ErrRangeNotSatisfiable) Error() string {
+	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
+}
+
+// IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
+func IsErrRangeNotSatisfiable(err error) bool {
+	_, ok := err.(ErrRangeNotSatisfiable)
+	return ok
+}
 
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
@@ -35,7 +51,12 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 		return nil, err
 	}
 	if fromByte > 0 {
-		_, err = f.Seek(fromByte, os.SEEK_CUR)
+		if fromByte >= meta.Size {
+			return nil, ErrRangeNotSatisfiable{
+				FromByte: fromByte,
+			}
+		}
+		_, err = f.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
 		}

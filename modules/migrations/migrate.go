@@ -69,7 +69,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		}
 
 		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create respotiry notice failed: ", err2)
+			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
 	}
