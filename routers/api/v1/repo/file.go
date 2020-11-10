@@ -53,7 +53,26 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	filepath := ctx.Params("*")
+	var err error
+
+	if ctx.Repo.GitRepo == nil {
+		repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		defer ctx.Repo.GitRepo.Close()
+	}
+
+	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	blob, err := ctx.Repo.Commit.GetBlobByPath(filepath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
