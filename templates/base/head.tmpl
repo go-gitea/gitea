@@ -64,7 +64,7 @@
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
 	<link rel="fluid-icon" href="{{StaticUrlPrefix}}/img/gitea-lg.png" title="{{AppName}}">
 {{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
 {{end}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
