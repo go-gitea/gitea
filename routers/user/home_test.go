@@ -21,7 +21,6 @@ func TestIssues(t *testing.T) {
 
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
-	ctx.SetParams(":type", "issues")
 	ctx.Req.Form.Set("state", "closed")
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -30,6 +29,19 @@ func TestIssues(t *testing.T) {
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
 	assert.Len(t, ctx.Data["Repos"], 2)
+}
+
+func TestPulls(t *testing.T) {
+	setting.UI.IssuePagingNum = 20
+	assert.NoError(t, models.LoadFixtures())
+
+	ctx := test.MockContext(t, "pulls")
+	test.LoadUser(t, ctx, 2)
+	ctx.Req.Form.Set("state", "open")
+	Pulls(ctx)
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+
+	assert.Len(t, ctx.Data["Issues"], 4)
 }
 
 func TestMilestones(t *testing.T) {
