@@ -4,7 +4,35 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.13.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-rc1) - 2020-10-14
+## [1.13.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-rc2) - 2020-11-10
+* ENHANCEMENTS
+  * Return the full rejection message and errors in flash errors (#13221) (#13237)
+  * Remove PAM from auth dropdown when unavailable (#13276) (#13281)
+* BUGFIXES
+  * Fix Italian language file parsing error (#13156)
+  * Show outdated comments in pull request (#13148) (#13162)
+  * Fix parsing of pre-release git version (#13169) (#13172)
+  * Fix diff skipping lines (#13155)
+  * When handling errors in storageHandler check underlying error (#13178) (#13193)
+  * Fix size and clickable area on file table back link (#13205) (#13207)
+  * Add better error checking for inline html diff code (#13251)
+  * Fix initial commit page & binary munching problem (#13249) (#13258)
+  * Fix migrations from remote Gitea instances when configuration not set (#13229) (#13273)
+  * Store task errors following migrations and display them (#13246) (#13287)
+  * Fix bug isEnd detection on getIssues/getPullRequests (#13299) (#13301)
+  * When the git ref is unable to be found return broken pr (#13218) (#13303)
+  * Ensure topics added using the API are added to the repository (#13285) (#13302)
+  * Fix avatar autogeneration (#13282)
+  * Add migrated pulls to pull request task queue (#13331) (#13334)
+  * Fix scrolling to resolved comment anchors (#13343) (#13371)
+  * When creating line diffs do not split within an html entity (#13357) (#13375) (#13425) (#13427)
+  * Fix reactions on code comments (#13390) (#13401) 
+  * Add missing full names when DEFAULT_SHOW_FULL_NAME is enabled (#13424)
+  * Replies to outdated code comments should also be outdated (#13217) (#13433)
+  * Fix panic bug in handling multiple references in commit (#13486) (#13487)
+  * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13491)
+
+## [1.13.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.13.0-rc1) - 2020-10-14
 
 * SECURITY
   * Mitigate Security vulnerability in the git hook feature (#13058)
