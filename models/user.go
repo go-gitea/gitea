@@ -957,17 +957,17 @@ func checkDupEmail(e Engine, u *User) error {
 }
 
 func updateUser(e Engine, u *User) error {
-	_, err := e.ID(u.ID).AllCols().Update(u)
-	return err
-}
-
-// UpdateUser updates user's information.
-func UpdateUser(u *User) error {
 	u.Email = strings.ToLower(u.Email)
 	_, err := mail.ParseAddress(u.Email)
 	if err != nil {
 		return ErrEmailInvalid{u.Email}
 	}
+	_, err = e.ID(u.ID).AllCols().Update(u)
+	return err
+}
+
+// UpdateUser updates user's information.
+func UpdateUser(u *User) error {
 	return updateUser(x, u)
 }
 
