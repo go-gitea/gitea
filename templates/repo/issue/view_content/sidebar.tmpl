@@ -26,7 +26,8 @@
 							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
-									<img class="ui avatar image" src="{{.User.RelAvatarLink}}"> {{.User.GetDisplayName}}
+									<img class="ui avatar image mr-2" loading="lazy" src="{{.User.RelAvatarLink}}">
+									{{.User.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -52,9 +53,12 @@
 			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
 			<div class="selected">
 				{{range .PullReviewers}}
-					<div class="item" style="margin-bottom: 10px;">
+					<div class="item mb-2">
 						{{if .User}}
-							<a href="{{.User.HomeLink}}"><img class="ui avatar image" src="{{.User.RelAvatarLink}}">&nbsp;{{.User.GetDisplayName}}</a>
+							<a href="{{.User.HomeLink}}">
+								<img class="ui avatar image mr-2" src="{{.User.RelAvatarLink}}">
+								{{.User.GetDisplayName}}
+							</a>
 						{{else if .Team}}
 							<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 						{{end}}
@@ -253,11 +257,7 @@
 				{{range .Assignees}}
 
 					{{$AssigneeID := .ID}}
-					<a class="item{{range $.Issue.Assignees}}
-						{{if eq .ID $AssigneeID}}
-						 checked
-						{{end}}
-					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+					<a class="item{{range $.Issue.Assignees}}{{if eq .ID $AssigneeID}} checked{{end}}{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 						{{$checked := false}}
 						{{range $.Issue.Assignees}}
 							{{if eq .ID $AssigneeID}}
@@ -266,7 +266,8 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+							<img class="ui avatar image mr-2" loading="lazy" src="{{.RelAvatarLink}}">
+							{{.GetDisplayName}}
 						</span>
 					</a>
 				{{end}}
@@ -277,7 +278,10 @@
 			<div class="selected">
 				{{range .Issue.Assignees}}
 					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.GetDisplayName}}</a>
+						<a href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
+							<img class="ui avatar image mr-2" src="{{.RelAvatarLink}}">
+							{{.GetDisplayName}}
+						</a>
 					</div>
 				{{end}}
 			</div>
