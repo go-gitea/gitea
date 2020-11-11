@@ -260,8 +260,8 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	})
 }
 
-// RepoRefAnyForAPI handles repository reference name
-func RepoRefAnyForAPI() macaron.Handler {
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI() macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
