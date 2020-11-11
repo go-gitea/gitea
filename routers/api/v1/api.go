@@ -191,14 +191,14 @@ func reqToken() macaron.Handler {
 			ctx.RequireCSRF()
 			return
 		}
-		ctx.Context.Error(http.StatusUnauthorized)
+		ctx.Error(http.StatusUnauthorized, "reqToken", "token is required")
 	}
 }
 
 func reqBasicAuth() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
-			ctx.Context.Error(http.StatusUnauthorized)
+			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
 			return
 		}
 		ctx.CheckForOTP()
@@ -207,9 +207,9 @@ func reqBasicAuth() macaron.Handler {
 
 // reqSiteAdmin user should be the site admin
 func reqSiteAdmin() macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqSiteAdmin", "user should be the site admin")
 			return
 		}
 	}
@@ -217,9 +217,9 @@ func reqSiteAdmin() macaron.Handler {
 
 // reqOwner user should be the owner of the repo or site admin.
 func reqOwner() macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
 			return
 		}
 	}
@@ -227,9 +227,9 @@ func reqOwner() macaron.Handler {
 
 // reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
 func reqAdmin() macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqAdmin", "user should be an owner or a collaborator with admin write of a repository")
 			return
 		}
 	}
@@ -237,9 +237,9 @@ func reqAdmin() macaron.Handler {
 
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
 			return
 		}
 	}
@@ -247,9 +247,9 @@ func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType models.UnitType) macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
 	}
@@ -257,9 +257,9 @@ func reqRepoReader(unitType models.UnitType) macaron.Handler {
 
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() macaron.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
 	}
@@ -502,7 +502,6 @@ func mustNotBeArchived(ctx *context.APIContext) {
 }
 
 // RegisterRoutes registers all v1 APIs routes to web application.
-// FIXME: custom form error response
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
@@ -641,7 +640,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRef(), repo.Edit)
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRefAnyForAPI(), repo.Edit)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -653,7 +652,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("").Get(repo.GetHook).
 							Patch(bind(api.EditHookOption{}), repo.EditHook).
 							Delete(repo.DeleteHook)
-						m.Post("/tests", context.RepoRef(), repo.TestHook)
+						m.Post("/tests", context.RepoRefAnyForAPI(), repo.TestHook)
 					})
 					m.Group("/git", func() {
 						m.Combo("").Get(repo.ListGitHooks)
@@ -804,7 +803,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
-				m.Get("/editorconfig/:filename", context.RepoRef(), reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
+				m.Get("/editorconfig/:filename", context.RepoRefAnyForAPI(), reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
@@ -851,9 +850,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
-					m.Get("/trees/:sha", context.RepoRef(), repo.GetTree)
-					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
-					m.Get("/tags/:sha", context.RepoRef(), repo.GetTag)
+					m.Get("/trees/:sha", context.RepoRefAnyForAPI(), repo.GetTree)
+					m.Get("/blobs/:sha", context.RepoRefAnyForAPI(), repo.GetBlob)
+					m.Get("/tags/:sha", context.RepoRefAnyForAPI(), repo.GetTag)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
