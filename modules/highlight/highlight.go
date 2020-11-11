@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/alecthomas/chroma/formatters/html"
@@ -117,12 +118,11 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		fileName = "test." + val
 	}
 
-	lexer := lexers.Match(fileName)
+	language := analyze.GetCodeLanguage(fileName, code)
+
+	lexer := lexers.Get(language)
 	if lexer == nil {
-		lexer = lexers.Analyse(string(code))
-		if lexer == nil {
-			lexer = lexers.Fallback
-		}
+		lexer = lexers.Fallback
 	}
 
 	iterator, err := lexer.Tokenise(nil, string(code))
