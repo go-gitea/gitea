@@ -4,11 +4,13 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-10-15
+## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-11-11
 
 * BUGFIXES
-  * Fix permission check on get Reactions API endpoints (#13346)
+  * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13470) (#13492)
+  * Fix link detection in repository description with tailing '_' (#13407) (#13408)
   * Remove obsolete change of email on profile page (#13341) (#13348)
+  * Fix permission check on get Reactions API endpoints (#13344) (#13346)
   * Add migrated pulls to pull request task queue (#13331) (#13335)
   * API deny wrong pull creation options (#13308) (#13327) 
   * Fix initial commit page & binary munching problem (#13249) (#13259)
