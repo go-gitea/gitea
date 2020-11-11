@@ -97,6 +97,9 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 			u.User = url.UserPassword(f.AuthUsername, f.AuthPassword)
 		}
 		remoteAddr = u.String()
+		if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteAddr, "%0d") || strings.Contains(remoteAddr, "%0a")) {
+			return "", models.ErrInvalidCloneAddr{IsURLError: true}
+		}
 	} else if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
 	} else if !com.IsDir(remoteAddr) {
