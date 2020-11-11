@@ -259,3 +259,48 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		"errors":            errors,
 	})
 }
+
+// RepoRefByTypeForAPI handles repository reference name for a specific type
+// of repository reference
+func RepoRefByTypeForAPI(refType RepoRefType) macaron.Handler {
+	return func(ctx *APIContext) {
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		var err error
+
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
+		}
+
+		refName := getRefName(ctx.Context, refType)
+		ctx.Repo.BranchName = refName
+
+		if len(refName) == 0 {
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			return
+		}
+
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+
+		ctx.Next()
+	}
+}

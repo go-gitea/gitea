@@ -670,7 +670,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(reqAdmin(), repo.DeleteCollaborator)
 				}, reqToken())
-				m.Get("/raw/*", reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
+				m.Get("/raw/*", context.RepoRefByTypeForAPI(context.RepoRefAny), reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(models.UnitTypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
