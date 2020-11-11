@@ -28,10 +28,10 @@ export default {
     isLoading: true,
     colorRange: [
       'var(--color-secondary-alpha-70)',
-      'var(--color-primary-alpha-50)',
       'var(--color-primary-alpha-60)',
       'var(--color-primary-alpha-70)',
       'var(--color-primary-alpha-80)',
+      'var(--color-primary-alpha-90)',
       'var(--color-primary)',
     ],
     endDate: new Date(),

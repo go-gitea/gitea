@@ -11,5 +11,5 @@ rules:
   no-descending-specificity: null
   number-leading-zero: never
   rule-empty-line-before: null
-  selector-pseudo-element-colon-notation: null
+  selector-pseudo-element-colon-notation: double
   shorthand-property-no-redundant-values: true
