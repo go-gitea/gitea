@@ -326,45 +326,44 @@ func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, er
 }
 
 func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
-	var reactions []*base.Reaction
 	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getIssueReactions")
-		return reactions, nil
+		return []*base.Reaction{}, nil
 	}
 	rl, _, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, reaction := range rl {
-		reactions = append(reactions, &base.Reaction{
-			UserID:   reaction.User.ID,
-			UserName: reaction.User.UserName,
-			Content:  reaction.Reaction,
-		})
-	}
-	return reactions, nil
+	return g.convertReactions(rl), nil
 }
 
 func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction, error) {
-	var reactions []*base.Reaction
 	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getCommentReactions")
-		return reactions, nil
+		return []*base.Reaction{}, nil
 	}
 	rl, _, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, commentID)
 	if err != nil {
 		return nil, err
 	}
 
+	return g.convertReactions(rl), nil
+}
+
+func (g *GiteaDownloader) convertReactions(rl []*gitea_sdk.Reaction) []*base.Reaction {
+	var reactions []*base.Reaction
 	for i := range rl {
+		if rl[i].User.ID <= 0 {
+			continue
+		}
 		reactions = append(reactions, &base.Reaction{
 			UserID:   rl[i].User.ID,
 			UserName: rl[i].User.UserName,
 			Content:  rl[i].Reaction,
 		})
 	}
-	return reactions, nil
+	return reactions
 }
 
 // GetIssues returns issues according start and limit
