@@ -78,6 +78,7 @@ and it takes care of all the other things for you
 
 OPTIONS:
    --port value, -p value         Temporary port number to prevent conflict (default: "3000")
+   --install-port number          Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
    --pid value, -P value          Custom pid file path (default: "/var/run/gitea.pid")
 
 
@@ -149,7 +150,7 @@ USAGE:
    Gitea admin command [command options] [arguments...]
 
 COMMANDS:
-     create-user         Create a new user in database
+     user                Modify users
      change-password     Change a user's password
      repo-sync-releases  Synchronize repository releases with tags
      regenerate          Regenerate specific files
@@ -159,37 +160,96 @@ OPTIONS:
 
 ```
 
-##### gitea admin create-user
-
+##### gitea admin user
 
 ```
 NAME:
-   Gitea admin create-user - Create a new user in database
+   Gitea admin user - Modify users
 
 USAGE:
-   Gitea admin create-user [command options] [arguments...]
+   Gitea admin user command [command options] [arguments...]
+
+COMMANDS:
+     list                lists all users that exist
+     delete              Delete a user
+     create              Create a user
+
 
 OPTIONS:
-   --name value                    Username. DEPRECATED: use username instead
-   --username value                Username
-   --password value                User password
-   --email value                   User email address
-   --admin                         User is an admin
-   --random-password               Generate a random password for the user
-   --must-change-password          Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)
-   --random-password-length value  Length of the random password to be generated (default: 12)
-   --access-token                  Generate access token for the user
-   --custom-path value, -C value   Custom path file path (default: "/usr/local/bin/custom")
-   --config value, -c value        Custom configuration file path (default: "/usr/local/bin/custom/conf/app.ini")
-   --version, -v                   print the version
-   --work-path value, -w value     Set the gitea working path (default: "/usr/local/bin")
+
+```
+
+###### gitea admin user list
+
+```
+NAME:
+   Gitea admin user list - lists all users that exist
+
+USAGE:
+   Gitea admin user list [command options] [arguments...]
+
+OPTIONS:
+   --admin    List only admin users. Optional.
+
 ```
 
 
 Examples:
 
 ```
-gitea admin create-user --username myname --password asecurepassword --email me@example.com
+gitea admin user list
+```
+
+
+###### gitea admin user delete
+
+```
+NAME:
+   Gitea admin user list - delete a user
+
+USAGE:
+   Gitea admin user delete [command options] [arguments...]
+
+OPTIONS:
+   --id id    ID of user to be deleted. Required.
+
+```
+
+
+Examples:
+
+```
+gitea admin user delete --id 1
+```
+
+
+###### gitea admin user create
+
+```
+NAME:
+   Gitea admin user list - create a user
+
+USAGE:
+   Gitea admin user create [command options] [arguments...]
+
+OPTIONS:
+   --name value             Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
+   --username value         Username. Required. New in gitea 1.9.0.
+   --password value         Password. Required.
+   --email value            Email. Required.
+   --admin                  If provided, this makes the user an admin. Optional.
+   --access-token           If provided, an access token will be created for the user. Optional. (default: false).
+   --must-change-password   If provided, the created user will be required to choose a newer password after the initial login. Optional. (default: true).
+   --random-password        If provided, a randomly generated password will be used as the password of the created user. The value of `--password` will be discarded. Optional.
+   --random-password-length If provided, it will be used to configure the length of the randomly generated password. Optional. (default: 12)
+
+```
+
+
+Examples:
+
+```
+gitea admin user create --username myname --password asecurepassword --email me@example.com
 ```
 
 ##### gitea admin change-password
@@ -211,6 +271,7 @@ Examples:
 ```
 gitea admin change-password --username myname --password asecurepassword
 ```
+
 
 ##### gitea admin repo-sync-releases
 
@@ -540,7 +601,7 @@ USAGE:
    gitea migrate [command options] [arguments...]
 
 DESCRIPTION:
-   This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.
+   This is a command for migrating the database, so that you can run gitea admin user create before starting the server.
 ```
 
 
