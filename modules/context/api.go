@@ -260,9 +260,8 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	})
 }
 
-// RepoRefByTypeForAPI handles repository reference name for a specific type
-// of repository reference
-func RepoRefByTypeForAPI(refType RepoRefType) macaron.Handler {
+// RepoRefAnyForAPI handles repository reference name
+func RepoRefAnyForAPI() macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
@@ -287,17 +286,31 @@ func RepoRefByTypeForAPI(refType RepoRefType) macaron.Handler {
 			}()
 		}
 
-		refName := getRefName(ctx.Context, refType)
-		ctx.Repo.BranchName = refName
+		refName := getRefName(ctx.Context, RepoRefAny)
 
-		if len(refName) == 0 {
+		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if len(refName) == 40 {
+			ctx.Repo.CommitID = refName
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			if err != nil {
+				ctx.NotFound("GetCommit", err)
+				return
+			}
+		} else {
 			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
-			return
-		}
-
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-		if err != nil {
-			ctx.InternalServerError(err)
 			return
 		}
 
