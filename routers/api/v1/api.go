@@ -677,7 +677,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", reqRepoWriter(models.UnitTypeCode), repo.DeleteBranch)
+					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(models.UnitTypeCode), repo.DeleteBranch)
 					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/branch_protections", func() {

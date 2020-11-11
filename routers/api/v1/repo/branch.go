@@ -146,16 +146,6 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.GitRepo == nil {
-		repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-		ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
-		if err != nil {
-			ctx.InternalServerError(err)
-			return
-		}
-		defer ctx.Repo.GitRepo.Close()
-	}
-
 	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
