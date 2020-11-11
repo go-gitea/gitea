@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-11-11
 
 * BUGFIXES
+  * Disallow urlencoded new lines in git protocol paths if there is a port (#13521) (#13525)
   * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13470) (#13492)
   * Fix link detection in repository description with tailing '_' (#13407) (#13408)
   * Remove obsolete change of email on profile page (#13341) (#13348)
