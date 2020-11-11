@@ -69,7 +69,11 @@ func SearchIssues(ctx *context.APIContext) {
 	//   required: false
 	// - name: page
 	//   in: query
-	//   description: page number of requested issues
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -160,13 +164,20 @@ func SearchIssues(ctx *context.APIContext) {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
+	limit := ctx.QueryInt("limit")
+	if limit == 0 {
+		limit = setting.UI.IssuePagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
-				PageSize: setting.UI.IssuePagingNum,
+				PageSize: limit,
 			},
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
