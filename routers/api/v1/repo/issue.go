@@ -67,6 +67,18 @@ func SearchIssues(ctx *context.APIContext) {
 	//   type: string
 	//   format: date-time
 	//   required: false
+	// - name: assigned
+	//   in: query
+	//   description: filter (issues / pulls) assigned to you, default is false
+	//   type: boolean
+	// - name: created
+	//   in: query
+	//   description: filter (issues / pulls) created by you, default is false
+	//   type: boolean
+	// - name: mentioned
+	//   in: query
+	//   description: filter (issues / pulls) mentioning you, default is false
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -188,6 +200,17 @@ func SearchIssues(ctx *context.APIContext) {
 			IsPull:             isPull,
 			UpdatedBeforeUnix:  before,
 			UpdatedAfterUnix:   since,
+		}
+
+		// Filter for: Created by User, Assigned to User, Mentioning User
+		if ctx.QueryBool("created") {
+			issuesOpt.PosterID = ctx.User.ID
+		}
+		if ctx.QueryBool("assigned") {
+			issuesOpt.AssigneeID = ctx.User.ID
+		}
+		if ctx.QueryBool("mentioned") {
+			issuesOpt.MentionedID = ctx.User.ID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
