@@ -236,8 +236,8 @@ func RegisterRoutes(c chi.Router) {
 
 	c.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if (req.Method == "HEAD" && req.URL.EscapedPath() == "/") ||
-				req.URL.EscapedPath() == "/robots.txt" {
+			if (req.Method == "HEAD" && req.RequestURI == "/") ||
+				req.RequestURI == "/robots.txt" {
 				next.ServeHTTP(w, req)
 			} else {
 				m.ServeHTTP(w, req)
