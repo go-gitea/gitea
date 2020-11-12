@@ -244,6 +244,11 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
+		if !authUser.IsActive {
+			ctx.HandleText(http.StatusForbidden, "Your account is unactived.")
+			return
+		}
+
 		if repoExist {
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {

@@ -61,6 +61,12 @@ func ServNoCommand(ctx *macaron.Context) {
 			})
 			return
 		}
+		if !user.IsActive {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": fmt.Sprintf("Your account is unactived."),
+			})
+			return
+		}
 		results.Owner = user
 	}
 	ctx.JSON(http.StatusOK, &results)
