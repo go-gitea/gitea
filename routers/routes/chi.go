@@ -222,29 +222,17 @@ func RegisterInstallRoute(c chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronInstallRoute(m)
 
-	c.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			m.ServeHTTP(w, req)
-		})
+	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
+
+	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
 	})
 }
 
 // RegisterRoutes registers gin routes
 func RegisterRoutes(c chi.Router) {
-	m := NewMacaron()
-	RegisterMacaronRoutes(m)
-
-	c.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if (req.Method == "HEAD" && req.RequestURI == "/") ||
-				req.RequestURI == "/robots.txt" {
-				next.ServeHTTP(w, req)
-			} else {
-				m.ServeHTTP(w, req)
-			}
-		})
-	})
-
 	// for health check
 	c.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -256,4 +244,15 @@ func RegisterRoutes(c chi.Router) {
 			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
 		})
 	}
+
+	m := NewMacaron()
+	RegisterMacaronRoutes(m)
+
+	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
+
+	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
 }
