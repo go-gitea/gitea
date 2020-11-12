@@ -105,6 +105,10 @@ func HTTP(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
 		return
 	}
+	if !owner.IsActive {
+		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
+		return
+	}
 
 	repoExist := true
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
