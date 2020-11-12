@@ -62,6 +62,10 @@
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
   --color-timeline: #ececec;
+  --color-input-text: #212121;
+  --color-input-background: #ffffff;
+  --color-input-border: #dedede;
+  --color-input-border-hover: #cecece;
 }
 
 :root:lang(ja) {
@@ -186,23 +190,6 @@ a:hover,
   border-right-color: var(--color-primary);
 }
 
-.ui.form input:not([type]):focus,
-.ui.form textarea:focus,
-.ui.form input[type="date"]:focus,
-.ui.form input[type="datetime-local"]:focus,
-.ui.form input[type="email"]:focus,
-.ui.form input[type="file"]:focus,
-.ui.form input[type="number"]:focus,
-.ui.form input[type="password"]:focus,
-.ui.form input[type="search"]:focus,
-.ui.form input[type="tel"]:focus,
-.ui.form input[type="text"]:focus,
-.ui.form input[type="time"]:focus,
-.ui.form input[type="url"]:focus,
-.ui.selection.dropdown:focus {
-  border-color: var(--color-primary);
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -212,6 +199,10 @@ a:hover,
 
 .ui.selection.dropdown .menu {
   margin: 0 -1.25px;
+}
+
+.ui.attached.table {
+  border-color: var(--color-secondary);
 }
 
 .dont-break-out {
@@ -324,6 +315,10 @@ a:hover,
 
 .ui.form .field > .selection.dropdown > .dropdown.icon {
   height: auto;
+}
+
+.ui.loading.loading.input > i.icon svg {
+  visibility: hidden;
 }
 
 .ui {

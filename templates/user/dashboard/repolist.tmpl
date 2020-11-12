@@ -91,7 +91,7 @@
 					</a>
 				</div>
 			</div>
-			<div class="ui attached table segment">
+			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
 						<a :href="suburl + '/' + repo.full_name">
@@ -139,7 +139,7 @@
 					</a>
 				</div>
 			</h4>
-			<div class="ui attached table segment">
+			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
 						<a :href="suburl + '/' + org.name">
