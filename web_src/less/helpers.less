@@ -6,7 +6,6 @@
 .sb { justify-content: space-between !important; }
 .fc { flex-direction: column !important; }
 .f1 { flex: 1 !important; }
-.rounded { border-radius: var(--border-radius) !important; }
 
 .mono {
   font-family: var(--fonts-monospace) !important;
@@ -17,6 +16,12 @@
   word-wrap: break-word !important;
   word-break: break-all !important;
 }
+
+.rounded { border-radius: var(--border-radius) !important; }
+.rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
+.rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
+.rounded-left { border-radius: var(--border-radius) 0 0 var(--border-radius) !important; }
+.rounded-right { border-radius: 0 var(--border-radius) var(--border-radius) 0 !important; }
 
 .m-0 { margin: 0 !important; }
 .m-1 { margin: .125rem !important; }
