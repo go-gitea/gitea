@@ -219,11 +219,9 @@ a:hover,
   background: var(--color-body);
 }
 
-/* possible fomantic bug: fix position and color of close icon */
-.ui.modal:not(.fullscreen):not(.basic) > .close {
-  top: 1rem;
-  right: 1rem;
-  color: inherit;
+.ui.modal > .close.inside,
+.ui.fullscreen.modal > .close {
+  color: var(--body-color);
 }
 
 .ui.basic.table > tbody > tr {
