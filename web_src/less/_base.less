@@ -205,6 +205,31 @@ a:hover,
   border-color: var(--color-secondary);
 }
 
+.ui.table {
+  color: var(--color-text);
+}
+
+.ui.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  color: var(--color-text);
+  background-color: var(--color-secondary-alpha-40);
+}
+
+.ui.modal {
+  background: var(--color-body);
+}
+
+/* possible fomantic bug: fix position and color of close icon */
+.ui.modal:not(.fullscreen):not(.basic) > .close {
+  top: 1rem;
+  right: 1rem;
+  color: inherit;
+}
+
+.ui.basic.table > tbody > tr {
+  border-color: var(--color-secondary);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
