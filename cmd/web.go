@@ -19,8 +19,6 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
-
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
@@ -135,9 +133,9 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		m := routes.NewMacaron()
-		routes.RegisterInstallRoute(m)
-		err := listen(m, false)
+		c := routes.NewChi()
+		routes.RegisterInstallRoute(c)
+		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -168,10 +166,10 @@ func runWeb(ctx *cli.Context) error {
 		}
 	}
 	// Set up Macaron
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	c := routes.NewChi()
+	routes.RegisterRoutes(c)
 
-	err := listen(m, true)
+	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
@@ -212,7 +210,7 @@ func setPort(port string) error {
 	return nil
 }
 
-func listen(m *macaron.Macaron, handleRedirector bool) error {
+func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
