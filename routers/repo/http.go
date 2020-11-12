@@ -248,7 +248,7 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
-		if !authUser.IsActive {
+		if !authUser.IsActive || authUser.ProhibitLogin {
 			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}

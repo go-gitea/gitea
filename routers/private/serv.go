@@ -61,7 +61,7 @@ func ServNoCommand(ctx *macaron.Context) {
 			})
 			return
 		}
-		if !user.IsActive {
+		if !user.IsActive || user.ProhibitLogin {
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": "Your account is disabled.",
 			})
@@ -268,7 +268,7 @@ func ServCommand(ctx *macaron.Context) {
 			return
 		}
 
-		if !user.IsActive {
+		if !user.IsActive || user.ProhibitLogin {
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": "Your account is disabled.",
 			})
