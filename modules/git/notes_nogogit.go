@@ -2,14 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
 	"io/ioutil"
-
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // NotesRef is the git ref where Gitea will look for git-notes data.
@@ -29,32 +27,31 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		return err
 	}
 
-	remainingCommitID := commitID
 	path := ""
-	currentTree := notes.Tree.gogitTree
-	var file *object.File
-	for len(remainingCommitID) > 2 {
-		file, err = currentTree.File(remainingCommitID)
+
+	tree := &notes.Tree
+
+	var entry *TreeEntry
+	for len(commitID) > 2 {
+		entry, err = tree.GetTreeEntryByPath(commitID)
 		if err == nil {
-			path += remainingCommitID
+			path += commitID
 			break
 		}
-		if err == object.ErrFileNotFound {
-			currentTree, err = currentTree.Tree(remainingCommitID[0:2])
-			path += remainingCommitID[0:2] + "/"
-			remainingCommitID = remainingCommitID[2:]
+		if IsErrNotExist(err) {
+			tree, err = tree.SubTree(commitID[0:2])
+			path += commitID[0:2] + "/"
+			commitID = commitID[2:]
 		}
 		if err != nil {
 			return err
 		}
 	}
 
-	blob := file.Blob
-	dataRc, err := blob.Reader()
+	dataRc, err := entry.Blob().DataAsync()
 	if err != nil {
 		return err
 	}
-
 	defer dataRc.Close()
 	d, err := ioutil.ReadAll(dataRc)
 	if err != nil {
@@ -62,21 +59,11 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	}
 	note.Message = d
 
-	commitNodeIndex, commitGraphFile := repo.CommitNodeIndex()
-	if commitGraphFile != nil {
-		defer commitGraphFile.Close()
-	}
-
-	commitNode, err := commitNodeIndex.Get(notes.ID)
+	lastCommits, err := GetLastCommitForPaths(notes, "", []string{path})
 	if err != nil {
 		return err
 	}
-
-	lastCommits, err := GetLastCommitForPaths(commitNode, "", []string{path})
-	if err != nil {
-		return err
-	}
-	note.Commit = convertCommit(lastCommits[path])
+	note.Commit = lastCommits[0]
 
 	return nil
 }

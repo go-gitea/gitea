@@ -3,40 +3,54 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
+func (repo *Repository) ResolveReference(name string) (string, error) {
+	stdout, err := NewCommand("show-ref", "--hash", name).RunInDir(repo.Path)
 	if err != nil {
-		if err == plumbing.ErrReferenceNotFound {
-			return "", ErrNotExist{
-				ID: name,
-			}
+		if strings.Contains(err.Error(), "not a valid ref") {
+			return "", ErrNotExist{name, ""}
+		}
+		return "", err
+	}
+	stdout = strings.TrimSpace(stdout)
+	if stdout == "" {
+		return "", ErrNotExist{name, ""}
+	}
+
+	return stdout, nil
+}
+
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitID(name string) (string, error) {
+	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repo.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "not a valid ref") {
+			return "", ErrNotExist{name, ""}
 		}
 		return "", err
 	}
 
-	return ref.Hash().String(), nil
+	return strings.TrimSpace(stdout), nil
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	hash := plumbing.NewHash(name)
-	_, err := repo.gogitRepo.CommitObject(hash)
+	_, err := NewCommand("cat-file", "-e", name).RunInDir(repo.Path)
 	return err == nil
 }
 
@@ -57,76 +71,62 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 	return strings.TrimSpace(stdout), nil
 }
 
-func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
-	if t.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w,
-		"object %s\ntype %s\ntag %s\ntagger ",
-		t.Target.String(), t.TargetType.Bytes(), t.Name); err != nil {
-		return nil
-	}
-
-	if err = t.Tagger.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n"); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, t.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: t.PGPSignature,
-		Payload:   strings.TrimSpace(w.String()) + "\n",
-	}
-}
-
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	var tagObject *object.Tag
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
 
-	gogitCommit, err := repo.gogitRepo.CommitObject(id)
-	if err == plumbing.ErrObjectNotFound {
-		tagObject, err = repo.gogitRepo.TagObject(id)
-		if err == plumbing.ErrObjectNotFound {
-			return nil, ErrNotExist{
-				ID: id.String(),
-			}
+	go func() {
+		stderr := strings.Builder{}
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, &stderr, strings.NewReader(id.String()+"\n"))
+		if err != nil {
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+		} else {
+			_ = stdoutWriter.Close()
 		}
-		if err == nil {
-			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
-		}
-		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
-	}
+	}()
+
+	bufReader := bufio.NewReader(stdoutReader)
+	_, typ, size, err := ReadBatchLine(bufReader)
 	if err != nil {
 		return nil, err
 	}
 
-	commit := convertCommit(gogitCommit)
-	commit.repo = repo
+	switch typ {
+	case "tag":
+		// then we need to parse the tag
+		// and load the commit
+		data, err := ioutil.ReadAll(io.LimitReader(bufReader, size))
+		if err != nil {
+			return nil, err
+		}
+		tag, err := parseTagData(data)
+		if err != nil {
+			return nil, err
+		}
+		tag.repo = repo
 
-	if tagObject != nil {
-		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
-		commit.Author = &tagObject.Tagger
-		commit.Signature = convertPGPSignatureForTag(tagObject)
+		commit, err := tag.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		commit.CommitMessage = strings.TrimSpace(tag.Message)
+		commit.Author = tag.Tagger
+		commit.Signature = tag.Signature
+
+		return commit, nil
+	case "commit":
+		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
+	default:
+		stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+		log("Unknown typ: %s", typ)
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
 	}
-
-	tree, err := gogitCommit.Tree()
-	if err != nil {
-		return nil, err
-	}
-
-	commit.Tree.ID = tree.Hash
-	commit.Tree.gogitTree = tree
-
-	return commit, nil
 }
 
 // ConvertToSHA1 returns a Hash object from a potential ID string

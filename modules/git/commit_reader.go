@@ -24,26 +24,20 @@ func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit,
 	message := false
 	pgpsig := false
 
-	scanner := bufio.NewScanner(reader)
-	// Split by '\n' but include the '\n'
-	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if atEOF && len(data) == 0 {
-			return 0, nil, nil
-		}
-		if i := bytes.IndexByte(data, '\n'); i >= 0 {
-			// We have a full newline-terminated line.
-			return i + 1, data[0 : i+1], nil
-		}
-		// If we're at EOF, we have a final, non-terminated line. Return it.
-		if atEOF {
-			return len(data), data, nil
-		}
-		// Request more data.
-		return 0, nil, nil
-	})
+	bufReader, ok := reader.(*bufio.Reader)
+	if !ok {
+		bufReader = bufio.NewReader(reader)
+	}
 
-	for scanner.Scan() {
-		line := scanner.Bytes()
+readLoop:
+	for {
+		line, err := bufReader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				break readLoop
+			}
+			return nil, err
+		}
 		if pgpsig {
 			if len(line) > 0 && line[0] == ' ' {
 				_, _ = signatureSB.Write(line[1:])
@@ -102,5 +96,5 @@ func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit,
 		commit.Signature = nil
 	}
 
-	return commit, scanner.Err()
+	return commit, nil
 }

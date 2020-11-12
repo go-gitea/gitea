@@ -3,15 +3,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -24,8 +22,7 @@ func IsTagExist(repoPath, name string) bool {
 
 // IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
-	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(TagPrefix+name), true)
-	return err == nil
+	return IsReferenceExist(repo.Path, TagPrefix+name)
 }
 
 // CreateTag create one tag in the repository
@@ -228,25 +225,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 
 // GetTags returns all tags of the repository.
 func (repo *Repository) GetTags() ([]string, error) {
-	var tagNames []string
-
-	tags, err := repo.gogitRepo.Tags()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = tags.ForEach(func(tag *plumbing.Reference) error {
-		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
-		return nil
-	})
-
-	// Reverse order
-	for i := 0; i < len(tagNames)/2; i++ {
-		j := len(tagNames) - i - 1
-		tagNames[i], tagNames[j] = tagNames[j], tagNames[i]
-	}
-
-	return tagNames, nil
+	return callShowRef(repo.Path, TagPrefix, "--tags")
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)

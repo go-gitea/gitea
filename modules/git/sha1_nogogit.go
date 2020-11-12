@@ -3,17 +3,18 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"regexp"
+	"strconv"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // EmptySHA defines empty git SHA
@@ -26,7 +27,17 @@ const EmptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 var SHAPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
 // SHA1 a git commit name
-type SHA1 = plumbing.Hash
+type SHA1 [20]byte
+
+// String returns a string representation of the SHA
+func (s SHA1) String() string {
+	return hex.EncodeToString(s[:])
+}
+
+func (s SHA1) IsZero() bool {
+	var empty SHA1
+	return s == empty
+}
 
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.
 func MustID(b []byte) SHA1 {
@@ -65,5 +76,33 @@ func NewIDFromString(s string) (SHA1, error) {
 
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(content []byte) SHA1 {
-	return plumbing.ComputeHash(plumbing.BlobObject, content)
+	return ComputeHash(ObjectBlob, content)
+}
+
+// ComputeHash compute the hash for a given ObjectType and content
+func ComputeHash(t ObjectType, content []byte) SHA1 {
+	h := NewHasher(t, int64(len(content)))
+	h.Write(content)
+	return h.Sum()
+}
+
+// Hasher is a struct that will generate a SHA1
+type Hasher struct {
+	hash.Hash
+}
+
+// NewHasher takes an object type and size and creates a hasher to generate a SHA
+func NewHasher(t ObjectType, size int64) Hasher {
+	h := Hasher{sha1.New()}
+	h.Write(t.Bytes())
+	h.Write([]byte(" "))
+	h.Write([]byte(strconv.FormatInt(size, 10)))
+	h.Write([]byte{0})
+	return h
+}
+
+// Sum generates a SHA1 for the provided hash
+func (h Hasher) Sum() (sha1 SHA1) {
+	copy(sha1[:], h.Hash.Sum(nil))
+	return
 }

@@ -3,15 +3,15 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -33,11 +33,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	if name == "" {
 		return false
 	}
-	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
-	if err != nil {
-		return false
-	}
-	return reference.Type() != plumbing.InvalidReference
+	return IsReferenceExist(repo.Path, BranchPrefix+name)
 }
 
 // Branch represents a Git branch.
@@ -83,21 +79,62 @@ func (repo *Repository) GetDefaultBranch() (string, error) {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
+	return callShowRef(repo.Path, BranchPrefix, "--heads")
+}
+
+func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 	var branchNames []string
 
-	branches, err := repo.gogitRepo.Branches()
-	if err != nil {
-		return nil, err
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	go func() {
+		stderrBuilder := &strings.Builder{}
+		err := NewCommand("show-ref", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		if err != nil {
+			if stderrBuilder.Len() == 0 {
+				_ = stdoutWriter.Close()
+				return
+			}
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
+		} else {
+			_ = stdoutWriter.Close()
+		}
+	}()
+
+	bufReader := bufio.NewReader(stdoutReader)
+	for {
+		// The output of show-ref is simply a list:
+		// <sha> SP <ref> LF
+		_, err := bufReader.ReadSlice(' ')
+		for err == bufio.ErrBufferFull {
+			// This shouldn't happen but we'll tolerate it for the sake of peace
+			_, err = bufReader.ReadSlice(' ')
+		}
+		if err == io.EOF {
+			return branchNames, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		branchName, err := bufReader.ReadString('\n')
+		if err == io.EOF {
+			// This shouldn't happen... but we'll tolerate it for the sake of peace
+			return branchNames, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		branchName = strings.TrimPrefix(branchName, prefix)
+		if len(branchName) > 0 {
+			branchName = branchName[:len(branchName)-1]
+		}
+		branchNames = append(branchNames, branchName)
 	}
-
-	_ = branches.ForEach(func(branch *plumbing.Reference) error {
-		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
-		return nil
-	})
-
-	// TODO: Sort?
-
-	return branchNames, nil
 }
 
 // GetBranch returns a branch by it's name

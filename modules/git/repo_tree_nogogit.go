@@ -3,27 +3,83 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(id)
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	go func() {
+		stderr := &strings.Builder{}
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, stderr, strings.NewReader(id.String()+"\n"))
+		if err != nil {
+			stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+		} else {
+			stdoutWriter.Close()
+		}
+	}()
+
+	bufReader := bufio.NewReader(stdoutReader)
+	// ignore the SHA
+	_, typ, _, err := ReadBatchLine(bufReader)
 	if err != nil {
 		return nil, err
 	}
 
-	tree := NewTree(repo, id)
-	tree.gogitTree = gogitTree
-	return tree, nil
+	switch typ {
+	case "tag":
+		resolvedID := id
+		data, err := ioutil.ReadAll(bufReader)
+		if err != nil {
+			return nil, err
+		}
+		tag, err := parseTagData(data)
+		if err != nil {
+			return nil, err
+		}
+		commit, err := tag.Commit()
+		if err != nil {
+			return nil, err
+		}
+		commit.Tree.ResolvedID = resolvedID
+		log("tag.commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
+		return &commit.Tree, nil
+	case "commit":
+		commit, err := CommitFromReader(repo, id, bufReader)
+		if err != nil {
+			stdoutReader.CloseWithError(err)
+			return nil, err
+		}
+		commit.Tree.ResolvedID = commit.ID
+		log("commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
+		return &commit.Tree, nil
+	case "tree":
+		stdoutReader.Close()
+		tree := NewTree(repo, id)
+		tree.ResolvedID = id
+		return tree, nil
+	default:
+		stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
+	}
 }
 
 // GetTree find the tree object in the repository.
@@ -41,17 +97,8 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(id)
-	if err == nil {
-		id = SHA1(commitObject.TreeHash)
-	}
-	treeObject, err := repo.getTree(id)
-	if err != nil {
-		return nil, err
-	}
-	treeObject.ResolvedID = resolvedID
-	return treeObject, nil
+
+	return repo.getTree(id)
 }
 
 // CommitTreeOpts represents the possible options to CommitTree

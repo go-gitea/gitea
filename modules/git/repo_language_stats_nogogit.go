@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !nogogit
+// +build nogogit
 
 package git
 
@@ -14,9 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 
 	"github.com/go-enry/go-enry/v2"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 const fileSizeLimit int64 = 16 * 1024 // 16 KiB
@@ -24,47 +21,48 @@ const bigFileSize int64 = 1024 * 1024 // 1 MiB
 
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
-	r, err := git.PlainOpen(repo.Path)
+	// FIXME: We can be more efficient here...
+	//
+	// We're expecting that we will be reading a lot of blobs and the trees
+	// Thus we should use a shared `cat-file --batch` to get all of this data
+	// And keep the buffers around with resets as necessary.
+	//
+	// It's more complicated so...
+	commit, err := repo.GetCommit(commitID)
 	if err != nil {
+		log("Unable to get commit for: %s", commitID)
 		return nil, err
 	}
 
-	rev, err := r.ResolveRevision(plumbing.Revision(commitID))
-	if err != nil {
-		return nil, err
-	}
+	tree := commit.Tree
 
-	commit, err := r.CommitObject(*rev)
-	if err != nil {
-		return nil, err
-	}
-
-	tree, err := commit.Tree()
+	entries, err := tree.ListEntriesRecursive()
 	if err != nil {
 		return nil, err
 	}
 
 	sizes := make(map[string]int64)
-	err = tree.Files().ForEach(func(f *object.File) error {
-		if f.Size == 0 || enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
-			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
-			return nil
+	for _, f := range entries {
+		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
+			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
+			continue
 		}
 
 		// If content can not be read or file is too big just do detection by filename
 		var content []byte
-		if f.Size <= bigFileSize {
+		if f.Size() <= bigFileSize {
 			content, _ = readFile(f, fileSizeLimit)
 		}
-		if enry.IsGenerated(f.Name, content) {
-			return nil
+		if enry.IsGenerated(f.Name(), content) {
+			continue
 		}
 
 		// TODO: Use .gitattributes file for linguist overrides
-
-		language := analyze.GetCodeLanguage(f.Name, content)
+		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
+		// - eg. do the all the detection tests using filename first before reading content.
+		language := analyze.GetCodeLanguage(f.Name(), content)
 		if language == enry.OtherLanguage || language == "" {
-			return nil
+			continue
 		}
 
 		// group languages, such as Pug -> HTML; SCSS -> CSS
@@ -73,12 +71,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			language = group
 		}
 
-		sizes[language] += f.Size
+		sizes[language] += f.Size()
 
-		return nil
-	})
-	if err != nil {
-		return nil, err
+		continue
 	}
 
 	// filter special languages unless they are the only language
@@ -94,8 +89,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	return sizes, nil
 }
 
-func readFile(f *object.File, limit int64) ([]byte, error) {
-	r, err := f.Reader()
+func readFile(entry *TreeEntry, limit int64) ([]byte, error) {
+	// FIXME: We can probably be a little more efficient here... see above
+	r, err := entry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +101,7 @@ func readFile(f *object.File, limit int64) ([]byte, error) {
 		return ioutil.ReadAll(r)
 	}
 
-	size := f.Size
+	size := entry.Size()
 	if limit > 0 && size > limit {
 		size = limit
 	}
