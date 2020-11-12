@@ -245,7 +245,7 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if !authUser.IsActive {
-			ctx.HandleText(http.StatusForbidden, "Your account is unactived.")
+			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
