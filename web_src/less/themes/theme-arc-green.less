@@ -710,7 +710,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.pagination.menu .active.item {
-  color: #dbdbdb;
+  color: #fff;
   background-color: #87ab63;
 }
 
@@ -870,7 +870,6 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.table {
-  color: #a5a5a5 !important;
   border-color: var(--color-secondary);
   background: #353945;
 }
@@ -1020,10 +1019,6 @@ a.ui.basic.green.label:hover {
 .repository.view.issue .comment-list .comment .content {
   > .bottom.segment {
     background: #353945;
-    a {
-      border-color: var(--color-secondary);
-      background-color: #353945;
-    }
   }
 
   .header {
@@ -1180,10 +1175,6 @@ td.blob-hunk {
   border: 1px solid #333640;
 }
 
-.ui.repository.list .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -1236,10 +1227,6 @@ td.blob-hunk {
   color: #dbdbdb;
 }
 
-.ui.user.list .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-}
-
 .ui.secondary.pointing.menu .active.item:hover {
   color: #dbdbdb;
 }
@@ -1252,10 +1239,6 @@ td.blob-hunk {
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
   background: #2c303a;
-}
-
-.user.settings .email.list .item:not(:first-child) {
-  border-top: 1px solid #3f4451;
 }
 
 .explore .navbar {
@@ -1271,10 +1254,6 @@ td.blob-hunk {
       background: linear-gradient(to right, transparent 0%, #2a2e3a 100%);
     }
   }
-}
-
-.settings .key.list .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
 }
 
 .ui.attached.info.message,
@@ -1358,10 +1337,6 @@ td.blob-hunk {
   box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
 }
 
-.user.profile .ui.card .extra.content ul li:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
 .ui.form .dropzone {
   border: 1px dashed var(--color-secondary);
   background-color: #2e323e;
@@ -1389,10 +1364,6 @@ td.blob-hunk {
 .ui.list .list > .item .description,
 .ui.list > .item .description {
   color: var(--color-secondary-dark-6);
-}
-
-.ui.user.list .item .description a {
-  color: #668cb1;
 }
 
 .repository.file.list #repo-files-table tbody .svg.octicon-file-directory,
@@ -1600,7 +1571,7 @@ a.ui.labels .label:hover {
 
 .ui.modal > .actions {
   background: var(--color-secondary);
-  border-top: 1px solid var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .ui.modal > .content {
@@ -1832,14 +1803,6 @@ footer .container .links > * {
 .repository.release #release-list > li .detail .dot {
   background-color: #505667;
   border-color: #383c4a;
-}
-
-.repository.release #release-list > li .detail .download .list {
-  border-top-color: var(--color-secondary);
-}
-
-.repository.release #release-list > li .detail .download .list li {
-  border-bottom-color: var(--color-secondary);
 }
 
 .board-column {
