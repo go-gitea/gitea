@@ -1,0 +1,21 @@
+// here a standard set of media queries is defined, that is compatible with the
+// responsive grid used in formantic css. As there only is a precompiled build
+// of formantic checked in (since 946bbbe),we can't use their less variables
+// here, but these breakpoints shouldn't change in the foreseable future.
+
+@breakSmMax: ~"(max-width: 767px)";
+@breakMdMin: ~"(min-width: 768px)";
+@breakMdMax: ~"(max-width: 991px)";
+@breakLgMin: ~"(min-width: 992px)";
+@breakLgMax: ~"(max-width: 1200px)";
+@breakXlMin: ~"(min-width: 1201px)";
+
+@mediaSm: @breakSmMax;
+@mediaMd: ~"@breakMdMin and @breakMdMax";
+@mediaLg: ~"@breakLgMin and @breakLgMax";
+@mediaXl: ~"@breakXlMin";
+
+@mediaScreenSm: ~"screen and @mediaSm";
+@mediaScreenMd: ~"screen and @mediaMd";
+@mediaScreenLg: ~"screen and @mediaLg";
+@mediaScreenXl: ~"screen and @mediaXl";
