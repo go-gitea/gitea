@@ -1,3 +1,5 @@
+@import "./variables.less";
+
 .dashboard {
   padding-top: 15px;
 
@@ -33,7 +35,7 @@
           left: 90%;
           width: 15%;
 
-          @media only screen and (max-width: 767px) {
+          @media @mediaScreenSm {
             top: 10px;
             left: auto;
             width: auto;
@@ -55,7 +57,7 @@
         left: auto !important;
       }
 
-      @media only screen and (max-width: 767px) {
+      @media @mediaScreenSm {
         width: 100%;
       }
     }

@@ -1,3 +1,5 @@
+@import "../variables.less";
+
 #user-heatmap {
   width: 107%; // Fixes newest contributions not showing
   text-align: center;
@@ -7,7 +9,7 @@
     padding: 0 !important;
   }
 
-  @media (max-width: 1200px) {
+  @media @breakLgMax {
     & {
       display: none;
     }
@@ -31,7 +33,7 @@
   left: 25px;
 }
 
-@media (max-width: 1200px) {
+@media @breakLgMax {
   .heatmap-container .total-contributions {
     left: 21px;
   }

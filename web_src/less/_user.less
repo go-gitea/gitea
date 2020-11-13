@@ -1,3 +1,5 @@
+@import "variables.less";
+
 .user {
   &:not(.icon) {
     padding-top: 15px;
@@ -51,7 +53,7 @@
         img {
           width: 100%;
         }
-        @media only screen and (max-width: 767px) {
+        @media @mediaScreenSm {
           height: 250px;
           overflow: hidden;
 
@@ -62,7 +64,7 @@
         }
       }
 
-      @media only screen and (max-width: 767px) {
+      @media @mediaScreenSm {
         width: 100%;
       }
     }

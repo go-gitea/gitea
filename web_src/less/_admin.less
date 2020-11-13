@@ -1,3 +1,5 @@
+@import "./variables.less";
+
 .admin {
   &.notice {
     padding-top: 15px;
@@ -88,16 +90,16 @@
 
   #notice-table {
     .notice-description {
-      @media only screen and (max-width: 767px) {
+      @media @mediaScreenSm {
         max-width: 80vw;
       }
-      @media only screen and (max-width: 991px) and (min-width: 768px) {
+      @media @mediaScreenMd {
         max-width: 360px;
       }
-      @media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+      @media @mediaScreenLg {
         max-width: 510px;
       }
-      @media only screen and (min-width: 1200px) {
+      @media @mediaScreenXl {
         max-width: 640px;
       }
     }

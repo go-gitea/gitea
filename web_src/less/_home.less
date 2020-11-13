@@ -1,10 +1,12 @@
+@import "./variables.less";
+
 .home {
   .logo {
     max-width: 220px;
   }
 
   .hero {
-    @media only screen and (max-width: 767px) {
+    @media @mediaScreenSm {
       h1 {
         font-size: 3.5em;
       }
@@ -14,7 +16,7 @@
       }
     }
 
-    @media only screen and (min-width: 768px) {
+    @media only screen and @breakMdMin {
       h1 {
         font-size: 5.5em;
       }

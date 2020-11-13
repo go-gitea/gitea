@@ -1,3 +1,5 @@
+@import "./variables.less";
+
 input,
 textarea,
 .ui.input > input,
@@ -142,7 +144,7 @@ textarea:focus,
       text-align: center;
     }
 
-    @media only screen and (min-width: 768px) {
+    @media only screen and @breakMdMin {
       width: 800px !important;
 
       .header {
@@ -169,7 +171,7 @@ textarea:focus,
       }
     }
 
-    @media only screen and (max-width: 767px) {
+    @media @mediaScreenSm {
       .optional .title {
         margin-left: 15px;
       }
@@ -211,7 +213,7 @@ textarea:focus,
   }
 }
 
-@media only screen and (min-width: 768px) {
+@media only screen and @breakMdMin {
   .g-recaptcha,
   .h-captcha {
     margin: 0 auto !important;
@@ -251,7 +253,7 @@ textarea:focus,
 
     .inline.field > label,
     input {
-      @media only screen and (max-width: 767px) {
+      @media @mediaScreenSm {
         width: 100% !important;
       }
     }
@@ -289,7 +291,7 @@ textarea:focus,
         width: 50% !important;
       }
 
-      @media only screen and (max-width: 767px) {
+      @media @mediaScreenSm {
         label,
         input,
         .selection.dropdown {
@@ -307,7 +309,7 @@ textarea:focus,
 
   &.new.repo {
     .ui.form {
-      @media only screen and (min-width: 768px) {
+      @media only screen and @breakMdMin {
         #auto-init {
           margin-left: @create-page-form-input-padding+15px;
         }
@@ -316,7 +318,7 @@ textarea:focus,
       .selection.dropdown:not(.owner) {
         width: 50% !important;
 
-        @media only screen and (max-width: 767px) {
+        @media @mediaScreenSm {
           width: 100% !important;
         }
       }
@@ -345,7 +347,7 @@ textarea:focus,
 }
 
 .new.org .ui.form {
-  @media only screen and (max-width: 767px) {
+  @media @mediaScreenSm {
     .field button,
     .field a {
       margin-bottom: 1em;
