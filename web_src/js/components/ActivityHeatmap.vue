@@ -27,7 +27,7 @@ export default {
   data: () => ({
     isLoading: true,
     colorRange: [
-      'var(--color-secondary)',
+      'var(--color-secondary-alpha-70)',
       'var(--color-primary-light-4)',
       'var(--color-primary-light-2)',
       'var(--color-primary)',
