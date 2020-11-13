@@ -6,11 +6,9 @@
 
 package public
 
-import (
-	"gitea.com/macaron/macaron"
-)
+import "net/http"
 
 // Static implements the macaron static handler for serving assets.
-func Static(opts *Options) macaron.Handler {
+func Static(opts *Options) func(next http.Handler) http.Handler {
 	return opts.staticHandler(opts.Directory)
 }
