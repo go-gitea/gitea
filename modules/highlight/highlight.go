@@ -122,7 +122,10 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 
 	lexer := lexers.Get(language)
 	if lexer == nil {
-		lexer = lexers.Fallback
+		lexer = lexers.Match(fileName)
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
 	}
 
 	iterator, err := lexer.Tokenise(nil, string(code))
