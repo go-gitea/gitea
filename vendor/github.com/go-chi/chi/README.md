@@ -168,7 +168,7 @@ func AdminOnly(next http.Handler) http.Handler {
 ```
 
 
-## Router design
+## Router interface
 
 chi's router is based on a kind of [Patricia Radix trie](https://en.wikipedia.org/wiki/Radix_tree).
 The router is fully compatible with `net/http`.
@@ -257,15 +257,24 @@ about them, which means the router and all the tooling is designed to be compati
 friendly with any middleware in the community. This offers much better extensibility and reuse
 of packages and is at the heart of chi's purpose.
 
-Here is an example of a standard net/http middleware handler using the new request context
-available in Go. This middleware sets a hypothetical user identifier on the request
+Here is an example of a standard net/http middleware where we assign a context key `"user"`
+the value of `"123"`. This middleware sets a hypothetical user identifier on the request
 context and calls the next handler in the chain.
 
 ```go
 // HTTP middleware setting a value on the request context
 func MyMiddleware(next http.Handler) http.Handler {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    // create new context from `r` request context, and assign key `"user"`
+    // to value of `"123"`
     ctx := context.WithValue(r.Context(), "user", "123")
+
+    // call the next handler in the chain, passing the response writer and
+    // the updated request object with the new context value.
+    //
+    // note: context.Context values are nested, so any previously set
+    // values will be accessible as well, and the new `"user"` key
+    // will be accessible from this point forward.
     next.ServeHTTP(w, r.WithContext(ctx))
   })
 }
@@ -281,7 +290,11 @@ the user sending an authenticated request, validated+set by a previous middlewar
 ```go
 // HTTP handler accessing data from the request context.
 func MyRequestHandler(w http.ResponseWriter, r *http.Request) {
+  // here we read from the request context and fetch out `"user"` key set in
+  // the MyMiddleware example above.
   user := r.Context().Value("user").(string)
+
+  // respond to the client
   w.Write([]byte(fmt.Sprintf("hi %s", user)))
 }
 ```
@@ -296,11 +309,15 @@ are able to access the same information.
 ```go
 // HTTP handler accessing the url routing parameters.
 func MyRequestHandler(w http.ResponseWriter, r *http.Request) {
-  userID := chi.URLParam(r, "userID") // from a route like /users/{userID}
+  // fetch the url parameter `"userID"` from the request of a matching
+  // routing pattern. An example routing pattern could be: /users/{userID}
+  userID := chi.URLParam(r, "userID")
 
+  // fetch `"key"` from the request context
   ctx := r.Context()
   key := ctx.Value("key").(string)
 
+  // respond to the client
   w.Write([]byte(fmt.Sprintf("hi %v, %v", userID, key)))
 }
 ```
@@ -314,28 +331,68 @@ with `net/http` can be used with chi's mux.
 
 ### Core middlewares
 
------------------------------------------------------------------------------------------------------------
-| chi/middleware Handler | description                                                                    |
-|:----------------------|:---------------------------------------------------------------------------------
-| AllowContentType      | Explicit whitelist of accepted request Content-Types                            |
-| BasicAuth             | Basic HTTP authentication                                                       |
-| Compress              | Gzip compression for clients that accept compressed responses                   |
-| GetHead               | Automatically route undefined HEAD requests to GET handlers                     |
-| Heartbeat             | Monitoring endpoint to check the servers pulse                                  |
-| Logger                | Logs the start and end of each request with the elapsed processing time         |
-| NoCache               | Sets response headers to prevent clients from caching                           |
-| Profiler              | Easily attach net/http/pprof to your routers                                    |
-| RealIP                | Sets a http.Request's RemoteAddr to either X-Forwarded-For or X-Real-IP         |
-| Recoverer             | Gracefully absorb panics and prints the stack trace                             |
-| RequestID             | Injects a request ID into the context of each request                           |
-| RedirectSlashes       | Redirect slashes on routing paths                                               |
-| SetHeader             | Short-hand middleware to set a response header key/value                        |
-| StripSlashes          | Strip slashes on routing paths                                                  |
-| Throttle              | Puts a ceiling on the number of concurrent requests                             |
-| Timeout               | Signals to the request context when the timeout deadline is reached             |
-| URLFormat             | Parse extension from url and put it on request context                          |
-| WithValue             | Short-hand middleware to set a key/value on the request context                 |
------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+| chi/middleware Handler | description                                                             |
+| :--------------------- | :---------------------------------------------------------------------- |
+| [AllowContentType]     | Explicit whitelist of accepted request Content-Types                    |
+| [BasicAuth]            | Basic HTTP authentication                                               |
+| [Compress]             | Gzip compression for clients that accept compressed responses           |
+| [GetHead]              | Automatically route undefined HEAD requests to GET handlers             |
+| [Heartbeat]            | Monitoring endpoint to check the servers pulse                          |
+| [Logger]               | Logs the start and end of each request with the elapsed processing time |
+| [NoCache]              | Sets response headers to prevent clients from caching                   |
+| [Profiler]             | Easily attach net/http/pprof to your routers                            |
+| [RealIP]               | Sets a http.Request's RemoteAddr to either X-Forwarded-For or X-Real-IP |
+| [Recoverer]            | Gracefully absorb panics and prints the stack trace                     |
+| [RequestID]            | Injects a request ID into the context of each request                   |
+| [RedirectSlashes]      | Redirect slashes on routing paths                                       |
+| [SetHeader]            | Short-hand middleware to set a response header key/value                |
+| [StripSlashes]         | Strip slashes on routing paths                                          |
+| [Throttle]             | Puts a ceiling on the number of concurrent requests                     |
+| [Timeout]              | Signals to the request context when the timeout deadline is reached     |
+| [URLFormat]            | Parse extension from url and put it on request context                  |
+| [WithValue]            | Short-hand middleware to set a key/value on the request context         |
+----------------------------------------------------------------------------------------------------
+
+[AllowContentEncoding]: https://pkg.go.dev/github.com/go-chi/chi/middleware#AllowContentEncoding
+[AllowContentType]: https://pkg.go.dev/github.com/go-chi/chi/middleware#AllowContentType
+[BasicAuth]: https://pkg.go.dev/github.com/go-chi/chi/middleware#BasicAuth
+[Compress]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Compress
+[ContentCharset]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ContentCharset
+[GetHead]: https://pkg.go.dev/github.com/go-chi/chi/middleware#GetHead
+[GetReqID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#GetReqID
+[Heartbeat]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Heartbeat
+[Logger]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Logger
+[New]: https://pkg.go.dev/github.com/go-chi/chi/middleware#New
+[NextRequestID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#NextRequestID
+[NoCache]: https://pkg.go.dev/github.com/go-chi/chi/middleware#NoCache
+[PrintPrettyStack]: https://pkg.go.dev/github.com/go-chi/chi/middleware#PrintPrettyStack
+[Profiler]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Profiler
+[RealIP]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RealIP
+[Recoverer]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Recoverer
+[RedirectSlashes]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RedirectSlashes
+[RequestID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RequestID
+[RequestLogger]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RequestLogger
+[SetHeader]: https://pkg.go.dev/github.com/go-chi/chi/middleware#SetHeader
+[StripSlashes]: https://pkg.go.dev/github.com/go-chi/chi/middleware#StripSlashes
+[Throttle]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Throttle
+[ThrottleBacklog]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ThrottleBacklog
+[ThrottleWithOpts]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ThrottleWithOpts
+[Timeout]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Timeout
+[URLFormat]: https://pkg.go.dev/github.com/go-chi/chi/middleware#URLFormat
+[WithLogEntry]: https://pkg.go.dev/github.com/go-chi/chi/middleware#WithLogEntry
+[WithValue]: https://pkg.go.dev/github.com/go-chi/chi/middleware#WithValue
+[Compressor]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Compressor
+[DefaultLogFormatter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#DefaultLogFormatter
+[EncoderFunc]: https://pkg.go.dev/github.com/go-chi/chi/middleware#EncoderFunc
+[HeaderRoute]: https://pkg.go.dev/github.com/go-chi/chi/middleware#HeaderRoute
+[HeaderRouter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#HeaderRouter
+[LogEntry]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LogEntry
+[LogFormatter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LogFormatter
+[LoggerInterface]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LoggerInterface
+[Pattern]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Pattern
+[ThrottleOpts]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ThrottleOpts
+[WrapResponseWriter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#WrapResponseWriter
 
 ### Extra middlewares & packages
 
@@ -354,8 +411,6 @@ Please see https://github.com/go-chi for additional packages.
 | [httpvcr](https://github.com/go-chi/httpvcr)       | Write deterministic tests for external sources              |
 | [stampede](https://github.com/go-chi/stampede)     | HTTP request coalescer                                      |
 --------------------------------------------------------------------------------------------------------------------
-
-please [submit a PR](./CONTRIBUTING.md) if you'd like to include a link to a chi-compatible middleware
 
 
 ## context?
@@ -435,7 +490,7 @@ Copyright (c) 2015-present [Peter Kieltyka](https://github.com/pkieltyka)
 
 Licensed under [MIT License](./LICENSE)
 
-[GoDoc]: https://godoc.org/github.com/go-chi/chi
+[GoDoc]: https://pkg.go.dev/github.com/go-chi/chi?tab=versions
 [GoDoc Widget]: https://godoc.org/github.com/go-chi/chi?status.svg
 [Travis]: https://travis-ci.org/go-chi/chi
 [Travis Widget]: https://travis-ci.org/go-chi/chi.svg?branch=master

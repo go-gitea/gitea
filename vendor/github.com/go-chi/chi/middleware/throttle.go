@@ -72,7 +72,7 @@ func ThrottleWithOpts(opts ThrottleOpts) func(http.Handler) http.Handler {
 
 			case <-ctx.Done():
 				t.setRetryAfterHeaderIfNeeded(w, true)
-				http.Error(w, errContextCanceled, http.StatusServiceUnavailable)
+				http.Error(w, errContextCanceled, http.StatusTooManyRequests)
 				return
 
 			case btok := <-t.backlogTokens:
@@ -85,12 +85,12 @@ func ThrottleWithOpts(opts ThrottleOpts) func(http.Handler) http.Handler {
 				select {
 				case <-timer.C:
 					t.setRetryAfterHeaderIfNeeded(w, false)
-					http.Error(w, errTimedOut, http.StatusServiceUnavailable)
+					http.Error(w, errTimedOut, http.StatusTooManyRequests)
 					return
 				case <-ctx.Done():
 					timer.Stop()
 					t.setRetryAfterHeaderIfNeeded(w, true)
-					http.Error(w, errContextCanceled, http.StatusServiceUnavailable)
+					http.Error(w, errContextCanceled, http.StatusTooManyRequests)
 					return
 				case tok := <-t.tokens:
 					defer func() {
@@ -103,7 +103,7 @@ func ThrottleWithOpts(opts ThrottleOpts) func(http.Handler) http.Handler {
 
 			default:
 				t.setRetryAfterHeaderIfNeeded(w, false)
-				http.Error(w, errCapacityExceeded, http.StatusServiceUnavailable)
+				http.Error(w, errCapacityExceeded, http.StatusTooManyRequests)
 				return
 			}
 		}
