@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -661,7 +662,9 @@ func DeleteWikiPagePost(ctx *context.Context) {
 func UploadWikiFile(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
@@ -682,7 +685,9 @@ func UploadWikiFilePost(ctx *context.Context, form auth.UploadWikiFileForm) {
 
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplWikiUpload)
