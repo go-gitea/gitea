@@ -186,8 +186,10 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
-	if !setting.DisableRouterLog {
-		c.Use(LoggerHandler(setting.RouterLogLevel))
+	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
+		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
+			c.Use(LoggerHandler(setting.RouterLogLevel))
+		}
 	}
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
