@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+  - 1.14.x
+
+script:
+  - go get -d -t ./...
+  - go vet ./...
+  - go test ./...
+  - >
+    go_version=$(go version);
+    if [ ${go_version:13:4} = "1.12" ]; then
+      go get -u golang.org/x/tools/cmd/goimports;
+      goimports -d -e ./ | grep '.*' && { echo; echo "Aborting due to non-empty goimports output."; exit 1; } || :;
+    fi
+
