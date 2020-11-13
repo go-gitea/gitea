@@ -5,17 +5,8 @@
 package routes
 
 import (
-	"bytes"
 	"encoding/gob"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"path"
-	"strings"
-	"text/template"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -24,9 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
@@ -58,129 +47,6 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-type routerLoggerOptions struct {
-	Ctx            *macaron.Context
-	Identity       *string
-	Start          *time.Time
-	ResponseWriter *macaron.ResponseWriter
-}
-
-func setupAccessLogger(m *macaron.Macaron) {
-	logger := log.GetLogger("access")
-
-	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
-	m.Use(func(ctx *macaron.Context) {
-		start := time.Now()
-		ctx.Next()
-		identity := "-"
-		if val, ok := ctx.Data["SignedUserName"]; ok {
-			if stringVal, ok := val.(string); ok && stringVal != "" {
-				identity = stringVal
-			}
-		}
-		rw := ctx.Resp.(macaron.ResponseWriter)
-
-		buf := bytes.NewBuffer([]byte{})
-		err := logTemplate.Execute(buf, routerLoggerOptions{
-			Ctx:            ctx,
-			Identity:       &identity,
-			Start:          &start,
-			ResponseWriter: &rw,
-		})
-		if err != nil {
-			log.Error("Could not set up macaron access logger: %v", err.Error())
-		}
-
-		err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
-		if err != nil {
-			log.Error("Could not set up macaron access logger: %v", err.Error())
-		}
-	})
-}
-
-// RouterHandler is a macaron handler that will log the routing to the default gitea log
-func RouterHandler(level log.Level) func(ctx *macaron.Context) {
-	return func(ctx *macaron.Context) {
-		start := time.Now()
-
-		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), ctx.RemoteAddr())
-
-		rw := ctx.Resp.(macaron.ResponseWriter)
-		ctx.Next()
-
-		status := rw.Status()
-		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
-	}
-}
-
-func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) macaron.Handler {
-	if storageSetting.ServeDirect {
-		return func(ctx *macaron.Context) {
-			req := ctx.Req.Request
-			if req.Method != "GET" && req.Method != "HEAD" {
-				return
-			}
-
-			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
-				return
-			}
-
-			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
-			u, err := objStore.URL(rPath, path.Base(rPath))
-			if err != nil {
-				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
-					log.Warn("Unable to find %s %s", prefix, rPath)
-					ctx.Error(404, "file not found")
-					return
-				}
-				log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
-				ctx.Error(500, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath))
-				return
-			}
-			http.Redirect(
-				ctx.Resp,
-				req,
-				u.String(),
-				301,
-			)
-		}
-	}
-
-	return func(ctx *macaron.Context) {
-		req := ctx.Req.Request
-		if req.Method != "GET" && req.Method != "HEAD" {
-			return
-		}
-
-		if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
-			return
-		}
-
-		rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
-		rPath = strings.TrimPrefix(rPath, "/")
-		//If we have matched and access to release or issue
-		fr, err := objStore.Open(rPath)
-		if err != nil {
-			if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
-				log.Warn("Unable to find %s %s", prefix, rPath)
-				ctx.Error(404, "file not found")
-				return
-			}
-			log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
-			ctx.Error(500, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath))
-			return
-		}
-		defer fr.Close()
-
-		_, err = io.Copy(ctx.Resp, fr)
-		if err != nil {
-			log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
-			ctx.Error(500, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath))
-			return
-		}
-	}
-}
-
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -188,46 +54,18 @@ func NewMacaron() *macaron.Macaron {
 	if setting.RedirectMacaronLog {
 		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
-		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-			if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-				m.Use(RouterHandler(setting.RouterLogLevel))
-			}
-		}
 	} else {
 		m = macaron.New()
-		if !setting.DisableRouterLog {
-			m.Use(macaron.Logger())
-		}
 	}
-	// Access Logger is similar to Router Log but more configurable and by default is more like the NCSA Common Log format
-	if setting.EnableAccessLog {
-		setupAccessLogger(m)
-	}
-	m.Use(macaron.Recovery())
+
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
 	}
 	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
-	m.Use(public.Custom(
-		&public.Options{
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
-	m.Use(public.Static(
-		&public.Options{
-			Directory:    path.Join(setting.StaticRootPath, "public"),
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
 
 	m.Use(templates.HTMLRenderer())
-
-	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	mailer.InitMailRender(templates.Mailer())
 
@@ -294,15 +132,12 @@ func NewMacaron() *macaron.Macaron {
 		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
-	// OK we are now set-up enough to allow us to create a nicer recovery than
-	// the default macaron recovery
-	m.Use(context.Recovery())
 	m.SetAutoHead(true)
 	return m
 }
 
-// RegisterInstallRoute registers the install routes
-func RegisterInstallRoute(m *macaron.Macaron) {
+// RegisterMacaronInstallRoute registers the install routes
+func RegisterMacaronInstallRoute(m *macaron.Macaron) {
 	m.Combo("/", routers.InstallInit).Get(routers.Install).
 		Post(binding.BindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.NotFound(func(ctx *context.Context) {
@@ -310,8 +145,8 @@ func RegisterInstallRoute(m *macaron.Macaron) {
 	})
 }
 
-// RegisterRoutes routes routes to Macaron
-func RegisterRoutes(m *macaron.Macaron) {
+// RegisterMacaronRoutes routes routes to Macaron
+func RegisterMacaronRoutes(m *macaron.Macaron) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
@@ -353,9 +188,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
-	m.Head("/", func() string {
-		return ""
-	})
 	m.Get("/", routers.Home)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -1144,15 +976,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.
 		private.RegisterRoutes(m)
-	})
-
-	// robots.txt
-	m.Get("/robots.txt", func(ctx *context.Context) {
-		if setting.HasRobotsTxt {
-			ctx.ServeFileContent(path.Join(setting.CustomPath, "robots.txt"))
-		} else {
-			ctx.NotFound("", nil)
-		}
 	})
 
 	m.Get("/apple-touch-icon.png", func(ctx *context.Context) {
