@@ -36,7 +36,7 @@
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.APIURL}}/markdown"
 						data-context="{{.RepoLink}}"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"

@@ -34,8 +34,39 @@
 			</div>
 		</div>
 		<div class="ui divider"></div>
+		<div class="ui two column stackable grid">
+			<div class="column">
+				<h2 class="project-title">{{$.Project.Title}}</h2>
+				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
+			</div>
+			{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+				<div class="column right aligned">
+					<div class="ui compact right small menu">
+						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+							{{svg "octicon-pencil"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_edit"}}</span>
+						</a>
+						{{if .Project.IsClosed}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/open">
+								{{svg "octicon-check"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.open"}}</span>
+							</a>
+						{{else}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/close">
+								{{svg "octicon-skip"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.close"}}</span>
+							</a>
+						{{end}}
+						<a class="item delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/delete" data-id="{{.Project.ID}}">
+							{{svg "octicon-trashcan"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_delete"}}</span>
+						</a>
+					</div>
+				</div>
+			{{end}}
+		</div>
+		<div class="ui divider"></div>
 	</div>
-
 	<div class="ui container fluid padded" id="project-board">
 
 		<div class="board">
@@ -145,5 +176,27 @@
 	</div>
 
 </div>
+
+{{if or .CanWriteIssues .CanWritePulls}}
+	<div class="ui small basic delete modal">
+		<div class="ui icon header">
+			{{svg "octicon-trashcan"}}
+			{{.i18n.Tr "repo.projects.deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.i18n.Tr "repo.projects.deletion_desc"}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "modal.no"}}
+			</div>
+			<div class="ui green basic inverted ok button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "modal.yes"}}
+			</div>
+		</div>
+	</div>
+{{end}}
 
 {{template "base/footer" .}}
