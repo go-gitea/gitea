@@ -97,7 +97,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 		baseURL = path.Join(baseURL, pathParts[0])
 		pathParts = pathParts[1:]
-		err = gitlab.WithBaseURL(baseURL)(gitlabClient)
+		_ = gitlab.WithBaseURL(baseURL)(gitlabClient)
 		repoPath = strings.Join(pathParts, "/")
 	}
 	if err != nil {
