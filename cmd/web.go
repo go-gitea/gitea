@@ -134,7 +134,7 @@ func runWeb(ctx *cli.Context) error {
 			}
 		}
 		c := routes.NewChi()
-		routes.RegisterInstallRoute(c)
+		c.Mount("/", routes.InstallRoutes())
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -167,7 +167,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 	// Set up Macaron
 	c := routes.NewChi()
-	routes.RegisterRoutes(c)
+	c.Mount("/", routes.NormalRoutes())
 
 	err := listen(c, true)
 	<-graceful.GetManager().Done()

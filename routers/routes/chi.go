@@ -219,30 +219,34 @@ func NewChi() chi.Router {
 	return c
 }
 
-// RegisterInstallRoute registers the install routes
-func RegisterInstallRoute(c chi.Router) {
+// InstallRoutes represents the install routes
+func InstallRoutes() http.Handler {
+	r := chi.NewRouter()
 	m := NewMacaron()
 	RegisterMacaronInstallRoute(m)
 
-	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 
-	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
+	return r
 }
 
-// RegisterRoutes registers gin routes
-func RegisterRoutes(c chi.Router) {
+// NormalRoutes represents non install routes
+func NormalRoutes() http.Handler {
+	r := chi.NewRouter()
+
 	// for health check
-	c.Head("/", func(w http.ResponseWriter, req *http.Request) {
+	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	// robots.txt
 	if setting.HasRobotsTxt {
-		c.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
 			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
 		})
 	}
@@ -250,11 +254,12 @@ func RegisterRoutes(c chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronRoutes(m)
 
-	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 
-	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
+	return r
 }
