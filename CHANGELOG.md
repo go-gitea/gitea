@@ -10,6 +10,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Prevent git operations for inactive users (#13527) (#13537)
   * Disallow urlencoded new lines in git protocol paths if there is a port (#13521) (#13525)
 * BUGFIXES
+  * API should only return Json (#13511) (#13564)
+  * Fix before and since query arguments at API (#13559) (#13560)
   * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13470) (#13492)
   * Fix link detection in repository description with tailing '_' (#13407) (#13408)
   * Remove obsolete change of email on profile page (#13341) (#13348)
