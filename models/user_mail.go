@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -143,6 +144,11 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 		return ErrEmailAlreadyUsed{email.Email}
 	}
 
+	_, err = mail.ParseAddress(email.Email)
+	if err != nil {
+		return ErrEmailInvalid{email.Email}
+	}
+
 	_, err = e.Insert(email)
 	return err
 }
@@ -166,6 +172,10 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 			return err
 		} else if used {
 			return ErrEmailAlreadyUsed{emails[i].Email}
+		}
+		_, err = mail.ParseAddress(emails[i].Email)
+		if err != nil {
+			return ErrEmailInvalid{emails[i].Email}
 		}
 	}
 
