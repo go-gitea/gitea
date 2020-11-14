@@ -797,3 +797,11 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *model
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }
+
+func (m *webhookNotifier) NotifySyncCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	m.NotifyCreateRef(pusher, repo, refType, refFullName)
+}
+
+func (m *webhookNotifier) NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
+}
