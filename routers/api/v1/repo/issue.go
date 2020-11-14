@@ -176,6 +176,8 @@ func SearchIssues(ctx *context.APIContext) {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
+	// this api is also used in UI,
+	// so the default limit is set to fit UI needs
 	limit := ctx.QueryInt("limit")
 	if limit == 0 {
 		limit = setting.UI.IssuePagingNum
