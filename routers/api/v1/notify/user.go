@@ -63,7 +63,7 @@ func ListNotifications(ctx *context.APIContext) {
 
 	before, since, err := utils.GetQueryBeforeSince(ctx)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 	opts := models.FindNotificationOptions{
