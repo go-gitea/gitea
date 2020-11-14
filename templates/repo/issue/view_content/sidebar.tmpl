@@ -126,7 +126,9 @@
 			</div>
 		</div>
 		<div class="ui labels list">
-			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
+			{{if not .HasSelectedLabel}}
+				<span class="no-select item">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
+			{{end}}
 			{{range .Labels}}
 				{{if .IsChecked}}
 					<div class="item">
