@@ -49,6 +49,7 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/context v1.1.1
+	github.com/gorilla/securecookie v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.8 // indirect
 	github.com/hashicorp/go-version v1.2.1
 	github.com/huandu/xstrings v1.3.2
@@ -92,6 +93,7 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/thedevsaddam/renderer v1.2.0
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.8 // indirect

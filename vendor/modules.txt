@@ -440,6 +440,7 @@ github.com/gorilla/handlers
 # github.com/gorilla/mux v1.7.3
 github.com/gorilla/mux
 # github.com/gorilla/securecookie v1.1.1
+## explicit
 github.com/gorilla/securecookie
 # github.com/gorilla/sessions v1.2.0
 github.com/gorilla/sessions
@@ -732,6 +733,9 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
+# github.com/thedevsaddam/renderer v1.2.0
+## explicit
+github.com/thedevsaddam/renderer
 # github.com/tinylib/msgp v1.1.5
 ## explicit
 github.com/tinylib/msgp/msgp

@@ -135,15 +135,6 @@ func NewMacaron() *macaron.Macaron {
 	return m
 }
 
-// RegisterMacaronInstallRoute registers the install routes
-func RegisterMacaronInstallRoute(m *macaron.Macaron) {
-	m.Combo("/", routers.InstallInit).Get(routers.Install).
-		Post(binding.BindIgnErr(auth.InstallForm{}), routers.InstallPost)
-	m.NotFound(func(ctx *context.Context) {
-		ctx.Redirect(setting.AppURL, 302)
-	})
-}
-
 // RegisterMacaronRoutes routes routes to Macaron
 func RegisterMacaronRoutes(m *macaron.Macaron) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})

@@ -1,3 +1,4 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -15,11 +16,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
@@ -28,26 +30,109 @@ import (
 
 const (
 	// tplInstall template for installation page
-	tplInstall     base.TplName = "install"
-	tplPostInstall base.TplName = "post-install"
+	tplInstall     = "install"
+	tplPostInstall = "post-install"
 )
 
+// InstallRoutes represents the install routes
+func InstallRoutes() http.Handler {
+	r := chi.NewRouter()
+	r.Use(InstallInit)
+	r.Get("/", WrapInstall(Install))
+	r.Post("/", WrapInstall(InstallPost))
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, setting.AppURL, 302)
+	})
+	return r
+}
+
+// InstallContext represents a context for installation routes
+type InstallContext = gitea_context.DefaultContext
+
 // InstallInit prepare for rendering installation page
-func InstallInit(ctx *context.Context) {
-	if setting.InstallLock {
-		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-		ctx.HTML(200, tplPostInstall)
-		return
+func InstallInit(next http.Handler) http.Handler {
+	rnd := renderer.New(
+		renderer.Options{
+			ParseGlobPattern: "templates/*.tmpl",
+		},
+	)
+
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if setting.InstallLock {
+			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+			rnd.HTML(resp, 200, tplPostInstall, nil)
+			return
+		}
+
+		var locale = Locale(resp, req)
+
+		var ctx = InstallContext{
+			Resp:   resp,
+			Req:    req,
+			Locale: locale,
+			Data: map[string]interface{}{
+				"Title":         locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"DbOptions":     setting.SupportedDatabases,
+			},
+			Render: rnd,
+		}
+
+		req = req.WithContext(context.WithValue(req.Context(), "install_context", &ctx))
+		next.ServeHTTP(resp, req)
+	})
+}
+
+// Locale handle locale
+func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
+	c := gitea_context.NewSecureCookie()
+	isNeedRedir := false
+	hasCookie := false
+
+	// 1. Check URL arguments.
+	lang := req.URL.Query().Get("lang")
+
+	// 2. Get language information from cookies.
+	if len(lang) == 0 {
+		lang = c.Cookie("lang")
+		hasCookie = true
+	} else {
+		isNeedRedir = true
 	}
 
-	ctx.Data["Title"] = ctx.Tr("install.install")
-	ctx.Data["PageIsInstall"] = true
+	// Check again in case someone modify by purpose.
+	if !i18n.IsExist(lang) {
+		lang = ""
+		isNeedRedir = false
+		hasCookie = false
+	}
 
-	ctx.Data["DbOptions"] = setting.SupportedDatabases
+	// 3. Get language information from 'Accept-Language'.
+	// The first element in the list is chosen to be the default language automatically.
+	if len(lang) == 0 {
+		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
+		tag, _, _ := translation.Match(tags...)
+		lang = tag.String()
+		isNeedRedir = false
+	}
+
+	if !hasCookie {
+		req.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"), opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, cookie.SameSite(opt.SameSite))
+	}
+
+	return translation.NewLocale(lang)
+}
+
+// WrapInstall converts an install route to a chi route
+func WrapInstall(f func(ctx *InstallContext)) http.HandlerFunc {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		ctx := req.Context().Value("install_context").(*InstallContext)
+		f(ctx)
+	})
 }
 
 // Install render installation page
-func Install(ctx *context.Context) {
+func Install(ctx *InstallContext) {
 	form := auth.InstallForm{}
 
 	// Database settings
@@ -117,11 +202,13 @@ func Install(ctx *context.Context) {
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
 	auth.AssignForm(form, ctx.Data)
-	ctx.HTML(200, tplInstall)
+	ctx.Render.HTML(ctx.Resp, 200, tplInstall, ctx.Data)
 }
 
 // InstallPost response for submit install items
-func InstallPost(ctx *context.Context, form auth.InstallForm) {
+func InstallPost(ctx *InstallContext) {
+	var form auth.InstallForm
+
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 

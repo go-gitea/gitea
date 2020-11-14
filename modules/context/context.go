@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/cache"
@@ -28,8 +29,59 @@ import (
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
+	"github.com/gorilla/securecookie"
+	"github.com/thedevsaddam/renderer"
 	"github.com/unknwon/com"
 )
+
+// DefaultContext represents a context for basic routes
+type DefaultContext struct {
+	Resp   http.ResponseWriter
+	Req    *http.Request
+	Data   map[string]interface{}
+	Render *renderer.Render
+	translation.Locale
+}
+
+// HTML wraps render HTML
+func (ctx *DefaultContext) HTML(statusCode int, tmpl string) error {
+	return ctx.Render.HTML(ctx.Resp, statusCode, tmpl, ctx.Data)
+}
+
+// HasError returns true if error occurs in form validation.
+func (ctx *DefaultContext) HasError() bool {
+	hasErr, ok := ctx.Data["HasError"]
+	if !ok {
+		return false
+	}
+	return hasErr.(bool)
+}
+
+// HasValue returns true if value of given name exists.
+func (ctx *DefaultContext) HasValue(name string) bool {
+	_, ok := ctx.Data[name]
+	return ok
+}
+
+// RenderWithErr used for page has form validation but need to prompt error to users.
+func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{}) {
+	if form != nil {
+		auth.AssignForm(form, ctx.Data)
+	}
+	//ctx.Flash.ErrorMsg = msg
+	//ctx.Data["Flash"] = ctx.Flash
+	ctx.HTML(200, tpl)
+}
+
+// NewSecureCookie creates a secure cookie manager
+func NewSecureCookie() *securecookie.SecureCookie {
+	// Hash keys should be at least 32 bytes long
+	var hashKey = []byte("very-secret")
+	// Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
+	// Shorter keys may weaken the encryption used.
+	var blockKey = []byte("a-lot-secret")
+	return securecookie.New(hashKey, blockKey)
+}
 
 // Context represents context of a request.
 type Context struct {

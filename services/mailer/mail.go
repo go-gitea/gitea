@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"gopkg.in/gomail.v2"
 )
@@ -77,24 +78,18 @@ func SendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 	SendAsync(msg)
 }
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	Tr(string, ...interface{}) string
-}
-
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(locale Locale, u *models.User) {
+func SendActivateAccountMail(locale translation.Locale, u *models.User) {
 	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(locale Locale, u *models.User) {
+func SendResetPasswordMail(locale translation.Locale, u *models.User) {
 	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(locale translation.Locale, u *models.User, email *models.EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
@@ -116,7 +111,7 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(locale Locale, u *models.User) {
+func SendRegisterNotifyMail(locale translation.Locale, u *models.User) {
 	if setting.MailService == nil {
 		log.Warn("SendRegisterNotifyMail is being invoked but mail service hasn't been initialized")
 		return
