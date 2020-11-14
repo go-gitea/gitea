@@ -134,15 +134,7 @@ func runWeb(ctx *cli.Context) error {
 			}
 		}
 		c := routes.NewChi()
-		m := routes.NewMacaron()
-		routes.RegisterMacaronInstallRoute(m)
-
-		c.NotFound(func(w http.ResponseWriter, req *http.Request) {
-			m.ServeHTTP(w, req)
-		})
-		c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
-			m.ServeHTTP(w, req)
-		})
+		routes.RegisterInstallRoute(c)
 
 		err := listen(c, false)
 		select {

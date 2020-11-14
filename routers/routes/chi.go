@@ -222,6 +222,19 @@ func NewChi() chi.Router {
 	return c
 }
 
+// RegisterInstallRoute registers the install routes
+func RegisterInstallRoute(c chi.Router) {
+	m := NewMacaron()
+	RegisterMacaronInstallRoute(m)
+
+	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
+	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
+}
+
 // NormalRoutes represents non install routes
 func NormalRoutes() http.Handler {
 	r := chi.NewRouter()
