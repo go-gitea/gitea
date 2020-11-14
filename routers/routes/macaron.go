@@ -6,10 +6,12 @@ package routes
 
 import (
 	"encoding/gob"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
@@ -977,6 +979,8 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
+		ctx.Resp.Header().Set("Cache-Control", httpcache.GetCacheControl())
+		ctx.Resp.Header().Set("Last-Modified", setting.AppStartTime.Format(http.TimeFormat))
 		ctx.HTML(200, "pwa/manifest_json")
 	})
 
