@@ -166,7 +166,7 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// Set up Macaron
+	// Set up Chi routes
 	c := routes.NewChi()
 	c.Mount("/", routes.NormalRoutes())
 	routes.DelegateToMacaron(c)
