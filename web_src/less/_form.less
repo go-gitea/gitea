@@ -144,7 +144,7 @@ textarea:focus,
       text-align: center;
     }
 
-    @media only screen and @breakMdMin {
+    @media @mediaMdAndUp {
       width: 800px !important;
 
       .header {
@@ -171,7 +171,7 @@ textarea:focus,
       }
     }
 
-    @media @mediaScreenSm {
+    @media @mediaSm {
       .optional .title {
         margin-left: 15px;
       }
@@ -213,7 +213,7 @@ textarea:focus,
   }
 }
 
-@media only screen and @breakMdMin {
+@media @mediaMdAndUp {
   .g-recaptcha,
   .h-captcha {
     margin: 0 auto !important;
@@ -222,7 +222,7 @@ textarea:focus,
   }
 }
 
-@media screen and (max-height: 575px) {
+@media (max-height: 575px) {
   #rc-imageselect,
   .g-recaptcha,
   .h-captcha {
@@ -253,7 +253,7 @@ textarea:focus,
 
     .inline.field > label,
     input {
-      @media @mediaScreenSm {
+      @media @mediaSm {
         width: 100% !important;
       }
     }
@@ -291,7 +291,7 @@ textarea:focus,
         width: 50% !important;
       }
 
-      @media @mediaScreenSm {
+      @media @mediaSm {
         label,
         input,
         .selection.dropdown {
@@ -309,7 +309,7 @@ textarea:focus,
 
   &.new.repo {
     .ui.form {
-      @media only screen and @breakMdMin {
+      @media @mediaMdAndUp {
         #auto-init {
           margin-left: @create-page-form-input-padding+15px;
         }
@@ -318,7 +318,7 @@ textarea:focus,
       .selection.dropdown:not(.owner) {
         width: 50% !important;
 
-        @media @mediaScreenSm {
+        @media @mediaSm {
           width: 100% !important;
         }
       }
@@ -347,7 +347,7 @@ textarea:focus,
 }
 
 .new.org .ui.form {
-  @media @mediaScreenSm {
+  @media @mediaSm {
     .field button,
     .field a {
       margin-bottom: 1em;

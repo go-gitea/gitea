@@ -122,7 +122,7 @@
         text-overflow: ellipsis;
       }
 
-      @media @breakLgMax {
+      @media @mediaLgAndDown {
         .title {
           max-width: 150px;
         }
@@ -221,7 +221,7 @@
   #clone-panel {
     width: 350px;
 
-    @media @mediaScreenSm {
+    @media @mediaSm {
       width: 100%;
     }
 
@@ -284,7 +284,7 @@
       }
 
       .ui.tiny.blue.buttons {
-        @media @mediaScreenSm {
+        @media @mediaSm {
           width: 100%;
         }
       }
@@ -634,7 +634,7 @@
             width: 100%;
           }
 
-          @media @mediaScreenSm {
+          @media @mediaSm {
             flex-direction: column;
 
             h1 {
@@ -1035,7 +1035,7 @@
               #avatar-arrow;
             }
 
-            @media @mediaScreenSm {
+            @media @mediaSm {
               .form .button {
                 width: 100%;
 
@@ -1588,7 +1588,7 @@
     background: #ffffff;
     line-height: 30px;
 
-    @media only screen and @breakMdMax {
+    @media @mediaMdAndDown {
       flex-direction: column;
       align-items: flex-start;
     }
@@ -2029,13 +2029,13 @@
 
       button,
       input {
-        @media only screen and (max-width: 438px) {
+        @media (max-width: 438px) {
           width: 100%;
         }
       }
 
       button {
-        @media @mediaScreenSm {
+        @media @mediaSm {
           margin-bottom: 1em;
         }
       }
@@ -2120,7 +2120,7 @@
       }
     }
 
-    @media @mediaScreenSm {
+    @media @mediaSm {
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
@@ -2995,7 +2995,7 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
-@media @mediaScreenSm {
+@media @mediaSm {
   tr.commit-list {
     width: 100%;
   }
@@ -3005,7 +3005,7 @@ tbody.commit-list {
   }
 }
 
-@media @mediaScreenMd {
+@media @mediaMd {
   tr.commit-list {
     width: 723px;
   }
@@ -3014,7 +3014,7 @@ tbody.commit-list {
   }
 }
 
-@media @mediaScreenLg {
+@media @mediaLg {
   tr.commit-list {
     width: 933px;
   }
@@ -3023,7 +3023,7 @@ tbody.commit-list {
   }
 }
 
-@media @mediaScreenXl {
+@media @mediaXl {
   tr.commit-list {
     width: 1127px;
   }
@@ -3069,7 +3069,7 @@ tbody.commit-list {
   }
 }
 
-@media @mediaScreenSm {
+@media @mediaSm {
   .ui.stackable.menu {
     &.mobile--margin-between-items > .item {
       margin-top: 5px;
@@ -3329,7 +3329,7 @@ td.blob-excerpt {
 .repository .ui.menu.new-menu {
   background: none !important;
 
-  @media only screen and @breakLgMax {
+  @media @mediaLgAndDown {
     &::after {
       background: none !important;
     }

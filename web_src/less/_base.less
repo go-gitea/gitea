@@ -314,7 +314,7 @@ a:hover,
     margin-right: 0 !important;
   }
 
-  @media @mediaScreenSm {
+  @media @mediaSm {
     #navbar:not(.shown) > *:not(:first-child) {
       display: none;
     }
@@ -754,7 +754,7 @@ a:hover,
   }
 
   &.pagination.menu {
-    @media @mediaScreenSm {
+    @media @mediaSm {
       .item:not(.active):not(.navigation),
       .item.navigation span.navigation_label {
         display: none;
@@ -880,7 +880,7 @@ footer {
 }
 
 // Conditional display
-@media only screen and @breakMdMin {
+@media @mediaMdAndUp {
   .mobile-only,
   .ui.button.mobile-only {
     display: none;
@@ -893,7 +893,7 @@ footer {
   }
 }
 
-@media @mediaScreenSm {
+@media @mediaSm {
   .not-mobile {
     display: none;
   }
@@ -921,7 +921,7 @@ footer {
   clip: auto;
 }
 
-@media @mediaScreenMd {
+@media @mediaMd {
   .ui.container {
     width: 95%;
   }
@@ -936,7 +936,7 @@ footer {
   border-width: 1px !important;
 }
 
-@media only screen and @breakLgMax {
+@media @mediaLgAndDown {
   .ui.menu.new-menu {
     overflow-x: auto !important;
     justify-content: left !important;
@@ -1377,7 +1377,7 @@ table th[data-sortt-desc] {
 }
 
 .dropdown:not(.selection) > .menu.review-box > * {
-  @media only screen and (max-height: 700px) {
+  @media (max-height: 700px) {
     .CodeMirror,
     .CodeMirror-scroll {
       min-height: 100px;
