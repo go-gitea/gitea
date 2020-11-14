@@ -453,7 +453,7 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
 									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
@@ -481,7 +481,7 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
 									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
