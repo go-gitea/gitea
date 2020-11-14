@@ -186,6 +186,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
+	c.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
@@ -195,6 +196,8 @@ func NewChi() chi.Router {
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}
+	c.Use(middleware.Timeout(60 * time.Second))
+
 	if setting.ProdMode {
 		log.Warn("ProdMode ignored")
 	}
@@ -219,22 +222,6 @@ func NewChi() chi.Router {
 	return c
 }
 
-// InstallRoutes represents the install routes
-func InstallRoutes() http.Handler {
-	r := chi.NewRouter()
-	m := NewMacaron()
-	RegisterMacaronInstallRoute(m)
-
-	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		m.ServeHTTP(w, req)
-	})
-
-	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
-		m.ServeHTTP(w, req)
-	})
-	return r
-}
-
 // NormalRoutes represents non install routes
 func NormalRoutes() http.Handler {
 	r := chi.NewRouter()
@@ -251,6 +238,11 @@ func NormalRoutes() http.Handler {
 		})
 	}
 
+	return r
+}
+
+// DelegateToMacaron delegates other routes to macaron
+func DelegateToMacaron(r chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronRoutes(m)
 
@@ -261,5 +253,4 @@ func NormalRoutes() http.Handler {
 	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
-	return r
 }

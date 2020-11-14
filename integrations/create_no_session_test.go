@@ -60,6 +60,7 @@ func TestSessionFileCreation(t *testing.T) {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
 		c = routes.NewChi()
 		c.Mount("/", routes.NormalRoutes())
+		routes.DelegateToMacaron(c)
 	}()
 
 	var config session.Options
@@ -85,6 +86,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	c = routes.NewChi()
 	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

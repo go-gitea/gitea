@@ -134,7 +134,16 @@ func runWeb(ctx *cli.Context) error {
 			}
 		}
 		c := routes.NewChi()
-		c.Mount("/", routes.InstallRoutes())
+		m := routes.NewMacaron()
+		routes.RegisterMacaronInstallRoute(m)
+
+		c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+			m.ServeHTTP(w, req)
+		})
+		c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+			m.ServeHTTP(w, req)
+		})
+
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -168,6 +177,7 @@ func runWeb(ctx *cli.Context) error {
 	// Set up Macaron
 	c := routes.NewChi()
 	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
