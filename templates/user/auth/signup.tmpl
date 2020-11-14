@@ -1,3 +1,7 @@
 {{template "base/head" .}}
-{{template "user/auth/signup_inner" .}}
+<div class="user signin{{if .LinkAccountMode}} icon{{end}}">
+	<div class="ui middle very relaxed page grid">
+		{{template "user/auth/signup_inner" .}}
+	</div>
+</div>
 {{template "base/footer" .}}
