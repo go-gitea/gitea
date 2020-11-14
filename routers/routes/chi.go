@@ -230,6 +230,7 @@ func RegisterInstallRoute(c chi.Router) {
 	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
+
 	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
