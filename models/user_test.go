@@ -329,6 +329,21 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(user))
 }
 
+func TestCreateUserInvalidEmail(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io\r\n",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	err := CreateUser(user)
+	assert.Error(t, err)
+	assert.True(t, IsErrEmailInvalid(err))
+}
+
 func TestCreateUser_Issue5882(t *testing.T) {
 
 	// Init settings
