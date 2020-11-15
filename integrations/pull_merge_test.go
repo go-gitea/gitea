@@ -194,7 +194,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		req := NewRequest(t, "GET", resp.Header().Get("Location"))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		text := strings.TrimSpace(htmlDoc.doc.Find(".attached.merge-section.no-header > .text.grey").Last().Text())
+		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
 		// remove <strong /> from lang
