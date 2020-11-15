@@ -126,17 +126,22 @@
 			</div>
 		</div>
 		<div class="ui labels list">
-			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
+			{{if not .HasSelectedLabel}}
+				<span class="no-select item">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
+			{{end}}
 			{{range .Labels}}
-				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-				</div>
+				{{if .IsChecked}}
+					<div class="item">
+						<a class="ui label" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+					</div>
+				{{end}}
 			{{end}}
 			{{range .OrgLabels}}
-				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-				</div>
-
+				{{if .IsChecked}}
+					<div class="item">
+						<a class="ui label" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 
