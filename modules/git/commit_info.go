@@ -13,8 +13,15 @@ import (
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
+// CommitInfo describes the first commit with the provided entry
+type CommitInfo struct {
+	Entry         *TreeEntry
+	Commit        *Commit
+	SubModuleFile *SubModuleFile
+}
+
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, *Commit, error) {
+func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -61,10 +68,14 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 
 	commit.repo.gogitStorage.Close()
 
-	commitsInfo := make([][]interface{}, len(tes))
+	commitsInfo := make([]CommitInfo, len(tes))
 	for i, entry := range tes {
+		commitsInfo[i] = CommitInfo{
+			Entry: entry,
+		}
 		if rev, ok := revs[entry.Name()]; ok {
 			entryCommit := convertCommit(rev)
+			commitsInfo[i].Commit = entryCommit
 			if entry.IsSubModule() {
 				subModuleURL := ""
 				var fullPath string
@@ -79,12 +90,8 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 					subModuleURL = subModule.URL
 				}
 				subModuleFile := NewSubModuleFile(entryCommit, subModuleURL, entry.ID.String())
-				commitsInfo[i] = []interface{}{entry, subModuleFile}
-			} else {
-				commitsInfo[i] = []interface{}{entry, entryCommit}
+				commitsInfo[i].SubModuleFile = subModuleFile
 			}
-		} else {
-			commitsInfo[i] = []interface{}{entry, nil}
 		}
 	}
 
@@ -151,7 +158,7 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache LastCommitCache) (map[string]*object.Commit, []string, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*object.Commit, []string, error) {
 	var unHitEntryPaths []string
 	var results = make(map[string]*object.Commit)
 	for _, p := range paths {

@@ -67,8 +67,8 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		assert.NoError(t, err)
 		assert.Len(t, commitsInfo, len(testCase.ExpectedIDs))
 		for _, commitInfo := range commitsInfo {
-			entry := commitInfo[0].(*TreeEntry)
-			commit := commitInfo[1].(*Commit)
+			entry := commitInfo.Entry
+			commit := commitInfo.Commit
 			expectedID, ok := testCase.ExpectedIDs[entry.Name()]
 			if !assert.True(t, ok) {
 				continue

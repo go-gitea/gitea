@@ -16,7 +16,7 @@ import (
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
-func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tree, treePath string, ca *cache.LastCommitCache, level int) error {
+func recursiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tree, treePath string, ca *git.LastCommitCache, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -47,7 +47,7 @@ func recusiveCache(gitRepo *git.Repository, c cgobject.CommitNode, tree *git.Tre
 			if err != nil {
 				return err
 			}
-			if err := recusiveCache(gitRepo, c, subTree, entry, ca, level-1); err != nil {
+			if err := recursiveCache(gitRepo, c, subTree, entry, ca, level-1); err != nil {
 				return err
 			}
 		}
@@ -91,7 +91,7 @@ func CacheRef(repo *models.Repository, gitRepo *git.Repository, fullRefName stri
 		return err
 	}
 
-	ca := cache.NewLastCommitCache(repo.FullName(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	ca := git.NewLastCommitCache(repo.FullName(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 
-	return recusiveCache(gitRepo, c, &commit.Tree, "", ca, 1)
+	return recursiveCache(gitRepo, c, &commit.Tree, "", ca, 1)
 }
