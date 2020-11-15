@@ -21,6 +21,8 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 #Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean-all build
+ && chmod 755 gitea
+ && chown root:root gitea
 
 FROM alpine:3.12
 LABEL maintainer="maintainers@gitea.io"
@@ -51,7 +53,6 @@ RUN chown git:git /var/lib/gitea /etc/gitea
 
 COPY docker/rootless /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /usr/local/bin/gitea
-RUN chown root:root /usr/local/bin/* && chmod 755 /usr/local/bin/*
 
 USER git:git
 ENV GITEA_WORK_DIR /var/lib/gitea
