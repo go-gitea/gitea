@@ -432,7 +432,7 @@
           }
 
           .btn-octicon:hover {
-            color: #4078c0;
+            color: var(--color-primary);
           }
 
           .btn-octicon-danger:hover {
@@ -859,14 +859,13 @@
         }
 
         .badge {
-          width: 32px;
-          height: 32px;
+          width: 34px;
+          height: 34px;
           background-color: var(--color-timeline);
-          border: 2px solid var(--color-timeline);
           border-radius: 50%;
           display: flex;
           float: left;
-          margin-left: -32px;
+          margin-left: -34px;
           margin-right: 8px;
           color: #666;
           align-items: center;
@@ -876,14 +875,6 @@
             width: 22px;
             height: 22px;
             padding: 3px;
-
-            &.octicon-circle-slash {
-              color: #bd2c00;
-            }
-
-            &.octicon-dot-fill {
-              color: #6cc644;
-            }
 
             &.octicon-comment {
               margin-top: 2px;
@@ -983,7 +974,7 @@
         }
 
         .author {
-          font-weight: 700;
+          font-weight: 500;
         }
 
         .comment-form-reply .footer {
@@ -1056,7 +1047,7 @@
           }
 
           > .bottom.segment {
-            background: #f3f4f5;
+            background: var(--color-box-body);
 
             .ui.images::after {
               clear: both;
@@ -1250,7 +1241,7 @@
       margin-right: -14px;
       margin-left: -14px;
       padding: 10px;
-      border-bottom: 1px solid #e1e4e8;
+      border-bottom: 1px solid var(--color-secondary);
       border-top: none;
 
       a {
@@ -1299,7 +1290,7 @@
         color: #000000;
 
         &:hover {
-          color: #4078c0;
+          color: var(--color-primary);
         }
       }
 
@@ -1323,7 +1314,7 @@
         }
 
         .overdue {
-          color: red;
+          color: var(--color-red);
         }
       }
 
@@ -1398,7 +1389,7 @@
         max-width: 90px;
 
         &:last-child {
-          border-left: 1px solid #b4b4b4;
+          border-left: 1px solid var(--color-secondary);
         }
       }
 
@@ -1658,7 +1649,7 @@
       flex: 0 0 auto;
 
       .bar {
-        background-color: #bd2c00;
+        background-color: var(--color-red);
         height: 12px;
         width: 40px;
         display: inline-block;
@@ -1666,7 +1657,7 @@
         vertical-align: text-top;
 
         .add {
-          background-color: #55a532;
+          background-color: var(--color-green);
           height: 12px;
         }
       }
@@ -1862,10 +1853,10 @@
       margin-right: 15px;
 
       .del {
-        color: red;
+        color: var(--color-red);
       }
       .add {
-        color: green;
+        color: var(--color-green);
       }
     }
   }
@@ -1907,7 +1898,7 @@
 
   &.release {
     #release-list {
-      border-top: 1px solid #dddddd;
+      border-top: 1px solid var(--color-secondary);
       margin-top: 20px;
       padding-top: 15px;
 
@@ -1942,7 +1933,7 @@
         }
 
         .detail {
-          border-left: 2px solid #dddddd;
+          border-left: 2px solid var(--color-secondary);
 
           .author {
             img {
@@ -2049,7 +2040,7 @@
       .item {
         padding-top: 10px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #dddddd;
+        border-bottom: 1px solid var(--color-secondary);
 
         .ui.avatar {
           float: left;
@@ -2138,7 +2129,7 @@
           line-height: 2em;
 
           &:not(:last-child) {
-            border-bottom: 1px solid #dddddd;
+            border-bottom: 1px solid var(--color-secondary);
           }
         }
       }
@@ -2619,7 +2610,7 @@
     .title {
       color: #444444;
       font-size: 15px;
-      font-weight: bold;
+      font-weight: 500;
       margin: 0 6px;
 
       &:hover {
@@ -2699,7 +2690,7 @@
       }
 
       .overdue {
-        color: red;
+        color: var(--color-red);
       }
     }
   }
@@ -2711,7 +2702,8 @@
 
 .ui.form {
   .dropzone {
-    border: 2px dashed #0087f5;
+    border: 2px dashed var(--color-secondary);
+    background: none;
     box-shadow: none !important;
     padding: 0;
     min-height: 5rem;
@@ -2744,7 +2736,7 @@
   .list {
     > .item {
       .green:not(.ui.button) {
-        color: #21ba45;
+        color: var(--color-green);
       }
 
       &:not(:first-child) {

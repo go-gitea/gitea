@@ -57,6 +57,23 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
+  /* colors */
+  --color-red: #db2828;
+  --color-orange: #f2711c;
+  --color-yellow: #fbbd08;
+  --color-olive: #b5cc18;
+  --color-green: #21ba45;
+  --color-teal: #00b5ad;
+  --color-blue: #2185d0;
+  --color-violet: #6435c9;
+  --color-purple: #a333c8;
+  --color-pink: #e03997;
+  --color-brown: #a5673f;
+  --color-grey: #767676;
+  --color-black: #1b1c1d;
+  --color-gold: #a1882b;
+  --color-white: #ffffff;
+  /* target-based colors */
   --color-body: #ffffff;
   --color-text: #212121;
   --color-box-header: #f7f7f7;
@@ -97,7 +114,7 @@
 @font-face {
   font-family: "Yu Gothic";
   src: local("Yu Gothic Bold");
-  font-weight: 700;
+  font-weight: 500;
 }
 
 @font-face {
@@ -117,6 +134,11 @@ kbd,
 samp {
   font-size: .9em; /* compensate for monospace fonts being usually slighty larger */
   font-family: var(--fonts-monospace);
+}
+
+b,
+strong {
+  font-weight: 500;
 }
 
 body {
@@ -415,10 +437,10 @@ a:hover,
 
   .text {
     &.red {
-      color: #d95c5c !important;
+      color: var(--color-red) !important;
 
       a {
-        color: #d95c5c !important;
+        color: var(--color-red) !important;
 
         &:hover {
           color: #e67777 !important;
@@ -447,7 +469,7 @@ a:hover,
     }
 
     &.grey {
-      color: #767676 !important;
+      color: var(--color-grey) !important;
 
       a {
         color: #444444 !important;
@@ -459,27 +481,27 @@ a:hover,
     }
 
     &.light.grey {
-      color: #888888 !important;
+      color: var(--color-grey) !important;
     }
 
     &.green {
-      color: #6cc644 !important;
+      color: var(--color-green) !important;
     }
 
     &.purple {
-      color: #6e5494 !important;
+      color: var(--color-purple) !important;
     }
 
     &.yellow {
-      color: #fbbd08 !important;
+      color: var(--color-yellow) !important;
     }
 
     &.orange {
-      color: #f2711c !important;
+      color: var(--color-orange) !important;
     }
 
     &.gold {
-      color: #a1882b !important;
+      color: var(--color-gold) !important;
     }
 
     &.left {
@@ -499,7 +521,7 @@ a:hover,
     }
 
     &.bold {
-      font-weight: bold;
+      font-weight: 500;
     }
 
     &.italic {
@@ -534,7 +556,7 @@ a:hover,
   }
 
   &.bottom.attached.message {
-    font-weight: bold;
+    font-weight: 500;
     text-align: left;
     color: black;
 
@@ -544,7 +566,7 @@ a:hover,
 
     & > span,
     .pull-right > span {
-      color: #21ba45;
+      color: var(--color-green);
     }
   }
 
@@ -556,22 +578,22 @@ a:hover,
   .error {
     &.header {
       background-color: #ffe8e6 !important;
-      border-color: #db2828;
+      border-color: var(--color-red);
     }
 
     &.segment {
-      border-color: #db2828;
+      border-color: var(--color-red);
     }
   }
 
   .warning {
     &.header {
       background-color: #f9edbe !important;
-      border-color: #efc16b;
+      border-color: var(--color-yellow);
     }
 
     &.segment {
-      border-color: #efc16b;
+      border-color: var(--color-yellow);
     }
   }
 
@@ -652,7 +674,7 @@ a:hover,
 
   .background {
     &.red {
-      background-color: #d95c5c !important;
+      background-color: var(--color-red) !important;
     }
 
     &.blue {
@@ -664,31 +686,31 @@ a:hover,
     }
 
     &.grey {
-      background-color: #767676 !important;
+      background-color: var(--color-grey) !important;
     }
 
     &.light.grey {
-      background-color: #888888 !important;
+      background-color: var(--color-grey) !important;
     }
 
     &.green {
-      background-color: #6cc644 !important;
+      background-color: var(--color-green) !important;
     }
 
     &.purple {
-      background-color: #6e5494 !important;
+      background-color: var(--color-purple) !important;
     }
 
     &.yellow {
-      background-color: #fbbf09 !important;
+      background-color: var(--color-yellow) !important;
     }
 
     &.orange {
-      background-color: #f2711c !important;
+      background-color: var(--color-orange) !important;
     }
 
     &.gold {
-      background-color: #a1882b !important;
+      background-color: var(--color-gold) !important;
     }
   }
 
@@ -707,7 +729,7 @@ a:hover,
   .border {
     border: 1px solid;
     &.red {
-      border-color: #d95c5c !important;
+      border-color: var(--color-red) !important;
     }
 
     &.blue {
@@ -719,31 +741,31 @@ a:hover,
     }
 
     &.grey {
-      border-color: #767676 !important;
+      border-color: var(--color-grey) !important;
     }
 
     &.light.grey {
-      border-color: #888888 !important;
+      border-color: var(--color-grey) !important;
     }
 
     &.green {
-      border-color: #6cc644 !important;
+      border-color: var(--color-green) !important;
     }
 
     &.purple {
-      border-color: #6e5494 !important;
+      border-color: var(--color-purple) !important;
     }
 
     &.yellow {
-      border-color: #fbbd08 !important;
+      border-color: var(--color-yellow) !important;
     }
 
     &.orange {
-      border-color: #f2711c !important;
+      border-color: var(--color-orange) !important;
     }
 
     &.gold {
-      border-color: #a1882b !important;
+      border-color: var(--color-gold) !important;
     }
   }
 
@@ -804,7 +826,7 @@ a:hover,
 
 .scrolling.menu {
   .item.selected {
-    font-weight: 700 !important;
+    font-weight: 500 !important;
   }
 }
 
@@ -1056,7 +1078,7 @@ i.icon.centerlock {
   span {
     &.bottom-line {
       &::after {
-        border-bottom: 1px solid #eaecef;
+        border-bottom: 1px solid var(--color-secondary);
       }
     }
 
@@ -1171,7 +1193,7 @@ i.icon.centerlock {
 .lines-code,
 .lines-commit {
   .bottom-line {
-    border-bottom: 1px solid #eaecef;
+    border-bottom: 1px solid var(--color-secondary);
   }
 }
 .code-view {
@@ -1268,13 +1290,13 @@ i.icon.centerlock {
 
 .svg {
   span.green & {
-    color: #21ba45;
+    color: var(--color-green);
   }
   span.red & {
-    color: #db2828;
+    color: var(--color-red);
   }
   span.purple & {
-    color: #a333c8;
+    color: var(--color-purple);
   }
 }
 

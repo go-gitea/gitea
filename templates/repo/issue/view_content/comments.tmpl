@@ -91,7 +91,7 @@
 		</div>
 	{{else if eq .Type 1}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-dot-fill"}}</span>
+			<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -106,7 +106,7 @@
 		</div>
 	{{else if eq .Type 2}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-circle-slash"}}</span>
+			<span class="badge bg-red text-white">{{svg "octicon-circle-slash"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -121,7 +121,7 @@
 		</div>
 	{{else if eq .Type 28}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge purple">{{svg "octicon-git-merge"}}</span>
+			<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>

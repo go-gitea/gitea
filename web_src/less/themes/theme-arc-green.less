@@ -50,11 +50,28 @@
   --color-secondary-alpha-70: #454a57b3;
   --color-secondary-alpha-80: #454a57cc;
   --color-secondary-alpha-90: #454a57e1;
+  /* colors */
+  --color-red: #db2828;
+  --color-orange: #f2711c;
+  --color-yellow: #fbbd08;
+  --color-olive: #b5cc18;
+  --color-green: #21ba45;
+  --color-teal: #00b5ad;
+  --color-blue: #2185d0;
+  --color-violet: #6435c9;
+  --color-purple: #a333c8;
+  --color-pink: #e03997;
+  --color-brown: #a5673f;
+  --color-grey: #767676;
+  --color-black: #1b1c1d;
+  --color-gold: #a1882b;
+  --color-white: #ffffff;
+  /* target-based colors */
   --color-body: #383c4a;
   --color-box-header: #454a57;
   --color-box-body: #353945;
   --color-text: #b6bac5;
-  --color-timeline: #454a57;
+  --color-timeline: #4a505c;
   --color-input-text: #dcdcdc;
   --color-input-background: #2e323e;
   --color-input-border: #454a57;
@@ -416,7 +433,7 @@
 /* GenericStrong */
 
 .chroma .gs {
-  font-weight: bold;
+  font-weight: 500;
 }
 /* GenericSubheading */
 
@@ -457,10 +474,6 @@
 
 .repository.branches .commit-divergence .bar {
   background: #6a737d;
-}
-
-.repository.branches .commit-divergence .bar-group:last-child {
-  border-color: #6a737d;
 }
 
 .ui.horizontal.segments > .segment {
@@ -530,10 +543,6 @@ body {
 
 .repository .milestone.list > .item > a:hover {
   color: #a0cc75;
-}
-
-.repository.release #release-list {
-  border-top-color: var(--color-secondary);
 }
 
 .repository .milestone.list > .item .operate > a {
@@ -622,6 +631,17 @@ footer {
 .ui.dropdown .menu > .header,
 .ui.dropdown .menu > .header:not(.ui) {
   color: #dbdbdb;
+}
+
+.ui.labels a.label:hover,
+a.ui.label:hover {
+  background: #454b5a;
+  color: #dbdbdb;
+}
+
+.ui.basic.labels a.label:hover,
+a.ui.basic.label:hover {
+  background: var(--color-body);
 }
 
 .ui.red.label,
@@ -1017,10 +1037,6 @@ a.ui.basic.green.label:hover {
 }
 
 .repository.view.issue .comment-list .comment .content {
-  > .bottom.segment {
-    background: #353945;
-  }
-
   .header {
     color: #dbdbdb;
     background-color: var(--color-secondary);
@@ -1042,14 +1058,6 @@ a.ui.basic.green.label:hover {
   .merge-section.no-header::before {
     border-right-color: #505667;
   }
-}
-
-.repository.new.issue .comment.form .content::after {
-  border-right-color: #353945;
-}
-
-.repository.new.issue .comment.form .content::before {
-  border-right-color: #353945;
 }
 
 .repository.view.issue .comment-list .timeline-item .badge {
@@ -1337,13 +1345,8 @@ td.blob-hunk {
   box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
 }
 
-.ui.form .dropzone {
-  border: 1px dashed var(--color-secondary);
-  background-color: #2e323e;
-
-  .dz-button {
-    color: rgba(158, 158, 158, .8);
-  }
+.ui.form .dropzone .dz-button {
+  color: rgba(158, 158, 158, .8);
 }
 
 .ui.form .dropzone:hover .dz-button {
@@ -1378,11 +1381,6 @@ td.blob-hunk {
 .lines-commit,
 .blame .lines-num {
   background: #2e323e !important;
-}
-
-.bottom-line,
-.bottom-line::after {
-  border-color: #4e525e !important;
 }
 
 .lines-num {
@@ -1500,11 +1498,6 @@ a.blob-excerpt:hover {
   border-bottom: 1px dashed var(--color-secondary);
 }
 
-.ui.text.yellow,
-.yellow.icon.icon.icon {
-  color: #e4ac07 !important;
-}
-
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),
@@ -1529,15 +1522,6 @@ a.blob-excerpt:hover {
 .repository .diff-file-box .code-diff-split tbody tr td.del-code {
   background-color: #3c2626 !important;
   border-color: #634343 !important;
-}
-
-.repository .labelspage .item,
-.organization.settings .labelspage .item,
-.organization.teams .repositories .item:not(:last-child),
-.organization.teams .members .item:not(:last-child),
-.organization.teams .detail .item:not(:last-child),
-.organization.members .list .item {
-  border-bottom-color: var(--color-secondary);
 }
 
 .repository .labelspage .item a,
@@ -1621,13 +1605,8 @@ a.blob-excerpt:hover {
     border: 0;
   }
 
-  .footer {
-    border-top-color: var(--color-secondary);
-
-    .markdown-info {
-      color: inherit;
-    }
-
+  .footer .markdown-info {
+    color: inherit;
   }
 }
 
@@ -1790,10 +1769,6 @@ footer .container .links > * {
   color: var(--color-secondary-dark-6);
 }
 
-.repository.release #release-list > li .detail {
-  border-left-color: var(--color-secondary);
-}
-
 .repository.release #release-list > li .detail .dot {
   background-color: #505667;
   border-color: #383c4a;
@@ -1805,15 +1780,6 @@ footer .container .links > * {
 
 .tribute-container {
   box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .6);
-}
-
-.tribute-container ul {
-  background: #2d303b !important;
-}
-
-.tribute-container li.highlight,
-.tribute-container li:hover {
-  background: #728e5e !important;
 }
 
 .repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
