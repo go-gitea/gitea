@@ -60,3 +60,8 @@ func NewIDFromString(s string) (SHA1, error) {
 	}
 	return NewID(b)
 }
+
+// ComputeBlobHash compute the hash for a given blob content
+func ComputeBlobHash(content []byte) SHA1 {
+	return plumbing.ComputeHash(plumbing.BlobObject, content)
+}
