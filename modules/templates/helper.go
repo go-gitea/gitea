@@ -208,6 +208,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"DiffStatsWidth": func(adds int, dels int) string {
+			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
+		},
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
 			if err != nil {
