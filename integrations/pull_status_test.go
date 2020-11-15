@@ -115,6 +115,6 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
-		assert.Contains(t, "This pull request can be merged automatically.", text)
+		assert.Contains(t, text, "This pull request can be merged automatically.")
 	})
 }
