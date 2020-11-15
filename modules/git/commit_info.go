@@ -167,7 +167,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 			return nil, nil, err
 		}
 		if lastCommit != nil {
-			results[p] = lastCommit
+			results[p] = lastCommit.(*object.Commit)
 			continue
 		}
 

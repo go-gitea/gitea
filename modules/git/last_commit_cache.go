@@ -48,7 +48,7 @@ func (c *LastCommitCache) getCacheKey(repoPath, ref, entryPath string) string {
 }
 
 // Get get the last commit information by commit id and entry path
-func (c *LastCommitCache) Get(ref, entryPath string) (*object.Commit, error) {
+func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
 		log("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
