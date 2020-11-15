@@ -9,13 +9,11 @@ import (
 	"bytes"
 	"io"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // CommitFromReader will generate a Commit from a provided reader
 // We will need this to interpret commits from cat-file
-func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) (*Commit, error) {
+func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit, error) {
 	commit := &Commit{
 		ID: sha,
 	}
@@ -72,10 +70,10 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 
 			switch string(split[0]) {
 			case "tree":
-				commit.Tree = *NewTree(gitRepo, plumbing.NewHash(string(data)))
+				commit.Tree = *NewTree(gitRepo, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "parent":
-				commit.Parents = append(commit.Parents, plumbing.NewHash(string(data)))
+				commit.Parents = append(commit.Parents, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "author":
 				commit.Author = &Signature{}
