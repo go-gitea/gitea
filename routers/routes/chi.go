@@ -219,8 +219,10 @@ func NewChi() chi.Router {
 	return c
 }
 
-// RegisterRoutes registers gin routes
-func RegisterRoutes(c chi.Router) {
+// NormalRoutes represents non install routes
+func NormalRoutes() http.Handler {
+	r := chi.NewRouter()
+
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
