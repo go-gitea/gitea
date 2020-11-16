@@ -29,17 +29,18 @@ import (
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
-	"github.com/gorilla/securecookie"
+	"github.com/alexedwards/scs/v2"
 	"github.com/thedevsaddam/renderer"
 	"github.com/unknwon/com"
 )
 
 // DefaultContext represents a context for basic routes
 type DefaultContext struct {
-	Resp   http.ResponseWriter
-	Req    *http.Request
-	Data   map[string]interface{}
-	Render *renderer.Render
+	Resp     http.ResponseWriter
+	Req      *http.Request
+	Data     map[string]interface{}
+	Render   *renderer.Render
+	Sessions *scs.SessionManager
 	translation.Locale
 }
 
@@ -73,14 +74,36 @@ func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{
 	ctx.HTML(200, tpl)
 }
 
-// NewSecureCookie creates a secure cookie manager
-func NewSecureCookie() *securecookie.SecureCookie {
-	// Hash keys should be at least 32 bytes long
-	var hashKey = []byte("very-secret")
-	// Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
-	// Shorter keys may weaken the encryption used.
-	var blockKey = []byte("a-lot-secret")
-	return securecookie.New(hashKey, blockKey)
+// SetSession sets session key value
+func (ctx *DefaultContext) SetSession(key string, val interface{}) error {
+	ctx.Sessions.Put(ctx.Req.Context(), key, val)
+	return nil
+}
+
+// GetSession gets session via key
+func (ctx *DefaultContext) GetSession(key string) (interface{}, error) {
+	v := ctx.Sessions.Get(ctx.Req.Context(), key)
+	return v, nil
+}
+
+// DestroySession deletes all the data of the session
+func (ctx *DefaultContext) DestroySession() error {
+	ctx.Sessions.Destroy(ctx.Req.Context())
+	return nil
+}
+
+// NewCookie creates a cookie
+func NewCookie(name, value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     name,
+		Value:    value,
+		HttpOnly: true,
+		Path:     setting.SessionConfig.CookiePath,
+		Domain:   setting.SessionConfig.Domain,
+		MaxAge:   maxAge,
+		Secure:   setting.SessionConfig.Secure,
+		//SameSite: ,
+	}
 }
 
 // Context represents context of a request.

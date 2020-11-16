@@ -109,6 +109,10 @@ github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/lexers/z
 github.com/alecthomas/chroma/styles
+# github.com/alexedwards/scs/v2 v2.4.0
+## explicit
+github.com/alexedwards/scs/v2
+github.com/alexedwards/scs/v2/memstore
 # github.com/andybalholm/brotli v1.0.1
 ## explicit
 github.com/andybalholm/brotli
@@ -440,7 +444,6 @@ github.com/gorilla/handlers
 # github.com/gorilla/mux v1.7.3
 github.com/gorilla/mux
 # github.com/gorilla/securecookie v1.1.1
-## explicit
 github.com/gorilla/securecookie
 # github.com/gorilla/sessions v1.2.0
 github.com/gorilla/sessions

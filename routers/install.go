@@ -6,16 +6,17 @@
 package routers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/base"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
@@ -25,6 +26,11 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-chi/chi"
+	"github.com/thedevsaddam/renderer"
+	"github.com/unknwon/i18n"
+	"golang.org/x/text/language"
 	"gopkg.in/ini.v1"
 )
 
@@ -37,7 +43,21 @@ const (
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
-	r.Use(InstallInit)
+	sessionManager := scs.New()
+	sessionManager.Lifetime = time.Duration(setting.SessionConfig.Maxlifetime)
+	sessionManager.Cookie = scs.SessionCookie{
+		Name:     setting.SessionConfig.CookieName,
+		Domain:   setting.SessionConfig.Domain,
+		HttpOnly: true,
+		Path:     setting.SessionConfig.CookiePath,
+		Persist:  true,
+		Secure:   setting.SessionConfig.Secure,
+		//SameSite: setting.SessionConfig.,
+	}
+	r.Use(sessionManager.LoadAndSave)
+	r.Use(func(next http.Handler) http.Handler {
+		return InstallInit(next, sessionManager)
+	})
 	r.Get("/", WrapInstall(Install))
 	r.Post("/", WrapInstall(InstallPost))
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
@@ -50,7 +70,7 @@ func InstallRoutes() http.Handler {
 type InstallContext = gitea_context.DefaultContext
 
 // InstallInit prepare for rendering installation page
-func InstallInit(next http.Handler) http.Handler {
+func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Handler {
 	rnd := renderer.New(
 		renderer.Options{
 			ParseGlobPattern: "templates/*.tmpl",
@@ -75,7 +95,8 @@ func InstallInit(next http.Handler) http.Handler {
 				"PageIsInstall": true,
 				"DbOptions":     setting.SupportedDatabases,
 			},
-			Render: rnd,
+			Render:   rnd,
+			Sessions: sessionManager,
 		}
 
 		req = req.WithContext(context.WithValue(req.Context(), "install_context", &ctx))
@@ -85,7 +106,6 @@ func InstallInit(next http.Handler) http.Handler {
 
 // Locale handle locale
 func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	c := gitea_context.NewSecureCookie()
 	isNeedRedir := false
 	hasCookie := false
 
@@ -94,7 +114,8 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 
 	// 2. Get language information from cookies.
 	if len(lang) == 0 {
-		lang = c.Cookie("lang")
+		ck, _ := req.Cookie("lang")
+		lang = ck.Value
 		hasCookie = true
 	} else {
 		isNeedRedir = true
@@ -117,7 +138,8 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	}
 
 	if !hasCookie {
-		req.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"), opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, cookie.SameSite(opt.SameSite))
+		req.AddCookie(gitea_context.NewCookie("lang", lang, 1<<31-1))
+		//req.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"), opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, cookie.SameSite(opt.SameSite))
 	}
 
 	return translation.NewLocale(lang)
@@ -478,21 +500,21 @@ func InstallPost(ctx *InstallContext) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
-		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.Req.AddCookie(gitea_context.NewCookie(setting.CookieUserName, u.Name, days))
+		//ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
+		//	setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 		// Auto-login for admin
-		if err = ctx.Session.Set("uid", u.ID); err != nil {
+		if err = ctx.SetSession("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
-		if err = ctx.Session.Set("uname", u.Name); err != nil {
+		if err = ctx.SetSession("uname", u.Name); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 
-		if err = ctx.Session.Release(); err != nil {
+		if err = ctx.DestroySession(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
@@ -502,7 +524,7 @@ func InstallPost(ctx *InstallContext) {
 
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 
-	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+	ctx.Resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
 	ctx.HTML(200, tplPostInstall)
 
 	// Now get the http.Server from this request and shut it down

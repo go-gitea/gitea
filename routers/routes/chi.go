@@ -219,30 +219,8 @@ func NewChi() chi.Router {
 	return c
 }
 
-// RegisterInstallRoute registers the install routes
-func RegisterInstallRoute(c chi.Router) {
-	m := NewMacaron()
-	RegisterMacaronInstallRoute(m)
-
-	// We need at least one handler in chi so that it does not drop
-	// our middleware: https://github.com/go-gitea/gitea/issues/13725#issuecomment-735244395
-	c.Get("/", func(w http.ResponseWriter, req *http.Request) {
-		m.ServeHTTP(w, req)
-	})
-
-	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		m.ServeHTTP(w, req)
-	})
-
-	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
-		m.ServeHTTP(w, req)
-	})
-}
-
-// NormalRoutes represents non install routes
-func NormalRoutes() http.Handler {
-	r := chi.NewRouter()
-
+// RegisterRoutes registers gin routes
+func RegisterRoutes(c chi.Router) {
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
