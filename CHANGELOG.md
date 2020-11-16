@@ -4,6 +4,33 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.6](https://github.com/go-gitea/gitea/releases/tag/v1.12.6) - 2020-11-11
+
+* SECURITY
+  * Prevent git operations for inactive users (#13527) (#13537)
+  * Disallow urlencoded new lines in git protocol paths if there is a port (#13521) (#13525)
+* BUGFIXES
+  * API should only return Json (#13511) (#13564)
+  * Fix before and since query arguments at API (#13559) (#13560)
+  * Prevent panic on git blame by limiting lines to 4096 bytes at most (#13470) (#13492)
+  * Fix link detection in repository description with tailing '_' (#13407) (#13408)
+  * Remove obsolete change of email on profile page (#13341) (#13348)
+  * Fix permission check on get Reactions API endpoints (#13344) (#13346)
+  * Add migrated pulls to pull request task queue (#13331) (#13335)
+  * API deny wrong pull creation options (#13308) (#13327) 
+  * Fix initial commit page & binary munching problem (#13249) (#13259)
+  * Fix diff parsing (#13157) (#13136) (#13139)
+  * Return error 404 not 500 from API if team does not exist (#13118) (#13119)
+  * Prohibit automatic downgrades (#13108) (#13111)
+  * Fix GitLab Migration Option AuthToken (#13101)
+  * GitLab Label Color Normalizer (#12793) (#13100)
+  * Log the underlying panic in runMigrateTask (#13096) (#13098)
+  * Fix attachments list in edit comment (#13036) (#13097)
+  * Fix deadlock when deleting team user (#13093)
+  * Fix error create comment on outdated file (#13041) (#13042)
+  * Fix repository create/delete event webhooks (#13008) (#13027)
+  * Fix internal server error on README in submodule (#13006) (#13016)
+
 ## [1.12.5](https://github.com/go-gitea/gitea/releases/tag/v1.12.5) - 2020-10-01
 
 * BUGFIXES
@@ -130,7 +157,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add request review from specific reviewers feature in pull request (#10756)
   * Add NextCloud oauth (#10562)
   * System-wide webhooks (#10546)
-  * Relax sanitization as per https://github.com/jch/html-pipeline (#10527)
+  * Relax sanitization as per <https://github.com/jch/html-pipeline> (#10527)
   * Use media links for img in post-process (#10515)
   * Add API endpoints to manage OAuth2 Application (list/create/delete) (#10437)
   * Render READMEs in docs/ .gitea or .github from root (#10361)
@@ -587,6 +614,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Blacklist manifest.json & milestones user (#10292) (#10293)
 
 ## [1.11.0](https://github.com/go-gitea/gitea/releases/tag/v1.11.0) - 2020-02-10
+
 * BREAKING
   * Fix followers and following tabs in profile (#10202) (#10203)
   * Make CertFile and KeyFile relative to CustomPath (#9868) (#9874)
@@ -1060,6 +1088,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Ensure that 2fa is checked on reset-password (#9857) (#9877)
 
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
+
 * SECURITY
   * Hide credentials when submitting migration (#9102) (#9704)
   * Never allow an empty password to validate (#9682) (#9684)
@@ -1078,6 +1107,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Branches not at ref commit ID should not be listed as Merged (#9614) (#9639)
 
 ## [1.10.2](https://github.com/go-gitea/gitea/releases/tag/v1.10.2) - 2020-01-02
+
 * BUGFIXES
   * Allow only specific Columns to be updated on Issue via API (#9539) (#9580)
   * Add ErrReactionAlreadyExist error (#9550) (#9564)
@@ -1098,6 +1128,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix File Edit: Author/Committer interchanged (#9297) (#9300)
 
 ## [1.10.1](https://github.com/go-gitea/gitea/releases/tag/v1.10.1) - 2019-12-05
+
 * BUGFIXES
   * Fix max length check and limit in multiple repo forms (#9148) (#9204)
   * Properly fix displaying virtual session provider in admin panel (#9137) (#9203)
@@ -1119,6 +1150,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Shadow password correctly for session config (#8984) (#9002)
 
 ## [1.10.0](https://github.com/go-gitea/gitea/releases/tag/v1.10.0) - 2019-11-13
+
 * BREAKING
   * Fix deadline on update issue or PR via API (#8698)
   * Hide some user information via API if user doesn't have enough permission (#8655) (#8657)
@@ -1416,6 +1448,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix Statuses API only shows first 10 statuses: Add paging and extend API GetCommitStatuses (#7141)
 
 ## [1.9.6](https://github.com/go-gitea/gitea/releases/tag/v1.9.6) - 2019-11-13
+
 * BUGFIXES
   * Allow to merge if file path contains " or \ (#8629) (#8772)
   * Fix 500 when edit hook (#8782) (#8790)
@@ -1424,6 +1457,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Add Close() method to gogitRepository (#8901) (#8958)
 
 ## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
+
 * BREAKING
   * Hide some user information via API if user doesn't have enough permission (#8655) (#8658)
 * BUGFIXES
@@ -1448,6 +1482,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Update heatmap fixtures to restore tests (#8615) (#8617)
 
 ## [1.9.4](https://github.com/go-gitea/gitea/releases/tag/v1.9.4) - 2019-10-08
+
 * BUGFIXES
   * Highlight issue references (#8101) (#8404)
   * Fix bug when migrating a private repository #7917 (#8403)
@@ -1474,6 +1509,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Make show private icon when repo avatar set (#8144) (#8175)
 
 ## [1.9.3](https://github.com/go-gitea/gitea/releases/tag/v1.9.3) - 2019-09-06
+
 * BUGFIXES
   * Fix go get from a private repository with Go 1.13 (#8100)
   * Strict name matching for Repository.GetTagID() (#8082)
@@ -1489,6 +1525,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
 
 ## [1.9.2](https://github.com/go-gitea/gitea/releases/tag/v1.9.2) - 2019-08-22
+
 * BUGFIXES
   * Fix wrong sender when send slack webhook (#7918) (#7924)
   * Upload support text/plain; charset=utf8 (#7899)
@@ -1496,18 +1533,19 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix non existent milestone with 500 error (#7867) (#7873)
 * SECURITY
   * Fix No PGP signature on 1.9.1 tag (#7874)
-  * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ
+  * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: <https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ>
 * ENHANCEMENTS
   * Fix pull creation with empty changes (#7920) (#7926)
 * BUILD
   * Drone/docker: prepare multi-arch release + provide arm64 image (#7571) (#7884)
 
 ## [1.9.1](https://github.com/go-gitea/gitea/releases/tag/v1.9.1) - 2019-08-14
+
 * BREAKING
   * Add pagination for admin api get orgs and fix only list public orgs bug (#7742) (#7752)
 * SECURITY
   * Be more strict with git arguments (#7715) (#7762)
-  * Release built with go 1.12.8 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA
+  * Release built with go 1.12.8 to fix security fixes in golang std lib, ref: <https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA>
 * BUGFIXES
   * Fix local runs of ssh-requiring integration tests (#7855) (#7857)
   * Fix hook problem (#7856) (#7754)
@@ -1530,6 +1568,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Correct wrong datetime format for git (#7689) (#7690)
 
 ## [1.9.0](https://github.com/go-gitea/gitea/releases/tag/v1.9.0) - 2019-07-30
+
 * BREAKING
   * Better logging (#6038) (#6095)
 * SECURITY
@@ -1886,6 +1925,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Added docker example for backup (#5846)
 
 ## [1.8.3](https://github.com/go-gitea/gitea/releases/tag/v1.8.3) - 2019-06-17
+
 * BUGFIXES
   * Always set userID on LFS authentication (#7224) (Part of #6993)
   * Fix LFS Locks over SSH (#6999) (#7223)
@@ -1896,6 +1936,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix GCArgs load from ini (#7156) (#7157)
 
 ## [1.8.2](https://github.com/go-gitea/gitea/releases/tag/v1.8.2) - 2019-05-29
+
 * BUGFIXES
   * Fix possbile mysql invalid connnection error (#7051) (#7071)
   * Handle invalid administrator username on install page (#7060) (#7063)
@@ -1911,6 +1952,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix wrong init dependency on markup extensions (#7038) (#7074)
 
 ## [1.8.1](https://github.com/go-gitea/gitea/releases/tag/v1.8.1) - 2019-05-08
+
 * BUGFIXES
   * Fix 404 when sending pull requests in some situations (#6871) (#6873)
   * Enforce osusergo build tag for releases (#6862) (#6869)
@@ -1937,6 +1979,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix config ui error about cache ttl (#6861) (#6865)
 
 ## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
+
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
   * Resolve 2FA bypass on API (#6676) (#6674)
@@ -2171,18 +2214,21 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Migrate database if app.ini found (#5290)
 
 ## [1.7.6](https://github.com/go-gitea/gitea/releases/tag/v1.7.6) - 2019-04-12
+
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6595)
 * BUGFIXES
   * Allow resend of confirmation email when logged in (#6482) (#6487)
 
 ## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27
+
 * BUGFIXES
   * Fix unitTypeCode not being used in accessLevelUnit (#6419) (#6423)
   * Fix bug where manifest.json was being requested without cookies and continuously creating new sessions (#6372) (#6383)
   * Fix ParsePatch function to work with quoted diff --git strings (#6323) (#6332)
 
 ## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12
+
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
@@ -2192,6 +2238,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix displaying dashboard even if required to change password (#6214) (#6215)
 
 ## [1.7.3](https://github.com/go-gitea/gitea/releases/tag/v1.7.3) - 2019-02-27
+
 * BUGFIXES
   * Fix server 500 when trying to migrate to an already existing repository (#6188) (#6197)
   * Load Issue attributes for API /repos/{owner}/{repo}/issues/{index} (#6122) (#6185)
@@ -2206,6 +2253,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Recover panic in orgmode.Render if bad orgfile (#4982) (#5903) (#6097)
 
 ## [1.7.2](https://github.com/go-gitea/gitea/releases/tag/v1.7.2) - 2019-02-14
+
 * BUGFIXES
   * Remove all CommitStatus when a repo is deleted (#5940) (#5941)
   * Fix notifications on pushing with deploy keys by setting hook environment variables (#5935) (#5944)
@@ -2222,6 +2270,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * In basic auth check for tokens before call UserSignIn (#5725) (#6083)
 
 ## [1.7.1](https://github.com/go-gitea/gitea/releases/tag/v1.7.1) - 2019-01-31
+
 * SECURITY
   * Disable redirect for i18n (#5910) (#5916)
   * Only allow local login if password is non-empty (#5906) (#5908)
@@ -2243,6 +2292,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Include Go toolchain to --version (#5832) (#5830)
 
 ## [1.7.0](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-22
+
 * SECURITY
   * Do not display the raw OpenID error in the UI (#5705) (#5712)
   * When redirecting clean the path to avoid redirecting to external site (#5669) (#5679)
@@ -2399,18 +2449,21 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Only chown directories during docker setup if necessary. Fix #4425 (#5064)
 
 ## [1.6.4](https://github.com/go-gitea/gitea/releases/tag/v1.6.4) - 2019-01-15
+
 * BUGFIX
   * Fix SSH key now can be reused as public key after deleting as deploy key (#5671) (#5685)
   * When redirecting clean the path to avoid redirecting to external site (#5669) (#5703)
   * Fix to use correct value for "MSpan Structures Obtained" (#5706) (#5715)
 
 ## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
+
 * SECURITY
   * Prevent DeleteFilePost doing arbitrary deletion (#5631)
 * BUGFIX
   * Fix wrong text getting saved on editing second comment on an issue (#5608)
 
 ## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
+
 * SECURITY
   * Sanitize uploaded file names (#5571) (#5573)
   * HTMLEncode user added text (#5570) (#5575)
@@ -2425,6 +2478,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix empty wiki (#5504) (#5508)
 
 ## [1.6.1](https://github.com/go-gitea/gitea/releases/tag/v1.6.1) - 2018-12-08
+
 * BUGFIXES
   * Fix dependent issue searching when gitea is run in subpath (#5392) (#5400)
   * API: '/orgs/:org/repos': return private repos with read access (#5393)
@@ -2435,6 +2489,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix topic name length on database (#5493) (#5495)
 
 ## [1.6.0](https://github.com/go-gitea/gitea/releases/tag/v1.6.0) - 2018-11-22
+
 * BREAKING
   * Respect email privacy option in user search via API (#4512)
   * Simply remove tidb and deps (#3993)
@@ -2588,10 +2643,12 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix translation (#4355)
 
 ## [1.5.3](https://github.com/go-gitea/gitea/releases/tag/v1.5.3) - 2018-10-31
+
 * SECURITY
   * Fix remote command execution vulnerability in upstream library (#5177) (#5196)
 
 ## [1.5.2](https://github.com/go-gitea/gitea/releases/tag/v1.5.2) - 2018-10-09
+
 * SECURITY
   * Enforce token on api routes (#4840) (#4905)
 * BUGFIXES
@@ -2608,6 +2665,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix trimming of markup section names (#4864)
 
 ## [1.5.1](https://github.com/go-gitea/gitea/releases/tag/v1.5.1) - 2018-09-03
+
 * SECURITY
   * Don't disclose emails of all users when sending out emails (#4784)
   * Improve URL validation for external wiki and external issues (#4710) (#4740)
@@ -2622,6 +2680,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix incorrect caption of webhook setting (#4701) (#4718)
 
 ## [1.5.0](https://github.com/go-gitea/gitea/releases/tag/v1.5.0) - 2018-08-10
+
 * SECURITY
   * Check that repositories can only be migrated to own user or organizations (#4366) (#4370)
   * Limit uploaded avatar image-size to 4096px x 3072px by default (#4353)
@@ -2685,6 +2744,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Sign release binaries (#4188)
 
 ## [1.4.3](https://github.com/go-gitea/gitea/releases/tag/v1.4.3) - 2018-06-26
+
 * SECURITY
   * HTML-escape plain-text READMEs (#4192) (#4214)
   * Fix open redirect vulnerability on login screen (#4312) (#4312)
@@ -2697,6 +2757,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix webhook type conflation (#4285) (#4285)
 
 ## [1.4.2](https://github.com/go-gitea/gitea/releases/tag/v1.4.2) - 2018-06-04
+
 * BUGFIXES
   * Adjust z-index for floating labels (#3939) (#3950)
   * Add missing token validation on application settings page (#3976) #3978
@@ -2712,6 +2773,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Respository's home page not updated after first push (#4075)
 
 ## [1.4.1](https://github.com/go-gitea/gitea/releases/tag/v1.4.1) - 2018-05-03
+
 * BREAKING
   * Add "error" as reserved username (#3882) (#3886)
 * SECURITY
@@ -2729,6 +2791,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Show clipboard button if disable HTTP of git protocol (#3773) (#3774)
 
 ## [1.4.0](https://github.com/go-gitea/gitea/releases/tag/v1.4.0) - 2018-03-25
+
 * BREAKING
   * Drop deprecated GOGS\_WORK\_DIR use (#2946)
   * Fix API status code for hook creation (#2814)
@@ -2848,6 +2911,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Add owner to delete repo message (#2886)
 
 ## [1.3.1](https://github.com/go-gitea/gitea/releases/tag/v1.3.1) - 2017-12-08
+
 * BUGFIXES
   * Sanitize logs for mirror sync (#3057, #3082) (#3078)
   * Fix missing branch in release bug (#3108) (#3117)
@@ -2858,6 +2922,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix missing password length check when change password (#3039) (#3071)
 
 ## [1.3.0](https://github.com/go-gitea/gitea/releases/tag/v1.3.0) - 2017-11-29
+
 * BREAKING
   * Make URL scheme unambiguous (#2408)
 * FEATURES
@@ -3085,11 +3150,13 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Added vendor dir for js/css libs; Documented sources (#1484) (#2241)
 
 ## [1.2.3](https://github.com/go-gitea/gitea/releases/tag/v1.2.3) - 2017-11-03
+
 * BUGFIXES
   * Only require one email when validating GPG key (#2266, #2467, #2663) (#2788)
   * Fix order of comments (#2835) (#2839)
 
 ## [1.2.2](https://github.com/go-gitea/gitea/releases/tag/v1.2.2) - 2017-10-26
+
 * BUGFIXES
   * Add checks for commits with missing author and time (#2771) (#2785)
   * Fix sending mail with a non-latin display name (#2559) (#2783)
@@ -3098,6 +3165,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix emojify image URL (#2769) (#2773)
 
 ## [1.2.1](https://github.com/go-gitea/gitea/releases/tag/v1.2.1) - 2017-10-16
+
 * BUGFIXES
   * Fix PR, milestone and label functionality if issue unit is disabled (#2710) (#2714)
   * Fix plain readme didn't render correctly on repo home page (#2705) (#2712)
@@ -3106,6 +3174,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be 
   * Fix slice out of bounds error in mailer (#2479) (#2696)
 
 ## [1.2.0](https://github.com/go-gitea/gitea/releases/tag/v1.2.0) - 2017-10-10
+
 * SECURITY
   * Sanitation fix from Gogs (#1461)
 * BREAKING
