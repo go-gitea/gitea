@@ -251,6 +251,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
+		if setting.MailReciveService != nil &&
+			len(setting.MailReciveService.ReciveEmail) > 0 {
+			msg.SetHeader("Reply-To", "<"+setting.MailReciveService.ReciveEmail+">")
+		}
+
 		// Set Message-ID on first message so replies know what to reference
 		if actName == "new" {
 			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")

@@ -1030,6 +1030,7 @@ func NewServices() {
 	newSessionService()
 	newCORSService()
 	newMailService()
+	newMailReciveService()
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
