@@ -85,7 +85,7 @@ func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{
 		auth.AssignForm(form, ctx.Data)
 	}
 	ctx.Flash(ErrorFlash, msg)
-	ctx.HTML(200, tpl)
+	_ = ctx.HTML(200, tpl)
 }
 
 // SetSession sets session key value
@@ -102,8 +102,7 @@ func (ctx *DefaultContext) GetSession(key string) (interface{}, error) {
 
 // DestroySession deletes all the data of the session
 func (ctx *DefaultContext) DestroySession() error {
-	ctx.Sessions.Destroy(ctx.Req.Context())
-	return nil
+	return ctx.Sessions.Destroy(ctx.Req.Context())
 }
 
 // Flash set message to flash

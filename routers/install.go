@@ -41,6 +41,10 @@ const (
 	tplPostInstall = "post-install"
 )
 
+var (
+	installContextKey interface{} = "install_context"
+)
+
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
@@ -103,14 +107,13 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			Sessions: sessionManager,
 		}
 
-		req = req.WithContext(context.WithValue(req.Context(), "install_context", &ctx))
+		req = req.WithContext(context.WithValue(req.Context(), installContextKey, &ctx))
 		next.ServeHTTP(resp, req)
 	})
 }
 
 // Locale handle locale
 func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	//isNeedRedir := false
 	hasCookie := false
 
 	// 1. Check URL arguments.
@@ -121,14 +124,11 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		ck, _ := req.Cookie("lang")
 		lang = ck.Value
 		hasCookie = true
-	} else {
-		//isNeedRedir = true
 	}
 
 	// Check again in case someone modify by purpose.
 	if !i18n.IsExist(lang) {
 		lang = ""
-		//isNeedRedir = false
 		hasCookie = false
 	}
 
@@ -138,7 +138,6 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
 		tag, _, _ := translation.Match(tags...)
 		lang = tag.String()
-		//isNeedRedir = false
 	}
 
 	if !hasCookie {
@@ -151,7 +150,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 // WrapInstall converts an install route to a chi route
 func WrapInstall(f func(ctx *InstallContext)) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx := req.Context().Value("install_context").(*InstallContext)
+		ctx := req.Context().Value(installContextKey).(*InstallContext)
 		f(ctx)
 	})
 }
@@ -228,7 +227,7 @@ func Install(ctx *InstallContext) {
 
 	auth.AssignForm(form, ctx.Data)
 	fmt.Println("-------", tplInstall, ctx.Data)
-	ctx.HTML(200, tplInstall)
+	_ = ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
@@ -248,7 +247,7 @@ func InstallPost(ctx *InstallContext) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, tplInstall)
+		_ = ctx.HTML(200, tplInstall)
 		return
 	}
 
