@@ -196,7 +196,6 @@ func NewChi() chi.Router {
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}
-	c.Use(middleware.Timeout(60 * time.Second))
 
 	if setting.ProdMode {
 		log.Warn("ProdMode ignored")
