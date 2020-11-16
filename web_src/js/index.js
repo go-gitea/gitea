@@ -1134,17 +1134,6 @@ async function initRepository() {
     initReactionSelector();
   }
 
-  // Diff
-  if ($('.repository.diff').length > 0) {
-    $('.diff-counter').each(function () {
-      const $item = $(this);
-      const addLine = $item.find('span[data-line].add').data('line');
-      const delLine = $item.find('span[data-line].del').data('line');
-      const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-      $item.find('.bar .add').css('width', `${addPercent}%`);
-    });
-  }
-
   // Quick start and repository home
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));

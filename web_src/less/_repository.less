@@ -2957,6 +2957,7 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
   .tab-size-@{i} {
     tab-size: @i !important;
+    -moz-tab-size: @i !important;
   }
 
   .generate-tab-size(@n, (@i + 1));
