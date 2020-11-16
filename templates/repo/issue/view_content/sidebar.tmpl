@@ -125,15 +125,7 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui labels list">
-			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
-			{{range .Labels}}
-				{{template "repo/issue/labels/label" dict "root" $ "label" .}}
-			{{end}}
-			{{range .OrgLabels}}
-				{{template "repo/issue/labels/label" dict "root" $ "label" .}}
-			{{end}}
-		</div>
+		{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
 
 		<div class="ui divider"></div>
 
