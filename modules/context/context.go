@@ -34,6 +34,20 @@ import (
 	"github.com/unknwon/com"
 )
 
+// flashes enumerates all the flash types
+const (
+	SuccessFlash = "success"
+	ErrorFlash   = "error"
+	WarnFlash    = "warning"
+	InfoFlash    = "info"
+)
+
+// Flash represents flashs
+type Flash struct {
+	MessageType string
+	Message     string
+}
+
 // DefaultContext represents a context for basic routes
 type DefaultContext struct {
 	Resp     http.ResponseWriter
@@ -42,6 +56,7 @@ type DefaultContext struct {
 	Render   *renderer.Render
 	Sessions *scs.SessionManager
 	translation.Locale
+	flash *Flash
 }
 
 // HTML wraps render HTML
@@ -69,8 +84,7 @@ func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{
 	if form != nil {
 		auth.AssignForm(form, ctx.Data)
 	}
-	//ctx.Flash.ErrorMsg = msg
-	//ctx.Data["Flash"] = ctx.Flash
+	ctx.Flash(ErrorFlash, msg)
 	ctx.HTML(200, tpl)
 }
 
@@ -90,6 +104,16 @@ func (ctx *DefaultContext) GetSession(key string) (interface{}, error) {
 func (ctx *DefaultContext) DestroySession() error {
 	ctx.Sessions.Destroy(ctx.Req.Context())
 	return nil
+}
+
+// Flash set message to flash
+func (ctx *DefaultContext) Flash(tp, v string) {
+	if ctx.flash == nil {
+		ctx.flash = &Flash{}
+	}
+	ctx.flash.MessageType = tp
+	ctx.flash.Message = v
+	ctx.Data["Flash"] = ctx.flash
 }
 
 // NewCookie creates a cookie

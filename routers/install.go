@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	gitea_templates "code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
@@ -73,7 +74,10 @@ type InstallContext = gitea_context.DefaultContext
 func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Handler {
 	rnd := renderer.New(
 		renderer.Options{
-			ParseGlobPattern: "templates/*.tmpl",
+			TemplateDir:       "./templates",
+			TemplateExtension: ".tmpl",
+			//ParseGlobPattern: "templates/*.tmpl",
+			FuncMap: gitea_templates.NewFuncMap(),
 		},
 	)
 
@@ -106,7 +110,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 
 // Locale handle locale
 func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	isNeedRedir := false
+	//isNeedRedir := false
 	hasCookie := false
 
 	// 1. Check URL arguments.
@@ -118,13 +122,13 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		lang = ck.Value
 		hasCookie = true
 	} else {
-		isNeedRedir = true
+		//isNeedRedir = true
 	}
 
 	// Check again in case someone modify by purpose.
 	if !i18n.IsExist(lang) {
 		lang = ""
-		isNeedRedir = false
+		//isNeedRedir = false
 		hasCookie = false
 	}
 
@@ -134,12 +138,11 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
 		tag, _, _ := translation.Match(tags...)
 		lang = tag.String()
-		isNeedRedir = false
+		//isNeedRedir = false
 	}
 
 	if !hasCookie {
 		req.AddCookie(gitea_context.NewCookie("lang", lang, 1<<31-1))
-		//req.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"), opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, cookie.SameSite(opt.SameSite))
 	}
 
 	return translation.NewLocale(lang)
@@ -224,7 +227,8 @@ func Install(ctx *InstallContext) {
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
 	auth.AssignForm(form, ctx.Data)
-	ctx.Render.HTML(ctx.Resp, 200, tplInstall, ctx.Data)
+	fmt.Println("-------", tplInstall, ctx.Data)
+	ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
@@ -522,7 +526,7 @@ func InstallPost(ctx *InstallContext) {
 
 	log.Info("First-time run install finished!")
 
-	ctx.Flash.Success(ctx.Tr("install.install_success"))
+	ctx.Flash(gitea_context.SuccessFlash, ctx.Tr("install.install_success"))
 
 	ctx.Resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
 	ctx.HTML(200, tplPostInstall)
