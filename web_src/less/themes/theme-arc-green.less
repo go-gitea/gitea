@@ -1036,28 +1036,10 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb !important;
 }
 
-.repository.view.issue .comment-list .comment .content {
-  .header {
-    color: #dbdbdb;
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-  }
-
-  .header::after {
-    border-right-color: var(--color-secondary);
-  }
-
-  .merge-section.no-header::after {
-    border-right-color: var(--color-secondary);
-  }
-
-  .header::before {
-    border-right-color: var(--color-secondary);
-  }
-
-  .merge-section.no-header::before {
-    border-right-color: #505667;
-  }
+.repository.view.issue .comment-list .comment .content .header {
+  color: #dbdbdb;
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .repository.view.issue .comment-list .timeline-item .badge {
@@ -1070,23 +1052,6 @@ a.ui.basic.green.label:hover {
 
 .comment-header-right a:hover {
   color: #dedede;
-}
-
-.repository.file.editor .commit-form-wrapper .commit-form {
-  border-color: #505667;
-}
-
-.repository.file.editor .commit-form-wrapper .commit-form::before,
-.repository.file.editor .commit-form-wrapper .commit-form::after {
-  border-right-color: #505667;
-}
-
-.repository .comment.form .content .form::after {
-  border-right-color: #353945;
-}
-
-.repository .comment.form .content .form::before {
-  border-right-color: var(--color-secondary);
 }
 
 .repository .comment.form .ui.tabular.menu .item.active {
