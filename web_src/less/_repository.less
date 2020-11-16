@@ -2631,7 +2631,7 @@
       font-weight: 600;
 
       &:hover {
-        color: var(--color-text-hover);
+        color: var(--color-primary);
       }
     }
 
@@ -2641,16 +2641,25 @@
 
     .assignee {
       position: relative;
-      top: -3px;
+      top: -2px;
     }
 
     .assignee img {
       width: 20px;
       height: 20px;
+      margin-right: 2px;
     }
 
     .desc {
       color: #999999;
+
+      a {
+        color: inherit;
+      }
+
+      a:hover {
+        color: var(--color-primary);
+      }
 
       .time-since,
       a {
@@ -2695,19 +2704,17 @@
 
       a.milestone {
         margin-left: 5px;
-        color: #999999 !important;
 
         &:hover {
-          color: var(--color-text-hover) !important;
+          color: var(--color-primary) !important;
         }
       }
 
       a.ref {
         margin-left: 8px;
-        color: #999999 !important;
 
         &:hover {
-          color: var(--color-text-hover) !important;
+          color: var(--color-primary) !important;
         }
 
         span {
