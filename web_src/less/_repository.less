@@ -2586,41 +2586,77 @@
   display: none;
 }
 
-.ui.checkbox.issue-checkbox {
-  vertical-align: middle;
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
 }
 
 .issue.list {
   list-style: none;
+  margin-top: 1rem;
 
   > .item {
-    padding-top: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px dashed #aaaaaa;
+    .issue-checkbox {
+      margin-top: 1px;
+    }
+
+    .issue-item-icon svg {
+      margin-right: .75rem;
+    }
+
+    .issue-item-icons-right > * + * {
+      margin-left: .5rem;
+    }
+
+    .issue-item-main {
+      width: 100%;
+    }
+
+    .issue-item-top-row {
+      max-width: 80%;
+      overflow-wrap: break-word;
+      color: var(--color-text);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .issue-item-bottom-row {
+      font-size: 13px;
+    }
 
     .title {
-      color: #444444;
-      font-size: 15px;
-      font-weight: 500;
-      margin: 0 6px;
+      display: block;
+      min-width: 0;
+      color: var(--color-text);
+      font-size: 16px;
+      font-weight: 600;
 
       &:hover {
-        color: #000000;
+        color: var(--color-text-hover);
       }
     }
 
-    .comment {
-      padding-right: 10px;
-      color: #666666;
+    .issue-item-icon-right {
+      min-width: 2rem;
+    }
+
+    .assignee {
+      position: relative;
+      top: -3px;
+    }
+
+    .assignee img {
+      width: 20px;
+      height: 20px;
     }
 
     .desc {
-      padding-top: 5px;
       color: #999999;
+
+      .time-since,
+      a {
+        margin-left: .25rem;
+        margin-right: .25rem;
+      }
 
       .waiting,
       .approvals,
@@ -2662,7 +2698,7 @@
         color: #999999 !important;
 
         &:hover {
-          color: #000000 !important;
+          color: var(--color-text-hover) !important;
         }
       }
 
@@ -2671,7 +2707,7 @@
         color: #999999 !important;
 
         &:hover {
-          color: #000000 !important;
+          color: var(--color-text-hover) !important;
         }
 
         span {
@@ -2679,15 +2715,14 @@
         }
       }
 
-      .assignee {
-        margin-top: -5px;
-        margin-right: 5px;
-      }
-
       .overdue {
         color: var(--color-red);
       }
     }
+  }
+
+  > .item + .item {
+    border-top: 1px solid var(--color-secondary);
   }
 }
 
