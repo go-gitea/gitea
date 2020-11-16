@@ -186,6 +186,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
+	c.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
@@ -195,6 +196,7 @@ func NewChi() chi.Router {
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}
+
 	if setting.ProdMode {
 		log.Warn("ProdMode ignored")
 	}
@@ -233,28 +235,35 @@ func RegisterInstallRoute(c chi.Router) {
 	})
 }
 
-// RegisterRoutes registers gin routes
-func RegisterRoutes(c chi.Router) {
+// NormalRoutes represents non install routes
+func NormalRoutes() http.Handler {
+	r := chi.NewRouter()
+
 	// for health check
-	c.Head("/", func(w http.ResponseWriter, req *http.Request) {
+	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	// robots.txt
 	if setting.HasRobotsTxt {
-		c.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
 			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
 		})
 	}
 
+	return r
+}
+
+// DelegateToMacaron delegates other routes to macaron
+func DelegateToMacaron(r chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronRoutes(m)
 
-	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 
-	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 }
