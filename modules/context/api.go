@@ -251,3 +251,61 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		"errors":            errors,
 	})
 }
+
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI() macaron.Handler {
+	return func(ctx *APIContext) {
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		var err error
+
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
+		}
+
+		refName := getRefName(ctx.Context, RepoRefAny)
+
+		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if len(refName) == 40 {
+			ctx.Repo.CommitID = refName
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			if err != nil {
+				ctx.NotFound("GetCommit", err)
+				return
+			}
+		} else {
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			return
+		}
+
+		ctx.Next()
+	}
+}
