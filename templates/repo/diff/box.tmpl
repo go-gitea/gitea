@@ -38,12 +38,7 @@
 				<li>
 					<div class="diff-counter count pull-right">
 						{{if not .IsBin}}
-							<span class="add" data-line="{{.Addition}}">+{{.Addition}}</span>
-							<span class="bar">
-								<div class="pull-left add"></div>
-								<div class="pull-left del"></div>
-							</span>
-							<span class="del" data-line="{{.Deletion}}">-{{.Deletion}}</span>
+							{{template "repo/diff/stats" .}}
 						{{else}}
 							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
 						{{end}}
@@ -60,12 +55,7 @@
 					<h4 class="ui top attached normal header rounded">
 						<div class="diff-counter count ui left">
 							{{if not $file.IsRenamed}}
-								<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-								<span class="bar">
-									<div class="pull-left add"></div>
-									<div class="pull-left del"></div>
-								</span>
-								<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+								{{template "repo/diff/stats" .}}
 							{{end}}
 						</div>
 						<span class="file">{{$file.Name}}</span>
@@ -101,12 +91,7 @@
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
 								{{else if not $file.IsRenamed}}
-									<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-									<span class="bar">
-										<div class="pull-left add"></div>
-										<div class="pull-left del"></div>
-									</span>
-									<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+									{{template "repo/diff/stats" .}}
 								{{end}}
 							</div>
 							<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
