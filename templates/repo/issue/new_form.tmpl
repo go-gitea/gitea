@@ -73,10 +73,14 @@
 			<div class="ui labels list">
 				<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 				{{range .Labels}}
-					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text">{{.Name | RenderEmoji}}</span></a>
+					{{if .IsChecked}}
+						<a class="item" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text">{{.Name | RenderEmoji}}</span></a>
+					{{end}}
 				{{end}}
 				{{range .OrgLabels}}
-					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text">{{.Name | RenderEmoji}}</span></a>
+					{{if .IsChecked}}
+						<a class="item" id="label_{{.ID}}" href="/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text">{{.Name | RenderEmoji}}</span></a>
+					{{end}}
 				{{end}}
 			</div>
 

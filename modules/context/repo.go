@@ -716,7 +716,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			err     error
 		)
 
-		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
@@ -785,7 +784,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 				if err != nil {
-					ctx.NotFound("GetCommit", nil)
+					ctx.NotFound("GetCommit", err)
 					return
 				}
 			} else {

@@ -2,3 +2,4 @@
 
 @headerFont: var(--fonts-regular);
 @pageFont: var(--fonts-regular);
+@bold: 500;
