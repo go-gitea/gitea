@@ -148,11 +148,12 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
-		Path: treePath,
-		SHA:  entry.ID.String(),
-		Size: entry.Size(),
-		URL:  &selfURLString,
+		Name:   entry.Name(),
+		Path:   treePath,
+		SHA:    entry.ID.String(),
+		Size:   entry.Size(),
+		Commit: commitID,
+		URL:    &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
 		},

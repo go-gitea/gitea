@@ -11543,6 +11543,11 @@
         "_links": {
           "$ref": "#/definitions/FileLinksResponse"
         },
+        "commit": {
+          "description": "Last commit touching the entry",
+          "type": "string",
+          "x-go-name": "Commit"
+        },
         "content": {
           "description": "`content` is populated when `type` is `file`, otherwise null",
           "type": "string",
