@@ -58,7 +58,6 @@ func InstallRoutes() http.Handler {
 		Path:     setting.SessionConfig.CookiePath,
 		Persist:  true,
 		Secure:   setting.SessionConfig.Secure,
-		//SameSite: setting.SessionConfig.,
 	}
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(func(next http.Handler) http.Handler {
