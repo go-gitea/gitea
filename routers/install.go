@@ -23,16 +23,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	gitea_templates "code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
-	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
-	"golang.org/x/text/language"
 	"gopkg.in/ini.v1"
 )
 
@@ -49,16 +46,7 @@ var (
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
-	sessionManager := scs.New()
-	sessionManager.Lifetime = time.Duration(setting.SessionConfig.Maxlifetime)
-	sessionManager.Cookie = scs.SessionCookie{
-		Name:     setting.SessionConfig.CookieName,
-		Domain:   setting.SessionConfig.Domain,
-		HttpOnly: true,
-		Path:     setting.SessionConfig.CookiePath,
-		Persist:  true,
-		Secure:   setting.SessionConfig.Secure,
-	}
+	sessionManager := gitea_context.NewSessions()
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(func(next http.Handler) http.Handler {
 		return InstallInit(next, sessionManager)
@@ -89,7 +77,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			return
 		}
 
-		var locale = Locale(resp, req)
+		var locale = gitea_context.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = InstallContext{
 			Resp:   resp,
@@ -100,6 +88,8 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 				"PageIsInstall": true,
 				"DbOptions":     setting.SupportedDatabases,
 				"i18n":          locale,
+				"Language":      locale.Language(),
+				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 				"TmplLoadTimes": func() string {
 					return time.Now().Sub(startTime).String()
@@ -112,41 +102,6 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 		req = req.WithContext(context.WithValue(req.Context(), installContextKey, &ctx))
 		next.ServeHTTP(resp, req)
 	})
-}
-
-// Locale handle locale
-func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	hasCookie := false
-
-	// 1. Check URL arguments.
-	lang := req.URL.Query().Get("lang")
-
-	// 2. Get language information from cookies.
-	if len(lang) == 0 {
-		ck, _ := req.Cookie("lang")
-		lang = ck.Value
-		hasCookie = true
-	}
-
-	// Check again in case someone modify by purpose.
-	if !i18n.IsExist(lang) {
-		lang = ""
-		hasCookie = false
-	}
-
-	// 3. Get language information from 'Accept-Language'.
-	// The first element in the list is chosen to be the default language automatically.
-	if len(lang) == 0 {
-		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
-		tag, _, _ := translation.Match(tags...)
-		lang = tag.String()
-	}
-
-	if !hasCookie {
-		req.AddCookie(gitea_context.NewCookie("lang", lang, 1<<31-1))
-	}
-
-	return translation.NewLocale(lang)
 }
 
 // WrapInstall converts an install route to a chi route

@@ -6,12 +6,15 @@ package context
 
 import (
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"golang.org/x/text/language"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
 )
 
@@ -95,6 +98,56 @@ func (ctx *DefaultContext) Flash(tp, v string) {
 	ctx.flash.MessageType = tp
 	ctx.flash.Message = v
 	ctx.Data["Flash"] = ctx.flash
+}
+
+// NewSessions creates a session manager
+func NewSessions() *scs.SessionManager {
+	sessionManager := scs.New()
+	sessionManager.Lifetime = time.Duration(setting.SessionConfig.Maxlifetime)
+	sessionManager.Cookie = scs.SessionCookie{
+		Name:     setting.SessionConfig.CookieName,
+		Domain:   setting.SessionConfig.Domain,
+		HttpOnly: true,
+		Path:     setting.SessionConfig.CookiePath,
+		Persist:  true,
+		Secure:   setting.SessionConfig.Secure,
+	}
+	return sessionManager
+}
+
+// Locale handle locale
+func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
+	hasCookie := false
+
+	// 1. Check URL arguments.
+	lang := req.URL.Query().Get("lang")
+
+	// 2. Get language information from cookies.
+	if len(lang) == 0 {
+		ck, _ := req.Cookie("lang")
+		lang = ck.Value
+		hasCookie = true
+	}
+
+	// Check again in case someone modify by purpose.
+	if !i18n.IsExist(lang) {
+		lang = ""
+		hasCookie = false
+	}
+
+	// 3. Get language information from 'Accept-Language'.
+	// The first element in the list is chosen to be the default language automatically.
+	if len(lang) == 0 {
+		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
+		tag, _, _ := translation.Match(tags...)
+		lang = tag.String()
+	}
+
+	if !hasCookie {
+		req.AddCookie(NewCookie("lang", lang, 1<<31-1))
+	}
+
+	return translation.NewLocale(lang)
 }
 
 // NewCookie creates a cookie
