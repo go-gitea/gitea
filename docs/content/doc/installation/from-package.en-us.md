@@ -17,14 +17,11 @@ menu:
 
 ## Alpine Linux
 
-Alpine Linux has gitea in its community repository. It follows the latest stable version.
-for more information look at https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge.
+Alpine Linux has [Gitea](https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge) in its community repository which follows the latest stable version.
 
-install as usual:
 ```sh
 apk add gitea
 ```
-config is found in **/etc/gitea/app.ini**
 
 ## Arch Linux
 
