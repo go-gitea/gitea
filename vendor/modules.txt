@@ -248,6 +248,7 @@ github.com/emersion/go-imap/utf7
 # github.com/emersion/go-message v0.13.0
 ## explicit
 github.com/emersion/go-message
+github.com/emersion/go-message/charset
 github.com/emersion/go-message/mail
 github.com/emersion/go-message/textproto
 # github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b
@@ -899,6 +900,7 @@ golang.org/x/sys/windows/svc/debug
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
+golang.org/x/text/encoding/ianaindex
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/japanese

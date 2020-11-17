@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,6 +32,7 @@ func NewContext() {
 			mail := datum.(*Mail)
 			if err := mail.LoadHeader([]string{"From", "To"}); err != nil {
 				log.Error("fetch mail header failed: %v", err)
+				continue
 			}
 
 			if len(mail.Heads["To"]) == 0 ||
@@ -45,10 +47,13 @@ func NewContext() {
 			log.Trace("start read email from %v", mail.Heads["From"][0].String())
 			if err := handleReciveEmail(mail); err != nil {
 				log.Error("handleReciveEmail(): %v", err)
+				continue
 			}
 			log.Trace("finished read email from %v", mail.Heads["From"][0].String())
 		}
 	}, &Mail{})
+
+	go graceful.GetManager().RunWithShutdownFns(mailReadQueue.Run)
 }
 
 func handleReciveEmail(m *Mail) error {
@@ -66,13 +71,15 @@ func handleReciveEmail(m *Mail) error {
 	}
 
 	// chek if it's a reply mail to an issue or pull request
-	linkNode := m.Content.Find("a.reply-to")
+	linkNode := m.ContentHTML.Find("a.reply-to")
 	if linkNode.Length() != 1 {
+		_ = m.SetRead(true)
 		return nil
 	}
 
 	linkHerf, has := linkNode.First().Attr("href")
 	if !has || len(linkHerf) == 0 {
+		_ = m.SetRead(true)
 		return nil
 	}
 
@@ -85,6 +92,7 @@ func handleReciveEmail(m *Mail) error {
 	splitLink := strings.SplitN(link.Path[1:], "/", 4)
 	if len(splitLink) != 4 ||
 		(splitLink[2] != "pulls" && splitLink[2] != "issues") {
+		_ = m.SetRead(true)
 		return nil
 	}
 
@@ -92,15 +100,18 @@ func handleReciveEmail(m *Mail) error {
 	repoName := splitLink[1]
 	issueIndex, err := strconv.ParseInt(splitLink[3], 0, 64)
 	if err != nil {
+		_ = m.SetRead(true)
 		return nil
 	}
 	if issueIndex <= 0 {
+		_ = m.SetRead(true)
 		return nil
 	}
 
 	repo, err := models.GetRepositoryByOwnerAndName(repoOwner, repoName)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
+			_ = m.SetRead(true)
 			return nil
 		}
 
@@ -108,6 +119,7 @@ func handleReciveEmail(m *Mail) error {
 	}
 
 	if repo.IsArchived {
+		_ = m.SetRead(true)
 		return nil
 	}
 
@@ -119,6 +131,7 @@ func handleReciveEmail(m *Mail) error {
 	issue, err := models.GetIssueWithAttrsByIndex(repo.ID, issueIndex)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
+			_ = m.SetRead(true)
 			return nil
 		}
 
@@ -132,22 +145,19 @@ func handleReciveEmail(m *Mail) error {
 	}
 
 	if issue.IsLocked && !perm.CanWrite(permUnit) {
+		_ = m.SetRead(true)
 		return nil
 	}
 
 	if !issue.IsLocked && !perm.CanRead(permUnit) {
+		_ = m.SetRead(true)
 		return nil
-	}
-
-	comment, err := m.Content.Html()
-	if err != nil {
-		return fmt.Errorf("m.Content.Html(): %v", err)
 	}
 
 	_, err = comment_service.CreateIssueComment(doer,
 		repo,
 		issue,
-		comment, nil)
+		m.ContentText, nil)
 	if err != nil {
 		return fmt.Errorf("comment_service.CreateIssueComment(): %v", err)
 	}

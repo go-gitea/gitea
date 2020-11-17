@@ -7,6 +7,7 @@ package imap
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -15,8 +16,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
+
+func init() {
+	charset.RegisterEncoding("gb18030", simplifiedchinese.GB18030)
+}
 
 // Client an imap clientor
 type Client struct {
@@ -253,7 +260,8 @@ type Mail struct {
 	Heads map[string][]*mail.Address
 
 	// body
-	Content *goquery.Document
+	ContentHTML *goquery.Document
+	ContentText string
 
 	Deleted bool
 }
@@ -316,7 +324,7 @@ func (m *Mail) LoadBody() error {
 	if err != nil {
 		return err
 	}
-	// defer mr.Close()
+	defer mr.Close()
 
 	for {
 		p, err := mr.NextPart()
@@ -326,20 +334,53 @@ func (m *Mail) LoadBody() error {
 			return err
 		}
 
-		switch p.Header.(type) {
-		case *mail.InlineHeader:
-
-			m.Content, err = goquery.NewDocumentFromReader(p.Body)
-			return err
-
-		case *mail.AttachmentHeader:
-			// TODO: how to handle attachment
-			// This is an attachment
-			// filename, err := h.Filename()
-			// if err != nil {
-
-			// }
+		var (
+			header *mail.InlineHeader
+			ok     bool
+		)
+		if header, ok = p.Header.(*mail.InlineHeader); !ok {
+			continue
 		}
+
+		var contentType string
+		contentType, _, err = header.ContentType()
+		if err != nil {
+			return err
+		}
+		if contentType == "text/plain" {
+			if len(m.ContentText) != 0 {
+				continue
+			}
+
+			content, err := ioutil.ReadAll(p.Body)
+			if err != nil {
+				return err
+			}
+
+			m.ContentText = string(content)
+			continue
+		}
+
+		if contentType != "text/html" {
+			continue
+		}
+
+		if m.ContentHTML != nil {
+			continue
+		}
+
+		m.ContentHTML, err = goquery.NewDocumentFromReader(p.Body)
+		if err != nil {
+			return err
+		}
+
+		// case *mail.AttachmentHeader:
+		// TODO: how to handle attachment
+		// This is an attachment
+		// filename, err := h.Filename()
+		// if err != nil {
+
+		// }
 	}
 
 	return nil
