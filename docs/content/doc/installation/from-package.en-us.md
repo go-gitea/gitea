@@ -15,26 +15,29 @@ menu:
 
 # Installation from package
 
-## Debian
-
-Although there is a package of Gitea in Debian's [contrib](https://wiki.debian.org/SourcesList),
-it is not supported directly by us.
-
-Unfortunately, the package is not maintained anymore and broken because of missing sources.
-Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide instead.
-
-Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
-
 ## Alpine Linux
 
-Alpine Linux has gitea in its community repository. It follows the latest stable version.
-for more information look at https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge.
+Alpine Linux has [Gitea](https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge) in its community repository which follows the latest stable version.
 
-install as usual:
 ```sh
 apk add gitea
 ```
-config is found in **/etc/gitea/app.ini**
+
+## Arch Linux
+
+The rolling release distribution has [Gitea](https://www.archlinux.org/packages/community/x86_64/gitea/) in their official community repository and package updates are provided with new Gitea releases.
+
+```sh
+pacman -S gitea
+```
+
+## Arch Linux ARM
+
+Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages/aarch64/gitea), [armv7h](https://archlinuxarm.org/packages/armv7h/gitea) and [armv6h](https://archlinuxarm.org/packages/armv6h/gitea).
+
+```sh
+pacman -S gitea
+```
 
 ## Windows
 
