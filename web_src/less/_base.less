@@ -84,6 +84,7 @@
   --color-input-background: #ffffff;
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
+  --color-navbar: #f5f5f5;
 }
 
 :root:lang(ja) {
@@ -233,6 +234,15 @@ a:hover,
   margin: 0 -1.25px;
 }
 
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-box-body);
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.progress[data-percent="0"] .bar .progress {
+  color: var(--color-text);
+}
+
 .ui.attached.table {
   border-color: var(--color-secondary);
 }
@@ -374,6 +384,10 @@ a:hover,
   vertical-align: bottom;
   margin-bottom: -2px;
   margin-left: .5rem;
+}
+
+.ui.dropdown .menu {
+  border-color: var(--color-secondary);
 }
 
 .ui.form .field > .selection.dropdown > .dropdown.icon {
@@ -967,10 +981,9 @@ footer {
 
 .ui.menu.new-menu {
   justify-content: center !important;
-  padding-top: 15px !important;
-  margin-top: -15px !important;
-  margin-bottom: 15px !important;
-  background: #fafafa;
+  padding-top: 1rem !important;
+  margin-bottom: 1rem !important;
+  background: var(--color-navbar);
   border-width: 1px !important;
 }
 
@@ -1002,7 +1015,7 @@ footer {
     position: absolute;
     margin-top: -15px;
     display: block;
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), var(--color-navbar) 100%);
     content: ' ';
     right: 0;
     height: 53px;
@@ -1472,24 +1485,41 @@ table th[data-sortt-desc] {
   text-transform: none;
 }
 
-.ui.tabular.menu {
-  .item {
-    padding: 11px 12px;
-    color: rgba(0, 0, 0, .5);
-  }
+.ui.tabular.menu .item {
+  padding: 11px 12px;
+  color: var(--color-secondary-dark-6);
+}
 
-  .item:hover {
-    color: rgba(0, 0, 0, .8);
-  }
+.ui.tabular.menu .item:hover {
+  color: var(--color-text);
+}
 
-  .item.active {
-    color: rgba(0, 0, 0, .9);
-    margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
-  }
+.ui.tabular.menu .item.active {
+  background: var(--color-body) !important;
+  border-color: var(--color-secondary) !important;
+  color: var(--color-text);
+  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
+}
+
+.ui.secondary.pointing.menu {
+  border-bottom: none !important;
 }
 
 .ui.secondary.pointing.menu .item {
-  padding: 12px;
+  border-bottom: none !important;
+  color: var(--color-secondary-dark-6);
+}
+
+.ui.secondary.pointing.menu .active.item {
+  background: var(--color-body) !important;
+  color: var(--color-text);
+}
+
+.ui.secondary.pointing.menu .active.item:hover,
+.ui.secondary.pointing.menu .dropdown.item:hover,
+.ui.secondary.pointing.menu .link.item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.header .ui.label {

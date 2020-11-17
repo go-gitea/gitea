@@ -79,6 +79,7 @@
   --color-input-background: #2e323e;
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
+  --color-navbar: #2a2e3a;
 }
 
 /* Background */
@@ -884,35 +885,6 @@ a.ui.basic.green.label:hover {
   border-bottom: 1px solid #304251;
 }
 
-.ui.tabular.menu {
-  border-bottom-color: var(--color-secondary);
-
-  .item.active {
-    border-top-color: var(--color-secondary);
-    border-left-color: var(--color-secondary);
-    border-right-color: var(--color-secondary);
-    background: #383c4a;
-    color: #dbdbdb;
-  }
-
-  .item {
-    color: var(--color-secondary-dark-6);
-  }
-
-  .item:hover {
-    color: #dbdbdb;
-  }
-
-  &.navbar {
-    .item.active {
-      border-top-color: transparent;
-      border-left-color: transparent;
-      border-right-color: transparent;
-      background: #383c4a;
-    }
-  }
-}
-
 .markdown:not(code) .highlight pre,
 .markdown:not(code) pre {
   background-color: #2a2e3a;
@@ -1154,43 +1126,6 @@ td.blob-hunk {
 
 .ui.secondary.segment {
   background: #353945;
-}
-
-.ui.secondary.pointing.menu {
-  border-bottom-color: rgba(255, 255, 255, .15);
-}
-
-.ui.secondary.pointing.menu .active.item {
-  color: #dbdbdb;
-}
-
-.ui.secondary.pointing.menu .active.item:hover {
-  color: #dbdbdb;
-}
-
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu .link.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
-  color: #dbdbdb;
-}
-
-.ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: #2c303a;
-}
-
-.explore .navbar {
-  background-color: #2a2e3a !important;
-}
-
-.ui.menu.new-menu {
-  background: #2a2e3a;
-  border-color: transparent !important;
-
-  @media @mediaLgAndDown {
-    &::after {
-      background: linear-gradient(to right, transparent 0%, #2a2e3a 100%);
-    }
-  }
 }
 
 .ui.attached.info.message,
