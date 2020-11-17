@@ -6,14 +6,12 @@ package routes
 
 import (
 	"encoding/gob"
-	"path"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -43,7 +41,6 @@ import (
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 	"gitea.com/macaron/toolbox"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
 
@@ -978,22 +975,10 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 		private.RegisterRoutes(m)
 	})
 
-	m.Get("/apple-touch-icon.png", func(ctx *context.Context) {
-		ctx.Redirect(path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
-	})
-
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
 	})
-
-	// prometheus metrics endpoint
-	if setting.Metrics.Enabled {
-		c := metrics.NewCollector()
-		prometheus.MustRegister(c)
-
-		m.Get("/metrics", routers.Metrics)
-	}
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)
