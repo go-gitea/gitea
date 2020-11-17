@@ -88,16 +88,16 @@
 
   #notice-table {
     .notice-description {
-      @media only screen and (max-width: 767px) {
+      @media @mediaSm {
         max-width: 80vw;
       }
-      @media only screen and (max-width: 991px) and (min-width: 768px) {
+      @media @mediaMd {
         max-width: 360px;
       }
-      @media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+      @media @mediaLg {
         max-width: 510px;
       }
-      @media only screen and (min-width: 1200px) {
+      @media @mediaXl {
         max-width: 640px;
       }
     }

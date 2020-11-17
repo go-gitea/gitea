@@ -1,3 +1,5 @@
+@import "../variables.less";
+
 :root {
   --color-primary: #87ab63;
   --color-primary-dark-1: #93b373;
@@ -1222,7 +1224,7 @@ td.blob-hunk {
   background: #2a2e3a;
   border-color: transparent !important;
 
-  @media only screen and (max-width: 1200px) {
+  @media @mediaLgAndDown {
     &::after {
       background: linear-gradient(to right, transparent 0%, #2a2e3a 100%);
     }

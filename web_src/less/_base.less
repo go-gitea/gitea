@@ -334,7 +334,7 @@ a:hover,
     margin-right: 0 !important;
   }
 
-  @media only screen and (max-width: 767px) {
+  @media @mediaSm {
     #navbar:not(.shown) > *:not(:first-child) {
       display: none;
     }
@@ -774,7 +774,7 @@ a:hover,
   }
 
   &.pagination.menu {
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       .item:not(.active):not(.navigation),
       .item.navigation span.navigation_label {
         display: none;
@@ -900,7 +900,7 @@ footer {
 }
 
 // Conditional display
-@media only screen and (min-width: 768px) {
+@media @mediaMdAndUp {
   .mobile-only,
   .ui.button.mobile-only {
     display: none;
@@ -913,7 +913,7 @@ footer {
   }
 }
 
-@media only screen and (max-width: 767px) {
+@media @mediaSm {
   .not-mobile {
     display: none;
   }
@@ -941,7 +941,7 @@ footer {
   clip: auto;
 }
 
-@media only screen and (max-width: 991px) and (min-width: 768px) {
+@media @mediaMd {
   .ui.container {
     width: 95%;
   }
@@ -956,7 +956,7 @@ footer {
   border-width: 1px !important;
 }
 
-@media only screen and (max-width: 1200px) {
+@media @mediaLgAndDown {
   .ui.menu.new-menu {
     overflow-x: auto !important;
     justify-content: left !important;
@@ -1398,7 +1398,7 @@ table th[data-sortt-desc] {
 }
 
 .dropdown:not(.selection) > .menu.review-box > * {
-  @media only screen and (max-height: 700px) {
+  @media (max-height: 700px) {
     .CodeMirror,
     .CodeMirror-scroll {
       min-height: 100px;

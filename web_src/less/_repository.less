@@ -122,7 +122,7 @@
         text-overflow: ellipsis;
       }
 
-      @media (max-width: 1200px) {
+      @media @mediaLgAndDown {
         .title {
           max-width: 150px;
         }
@@ -132,11 +132,6 @@
         .title {
           max-width: 100px;
         }
-      }
-
-      .label.color {
-        padding: 0 8px;
-        margin-right: 5px;
       }
     }
 
@@ -221,7 +216,7 @@
   #clone-panel {
     width: 350px;
 
-    @media only screen and (max-width: 768px) {
+    @media @mediaSm {
       width: 100%;
     }
 
@@ -284,7 +279,7 @@
       }
 
       .ui.tiny.blue.buttons {
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           width: 100%;
         }
       }
@@ -634,7 +629,7 @@
             width: 100%;
           }
 
-          @media only screen and (max-width: 768px) {
+          @media @mediaSm {
             flex-direction: column;
 
             h1 {
@@ -1030,7 +1025,7 @@
               }
             }
 
-            @media only screen and (max-width: 767px) {
+            @media @mediaSm {
               .form .button {
                 width: 100%;
 
@@ -1583,7 +1578,7 @@
     background: #ffffff;
     line-height: 30px;
 
-    @media only screen and (max-width: 992px) {
+    @media @mediaMdAndDown {
       flex-direction: column;
       align-items: flex-start;
     }
@@ -2024,13 +2019,13 @@
 
       button,
       input {
-        @media only screen and (max-width: 438px) {
+        @media (max-width: 438px) {
           width: 100%;
         }
       }
 
       button {
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           margin-bottom: 1em;
         }
       }
@@ -2115,7 +2110,7 @@
       }
     }
 
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
@@ -2985,12 +2980,14 @@
 }
 
 .labels.list .item {
-  padding: 0 !important;
-  margin-bottom: 2px;
+  padding: .3em .5em !important;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 3px;
 }
 
 .labels.list .item + .item {
-  margin-left: 2px;
+  margin-left: 3px;
 }
 
 tbody.commit-list {
@@ -3005,7 +3002,7 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
-@media only screen and (max-width: 767.98px) {
+@media @mediaSm {
   tr.commit-list {
     width: 100%;
   }
@@ -3015,7 +3012,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 768px) and (max-width: 991.98px) {
+@media @mediaMd {
   tr.commit-list {
     width: 723px;
   }
@@ -3024,7 +3021,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+@media @mediaLg {
   tr.commit-list {
     width: 933px;
   }
@@ -3033,7 +3030,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 1200px) {
+@media @mediaXl {
   tr.commit-list {
     width: 1127px;
   }
@@ -3079,7 +3076,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (max-width: 767px) {
+@media @mediaSm {
   .ui.stackable.menu {
     &.mobile--margin-between-items > .item {
       margin-top: 5px;
@@ -3339,7 +3336,7 @@ td.blob-excerpt {
 .repository .ui.menu.new-menu {
   background: none !important;
 
-  @media only screen and (max-width: 1200px) {
+  @media @mediaLgAndDown {
     &::after {
       background: none !important;
     }
