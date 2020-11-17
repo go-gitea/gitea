@@ -15,16 +15,6 @@ menu:
 
 # Installation from package
 
-## Debian
-
-Although there is a package of Gitea in Debian's [contrib](https://wiki.debian.org/SourcesList),
-it is not supported directly by us.
-
-Unfortunately, the package is not maintained anymore and broken because of missing sources.
-Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide instead.
-
-Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
-
 ## Alpine Linux
 
 Alpine Linux has gitea in its community repository. It follows the latest stable version.
