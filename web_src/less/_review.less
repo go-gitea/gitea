@@ -1,3 +1,5 @@
+@import "variables.less";
+
 .ui.button.add-code-comment {
   padding: 2px;
   position: absolute;
@@ -146,7 +148,7 @@ a.blob-excerpt:hover {
   margin-left: .5rem;
 }
 
-@media only screen and (max-width: 768px) {
+@media @mediaSm {
   #review-box > .menu {
     > .ui.segment {
       width: 94vw;
@@ -161,19 +163,19 @@ a.blob-excerpt:hover {
   }
 }
 
-@media only screen and (min-width: 768px) and (max-width: 992px) {
+@media @mediaMd {
   #review-box .CodeMirror-scroll {
     max-width: 700px;
   }
 }
 
-@media only screen and (min-width: 992px) and (max-width: 1200px) {
+@media @mediaLg {
   #review-box .CodeMirror-scroll {
     max-width: 800px;
   }
 }
 
-@media only screen and (min-width: 1200px) {
+@media @mediaXl {
   #review-box .CodeMirror-scroll {
     max-width: 900px;
   }
