@@ -22,24 +22,26 @@ it is just a matter of:
 * add some configuration to your `app.ini` file
 * restart your Gitea instance
 
+This supports rendering of whole files. If you want to render code blocks in markdown you would need to do something with javascript. See some examples on the [Customizing Gitea](../customizing-gitea) page.
+
 ## Installing external binaries
 
 In order to get file rendering through external binaries, their associated packages must be installed. 
 If you're using a Docker image, your `Dockerfile` should contain something along this lines:
 
 ```
-FROM gitea/gitea:1.6.0
+FROM gitea/gitea:{{< version >}}
 [...]
 
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev py-pip python3-dev py3-pip py3-pyzmq
 # install any other package you need for your external renderers
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -U setuptools
-RUN pip3 install jupyter matplotlib docutils 
+RUN pip3 install jupyter docutils 
 # add above any other python package you may need to install
 ```
 
@@ -51,7 +53,7 @@ add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 [markup.asciidoc]
 ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoctor --out-file=- -"
+RENDER_COMMAND = "asciidoctor -s -a showtitle --out-file=- -"
 ; Input is not a standard input but a file
 IS_INPUT_FILE = false
 
@@ -68,4 +70,27 @@ RENDER_COMMAND = rst2html.py
 IS_INPUT_FILE = false
 ```
 
+If your external markup relies on additional classes and attributes on the generated HTML elements, you might need to enable custom sanitizer policies. Gitea uses the [`bluemonday`](https://godoc.org/github.com/microcosm-cc/bluemonday) package as our HTML sanitizier. The example below will support [KaTeX](https://katex.org/) output from [`pandoc`](https://pandoc.org/).
+
+```ini
+[markup.sanitizer.TeX]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+
+[markup.markdown]
+ENABLED         = true
+FILE_EXTENSIONS = .md,.markdown
+RENDER_COMMAND  = pandoc -f markdown -t html --katex
+```
+
+You must define `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` in each section.
+
+To define multiple entries, add a unique alphanumeric suffix (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.something]`).
+
 Once your configuration changes have been made, restart Gitea to have changes take effect.
+
+**Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
+there were significant problems with this method of configuration necessitating configuration through multiple sections.

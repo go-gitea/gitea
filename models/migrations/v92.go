@@ -5,8 +5,8 @@
 package migrations
 
 import (
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 func removeLingeringIndexStatus(x *xorm.Engine) error {

@@ -1,0 +1,62 @@
+{{if $.IsSplitStyle}}
+	{{range $k, $line := $.section.Lines}}
+	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+		{{if eq .GetType 4}}
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold-down"}}
+					</a>
+				{{end}}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold-up"}}
+					</a>
+				{{end}}
+				{{if eq $line.GetExpandDirection 2}}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold"}}
+					</a>
+				{{end}}
+			</td>
+			<td colspan="5" class="lines-code lines-code-old "><code class="code-inner">{{$.section.GetComputedInlineDiffFor $line}}</code></td>
+		{{else}}
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
+			<td class="blob-excerpt lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
+			<td class="blob-excerpt lines-code lines-code-old halfwidth"><code class="code-inner">{{if $line.LeftIdx}}{{$.section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
+			<td class="blob-excerpt lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
+			<td class="blob-excerpt lines-code lines-code-new halfwidth"><code class="code-inner">{{if $line.RightIdx}}{{$.section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+		{{end}}
+	</tr>
+	{{end}}
+{{else}}
+	{{range $k, $line := $.section.Lines}}
+	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+		{{if eq .GetType 4}}
+			<td colspan="2" class="lines-num">
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold-down"}}
+					</a>
+				{{end}}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold-up"}}
+					</a>
+				{{end}}
+				{{if eq $line.GetExpandDirection 2}}
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="{{$.Anchor}}">
+						{{svg "octicon-fold"}}
+					</a>
+				{{end}}
+			</td>
+		{{else}}
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
+		{{end}}
+		<td class="blob-excerpt lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
+		<td class="blob-excerpt lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}"><code class="code-inner">{{$.section.GetComputedInlineDiffFor $line}}</code></td>
+	</tr>
+	{{end}}
+{{end}}

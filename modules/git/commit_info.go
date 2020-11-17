@@ -5,10 +5,12 @@
 package git
 
 import (
+	"path"
+
 	"github.com/emirpasic/gods/trees/binaryheap"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	cgobject "gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
@@ -30,7 +32,29 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		return nil, nil, err
 	}
 
-	revs, err := getLastCommitForPaths(c, treePath, entryPaths)
+	var revs map[string]*object.Commit
+	if cache != nil {
+		var unHitPaths []string
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(unHitPaths) > 0 {
+			revs2, err := GetLastCommitForPaths(c, treePath, unHitPaths)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			for k, v := range revs2 {
+				if err := cache.Put(commit.ID.String(), path.Join(treePath, k), v.ID().String()); err != nil {
+					return nil, nil, err
+				}
+				revs[k] = v
+			}
+		}
+	} else {
+		revs, err = GetLastCommitForPaths(c, treePath, entryPaths)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,6 +96,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		treeCommit = commit
 	} else if rev, ok := revs[""]; ok {
 		treeCommit = convertCommit(rev)
+		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
 }
@@ -126,7 +151,27 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache LastCommitCache) (map[string]*object.Commit, []string, error) {
+	var unHitEntryPaths []string
+	var results = make(map[string]*object.Commit)
+	for _, p := range paths {
+		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
+		if err != nil {
+			return nil, nil, err
+		}
+		if lastCommit != nil {
+			results[p] = lastCommit
+			continue
+		}
+
+		unHitEntryPaths = append(unHitEntryPaths, p)
+	}
+
+	return results, unHitEntryPaths, nil
+}
+
+// GetLastCommitForPaths returns last commit information
+func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {

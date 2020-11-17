@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({tabSize: 4}, 'textile');
@@ -39,12 +39,12 @@
       '3 ** 3 = 27');
 
   MT('simpleLink',
-      '[link "CodeMirror":http://codemirror.net]');
+      '[link "CodeMirror":https://codemirror.net]');
 
   MT('referenceLink',
       '[link "CodeMirror":code_mirror]',
       'Normal Text.',
-      '[link [[code_mirror]]http://codemirror.net]');
+      '[link [[code_mirror]]https://codemirror.net]');
 
   MT('footCite',
       'foo bar[qualifier [[1]]]');

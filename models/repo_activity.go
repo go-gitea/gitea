@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // ActivityAuthorData represents statistical git commit count data
@@ -19,6 +19,7 @@ type ActivityAuthorData struct {
 	Name       string `json:"name"`
 	Login      string `json:"login"`
 	AvatarLink string `json:"avatar_link"`
+	HomeLink   string `json:"home_link"`
 	Commits    int64  `json:"commits"`
 }
 
@@ -64,6 +65,8 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
+		defer gitRepo.Close()
+
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %v", err)
@@ -79,6 +82,8 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
+
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %v", err)
@@ -87,12 +92,20 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 		return nil, nil
 	}
 	users := make(map[int64]*ActivityAuthorData)
-	for k, v := range code.Authors {
-		if len(k) == 0 {
+	var unknownUserID int64
+	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	for _, v := range code.Authors {
+		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := GetUserByEmail(k)
+		u, err := GetUserByEmail(v.Email)
 		if u == nil || IsErrUserNotExist(err) {
+			unknownUserID--
+			users[unknownUserID] = &ActivityAuthorData{
+				Name:       v.Name,
+				AvatarLink: unknownUserAvatarLink,
+				Commits:    v.Commits,
+			}
 			continue
 		}
 		if err != nil {
@@ -103,10 +116,11 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 				Name:       u.DisplayName(),
 				Login:      u.LowerName,
 				AvatarLink: u.AvatarLink(),
-				Commits:    v,
+				HomeLink:   u.HomeLink(),
+				Commits:    v.Commits,
 			}
 		} else {
-			user.Commits += v
+			user.Commits += v.Commits
 		}
 	}
 	v := make([]*ActivityAuthorData, 0)
@@ -115,7 +129,7 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	}
 
 	sort.Slice(v, func(i, j int) bool {
-		return v[i].Commits < v[j].Commits
+		return v[i].Commits > v[j].Commits
 	})
 
 	cnt := count

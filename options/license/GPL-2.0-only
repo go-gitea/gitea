@@ -4,7 +4,7 @@ Version 2, June 1991
 
 Copyright (C) 1989, 1991 Free Software Foundation, Inc. 
 
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 , USA
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
 Everyone is permitted to copy and distribute verbatim copies of this license
 document, but changing it is not allowed.
@@ -272,9 +272,9 @@ them to the start of each source file to most effectively convey the exclusion
 of warranty; and each file should have at least the "copyright" line and a
 pointer to where the full notice is found.
 
-< one line to give the program's name and an idea of what it does. >
+<one line to give the program's name and an idea of what it does.>
 
-Copyright (C) < yyyy > < name of author >
+Copyright (C)< yyyy> <name of author>
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -287,7 +287,7 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
-Street, Fifth Floor, Boston, MA 02110-1301 , USA.
+Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 Also add information on how to contact you by electronic and paper mail.
 
@@ -311,7 +311,7 @@ is a sample; alter the names:
 Yoyodyne, Inc., hereby disclaims all copyright interest in the program `Gnomovision'
 (which makes passes at compilers) written by James Hacker.
 
-< signature of Ty Coon > , 1 April 1989 Ty Coon, President of Vice This General
+<signature of Ty Coon >, 1 April 1989 Ty Coon, President of Vice This General
 Public License does not permit incorporating your program into proprietary
 programs. If your program is a subroutine library, you may consider it more
 useful to permit linking proprietary applications with the library. If this

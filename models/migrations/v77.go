@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addUserDefaultTheme(x *xorm.Engine) error {

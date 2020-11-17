@@ -26,6 +26,7 @@ fi
 
 if [ -d /etc/ssh ]; then
     SSH_PORT=${SSH_PORT:-"22"} \
+    SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-"${SSH_PORT}"} \
     envsubst < /etc/templates/sshd_config > /etc/ssh/sshd_config
 
     chmod 0644 /etc/ssh/sshd_config

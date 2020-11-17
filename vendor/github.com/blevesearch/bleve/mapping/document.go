@@ -251,7 +251,6 @@ func (dm *DocumentMapping) AddFieldMapping(fm *FieldMapping) {
 
 // UnmarshalJSON offers custom unmarshaling with optional strict validation
 func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
-
 	var tmp map[string]json.RawMessage
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -308,8 +307,8 @@ func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
 }
 
 func (dm *DocumentMapping) defaultAnalyzerName(path []string) string {
-	rv := ""
 	current := dm
+	rv := current.DefaultAnalyzer
 	for _, pathElement := range path {
 		var ok bool
 		current, ok = current.Properties[pathElement]
@@ -525,19 +524,27 @@ func (dm *DocumentMapping) processProperty(property interface{}, path []string, 
 		if !propertyValue.IsNil() {
 			switch property := property.(type) {
 			case encoding.TextMarshaler:
-
-				txt, err := property.MarshalText()
-				if err == nil && subDocMapping != nil {
-					// index by explicit mapping
+				// ONLY process TextMarshaler if there is an explicit mapping
+				// AND all of the fiels are of type text
+				// OTHERWISE process field without TextMarshaler
+				if subDocMapping != nil {
+					allFieldsText := true
 					for _, fieldMapping := range subDocMapping.Fields {
-						if fieldMapping.Type == "text" {
-							fieldMapping.processString(string(txt), pathString, path, indexes, context)
+						if fieldMapping.Type != "text" {
+							allFieldsText = false
+							break
 						}
 					}
-				} else {
-					dm.walkDocument(property, path, indexes, context)
+					txt, err := property.MarshalText()
+					if err == nil && allFieldsText {
+						txtStr := string(txt)
+						for _, fieldMapping := range subDocMapping.Fields {
+							fieldMapping.processString(txtStr, pathString, path, indexes, context)
+						}
+						return
+					}
 				}
-
+				dm.walkDocument(property, path, indexes, context)
 			default:
 				dm.walkDocument(property, path, indexes, context)
 			}

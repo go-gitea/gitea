@@ -7,6 +7,7 @@ package context
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -39,6 +40,13 @@ type APIValidationError struct {
 	URL     string `json:"url"`
 }
 
+// APIInvalidTopicsError is error format response to invalid topics
+// swagger:response invalidTopicsError
+type APIInvalidTopicsError struct {
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
+}
+
 //APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
@@ -53,25 +61,53 @@ type APIForbiddenError struct {
 // swagger:response notFound
 type APINotFound struct{}
 
+//APIConflict is a conflict empty response
+// swagger:response conflict
+type APIConflict struct{}
+
 //APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}
 
-// Error responses error message to client with given message.
+//APIString is a string response
+// swagger:response string
+type APIString string
+
+// Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
 	} else {
-		message = obj.(string)
+		message = fmt.Sprintf("%s", obj)
 	}
 
-	if status == 500 {
-		log.Error("%s: %s", title, message)
+	if status == http.StatusInternalServerError {
+		log.ErrorWithSkip(1, "%s: %s", title, message)
+
+		if macaron.Env == macaron.PROD && !(ctx.User != nil && ctx.User.IsAdmin) {
+			message = ""
+		}
 	}
 
 	ctx.JSON(status, APIError{
+		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// InternalServerError responds with an error message to the client with the error as a message
+// and the file and line of the caller.
+func (ctx *APIContext) InternalServerError(err error) {
+	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+
+	var message string
+	if macaron.Env != macaron.PROD || (ctx.User != nil && ctx.User.IsAdmin) {
+		message = err.Error()
+	}
+
+	ctx.JSON(http.StatusInternalServerError, APIError{
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
@@ -137,7 +173,7 @@ func (ctx *APIContext) RequireCSRF() {
 	}
 }
 
-// CheckForOTP validateds OTP
+// CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
@@ -186,7 +222,16 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 				return
 			}
 			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
+
+		ctx.Next()
 	}
 }
 
@@ -196,6 +241,11 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	var message = "Not Found"
 	var errors []string
 	for _, obj := range objs {
+		// Ignore nil
+		if obj == nil {
+			continue
+		}
+
 		if err, ok := obj.(error); ok {
 			errors = append(errors, err.Error())
 		} else {
@@ -208,4 +258,62 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		"documentation_url": setting.API.SwaggerURL,
 		"errors":            errors,
 	})
+}
+
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI() macaron.Handler {
+	return func(ctx *APIContext) {
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		var err error
+
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
+		}
+
+		refName := getRefName(ctx.Context, RepoRefAny)
+
+		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if len(refName) == 40 {
+			ctx.Repo.CommitID = refName
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			if err != nil {
+				ctx.NotFound("GetCommit", err)
+				return
+			}
+		} else {
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			return
+		}
+
+		ctx.Next()
+	}
 }

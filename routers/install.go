@@ -5,7 +5,7 @@
 package routers
 
 import (
-	"errors"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,24 +16,26 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
 )
 
 const (
 	// tplInstall template for installation page
-	tplInstall base.TplName = "install"
+	tplInstall     base.TplName = "install"
+	tplPostInstall base.TplName = "post-install"
 )
 
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.NotFound("Install", errors.New("Installation is prohibited"))
+		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+		ctx.HTML(200, tplPostInstall)
 		return
 	}
 
@@ -53,24 +55,27 @@ func Install(ctx *context.Context) {
 	form.DbPasswd = setting.Database.Passwd
 	form.DbName = setting.Database.Name
 	form.DbPath = setting.Database.Path
+	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	ctx.Data["CurDbOption"] = "MySQL"
+	var curDBOption = "MySQL"
 	switch setting.Database.Type {
 	case "postgres":
-		ctx.Data["CurDbOption"] = "PostgreSQL"
+		curDBOption = "PostgreSQL"
 	case "mssql":
-		ctx.Data["CurDbOption"] = "MSSQL"
+		curDBOption = "MSSQL"
 	case "sqlite3":
 		if setting.EnableSQLite3 {
-			ctx.Data["CurDbOption"] = "SQLite3"
+			curDBOption = "SQLite3"
 		}
 	}
+
+	ctx.Data["CurDbOption"] = curDBOption
 
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
-	form.LFSRootPath = setting.LFS.ContentPath
+	form.LFSRootPath = setting.LFS.Path
 
 	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
@@ -146,6 +151,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd
 	setting.Database.Name = form.DbName
+	setting.Database.Schema = form.DbSchema
 	setting.Database.SSLMode = form.SSLMode
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
@@ -158,8 +164,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Set test engine.
-	var x *xorm.Engine
-	if err = models.NewTestEngine(x); err != nil {
+	if err = models.NewTestEngine(); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
 			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
@@ -171,7 +176,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Test repository root path.
-	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
+	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
@@ -180,7 +185,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Test LFS root path if not empty, empty meaning disable LFS
 	if form.LFSRootPath != "" {
-		form.LFSRootPath = strings.Replace(form.LFSRootPath, "\\", "/", -1)
+		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
 		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
 			ctx.Data["Err_LFSRootPath"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
@@ -189,7 +194,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Test log root path.
-	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
+	form.LogRootPath = strings.ReplaceAll(form.LogRootPath, "\\", "/")
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
@@ -266,9 +271,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)
 	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd)
+	cfg.Section("database").Key("SCHEMA").SetValue(setting.Database.Schema)
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
 	cfg.Section("database").Key("CHARSET").SetValue(setting.Database.Charset)
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
+	cfg.Section("database").Key("LOG_SQL").SetValue("false") // LOG_SQL is rarely helpful
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
@@ -328,9 +335,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
-	cfg.Section("log").Key("MODE").SetValue("file")
+	cfg.Section("log").Key("MODE").SetValue("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
+	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
+	cfg.Section("log").Key("MACARON").SetValue("console")
+	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 	var secretKey string
@@ -351,7 +361,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	GlobalInit()
+	// Re-read settings
+	PostInstallInit(ctx.Req.Context())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -374,6 +385,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			u, _ = models.GetUserByName(u.Name)
 		}
 
+		days := 86400 * setting.LogInRememberDays
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
@@ -383,9 +399,26 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
+
+		if err = ctx.Session.Release(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			return
+		}
 	}
 
 	log.Info("First-time run install finished!")
+
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
-	ctx.Redirect(form.AppURL + "user/login")
+
+	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+	ctx.HTML(200, tplPostInstall)
+
+	// Now get the http.Server from this request and shut it down
+	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
+	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	go func() {
+		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
+			log.Error("Unable to shutdown the install server! Error: %v", err)
+		}
+	}()
 }

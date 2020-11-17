@@ -8,7 +8,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func hashContext(context string) string {

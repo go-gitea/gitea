@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addIndexOnRepositoryAndComment(x *xorm.Engine) error {
 	type Repository struct {

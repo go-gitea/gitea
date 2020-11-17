@@ -104,13 +104,12 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 		{
 			OldRefSubURL:   "tag/v1.0.0",
 			NewBranch:      "feature/test4",
-			CreateRelease:  "v1.0.0",
+			CreateRelease:  "v1.0.1",
 			ExpectedStatus: http.StatusFound,
 			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test4"),
 		},
 	}
 	for _, test := range tests {
-		prepareTestEnv(t)
 		session := loginUser(t, "user2")
 		if test.CreateRelease != "" {
 			createNewRelease(t, session, "/user2/repo1", test.CreateRelease, test.CreateRelease, false, false)
@@ -129,7 +128,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 }
 
 func TestCreateBranchInvalidCSRF(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/branch/master", map[string]string{
 		"_csrf":           "fake_csrf",

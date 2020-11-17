@@ -1,0 +1,15 @@
+{{- range .Attachments -}}
+<div class="twelve wide column" style="padding: 6px;">
+	<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+	{{if FilenameIsImage .Name}}
+		<span class="ui image">{{svg "octicon-file"}}</span>
+	{{else}}
+		<span class="ui image">{{svg "octicon-desktop-download"}}</span>
+	{{end}}
+		<span><strong>{{.Name}}</strong></span>
+	</a>
+</div>
+<div class="four wide column" style="padding: 0px;">
+	<span class="ui text grey right">{{.Size | FileSize}}</span>
+</div>
+{{end -}}

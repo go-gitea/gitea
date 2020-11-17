@@ -56,6 +56,16 @@
 							</div>
 						</div>
 
+						<div class="field" id="permission_box">
+							<label>{{.i18n.Tr "org.settings.permission"}}</label>
+							<div class="field">
+								<div class="ui checkbox">
+									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}/>
+									<label>{{.i18n.Tr "org.settings.repoadminchangeteam"}}</label>
+								</div>
+							</div>
+						</div>
+
 						{{if .SignedUser.IsAdmin}}
 						<div class="ui divider"></div>
 

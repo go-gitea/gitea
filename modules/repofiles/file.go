@@ -80,7 +80,7 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 }
 
 // GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
-func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (committerUser, authorUser *models.User) {
+func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (authorUser, committerUser *models.User) {
 	// Committer and author are optional. If they are not the doer (not same email address)
 	// then we use bogus User objects for them to store their FullName and Email.
 	// If only one of the two are provided, we set both of them to it.

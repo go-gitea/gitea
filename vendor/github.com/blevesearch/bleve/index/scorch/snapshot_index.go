@@ -28,13 +28,14 @@ import (
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
 	"github.com/couchbase/vellum"
-	lev2 "github.com/couchbase/vellum/levenshtein2"
+	lev "github.com/couchbase/vellum/levenshtein"
 )
 
 // re usable, threadsafe levenshtein builders
-var lb1, lb2 *lev2.LevenshteinAutomatonBuilder
+var lb1, lb2 *lev.LevenshteinAutomatonBuilder
 
 type asynchSegmentResult struct {
+	dict    segment.TermDictionary
 	dictItr segment.DictionaryIterator
 
 	index int
@@ -51,11 +52,11 @@ func init() {
 	var is interface{} = IndexSnapshot{}
 	reflectStaticSizeIndexSnapshot = int(reflect.TypeOf(is).Size())
 	var err error
-	lb1, err = lev2.NewLevenshteinAutomatonBuilder(1, true)
+	lb1, err = lev.NewLevenshteinAutomatonBuilder(1, true)
 	if err != nil {
 		panic(fmt.Errorf("Levenshtein automaton ed1 builder err: %v", err))
 	}
-	lb2, err = lev2.NewLevenshteinAutomatonBuilder(2, true)
+	lb2, err = lev.NewLevenshteinAutomatonBuilder(2, true)
 	if err != nil {
 		panic(fmt.Errorf("Levenshtein automaton ed2 builder err: %v", err))
 	}
@@ -126,7 +127,9 @@ func (i *IndexSnapshot) updateSize() {
 	}
 }
 
-func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i segment.TermDictionary) segment.DictionaryIterator) (*IndexSnapshotFieldDict, error) {
+func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string,
+	makeItr func(i segment.TermDictionary) segment.DictionaryIterator,
+	randomLookup bool) (*IndexSnapshotFieldDict, error) {
 
 	results := make(chan *asynchSegmentResult)
 	for index, segment := range i.segment {
@@ -135,7 +138,11 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 			if err != nil {
 				results <- &asynchSegmentResult{err: err}
 			} else {
-				results <- &asynchSegmentResult{dictItr: makeItr(dict)}
+				if randomLookup {
+					results <- &asynchSegmentResult{dict: dict}
+				} else {
+					results <- &asynchSegmentResult{dictItr: makeItr(dict)}
+				}
 			}
 		}(index, segment)
 	}
@@ -150,14 +157,20 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 		if asr.err != nil && err == nil {
 			err = asr.err
 		} else {
-			next, err2 := asr.dictItr.Next()
-			if err2 != nil && err == nil {
-				err = err2
-			}
-			if next != nil {
+			if !randomLookup {
+				next, err2 := asr.dictItr.Next()
+				if err2 != nil && err == nil {
+					err = err2
+				}
+				if next != nil {
+					rv.cursors = append(rv.cursors, &segmentDictCursor{
+						itr:  asr.dictItr,
+						curr: *next,
+					})
+				}
+			} else {
 				rv.cursors = append(rv.cursors, &segmentDictCursor{
-					itr:  asr.dictItr,
-					curr: *next,
+					dict: asr.dict,
 				})
 			}
 		}
@@ -166,8 +179,11 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 	if err != nil {
 		return nil, err
 	}
-	// prepare heap
-	heap.Init(rv)
+
+	if !randomLookup {
+		// prepare heap
+		heap.Init(rv)
+	}
 
 	return rv, nil
 }
@@ -175,21 +191,21 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 func (i *IndexSnapshot) FieldDict(field string) (index.FieldDict, error) {
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.Iterator()
-	})
+	}, false)
 }
 
 func (i *IndexSnapshot) FieldDictRange(field string, startTerm []byte,
 	endTerm []byte) (index.FieldDict, error) {
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.RangeIterator(string(startTerm), string(endTerm))
-	})
+	}, false)
 }
 
 func (i *IndexSnapshot) FieldDictPrefix(field string,
 	termPrefix []byte) (index.FieldDict, error) {
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.PrefixIterator(string(termPrefix))
-	})
+	}, false)
 }
 
 func (i *IndexSnapshot) FieldDictRegexp(field string,
@@ -204,7 +220,7 @@ func (i *IndexSnapshot) FieldDictRegexp(field string,
 
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.AutomatonIterator(a, prefixBeg, prefixEnd)
-	})
+	}, false)
 }
 
 func (i *IndexSnapshot) getLevAutomaton(term string,
@@ -232,14 +248,18 @@ func (i *IndexSnapshot) FieldDictFuzzy(field string,
 
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.AutomatonIterator(a, prefixBeg, prefixEnd)
-	})
+	}, false)
 }
 
 func (i *IndexSnapshot) FieldDictOnly(field string,
 	onlyTerms [][]byte, includeCount bool) (index.FieldDict, error) {
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.OnlyIterator(onlyTerms, includeCount)
-	})
+	}, false)
+}
+
+func (i *IndexSnapshot) FieldDictContains(field string) (index.FieldDictContains, error) {
+	return i.newIndexSnapshotFieldDict(field, nil, true)
 }
 
 func (i *IndexSnapshot) DocIDReaderAll() (index.DocIDReader, error) {
@@ -283,9 +303,12 @@ func (i *IndexSnapshot) newDocIDReader(results chan *asynchSegmentResult) (index
 	var err error
 	for count := 0; count < len(i.segment); count++ {
 		asr := <-results
-		if asr.err != nil && err != nil {
-			err = asr.err
-		} else {
+		if asr.err != nil {
+			if err == nil {
+				// returns the first error encountered
+				err = asr.err
+			}
+		} else if err == nil {
 			rv.iterators[asr.index] = asr.docs.Iterator()
 		}
 	}
@@ -491,10 +514,20 @@ func (i *IndexSnapshot) allocTermFieldReaderDicts(field string) (tfr *IndexSnaps
 		}
 	}
 	i.m2.Unlock()
-	return &IndexSnapshotTermFieldReader{}
+	return &IndexSnapshotTermFieldReader{
+		recycle: true,
+	}
 }
 
 func (i *IndexSnapshot) recycleTermFieldReader(tfr *IndexSnapshotTermFieldReader) {
+	if !tfr.recycle {
+		// Do not recycle an optimized unadorned term field reader (used for
+		// ConjunctionUnadorned or DisjunctionUnadorned), during when a fresh
+		// roaring.Bitmap is built by AND-ing or OR-ing individual bitmaps,
+		// and we'll need to release them for GC. (See MB-40916)
+		return
+	}
+
 	i.parent.rootLock.RLock()
 	obsolete := i.parent.root != i
 	i.parent.rootLock.RUnlock()
@@ -673,6 +706,33 @@ func (i *IndexSnapshot) DumpFields() chan interface{} {
 		close(rv)
 	}()
 	return rv
+}
+
+func (i *IndexSnapshot) diskSegmentsPaths() map[string]struct{} {
+	rv := make(map[string]struct{}, len(i.segment))
+	for _, segmentSnapshot := range i.segment {
+		if seg, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
+			rv[seg.Path()] = struct{}{}
+		}
+	}
+	return rv
+}
+
+// reClaimableDocsRatio gives a ratio about the obsoleted or
+// reclaimable documents present in a given index snapshot.
+func (i *IndexSnapshot) reClaimableDocsRatio() float64 {
+	var totalCount, liveCount uint64
+	for _, segmentSnapshot := range i.segment {
+		if _, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
+			totalCount += uint64(segmentSnapshot.FullSize())
+			liveCount += uint64(segmentSnapshot.Count())
+		}
+	}
+
+	if totalCount > 0 {
+		return float64(totalCount-liveCount) / float64(totalCount)
+	}
+	return 0
 }
 
 // subtractStrings returns set a minus elements of set b.

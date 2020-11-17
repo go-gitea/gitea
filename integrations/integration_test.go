@@ -6,11 +6,11 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -18,23 +18,29 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 )
 
-var mac *macaron.Macaron
+var c chi.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -54,26 +60,39 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 }
 
 func TestMain(m *testing.M) {
-	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	defer log.Close()
 
-	var helper testfixtures.Helper
-	if setting.Database.UseMySQL {
-		helper = &testfixtures.MySQL{}
-	} else if setting.Database.UsePostgreSQL {
-		helper = &testfixtures.PostgreSQL{}
-	} else if setting.Database.UseSQLite3 {
-		helper = &testfixtures.SQLite{}
-	} else if setting.Database.UseMSSQL {
-		helper = &testfixtures.SQLServer{}
-	} else {
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+
+	initIntegrationTest()
+	c = routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
+
+	// integration test settings...
+	if setting.Cfg != nil {
+		testingCfg := setting.Cfg.Section("integration-tests")
+		slowTest = testingCfg.Key("SLOW_TEST").MustDuration(slowTest)
+		slowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(slowFlush)
+	}
+
+	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
+		if err == nil {
+			slowTest = duration
+		}
+	}
+
+	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
+		if err == nil {
+			slowFlush = duration
+		}
 	}
 
 	err := models.InitFixtures(
-		helper,
 		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {
@@ -84,11 +103,11 @@ func TestMain(m *testing.M) {
 
 	writerCloser.t = nil
 
-	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+		fmt.Printf("util.RemoveAll: %v\n", err)
 		os.Exit(1)
 	}
-	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
 		fmt.Printf("Unable to remove repo indexer: %v\n", err)
 		os.Exit(1)
 	}
@@ -102,7 +121,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	giteaBinary := "gitea"
+	if runtime.GOOS == "windows" {
+		giteaBinary += ".exe"
+	}
+	setting.AppPath = path.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
@@ -120,8 +143,13 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
+	util.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
+	if err := storage.Init(); err != nil {
+		fmt.Printf("Init storage failed: %v", err)
+		os.Exit(1)
+	}
 
 	switch {
 	case setting.Database.UseMySQL:
@@ -129,58 +157,83 @@ func initIntegrationTest() {
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
+			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
+		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
-			log.Fatalf("db.Query: %v", err)
+			log.Fatal("db.Query: %v", err)
 		}
-		defer rows.Close()
+		defer dbrows.Close()
 
-		if rows.Next() {
+		if !dbrows.Next() {
+			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
+			}
+		}
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) == 0 {
 			break
 		}
-		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		db.Close()
+
+		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		// This is a different db object; requires a different Close()
+		defer db.Close()
+		if err != nil {
+			log.Fatal("sql.Open: %v", err)
 		}
+		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+		if err != nil {
+			log.Fatal("db.Query: %v", err)
+		}
+		defer schrows.Close()
+
+		if !schrows.Next() {
+			// Create and setup a DB schema
+			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
+				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
+			}
+		}
+
 	case setting.Database.UseMSSQL:
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
-		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
+			log.Fatal("db.Exec: %v", err)
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 }
 
-func prepareTestEnv(t testing.TB, skip ...int) {
+func prepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 2
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}
-	PrintCurrentTest(t, ourSkip)
+	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+	return deferFn
 }
 
 type TestSession struct {
@@ -283,14 +336,18 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+//token has to be unique this counter take care of
+var tokenCounter int64
+
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  "api-testing-token",
+		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 	req = NewRequest(t, "GET", "/user/settings/applications")
@@ -348,7 +405,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -361,7 +418,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -407,4 +464,15 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// resetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
+// Most tests should call defer prepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
+// within a single test this is required
+func resetFixtures(t *testing.T) {
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
+	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+		setting.RepoRootPath))
 }

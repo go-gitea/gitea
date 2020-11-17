@@ -6,8 +6,6 @@ package models
 
 import (
 	"strings"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // RepoRedirect represents that a repo name should be redirected to another
@@ -31,36 +29,22 @@ func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 }
 
 // NewRepoRedirect create a new repo redirect
-func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) error {
+func NewRepoRedirect(ctx DBContext, ownerID, repoID int64, oldRepoName, newRepoName string) error {
 	oldRepoName = strings.ToLower(oldRepoName)
 	newRepoName = strings.ToLower(newRepoName)
-	sess := x.NewSession()
-	defer sess.Close()
 
-	if err := sess.Begin(); err != nil {
+	if err := deleteRepoRedirect(ctx.e, ownerID, newRepoName); err != nil {
 		return err
 	}
 
-	if err := deleteRepoRedirect(sess, ownerID, newRepoName); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("NewRepoRedirect sess.Rollback: %v", errRollback)
-		}
-		return err
-	}
-
-	if _, err := sess.Insert(&RepoRedirect{
+	if _, err := ctx.e.Insert(&RepoRedirect{
 		OwnerID:        ownerID,
 		LowerName:      oldRepoName,
 		RedirectRepoID: repoID,
 	}); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("NewRepoRedirect sess.Rollback: %v", errRollback)
-		}
 		return err
 	}
-	return sess.Commit()
+	return nil
 }
 
 // deleteRepoRedirect delete any redirect from the specified repo name to

@@ -1,5 +1,3 @@
-// +build go1.3
-
 // Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
@@ -283,6 +281,7 @@ var (
 	envLock sync.Mutex
 
 	// Path of work directory.
+	// You must set this value yourself
 	Root string
 
 	// Flash applies to current request.
@@ -310,12 +309,6 @@ func safeEnv() string {
 
 func init() {
 	setENV(os.Getenv("MACARON_ENV"))
-
-	var err error
-	Root, err = os.Getwd()
-	if err != nil {
-		panic("error getting work directory: " + err.Error())
-	}
 }
 
 // SetConfig sets data sources for configuration.

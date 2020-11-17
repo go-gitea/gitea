@@ -12,7 +12,7 @@
 	.CodeMirror { border: 2px inset #dee; }
     </style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -28,50 +28,32 @@
 <article>
 <h2>Swift mode</h2>
 <form><textarea id="code" name="code">
-//
-//  TipCalculatorModel.swift
-//  TipCalculator
-//
-//  Created by Main Account on 12/18/14.
-//  Copyright (c) 2014 Razeware LLC. All rights reserved.
-//
-
-import Foundation
-
-class TipCalculatorModel {
-
-  var total: Double
-  var taxPct: Double
-  var subtotal: Double {
-    get {
-      return total / (taxPct + 1)
-    }
-  }
-
-  init(total: Double, taxPct: Double) {
-    self.total = total
-    self.taxPct = taxPct
-  }
-
-  func calcTipWithTipPct(tipPct: Double) -> Double {
-    return subtotal * tipPct
-  }
-
-  func returnPossibleTips() -> [Int: Double] {
-
-    let possibleTipsInferred = [0.15, 0.18, 0.20]
-    let possibleTipsExplicit:[Double] = [0.15, 0.18, 0.20]
-
-    var retval = [Int: Double]()
-    for possibleTip in possibleTipsInferred {
-      let intPct = Int(possibleTip*100)
-      retval[intPct] = calcTipWithTipPct(possibleTip)
-    }
-    return retval
-
-  }
-
+protocol HeaderViewProtocol {
+    func setTitle(_ string: String)
 }
+
+struct AnyHeaderView {
+    let view: UIView
+    let headerView: HeaderViewProtocol
+    init<T: UIView>(view: T) where T: HeaderViewProtocol {
+        self.view = view
+        self.headerView = view
+    }
+}
+
+let header = AnyHeaderView(view: myView)
+header.headerView.setTitle("hi")
+
+struct HeaderView {
+    let view: UIView
+    let setTitle: (String) -> ()
+}
+
+var label = UILabel()
+let header = HeaderView(view: label) { str in
+    label.text = str
+}
+header.setTitle("hello")
 </textarea></form>
 
     <script>

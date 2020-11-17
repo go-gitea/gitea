@@ -1,0 +1,79 @@
+{{ $imagePathOld := printf "%s/%s" .root.BeforeRawPath (EscapePound .file.OldName)  }}
+{{ $imagePathNew := printf "%s/%s" .root.RawPath (EscapePound .file.Name)  }}
+
+<tr>
+ 	<th class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_before"}}
+ 	</th>
+ 	<th class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_after"}}
+ 	</th>
+</tr>
+<tr>
+ 	<td class="halfwidth center">
+ 	    {{if or .file.IsDeleted (not .file.IsCreated)}}
+            <a href="{{$imagePathOld}}" target="_blank">
+                <img src="{{$imagePathOld}}" class="border red" />
+            </a>
+ 	    {{end}}
+ 	</td>
+ 	<td class="halfwidth center">
+ 	    {{if or .file.IsCreated (not .file.IsDeleted)}}
+			<a href="{{$imagePathNew}}" target="_blank">
+				<img src="{{$imagePathNew}}" class="border green" />
+			</a>
+ 	    {{end}}
+ 	</td>
+</tr>
+{{ $imageInfoBase := (call .root.ImageInfoBase .file.OldName) }}
+{{ $imageInfoHead := (call .root.ImageInfo .file.Name) }}
+{{if or $imageInfoBase $imageInfoHead }}
+<tr>
+ 	<td class="halfwidth center">
+ 	{{if $imageInfoBase }}
+ 		{{ $classWidth := "" }}
+ 		{{ $classHeight := "" }}
+ 		{{ $classByteSize := "" }}
+ 		{{if $imageInfoHead}}
+			{{if not (eq $imageInfoBase.Width $imageInfoHead.Width)}}
+				{{ $classWidth = "red" }}
+			{{end}}
+			{{if not (eq $imageInfoBase.Height $imageInfoHead.Height)}}
+				{{ $classHeight = "red" }}
+			{{end}}
+			{{if not (eq $imageInfoBase.ByteSize $imageInfoHead.ByteSize)}}
+				{{ $classByteSize = "red" }}
+			{{end}}
+ 		{{end}}
+ 		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{$classWidth}}">{{$imageInfoBase.Width}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{$classHeight}}">{{$imageInfoBase.Height}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_byte_size"}}: <span class="text {{$classByteSize}}">{{FileSize $imageInfoBase.ByteSize}}</span>
+ 	{{end}}
+ 	</td>
+ 	<td class="halfwidth center">
+ 	{{if $imageInfoHead }}
+ 		{{ $classWidth := "" }}
+ 		{{ $classHeight := "" }}
+ 		{{ $classByteSize := "" }}
+ 		{{if $imageInfoBase}}
+			{{if not (eq $imageInfoBase.Width $imageInfoHead.Width)}}
+				{{ $classWidth = "green" }}
+			{{end}}
+			{{if not (eq $imageInfoBase.Height $imageInfoHead.Height)}}
+				{{ $classHeight = "green" }}
+			{{end}}
+			{{if not (eq $imageInfoBase.ByteSize $imageInfoHead.ByteSize)}}
+				{{ $classByteSize = "green" }}
+			{{end}}
+ 		{{end}}
+ 		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{$classWidth}}">{{$imageInfoHead.Width}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{$classHeight}}">{{$imageInfoHead.Height}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_byte_size"}}: <span class="text {{$classByteSize}}">{{FileSize $imageInfoHead.ByteSize}}</span>
+ 	{{end}}
+ 	</td>
+ </tr>
+{{end}}

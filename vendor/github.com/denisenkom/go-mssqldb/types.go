@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/denisenkom/go-mssqldb/internal/cp"
+	"github.com/denisenkom/go-mssqldb/internal/decimal"
 )
 
 // fixed-length data types
@@ -818,12 +819,12 @@ func decodeMoney(buf []byte) []byte {
 		uint64(buf[1])<<40 |
 		uint64(buf[2])<<48 |
 		uint64(buf[3])<<56)
-	return scaleBytes(strconv.FormatInt(money, 10), 4)
+	return decimal.ScaleBytes(strconv.FormatInt(money, 10), 4)
 }
 
 func decodeMoney4(buf []byte) []byte {
 	money := int32(binary.LittleEndian.Uint32(buf[0:4]))
-	return scaleBytes(strconv.FormatInt(int64(money), 10), 4)
+	return decimal.ScaleBytes(strconv.FormatInt(int64(money), 10), 4)
 }
 
 func decodeGuid(buf []byte) []byte {
@@ -835,15 +836,14 @@ func decodeGuid(buf []byte) []byte {
 func decodeDecimal(prec uint8, scale uint8, buf []byte) []byte {
 	var sign uint8
 	sign = buf[0]
-	dec := Decimal{
-		positive: sign != 0,
-		prec:     prec,
-		scale:    scale,
-	}
+	var dec decimal.Decimal
+	dec.SetPositive(sign != 0)
+	dec.SetPrec(prec)
+	dec.SetScale(scale)
 	buf = buf[1:]
 	l := len(buf) / 4
 	for i := 0; i < l; i++ {
-		dec.integer[i] = binary.LittleEndian.Uint32(buf[0:4])
+		dec.SetInteger(binary.LittleEndian.Uint32(buf[0:4]), uint8(i))
 		buf = buf[4:]
 	}
 	return dec.Bytes()
@@ -1186,7 +1186,7 @@ func makeDecl(ti typeInfo) string {
 	case typeBigChar, typeChar:
 		return fmt.Sprintf("char(%d)", ti.Size)
 	case typeBigVarChar, typeVarChar:
-		if ti.Size > 4000 || ti.Size == 0 {
+		if ti.Size > 8000 || ti.Size == 0 {
 			return fmt.Sprintf("varchar(max)")
 		} else {
 			return fmt.Sprintf("varchar(%d)", ti.Size)

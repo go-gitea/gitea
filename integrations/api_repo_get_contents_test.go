@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -72,13 +72,19 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	repo1.CreateNewBranch(user2, repo1.DefaultBranch, newBranch)
+	err := repo_module.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
+	assert.NoError(t, err)
 	// Get the commit ID of the default branch
-	gitRepo, _ := git.OpenRepository(repo1.RepoPath())
-	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	gitRepo, err := git.OpenRepository(repo1.RepoPath())
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	assert.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(newTag, commitID)
+	assert.NoError(t, err)
 	/*** END SETUP ***/
 
 	// ref is default ref
@@ -134,14 +140,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// Test file contents a file with a bad ref
 	ref = "badref"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
-	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
-	expectedAPIError := context.APIError{
-		Message: "object does not exist [id: " + ref + ", rel_path: ]",
-		URL:     setting.API.SwaggerURL,
-	}
-	var apiError context.APIError
-	DecodeJSON(t, resp, &apiError)
-	assert.Equal(t, expectedAPIError, apiError)
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)

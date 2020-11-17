@@ -9,14 +9,14 @@
 <script src="../../addon/edit/continuelist.js"></script>
 <script src="../xml/xml.js"></script>
 <script src="markdown.js"></script>
-<style type="text/css">
+<style>
       .CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
       .cm-s-default .cm-trailing-space-a:before,
       .cm-s-default .cm-trailing-space-b:before {position: absolute; content: "\00B7"; color: #777;}
       .cm-s-default .cm-trailing-space-new-line:before {position: absolute; content: "\21B5"; color: #777;}
     </style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -87,7 +87,7 @@ Markdown:
 
     A First Level Header
     ====================
-    
+
     A Second Level Header
     ---------------------
 
@@ -97,11 +97,11 @@ Markdown:
 
     The quick brown fox jumped over the lazy
     dog's back.
-    
+
     ### Header 3
 
     &gt; This is a blockquote.
-    &gt; 
+    &gt;
     &gt; This is the second paragraph in the blockquote.
     &gt;
     &gt; ## This is an H2 in a blockquote
@@ -110,23 +110,23 @@ Markdown:
 Output:
 
     &lt;h1&gt;A First Level Header&lt;/h1&gt;
-    
+
     &lt;h2&gt;A Second Level Header&lt;/h2&gt;
-    
+
     &lt;p&gt;Now is the time for all good men to come to
     the aid of their country. This is just a
     regular paragraph.&lt;/p&gt;
-    
+
     &lt;p&gt;The quick brown fox jumped over the lazy
     dog's back.&lt;/p&gt;
-    
+
     &lt;h3&gt;Header 3&lt;/h3&gt;
-    
+
     &lt;blockquote&gt;
         &lt;p&gt;This is a blockquote.&lt;/p&gt;
-        
+
         &lt;p&gt;This is the second paragraph in the blockquote.&lt;/p&gt;
-        
+
         &lt;h2&gt;This is an H2 in a blockquote&lt;/h2&gt;
     &lt;/blockquote&gt;
 
@@ -140,7 +140,7 @@ Markdown:
 
     Some of these words *are emphasized*.
     Some of these words _are emphasized also_.
-    
+
     Use two asterisks for **strong emphasis**.
     Or, if you prefer, __use two underscores instead__.
 
@@ -148,10 +148,10 @@ Output:
 
     &lt;p&gt;Some of these words &lt;em&gt;are emphasized&lt;/em&gt;.
     Some of these words &lt;em&gt;are emphasized also&lt;/em&gt;.&lt;/p&gt;
-    
+
     &lt;p&gt;Use two asterisks for &lt;strong&gt;strong emphasis&lt;/strong&gt;.
     Or, if you prefer, &lt;strong&gt;use two underscores instead&lt;/strong&gt;.&lt;/p&gt;
-   
+
 
 
 ## Lists ##
@@ -204,7 +204,7 @@ list item text. You can create multi-paragraph list items by indenting
 the paragraphs by 4 spaces or 1 tab:
 
     *   A list item.
-    
+
         With multiple paragraphs.
 
     *   Another item in the list.
@@ -216,7 +216,7 @@ Output:
     &lt;p&gt;With multiple paragraphs.&lt;/p&gt;&lt;/li&gt;
     &lt;li&gt;&lt;p&gt;Another item in the list.&lt;/p&gt;&lt;/li&gt;
     &lt;/ul&gt;
-    
+
 
 
 ### Links ###
@@ -311,7 +311,7 @@ Output:
 
     &lt;p&gt;I strongly recommend against using any
     &lt;code&gt;&amp;lt;blink&amp;gt;&lt;/code&gt; tags.&lt;/p&gt;
-    
+
     &lt;p&gt;I wish SmartyPants used named entities like
     &lt;code&gt;&amp;amp;mdash;&lt;/code&gt; instead of decimal-encoded
     entites like &lt;code&gt;&amp;amp;#8212;&lt;/code&gt;.&lt;/p&gt;
@@ -334,11 +334,20 @@ Output:
 
     &lt;p&gt;If you want your page to validate under XHTML 1.0 Strict,
     you've got to put paragraph tags in your blockquotes:&lt;/p&gt;
-    
+
     &lt;pre&gt;&lt;code&gt;&amp;lt;blockquote&amp;gt;
         &amp;lt;p&amp;gt;For example.&amp;lt;/p&amp;gt;
     &amp;lt;/blockquote&amp;gt;
     &lt;/code&gt;&lt;/pre&gt;
+
+## Fenced code blocks (and syntax highlighting)
+
+```javascript
+for (var i = 0; i < items.length; i++) {
+    console.log(items[i], i); // log them
+}
+```
+
 </textarea></form>
 
     <script>
@@ -350,10 +359,51 @@ Output:
       });
     </script>
 
-    <p>You might want to use the <a href="../gfm/index.html">Github-Flavored Markdown mode</a> instead, which adds support for fenced code blocks and a few other things.</p>
+    <p>If you also want support <code>strikethrough</code>, <code>emoji</code> and few other goodies, check out <a href="../gfm/index.html">Github-Flavored Markdown mode</a>.</p>
 
-    <p>Optionally depends on the XML mode for properly highlighted inline XML blocks.</p>
-    
+    <p>Optionally depends on other modes for properly highlighted code blocks,
+      and XML mode for properly highlighted inline XML blocks.</p>
+
+    <p>Markdown mode supports these options:</p>
+    <ul>
+      <li>
+        <d1>
+          <dt><code>highlightFormatting: boolean</code></dt>
+          <dd>Whether to separately highlight markdown meta characterts (<code>*[]()</code>etc.) (default: <code>false</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>maxBlockquoteDepth: boolean</code></dt>
+          <dd>Maximum allowed blockquote nesting (default: <code>0</code> - infinite nesting).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>xml: boolean</code></dt>
+          <dd>Whether to highlight inline XML (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>fencedCodeBlockHighlighting: boolean</code></dt>
+          <dd>Whether to syntax-highlight fenced code blocks, if given mode is included (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>tokenTypeOverrides: Object</code></dt>
+          <dd>When you want ot override default token type names (e.g. <code>{code: "code"}</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>allowAtxHeaderWithoutSpace: boolean</code></dt>
+          <dd>Allow lazy headers without whitespace between hashtag and text (default: <code>false</code>).</dd>
+        </d1>
+      </li>
+    </ul>
+
     <p><strong>MIME types defined:</strong> <code>text/x-markdown</code>.</p>
 
     <p><strong>Parsing/Highlighting Tests:</strong> <a href="../../test/index.html#markdown_*">normal</a>,  <a href="../../test/index.html#verbose,markdown_*">verbose</a>.</p>

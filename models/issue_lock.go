@@ -28,7 +28,6 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 	}
 
 	opts.Issue.IsLocked = lock
-
 	var commentType CommentType
 	if opts.Issue.IsLocked {
 		commentType = CommentTypeLock
@@ -36,16 +35,26 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		commentType = CommentTypeUnlock
 	}
 
-	if err := UpdateIssueCols(opts.Issue, "is_locked"); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	_, err := CreateComment(&CreateCommentOptions{
+	if err := updateIssueCols(sess, opts.Issue, "is_locked"); err != nil {
+		return err
+	}
+
+	var opt = &CreateCommentOptions{
 		Doer:    opts.Doer,
 		Issue:   opts.Issue,
 		Repo:    opts.Issue.Repo,
 		Type:    commentType,
 		Content: opts.Reason,
-	})
-	return err
+	}
+	if _, err := createComment(sess, opt); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

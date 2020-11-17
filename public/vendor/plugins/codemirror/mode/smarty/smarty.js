@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /**
  * Smarty 2 and 3 mode.
@@ -210,9 +210,9 @@
         state.last = last;
         return style;
       },
-      indent: function(state, text) {
+      indent: function(state, text, line) {
         if (state.tokenize == tokenTop && baseMode.indent)
-          return baseMode.indent(state.base, text);
+          return baseMode.indent(state.base, text, line);
         else
           return CodeMirror.Pass;
       },

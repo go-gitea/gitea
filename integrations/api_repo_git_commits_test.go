@@ -15,27 +15,35 @@ import (
 )
 
 func TestAPIReposGitCommits(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
+	// check invalid requests
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/12345?token="+token, user.Name)
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/..?token="+token, user.Name)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/branch-not-exist?token="+token, user.Name)
+	session.MakeRequest(t, req, http.StatusNotFound)
+
 	for _, ref := range [...]string{
-		"commits/master", // Branch
-		"commits/v1.1",   // Tag
+		"master", // Branch
+		"v1.1",   // Tag
+		"65f1",   // short sha
+		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
 	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s?token="+token, user.Name, ref)
 		session.MakeRequest(t, req, http.StatusOK)
 	}
-
-	// Test getting non-existent refs
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/unknown?token="+token, user.Name)
-	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIReposGitCommitList(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
@@ -55,7 +63,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
@@ -72,7 +80,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 }
 
 func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)

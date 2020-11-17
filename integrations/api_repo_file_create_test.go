@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -30,12 +31,16 @@ func getCreateFileOptions() api.CreateFileOptions {
 			NewBranchName: "master",
 			Message:       "Making this new file new/file.txt",
 			Author: api.Identity{
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
+			},
+			Committer: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
 			},
-			Committer: api.Identity{
-				Name:  "Jane Doe",
-				Email: "janedoe@example.com",
+			Dates: api.CommitDateOptions{
+				Author:    time.Unix(946684810, 0),
+				Committer: time.Unix(978307190, 0),
 			},
 		},
 		Content: contentEncoded,
@@ -77,21 +82,23 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
+				Date: "2000-01-01T00:00:10Z",
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "John Doe",
 					Email: "johndoe@example.com",
 				},
+				Date: "2000-12-31T23:59:50Z",
 			},
 			Message: "Updates README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -139,6 +146,11 @@ func TestAPICreateFile(t *testing.T) {
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
+			gitRepo.Close()
 		}
 
 		// Test creating a file in a new branch
@@ -177,7 +189,7 @@ func TestAPICreateFile(t *testing.T) {
 		treePath = "README.md"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		expectedAPIError := context.APIError{
 			Message: "repository file already exists [path: " + treePath + "]",
 			URL:     setting.API.SwaggerURL,

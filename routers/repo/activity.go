@@ -35,6 +35,12 @@ func Activity(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	case "monthly":
 		timeFrom = timeUntil.AddDate(0, -1, 0)
+	case "quarterly":
+		timeFrom = timeUntil.AddDate(0, -3, 0)
+	case "semiyearly":
+		timeFrom = timeUntil.AddDate(0, -6, 0)
+	case "yearly":
+		timeFrom = timeUntil.AddDate(-1, 0, 0)
 	default:
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
@@ -50,6 +56,11 @@ func Activity(ctx *context.Context) {
 		ctx.Repo.CanRead(models.UnitTypePullRequests),
 		ctx.Repo.CanRead(models.UnitTypeCode)); err != nil {
 		ctx.ServerError("GetActivityStats", err)
+		return
+	}
+
+	if ctx.Data["ActivityTopAuthors"], err = models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10); err != nil {
+		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return
 	}
 
@@ -70,6 +81,12 @@ func ActivityAuthors(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	case "monthly":
 		timeFrom = timeUntil.AddDate(0, -1, 0)
+	case "quarterly":
+		timeFrom = timeUntil.AddDate(0, -3, 0)
+	case "semiyearly":
+		timeFrom = timeUntil.AddDate(0, -6, 0)
+	case "yearly":
+		timeFrom = timeUntil.AddDate(-1, 0, 0)
 	default:
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}

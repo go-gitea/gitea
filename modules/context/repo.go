@@ -16,12 +16,26 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/macaron/macaron"
+	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
+
+// IssueTemplateDirCandidates issue templates directory
+var IssueTemplateDirCandidates = []string{
+	"ISSUE_TEMPLATE",
+	"issue_template",
+	".gitea/ISSUE_TEMPLATE",
+	".gitea/issue_template",
+	".github/ISSUE_TEMPLATE",
+	".github/issue_template",
+	".gitlab/ISSUE_TEMPLATE",
+	".gitlab/issue_template",
+}
 
 // PullRequest contains informations to make a pull request
 type PullRequest struct {
@@ -74,14 +88,57 @@ func RepoMustNotBeArchived() macaron.Handler {
 	}
 }
 
+// CanCommitToBranchResults represents the results of CanCommitToBranch
+type CanCommitToBranchResults struct {
+	CanCommitToBranch bool
+	EditorEnabled     bool
+	UserCanPush       bool
+	RequireSigned     bool
+	WillSign          bool
+	SigningKey        string
+	WontSignReason    string
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
+func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+
 	if err != nil {
-		return false, err
+		return CanCommitToBranchResults{}, err
 	}
-	return r.CanEnableEditor() && !protectedBranch, nil
+	userCanPush := true
+	requireSigned := false
+	if protectedBranch != nil {
+		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		requireSigned = protectedBranch.RequireSignedCommits
+	}
+
+	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+
+	canCommit := r.CanEnableEditor() && userCanPush
+	if requireSigned {
+		canCommit = canCommit && sign
+	}
+	wontSignReason := ""
+	if err != nil {
+		if models.IsErrWontSign(err) {
+			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+			err = nil
+		} else {
+			wontSignReason = "error"
+		}
+	}
+
+	return CanCommitToBranchResults{
+		CanCommitToBranch: canCommit,
+		EditorEnabled:     r.CanEnableEditor(),
+		UserCanPush:       userCanPush,
+		RequireSigned:     requireSigned,
+		WillSign:          sign,
+		SigningKey:        keyID,
+		WontSignReason:    wontSignReason,
+	}, err
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
@@ -91,12 +148,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
+func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -111,6 +168,18 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	}
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
 		return r.Commit.CommitsCount()
+	})
+}
+
+// GetCommitGraphsCount returns cached commit count for current view
+func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, files []string) (int64, error) {
+	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
+
+	return cache.GetInt64(cacheKey, func() (int64, error) {
+		if len(branches) == 0 {
+			return git.AllCommitsCount(r.Repository.RepoPath(), hidePRRefs, files...)
+		}
+		return git.CommitsCountFiles(r.Repository.RepoPath(), branches, files)
 	})
 }
 
@@ -146,6 +215,9 @@ func (r *Repository) FileExists(path string, branch string) (bool, error) {
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
 func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
+	if r.GitRepo == nil {
+		return nil, nil
+	}
 	commit, err := r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 	if err != nil {
 		return nil, err
@@ -162,11 +234,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return editorconfig.ParseBytes(data)
+	return editorconfig.Parse(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
@@ -183,6 +251,32 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	} else if err = repo.BaseRepo.GetOwner(); err != nil {
 		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
+	}
+}
+
+// RetrieveTemplateRepo retrieves template repository used to generate this repository
+func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
+	// Non-generated repository will not return error in this method.
+	if err := repo.GetTemplateRepo(); err != nil {
+		if models.IsErrRepoNotExist(err) {
+			repo.TemplateID = 0
+			return
+		}
+		ctx.ServerError("GetTemplateRepo", err)
+		return
+	} else if err = repo.TemplateRepo.GetOwner(); err != nil {
+		ctx.ServerError("TemplateRepo.GetOwner", err)
+		return
+	}
+
+	perm, err := models.GetUserRepoPermission(repo.TemplateRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	if !perm.CanRead(models.UnitTypeCode) {
+		repo.TemplateID = 0
 	}
 }
 
@@ -227,13 +321,13 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
+		repo.FullName(),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(redirectPath)
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 }
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
@@ -358,12 +452,6 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
-		if err != nil {
-			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
-			return
-		}
-		ctx.Repo.GitRepo = gitRepo
 		ctx.Repo.RepoLink = repo.Link()
 		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 		ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -373,28 +461,25 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		tags, err := ctx.Repo.GitRepo.GetTags()
-		if err != nil {
-			ctx.ServerError("GetTags", err)
-			return
-		}
-		ctx.Data["Tags"] = tags
-
-		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-			IncludeDrafts: false,
-			IncludeTags:   true,
+		ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeTags: true,
 		})
 		if err != nil {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
-		ctx.Repo.Repository.NumReleases = int(count)
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID", err)
+			return
+		}
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
+		ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
 		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
@@ -423,13 +508,48 @@ func RepoAssignment() macaron.Handler {
 			}
 		}
 
-		// repo is empty and display enable
-		if ctx.Repo.Repository.IsEmpty {
+		if repo.IsGenerated() {
+			RetrieveTemplateRepo(ctx, repo)
+			if ctx.Written() {
+				return
+			}
+		}
+
+		// Disable everything when the repo is being created
+		if ctx.Repo.Repository.IsBeingCreated() {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
 
-		ctx.Data["TagName"] = ctx.Repo.TagName
+		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+		if err != nil {
+			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+
+		// We opened it, we should close it
+		defer func() {
+			// If it's been set to nil then assume someone else has closed it.
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+			}
+		}()
+
+		// Stop at this point when the repo is empty.
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			ctx.Next()
+			return
+		}
+
+		tags, err := ctx.Repo.GitRepo.GetTags()
+		if err != nil {
+			ctx.ServerError("GetTags", err)
+			return
+		}
+		ctx.Data["Tags"] = tags
+
 		brs, err := ctx.Repo.GitRepo.GetBranches()
 		if err != nil {
 			ctx.ServerError("GetBranches", err)
@@ -437,6 +557,8 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Data["Branches"] = brs
 		ctx.Data["BranchesCount"] = len(brs)
+
+		ctx.Data["TagName"] = ctx.Repo.TagName
 
 		// If not branch selected, try default one.
 		// If default branch doesn't exists, fall back to some other branch.
@@ -451,23 +573,27 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 		// People who have push access or have forked repository can propose a new pull request.
-		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
-			// Pull request is allowed if this is a fork repository
-			// and base repository accepts pull requests.
-			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
-				ctx.Data["BaseRepo"] = repo.BaseRepo
-				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-			} else if repo.AllowsPulls() {
-				// Or, this is repository accepts pull requests between branches.
-				ctx.Data["BaseRepo"] = repo
-				ctx.Repo.PullRequest.BaseRepo = repo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.SameRepo = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
-			}
+		canPush := ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+		canCompare := false
+
+		// Pull request is allowed if this is a fork repository
+		// and base repository accepts pull requests.
+		if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo.BaseRepo
+			ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
+		} else if repo.AllowsPulls() {
+			// Or, this is repository accepts pull requests between branches.
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo
+			ctx.Repo.PullRequest.BaseRepo = repo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.SameRepo = true
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 		}
+		ctx.Data["CanCompareOrPull"] = canCompare
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 		if ctx.Query("go-get") == "1" {
@@ -476,6 +602,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 		}
+		ctx.Next()
 	}
 }
 
@@ -504,6 +631,22 @@ const (
 func RepoRef() macaron.Handler {
 	// since no ref name is explicitly specified, ok to just use branch
 	return RepoRefByType(RepoRefBranch)
+}
+
+// RefTypeIncludesBranches returns true if ref type can be a branch
+func (rt RepoRefType) RefTypeIncludesBranches() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefBranch {
+		return true
+	}
+	return false
+}
+
+// RefTypeIncludesTags returns true if ref type can be a tag
+func (rt RepoRefType) RefTypeIncludesTags() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefTag {
+		return true
+	}
+	return false
 }
 
 func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
@@ -573,7 +716,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			err     error
 		)
 
-		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
@@ -581,6 +723,13 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
 			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
 
 		// Get default branch.
@@ -611,7 +760,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
@@ -621,7 +770,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 
-			} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
@@ -635,7 +784,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 				if err != nil {
-					ctx.NotFound("GetCommit", nil)
+					ctx.NotFound("GetCommit", err)
 					return
 				}
 			} else {
@@ -669,6 +818,8 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+
+		ctx.Next()
 	}
 }
 
@@ -692,5 +843,63 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
+}
+
+// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+	var issueTemplates []api.IssueTemplate
+	if ctx.Repo.Commit == nil {
+		var err error
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			return issueTemplates
+		}
+	}
+
+	for _, dirName := range IssueTemplateDirCandidates {
+		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		if err != nil {
+			continue
+		}
+		entries, err := tree.ListEntries()
+		if err != nil {
+			return issueTemplates
+		}
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".md") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue template is too large: %s", entry.Name())
+					continue
+				}
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Debug("DataAsync: %v", err)
+					continue
+				}
+				defer r.Close()
+				data, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Debug("ReadAll: %v", err)
+					continue
+				}
+				var it api.IssueTemplate
+				content, err := markdown.ExtractMetadata(string(data), &it)
+				if err != nil {
+					log.Debug("ExtractMetadata: %v", err)
+					continue
+				}
+				it.Content = content
+				it.FileName = entry.Name()
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			}
+		}
+		if len(issueTemplates) > 0 {
+			return issueTemplates
+		}
+	}
+	return issueTemplates
 }

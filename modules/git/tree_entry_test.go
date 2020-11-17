@@ -7,9 +7,9 @@ package git
 import (
 	"testing"
 
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 func getTestEntries() Entries {
@@ -56,6 +56,7 @@ func TestEntriesCustomSort(t *testing.T) {
 func TestFollowLink(t *testing.T) {
 	r, err := OpenRepository("tests/repos/repo1_bare")
 	assert.NoError(t, err)
+	defer r.Close()
 
 	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
 	assert.NoError(t, err)

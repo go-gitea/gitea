@@ -16,14 +16,14 @@ import (
 )
 
 func TestViewUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestRenameUsername(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
@@ -39,7 +39,7 @@ func TestRenameUsername(t *testing.T) {
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	invalidUsernames := []string{
 		"%2f*",
@@ -71,12 +71,26 @@ func TestRenameInvalidUsername(t *testing.T) {
 }
 
 func TestRenameReservedUsername(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	reservedUsernames := []string{
+		"admin",
+		"api",
+		"attachments",
+		"avatars",
+		"explore",
 		"help",
-		"user",
+		"install",
+		"issues",
+		"login",
+		"metrics",
+		"notifications",
+		"org",
+		"pulls",
+		"repo",
 		"template",
+		"user",
+		"search",
 	}
 
 	session := loginUser(t, "user2")
@@ -103,7 +117,7 @@ func TestRenameReservedUsername(t *testing.T) {
 }
 
 func TestExportUserGPGKeys(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	//Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 

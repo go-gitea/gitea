@@ -34,15 +34,19 @@ type Hook struct {
 // HookList represents a list of API hook.
 type HookList []*Hook
 
+// CreateHookOptionConfig has all config options in it
+// required are "content_type" and "url" Required
+type CreateHookOptionConfig map[string]string
+
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: gitea,gogs,slack,discord
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu
 	Type string `json:"type" binding:"Required"`
 	// required: true
-	Config       map[string]string `json:"config" binding:"Required"`
-	Events       []string          `json:"events"`
-	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
+	Config       CreateHookOptionConfig `json:"config" binding:"Required"`
+	Events       []string               `json:"events"`
+	BranchFilter string                 `json:"branch_filter" binding:"GlobPattern"`
 	// default: false
 	Active bool `json:"active"`
 }
@@ -91,10 +95,11 @@ type PayloadCommit struct {
 
 // PayloadCommitVerification represents the GPG verification of a commit
 type PayloadCommitVerification struct {
-	Verified  bool   `json:"verified"`
-	Reason    string `json:"reason"`
-	Signature string `json:"signature"`
-	Payload   string `json:"payload"`
+	Verified  bool         `json:"verified"`
+	Reason    string       `json:"reason"`
+	Signature string       `json:"signature"`
+	Signer    *PayloadUser `json:"signer"`
+	Payload   string       `json:"payload"`
 }
 
 var (
@@ -235,6 +240,7 @@ type IssueCommentPayload struct {
 	Changes    *ChangesPayload        `json:"changes,omitempty"`
 	Repository *Repository            `json:"repository"`
 	Sender     *User                  `json:"sender"`
+	IsPull     bool                   `json:"is_pull"`
 }
 
 // SetSecret modifies the secret of the IssueCommentPayload
@@ -332,7 +338,7 @@ func ParsePushHook(raw []byte) (*PushPayload, error) {
 
 // Branch returns branch name from a payload
 func (p *PushPayload) Branch() string {
-	return strings.Replace(p.Ref, "refs/heads/", "", -1)
+	return strings.ReplaceAll(p.Ref, "refs/heads/", "")
 }
 
 // .___
@@ -368,6 +374,8 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
+	// HookIssueReviewed is an issue action for when a pull request is reviewed
+	HookIssueReviewed HookIssueAction = "reviewed"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -396,10 +404,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
-// ChangesPayload FIXME
+// ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	Body  *ChangesFromPayload `json:"body,omitempty"`
+	Ref   *ChangesFromPayload `json:"ref,omitempty"`
 }
 
 // __________      .__  .__    __________                                     __
@@ -418,6 +427,7 @@ type PullRequestPayload struct {
 	PullRequest *PullRequest    `json:"pull_request"`
 	Repository  *Repository     `json:"repository"`
 	Sender      *User           `json:"sender"`
+	Review      *ReviewPayload  `json:"review"`
 }
 
 // SetSecret modifies the secret of the PullRequestPayload.
@@ -428,6 +438,12 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
+}
+
+// ReviewPayload FIXME
+type ReviewPayload struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
 }
 
 //__________                           .__  __

@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package git
 
 import (
@@ -6,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,13 +82,17 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
 	testGetCommitsInfo(t, bareRepo1)
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestEntries_GetCommitsInfo")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 	clonedRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer clonedRepo1.Close()
+
 	testGetCommitsInfo(t, clonedRepo1)
 }
 
@@ -101,13 +110,16 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 	for _, benchmark := range benchmarks {
 		var commit *Commit
 		var entries Entries
+		var repo *Repository
 		if repoPath, err := cloneRepo(benchmark.url, benchmarkReposDir, benchmark.name); err != nil {
 			b.Fatal(err)
-		} else if repo, err := OpenRepository(repoPath); err != nil {
+		} else if repo, err = OpenRepository(repoPath); err != nil {
 			b.Fatal(err)
 		} else if commit, err = repo.GetBranchCommit("master"); err != nil {
+			repo.Close()
 			b.Fatal(err)
 		} else if entries, err = commit.Tree.ListEntries(); err != nil {
+			repo.Close()
 			b.Fatal(err)
 		}
 		entries.Sort()
@@ -120,5 +132,6 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 				}
 			}
 		})
+		repo.Close()
 	}
 }

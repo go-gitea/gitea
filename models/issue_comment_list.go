@@ -376,6 +376,11 @@ func (comments CommentList) loadDependentIssues(e Engine) error {
 	for _, comment := range comments {
 		if comment.DependentIssue == nil {
 			comment.DependentIssue = issues[comment.DependentIssueID]
+			if comment.DependentIssue != nil {
+				if err := comment.DependentIssue.loadRepo(e); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

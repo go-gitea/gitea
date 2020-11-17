@@ -40,6 +40,7 @@ type TermQueryScorer struct {
 	idf                    float64
 	options                search.SearcherOptions
 	idfExplanation         *search.Explanation
+	includeScore           bool
 	queryNorm              float64
 	queryWeight            float64
 	queryWeightExplanation *search.Explanation
@@ -62,14 +63,15 @@ func (s *TermQueryScorer) Size() int {
 
 func NewTermQueryScorer(queryTerm []byte, queryField string, queryBoost float64, docTotal, docTerm uint64, options search.SearcherOptions) *TermQueryScorer {
 	rv := TermQueryScorer{
-		queryTerm:   string(queryTerm),
-		queryField:  queryField,
-		queryBoost:  queryBoost,
-		docTerm:     docTerm,
-		docTotal:    docTotal,
-		idf:         1.0 + math.Log(float64(docTotal)/float64(docTerm+1.0)),
-		options:     options,
-		queryWeight: 1.0,
+		queryTerm:    string(queryTerm),
+		queryField:   queryField,
+		queryBoost:   queryBoost,
+		docTerm:      docTerm,
+		docTotal:     docTotal,
+		idf:          1.0 + math.Log(float64(docTotal)/float64(docTerm+1.0)),
+		options:      options,
+		queryWeight:  1.0,
+		includeScore: options.Score != "none",
 	}
 
 	if options.Explain {
@@ -113,56 +115,61 @@ func (s *TermQueryScorer) SetQueryNorm(qnorm float64) {
 }
 
 func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
-	var scoreExplanation *search.Explanation
-
-	// need to compute score
-	var tf float64
-	if termMatch.Freq < MaxSqrtCache {
-		tf = SqrtCache[int(termMatch.Freq)]
-	} else {
-		tf = math.Sqrt(float64(termMatch.Freq))
-	}
-	score := tf * termMatch.Norm * s.idf
-
-	if s.options.Explain {
-		childrenExplanations := make([]*search.Explanation, 3)
-		childrenExplanations[0] = &search.Explanation{
-			Value:   tf,
-			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, s.queryTerm, termMatch.Freq),
+	rv := ctx.DocumentMatchPool.Get()
+	// perform any score computations only when needed
+	if s.includeScore || s.options.Explain {
+		var scoreExplanation *search.Explanation
+		var tf float64
+		if termMatch.Freq < MaxSqrtCache {
+			tf = SqrtCache[int(termMatch.Freq)]
+		} else {
+			tf = math.Sqrt(float64(termMatch.Freq))
 		}
-		childrenExplanations[1] = &search.Explanation{
-			Value:   termMatch.Norm,
-			Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
-		}
-		childrenExplanations[2] = s.idfExplanation
-		scoreExplanation = &search.Explanation{
-			Value:    score,
-			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, s.queryTerm, termMatch.ID),
-			Children: childrenExplanations,
-		}
-	}
+		score := tf * termMatch.Norm * s.idf
 
-	// if the query weight isn't 1, multiply
-	if s.queryWeight != 1.0 {
-		score = score * s.queryWeight
 		if s.options.Explain {
-			childExplanations := make([]*search.Explanation, 2)
-			childExplanations[0] = s.queryWeightExplanation
-			childExplanations[1] = scoreExplanation
+			childrenExplanations := make([]*search.Explanation, 3)
+			childrenExplanations[0] = &search.Explanation{
+				Value:   tf,
+				Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, s.queryTerm, termMatch.Freq),
+			}
+			childrenExplanations[1] = &search.Explanation{
+				Value:   termMatch.Norm,
+				Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
+			}
+			childrenExplanations[2] = s.idfExplanation
 			scoreExplanation = &search.Explanation{
 				Value:    score,
-				Message:  fmt.Sprintf("weight(%s:%s^%f in %s), product of:", s.queryField, s.queryTerm, s.queryBoost, termMatch.ID),
-				Children: childExplanations,
+				Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, s.queryTerm, termMatch.ID),
+				Children: childrenExplanations,
 			}
+		}
+
+		// if the query weight isn't 1, multiply
+		if s.queryWeight != 1.0 {
+			score = score * s.queryWeight
+			if s.options.Explain {
+				childExplanations := make([]*search.Explanation, 2)
+				childExplanations[0] = s.queryWeightExplanation
+				childExplanations[1] = scoreExplanation
+				scoreExplanation = &search.Explanation{
+					Value:    score,
+					Message:  fmt.Sprintf("weight(%s:%s^%f in %s), product of:", s.queryField, s.queryTerm, s.queryBoost, termMatch.ID),
+					Children: childExplanations,
+				}
+			}
+		}
+
+		if s.includeScore {
+			rv.Score = score
+		}
+
+		if s.options.Explain {
+			rv.Expl = scoreExplanation
 		}
 	}
 
-	rv := ctx.DocumentMatchPool.Get()
 	rv.IndexInternalID = append(rv.IndexInternalID, termMatch.ID...)
-	rv.Score = score
-	if s.options.Explain {
-		rv.Expl = scoreExplanation
-	}
 
 	if len(termMatch.Vectors) > 0 {
 		if cap(rv.FieldTermLocations) < len(termMatch.Vectors) {

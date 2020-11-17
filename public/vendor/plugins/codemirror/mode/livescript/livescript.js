@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /**
  * Link to the project's GitHub page:
@@ -50,7 +50,7 @@
       startState: function(){
         return {
           next: 'start',
-          lastToken: null
+          lastToken: {style: null, indent: 0, content: ""}
         };
       },
       token: function(stream, state){

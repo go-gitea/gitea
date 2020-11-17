@@ -73,7 +73,7 @@ func getExpectedFileResponse() *api.FileResponse {
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -88,14 +88,17 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
 	treePath := "README.md"
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedFileResponse := getExpectedFileResponse()
 
 	fileResponse, err := GetFileResponseFromCommit(repo, commit, branch, treePath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, expectedFileResponse, fileResponse)
 }

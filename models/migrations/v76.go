@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
@@ -22,6 +22,18 @@ func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp     `xorm:"INDEX CREATED"`
 	}
 
+	const (
+		v16UnitTypeCode            = iota + 1 // 1 code
+		v16UnitTypeIssues                     // 2 issues
+		v16UnitTypePRs                        // 3 PRs
+		v16UnitTypeCommits                    // 4 Commits
+		v16UnitTypeReleases                   // 5 Releases
+		v16UnitTypeWiki                       // 6 Wiki
+		v16UnitTypeSettings                   // 7 Settings
+		v16UnitTypeExternalWiki               // 8 ExternalWiki
+		v16UnitTypeExternalTracker            // 9 ExternalTracker
+	)
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -30,7 +42,7 @@ func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 
 	//Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
-	if err := sess.Where("`type` = ?", V16UnitTypePRs).Find(&units); err != nil {
+	if err := sess.Where("`type` = ?", v16UnitTypePRs).Find(&units); err != nil {
 		return fmt.Errorf("Query repo units: %v", err)
 	}
 	for _, unit := range units {

@@ -5,10 +5,10 @@
 package git
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,8 +16,9 @@ func TestRepository_GetTags(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
-	tags, err := bareRepo1.GetTagInfos()
+	tags, err := bareRepo1.GetTagInfos(0, 0)
 	assert.NoError(t, err)
 	assert.Len(t, tags, 1)
 	assert.EqualValues(t, "test", tags[0].Name)
@@ -30,10 +31,11 @@ func TestRepository_GetTag(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
 	lTagName := "lightweightTag"
@@ -79,10 +81,11 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
 	lTagName := "lightweightTag"

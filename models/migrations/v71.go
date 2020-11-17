@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/pbkdf2"
+	"xorm.io/xorm"
 )
 
 func addScratchHash(x *xorm.Engine) error {

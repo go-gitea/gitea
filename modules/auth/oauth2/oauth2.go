@@ -5,13 +5,13 @@
 package oauth2
 
 import (
-	"math"
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	uuid "github.com/google/uuid"
 	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -19,12 +19,16 @@ import (
 	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
+	"github.com/markbates/goth/providers/gitea"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
-	"github.com/markbates/goth/providers/gplus"
+	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/mastodon"
+	"github.com/markbates/goth/providers/nextcloud"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
-	"github.com/satori/go.uuid"
+	"github.com/markbates/goth/providers/yandex"
+	"xorm.io/xorm"
 )
 
 var (
@@ -55,11 +59,11 @@ func Init(x *xorm.Engine) error {
 	// when using OpenID Connect , since this can contain a large amount of extra information in the id_token
 
 	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
-	store.MaxLength(math.MaxInt16)
+	store.MaxLength(setting.OAuth2.MaxTokenLength)
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
-		return uuid.NewV4().String()
+		return uuid.New().String()
 	}
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
@@ -117,7 +121,7 @@ func RemoveProvider(providerName string) {
 
 // used to create different types of goth providers
 func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string, customURLMapping *CustomURLMapping) (goth.Provider, error) {
-	callbackURL := setting.AppURL + "user/oauth2/" + providerName + "/callback"
+	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
 
 	var provider goth.Provider
 	var err error
@@ -165,8 +169,8 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
-	case "gplus":
-		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
+	case "gplus": // named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
+		provider = google.New(clientID, clientSecret, callbackURL)
 	case "openidConnect":
 		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
@@ -175,6 +179,47 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
 	case "discord":
 		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
+	case "gitea":
+		authURL := gitea.AuthURL
+		tokenURL := gitea.TokenURL
+		profileURL := gitea.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+	case "nextcloud":
+		authURL := nextcloud.AuthURL
+		tokenURL := nextcloud.TokenURL
+		profileURL := nextcloud.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = nextcloud.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+	case "yandex":
+		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
+		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
+	case "mastodon":
+		instanceURL := mastodon.InstanceURL
+		if customURLMapping != nil && len(customURLMapping.AuthURL) > 0 {
+			instanceURL = customURLMapping.AuthURL
+		}
+		provider = mastodon.NewCustomisedURL(clientID, clientSecret, callbackURL, instanceURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
@@ -192,6 +237,10 @@ func GetDefaultTokenURL(provider string) string {
 		return github.TokenURL
 	case "gitlab":
 		return gitlab.TokenURL
+	case "gitea":
+		return gitea.TokenURL
+	case "nextcloud":
+		return nextcloud.TokenURL
 	}
 	return ""
 }
@@ -203,6 +252,12 @@ func GetDefaultAuthURL(provider string) string {
 		return github.AuthURL
 	case "gitlab":
 		return gitlab.AuthURL
+	case "gitea":
+		return gitea.AuthURL
+	case "nextcloud":
+		return nextcloud.AuthURL
+	case "mastodon":
+		return mastodon.InstanceURL
 	}
 	return ""
 }
@@ -214,6 +269,10 @@ func GetDefaultProfileURL(provider string) string {
 		return github.ProfileURL
 	case "gitlab":
 		return gitlab.ProfileURL
+	case "gitea":
+		return gitea.ProfileURL
+	case "nextcloud":
+		return nextcloud.ProfileURL
 	}
 	return ""
 }

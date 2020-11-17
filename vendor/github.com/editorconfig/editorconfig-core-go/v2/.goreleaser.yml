@@ -1,0 +1,74 @@
+project_name: editorconfig-core-go
+
+before:
+  hooks:
+  - go mod tidy
+
+builds:
+- id: editorconfig
+  main: ./cmd/editorconfig/main.go
+  binary: editorconfig
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  - windows
+
+archives:
+- id: tarball
+  builds:
+  - editorconfig
+  format_overrides:
+  - goos: windows
+    format: zip
+  files:
+  - none*
+
+dockers:
+- image_templates:
+  - docker.pkg.github.com/editorconfig/editorconfig-core-go/editorconfig:latest
+  - docker.pkg.github.com/editorconfig/editorconfig-core-go/editorconfig:{{ .Tag }}
+  - docker.pkg.github.com/editorconfig/editorconfig-core-go/editorconfig:v{{ .Major }}
+  - docker.pkg.github.com/editorconfig/editorconfig-core-go/editorconfig:v{{ .Major }}.{{ .Minor }}
+  goos: linux
+  goarch: amd64
+  binaries:
+  - editorconfig
+  build_flag_templates:
+  - "--pull"
+  - "--label=org.label-schema.schema-version=1.0"
+  - "--label=org.label-schema.version={{ .Version }}"
+  - "--label=org.label-schema.name={{ .ProjectName }}"
+
+nfpms:
+- vendor: EditorConfig
+  homepage: https://github.com/editorconfig/editorconfig-core-go
+  maintainer: Yoan Blanc <yoan@dosimple.ch>
+  formats:
+    - deb
+    - rpm
+  epoch: 1
+  release: 1
+
+checksum:
+  name_template: 'checksums.txt'
+
+signs:
+- artifacts: checksum
+
+snapshot:
+  name_template: "{{ .Tag }}-development"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+
+release:
+  github:
+    owner: editorconfig
+    name: editorconfig-core-go
+  draft: true

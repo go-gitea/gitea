@@ -22,7 +22,7 @@ func TestAddTopic(t *testing.T) {
 	assert.EqualValues(t, totalNrOfTopics, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
-		Limit: 2,
+		ListOptions: ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(topics))

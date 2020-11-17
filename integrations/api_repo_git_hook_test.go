@@ -21,7 +21,7 @@ echo Hello, World!
 `
 
 func TestAPIListGitHooks(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -47,7 +47,7 @@ func TestAPIListGitHooks(t *testing.T) {
 }
 
 func TestAPIListGitHooksNoHooks(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -68,7 +68,7 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 }
 
 func TestAPIListGitHooksNoAccess(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -81,7 +81,7 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 }
 
 func TestAPIGetGitHook(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -99,7 +99,7 @@ func TestAPIGetGitHook(t *testing.T) {
 }
 
 func TestAPIGetGitHookNoAccess(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -112,7 +112,7 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 }
 
 func TestAPIEditGitHook(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -142,7 +142,7 @@ func TestAPIEditGitHook(t *testing.T) {
 }
 
 func TestAPIEditGitHookNoAccess(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -158,7 +158,7 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 }
 
 func TestAPIDeleteGitHook(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -181,7 +181,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 }
 
 func TestAPIDeleteGitHookNoAccess(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)

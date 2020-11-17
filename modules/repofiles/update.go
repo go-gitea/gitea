@@ -6,18 +6,19 @@ package repofiles
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 
 	stdcharset "golang.org/x/net/html/charset"
@@ -28,6 +29,12 @@ import (
 type IdentityOptions struct {
 	Name  string
 	Email string
+}
+
+// CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
+type CommitDateOptions struct {
+	Author    time.Time
+	Committer time.Time
 }
 
 // UpdateRepoFileOptions holds the repository file update options
@@ -43,6 +50,7 @@ type UpdateRepoFileOptions struct {
 	IsNewFile    bool
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
+	Dates        *CommitDateOptions
 }
 
 func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
@@ -115,7 +123,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
 func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
-	// If no branch name is set, assume master
+	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
 	}
@@ -124,7 +132,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo.GetBranch(opts.OldBranch); err != nil {
+	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -132,7 +140,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo.GetBranch(opts.NewBranch)
+		existingBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -141,8 +149,37 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
+	} else {
+		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
+		if err != nil {
+			return nil, err
+		}
+		if protectedBranch != nil {
+			if !protectedBranch.CanUserPush(doer.ID) {
+				return nil, models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+			if protectedBranch.RequireSignedCommits {
+				_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				if err != nil {
+					if !models.IsErrWontSign(err) {
+						return nil, err
+					}
+					return nil, models.ErrUserCannotCommit{
+						UserName: doer.LowerName,
+					}
+				}
+			}
+			patterns := protectedBranch.GetProtectedFilePatterns()
+			for _, pat := range patterns {
+				if pat.Match(strings.ToLower(opts.TreePath)) {
+					return nil, models.ErrFilePathProtected{
+						Path: opts.TreePath,
+					}
+				}
+			}
+		}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -167,7 +204,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
@@ -201,6 +238,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	encoding := "UTF-8"
 	bom := false
+	executable := false
 
 	if !opts.IsNewFile {
 		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
@@ -236,6 +274,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
 		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
+		executable = fromEntry.IsExecutable()
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -313,12 +352,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	// Check there is no way this can return multiple infos
-	filename2attribute2info, err := t.CheckAttribute("filter", treePath)
-	if err != nil {
-		return nil, err
-	}
-
 	content := opts.Content
 	if bom {
 		content = string(charset.UTF8BOM) + content
@@ -341,16 +374,23 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
-		// OK so we are supposed to LFS this data!
-		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+	if setting.LFS.StartServer {
+		// Check there is no way this can return multiple infos
+		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
 		if err != nil {
 			return nil, err
 		}
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
-		content = lfsMetaObject.Pointer()
-	}
 
+		if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+			// OK so we are supposed to LFS this data!
+			oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+			if err != nil {
+				return nil, err
+			}
+			lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
+			content = lfsMetaObject.Pointer()
+		}
+	}
 	// Add the object to the database
 	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {
@@ -358,8 +398,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Add the object to the index
-	if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
-		return nil, err
+	if executable {
+		if err := t.AddObjectToIndex("100755", objectHash, treePath); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
+			return nil, err
+		}
 	}
 
 	// Now write the tree
@@ -369,7 +415,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, message)
+	var commitHash string
+	if opts.Dates != nil {
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Committer)
+	} else {
+		commitHash, err = t.CommitTree(author, committer, treeHash, message)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -380,10 +431,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-		if !contentStore.Exists(lfsMetaObject) {
+		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		exist, err := contentStore.Exists(lfsMetaObject)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
-				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -393,6 +448,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+		log.Error("%T %v", err, err)
 		return nil, err
 	}
 
@@ -406,101 +462,4 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 	return file, nil
-}
-
-// PushUpdate must be called for any push actions in order to
-// generates necessary push action history feeds and other operations
-func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
-	isNewRef := opts.OldCommitID == git.EmptySHA
-	isDelRef := opts.NewCommitID == git.EmptySHA
-	if isNewRef && isDelRef {
-		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
-	}
-
-	repoPath := models.RepoPath(opts.RepoUserName, opts.RepoName)
-
-	_, err := git.NewCommand("update-server-info").RunInDir(repoPath)
-	if err != nil {
-		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
-	}
-
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-
-	if err = repo.UpdateSize(); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
-	}
-
-	var commits = &models.PushCommits{}
-	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
-		// If is tag reference
-		tagName := opts.RefFullName[len(git.TagPrefix):]
-		if isDelRef {
-			err = models.PushUpdateDeleteTag(repo, tagName)
-			if err != nil {
-				return fmt.Errorf("PushUpdateDeleteTag: %v", err)
-			}
-		} else {
-			// Clear cache for tag commit count
-			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
-			err = models.PushUpdateAddTag(repo, gitRepo, tagName)
-			if err != nil {
-				return fmt.Errorf("PushUpdateAddTag: %v", err)
-			}
-		}
-	} else if !isDelRef {
-		// If is branch reference
-
-		// Clear cache for branch commit count
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
-
-		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
-		if err != nil {
-			return fmt.Errorf("gitRepo.GetCommit: %v", err)
-		}
-
-		// Push new branch.
-		var l *list.List
-		if isNewRef {
-			l, err = newCommit.CommitsBeforeLimit(10)
-			if err != nil {
-				return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
-			}
-		} else {
-			l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
-			if err != nil {
-				return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
-			}
-		}
-
-		commits = models.ListToPushCommits(l)
-	}
-
-	if err := CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  opts.PusherName,
-		RepoOwnerID: repo.OwnerID,
-		RepoName:    repo.Name,
-		RefFullName: opts.RefFullName,
-		OldCommitID: opts.OldCommitID,
-		NewCommitID: opts.NewCommitID,
-		Commits:     commits,
-	}); err != nil {
-		return fmt.Errorf("CommitRepoAction: %v", err)
-	}
-
-	pusher, err := models.GetUserByID(opts.PusherID)
-	if err != nil {
-		return err
-	}
-
-	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
-
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		models.UpdateRepoIndexer(repo)
-	}
-	return nil
 }

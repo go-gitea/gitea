@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"gitea.com/macaron/macaron"
 )
@@ -44,7 +46,7 @@ func ServNoCommand(ctx *macaron.Context) {
 	}
 	results.Key = key
 
-	if key.Type == models.KeyTypeUser {
+	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
 		user, err := models.GetUserByID(key.OwnerID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -59,6 +61,12 @@ func ServNoCommand(ctx *macaron.Context) {
 			})
 			return
 		}
+		if !user.IsActive || user.ProhibitLogin {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": "Your account is disabled.",
+			})
+			return
+		}
 		results.Owner = user
 	}
 	ctx.JSON(http.StatusOK, &results)
@@ -66,7 +74,6 @@ func ServNoCommand(ctx *macaron.Context) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *macaron.Context) {
-	// Although we provide the verbs we don't need them at present they're just for logging purposes
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
@@ -79,7 +86,7 @@ func ServCommand(ctx *macaron.Context) {
 		KeyID:     keyID,
 	}
 
-	// Now because we're not translating things properly let's just default some Engish strings here
+	// Now because we're not translating things properly let's just default some English strings here
 	modeString := "read"
 	if mode > models.AccessModeRead {
 		modeString = "write to"
@@ -97,36 +104,76 @@ func ServCommand(ctx *macaron.Context) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
-	// Now get the Repository and set the results section
-	repo, err := models.GetRepositoryByOwnerAndName(results.OwnerName, results.RepoName)
+	owner, err := models.GetUserByName(results.OwnerName)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.JSON(http.StatusNotFound, map[string]interface{}{
-				"results": results,
-				"type":    "ErrRepoNotExist",
-				"err":     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
-			})
-			return
-		}
-		log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"results": results,
 			"type":    "InternalServerError",
-			"err":     fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
+			"err":     fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
 		})
 		return
 	}
-	repo.OwnerName = ownerName
-	results.RepoID = repo.ID
-
-	// We can shortcut at this point if the repo is a mirror
-	if mode > models.AccessModeRead && repo.IsMirror {
-		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
+	if !owner.IsActive {
+		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"results": results,
-			"type":    "ErrMirrorReadOnly",
-			"err":     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
+			"type":    "ForbiddenError",
+			"err":     "Repository cannot be accessed, you could retry it later",
 		})
 		return
+	}
+
+	// Now get the Repository and set the results section
+	repoExist := true
+	repo, err := models.GetRepositoryByName(owner.ID, results.RepoName)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			repoExist = false
+			for _, verb := range ctx.QueryStrings("verb") {
+				if "git-upload-pack" == verb {
+					// User is fetching/cloning a non-existent repository
+					ctx.JSON(http.StatusNotFound, map[string]interface{}{
+						"results": results,
+						"type":    "ErrRepoNotExist",
+						"err":     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+					})
+					return
+				}
+			}
+		} else {
+			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
+			})
+			return
+		}
+	}
+
+	if repoExist {
+		repo.Owner = owner
+		repo.OwnerName = ownerName
+		results.RepoID = repo.ID
+
+		if repo.IsBeingCreated() {
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     "Repository is being created, you could retry after it finished",
+			})
+			return
+		}
+
+		// We can shortcut at this point if the repo is a mirror
+		if mode > models.AccessModeRead && repo.IsMirror {
+			ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
+				"results": results,
+				"type":    "ErrMirrorReadOnly",
+				"err":     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
+			})
+			return
+		}
 	}
 
 	// Get the Public Key represented by the keyID
@@ -151,6 +198,16 @@ func ServCommand(ctx *macaron.Context) {
 	results.KeyName = key.Name
 	results.KeyID = key.ID
 	results.UserID = key.OwnerID
+
+	// If repo doesn't exist, deploy key doesn't make sense
+	if !repoExist && key.Type == models.KeyTypeDeploy {
+		ctx.JSON(http.StatusNotFound, map[string]interface{}{
+			"results": results,
+			"type":    "ErrRepoNotExist",
+			"err":     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
+		})
+		return
+	}
 
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
@@ -186,6 +243,9 @@ func ServCommand(ctx *macaron.Context) {
 		// so for now use the owner of the repository
 		results.UserName = results.OwnerName
 		results.UserID = repo.OwnerID
+		if !repo.Owner.KeepEmailPrivate {
+			results.UserEmail = repo.Owner.Email
+		}
 	} else {
 		// Get the user represented by the Key
 		var err error
@@ -207,11 +267,22 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
+
+		if !user.IsActive || user.ProhibitLogin {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": "Your account is disabled.",
+			})
+			return
+		}
+
 		results.UserName = user.Name
+		if !user.KeepEmailPrivate {
+			results.UserEmail = user.Email
+		}
 	}
 
 	// Don't allow pushing if the repo is archived
-	if mode > models.AccessModeRead && repo.IsArchived {
+	if repoExist && mode > models.AccessModeRead && repo.IsArchived {
 		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
 			"results": results,
 			"type":    "ErrRepoIsArchived",
@@ -221,7 +292,7 @@ func ServCommand(ctx *macaron.Context) {
 	}
 
 	// Permissions checking:
-	if mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView {
+	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
@@ -256,9 +327,70 @@ func ServCommand(ctx *macaron.Context) {
 		}
 	}
 
-	// Finally if we're trying to touch the wiki we should init it
+	// We already know we aren't using a deploy key
+	if !repoExist {
+		owner, err := models.GetUserByName(ownerName)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
+			})
+			return
+		}
+
+		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"results": results,
+				"type":    "ErrForbidden",
+				"err":     "Push to create is not enabled for organizations.",
+			})
+			return
+		}
+		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"results": results,
+				"type":    "ErrForbidden",
+				"err":     "Push to create is not enabled for users.",
+			})
+			return
+		}
+
+		repo, err = repo_service.PushCreateRepo(user, owner, results.RepoName)
+		if err != nil {
+			log.Error("pushCreateRepo: %v", err)
+			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+				"results": results,
+				"type":    "ErrRepoNotExist",
+				"err":     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+			})
+			return
+		}
+		results.RepoID = repo.ID
+	}
+
 	if results.IsWiki {
-		if err = repo.InitWiki(); err != nil {
+		// Ensure the wiki is enabled before we allow access to it
+		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+			if models.IsErrUnitTypeNotExist(err) {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"results": results,
+					"type":    "ErrForbidden",
+					"err":     "repository wiki is disabled",
+				})
+				return
+			}
+			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+
+		// Finally if we're trying to touch the wiki we should init it
+		if err = wiki_service.InitWiki(repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"results": results,

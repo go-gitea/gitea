@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/tstranex/u2f"
@@ -26,9 +27,8 @@ func U2FRegister(ctx *context.Context, form auth.U2FRegistrationForm) {
 		ctx.ServerError("NewChallenge", err)
 		return
 	}
-	err = ctx.Session.Set("u2fChallenge", challenge)
-	if err != nil {
-		ctx.ServerError("Session.Set", err)
+	if err := ctx.Session.Set("u2fChallenge", challenge); err != nil {
+		ctx.ServerError("Unable to set session key for u2fChallenge", err)
 		return
 	}
 	regs, err := models.GetU2FRegistrationsByUID(ctx.User.ID)
@@ -42,10 +42,14 @@ func U2FRegister(ctx *context.Context, form auth.U2FRegistrationForm) {
 			return
 		}
 	}
-	err = ctx.Session.Set("u2fName", form.Name)
-	if err != nil {
-		ctx.ServerError("", err)
+	if err := ctx.Session.Set("u2fName", form.Name); err != nil {
+		ctx.ServerError("Unable to set session key for u2fName", err)
 		return
+	}
+	// Here we're just going to try to release the session early
+	if err := ctx.Session.Release(); err != nil {
+		// we'll tolerate errors here as they *should* get saved elsewhere
+		log.Error("Unable to save changes to the session: %v", err)
 	}
 	ctx.JSON(200, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
 }

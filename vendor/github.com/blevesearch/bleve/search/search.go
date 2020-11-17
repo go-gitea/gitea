@@ -17,6 +17,7 @@ package search
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/size"
@@ -49,6 +50,24 @@ func (ap ArrayPositions) Equals(other ArrayPositions) bool {
 	return true
 }
 
+func (ap ArrayPositions) Compare(other ArrayPositions) int {
+	for i, p := range ap {
+		if i >= len(other) {
+			return 1
+		}
+		if p < other[i] {
+			return -1
+		}
+		if p > other[i] {
+			return 1
+		}
+	}
+	if len(ap) < len(other) {
+		return -1
+	}
+	return 0
+}
+
 type Location struct {
 	// Pos is the position of the term within the field, starting at 1
 	Pos uint64 `json:"pos"`
@@ -67,6 +86,46 @@ func (l *Location) Size() int {
 }
 
 type Locations []*Location
+
+func (p Locations) Len() int      { return len(p) }
+func (p Locations) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+func (p Locations) Less(i, j int) bool {
+	c := p[i].ArrayPositions.Compare(p[j].ArrayPositions)
+	if c < 0 {
+		return true
+	}
+	if c > 0 {
+		return false
+	}
+	return p[i].Pos < p[j].Pos
+}
+
+func (p Locations) Dedupe() Locations { // destructive!
+	if len(p) <= 1 {
+		return p
+	}
+
+	sort.Sort(p)
+
+	slow := 0
+
+	for _, pfast := range p {
+		pslow := p[slow]
+		if pslow.Pos == pfast.Pos &&
+			pslow.Start == pfast.Start &&
+			pslow.End == pfast.End &&
+			pslow.ArrayPositions.Equals(pfast.ArrayPositions) {
+			continue // duplicate, so only move fast ahead
+		}
+
+		slow++
+
+		p[slow] = pfast
+	}
+
+	return p[:slow+1]
+}
 
 type TermLocationMap map[string]Locations
 
@@ -208,6 +267,7 @@ func (dm *DocumentMatch) Complete(prealloc []Location) []Location {
 
 		var lastField string
 		var tlm TermLocationMap
+		var needsDedupe bool
 
 		for i, ftl := range dm.FieldTermLocations {
 			if lastField != ftl.Field {
@@ -231,12 +291,32 @@ func (dm *DocumentMatch) Complete(prealloc []Location) []Location {
 				loc.ArrayPositions = append(ArrayPositions(nil), loc.ArrayPositions...)
 			}
 
-			tlm[ftl.Term] = append(tlm[ftl.Term], loc)
+			locs := tlm[ftl.Term]
+
+			// if the loc is before or at the last location, then there
+			// might be duplicates that need to be deduplicated
+			if !needsDedupe && len(locs) > 0 {
+				last := locs[len(locs)-1]
+				cmp := loc.ArrayPositions.Compare(last.ArrayPositions)
+				if cmp < 0 || (cmp == 0 && loc.Pos <= last.Pos) {
+					needsDedupe = true
+				}
+			}
+
+			tlm[ftl.Term] = append(locs, loc)
 
 			dm.FieldTermLocations[i] = FieldTermLocation{ // recycle
 				Location: Location{
 					ArrayPositions: ftl.Location.ArrayPositions[:0],
 				},
+			}
+		}
+
+		if needsDedupe {
+			for _, tlm := range dm.Locations {
+				for term, locs := range tlm {
+					tlm[term] = locs.Dedupe()
+				}
 			}
 		}
 	}
@@ -279,6 +359,7 @@ type SearcherOptions struct {
 type SearchContext struct {
 	DocumentMatchPool *DocumentMatchPool
 	Collector         Collector
+	IndexReader       index.IndexReader
 }
 
 func (sc *SearchContext) Size() int {

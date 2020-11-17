@@ -1,0 +1,23 @@
+---
+kind: pipeline
+name: test
+
+workspace:
+  base: /go
+  path: src/gitea.com/lunny/levelqueue
+
+steps:
+- name: test
+  pull: default
+  image: golang:1.13
+  commands:
+  - go get -t -d -v ./...
+  - go build -v
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: https://goproxy.cn
+  when:
+    event:
+    - push
+    - pull_request

@@ -75,7 +75,13 @@ mv custom/conf/app.ini /etc/gitea/conf/app.ini # or mv app.ini /etc/gitea/conf/a
 unzip gitea-repo.zip
 mv gitea-repo/* /var/lib/gitea/repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea/repositories/
-mysql -u$USER -p$PASS $DATABASE <gitea-db.sql
+mysql --default-character-set=utf8mb4 -u$USER -p$PASS $DATABASE <gitea-db.sql
 # or  sqlite3 $DATABASE_PATH <gitea-db.sql
 service gitea restart
 ```
+
+Repository git-hooks should be regenerated if installation method is changed (eg. binary -> Docker), or if Gitea is installed to a different directory than the previous installation.
+
+With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
+
+This ensures that application and configuration file paths in repository git-hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.

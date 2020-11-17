@@ -10,63 +10,75 @@
 
 	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
-		<ui class="ui comments timeline-line">
-			<div class="comment">
+		<ui class="ui timeline">
+			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
 			{{if .Issue.OriginalAuthor }}
-				<span class="avatar"><img src="/img/avatar_default.png"></span>
+				<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
 			{{else}}
-				<a class="avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
+				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
 			{{end}}
-				<div class="content">
-					<div class="ui top attached header">
-					{{if .Issue.OriginalAuthor }}
-						<span class="text black"><i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .Issue.OriginalAuthor }}</span><span class="text grey"> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}<span> <span class="text migrate">{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
-					{{else}}
-						<span class="text grey"><a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}</span>
-					{{end}}
-						{{if not $.Repository.IsArchived}}
-							<div class="ui right actions">
-								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) }}
-								{{if or .IsIssueWriter .IsIssuePoster}}
-									<div class="item action">
-										<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+				<div class="content comment-container">
+					<div class="ui top attached header comment-header df ac sb">
+						<div class="comment-header-left df ac">
+							{{if .Issue.OriginalAuthor }}
+								<span class="text black">
+									<i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
+									{{ .Issue.OriginalAuthor }}
+								</span>
+								<span class="text grey">
+									{{ .i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe }}
+								</span>
+								<span class="text migrate">
+									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}
+								</span>
+							{{else}}
+								<span class="text grey">
+									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+									{{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}
+								</span>
+							{{end}}
+						</div>
+						<div class="comment-header-right actions df ac">
+							{{if not $.Repository.IsArchived}}
+								{{if gt .Issue.ShowTag 0}}
+									<div class="ui basic label">
+										{{if eq .Issue.ShowTag 2}}
+											{{$.i18n.Tr "repo.issues.collaborator"}}
+										{{else if eq .Issue.ShowTag 3}}
+											{{$.i18n.Tr "repo.issues.owner"}}
+										{{end}}
 									</div>
 								{{end}}
-							</div>
-						{{end}}
+								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
+								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{end}}
+						</div>
 					</div>
-					<div class="ui attached segment">
-						<div class="render-content markdown has-emoji">
+					<div class="ui attached segment comment-body">
+						<div class="render-content markdown">
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}
 							{{else}}
 								<span class="no-content">{{.i18n.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div class="raw-content hide">{{.Issue.Content}}</div>
-						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}"></div>
+						<div id="comment-{{.Issue.ID}}" class="raw-content hide">{{.Issue.Content}}</div>
+						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+					{{if .Issue.Attachments}}
+						<div class="dropzone-attachments">
+							<div class="ui clearing divider"></div>
+							<div class="ui middle aligned padded grid">
+								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments}}
+							</div>
+						</div>
+					{{end}}
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
 						<div class="ui attached segment reactions">
-							{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions }}
-						</div>
-					{{end}}
-					{{if .Issue.Attachments}}
-						<div class="ui bottom attached segment">
-							<div class="ui small images">
-								{{range .Issue.Attachments}}
-									<a target="_blank" rel="noopener noreferrer" href="{{AppSubUrl}}/attachments/{{.UUID}}">
-										{{if FilenameIsImage .Name}}
-											<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
-										{{else}}
-											<span class="ui image octicon octicon-desktop-download" title='{{$.i18n.Tr "repo.issues.attachment.download" .Name}}'></span>
-										{{end}}
-									</a>
-								{{end}}
-							</div>
+							{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 						</div>
 					{{end}}
 				</div>
@@ -78,9 +90,9 @@
 				{{ template "repo/issue/view_content/pull". }}
 			{{end}}
 			{{if .IsSigned}}
-				{{ if and (or .IsRepoAdmin .IsRepoIssuesWriter (or (not .Issue.IsLocked))) (not .Repository.IsArchived) }}
-				<div class="comment form">
-					<a class="avatar" href="{{.SignedUser.HomeLink}}">
+				{{ if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived) }}
+				<div class="timeline-item comment form">
+					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
 					</a>
 					<div class="content">
@@ -88,21 +100,23 @@
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
-							<div class="text right">
-								{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
-									{{if .Issue.IsClosed}}
-										<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-											{{.i18n.Tr "repo.issues.reopen_issue"}}
-										</div>
-									{{else}}
-										<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-											{{.i18n.Tr "repo.issues.close_issue"}}
-										</div>
+							<div class="field footer">
+								<div class="text right">
+									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+										{{if .Issue.IsClosed}}
+											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+												{{.i18n.Tr "repo.issues.reopen_issue"}}
+											</div>
+										{{else}}
+											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.i18n.Tr "repo.issues.close_issue"}}
+											</div>
+										{{end}}
 									{{end}}
-								{{end}}
-								<button class="ui green button" tabindex="5">
-									{{.i18n.Tr "repo.issues.create_comment"}}
-								</button>
+									<button class="ui green button" tabindex="5">
+										{{.i18n.Tr "repo.issues.create_comment"}}
+									</button>
+								</div>
 							</div>
 						</form>
 					</div>
@@ -128,8 +142,8 @@
 			{{else}}
 				{{if .IsSigned}}
 					{{if .Repository.IsArchived}}
-					<div class="comment form">
-						<a class="avatar" href="{{.SignedUser.HomeLink}}">
+					<div class="timeline-item comment form">
+						<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 							<img src="{{.SignedUser.RelAvatarLink}}">
 						</a>
 						<div class="content">
@@ -137,21 +151,23 @@
 								{{template "repo/issue/comment_tab" .}}
 								{{.CsrfTokenHtml}}
 								<input id="status" name="status" type="hidden">
-								<div class="text right">
-									{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
-										{{if .Issue.IsClosed}}
-											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-												{{.i18n.Tr "repo.issues.reopen_issue"}}
-											</div>
-										{{else}}
-											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-												{{.i18n.Tr "repo.issues.close_issue"}}
-											</div>
+								<div class="field footer">
+									<div class="text right">
+										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+											{{if .Issue.IsClosed}}
+												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+													{{.i18n.Tr "repo.issues.reopen_issue"}}
+												</div>
+											{{else}}
+												<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+													{{.i18n.Tr "repo.issues.close_issue"}}
+												</div>
+											{{end}}
 										{{end}}
-									{{end}}
-									<button class="ui green button" tabindex="5">
-										{{.i18n.Tr "repo.issues.create_comment"}}
-									</button>
+										<button class="ui green button" tabindex="5">
+											{{.i18n.Tr "repo.issues.create_comment"}}
+										</button>
+									</div>
 								</div>
 							</form>
 						</div>
@@ -172,19 +188,29 @@
 
 <div class="hide" id="edit-content-form">
 	<div class="ui comment form">
-		<div class="ui top attached tabular menu">
+		<div class="ui top tabular menu">
 			<a class="active write item">{{$.i18n.Tr "write"}}</a>
 			<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 		</div>
-		<div class="ui bottom attached active write tab segment">
-			<textarea tabindex="1" name="content"></textarea>
+		<div class="field">
+			<div class="ui bottom active tab write">
+				<textarea tabindex="1" name="content"></textarea>
+			</div>
+			<div class="ui bottom tab preview markdown">
+				{{$.i18n.Tr "loading"}}
+			</div>
 		</div>
-		<div class="ui bottom attached tab preview segment markdown">
-			{{$.i18n.Tr "loading"}}
-		</div>
-		<div class="text right edit buttons">
-			<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-			<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+		{{if .IsAttachmentEnabled}}
+			<div class="field">
+				<div class="comment-files"></div>
+				{{template "repo/upload" .}}
+			</div>
+		{{end}}
+		<div class="field footer">
+			<div class="text right edit">
+				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -195,7 +221,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.branch.delete" .HeadTarget }}
 	</div>
 	<div class="content">

@@ -10,17 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCollaboration_ModeI18nKey(t *testing.T) {
-	assert.Equal(t, "repo.settings.collaboration.read",
-		(&Collaboration{Mode: AccessModeRead}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.write",
-		(&Collaboration{Mode: AccessModeWrite}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.admin",
-		(&Collaboration{Mode: AccessModeAdmin}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.undefined",
-		(&Collaboration{Mode: AccessModeNone}).ModeI18nKey())
-}
-
 func TestRepository_AddCollaborator(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -40,7 +29,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		collaborators, err := repo.GetCollaborators()
+		collaborators, err := repo.GetCollaborators(ListOptions{})
 		assert.NoError(t, err)
 		expectedLen, err := x.Count(&Collaboration{RepoID: repoID})
 		assert.NoError(t, err)

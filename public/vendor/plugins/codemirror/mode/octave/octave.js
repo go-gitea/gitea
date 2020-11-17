@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -17,7 +17,7 @@ CodeMirror.defineMode("octave", function() {
   }
 
   var singleOperators = new RegExp("^[\\+\\-\\*/&|\\^~<>!@'\\\\]");
-  var singleDelimiters = new RegExp('^[\\(\\[\\{\\},:=;]');
+  var singleDelimiters = new RegExp('^[\\(\\[\\{\\},:=;\\.]');
   var doubleOperators = new RegExp("^((==)|(~=)|(<=)|(>=)|(<<)|(>>)|(\\.[\\+\\-\\*/\\^\\\\]))");
   var doubleDelimiters = new RegExp("^((!=)|(\\+=)|(\\-=)|(\\*=)|(/=)|(&=)|(\\|=)|(\\^=))");
   var tripleDelimiters = new RegExp("^((>>=)|(<<=))");
@@ -90,8 +90,8 @@ CodeMirror.defineMode("octave", function() {
     if (stream.match(wordRegexp(['nan','NaN','inf','Inf']))) { return 'number'; };
 
     // Handle Strings
-    if (stream.match(/^"([^"]|(""))*"/)) { return 'string'; } ;
-    if (stream.match(/^'([^']|(''))*'/)) { return 'string'; } ;
+    var m = stream.match(/^"(?:[^"]|"")*("|$)/) || stream.match(/^'(?:[^']|'')*('|$)/)
+    if (m) { return m[1] ? 'string' : "string error"; }
 
     // Handle words
     if (stream.match(keywords)) { return 'keyword'; } ;
@@ -126,7 +126,11 @@ CodeMirror.defineMode("octave", function() {
         state.tokenize = tokenTranspose;
       }
       return style;
-    }
+    },
+
+    lineComment: '%',
+
+    fold: 'indent'
   };
 });
 

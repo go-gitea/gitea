@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -21,13 +23,18 @@ var (
 	GlobalCommandArgs []string
 
 	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 60 * time.Second
+	DefaultCommandExecutionTimeout = 360 * time.Second
 )
+
+// DefaultLocale is the default LC_ALL to run git commands in.
+const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name string
-	args []string
+	name          string
+	args          []string
+	parentContext context.Context
+	desc          string
 }
 
 func (c *Command) String() string {
@@ -39,13 +46,46 @@ func (c *Command) String() string {
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 func NewCommand(args ...string) *Command {
+	return NewCommandContext(DefaultContext, args...)
+}
+
+// NewCommandContext creates and returns a new Git Command based on given command and arguments.
+func NewCommandContext(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return &Command{
-		name: GitExecutable,
-		args: append(cargs, args...),
+		name:          GitExecutable,
+		args:          append(cargs, args...),
+		parentContext: ctx,
 	}
+}
+
+// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+func NewCommandNoGlobals(args ...string) *Command {
+	return NewCommandContextNoGlobals(DefaultContext, args...)
+}
+
+// NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
+	return &Command{
+		name:          GitExecutable,
+		args:          args,
+		parentContext: ctx,
+	}
+}
+
+// SetParentContext sets the parent context for this command
+func (c *Command) SetParentContext(ctx context.Context) *Command {
+	c.parentContext = ctx
+	return c
+}
+
+// SetDescription sets the description for this command which be returned on
+// c.String()
+func (c *Command) SetDescription(desc string) *Command {
+	c.desc = desc
+	return c
 }
 
 // AddArguments adds new argument(s) to the command.
@@ -63,6 +103,12 @@ func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration
 // RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
 func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutEnvFullPipelineFunc(env, timeout, dir, stdout, stderr, stdin, nil)
+}
+
+// RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
+func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -73,11 +119,21 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 		log("%s: %v", dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	cmd.Env = env
+	if env == nil {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	} else {
+		cmd.Env = env
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	}
+
+	// TODO: verify if this is still needed in golang 1.15
+	if goVersionLessThan115 {
+		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
+	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -86,10 +142,22 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 		return err
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir), cmd)
+	desc := c.desc
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
+	}
+	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
-	if err := cmd.Wait(); err != nil {
+	if fn != nil {
+		err := fn(ctx, cancel)
+		if err != nil {
+			cancel()
+			return err
+		}
+	}
+
+	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
 

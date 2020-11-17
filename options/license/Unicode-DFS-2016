@@ -2,7 +2,7 @@ UNICODE, INC. LICENSE AGREEMENT - DATA FILES AND SOFTWARE
 
 Unicode Data Files include all data files under the directories http://www.unicode.org/Public/,
 http://www.unicode.org/reports/, http://www.unicode.org/cldr/data/, http://source.icu-project.org/repos/icu/,
-and http://www.unicode.org/utility/trac/browser/.
+http://www.unicode.org/ivd/data/, and http://www.unicode.org/utility/trac/browser/.
 
 Unicode Data Files do not include PDF online code charts under the directory
 http://www.unicode.org/Public/.
@@ -18,10 +18,8 @@ AND/OR SOFTWARE ("SOFTWARE"), YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO BE BOUND
 BY, ALL OF THE TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE,
 DO NOT DOWNLOAD, INSTALL, COPY, DISTRIBUTE OR USE THE DATA FILES OR SOFTWARE.
 
-COPYRIGHT AND PERMISSION NOTICE
-
-Copyright © 1991-2016 Unicode, Inc. All rights reserved. Distributed under
-the Terms of Use in http://www.unicode.org/copyright.html.
+COPYRIGHT AND PERMISSION NOTICE Copyright © 1991-2016 Unicode, Inc. All rights
+reserved. Distributed under the Terms of Use in http://www.unicode.org/copyright.html.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of the Unicode data files and any associated documentation (the "Data Files")

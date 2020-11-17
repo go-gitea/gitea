@@ -18,10 +18,16 @@ func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVeri
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload
 	}
-	if verification.Reason != "" {
-		verification.Reason = commitVerification.Reason
-	} else if verification.Verified {
-		verification.Reason = "unsigned"
+	if commitVerification.SigningUser != nil {
+		verification.Signer = &structs.PayloadUser{
+			Name:  commitVerification.SigningUser.Name,
+			Email: commitVerification.SigningUser.Email,
+		}
+	}
+	verification.Verified = commitVerification.Verified
+	verification.Reason = commitVerification.Reason
+	if verification.Reason == "" && !verification.Verified {
+		verification.Reason = "gpg.error.not_signed_commit"
 	}
 	return verification
 }

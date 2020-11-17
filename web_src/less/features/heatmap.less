@@ -1,0 +1,49 @@
+#user-heatmap {
+  width: 107%; // Fixes newest contributions not showing
+  text-align: center;
+
+  svg:not(:root) {
+    overflow: inherit;
+    padding: 0 !important;
+  }
+
+  @media @mediaLgAndDown {
+    & {
+      display: none;
+    }
+  }
+
+  .total-contributions {
+    text-align: left;
+    margin-top: 0;
+  }
+}
+
+.heatmap-container {
+  position: relative;
+}
+
+.heatmap-container .total-contributions {
+  font-size: 11px;
+  position: absolute;
+  bottom: 0;
+  left: 25px;
+}
+
+@media @mediaLgAndDown {
+  .heatmap-container .total-contributions {
+    left: 21px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .heatmap-container .total-contributions {
+    font-size: 10px;
+    left: 17px;
+    bottom: -2px;
+  }
+}
+
+.heatmap-container text {
+  fill: currentColor !important;
+}

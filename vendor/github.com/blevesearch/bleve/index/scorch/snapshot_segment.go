@@ -183,9 +183,9 @@ func (cfd *cachedFieldDocs) prepareField(field string, ss *SegmentSnapshot) {
 }
 
 type cachedDocs struct {
+	size  uint64
 	m     sync.Mutex                  // As the cache is asynchronously prepared, need a lock
 	cache map[string]*cachedFieldDocs // Keyed by field
-	size  uint64
 }
 
 func (c *cachedDocs) prepareFields(wantedFields []string, ss *SegmentSnapshot) error {

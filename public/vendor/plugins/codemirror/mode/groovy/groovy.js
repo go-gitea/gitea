@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -21,9 +21,9 @@ CodeMirror.defineMode("groovy", function(config) {
     "abstract as assert boolean break byte case catch char class const continue def default " +
     "do double else enum extends final finally float for goto if implements import in " +
     "instanceof int interface long native new package private protected public return " +
-    "short static strictfp super switch synchronized threadsafe throw throws transient " +
+    "short static strictfp super switch synchronized threadsafe throw throws trait transient " +
     "try void volatile while");
-  var blockKeywords = words("catch class do else finally for if switch try while enum interface def");
+  var blockKeywords = words("catch class def do else enum finally for if interface switch trait try while");
   var standaloneKeywords = words("return break continue");
   var atoms = words("null true false this");
 
@@ -210,7 +210,7 @@ CodeMirror.defineMode("groovy", function(config) {
     },
 
     indent: function(state, textAfter) {
-      if (!state.tokenize[state.tokenize.length-1].isBase) return 0;
+      if (!state.tokenize[state.tokenize.length-1].isBase) return CodeMirror.Pass;
       var firstChar = textAfter && textAfter.charAt(0), ctx = state.context;
       if (ctx.type == "statement" && !expectExpression(state.lastToken, true)) ctx = ctx.prev;
       var closing = firstChar == ctx.type;
@@ -221,7 +221,10 @@ CodeMirror.defineMode("groovy", function(config) {
 
     electricChars: "{}",
     closeBrackets: {triples: "'\""},
-    fold: "brace"
+    fold: "brace",
+    blockCommentStart: "/*",
+    blockCommentEnd: "*/",
+    lineComment: "//"
   };
 });
 

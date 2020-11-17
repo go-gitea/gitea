@@ -1,9 +1,10 @@
-// +build !amd64,!386 appengine
+// +build !amd64,!386,!arm,!arm64,!ppc64le,!mipsle,!mips64le,!mips64p32le,!wasm appengine
 
 package roaring
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -26,6 +27,10 @@ func (b *arrayContainer) readFrom(stream io.Reader) (int, error) {
 }
 
 func (b *bitmapContainer) writeTo(stream io.Writer) (int, error) {
+	if b.cardinality <= arrayDefaultMaxSize {
+		return 0, errors.New("refusing to write bitmap container with cardinality of array container")
+	}
+
 	// Write set
 	buf := make([]byte, 8*len(b.bitmap))
 	for i, v := range b.bitmap {
@@ -64,6 +69,16 @@ func uint64SliceAsByteSlice(slice []uint64) []byte {
 
 	for i, v := range slice {
 		binary.LittleEndian.PutUint64(by[i*8:], v)
+	}
+
+	return by
+}
+
+func uint16SliceAsByteSlice(slice []uint16) []byte {
+	by := make([]byte, len(slice)*2)
+
+	for i, v := range slice {
+		binary.LittleEndian.PutUint16(by[i*2:], v)
 	}
 
 	return by

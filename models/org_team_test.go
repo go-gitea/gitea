@@ -40,7 +40,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetRepositories())
+		assert.NoError(t, team.GetRepositories(&SearchTeamOptions{}))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -55,7 +55,7 @@ func TestTeam_GetMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetMembers())
+		assert.NoError(t, team.GetMembers(&SearchMembersOptions{}))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			AssertExistsAndLoadBean(t, &TeamUser{UID: member.ID, TeamID: teamID})
@@ -206,7 +206,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.Authorize = AccessModeAdmin
-	assert.NoError(t, UpdateTeam(team, true))
+	assert.NoError(t, UpdateTeam(team, true, false))
 
 	team = AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -225,7 +225,7 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(team, true)
+	err := UpdateTeam(team, true, false)
 	assert.True(t, IsErrTeamAlreadyExist(err))
 
 	CheckConsistencyFor(t, &Team{ID: team.ID})
@@ -286,7 +286,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, err := GetUserTeams(userID)
+		teams, err := GetUserTeams(userID, ListOptions{})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			AssertExistsAndLoadBean(t, &TeamUser{TeamID: team.ID, UID: userID})

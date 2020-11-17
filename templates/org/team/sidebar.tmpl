@@ -3,9 +3,17 @@
 		<strong>{{.Team.Name}}</strong>
 		<div class="ui right">
 			{{if .Team.IsMember $.SignedUser.ID}}
-				<a class="ui red tiny button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave?uid={{$.SignedUser.ID}}&page=home">{{$.i18n.Tr "org.teams.leave"}}</a>
+				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave">
+					{{$.CsrfTokenHtml}}
+					<input type="hidden" name="page" value="home"/>
+					<button type="submit" class="ui red tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
+				</form>
 			{{else if .IsOrganizationOwner}}
-				<a class="ui blue tiny button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join?uid={{$.SignedUser.ID}}&page=team">{{$.i18n.Tr "org.teams.join"}}</a>
+				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join">
+					{{$.CsrfTokenHtml}}
+					<input type="hidden" name="page" value="team"/>
+					<button type="submit" class="ui blue tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
+				</form>
 			{{end}}
 		</div>
 	</h4>
@@ -22,17 +30,32 @@
 			{{if eq .Team.LowerName "owners"}}
 				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
 			{{else if (eq .Team.Authorize 1)}}
-				{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+				{{end}}
 			{{else if (eq .Team.Authorize 2)}}
-				{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
+				{{end}}
 			{{else if (eq .Team.Authorize 3)}}
-				{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
+				{{end}}
+			{{end}}
+			{{if .Team.CanCreateOrgRepo}}
+				<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
 			{{end}}
 		</div>
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit"><span class="octicon octicon-gear"></span> {{$.i18n.Tr "org.teams.settings"}}</a>
+			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>

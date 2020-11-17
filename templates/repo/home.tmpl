@@ -1,11 +1,11 @@
 {{template "base/head" .}}
-<div class="repository file list">
+<div class="repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
-				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				{{if .Repository.DescriptionHTML}}<span class="description">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
@@ -15,7 +15,7 @@
 							<div class="ui action input">
 								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
 								<button class="ui icon button" type="submit">
-									<i class="search icon"></i>
+									{{svg "octicon-search"}}
 								</button>
 							</div>
 						</div>
@@ -34,7 +34,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
+						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}{{svg "octicon-x" 16 "delete icon ml-3 mt-1"}}</div>
 						{{end}}
 						<div class="text"></div>
 					</div>
@@ -62,10 +62,10 @@
 			{{ $l := Subtract $n 1}}
 			<!-- If home page, show new PR. If not, show breadcrumb -->
 			{{if eq $n 0}}
-				{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
+				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					<div class="fitted item">
 						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
-							<button id="new-pull-request" class="ui compact basic button">{{.i18n.Tr "repo.pulls.compare_changes"}}</button>
+							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}</button>
 						</a>
 					</div>
 				{{end}}
@@ -95,6 +95,17 @@
 
 			</div>
 			<div class="fitted item">
+				{{if eq $n 0}}
+					{{if .Repository.IsTemplate}}
+						<div class="ui tiny blue buttons">
+							<a href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}" class="ui button">
+								{{.i18n.Tr "repo.use_template"}}
+							</a>
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+			<div class="fitted item">
 
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
@@ -116,14 +127,14 @@
 						{{end}}
 						{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-								<i class="octicon octicon-clippy"></i>
+								{{svg "octicon-clippy"}}
 							</button>
 						{{end}}
 						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
-							<i class="download icon"></i>
+							{{svg "octicon-download"}}
 							<div class="menu">
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							</div>
 						</div>
 					</div>

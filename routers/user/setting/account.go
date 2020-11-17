@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
@@ -26,7 +28,6 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 
 	loadAccountData(ctx)
 
@@ -51,6 +52,15 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
+	} else if !password.IsComplexEnough(form.Password) {
+		ctx.Flash.Error(password.BuildComplexityError(ctx))
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), form.Password); pwned || err != nil {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Flash.Error(errMsg)
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
@@ -85,6 +95,51 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
+	// Send activation Email
+	if ctx.Query("_method") == "SENDACTIVATION" {
+		var address string
+		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
+			log.Error("Send activation: activation still pending")
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			return
+		}
+		if ctx.Query("id") == "PRIMARY" {
+			if ctx.User.IsActive {
+				log.Error("Send activation: email not set for activation")
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
+			mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
+			address = ctx.User.Email
+		} else {
+			id := ctx.QueryInt64("id")
+			email, err := models.GetEmailAddressByID(ctx.User.ID, id)
+			if err != nil {
+				log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
+			if email == nil {
+				log.Error("Send activation: EmailAddress not found; user:%d, id: %d", ctx.User.ID, id)
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
+			if email.IsActivated {
+				log.Error("Send activation: email not set for activation")
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
+			mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+			address = email.Email
+		}
+
+		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		}
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
 	// Set Email Notification Preference
 	if ctx.Query("_method") == "NOTIFICATION" {
 		preference := ctx.Query("preference")
@@ -101,6 +156,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			return
 		}
 		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
+		ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
@@ -123,6 +179,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
+		} else if models.IsErrEmailInvalid(err) {
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
+			return
 		}
 		ctx.ServerError("AddEmailAddress", err)
 		return
@@ -130,8 +191,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		models.SendActivateEmailMail(ctx.Context, ctx.User, email)
-
+		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
@@ -220,10 +280,25 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 }
 
 func loadAccountData(ctx *context.Context) {
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
+	emlist, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
+	type UserEmail struct {
+		models.EmailAddress
+		CanBePrimary bool
+	}
+	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)
+	emails := make([]*UserEmail, len(emlist))
+	for i, em := range emlist {
+		var email UserEmail
+		email.EmailAddress = *em
+		email.CanBePrimary = em.IsActivated
+		emails[i] = &email
+	}
 	ctx.Data["Emails"] = emails
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
+	ctx.Data["ActivationsPending"] = pendingActivation
+	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 }

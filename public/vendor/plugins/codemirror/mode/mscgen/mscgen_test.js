@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({indentUnit: 2}, "mscgen");
@@ -26,7 +26,16 @@
 
   MT("xù/ msgenny keywords classify as 'base'",
     "[base watermark]",
+    "[base wordwrapentities]",
     "[base alt loop opt ref else break par seq assert]"
+  );
+
+  MT("xù/ msgenny constants classify as 'base'",
+    "[base auto]"
+  );
+
+  MT("mscgen constants classify as 'variable'",
+    "[variable true]", "[variable false]", "[variable on]", "[variable off]"
   );
 
   MT("mscgen options classify as keyword",
@@ -63,7 +72,7 @@
   MT("a typical program",
     "[comment # typical mscgen program]",
     "[keyword msc][base  ][bracket {]",
-    "[keyword wordwraparcs][operator =][string \"true\"][base , ][keyword hscale][operator =][string \"0.8\"][keyword arcgradient][operator =][base 30;]",
+    "[keyword wordwraparcs][operator =][variable true][base , ][keyword hscale][operator =][string \"0.8\"][base , ][keyword arcgradient][operator =][base 30;]",
     "[base   a][bracket [[][attribute label][operator =][string \"Entity A\"][bracket ]]][base ,]",
     "[base   b][bracket [[][attribute label][operator =][string \"Entity B\"][bracket ]]][base ,]",
     "[base   c][bracket [[][attribute label][operator =][string \"Entity C\"][bracket ]]][base ;]",

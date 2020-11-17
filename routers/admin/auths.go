@@ -5,25 +5,34 @@
 package admin
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
+	"xorm.io/xorm/convert"
 )
 
 const (
 	tplAuths    base.TplName = "admin/auth/list"
 	tplAuthNew  base.TplName = "admin/auth/new"
 	tplAuthEdit base.TplName = "admin/auth/edit"
+)
+
+var (
+	separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
+	langCodePattern      = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
 )
 
 // Authentications show authentication config page
@@ -49,13 +58,20 @@ type dropdownItem struct {
 }
 
 var (
-	authSources = []dropdownItem{
-		{models.LoginNames[models.LoginLDAP], models.LoginLDAP},
-		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
-		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
-		{models.LoginNames[models.LoginPAM], models.LoginPAM},
-		{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
-	}
+	authSources = func() []dropdownItem {
+		items := []dropdownItem{
+			{models.LoginNames[models.LoginLDAP], models.LoginLDAP},
+			{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
+			{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
+			{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
+			{models.LoginNames[models.LoginSSPI], models.LoginSSPI},
+		}
+		if pam.Supported {
+			items = append(items, dropdownItem{models.LoginNames[models.LoginPAM], models.LoginPAM})
+		}
+		return items
+	}()
+
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
 		{models.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
@@ -80,6 +96,12 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+
+	ctx.Data["SSPIAutoCreateUsers"] = true
+	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPIStripDomainNames"] = true
+	ctx.Data["SSPISeparatorReplacement"] = "_"
+	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
 	for key := range models.OAuth2Providers {
@@ -114,7 +136,14 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			AttributeSSHPublicKey: form.AttributeSSHPublicKey,
 			SearchPageSize:        pageSize,
 			Filter:                form.Filter,
+			GroupsEnabled:         form.GroupsEnabled,
+			GroupDN:               form.GroupDN,
+			GroupFilter:           form.GroupFilter,
+			GroupMemberUID:        form.GroupMemberUID,
+			UserUID:               form.UserUID,
 			AdminFilter:           form.AdminFilter,
+			RestrictedFilter:      form.RestrictedFilter,
+			AllowDeactivateAll:    form.AllowDeactivateAll,
 			Enabled:               true,
 		},
 	}
@@ -152,6 +181,30 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 	}
 }
 
+func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*models.SSPIConfig, error) {
+	if util.IsEmptyString(form.SSPISeparatorReplacement) {
+		ctx.Data["Err_SSPISeparatorReplacement"] = true
+		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.require_error"))
+	}
+	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
+		ctx.Data["Err_SSPISeparatorReplacement"] = true
+		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.alpha_dash_dot_error"))
+	}
+
+	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
+		ctx.Data["Err_SSPIDefaultLanguage"] = true
+		return nil, errors.New(ctx.Tr("form.lang_select_error"))
+	}
+
+	return &models.SSPIConfig{
+		AutoCreateUsers:      form.SSPIAutoCreateUsers,
+		AutoActivateUsers:    form.SSPIAutoActivateUsers,
+		StripDomainNames:     form.SSPIStripDomainNames,
+		SeparatorReplacement: form.SSPISeparatorReplacement,
+		DefaultLanguage:      form.SSPIDefaultLanguage,
+	}, nil
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
@@ -166,8 +219,14 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 
+	ctx.Data["SSPIAutoCreateUsers"] = true
+	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPIStripDomainNames"] = true
+	ctx.Data["SSPISeparatorReplacement"] = "_"
+	ctx.Data["SSPIDefaultLanguage"] = ""
+
 	hasTLS := false
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
@@ -181,6 +240,19 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
+	case models.LoginSSPI:
+		var err error
+		config, err = parseSSPIConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
+			return
+		}
+		existing, err := models.LoginSourcesByType(models.LoginSSPI)
+		if err != nil || len(existing) > 0 {
+			ctx.Data["Err_Type"] = true
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
+			return
+		}
 	default:
 		ctx.Error(400)
 		return
@@ -262,7 +334,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		return
 	}
 
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
@@ -274,6 +346,12 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
+	case models.LoginSSPI:
+		config, err = parseSSPIConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
+			return
+		}
 	default:
 		ctx.Error(400)
 		return

@@ -19,6 +19,9 @@ linters:
   disable-all: true
   fast: false
 
+run:
+  timeout: 3m
+
 linters-settings:
   gocritic:
     disabled-checks:
@@ -67,7 +70,10 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/routes.go
+    - path: routers/routes/macaron.go
+      linters:
+        - dupl
+    - path: routers/api/v1/repo/issue_subscription.go
       linters:
         - dupl
     - path: routers/repo/view.go
@@ -89,3 +95,15 @@ issues:
     - linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/update.go
+      linters:
+        - unused
+    - path: cmd/dump.go
+      linters:
+        - dupl
+    - text: "commentFormatting: put a space between `//` and comment text"
+      linters:
+        - gocritic
+    - text: "exitAfterDefer:"
+      linters:
+        - gocritic

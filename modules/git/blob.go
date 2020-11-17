@@ -6,11 +6,12 @@
 package git
 
 import (
+	"bytes"
 	"encoding/base64"
 	"io"
 	"io/ioutil"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // Blob represents a Git object.
@@ -48,6 +49,28 @@ func (b *Blob) GetBlobContent() (string, error) {
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
 	return string(buf), nil
+}
+
+// GetBlobLineCount gets line count of lob as raw text
+func (b *Blob) GetBlobLineCount() (int, error) {
+	reader, err := b.DataAsync()
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+	for {
+		c, err := reader.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+		switch {
+		case err == io.EOF:
+			return count, nil
+		case err != nil:
+			return count, err
+		}
+	}
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
