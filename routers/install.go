@@ -88,7 +88,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
 			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			rnd.HTML(resp, 200, tplPostInstall, nil)
+			_ = rnd.HTML(resp, 200, tplPostInstall, nil)
 			return
 		}
 
@@ -528,7 +528,10 @@ func InstallPost(ctx *InstallContext) {
 	ctx.Flash(gitea_context.SuccessFlash, ctx.Tr("install.install_success"))
 
 	ctx.Resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-	ctx.HTML(200, tplPostInstall)
+	if err := ctx.HTML(200, tplPostInstall); err != nil {
+		http.Error(ctx.Resp, fmt.Sprintf("render %s failed: %v", tplPostInstall, err), 500)
+		return
+	}
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
