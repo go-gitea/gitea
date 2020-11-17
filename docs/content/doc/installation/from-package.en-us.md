@@ -36,6 +36,14 @@ apk add gitea
 ```
 config is found in **/etc/gitea/app.ini**
 
+## Arch Linux
+
+The rolling release distribution has [Gitea](https://www.archlinux.org/packages/community/x86_64/gitea/) in their official community repository and package updates are provided with new Gitea releases.
+
+```sh
+pacman -S gitea
+```
+
 ## Windows
 
 There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by [Chocolatey](https://chocolatey.org/).
