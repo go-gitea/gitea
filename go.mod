@@ -95,6 +95,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/thedevsaddam/renderer v1.2.0
 	github.com/tinylib/msgp v1.1.5 // indirect
+	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/unknwon/com v1.0.1

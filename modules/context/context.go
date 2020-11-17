@@ -30,8 +30,8 @@ import (
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 	"github.com/alexedwards/scs/v2"
-	"github.com/thedevsaddam/renderer"
 	"github.com/unknwon/com"
+	"github.com/unrolled/render"
 )
 
 // flashes enumerates all the flash types
@@ -53,7 +53,7 @@ type DefaultContext struct {
 	Resp     http.ResponseWriter
 	Req      *http.Request
 	Data     map[string]interface{}
-	Render   *renderer.Render
+	Render   *render.Render
 	Sessions *scs.SessionManager
 	translation.Locale
 	flash *Flash

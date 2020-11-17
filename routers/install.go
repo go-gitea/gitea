@@ -29,8 +29,9 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi"
-	"github.com/thedevsaddam/renderer"
+	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
+	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"gopkg.in/ini.v1"
 )
@@ -76,14 +77,11 @@ type InstallContext = gitea_context.DefaultContext
 
 // InstallInit prepare for rendering installation page
 func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Handler {
-	rnd := renderer.New(
-		renderer.Options{
-			TemplateDir:       "./templates",
-			TemplateExtension: ".tmpl",
-			//ParseGlobPattern: "templates/*.tmpl",
-			FuncMap: gitea_templates.NewFuncMap(),
-		},
-	)
+	rnd := render.New(render.Options{
+		Directory:  "templates",
+		Extensions: []string{".tmpl"},
+		Funcs:      gitea_templates.NewFuncMap(),
+	})
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
@@ -93,7 +91,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 		}
 
 		var locale = Locale(resp, req)
-
+		var startTime = time.Now()
 		var ctx = InstallContext{
 			Resp:   resp,
 			Req:    req,
@@ -102,6 +100,11 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbOptions":     setting.SupportedDatabases,
+				"i18n":          locale,
+				"PageStartTime": startTime,
+				"TmplLoadTimes": func() string {
+					return time.Now().Sub(startTime).String()
+				},
 			},
 			Render:   rnd,
 			Sessions: sessionManager,
@@ -226,7 +229,6 @@ func Install(ctx *InstallContext) {
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
 	auth.AssignForm(form, ctx.Data)
-	fmt.Println("-------", tplInstall, ctx.Data)
 	_ = ctx.HTML(200, tplInstall)
 }
 
