@@ -125,25 +125,7 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui labels list">
-			{{if not .HasSelectedLabel}}
-				<span class="no-select item">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
-			{{end}}
-			{{range .Labels}}
-				{{if .IsChecked}}
-					<div class="item">
-						<a class="ui label" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-					</div>
-				{{end}}
-			{{end}}
-			{{range .OrgLabels}}
-				{{if .IsChecked}}
-					<div class="item">
-						<a class="ui label" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-					</div>
-				{{end}}
-			{{end}}
-		</div>
+		{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
 
 		<div class="ui divider"></div>
 
