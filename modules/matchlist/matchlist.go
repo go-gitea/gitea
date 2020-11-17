@@ -10,13 +10,13 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// Matchlist represents a black or white list
+// Matchlist represents a block or allow list
 type Matchlist struct {
 	rules     []string
 	ruleGlobs []glob.Glob
 }
 
-// NewMatchlist creates a new black or white list
+// NewMatchlist creates a new block or allow list
 func NewMatchlist(rules ...string) (*Matchlist, error) {
 	for i := range rules {
 		rules[i] = strings.ToLower(rules[i])
