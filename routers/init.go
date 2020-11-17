@@ -203,7 +203,7 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("Failed to initialize task scheduler: %v", err)
 	}
 	if err := repo_migrations.Init(); err != nil {
-		log.Fatal("Failed to initialize migrations: %v", err)
+		log.Fatal("Failed to initialize repository migrations: %v", err)
 	}
 	eventsource.GetManager().Init()
 
