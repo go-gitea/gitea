@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -84,6 +85,23 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
+		return nil, err
+	}
+
+	// split namespace and subdirectory
+	pathParts := strings.Split(strings.Trim(repoPath, "/"), "/")
+	for len(pathParts) > 2 {
+		if _, _, err = gitlabClient.Version.GetVersion(); err == nil {
+			break
+		}
+
+		baseURL = path.Join(baseURL, pathParts[0])
+		pathParts = pathParts[1:]
+		_ = gitlab.WithBaseURL(baseURL)(gitlabClient)
+		repoPath = strings.Join(pathParts, "/")
+	}
+	if err != nil {
+		log.Trace("Error could not get gitlab version: %v", err)
 		return nil, err
 	}
 
