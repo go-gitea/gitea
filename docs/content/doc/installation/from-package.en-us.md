@@ -44,6 +44,14 @@ The rolling release distribution has [Gitea](https://www.archlinux.org/packages/
 pacman -S gitea
 ```
 
+## Archl Linux ARM
+
+Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages/aarch64/gitea), [armv7h](https://archlinuxarm.org/packages/armv7h/gitea) and [armv6h](https://archlinuxarm.org/packages/armv6h/gitea).
+
+```sh
+pacman -S gitea
+```
+
 ## Windows
 
 There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by [Chocolatey](https://chocolatey.org/).
