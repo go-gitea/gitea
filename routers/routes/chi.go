@@ -17,12 +17,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/routers"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type routerLoggerOptions struct {
@@ -249,6 +252,18 @@ func NormalRoutes() http.Handler {
 		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
 			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
 		})
+	}
+
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		r.Get("/metrics", routers.Metrics)
 	}
 
 	return r
