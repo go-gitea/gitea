@@ -37,12 +37,12 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 	}
 
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if len(setting.Migration.WhitelistedDomains) > 0 {
-			if !whitelist.Match(u.Host) {
+		if len(setting.Migration.AllowlistedDomains) > 0 {
+			if !allowlist.Match(u.Host) {
 				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
 			}
 		} else {
-			if blacklist.Match(u.Host) {
+			if blocklist.Match(u.Host) {
 				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
 			}
 		}
@@ -338,21 +338,21 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 }
 
 var (
-	whitelist *matchlist.Matchlist
-	blacklist *matchlist.Matchlist
+	allowlist *matchlist.Matchlist
+	blocklist *matchlist.Matchlist
 )
 
 // Init migrations service
 func Init() error {
 	var err error
-	whitelist, err = matchlist.NewMatchlist(setting.Migration.WhitelistedDomains...)
+	allowlist, err = matchlist.NewMatchlist(setting.Migration.AllowlistedDomains...)
 	if err != nil {
-		return fmt.Errorf("Init migration whitelist domains failed: %v", err)
+		return fmt.Errorf("init migration allowlist domains failed: %v", err)
 	}
 
-	blacklist, err = matchlist.NewMatchlist(setting.Migration.BlacklistedDomains...)
+	blocklist, err = matchlist.NewMatchlist(setting.Migration.BlocklistedDomains...)
 	if err != nil {
-		return fmt.Errorf("Init migration blacklist domains failed: %v", err)
+		return fmt.Errorf("init migration blocklist domains failed: %v", err)
 	}
 	return nil
 }

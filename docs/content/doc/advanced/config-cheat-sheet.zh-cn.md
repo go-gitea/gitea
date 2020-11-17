@@ -365,8 +365,8 @@ MINIO_USE_SSL = false
 
 ## Migraions (`migration`)
 
-- `WHITELISTED_DOMAINS`: ****: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLACKLISTED_DOMAINS`: ****: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `WHITELISTED_DOMAINS` 不为空，此选项将会被忽略。
+- `ALLOWLISTED_DOMAINS`: ****: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
+- `BLOCKLISTED_DOMAINS`: ****: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWLISTED_DOMAINS` 不为空，此选项将会被忽略。
 
 ## Other (`other`)
 

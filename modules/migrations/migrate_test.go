@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMigrateWhiteBlacklist(t *testing.T) {
-	setting.Migration.WhitelistedDomains = []string{"github.com"}
+func TestMigrateWhiteBlocklist(t *testing.T) {
+	setting.Migration.AllowlistedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
 	allowed, err := isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")
@@ -24,8 +24,8 @@ func TestMigrateWhiteBlacklist(t *testing.T) {
 	assert.True(t, allowed)
 	assert.NoError(t, err)
 
-	setting.Migration.WhitelistedDomains = []string{}
-	setting.Migration.BlacklistedDomains = []string{"github.com"}
+	setting.Migration.AllowlistedDomains = []string{}
+	setting.Migration.BlocklistedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
 	allowed, err = isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")

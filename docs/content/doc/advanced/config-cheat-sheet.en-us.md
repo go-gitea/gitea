@@ -904,8 +904,8 @@ And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
 ## Migraions (`migration`)
 
-- `WHITELISTED_DOMAINS`: ****: Domains whitelist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
-- `BLACKLISTED_DOMAINS`: ****: Domains blacklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `WHITELISTED_DOMAINS` is not blank, this option will be ignored.
+- `ALLOWLISTED_DOMAINS`: ****: Domains whitelist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
+- `BLOCKLISTED_DOMAINS`: ****: Domains blacklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWLISTED_DOMAINS` is not blank, this option will be ignored.
 
 ## Other (`other`)
 

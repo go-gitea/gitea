@@ -10,11 +10,11 @@ import (
 
 // Migration represents migrations' settings
 var Migration = struct {
-	WhitelistedDomains []string
-	BlacklistedDomains []string
+	AllowlistedDomains []string
+	BlocklistedDomains []string
 }{
-	WhitelistedDomains: []string{},
-	BlacklistedDomains: []string{},
+	AllowlistedDomains: []string{},
+	BlocklistedDomains: []string{},
 }
 
 // InitMigrationConfig represents load migration configurations
