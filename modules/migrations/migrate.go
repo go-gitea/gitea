@@ -31,7 +31,7 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 func isMigrateURLAllowed(remoteURL string) (bool, error) {
-	u, err := url.Parse(remoteURL)
+	u, err := url.Parse(strings.ToLower(remoteURL))
 	if err != nil {
 		return false, err
 	}

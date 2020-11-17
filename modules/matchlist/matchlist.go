@@ -5,6 +5,8 @@
 package matchlist
 
 import (
+	"strings"
+
 	"github.com/gobwas/glob"
 )
 
@@ -16,6 +18,9 @@ type Matchlist struct {
 
 // NewMatchlist creates a new black or white list
 func NewMatchlist(rules ...string) (*Matchlist, error) {
+	for i := range rules {
+		rules[i] = strings.ToLower(rules[i])
+	}
 	list := Matchlist{
 		rules:     rules,
 		ruleGlobs: make([]glob.Glob, 0, len(rules)),
