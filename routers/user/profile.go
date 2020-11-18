@@ -101,6 +101,9 @@ func Profile(ctx *context.Context) {
 		data, err := models.GetUserHeatmapDataByUser(ctxUser)
 		if err == nil {
 			ctx.Data["HeatmapData"] = data
+		} else {
+			ctx.ServerError("GetUserHeatmapDataByUser", err)
+			return
 		}
 	}
 
