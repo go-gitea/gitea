@@ -125,7 +125,7 @@
 						{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
 						{{end}}
-						<script>
+						<script defer>
 							const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
 							const sshButton = document.getElementById('repo-clone-ssh');
 							const httpsButton = document.getElementById('repo-clone-https');
