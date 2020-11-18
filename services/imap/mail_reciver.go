@@ -6,11 +6,11 @@ package imap
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -30,7 +30,7 @@ func NewContext() {
 	mailReadQueue = queue.CreateQueue("mail_recive", func(data ...queue.Data) {
 		for _, datum := range data {
 			mail := datum.(*Mail)
-			if err := mail.LoadHeader([]string{"From", "To"}); err != nil {
+			if err := mail.LoadHeader([]string{"From", "To", "In-Reply-To", "References"}); err != nil {
 				log.Error("fetch mail header failed: %v", err)
 				continue
 			}
@@ -57,10 +57,6 @@ func NewContext() {
 }
 
 func handleReciveEmail(m *Mail) error {
-	if err := m.LoadBody(); err != nil {
-		return fmt.Errorf("m.LoadBody(): %v", err)
-	}
-
 	from := m.Heads["From"][0].Address
 	doer, err := models.GetUserByEmail(from)
 	if err != nil {
@@ -70,26 +66,61 @@ func handleReciveEmail(m *Mail) error {
 		return fmt.Errorf("models.GetUserByEmail(%v): %v", from, err)
 	}
 
-	// chek if it's a reply mail to an issue or pull request
-	linkNode := m.ContentHTML.Find("a.reply-to")
-	if linkNode.Length() != 1 {
+	checkLink := ""
+
+	// check `In-Reply-To`
+	if links, ok := m.Heads["In-Reply-To"]; ok && links != nil {
+		for _, link := range links {
+			if strings.Contains(link.Address, setting.Domain) {
+				checkLink = link.Address
+				break
+			}
+		}
+	}
+
+	if len(checkLink) == 0 {
+		// check `References`
+		if links, ok := m.Heads["References"]; ok && links != nil {
+			for _, link := range links {
+				if strings.Contains(link.Address, setting.Domain) {
+					checkLink = link.Address
+					break
+				}
+			}
+		}
+	}
+
+	if len(checkLink) == 0 {
 		_ = m.SetRead(true)
 		return nil
 	}
 
-	linkHerf, has := linkNode.First().Attr("href")
-	if !has || len(linkHerf) == 0 {
+	splitLink := strings.SplitN(checkLink, "@", 2)
+	if len(splitLink) != 2 || splitLink[1] != setting.Domain {
 		_ = m.SetRead(true)
 		return nil
 	}
 
-	// expected link {{AppFullUrl}}/{{Owner}}/{{ReopName}}/{{issues/pulls}}/{{index}}#issuecomment-id
-	link, err := url.Parse(linkHerf)
-	if err != nil {
-		return fmt.Errorf("url.Parse(%v): %v", linkHerf, err)
+	splitLink = strings.SplitN(splitLink[0], "?", 2)
+	if len(splitLink) != 2 {
+		_ = m.SetRead(true)
+		return nil
 	}
 
-	splitLink := strings.SplitN(link.Path[1:], "/", 4)
+	checkKey := splitLink[1]
+
+	splitLink = strings.SplitN(splitLink[0], "#", 2)
+	if len(splitLink) == 0 {
+		_ = m.SetRead(true)
+		return nil
+	}
+
+	splitLink = strings.SplitN(splitLink[0], "/", 4)
+	if len(splitLink) != 4 {
+		_ = m.SetRead(true)
+		return nil
+	}
+
 	if len(splitLink) != 4 ||
 		(splitLink[2] != "pulls" && splitLink[2] != "issues") {
 		_ = m.SetRead(true)
@@ -138,6 +169,13 @@ func handleReciveEmail(m *Mail) error {
 		return fmt.Errorf("models.GetIssueWithAttrsByIndex(%v,%v): %v", repo.ID, issueIndex, err)
 	}
 
+	// check key
+	cmp := base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issue.ID, from, doer.Rands))
+	if cmp != checkKey {
+		_ = m.SetRead(true)
+		return nil
+	}
+
 	// check permission
 	permUnit := models.UnitTypeIssues
 	if issue.IsPull {
@@ -152,6 +190,10 @@ func handleReciveEmail(m *Mail) error {
 	if !issue.IsLocked && !perm.CanRead(permUnit) {
 		_ = m.SetRead(true)
 		return nil
+	}
+
+	if err := m.LoadBody(); err != nil {
+		return fmt.Errorf("m.LoadBody(): %v", err)
 	}
 
 	_, err = comment_service.CreateIssueComment(doer,

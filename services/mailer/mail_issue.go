@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 )
@@ -125,12 +126,18 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 		// TODO: Check issue visibility for each user
 		// TODO: Separate recipients by language for i18n mail templates
 		tos := make([]string, len(recipients))
+		toRands := make([]string, len(recipients))
 		for i := range recipients {
 			tos[i] = recipients[i].Email
+			toRands[i] = generateRandKey(ctx.Issue.ID, recipients[i].Email, recipients[i].Rands)
 		}
-		SendAsyncs(composeIssueCommentMessages(ctx, tos, fromMention, "issue comments"))
+		SendAsyncs(composeIssueCommentMessages(ctx, tos, toRands, fromMention, "issue comments"))
 	}
 	return nil
+}
+
+func generateRandKey(issueID int64, mail string, rands string) string {
+	return base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issueID, mail, rands))
 }
 
 // MailParticipants sends new issue thread created emails to repository watchers

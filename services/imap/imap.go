@@ -8,14 +8,17 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"mime"
+	net_mail "net/mail"
+	"strings"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -256,11 +259,11 @@ type Mail struct {
 	Box    string
 
 	// header
-	Date  time.Time
-	Heads map[string][]*mail.Address
+	Date        time.Time
+	Heads       map[string][]*mail.Address
+	SimpleHeads map[string]string
 
 	// body
-	ContentHTML *goquery.Document
 	ContentText string
 
 	Deleted bool
@@ -307,12 +310,55 @@ func (m *Mail) LoadHeader(requestHeads []string) error {
 		m.Heads = make(map[string][]*mail.Address)
 	}
 
-	var v []*mail.Address
+	if m.SimpleHeads == nil {
+		m.SimpleHeads = make(map[string]string)
+	}
+
+	var addrs []*mail.Address
 	for _, head := range requestHeads {
-		if v, err = mr.Header.AddressList(head); err != nil {
-			return err
+		if addrs, err = mr.Header.AddressList(head); err != nil {
+			if !strings.HasPrefix(err.Error(), "mail:") {
+				return err
+			}
 		}
-		m.Heads[head] = v
+
+		if err == nil {
+			m.Heads[head] = addrs
+			continue
+		}
+
+		if !strings.Contains(err.Error(), "expected comma") {
+			// It's not address list, get it as simple heads
+			m.Heads[head] = nil
+			m.SimpleHeads[head] = mr.Header.Get(head)
+			continue
+		}
+
+		// try to fetch "<aa@bb.com> <bb@cc.com>" or
+		//  aa@bb.com bb@cc.com style email list
+		splitMails := strings.Split(mr.Header.Get(head), " ")
+		if len(splitMails) == 0 {
+			m.Heads[head] = nil
+			m.SimpleHeads[head] = mr.Header.Get(head)
+			continue
+		}
+
+		parser := net_mail.AddressParser{
+			WordDecoder: &mime.WordDecoder{
+				CharsetReader: message.CharsetReader,
+			},
+		}
+		addrs = make([]*mail.Address, 0, len(splitMails))
+		for _, addrString := range splitMails {
+			var addr *net_mail.Address
+			addr, err = parser.Parse(addrString)
+			if err != nil {
+				continue
+			}
+			addrs = append(addrs, (*mail.Address)(addr))
+		}
+
+		m.Heads[head] = addrs
 	}
 
 	return nil
@@ -358,20 +404,7 @@ func (m *Mail) LoadBody() error {
 			}
 
 			m.ContentText = string(content)
-			continue
-		}
-
-		if contentType != "text/html" {
-			continue
-		}
-
-		if m.ContentHTML != nil {
-			continue
-		}
-
-		m.ContentHTML, err = goquery.NewDocumentFromReader(p.Body)
-		if err != nil {
-			return err
+			return nil
 		}
 
 		// case *mail.AttachmentHeader:

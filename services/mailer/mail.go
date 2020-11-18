@@ -164,7 +164,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMention bool, info string) []*Message {
+func composeIssueCommentMessages(ctx *mailCommentContext, tos, toRands []string, fromMention bool, info string) []*Message {
 
 	var (
 		subject string
@@ -247,7 +247,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 
 	// Make sure to compose independent messages to avoid leaking user emails
 	msgs := make([]*Message, 0, len(tos))
-	for _, to := range tos {
+	for index, to := range tos {
 		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
@@ -256,12 +256,18 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 			msg.SetHeader("Reply-To", "<"+setting.MailReciveService.ReciveEmail+">")
 		}
 
+		key := ""
+		if toRands != nil {
+			key = toRands[index]
+		}
 		// Set Message-ID on first message so replies know what to reference
 		if actName == "new" {
-			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
+			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference(key)+">")
+			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference(key)+">")
 		} else {
-			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
-			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference()+">")
+			msg.SetHeader("Message-ID", "<"+ctx.Comment.ReplyReference(key)+">")
+			msg.SetHeader("References", "<"+ctx.Comment.ReplyReference(key)+">")
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
 		}
 		msgs = append(msgs, msg)
 	}
@@ -286,7 +292,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 		ActionType: models.ActionType(0),
 		Content:    content,
 		Comment:    comment,
-	}, tos, false, "issue assigned"))
+	}, tos, nil, false, "issue assigned"))
 }
 
 // actionToTemplate returns the type and name of the action facing the user
