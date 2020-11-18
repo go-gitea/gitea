@@ -5,15 +5,13 @@
 package public
 
 import (
-	"encoding/base64"
-	"fmt"
 	"log"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -22,11 +20,8 @@ type Options struct {
 	Directory   string
 	IndexFile   string
 	SkipLogging bool
-	// if set to true, will enable caching. Expires header will also be set to
-	// expire after the defined time.
-	ExpiresAfter time.Duration
-	FileSystem   http.FileSystem
-	Prefix       string
+	FileSystem  http.FileSystem
+	Prefix      string
 }
 
 // KnownPublicEntries list all direct children in the `public` directory
@@ -158,23 +153,10 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		log.Println("[Static] Serving " + file)
 	}
 
-	// Add an Expires header to the static content
-	if opt.ExpiresAfter > 0 {
-		w.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
-		tag := GenerateETag(fmt.Sprint(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
-		w.Header().Set("ETag", tag)
-		if req.Header.Get("If-None-Match") == tag {
-			w.WriteHeader(304)
-			return true
-		}
+	if httpcache.HandleEtagCache(req, w, fi) {
+		return true
 	}
 
 	http.ServeContent(w, req, file, fi.ModTime(), f)
 	return true
-}
-
-// GenerateETag generates an ETag based on size, filename and file modification time
-func GenerateETag(fileSize, fileName, modTime string) string {
-	etag := fileSize + fileName + modTime
-	return base64.StdEncoding.EncodeToString([]byte(etag))
 }

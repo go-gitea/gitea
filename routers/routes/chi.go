@@ -16,13 +16,17 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/routers"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type routerLoggerOptions struct {
@@ -159,6 +163,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 
 			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
 			rPath = strings.TrimPrefix(rPath, "/")
+
+			fi, err := objStore.Stat(rPath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+
 			//If we have matched and access to release or issue
 			fr, err := objStore.Open(rPath)
 			if err != nil {
@@ -197,21 +207,15 @@ func NewChi() chi.Router {
 		setupAccessLogger(c)
 	}
 
-	if setting.ProdMode {
-		log.Warn("ProdMode ignored")
-	}
-
 	c.Use(public.Custom(
 		&public.Options{
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			SkipLogging: setting.DisableRouterLog,
 		},
 	))
 	c.Use(public.Static(
 		&public.Options{
-			Directory:    path.Join(setting.StaticRootPath, "public"),
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			Directory:   path.Join(setting.StaticRootPath, "public"),
+			SkipLogging: setting.DisableRouterLog,
 		},
 	))
 
@@ -244,11 +248,27 @@ func NormalRoutes() http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// robots.txt
 	if setting.HasRobotsTxt {
 		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
+			filePath := path.Join(setting.CustomPath, "robots.txt")
+			fi, err := os.Stat(filePath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+			http.ServeFile(w, req, filePath)
 		})
+	}
+
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		r.Get("/metrics", routers.Metrics)
 	}
 
 	return r
