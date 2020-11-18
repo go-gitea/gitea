@@ -260,15 +260,21 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos, toRands []string,
 		if toRands != nil {
 			key = toRands[index]
 		}
-		// Set Message-ID on first message so replies know what to reference
-		if actName == "new" {
-			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference(key)+">")
-			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference(key)+">")
-		} else {
+
+		if actName != "new" && ctx.Comment != nil {
 			msg.SetHeader("Message-ID", "<"+ctx.Comment.ReplyReference(key)+">")
 			msg.SetHeader("References", "<"+ctx.Comment.ReplyReference(key)+">")
 			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
+			msgs = append(msgs, msg)
+			continue
 		}
+
+		msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference(key)+">")
+		msg.SetHeader("References", "<"+ctx.Issue.ReplyReference(key)+">")
+		if actName != "new" {
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
+		}
+
 		msgs = append(msgs, msg)
 	}
 
