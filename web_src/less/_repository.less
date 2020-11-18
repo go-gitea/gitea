@@ -2874,15 +2874,31 @@
   flex-wrap: wrap;
 }
 
-.labels.list .item {
+.labels.list .item,
+.timeline-item .label {
   padding: .3em .5em !important;
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 3px;
 }
 
-.labels.list .item + .item {
-  margin-left: 3px;
+.issue-item-top-row .label {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 1.5px;
+  margin-bottom: 1.5px;
+}
+
+.labels.list .item,
+.timeline-item .label,
+.issue-item-top-row .label {
+  margin-right: 3px;
+  display: inline !important;
+}
+
+.timeline-item .label:last-of-type,
+.issue-item-top-row .label:last-of-type {
+  margin-right: 0;
 }
 
 tbody.commit-list {

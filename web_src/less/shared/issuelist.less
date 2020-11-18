@@ -2,6 +2,10 @@
   list-style: none;
   margin-top: 1rem;
 
+  a:hover {
+    color: var(--color-primary) !important;
+  }
+
   > .item {
     .issue-checkbox {
       margin-top: 1px;
@@ -20,10 +24,10 @@
     }
 
     .issue-item-top-row {
-      max-width: 80%;
-      overflow-wrap: break-word;
+      max-width: 100%;
       color: var(--color-text);
       font-size: 16px;
+      min-width: 0;
       font-weight: 600;
     }
 
@@ -32,15 +36,8 @@
     }
 
     .title {
-      display: block;
-      min-width: 0;
       color: var(--color-text);
-      font-size: 16px;
-      font-weight: 600;
-
-      &:hover {
-        color: var(--color-primary);
-      }
+      word-break: break-word;
     }
 
     .issue-item-icon-right {
@@ -63,10 +60,6 @@
 
       a {
         color: inherit;
-      }
-
-      a:hover {
-        color: var(--color-primary);
       }
 
       .time-since,
@@ -112,18 +105,10 @@
 
       a.milestone {
         margin-left: 5px;
-
-        &:hover {
-          color: var(--color-primary) !important;
-        }
       }
 
       a.ref {
         margin-left: 8px;
-
-        &:hover {
-          color: var(--color-primary) !important;
-        }
 
         span {
           margin-right: -4px;

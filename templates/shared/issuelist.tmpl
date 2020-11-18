@@ -2,7 +2,7 @@
 	{{ $approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item df py-3">
-			<div class="issue-item-left df py-2">
+			<div class="issue-item-left df py-1">
 				{{if $.CanWriteIssuesOrPulls}}
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
@@ -31,7 +31,7 @@
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row df ac fw">
-					<a class="title my-1 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
+					<a class="title mr-3" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
 					{{if .IsPull }}
 						{{if (index $.CommitStatus .PullRequest.ID)}}
 							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
