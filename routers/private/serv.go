@@ -114,7 +114,7 @@ func ServCommand(ctx *macaron.Context) {
 		})
 		return
 	}
-	if !owner.IsActive {
+	if !owner.IsOrganization() && !owner.IsActive {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"results": results,
 			"type":    "ForbiddenError",
