@@ -5,10 +5,7 @@
 		{{template "base/alert" .}}
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui container ten wide column">
-				{{if .EnableHeatmap}}
-					{{template "user/dashboard/heatmap" .}}
-					<div class="ui divider"></div>
-				{{end}}
+				{{template "user/heatmap" .}}
 				{{template "user/dashboard/feeds" .}}
 			</div>
 			{{template "user/dashboard/repolist" .}}
