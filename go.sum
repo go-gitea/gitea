@@ -54,8 +54,6 @@ gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b h1:2ZE0JE3bKVBcP1VTrW
 gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b/go.mod h1:W5hKG8T1GBfypp5CRQlgoJU4figIL0jhx02y4XA/NOA=
 gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca h1:f5P41nXmXd/YOh8f6098Q0F1Y0QfpyRPSSIkni2XH4Q=
 gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca/go.mod h1:J5h3N+1nKTXtU1x4GxexaQKgAz8UiWecNwi/CfX7CtQ=
-gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4 h1:e2rAFDejB0qN8OrY4xP4XSu8/yT6QmWxDZpB3J7r2GU=
-gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4/go.mod h1:rtOK4J20kpMD9XcNsnO5YA843YSTe/MUMbDj/TJ/Q7A=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439 h1:88c34YM29a1GlWLrLBaG/GTT2htDdJz1u3n9+lmPolg=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439/go.mod h1:IsQPHx73HnnqFBYiVHjg87q4XBZyGXXu77xANukvZuk=
 gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5 h1:6rbhThlqfOb+sSmhrsVFz3bZoAeoloe7TZqyeiPbbWI=
@@ -65,7 +63,6 @@ gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60/go.mod h1:g5ope1b+iWhB
 gitea.com/macaron/inject v0.0.0-20190803172902-8375ba841591/go.mod h1:h6E4kLao1Yko6DOU6QDnQPcuoNzvbZqzj2mtPcEn1aM=
 gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a h1:aOKEXkDTnh4euoH0so/THLXeHtQuqHmDPb1xEk6Ehok=
 gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a/go.mod h1:h6E4kLao1Yko6DOU6QDnQPcuoNzvbZqzj2mtPcEn1aM=
-gitea.com/macaron/macaron v1.3.3-0.20190803174002-53e005ff4827/go.mod h1:/rvxMjIkOq4BM8uPUb+VHuU02ZfAO6R4+wD//tiCiRw=
 gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb/go.mod h1:0coI+mSPSwbsyAbOuFllVS38awuk9mevhLD52l50Gjs=
 gitea.com/macaron/macaron v1.5.0 h1:TvWEcHw1/zaHlo0GTuKEukLh3A99+QsU2mjBrXLXjVQ=
 gitea.com/macaron/macaron v1.5.0/go.mod h1:P7hfDbQjcW22lkYkXlxdRIfWOXxH2+K4EogN4Q0UlLY=
@@ -102,7 +99,6 @@ github.com/RoaringBitmap/roaring v0.5.5 h1:naNqvO1mNnghk2UvcsqnzHDBn9DRbCIRy94Gm
 github.com/RoaringBitmap/roaring v0.5.5/go.mod h1:puNo5VdzwbaIQxSiDIwfXl4Hnc+fbovcX4IW/dSTtUk=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
-github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755/go.mod h1:voKvFVpXBJxdIPeqjoJuLK+UVcRlo/JLjeToGxPYu68=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
 github.com/akavel/rsrc v0.8.0/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
@@ -326,6 +322,8 @@ github.com/go-asn1-ber/asn1-ber v1.5.1 h1:pDbRAunXzIUXfx4CB2QJFv5IuPiuoW+sWvr/Us
 github.com/go-asn1-ber/asn1-ber v1.5.1/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-chi/chi v1.5.0 h1:2ZcJZozJ+rj6BA0c19ffBUGXEKAT/aOLOtQjD46vBRA=
 github.com/go-chi/chi v1.5.0/go.mod h1:REp24E+25iKvxgeTfHmdUoL5x15kBiDBlnIl5bCwe2k=
+github.com/go-chi/cors v1.1.1 h1:eHuqxsIw89iXcWnWUN8R72JMibABJTN/4IOYI5WERvw=
+github.com/go-chi/cors v1.1.1/go.mod h1:K2Yje0VW/SJzxiyMYu6iPQYa7hMjQX2i/F491VChg1I=
 github.com/go-enry/go-enry/v2 v2.5.2 h1:3f3PFAO6JitWkPi1GQ5/m6Xu4gNL1U5soJ8QaYqJ0YQ=
 github.com/go-enry/go-enry/v2 v2.5.2/go.mod h1:GVzIiAytiS5uT/QiuakK7TF1u4xDab87Y8V5EJRpsIQ=
 github.com/go-enry/go-oniguruma v1.2.1 h1:k8aAMuJfMrqm/56SG2lV9Cfti6tC4x8673aHCcBk+eo=

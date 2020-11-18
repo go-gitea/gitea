@@ -9,7 +9,6 @@ require (
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
 	gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
-	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
@@ -40,6 +39,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-chi/chi v1.5.0
+	github.com/go-chi/cors v1.1.1
 	github.com/go-enry/go-enry/v2 v2.5.2
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0

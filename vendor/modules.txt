@@ -28,9 +28,6 @@ gitea.com/macaron/cache/memcache
 # gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 ## explicit
 gitea.com/macaron/captcha
-# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-## explicit
-gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 ## explicit
 gitea.com/macaron/csrf
@@ -273,6 +270,9 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
+# github.com/go-chi/cors v1.1.1
+## explicit
+github.com/go-chi/cors
 # github.com/go-enry/go-enry/v2 v2.5.2
 ## explicit
 github.com/go-enry/go-enry/v2

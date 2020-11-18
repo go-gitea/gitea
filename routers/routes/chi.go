@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -205,6 +206,15 @@ func NewChi() chi.Router {
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
+	}
+
+	if setting.CORSConfig.Enabled {
+		c.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		}))
 	}
 
 	c.Use(public.Custom(

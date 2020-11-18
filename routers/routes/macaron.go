@@ -36,7 +36,6 @@ import (
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/cache"
 	"gitea.com/macaron/captcha"
-	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
@@ -957,16 +956,6 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 	}
 
 	var handlers []macaron.Handler
-	if setting.CORSConfig.Enabled {
-		handlers = append(handlers, cors.CORS(cors.Options{
-			Scheme:           setting.CORSConfig.Scheme,
-			AllowDomain:      setting.CORSConfig.AllowDomain,
-			AllowSubdomain:   setting.CORSConfig.AllowSubdomain,
-			Methods:          setting.CORSConfig.Methods,
-			MaxAgeSeconds:    int(setting.CORSConfig.MaxAge.Seconds()),
-			AllowCredentials: setting.CORSConfig.AllowCredentials,
-		}))
-	}
 	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
