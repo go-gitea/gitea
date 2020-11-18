@@ -33,6 +33,21 @@ type EmailAddress struct {
 	IsPrimary   bool `xorm:"-"`
 }
 
+// ValidateEmail check if email is a allowed address
+func ValidateEmail(email string) error {
+	if len(email) == 0 {
+		return nil
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrEmailInvalid{email}
+	}
+
+	// TODO: add an email allow/block list
+
+	return nil
+}
+
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
@@ -144,9 +159,8 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 		return ErrEmailAlreadyUsed{email.Email}
 	}
 
-	_, err = mail.ParseAddress(email.Email)
-	if err != nil {
-		return ErrEmailInvalid{email.Email}
+	if err = ValidateEmail(email.Email); err != nil {
+		return err
 	}
 
 	_, err = e.Insert(email)
@@ -173,9 +187,8 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 		} else if used {
 			return ErrEmailAlreadyUsed{emails[i].Email}
 		}
-		_, err = mail.ParseAddress(emails[i].Email)
-		if err != nil {
-			return ErrEmailInvalid{emails[i].Email}
+		if err = ValidateEmail(emails[i].Email); err != nil {
+			return err
 		}
 	}
 
