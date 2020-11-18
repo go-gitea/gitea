@@ -16,7 +16,8 @@ export default async function initHeatmap() {
     });
 
     new View().$mount(el);
-  } catch {
+  } catch (err) {
+    console.error(err);
     el.textContent = 'Heatmap failed to load';
   }
 }
