@@ -1282,7 +1282,6 @@ func Activate(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	ctx.Redirect(setting.AppSubURL + "/")
-	return
 }
 
 // ActivateEmail render the activate email page
