@@ -42,7 +42,7 @@ networks:
 
 services:
   server:
-    image: gitea/gitea:latest
+    image: gitea/gitea:{{< version >}}
     container_name: gitea
     environment:
       - USER_UID=1000
@@ -74,7 +74,7 @@ networks:
 
 services:
   server:
-    image: gitea/gitea:latest
+    image: gitea/gitea:{{< version >}}
     container_name: gitea
     environment:
       - USER_UID=1000
@@ -107,7 +107,7 @@ networks:
 
 services:
   server:
-    image: gitea/gitea:latest
+    image: gitea/gitea:{{< version >}}
     container_name: gitea
     environment:
       - USER_UID=1000
@@ -158,7 +158,7 @@ networks:
 
 services:
   server:
-    image: gitea/gitea:latest
+    image: gitea/gitea:{{< version >}}
     container_name: gitea
     environment:
       - USER_UID=1000
@@ -214,7 +214,7 @@ networks:
 +
 services:
   server:
-    image: gitea/gitea:latest
+    image: gitea/gitea:{{< version >}}
     container_name: gitea
     restart: always
     networks:
@@ -315,7 +315,7 @@ version: "3"
 
   services:
     server:
-      image: gitea/gitea:latest
+      image: gitea/gitea:{{< version >}}
       container_name: gitea
       environment:
         - USER_UID=1000
