@@ -609,8 +609,12 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
+	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
+			return []*base.Review{}, nil
+		}
 		return nil, err
 	}
 
