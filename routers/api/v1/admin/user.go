@@ -189,7 +189,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if form.Email != nil {
 		u.Email = *form.Email
 		if len(u.Email) == 0 {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty"))
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
 			return
 		}
 	}
