@@ -92,7 +92,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	pathParts := strings.Split(strings.Trim(repoPath, "/"), "/")
 	var resp *gitlab.Response
 	u, _ := url.Parse(baseURL)
-	for len(pathParts) > 2 {
+	for len(pathParts) >= 2 {
 		_, resp, err = gitlabClient.Version.GetVersion()
 		if err == nil || resp != nil && resp.StatusCode == 401 {
 			err = nil // if no authentication given, this still should work
