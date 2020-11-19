@@ -90,12 +90,17 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 	// split namespace and subdirectory
 	pathParts := strings.Split(strings.Trim(repoPath, "/"), "/")
+	var resp *gitlab.Response
+	u, _ := url.Parse(baseURL)
 	for len(pathParts) > 2 {
-		if _, _, err = gitlabClient.Version.GetVersion(); err == nil {
+		_, resp, err = gitlabClient.Version.GetVersion()
+		if err == nil || resp != nil && resp.StatusCode == 401 {
+			err = nil // if no authentication given, this still should work
 			break
 		}
 
-		baseURL = path.Join(baseURL, pathParts[0])
+		u.Path = path.Join(u.Path, pathParts[0])
+		baseURL = u.String()
 		pathParts = pathParts[1:]
 		_ = gitlab.WithBaseURL(baseURL)(gitlabClient)
 		repoPath = strings.Join(pathParts, "/")
