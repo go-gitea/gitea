@@ -18,7 +18,7 @@ export default async function initHeatmap() {
     new View().$mount(el);
   } catch (err) {
     console.error(err);
-    el.style.display = "flex";
+    el.style.display = 'flex';
     el.textContent = 'Heatmap failed to load';
   }
 }
