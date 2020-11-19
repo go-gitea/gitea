@@ -890,7 +890,7 @@ func VerifyUserActiveCode(code string) (user *User) {
 	return nil
 }
 
-// VerifyUserActiveCode verifies active code and password when activating account
+// VerifyUserActiveCodeAndPassword verifies active code and password when activating account
 func VerifyUserActiveCodeAndPassword(code string, password string) (user *User) {
 	if user = VerifyUserActiveCode(code); user != nil {
 		if user.ValidatePassword(password) {
