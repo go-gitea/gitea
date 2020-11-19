@@ -46,9 +46,14 @@
       }
 
       #profile-avatar {
+        background: none;
+
         img {
           width: 100%;
+          height: auto;
+          object-fit: contain;
         }
+
         @media @mediaSm {
           height: 250px;
           overflow: hidden;

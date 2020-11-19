@@ -8,7 +8,7 @@
 		<div class="ui list">
 			{{range .Forks}}
 				<div class="item">
-					<img class="ui avatar image" src="{{.Owner.RelAvatarLink}}">
+					{{avatar .Owner}}
 					<div class="link">
 						<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 						/

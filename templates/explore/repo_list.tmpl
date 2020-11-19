@@ -2,9 +2,7 @@
 	{{range .Repos}}
 		<div class="item">
 			<div class="ui header">
-				{{if .RelAvatarLink}}
-					<img class="ui avatar image" src="{{.RelAvatarLink}}">
-				{{end}}
+				{{avatar .}}
 				<a class="name" href="{{.Link}}">
 					{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 				</a>
