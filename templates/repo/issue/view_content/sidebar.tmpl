@@ -125,20 +125,7 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui labels list">
-			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
-			{{range .Labels}}
-				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-				</div>
-			{{end}}
-			{{range .OrgLabels}}
-				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-				</div>
-
-			{{end}}
-		</div>
+		{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
 
 		<div class="ui divider"></div>
 
@@ -453,7 +440,7 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
 									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
@@ -481,7 +468,7 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
-							<div class="item{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
 									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}

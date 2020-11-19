@@ -142,7 +142,7 @@ textarea:focus,
       text-align: center;
     }
 
-    @media only screen and (min-width: 768px) {
+    @media @mediaMdAndUp {
       width: 800px !important;
 
       .header {
@@ -169,7 +169,7 @@ textarea:focus,
       }
     }
 
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       .optional .title {
         margin-left: 15px;
       }
@@ -211,7 +211,7 @@ textarea:focus,
   }
 }
 
-@media only screen and (min-width: 768px) {
+@media @mediaMdAndUp {
   .g-recaptcha,
   .h-captcha {
     margin: 0 auto !important;
@@ -220,7 +220,7 @@ textarea:focus,
   }
 }
 
-@media screen and (max-height: 575px) {
+@media (max-height: 575px) {
   #rc-imageselect,
   .g-recaptcha,
   .h-captcha {
@@ -232,6 +232,7 @@ textarea:focus,
 .user.activate,
 .user.forgot.password,
 .user.reset.password,
+.user.link-account,
 .user.signin,
 .user.signup {
   @input-padding: 200px;
@@ -251,7 +252,7 @@ textarea:focus,
 
     .inline.field > label,
     input {
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         width: 100% !important;
       }
     }
@@ -289,7 +290,7 @@ textarea:focus,
         width: 50% !important;
       }
 
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         label,
         input,
         .selection.dropdown {
@@ -307,7 +308,7 @@ textarea:focus,
 
   &.new.repo {
     .ui.form {
-      @media only screen and (min-width: 768px) {
+      @media @mediaMdAndUp {
         #auto-init {
           margin-left: @create-page-form-input-padding+15px;
         }
@@ -316,7 +317,7 @@ textarea:focus,
       .selection.dropdown:not(.owner) {
         width: 50% !important;
 
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           width: 100% !important;
         }
       }
@@ -345,7 +346,7 @@ textarea:focus,
 }
 
 .new.org .ui.form {
-  @media only screen and (max-width: 768px) {
+  @media @mediaSm {
     .field button,
     .field a {
       margin-bottom: 1em;

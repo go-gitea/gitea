@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
+	"net/mail"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -808,6 +809,11 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
+	_, err = mail.ParseAddress(u.Email)
+	if err != nil {
+		return ErrEmailInvalid{u.Email}
+	}
+
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
@@ -951,7 +957,12 @@ func checkDupEmail(e Engine, u *User) error {
 }
 
 func updateUser(e Engine, u *User) error {
-	_, err := e.ID(u.ID).AllCols().Update(u)
+	u.Email = strings.ToLower(u.Email)
+	_, err := mail.ParseAddress(u.Email)
+	if err != nil {
+		return ErrEmailInvalid{u.Email}
+	}
+	_, err = e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 

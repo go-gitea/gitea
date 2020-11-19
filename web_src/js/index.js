@@ -12,7 +12,7 @@ import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
-import initUserHeatmap from './features/userheatmap.js';
+import initHeatmap from './features/heatmap.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
@@ -23,7 +23,7 @@ import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createCodeEditor} from './features/codeeditor.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 import {stripTags} from './utils.js';
 
@@ -1134,17 +1134,6 @@ async function initRepository() {
     initReactionSelector();
   }
 
-  // Diff
-  if ($('.repository.diff').length > 0) {
-    $('.diff-counter').each(function () {
-      const $item = $(this);
-      const addLine = $item.find('span[data-line].add').data('line');
-      const delLine = $item.find('span[data-line].del').data('line');
-      const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-      $item.find('.bar .add').css('width', `${addPercent}%`);
-    });
-  }
-
   // Quick start and repository home
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
@@ -1732,15 +1721,10 @@ function initUserSettings() {
   }
 }
 
-function initGithook() {
-  if ($('.edit.githook').length === 0) {
-    return;
-  }
-
-  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
-    lineNumbers: true,
-    mode: 'shell'
-  }), 'shell');
+async function initGithook() {
+  if ($('.edit.githook').length === 0) return;
+  const filename = document.querySelector('.hook-filename').textContent;
+  await createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 function initWebhook() {
@@ -2517,7 +2501,6 @@ $(document).ready(async () => {
   initEditForm();
   initEditor();
   initOrganization();
-  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
@@ -2570,11 +2553,12 @@ $(document).ready(async () => {
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
-    initUserHeatmap(),
+    initHeatmap(),
     initProject(),
     initServiceWorker(),
     initNotificationCount(),
     renderMarkdownContent(),
+    initGithook(),
   ]);
 });
 

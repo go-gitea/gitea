@@ -16,13 +16,17 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/routers"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type routerLoggerOptions struct {
@@ -159,6 +163,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 
 			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
 			rPath = strings.TrimPrefix(rPath, "/")
+
+			fi, err := objStore.Stat(rPath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+
 			//If we have matched and access to release or issue
 			fr, err := objStore.Open(rPath)
 			if err != nil {
@@ -186,6 +196,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
+	c.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
@@ -195,21 +206,16 @@ func NewChi() chi.Router {
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}
-	if setting.ProdMode {
-		log.Warn("ProdMode ignored")
-	}
 
 	c.Use(public.Custom(
 		&public.Options{
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			SkipLogging: setting.DisableRouterLog,
 		},
 	))
 	c.Use(public.Static(
 		&public.Options{
-			Directory:    path.Join(setting.StaticRootPath, "public"),
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			Directory:   path.Join(setting.StaticRootPath, "public"),
+			SkipLogging: setting.DisableRouterLog,
 		},
 	))
 
@@ -233,28 +239,51 @@ func RegisterInstallRoute(c chi.Router) {
 	})
 }
 
-// RegisterRoutes registers gin routes
-func RegisterRoutes(c chi.Router) {
+// NormalRoutes represents non install routes
+func NormalRoutes() http.Handler {
+	r := chi.NewRouter()
+
 	// for health check
-	c.Head("/", func(w http.ResponseWriter, req *http.Request) {
+	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// robots.txt
 	if setting.HasRobotsTxt {
-		c.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-			http.ServeFile(w, req, path.Join(setting.CustomPath, "robots.txt"))
+		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+			filePath := path.Join(setting.CustomPath, "robots.txt")
+			fi, err := os.Stat(filePath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+			http.ServeFile(w, req, filePath)
 		})
 	}
 
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		r.Get("/metrics", routers.Metrics)
+	}
+
+	return r
+}
+
+// DelegateToMacaron delegates other routes to macaron
+func DelegateToMacaron(r chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronRoutes(m)
 
-	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 
-	c.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)
 	})
 }

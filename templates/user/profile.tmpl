@@ -108,10 +108,7 @@
 							<p>{{.i18n.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{end}}
-					{{if .EnableHeatmap}}
-						{{template "user/dashboard/heatmap" .}}
-						<div class="ui divider"></div>
-					{{end}}
+					{{template "user/heatmap" .}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>

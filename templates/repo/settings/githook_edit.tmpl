@@ -14,13 +14,13 @@
 				{{with .Hook}}
 					<div class="inline field">
 						<label>{{$.i18n.Tr "repo.settings.githook_name"}}</label>
-						<span>{{.Name}}</span>
+						<span class="hook-filename">{{.Name}}</span>
 					</div>
 					<div class="field">
 						<label for="content">{{$.i18n.Tr "repo.settings.githook_content"}}</label>
-						<textarea id="content" name="content" rows="20" wrap="off" autofocus>{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
+						<textarea id="content" name="content" class="hide">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
+						<div class="editor-loading is-loading"></div>
 					</div>
-
 					<div class="inline field">
 						<button class="ui green button">{{$.i18n.Tr "repo.settings.update_githook"}}</button>
 					</div>

@@ -179,6 +179,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
+		} else if models.IsErrEmailInvalid(err) {
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
+			return
 		}
 		ctx.ServerError("AddEmailAddress", err)
 		return
