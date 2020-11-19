@@ -110,6 +110,8 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 		return nil, err
 	}
 
+	log.Trace("gitlab downloader: use BaseURL: '%s' and RepoPath: '%s'", baseURL, repoPath)
+
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
 	if err != nil {
