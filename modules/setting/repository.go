@@ -143,7 +143,7 @@ var (
 		MaxCreationLimit:                        -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
-		PreferredLicenses:                       []string{"Apache License 2.0,MIT License"},
+		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,

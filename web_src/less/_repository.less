@@ -111,24 +111,26 @@
         display: none !important;
       }
 
-      .item {
+      .dependency {
         padding: 0;
+        white-space: nowrap;
       }
 
-      .label.color {
-        padding: 0 8px;
-        margin-right: 5px;
+      .title {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      a {
-        margin: 2px 0;
+      @media @mediaLgAndDown {
+        .title {
+          max-width: 150px;
+        }
+      }
 
-        .text {
-          color: #444444;
-
-          &:hover {
-            color: #000000;
-          }
+      @media (max-width: 1000px) {
+        .title {
+          max-width: 100px;
         }
       }
     }
@@ -214,7 +216,7 @@
   #clone-panel {
     width: 350px;
 
-    @media only screen and (max-width: 768px) {
+    @media @mediaSm {
       width: 100%;
     }
 
@@ -277,7 +279,7 @@
       }
 
       .ui.tiny.blue.buttons {
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           width: 100%;
         }
       }
@@ -425,7 +427,7 @@
           }
 
           .btn-octicon:hover {
-            color: #4078c0;
+            color: var(--color-primary);
           }
 
           .btn-octicon-danger:hover {
@@ -516,12 +518,12 @@
         position: relative;
         padding: 15px;
         margin-bottom: 10px;
-        border: 1px solid #dddddd;
+        border: 1px solid var(--color-secondary);
         border-radius: 3px;
         #avatar-arrow;
 
-        &:after {
-          border-right-color: #ffffff;
+        &::after {
+          border-right-color: var(--color-box-header);
         }
 
         .quick-pull-choice {
@@ -590,8 +592,8 @@
         margin-left: 4em;
         #avatar-arrow;
 
-        &:after {
-          border-right-color: #ffffff;
+        &::after {
+          border-right-color: var(--color-box-body);
         }
 
         .markdown {
@@ -627,7 +629,7 @@
             width: 100%;
           }
 
-          @media only screen and (max-width: 768px) {
+          @media @mediaSm {
             flex-direction: column;
 
             h1 {
@@ -771,7 +773,7 @@
     }
 
     .comment-list {
-      &:not(.prevent-before-timeline):before {
+      &:not(.prevent-before-timeline)::before {
         display: block;
         content: "";
         position: absolute;
@@ -781,7 +783,7 @@
         bottom: 0;
         left: 96px;
         width: 2px;
-        background-color: #f3f3f3;
+        background-color: var(--color-timeline);
         z-index: -1;
       }
 
@@ -791,7 +793,7 @@
         margin-left: 40px;
         padding-left: 16px;
 
-        &:before { //ciara
+        &::before { //ciara
           display: block;
           content: "";
           position: absolute;
@@ -801,7 +803,7 @@
           bottom: 0;
           left: 30px;
           width: 2px;
-          background-color: #f3f3f3;
+          background-color: var(--color-timeline);
           z-index: -1;
         }
       }
@@ -848,18 +850,17 @@
 
         .badge.badge-commit {
           border-color: transparent;
-          background: radial-gradient(white 40%, transparent 40%) no-repeat;
+          background: radial-gradient(var(--color-body) 40%, transparent 40%) no-repeat;
         }
 
         .badge {
-          width: 32px;
-          height: 32px;
-          background-color: #eee;
-          border: 2px solid #eee;
+          width: 34px;
+          height: 34px;
+          background-color: var(--color-timeline);
           border-radius: 50%;
           display: flex;
           float: left;
-          margin-left: -32px;
+          margin-left: -34px;
           margin-right: 8px;
           color: #666;
           align-items: center;
@@ -869,14 +870,6 @@
             width: 22px;
             height: 22px;
             padding: 3px;
-
-            &.octicon-circle-slash {
-              color: #bd2c00;
-            }
-
-            &.octicon-dot-fill {
-              color: #6cc644;
-            }
 
             &.octicon-comment {
               margin-top: 2px;
@@ -976,7 +969,7 @@
         }
 
         .author {
-          font-weight: 700;
+          font-weight: 500;
         }
 
         .comment-form-reply .footer {
@@ -1000,9 +993,11 @@
         .comment-container {
           border: 1px solid var(--color-secondary);
           border-radius: var(--border-radius);
+        }
 
+        .content {
           > .merge-section {
-            background-color: #f7f7f7;
+            background-color: var(--color-box-body);
 
             .item {
               padding: .25rem 0;
@@ -1024,9 +1019,13 @@
 
             &.no-header {
               #avatar-arrow;
+
+              &::after {
+                border-right-color: var(--color-box-body);
+              }
             }
 
-            @media only screen and (max-width: 767px) {
+            @media @mediaSm {
               .form .button {
                 width: 100%;
 
@@ -1047,7 +1046,7 @@
           }
 
           > .bottom.segment {
-            background: #f3f4f5;
+            background: var(--color-box-body);
 
             .ui.images::after {
               clear: both;
@@ -1061,12 +1060,12 @@
               margin: 5px;
               padding: 5px;
               height: 150px;
-              border: solid 1px #eeeeee;
+              border: solid 1px var(--color-secondary);
               border-radius: 3px;
               max-width: 150px;
-              background-color: #ffffff;
+              background-color: var(--color-body);
 
-              &:before {
+              &::before {
                 content: ' ';
                 display: inline-block;
                 height: 100%;
@@ -1220,8 +1219,8 @@
       .form {
         #avatar-arrow;
 
-        &:after {
-          border-right-color: #ffffff;
+        &::after {
+          border-right-color: var(--color-box-body);
         }
       }
 
@@ -1241,7 +1240,7 @@
       margin-right: -14px;
       margin-left: -14px;
       padding: 10px;
-      border-bottom: 1px solid #e1e4e8;
+      border-bottom: 1px solid var(--color-secondary);
       border-top: none;
 
       a {
@@ -1290,7 +1289,7 @@
         color: #000000;
 
         &:hover {
-          color: #4078c0;
+          color: var(--color-primary);
         }
       }
 
@@ -1314,7 +1313,7 @@
         }
 
         .overdue {
-          color: red;
+          color: var(--color-red);
         }
       }
 
@@ -1360,8 +1359,8 @@
       .content {
         #avatar-arrow;
 
-        &:after {
-          border-right-color: #ffffff;
+        &::after {
+          border-right-color: var(--color-box-body);
         }
       }
     }
@@ -1389,7 +1388,7 @@
         max-width: 90px;
 
         &:last-child {
-          border-left: 1px solid #b4b4b4;
+          border-left: 1px solid var(--color-secondary);
         }
       }
 
@@ -1462,6 +1461,7 @@
 
   #commits-table td.sha .sha.label,
   #repo-files-table .sha.label,
+  #rev-list .sha.label,
   .timeline-item.commits-list .singular-commit .sha.label {
     border: 1px solid #bbbbbb;
 
@@ -1578,7 +1578,7 @@
     background: #ffffff;
     line-height: 30px;
 
-    @media only screen and (max-width: 992px) {
+    @media @mediaMdAndDown {
       flex-direction: column;
       align-items: flex-start;
     }
@@ -1593,7 +1593,7 @@
       padding-right: 2px;
     }
 
-    > div:after {
+    > div::after {
       clear: both;
       content: "";
       display: block;
@@ -1648,7 +1648,7 @@
       flex: 0 0 auto;
 
       .bar {
-        background-color: #bd2c00;
+        background-color: var(--color-red);
         height: 12px;
         width: 40px;
         display: inline-block;
@@ -1656,7 +1656,7 @@
         vertical-align: text-top;
 
         .add {
-          background-color: #55a532;
+          background-color: var(--color-green);
           height: 12px;
         }
       }
@@ -1677,7 +1677,7 @@
 
   .diff-file-box {
     .header {
-      background-color: #f7f7f7;
+      background-color: var(--color-box-header);
     }
 
     .file-body.file-code {
@@ -1852,10 +1852,10 @@
       margin-right: 15px;
 
       .del {
-        color: red;
+        color: var(--color-red);
       }
       .add {
-        color: green;
+        color: var(--color-green);
       }
     }
   }
@@ -1897,7 +1897,7 @@
 
   &.release {
     #release-list {
-      border-top: 1px solid #dddddd;
+      border-top: 1px solid var(--color-secondary);
       margin-top: 20px;
       padding-top: 15px;
 
@@ -1932,7 +1932,7 @@
         }
 
         .detail {
-          border-left: 2px solid #dddddd;
+          border-left: 2px solid var(--color-secondary);
 
           .author {
             img {
@@ -1952,14 +1952,14 @@
 
             .list {
               padding-left: 0;
-              border-top: 1px solid #eeeeee;
+              border-top: 1px solid var(--color-secondary);
 
               li {
                 list-style: none;
                 display: block;
                 padding-top: 8px;
                 padding-bottom: 8px;
-                border-bottom: 1px solid #eeeeee;
+                border-bottom: 1px solid var(--color-secondary);
 
                 a > .text.right {
                   margin-right: 5px;
@@ -2019,13 +2019,13 @@
 
       button,
       input {
-        @media only screen and (max-width: 438px) {
+        @media (max-width: 438px) {
           width: 100%;
         }
       }
 
       button {
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           margin-bottom: 1em;
         }
       }
@@ -2039,7 +2039,7 @@
       .item {
         padding-top: 10px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #dddddd;
+        border-bottom: 1px solid var(--color-secondary);
 
         .ui.avatar {
           float: left;
@@ -2110,7 +2110,7 @@
       }
     }
 
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
@@ -2128,7 +2128,7 @@
           line-height: 2em;
 
           &:not(:last-child) {
-            border-bottom: 1px solid #dddddd;
+            border-bottom: 1px solid var(--color-secondary);
           }
         }
       }
@@ -2167,7 +2167,7 @@
         }
 
         .item {
-          border: 1px solid #eaeaea;
+          border: 1px solid var(--color-secondary);
           padding: 10px 15px;
 
           &:not(:last-child) {
@@ -2609,7 +2609,7 @@
     .title {
       color: #444444;
       font-size: 15px;
-      font-weight: bold;
+      font-weight: 500;
       margin: 0 6px;
 
       &:hover {
@@ -2689,7 +2689,7 @@
       }
 
       .overdue {
-        color: red;
+        color: var(--color-red);
       }
     }
   }
@@ -2701,7 +2701,8 @@
 
 .ui.form {
   .dropzone {
-    border: 2px dashed #0087f5;
+    border: 2px dashed var(--color-secondary);
+    background: none;
     box-shadow: none !important;
     padding: 0;
     min-height: 5rem;
@@ -2727,18 +2728,18 @@
 
     > .header,
     .segment {
-      box-shadow: 0 1px 2px 0 var(--color-secondary);
+      box-shadow: 0 1px 2px 0 var(--color-box-header);
     }
   }
 
   .list {
     > .item {
       .green:not(.ui.button) {
-        color: #21ba45;
+        color: var(--color-green);
       }
 
       &:not(:first-child) {
-        border-top: 1px solid #eaeaea;
+        border-top: 1px solid var(--color-secondary);
         padding: 1rem;
         margin: 15px -1rem -1rem;
       }
@@ -2787,7 +2788,7 @@
 .ui.vertical.menu {
   .header.item {
     font-size: 1.1em;
-    background: #f0f0f0;
+    background: var(--color-box-header);
   }
 }
 
@@ -2796,7 +2797,7 @@
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
 }
 
-.comment:target .header:before {
+.comment:target .header::before {
   border-right-color: var(--color-primary) !important;
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
@@ -2820,7 +2821,8 @@
   margin: 0 !important;
   position: relative;
   color: #767676;
-  background-color: #f7f7f7;
+  min-height: 41px;
+  background-color: var(--color-box-header);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2912,9 +2914,8 @@
 }
 
 #avatar-arrow {
-
-  &:before,
-  &:after {
+  &::before,
+  &::after {
     right: 100%;
     top: 20px;
     border: solid transparent;
@@ -2925,14 +2926,14 @@
     pointer-events: none;
   }
 
-  &:before {
+  &::before {
     border-right-color: var(--color-secondary);
     border-width: 9px;
     margin-top: -9px;
   }
 
-  &:after {
-    border-right-color: #f7f7f7;
+  &::after {
+    border-right-color: var(--color-box-header);
     border-width: 8px;
     margin-top: -8px;
   }
@@ -2954,6 +2955,7 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
   .tab-size-@{i} {
     tab-size: @i !important;
+    -moz-tab-size: @i !important;
   }
 
   .generate-tab-size(@n, (@i + 1));
@@ -2972,6 +2974,22 @@
   }
 }
 
+.labels.list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.labels.list .item {
+  padding: .3em .5em !important;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 3px;
+}
+
+.labels.list .item + .item {
+  margin-left: 3px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -2984,7 +3002,7 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
-@media only screen and (max-width: 767.98px) {
+@media @mediaSm {
   tr.commit-list {
     width: 100%;
   }
@@ -2994,7 +3012,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 768px) and (max-width: 991.98px) {
+@media @mediaMd {
   tr.commit-list {
     width: 723px;
   }
@@ -3003,7 +3021,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+@media @mediaLg {
   tr.commit-list {
     width: 933px;
   }
@@ -3012,7 +3030,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (min-width: 1200px) {
+@media @mediaXl {
   tr.commit-list {
     width: 1127px;
   }
@@ -3058,7 +3076,7 @@ tbody.commit-list {
   }
 }
 
-@media only screen and (max-width: 767px) {
+@media @mediaSm {
   .ui.stackable.menu {
     &.mobile--margin-between-items > .item {
       margin-top: 5px;
@@ -3318,8 +3336,8 @@ td.blob-excerpt {
 .repository .ui.menu.new-menu {
   background: none !important;
 
-  @media only screen and (max-width: 1200px) {
-    &:after {
+  @media @mediaLgAndDown {
+    &::after {
       background: none !important;
     }
   }

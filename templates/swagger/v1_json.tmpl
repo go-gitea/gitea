@@ -2541,6 +2541,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Branch"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2582,6 +2585,9 @@
           },
           "403": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -13220,7 +13226,8 @@
       "description": "EditUserOption edit user options",
       "type": "object",
       "required": [
-        "email"
+        "source_id",
+        "login_name"
       ],
       "properties": {
         "active": {

@@ -34,13 +34,13 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 )
 
-var mac *macaron.Macaron
+var c chi.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -67,8 +67,9 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -404,7 +405,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -417,7 +418,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {

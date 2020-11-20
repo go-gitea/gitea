@@ -193,6 +193,21 @@ func (err ErrEmailAlreadyUsed) Error() string {
 	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
 }
 
+// ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
+type ErrEmailInvalid struct {
+	Email string
+}
+
+// IsErrEmailInvalid checks if an error is an ErrEmailInvalid
+func IsErrEmailInvalid(err error) bool {
+	_, ok := err.(ErrEmailInvalid)
+	return ok
+}
+
+func (err ErrEmailInvalid) Error() string {
+	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
+}
+
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string

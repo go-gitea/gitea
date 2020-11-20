@@ -16,6 +16,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -207,6 +208,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"DiffStatsWidth": func(adds int, dels int) string {
+			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
+		},
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
 			if err != nil {
@@ -309,6 +313,26 @@ func NewFuncMap() []template.FuncMap {
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
+		},
+		"containGeneric": func(arr interface{}, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+
+			return false
 		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {

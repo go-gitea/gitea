@@ -1,0 +1,80 @@
+<div id="rev-container">
+	<ul id="rev-list">
+		{{ range $commitI, $commit := .Graph.Commits }}
+			<li id="commit-{{$commit.Rev}}" data-flow="{{$commit.Flow}}">
+				{{ if $commit.OnlyRelation }}
+					<span />
+				{{ else }}
+					<span class="sha" id="{{$commit.ShortRev}}">
+						{{$class := "ui sha label"}}
+						{{if $commit.Commit.Signature}}
+							{{$class = (printf "%s%s" $class " isSigned")}}
+							{{if $commit.Verification.Verified}}
+								{{if eq $commit.Verification.TrustStatus "trusted"}}
+									{{$class = (printf "%s%s" $class " isVerified")}}
+								{{else if eq $commit.Verification.TrustStatus "untrusted"}}
+									{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+								{{else}}
+									{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+								{{end}}
+							{{else if $commit.Verification.Warning}}
+								{{$class = (printf "%s%s" $class " isWarning")}}
+							{{end}}
+						{{end}}
+						<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}" rel="nofollow" class="{{$class}}">
+							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
+							{{- if $commit.Commit.Signature -}}
+								<span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
+							{{- end -}}
+						</a>
+					</span>
+					<span class="message df ac mr-2">{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+					<span class="tags df ac">
+						{{range $commit.Refs}}
+							{{$refGroup := .RefGroup}}
+							{{if eq $refGroup "pull"}}
+								{{if $.HidePRRefs}}
+									{{if (containGeneric $.SelectedBranches .Name) }}
+										<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
+											{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
+										</a>
+									{{end}}
+								{{else}}
+									<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
+										{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
+									</a>
+								{{end}}
+							{{else if eq $refGroup "tags"}}
+								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
+									{{svg "octicon-tag" 16 "mr-2"}}{{.ShortName}}
+								</a>
+							{{else if eq $refGroup "remotes"}}
+								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev}}">
+									{{svg "octicon-cross-reference" 16 "mr-2"}}{{.ShortName}}
+								</a>
+							{{else if eq $refGroup "heads"}}
+								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
+									{{svg "octicon-git-branch" 16 "mr-2"}}{{.ShortName}}
+								</a>
+							{{else}}
+								<!-- Unknown ref type {{.Name}} -->
+							{{end}}
+						{{end}}
+					</span>
+					<span class="author df ac mr-2">
+						{{$userName := $commit.Commit.Author.Name}}
+						{{if $commit.User}}
+							{{if $commit.User.FullName}}
+								{{$userName = $commit.User.FullName}}
+							{{end}}
+							<img class="ui avatar image" src="{{$commit.User.RelAvatarLink}}" alt=""/><a href="{{AppSubUrl}}/{{$commit.User.Name}}">{{$userName}}</a>
+						{{else}}
+							<img class="ui avatar image" src="{{AvatarLink $commit.Commit.Author.Email}}" alt=""/>{{$userName}}
+						{{end}}
+					</span>
+					<span class="time df ac">{{$commit.Date}}</span>
+				{{ end }}
+			</li>
+		{{ end }}
+	</ul>
+</div>
