@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
-	"net/mail"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -822,9 +821,8 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	_, err = mail.ParseAddress(u.Email)
-	if err != nil {
-		return ErrEmailInvalid{u.Email}
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
 	}
 
 	isExist, err = isEmailUsed(sess, u.Email)
@@ -969,11 +967,10 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) error {
+func updateUser(e Engine, u *User) (err error) {
 	u.Email = strings.ToLower(u.Email)
-	_, err := mail.ParseAddress(u.Email)
-	if err != nil {
-		return ErrEmailInvalid{u.Email}
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
 	}
 	_, err = e.ID(u.ID).AllCols().Update(u)
 	return err
@@ -995,13 +992,21 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) error {
+func UpdateUserSetting(u *User) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
 	if !u.IsOrganization() {
-		if err := checkDupEmail(x, u); err != nil {
+		if err = checkDupEmail(sess, u); err != nil {
 			return err
 		}
 	}
-	return updateUser(x, u)
+	if err = updateUser(sess, u); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
