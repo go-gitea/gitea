@@ -90,12 +90,17 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 	// split namespace and subdirectory
 	pathParts := strings.Split(strings.Trim(repoPath, "/"), "/")
-	for len(pathParts) > 2 {
-		if _, _, err = gitlabClient.Version.GetVersion(); err == nil {
+	var resp *gitlab.Response
+	u, _ := url.Parse(baseURL)
+	for len(pathParts) >= 2 {
+		_, resp, err = gitlabClient.Version.GetVersion()
+		if err == nil || resp != nil && resp.StatusCode == 401 {
+			err = nil // if no authentication given, this still should work
 			break
 		}
 
-		baseURL = path.Join(baseURL, pathParts[0])
+		u.Path = path.Join(u.Path, pathParts[0])
+		baseURL = u.String()
 		pathParts = pathParts[1:]
 		_ = gitlab.WithBaseURL(baseURL)(gitlabClient)
 		repoPath = strings.Join(pathParts, "/")
@@ -104,6 +109,8 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 		log.Trace("Error could not get gitlab version: %v", err)
 		return nil, err
 	}
+
+	log.Trace("gitlab downloader: use BaseURL: '%s' and RepoPath: '%s'", baseURL, repoPath)
 
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
@@ -602,8 +609,12 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
+	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
+			return []*base.Review{}, nil
+		}
 		return nil, err
 	}
 
