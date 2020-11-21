@@ -43,8 +43,6 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// TODO: add an email allow/block list
-
 	return nil
 }
 
