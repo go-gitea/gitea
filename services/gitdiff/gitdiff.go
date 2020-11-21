@@ -798,6 +798,10 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				}
 			}
 		}
+		if len(line) > maxLineCharacters {
+			curFile.IsIncomplete = true
+			line = line[:maxLineCharacters]
+		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 
 		// handle LFS
