@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_module "code.gitea.io/gitea/services/webhook"
 )
 
 type webhookNotifier struct {
