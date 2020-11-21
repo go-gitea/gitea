@@ -37,7 +37,7 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 	}
 
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if len(setting.Migration.AllowlistedDomains) > 0 {
+		if len(setting.Migrations.AllowlistedDomains) > 0 {
 			if !allowlist.Match(u.Host) {
 				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
 			}
@@ -345,12 +345,12 @@ var (
 // Init migrations service
 func Init() error {
 	var err error
-	allowlist, err = matchlist.NewMatchlist(setting.Migration.AllowlistedDomains...)
+	allowlist, err = matchlist.NewMatchlist(setting.Migrations.AllowlistedDomains...)
 	if err != nil {
 		return fmt.Errorf("init migration allowlist domains failed: %v", err)
 	}
 
-	blocklist, err = matchlist.NewMatchlist(setting.Migration.BlocklistedDomains...)
+	blocklist, err = matchlist.NewMatchlist(setting.Migrations.BlocklistedDomains...)
 	if err != nil {
 		return fmt.Errorf("init migration blocklist domains failed: %v", err)
 	}

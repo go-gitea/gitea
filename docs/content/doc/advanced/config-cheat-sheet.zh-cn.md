@@ -313,6 +313,8 @@ IS_INPUT_FILE = false
 
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
+- `ALLOWLISTED_DOMAINS`: ****: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
+- `BLOCKLISTED_DOMAINS`: ****: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWLISTED_DOMAINS` 不为空，此选项将会被忽略。
 
 ## LFS (`lfs`)
 
@@ -362,11 +364,6 @@ MINIO_USE_SSL = false
 ```
 
 然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
-
-## Migraions (`migration`)
-
-- `ALLOWLISTED_DOMAINS`: ****: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLOCKLISTED_DOMAINS`: ****: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWLISTED_DOMAINS` 不为空，此选项将会被忽略。
 
 ## Other (`other`)
 

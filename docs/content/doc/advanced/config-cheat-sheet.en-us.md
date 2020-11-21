@@ -846,6 +846,8 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
+- `ALLOWLISTED_DOMAINS`: ****: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
+- `BLOCKLISTED_DOMAINS`: ****: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWLISTED_DOMAINS` is not blank, this option will be ignored.
 
 ## Mirror (`mirror`)
 
@@ -901,11 +903,6 @@ MINIO_USE_SSL = false
 ```
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
-
-## Migraions (`migration`)
-
-- `ALLOWLISTED_DOMAINS`: ****: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
-- `BLOCKLISTED_DOMAINS`: ****: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWLISTED_DOMAINS` is not blank, this option will be ignored.
 
 ## Other (`other`)
 

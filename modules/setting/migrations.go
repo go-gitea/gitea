@@ -7,8 +7,10 @@ package setting
 var (
 	// Migrations settings
 	Migrations = struct {
-		MaxAttempts  int
-		RetryBackoff int
+		MaxAttempts        int
+		RetryBackoff       int
+		AllowlistedDomains []string
+		BlocklistedDomains []string
 	}{
 		MaxAttempts:  3,
 		RetryBackoff: 3,
@@ -19,4 +21,7 @@ func newMigrationsService() {
 	sec := Cfg.Section("migrations")
 	Migrations.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Migrations.MaxAttempts)
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)
+
+	Migrations.AllowlistedDomains = sec.Key("ALLOWLISTED_DOMAINS").Strings(",")
+	Migrations.BlocklistedDomains = sec.Key("BLOCKLISTED_DOMAINS").Strings(",")
 }
