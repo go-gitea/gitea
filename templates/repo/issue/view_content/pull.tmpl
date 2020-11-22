@@ -335,23 +335,25 @@
 									{{end}}
 									</span>
 								</button>
-								<div class="ui dropdown icon button">
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										{{if $prUnit.PullRequestsConfig.AllowMerge}}
-										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowRebase}}
-										<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-										<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowSquash}}
-										<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
-										{{end}}
+								{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
+									<div class="ui dropdown icon button">
+										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+										<div class="menu">
+											{{if $prUnit.PullRequestsConfig.AllowMerge}}
+											<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebase}}
+											<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+											<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowSquash}}
+											<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+											{{end}}
+										</div>
 									</div>
-								</div>
+								{{end}}
 							</div>
 						{{else}}
 							<div class="ui divider"></div>
