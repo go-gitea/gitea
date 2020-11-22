@@ -215,6 +215,10 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 // GetLastCommitForPaths returns last commit information
 func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
+	path2idx := make(map[string]int, len(paths))
+	for i, path := range paths {
+		path2idx[path] = i
+	}
 
 	// We'll do this by using rev-list to provide us with parent commits in order
 	revListReader, revListWriter := io.Pipe()
@@ -375,18 +379,17 @@ revListLoop:
 						}
 						n += int64(count)
 
-						// now fname and paths are both sorted and in order
-						// if fname == paths[i] => we're looking at the current path
-						if fname == paths[i] {
+						idx, ok := path2idx[fname]
+						if ok {
 							// Now if this is the first time round set the initial Blob(ish) SHA ID and the commit
-							if ids[i] == "" {
-								ids[i] = sha
-								commits[i] = curCommit
-							} else if !found[i] {
+							if ids[idx] == "" {
+								ids[idx] = sha
+								commits[idx] = curCommit
+							} else if !found[idx] {
 								// if we've not already found this path's commit
-								if ids[i] != sha {
+								if ids[idx] != sha {
 									// if the SHA is different we've now found the commit for this path
-									found[i] = true
+									found[idx] = true
 
 									// check if we've found all the paths
 									done := true
@@ -400,54 +403,26 @@ revListLoop:
 										break revListLoop
 									}
 								} else {
-									commits[i] = curCommit
+									commits[idx] = curCommit
 								}
 							}
-							// Step the path index counter up
-							i++
 						}
-
-						done := false
 
 						// if fname > paths[i] well paths[i] must not be present in this set it to found
-						for i < len(paths) && (fname > paths[i] || n >= size) {
-							found[i] = true
-							done = true
-							i++
-						}
-
-						// check if we're really done
-						if done {
-							for _, find := range found {
-								if !find {
-									done = false
-									break
+						if n >= size {
+							done := true
+							for i := range paths {
+								if commits[i] != curCommit {
+									found[i] = true
+								} else {
+									done = done && found[i]
 								}
 							}
+
+							// check if we're really done
 							if done {
 								break revListLoop
 							}
-						}
-
-						// Now if i >= len(paths) we're beyond the paths we're looking at - discard the rest of the tree if there is any left
-						if i >= len(paths) {
-							// set the commit as done
-							commitDone = true
-							if n < size {
-								discard := size - n
-								for discard > math.MaxInt32 {
-									_, err := batchReader.Discard(math.MaxInt32)
-									if err != nil {
-										return nil, err
-									}
-									discard -= math.MaxInt32
-								}
-								_, err := batchReader.Discard(int(discard))
-								if err != nil {
-									return nil, err
-								}
-							}
-							// break out of the commit reading loop
 							break commitReadingLoop
 						}
 					}
