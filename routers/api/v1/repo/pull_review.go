@@ -794,43 +794,7 @@ func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOption
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	if !ctx.Repo.IsAdmin() {
-		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
-		return
-	}
-	review, pr, isWrong := prepareSingleReview(ctx)
-	if isWrong {
-		return
-	}
-
-	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
-		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
-		return
-	}
-
-	if pr.Issue.IsClosed {
-		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
-		return
-	}
-
-	_, err := pull_service.DismissReview(review.ID, opts.Message, ctx.User)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
-		return
-	}
-
-	if review, err = models.GetReviewByID(review.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
-		return
-	}
-
-	// convert response
-	apiReview, err := convert.ToPullReview(review, ctx.User)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, apiReview)
+	disMissReview(ctx, true)
 }
 
 // UnDismissPullReview cancel to dismiss a review for a pull request
@@ -870,6 +834,10 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	disMissReview(ctx, false)
+}
+
+func disMissReview(ctx *context.APIContext, isDismiss bool) {
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
@@ -889,12 +857,12 @@ func UnDismissPullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.UnDismissReview(review.ID); err != nil {
+	_, err := pull_service.DismissReview(review.ID, opts.Message, ctx.User, isDismiss)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return
 	}
 
-	var err error
 	if review, err = models.GetReviewByID(review.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
 		return

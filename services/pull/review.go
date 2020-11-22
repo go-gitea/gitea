@@ -232,7 +232,7 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(reviewID int64, message string, doer *models.User) (comment *models.Comment, err error) {
+func DismissReview(reviewID int64, message string, doer *models.User, isDismiss bool) (comment *models.Comment, err error) {
 	review, err := models.GetReviewByID(reviewID)
 	if err != nil {
 		return
@@ -242,8 +242,12 @@ func DismissReview(reviewID int64, message string, doer *models.User) (comment *
 		return nil, fmt.Errorf("Wrong using")
 	}
 
-	if err = models.MarkReviewAsDismissed(review); err != nil {
+	if err = models.DismissReview(review, isDismiss); err != nil {
 		return
+	}
+
+	if !isDismiss {
+		return nil, nil
 	}
 
 	// load data for notify
@@ -275,20 +279,5 @@ func DismissReview(reviewID int64, message string, doer *models.User) (comment *
 
 	notification.NotifyPullRevieweDismiss(doer, review, comment)
 
-	return
-}
-
-// UnDismissReview cancel dismissed stale review by repo admin
-func UnDismissReview(reviewID int64) (err error) {
-	review, err := models.GetReviewByID(reviewID)
-	if err != nil {
-		return
-	}
-
-	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
-		return fmt.Errorf("Wrong using")
-	}
-
-	err = models.MarkReviewAsUnDismissed(review)
 	return
 }

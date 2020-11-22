@@ -559,26 +559,13 @@ func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	return
 }
 
-// MarkReviewAsDismissed marks existing reviews as stale
-func MarkReviewAsDismissed(review *Review) (err error) {
-	if review.Dismissed || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+// DismissReview change the dismiss status of a review
+func DismissReview(review *Review, isDismiss bool) (err error) {
+	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
 		return nil
 	}
 
-	review.Dismissed = true
-
-	_, err = x.Cols("dismissed").Update(review)
-
-	return
-}
-
-// MarkReviewAsUnDismissed marks dismissed reviews as not dismissed
-func MarkReviewAsUnDismissed(review *Review) (err error) {
-	if !review.Dismissed || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
-		return nil
-	}
-
-	review.Dismissed = false
+	review.Dismissed = isDismiss
 
 	_, err = x.Cols("dismissed").Update(review)
 
