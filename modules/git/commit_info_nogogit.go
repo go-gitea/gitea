@@ -100,11 +100,17 @@ func ParseTreeLine(rd *bufio.Reader) (mode, fname, sha string, n int, err error)
 	fname = fname[:len(fname)-1]
 
 	shaBytes := make([]byte, 20)
-	read, err := rd.Read(shaBytes)
-	if err != nil {
-		return
+	idx := 0
+	for idx < 20 {
+		read := 0
+		read, err = rd.Read(shaBytes[idx:])
+		if err != nil {
+			return
+		}
+		n += read
+		idx += read
 	}
-	n += read
+
 	sha = MustID(shaBytes).String()
 	return
 }
@@ -265,8 +271,6 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	commits := make([]*Commit, len(paths))
 	// ids are the blob/tree ids for the paths
 	ids := make([]string, len(paths))
-	// found is a shortcut to help break out of parsing early
-	found := make([]bool, len(paths))
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
@@ -289,10 +293,8 @@ revListLoop:
 
 		currentPath := ""
 
-		i := 0
-		commitDone := false
 	commitReadingLoop:
-		for !commitDone {
+		for {
 			_, typ, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				return nil, err
@@ -321,39 +323,13 @@ revListLoop:
 				id := curCommit.Tree.ID.String()
 				// OK if the target tree path is "" and the "" is in the paths just set this now
 				if treePath == "" && paths[0] == "" {
-					if i == 0 {
-						i++
-					}
 					// If this is the first time we see this set the id appropriate for this paths to this tree and set the last commit to curCommit
 					if ids[0] == "" {
-						log("setting initial id to: %s on commit %s", string(id), curCommit.ID.String())
 						ids[0] = id
 						commits[0] = curCommit
-					} else if ids[0] != id {
-						// Else if the last id doesn't match this we've found the last commit that added this
-						found[0] = true
-
-						// check if that completes our list
-						done := true
-						for _, find := range found {
-							if !find {
-								done = false
-								break
-							}
-						}
-						if done {
-							break revListLoop
-						}
-					} else if !found[0] {
-						// Finally if we haven't found the commit set the curCommit to this
+					} else if ids[0] == id {
 						commits[0] = curCommit
 					}
-				}
-
-				// in the unlikely event that we've now done all the paths
-				if i >= len(paths) {
-					commitDone = true
-					continue
 				}
 
 				// Finally add the tree back in to batch reader
@@ -378,56 +354,18 @@ revListLoop:
 							return nil, err
 						}
 						n += int64(count)
-
 						idx, ok := path2idx[fname]
 						if ok {
 							// Now if this is the first time round set the initial Blob(ish) SHA ID and the commit
 							if ids[idx] == "" {
 								ids[idx] = sha
 								commits[idx] = curCommit
-							} else if !found[idx] {
-								// if we've not already found this path's commit
-								if ids[idx] != sha {
-									// if the SHA is different we've now found the commit for this path
-									found[idx] = true
-
-									// check if we've found all the paths
-									done := true
-									for _, find := range found {
-										if !find {
-											done = false
-											break
-										}
-									}
-									if done {
-										break revListLoop
-									}
-								} else {
-									commits[idx] = curCommit
-								}
+							} else if ids[idx] == sha {
+								commits[idx] = curCommit
 							}
-						}
-
-						// if fname > paths[i] well paths[i] must not be present in this set it to found
-						if n >= size {
-							done := true
-							for i := range paths {
-								if commits[i] != curCommit {
-									found[i] = true
-								} else {
-									done = done && found[i]
-								}
-							}
-
-							// check if we're really done
-							if done {
-								break revListLoop
-							}
-							break commitReadingLoop
 						}
 					}
-					// We should not be able to get here...
-					break revListLoop
+					break commitReadingLoop
 				}
 
 				// We're in the wrong directory
@@ -484,30 +422,11 @@ revListLoop:
 
 				// if we've now found the curent path check its sha id and commit status
 				if treePath == currentPath && paths[0] == "" {
-					if i == 0 {
-						i++
-					}
 					if ids[0] == "" {
 						ids[0] = treeID
 						commits[0] = curCommit
-					} else if !found[0] {
-						if ids[0] != treeID {
-							found[0] = true
-
-							// check if that completes our list
-							done := true
-							for _, find := range found {
-								if !find {
-									done = false
-									break
-								}
-							}
-							if done {
-								break revListLoop
-							}
-						} else if !found[0] {
-							commits[0] = curCommit
-						}
+					} else if ids[0] == treeID {
+						commits[0] = curCommit
 					}
 				}
 				_, err = batchStdinWriter.Write([]byte(treeID + "\n"))
