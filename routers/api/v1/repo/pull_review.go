@@ -794,7 +794,7 @@ func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOption
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	disMissReview(ctx, true)
+	disMissReview(ctx, opts.Message, true)
 }
 
 // UnDismissPullReview cancel to dismiss a review for a pull request
@@ -834,10 +834,10 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	disMissReview(ctx, false)
+	disMissReview(ctx, "", false)
 }
 
-func disMissReview(ctx *context.APIContext, isDismiss bool) {
+func disMissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
@@ -857,7 +857,7 @@ func disMissReview(ctx *context.APIContext, isDismiss bool) {
 		return
 	}
 
-	_, err := pull_service.DismissReview(review.ID, opts.Message, ctx.User, isDismiss)
+	_, err := pull_service.DismissReview(review.ID, msg, ctx.User, isDismiss)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return
