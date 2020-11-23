@@ -55,13 +55,47 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	// - name: since
+	//   in: query
+	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   type: string
+	//   format: date-time
+	//   required: false
+	// - name: before
+	//   in: query
+	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   type: string
+	//   format: date-time
+	//   required: false
+	// - name: assigned
+	//   in: query
+	//   description: filter (issues / pulls) assigned to you, default is false
+	//   type: boolean
+	// - name: created
+	//   in: query
+	//   description: filter (issues / pulls) created by you, default is false
+	//   type: boolean
+	// - name: mentioned
+	//   in: query
+	//   description: filter (issues / pulls) mentioning you, default is false
+	//   type: boolean
 	// - name: page
 	//   in: query
-	//   description: page number of requested issues
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+
+	before, since, err := utils.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		return
+	}
 
 	var isClosed util.OptionalBool
 	switch ctx.Query("state") {
@@ -119,7 +153,6 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	var labelIDs []int64
-	var err error
 	if len(keyword) > 0 && len(repoIDs) > 0 {
 		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
@@ -143,13 +176,22 @@ func SearchIssues(ctx *context.APIContext) {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
+	// this api is also used in UI,
+	// so the default limit is set to fit UI needs
+	limit := ctx.QueryInt("limit")
+	if limit == 0 {
+		limit = setting.UI.IssuePagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
-				PageSize: setting.UI.IssuePagingNum,
+				PageSize: limit,
 			},
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
@@ -158,6 +200,19 @@ func SearchIssues(ctx *context.APIContext) {
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
+			UpdatedBeforeUnix:  before,
+			UpdatedAfterUnix:   since,
+		}
+
+		// Filter for: Created by User, Assigned to User, Mentioning User
+		if ctx.QueryBool("created") {
+			issuesOpt.PosterID = ctx.User.ID
+		}
+		if ctx.QueryBool("assigned") {
+			issuesOpt.AssigneeID = ctx.User.ID
+		}
+		if ctx.QueryBool("mentioned") {
+			issuesOpt.MentionedID = ctx.User.ID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
