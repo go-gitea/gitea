@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/services/pull"
 
 	gouuid "github.com/google/uuid"
@@ -231,7 +231,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
+func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
@@ -290,23 +290,12 @@ func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases
 
 			// download attachment
 			err = func() error {
-				var rc io.ReadCloser
-				if asset.DownloadURL == nil {
-					rc, err = downloader.GetAsset(rel.TagName, rel.ID, asset.ID)
-					if err != nil {
-						return err
-					}
-				} else {
-					remoteAddr, err := fullURL(opts, *asset.DownloadURL)
-					if err != nil {
-						return err
-					}
-					resp, err := http.Get(remoteAddr)
-					if err != nil {
-						return err
-					}
-					rc = resp.Body
+				// asset.DownloadURL maybe a local file
+				rc, err := uri.Open(*asset.DownloadURL)
+				if err != nil {
+					return err
 				}
+				defer rc.Close()
 				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
 				return err
 			}()
@@ -570,11 +559,12 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// download patch file
 	err := func() error {
-		resp, err := http.Get(pr.PatchURL)
+		// pr.PatchURL maybe a local file
+		ret, err := uri.Open(pr.PatchURL)
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer ret.Close()
 		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
 		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
 			return err
@@ -584,7 +574,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			return err
 		}
 		defer f.Close()
-		_, err = io.Copy(f, resp.Body)
+		_, err = io.Copy(f, ret)
 		return err
 	}()
 	if err != nil {

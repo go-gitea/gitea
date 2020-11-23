@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/uri"
 
 	"gopkg.in/yaml.v2"
 )
@@ -311,7 +312,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases ...*base.Release) error {
+func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 	if g.migrateReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.TagName)
@@ -323,8 +324,7 @@ func (g *RepositoryDumper) CreateReleases(downloader base.Downloader, releases .
 				// download attachment
 
 				err := func(attachLocalPath string) error {
-					// FIXME: release ID
-					rc, err := downloader.GetAsset(release.TagName, 0, asset.ID)
+					rc, err := uri.Open(*asset.DownloadURL)
 					if err != nil {
 						return err
 					}
@@ -456,13 +456,19 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 			if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
 				return err
 			}
-			f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+			fPath := filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number))
+			f, err := os.Create(fPath)
 			if err != nil {
 				return err
 			}
 			defer f.Close()
-			_, err = io.Copy(f, resp.Body)
-			return err
+			if _, err = io.Copy(f, resp.Body); err != nil {
+				return err
+			}
+			fAbsPath, _ := filepath.Abs(fPath)
+			pr.PatchURL = "file://" + fAbsPath
+
+			return nil
 		}()
 		if err != nil {
 			return err

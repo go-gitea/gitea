@@ -316,6 +316,7 @@ func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, er
 	if err != nil {
 		return nil, err
 	}
+	// FIXME: for a private download?
 	resp, err := http.Get(asset.DownloadURL)
 	if err != nil {
 		return nil, err

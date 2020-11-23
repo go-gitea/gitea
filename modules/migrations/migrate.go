@@ -210,7 +210,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(downloader, releases[:relBatchSize]...); err != nil {
+			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
