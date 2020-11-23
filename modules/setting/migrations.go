@@ -4,6 +4,10 @@
 
 package setting
 
+import (
+	"strings"
+)
+
 var (
 	// Migrations settings
 	Migrations = struct {
@@ -23,5 +27,11 @@ func newMigrationsService() {
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)
 
 	Migrations.AllowlistedDomains = sec.Key("ALLOWLISTED_DOMAINS").Strings(",")
+	for i := range Migrations.AllowlistedDomains {
+		Migrations.AllowlistedDomains[i] = strings.ToLower(Migrations.AllowlistedDomains[i])
+	}
 	Migrations.BlocklistedDomains = sec.Key("BLOCKLISTED_DOMAINS").Strings(",")
+	for i := range Migrations.BlocklistedDomains {
+		Migrations.BlocklistedDomains[i] = strings.ToLower(Migrations.BlocklistedDomains[i])
+	}
 }
