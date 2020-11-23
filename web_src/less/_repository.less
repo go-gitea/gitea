@@ -860,7 +860,7 @@
           border-radius: 50%;
           display: flex;
           float: left;
-          margin-left: -34px;
+          margin-left: -33px;
           margin-right: 8px;
           color: #666;
           align-items: center;
@@ -891,11 +891,7 @@
           padding-top: 0;
 
           .singular-commit {
-            line-height: 30px;
-
-            &:not(:last-child) {
-              padding-bottom: 2px;
-            }
+            line-height: 34px; /* this must be same as .badge height, to avoid overflow */
 
             .shabox {
               .sha.label {
