@@ -12,7 +12,6 @@ import (
 
 // Matchlist represents a block or allow list
 type Matchlist struct {
-	rules     []string
 	ruleGlobs []glob.Glob
 }
 
@@ -22,11 +21,10 @@ func NewMatchlist(rules ...string) (*Matchlist, error) {
 		rules[i] = strings.ToLower(rules[i])
 	}
 	list := Matchlist{
-		rules:     rules,
 		ruleGlobs: make([]glob.Glob, 0, len(rules)),
 	}
 
-	for _, rule := range list.rules {
+	for _, rule := range rules {
 		rg, err := glob.Compile(rule)
 		if err != nil {
 			return nil, err
