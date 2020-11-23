@@ -57,13 +57,13 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 		addrList, err := net.LookupIP(u.Host)
 		if err != nil {
 			return false, fmt.Errorf("migrate from '%v' failed: unknown hostname", u.Host)
-		} else {
-			for _, addr := range addrList {
-				// workaround with **privateNetworkList** for RFC 1918, as long as "net" do not support it
-				// https://github.com/golang/go/issues/29146
-				if !addr.IsGlobalUnicast() || privateNetworkList.Match(addr.String()) {
-					return false, fmt.Errorf("migrate from '%v' not allowed, has private network address '%s'", u.Host, addr.String())
-				}
+		}
+
+		for _, addr := range addrList {
+			// workaround with **privateNetworkList** for RFC 1918, as long as "net" do not support it
+			// https://github.com/golang/go/issues/29146
+			if !addr.IsGlobalUnicast() || privateNetworkList.Match(addr.String()) {
+				return false, fmt.Errorf("migrate from '%v' not allowed, has private network address '%s'", u.Host, addr.String())
 			}
 		}
 	}
