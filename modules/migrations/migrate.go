@@ -8,6 +8,7 @@ package migrations
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -23,6 +24,10 @@ type MigrateOptions = base.MigrateOptions
 
 var (
 	factories []base.DownloaderFactory
+
+	allowList          *matchlist.Matchlist
+	blockList          *matchlist.Matchlist
+	privateNetworkList *matchlist.Matchlist
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -38,12 +43,27 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
 		if len(setting.Migrations.AllowlistedDomains) > 0 {
-			if !allowlist.Match(u.Host) {
-				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
+			if !allowList.Match(u.Host) {
+				return false, fmt.Errorf("migrate from '%v' is not allowed", u.Host)
 			}
 		} else {
-			if blocklist.Match(u.Host) {
-				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
+			if blockList.Match(u.Host) {
+				return false, fmt.Errorf("migrate from '%v' is not allowed", u.Host)
+			}
+		}
+	}
+
+	if !setting.Migrations.AllowLocalNetworks {
+		addrList, err := net.LookupIP(u.Host)
+		if err != nil {
+			return false, fmt.Errorf("migrate from '%v' failed: unknown hostname", u.Host)
+		} else {
+			for _, addr := range addrList {
+				// workaround with **privateNetworkList** for RFC 1918, as long as "net" do not support it
+				// https://github.com/golang/go/issues/29146
+				if !addr.IsGlobalUnicast() || privateNetworkList.Match(addr.String()) {
+					return false, fmt.Errorf("migrate from '%v' not allowed, has private network address '%s'", u.Host, addr.String())
+				}
 			}
 		}
 	}
@@ -337,22 +357,26 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	return nil
 }
 
-var (
-	allowlist *matchlist.Matchlist
-	blocklist *matchlist.Matchlist
-)
-
 // Init migrations service
 func Init() error {
 	var err error
-	allowlist, err = matchlist.NewMatchlist(setting.Migrations.AllowlistedDomains...)
+	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowlistedDomains...)
 	if err != nil {
-		return fmt.Errorf("init migration allowlist domains failed: %v", err)
+		return fmt.Errorf("init migration allowList domains failed: %v", err)
 	}
 
-	blocklist, err = matchlist.NewMatchlist(setting.Migrations.BlocklistedDomains...)
+	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlocklistedDomains...)
 	if err != nil {
-		return fmt.Errorf("init migration blocklist domains failed: %v", err)
+		return fmt.Errorf("init migration blockList domains failed: %v", err)
 	}
+
+	// TODO: remove if https://github.com/golang/go/issues/29146 got resolved
+	privateNetworkList, _ = matchlist.NewMatchlist(
+		"localhost",                                     // localhost
+		"{10,127}\\.[0-9]*\\.[0-9]*\\.[0-9]*",           // 127.0.0.0/8 & 10.0.0.0/8
+		"172\\.{1[6-9],2[0-9],3[01]}\\.[0-9]*\\.[0-9]*", // 172.16.0.0/12
+		"192\\.168\\.[0-9]*\\.[0-9]*",                   // 192.168.0.0/16
+	)
+
 	return nil
 }

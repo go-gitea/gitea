@@ -15,6 +15,7 @@ var (
 		RetryBackoff       int
 		AllowlistedDomains []string
 		BlocklistedDomains []string
+		AllowLocalNetworks bool
 	}{
 		MaxAttempts:  3,
 		RetryBackoff: 3,
@@ -34,4 +35,6 @@ func newMigrationsService() {
 	for i := range Migrations.BlocklistedDomains {
 		Migrations.BlocklistedDomains[i] = strings.ToLower(Migrations.BlocklistedDomains[i])
 	}
+
+	Migrations.AllowLocalNetworks = sec.Key("ALLOW_LOCALNETWORKS").MustBool(false)
 }
