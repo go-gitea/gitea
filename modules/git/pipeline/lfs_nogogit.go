@@ -8,6 +8,7 @@ package pipeline
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"sort"
@@ -87,7 +88,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
-	trees := []string{}
+	trees := [][]byte{}
 	paths := []string{}
 
 	for scan.Scan() {
@@ -146,7 +147,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						return nil, err
 					}
 					n += int64(count)
-					if sha == hashStr {
+					if bytes.Equal(sha, []byte(hashStr)) {
 						result := LFSResult{
 							Name:         curPath + fname,
 							SHA:          curCommit.ID.String(),
@@ -161,7 +162,11 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 					}
 				}
 				if len(trees) > 0 {
-					_, err := batchStdinWriter.Write([]byte(trees[len(trees)-1] + "\n"))
+					_, err := batchStdinWriter.Write(trees[len(trees)-1])
+					if err != nil {
+						return nil, err
+					}
+					_, err = batchStdinWriter.Write([]byte("\n"))
 					if err != nil {
 						return nil, err
 					}
