@@ -121,7 +121,7 @@ headerLoop:
 
 const hextable = "0123456789abcdef"
 
-func ParseTreeLineSkipMode(rd *bufio.Reader) (fname string, sha []byte, n int, err error) {
+func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sha []byte, n int, err error) {
 	var readBytes []byte
 	readBytes, err = rd.ReadSlice(' ')
 	if err != nil {
@@ -130,22 +130,27 @@ func ParseTreeLineSkipMode(rd *bufio.Reader) (fname string, sha []byte, n int, e
 	n += len(readBytes)
 
 	readBytes, err = rd.ReadSlice('\x00')
-	fname = string(readBytes)
+	copy(fnameBuf, readBytes)
+	if len(fnameBuf) > len(readBytes) {
+		fnameBuf = fnameBuf[:len(readBytes)]
+	} else {
+		fnameBuf = append(fnameBuf, readBytes[len(fnameBuf):]...)
+	}
 	for err == bufio.ErrBufferFull {
 		readBytes, err = rd.ReadSlice('\x00')
-		fname += string(readBytes)
+		fnameBuf = append(fnameBuf, readBytes...)
 	}
-	n += len(fname)
+	n += len(fnameBuf)
 	if err != nil {
 		return
 	}
-	fname = fname[:len(fname)-1]
+	fnameBuf = fnameBuf[:len(fnameBuf)-1]
+	fname = fnameBuf
 
-	shaBytes := [40]byte{}
 	idx := 0
 	for idx < 20 {
 		read := 0
-		read, err = rd.Read(shaBytes[idx:20])
+		read, err = rd.Read(shaBuf[idx:20])
 		n += read
 		if err != nil {
 			return
@@ -153,14 +158,16 @@ func ParseTreeLineSkipMode(rd *bufio.Reader) (fname string, sha []byte, n int, e
 		idx += read
 	}
 	for i := 19; i >= 0; i-- {
-		shaBytes[i*2+1] = hextable[shaBytes[i]&0x0f]
-		shaBytes[i*2] = hextable[shaBytes[i]>>4] // This must be after i*2+1
+		v := shaBuf[i]
+		vhi, vlo := v>>4, v&0x0f
+		shi, slo := hextable[vhi], hextable[vlo]
+		shaBuf[i*2], shaBuf[i*2+1] = shi, slo
 	}
-	sha = shaBytes[:]
+	sha = shaBuf
 	return
 }
 
-func ParseTreeLine(rd *bufio.Reader) (mode, fname string, sha []byte, n int, err error) {
+func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	readBytes, err = rd.ReadSlice(' ')
@@ -168,25 +175,37 @@ func ParseTreeLine(rd *bufio.Reader) (mode, fname string, sha []byte, n int, err
 		return
 	}
 	n += len(readBytes)
-	mode = string(readBytes[:len(readBytes)-1])
+	copy(modeBuf, readBytes)
+	if len(modeBuf) > len(readBytes) {
+		modeBuf = modeBuf[:len(readBytes)]
+	} else {
+		modeBuf = append(modeBuf, readBytes[len(modeBuf):]...)
+
+	}
+	mode = modeBuf[:len(modeBuf)-1]
 
 	readBytes, err = rd.ReadSlice('\x00')
-	fname = string(readBytes)
+	copy(fnameBuf, readBytes)
+	if len(fnameBuf) > len(readBytes) {
+		fnameBuf = fnameBuf[:len(readBytes)]
+	} else {
+		fnameBuf = append(fnameBuf, readBytes[len(fnameBuf):]...)
+	}
 	for err == bufio.ErrBufferFull {
 		readBytes, err = rd.ReadSlice('\x00')
-		fname += string(readBytes)
+		fnameBuf = append(fnameBuf, readBytes...)
 	}
-	n += len(fname)
+	n += len(fnameBuf)
 	if err != nil {
 		return
 	}
-	fname = fname[:len(fname)-1]
+	fnameBuf = fnameBuf[:len(fnameBuf)-1]
+	fname = fnameBuf
 
-	shaBytes := [40]byte{}
 	idx := 0
 	for idx < 20 {
 		read := 0
-		read, err = rd.Read(shaBytes[idx:20])
+		read, err = rd.Read(shaBuf[idx:20])
 		n += read
 		if err != nil {
 			return
@@ -194,10 +213,12 @@ func ParseTreeLine(rd *bufio.Reader) (mode, fname string, sha []byte, n int, err
 		idx += read
 	}
 	for i := 19; i >= 0; i-- {
-		shaBytes[i*2+1] = hextable[shaBytes[i]&0x0f]
-		shaBytes[i*2] = hextable[shaBytes[i]>>4] // This must be after i*2+1
+		v := shaBuf[i]
+		vhi, vlo := v>>4, v&0x0f
+		shi, slo := hextable[vhi], hextable[vlo]
+		shaBuf[i*2], shaBuf[i*2+1] = shi, slo
 	}
-	sha = shaBytes[:]
+	sha = shaBuf
 	return
 }
 
@@ -349,10 +370,23 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	// For simplicities sake we'll us a buffered reader
 	batchReader := bufio.NewReader(batchStdoutReader)
 
-	path2idx := make(map[string]int, len(paths))
+	mapsize := 4096
+	if len(paths) > mapsize {
+		mapsize = len(paths)
+	}
+
+	path2idx := make(map[string]int, mapsize)
 	for i, path := range paths {
 		path2idx[path] = i
 	}
+
+	fnameBuf := make([]byte, 4096)
+	modeBuf := make([]byte, 40)
+
+	allShaBuf := make([]byte, len(paths)*40)
+	shaBuf := make([]byte, 40)
+	tmpTreeID := make([]byte, 40)
+
 	// commits is the returnable commits matching the paths provided
 	commits := make([]string, len(paths))
 	// ids are the blob/tree ids for the paths
@@ -406,18 +440,20 @@ revListLoop:
 				// We are in the right directory
 				// Parse each tree line in turn. (don't care about mode here.)
 				for n < size {
-					fname, sha, count, err := ParseTreeLineSkipMode(batchReader)
+					fname, sha, count, err := ParseTreeLineSkipMode(batchReader, fnameBuf, shaBuf)
+					shaBuf = sha
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
-					idx, ok := path2idx[fname]
+					idx, ok := path2idx[string(fname)]
 					if ok {
 						// Now if this is the first time round set the initial Blob(ish) SHA ID and the commit
 						if len(ids[idx]) == 0 {
-							ids[idx] = sha
+							copy(allShaBuf[40*idx:40*(idx+1)], shaBuf)
+							ids[idx] = allShaBuf[40*idx : 40*(idx+1)]
 							commits[idx] = string(commitID)
-						} else if bytes.Equal(ids[idx], sha) {
+						} else if bytes.Equal(ids[idx], shaBuf) {
 							commits[idx] = string(commitID)
 						}
 					}
@@ -427,6 +463,8 @@ revListLoop:
 				break treeReadingLoop
 			}
 
+			var treeID []byte
+
 			// We're in the wrong directory
 			// Find target directory in this directory
 			idx := len(currentPath)
@@ -435,18 +473,18 @@ revListLoop:
 			}
 			target := strings.SplitN(treePath[idx:], "/", 2)[0]
 
-			var treeID []byte
 			for n < size {
 				// Read each tree entry in turn
-				mode, fname, sha, count, err := ParseTreeLine(batchReader)
+				mode, fname, sha, count, err := ParseTreeLine(batchReader, modeBuf, fnameBuf, shaBuf)
 				if err != nil {
 					return nil, err
 				}
 				n += int64(count)
 
 				// if we have found the target directory
-				if fname == target && ToEntryMode(mode) == EntryModeTree {
-					treeID = sha
+				if bytes.Equal(fname, []byte(target)) && bytes.Equal(mode, []byte("40000")) {
+					copy(tmpTreeID, sha)
+					treeID = tmpTreeID
 					break
 				}
 			}
@@ -481,7 +519,8 @@ revListLoop:
 			// if we've now found the curent path check its sha id and commit status
 			if treePath == currentPath && paths[0] == "" {
 				if len(ids[0]) == 0 {
-					ids[0] = treeID
+					copy(allShaBuf[0:40], treeID)
+					ids[0] = allShaBuf[0:40]
 					commits[0] = string(commitID)
 				} else if bytes.Equal(ids[0], treeID) {
 					commits[0] = string(commitID)
@@ -506,6 +545,10 @@ revListLoop:
 		c, ok := commitsMap[commitID]
 		if ok {
 			commitCommits[i] = c
+			continue
+		}
+
+		if len(commitID) == 0 {
 			continue
 		}
 

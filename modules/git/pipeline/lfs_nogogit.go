@@ -91,6 +91,10 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 	trees := [][]byte{}
 	paths := []string{}
 
+	fnameBuf := make([]byte, 4096)
+	modeBuf := make([]byte, 40)
+	workingShaBuf := make([]byte, 40)
+
 	for scan.Scan() {
 		// Get the next commit ID
 		commitID := scan.Bytes()
@@ -142,23 +146,23 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, sha, count, err := git.ParseTreeLine(batchReader)
+					mode, fname, sha, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
 					if bytes.Equal(sha, []byte(hashStr)) {
 						result := LFSResult{
-							Name:         curPath + fname,
+							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),
 							Summary:      strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
 							When:         curCommit.Author.When,
 							ParentHashes: curCommit.Parents,
 						}
-						resultsMap[curCommit.ID.String()+":"+curPath+fname] = &result
-					} else if mode == git.EntryModeTree.String() {
+						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
+					} else if string(mode) == git.EntryModeTree.String() {
 						trees = append(trees, sha)
-						paths = append(paths, curPath+fname+"/")
+						paths = append(paths, curPath+string(fname)+"/")
 					}
 				}
 				if len(trees) > 0 {
