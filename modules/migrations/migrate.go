@@ -25,9 +25,8 @@ type MigrateOptions = base.MigrateOptions
 var (
 	factories []base.DownloaderFactory
 
-	allowList          *matchlist.Matchlist
-	blockList          *matchlist.Matchlist
-	privateNetworkList *matchlist.Matchlist
+	allowList *matchlist.Matchlist
+	blockList *matchlist.Matchlist
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -58,11 +57,8 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("migrate from '%v' failed: unknown hostname", u.Host)
 		}
-
 		for _, addr := range addrList {
-			// workaround with **privateNetworkList** for RFC 1918, as long as "net" do not support it
-			// https://github.com/golang/go/issues/29146
-			if !addr.IsGlobalUnicast() || privateNetworkList.Match(addr.String()) {
+			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
 				return false, fmt.Errorf("migrate from '%v' not allowed, has private network address '%s'", u.Host, addr.String())
 			}
 		}
@@ -370,13 +366,18 @@ func Init() error {
 		return fmt.Errorf("init migration blockList domains failed: %v", err)
 	}
 
-	// TODO: remove if https://github.com/golang/go/issues/29146 got resolved
-	privateNetworkList, _ = matchlist.NewMatchlist(
-		"localhost",                                     // localhost
-		"{10,127}\\.[0-9]*\\.[0-9]*\\.[0-9]*",           // 127.0.0.0/8 & 10.0.0.0/8
-		"172\\.{1[6-9],2[0-9],3[01]}\\.[0-9]*\\.[0-9]*", // 172.16.0.0/12
-		"192\\.168\\.[0-9]*\\.[0-9]*",                   // 192.168.0.0/16
-	)
-
 	return nil
+}
+
+// isIPPrivate reports whether ip is a private address, according to
+// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
+// from https://github.com/golang/go/pull/42793
+// TODO remove if https://github.com/golang/go/issues/29146 got resolved
+func isIPPrivate(ip net.IP) bool {
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
+			(ip4[0] == 192 && ip4[1] == 168)
+	}
+	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }
