@@ -68,6 +68,7 @@ var (
 	// AppVer settings
 	AppVer         string
 	AppBuiltWith   string
+	AppStartTime   time.Time
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -363,6 +364,7 @@ var (
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
 	ProdMode      bool
+	RunMode       string
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
@@ -846,6 +848,7 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("dev")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)

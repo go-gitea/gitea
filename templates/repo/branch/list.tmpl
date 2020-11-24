@@ -19,7 +19,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
-								<p class="info">{{svg "octicon-git-commit"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}
 						</td>
@@ -27,8 +27,8 @@
 							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-variation="tiny inverted" data-position="top right">
 							  <i class="download icon"></i>
 							  <div class="menu">
-							    <a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-							    <a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							  </div>
 							</div>
 						</td>
@@ -56,7 +56,7 @@
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="info">{{svg "octicon-git-commit"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -106,8 +106,8 @@
 											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
 												<div class="menu">
-													<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-													<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 												</div>
 											</div>
 										{{end}}
@@ -131,7 +131,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">

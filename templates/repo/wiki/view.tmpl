@@ -12,11 +12,11 @@
 								{{.i18n.Tr "repo.wiki.page"}}:
 								<strong>{{$title}}</strong>
 							</span>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</div>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="filter icon"></i>
+								<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 								<input name="search" placeholder="{{.i18n.Tr "repo.wiki.filter_page"}}...">
 							</div>
 							<div class="scrolling menu">
@@ -101,7 +101,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">

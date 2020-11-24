@@ -6,7 +6,7 @@
 				{{if .IsViewBranch}}{{.i18n.Tr "repo.branch"}}{{else}}{{.i18n.Tr "repo.tree"}}{{end}}:
 				<strong>{{if .IsViewBranch}}{{.BranchName}}{{else}}{{ShortSha .BranchName}}{{end}}</strong>
 			</span>
-			<i class="dropdown icon"></i>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
 		<div class="data" style="display: none" data-mode="{{if .IsViewTag}}tags{{else}}branches{{end}}">
 			{{range .Branches}}
@@ -18,7 +18,7 @@
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
-				<i class="filter icon"></i>
+				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 				<input name="search" ref="searchField" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
 			</div>
 			<div class="header branch-tag-choice">

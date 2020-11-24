@@ -1,19 +1,21 @@
 <div class="sixteen wide column title">
-	<div class="ui grid">
-		<h1 class="twelve wide column">
+	<div class="issue-title" id="issue-title-wrapper">
+		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
+  		<div class="edit-button">
+  			<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
+  		</div>
+		{{end}}
+		<h1>
 			<span class="index">#{{.Issue.Index}}</span> <span id="issue-title">{{RenderEmoji .Issue.Title}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
 				<input value="{{.Issue.Title}}" maxlength="255">
 			</div>
 		</h1>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-			<div class="four wide column">
-				<div class="edit-zone text right">
-					<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
-					<div id="cancel-edit-title" class="ui basic blue in-edit button" style="display: none">{{.i18n.Tr "repo.issues.cancel"}}</div>
-					<div id="save-edit-title" class="ui green in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.i18n.Tr "repo.issues.save"}}</div>
-				</div>
-			</div>
+  		<div class="edit-buttons">
+				<div id="cancel-edit-title" class="ui basic blue in-edit button" style="display: none">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div id="save-edit-title" class="ui green in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.i18n.Tr "repo.issues.save"}}</div>
+  		</div>
 		{{end}}
 	</div>
 	{{if .HasMerged}}
@@ -55,11 +57,11 @@
                  <div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
                 	<div class="ui basic small button">
                 		<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
-                		<i class="dropdown icon"></i>
+                		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
                 	</div>
                 	<div class="menu">
                 		<div class="ui icon search input">
-                			<i class="filter icon"></i>
+                			<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
                 			<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
                 		</div>
                 		<div class="scrolling menu" id="branch-select">

@@ -129,6 +129,9 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+		case models.IsErrEmailInvalid(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplUserNew, &form)
@@ -277,6 +280,9 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		if models.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+		} else if models.IsErrEmailInvalid(err) {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

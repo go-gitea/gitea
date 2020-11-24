@@ -1880,9 +1880,47 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) assigned to you, default is false",
+            "name": "assigned",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) created by you, default is false",
+            "name": "created",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) mentioning you, default is false",
+            "name": "mentioned",
+            "in": "query"
+          },
+          {
             "type": "integer",
-            "description": "page number of requested issues",
+            "description": "page number of results to return (1-based)",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -2541,6 +2579,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Branch"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2582,6 +2623,9 @@
           },
           "403": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7164,6 +7208,114 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/requested_reviewers": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "create review requests for a pull request",
+        "operationId": "repoCreatePullReviewRequests",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PullReviewRequestOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PullReviewList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "cancel review requests for a pull request",
+        "operationId": "repoDeletePullReviewRequests",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PullReviewRequestOptions"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/reviews": {
       "get": {
         "produces": [
@@ -7724,6 +7876,47 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a release tag",
+        "operationId": "repoDeleteReleaseTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the tag to delete",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -12942,7 +13135,8 @@
       "description": "EditUserOption edit user options",
       "type": "object",
       "required": [
-        "email"
+        "source_id",
+        "login_name"
       ],
       "properties": {
         "active": {
@@ -14540,6 +14734,9 @@
           "format": "date-time",
           "x-go-name": "Submitted"
         },
+        "team": {
+          "$ref": "#/definitions/Team"
+        },
         "user": {
           "$ref": "#/definitions/User"
         }
@@ -14610,6 +14807,27 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "PullReviewRequestOptions": {
+      "description": "PullReviewRequestOptions are options to add or remove pull review requests",
+      "type": "object",
+      "properties": {
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Reviewers"
+        },
+        "team_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TeamReviewers"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16117,6 +16335,9 @@
         "$ref": "#/definitions/WatchInfo"
       }
     },
+    "conflict": {
+      "description": "APIConflict is a conflict empty response"
+    },
     "empty": {
       "description": "APIEmpty is an empty response"
     },
@@ -16162,7 +16383,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/MigrateRepoOptions"
+        "$ref": "#/definitions/PullReviewRequestOptions"
       }
     },
     "redirect": {

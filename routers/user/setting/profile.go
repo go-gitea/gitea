@@ -91,7 +91,6 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	ctx.User.FullName = form.FullName
-	ctx.User.Email = form.Email
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
@@ -121,7 +120,11 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *models.User) error {
 	ctxUser.UseCustomAvatar = form.Source == auth.AvatarLocal
 	if len(form.Gravatar) > 0 {
-		ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
+		if form.Avatar != nil {
+			ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
+		} else {
+			ctxUser.Avatar = ""
+		}
 		ctxUser.AvatarEmail = form.Gravatar
 	}
 

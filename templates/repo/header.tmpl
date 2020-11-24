@@ -83,7 +83,10 @@
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}}
+						{{if .Repository.NumOpenIssues}}
+							<span class="ui blue small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+						{{end}}
 					</a>
 				{{end}}
 
@@ -95,22 +98,28 @@
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
-						{{svg "octicon-git-pull-request"}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{CountFmt .Repository.NumOpenPulls}}</span>
+						{{svg "octicon-git-pull-request"}} {{.i18n.Tr "repo.pulls"}}
+						{{if .Repository.NumOpenPulls}}
+							<span class="ui blue small label">{{CountFmt .Repository.NumOpenPulls}}</span>
+						{{end}}
 					</a>
 				{{end}}
 
 				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}
-						<span class="ui {{if not .Repository.NumOpenProjects}}gray{{else}}blue{{end}} small label">
-							{{CountFmt .Repository.NumOpenProjects}}
-						</span>
+						{{if .Repository.NumOpenProjects}}
+							<span class="ui blue small label">{{CountFmt .Repository.NumOpenProjects}}</span>
+						{{end}}
 					</a>
 				{{ end }}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-					{{svg "octicon-tag"}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{CountFmt .NumReleases}}</span>
+					{{svg "octicon-tag"}} {{.i18n.Tr "repo.releases"}}
+					{{if .NumReleases}}
+						<span class="ui blue small label">{{CountFmt .NumReleases}}</span>
+					{{end}}
 				</a>
 				{{end}}
 

@@ -1,5 +1,7 @@
 .admin {
-  padding-top: 15px;
+  &.notice {
+    padding-top: 15px;
+  }
 
   .table.segment {
     padding: 0;
@@ -44,7 +46,7 @@
 
   .ui.header,
   .ui.segment {
-    box-shadow: 0 1px 2px 0 rgba(34, 36, 38, .15);
+    box-shadow: 0 1px 2px 0 var(--color-secondary);
   }
 
   &.user {
@@ -62,7 +64,7 @@
     }
 
     dt {
-      font-weight: bolder;
+      font-weight: 500;
       float: left;
       width: 285px;
       clear: left;
@@ -86,16 +88,16 @@
 
   #notice-table {
     .notice-description {
-      @media only screen and (max-width: 767px) {
+      @media @mediaSm {
         max-width: 80vw;
       }
-      @media only screen and (max-width: 991px) and (min-width: 768px) {
+      @media @mediaMd {
         max-width: 360px;
       }
-      @media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+      @media @mediaLg {
         max-width: 510px;
       }
-      @media only screen and (min-width: 1200px) {
+      @media @mediaXl {
         max-width: 640px;
       }
     }

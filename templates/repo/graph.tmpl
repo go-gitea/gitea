@@ -3,60 +3,61 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div id="git-graph-container" class="ui segment{{if eq .Mode "monochrome"}} monochrome{{end}}">
-			<h2 class="ui header dividing">{{.i18n.Tr "repo.commit_graph"}}
-				<div class="ui right">
-					<div class="ui icon buttons tiny color-buttons">
-						<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}"><span class="emoji">{{svg "material-invert-colors"}}</span> {{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
-						<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}"><span class="emoji">{{svg "material-palette"}}</span> {{.i18n.Tr "repo.commit_graph.color"}}</button>
+			<h2 class="ui header dividing">
+				{{.i18n.Tr "repo.commit_graph"}}
+				<div class="ui icon buttons tiny color-buttons">
+					<div class="ui multiple selection search dropdown" id="flow-select-refs-dropdown">
+						<input type="hidden" name="flow">
+						<i class="dropdown icon"></i>
+						<div class="default text">{{.i18n.Tr "repo.commit_graph.select"}}</div>
+						<div class="menu">
+							<div class="item" data-value="...flow-hide-pr-refs">
+								<span class="truncate">
+									{{svg "octicon-eye-closed" 16 "mr-2"}}<span title="{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}">{{.i18n.Tr "repo.commit_graph.hide_pr_refs"}}</span>
+								</span>
+							</div>
+							{{range .AllRefs}}
+								{{$refGroup := .RefGroup}}
+								{{if eq $refGroup "pull"}}
+									<div class="item" data-value="{{.Name}}">
+										<span class="truncate">
+											{{svg "octicon-git-pull-request" 16 "mr-2"}}<span title="{{.ShortName}}">#{{.ShortName}}</span>
+										</span>
+									</div>
+								{{else if eq $refGroup "tags"}}
+									<div class="item" data-value="{{.Name}}">
+										<span class="truncate">
+											{{svg "octicon-tag" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+										</span>
+									</div>
+								{{else if eq $refGroup "remotes"}}
+									<div class="item" data-value="{{.Name}}">
+										<span class="truncate">
+											{{svg "octicon-cross-reference" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+										</span>
+									</div>
+								{{else if eq $refGroup "heads"}}
+									<div class="item" data-value="{{.Name}}">
+										<span class="truncate">
+											{{svg "octicon-git-branch" 16 "mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+										</span>
+									</div>
+								{{end}}
+							{{end}}
+						</div>
 					</div>
+					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
+					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "mr-2"}}{{.i18n.Tr "repo.commit_graph.color"}}</button>
 				</div>
 			</h2>
 			<div class="ui dividing"></div>
-			<div id="rel-container">
-				<svg viewbox="{{Mul .Graph.MinColumn 5}} {{Mul .Graph.MinRow 10}} {{Add (Mul .Graph.Width 5) 5}} {{Mul .Graph.Height 10}}" width="{{Add (Mul .Graph.Width 10) 10}}px">
-					{{range $flowid, $flow := .Graph.Flows}}
-						<g id="flow-{{$flow.ID}}" class="flow-group flow-color-{{$flow.ColorNumber}} flow-color-16-{{$flow.Color16}}" data-flow="{{$flow.ID}}" data-color="{{$flow.ColorNumber}}">
-							<path d="{{range $i, $glyph := $flow.Glyphs -}}
-								{{- if or (eq $glyph.Glyph '*') (eq $glyph.Glyph '|') -}}
-									M {{Add (Mul $glyph.Column 5) 5}} {{Add (Mul $glyph.Row 10) 0}} v 10 {{/* */ -}}
-								{{- else if eq $glyph.Glyph '/' -}}
-									M {{Add (Mul $glyph.Column 5) 10}} {{Add (Mul $glyph.Row 10) 0}} l -10 10 {{/* */ -}}
-								{{- else if eq $glyph.Glyph '\\' -}}
-									M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 10) 0}} l 10 10 {{/* */ -}}
-								{{- else if or (eq $glyph.Glyph '-') (eq $glyph.Glyph '.') -}}
-									M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 10) 10}} h 5 {{/* */ -}}
-								{{- else if eq $glyph.Glyph '_' -}}
-									M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 10) 10}} h 10 {{/* */ -}}
-								{{- end -}}
-							{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"/>
-							{{range $flow.Commits}}
-								<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 10) 5}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"/>
-							{{end}}
-						</g>
-					{{end}}
-				</svg>
-			</div>
-			<div id="rev-container">
-				<ul id="rev-list">
-					{{ range .Graph.Commits }}
-						<li id="commit-{{.Rev}}" data-flow="{{.Flow}}">
-							{{ if .OnlyRelation }}
-								<span />
-							{{ else }}
-								<code id="{{.ShortRev}}">
-									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.Rev}}">{{ .ShortRev}}</a>
-								</code>
-								<strong> {{.Branch}}</strong>
-								<span>{{RenderCommitMessage .Subject $.RepoLink $.Repository.ComposeMetas}}</span> by
-								<span class="author">{{.Author}}</span>
-								<span class="time">{{.Date}}</span>
-							{{ end }}
-						</li>
-					{{ end }}
-				</ul>
-			</div>
+			<div class="ui segment loading hide" id="loading-indicator"></div>
+			{{ template "repo/graph/svgcontainer" .}}
+			{{ template "repo/graph/commits" .}}
 		</div>
 	</div>
 </div>
-{{template "base/paginate" .}}
+<div id="pagination">
+	{{template "base/paginate" .}}
+</div>
 {{template "base/footer" .}}

@@ -49,7 +49,7 @@ const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path)
+	return AllCommitsCount(repo.Path, false)
 }
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {

@@ -102,10 +102,11 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
-		return u.String(), nil
-	}
-
-	if !user.CanImportLocal() {
+		remoteAddr = u.String()
+		if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteAddr, "%0d") || strings.Contains(remoteAddr, "%0a")) {
+			return "", models.ErrInvalidCloneAddr{IsURLError: true}
+		}
+	} else if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
 	}
 

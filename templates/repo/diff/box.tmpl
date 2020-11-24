@@ -17,9 +17,11 @@
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
-		<div class="diff-detail-box diff-box sticky">
-			{{svg "octicon-diff"}} {{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
-			<div class="ui right">
+		<div class="diff-detail-box diff-box sticky df sb ac">
+			<div class="diff-detail-stats df ac">
+				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+			</div>
+			<div class="diff-detail-actions df ac">
 				{{if .PageIsPullFiles}}
 					{{template "repo/diff/whitespace_dropdown" .}}
 				{{else}}
@@ -36,12 +38,7 @@
 				<li>
 					<div class="diff-counter count pull-right">
 						{{if not .IsBin}}
-							<span class="add" data-line="{{.Addition}}">+{{.Addition}}</span>
-							<span class="bar">
-								<div class="pull-left add"></div>
-								<div class="pull-left del"></div>
-							</span>
-							<span class="del" data-line="{{.Deletion}}">-{{.Deletion}}</span>
+							{{template "repo/diff/stats" .}}
 						{{else}}
 							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
 						{{end}}
@@ -58,12 +55,7 @@
 					<h4 class="ui top attached normal header rounded">
 						<div class="diff-counter count ui left">
 							{{if not $file.IsRenamed}}
-								<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-								<span class="bar">
-									<div class="pull-left add"></div>
-									<div class="pull-left del"></div>
-								</span>
-								<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+								{{template "repo/diff/stats" .}}
 							{{end}}
 						</div>
 						<span class="file">{{$file.Name}}</span>
@@ -82,41 +74,40 @@
 				</div>
 			{{else}}
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
-					<h4 class="diff-file-header ui top attached normal header">
-						{{$isImage := false}}
-						{{if $file.IsDeleted}}
-							{{$isImage = (call $.IsImageFileInBase $file.Name)}}
-						{{else}}
-							{{$isImage = (call $.IsImageFileInHead $file.Name)}}
-						{{end}}
-						{{if or (not $file.IsBin) $isImage}}
-						<a role="button" class="fold-file">
-							{{svg "octicon-chevron-down" 18}}
-						</a>
-						{{end}}
-						<div class="diff-counter count">
-							{{if $file.IsBin}}
-								{{$.i18n.Tr "repo.diff.bin"}}
-							{{else if not $file.IsRenamed}}
-								<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-								<span class="bar">
-									<div class="pull-left add"></div>
-									<div class="pull-left del"></div>
-								</span>
-								<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+					<h4 class="diff-file-header ui top attached normal header df ac sb">
+						<div class="df ac">
+							{{$isImage := false}}
+							{{if $file.IsDeleted}}
+								{{$isImage = (call $.IsImageFileInBase $file.Name)}}
+							{{else}}
+								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
+							{{end}}
+							{{if or (not $file.IsBin) $isImage}}
+							<a role="button" class="fold-file">
+								{{svg "octicon-chevron-down" 18}}
+							</a>
+							{{end}}
+							<div class="diff-counter count">
+								{{if $file.IsBin}}
+									{{$.i18n.Tr "repo.diff.bin"}}
+								{{else if not $file.IsRenamed}}
+									{{template "repo/diff/stats" .}}
+								{{end}}
+							</div>
+							<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+						</div>
+						<div class="df ac">
+							{{if $file.IsProtected}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
+							{{end}}
+							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+								{{if $file.IsDeleted}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{else}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{end}}
 							{{end}}
 						</div>
-						<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
-						{{if $file.IsProtected}}
-							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
-						{{end}}
-						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-							{{if $file.IsDeleted}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{else}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{end}}
-						{{end}}
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
 						{{if ne $file.Type 4}}
@@ -148,14 +139,14 @@
 																		</a>
 																	{{end}}
 																</td>
-																<td colspan="5" class="lines-code lines-code-old "><span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+																<td colspan="5" class="lines-code lines-code-old "><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</span></td>
 															{{else}}
 																<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
 																<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-																<td class="lines-code lines-code-old halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
+																<td class="lines-code lines-code-old halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui primary button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 																<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 																<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-																<td class="lines-code lines-code-new halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
+																<td class="lines-code lines-code-new halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 															{{end}}
 														</tr>
 														{{if gt (len $line.Comments) 0}}
@@ -167,13 +158,13 @@
 																<td class="lines-type-marker"></td>
 																<td class="add-comment-left">
 																	{{if and $resolved  (eq $line.GetCommentSide "previous")}}
-																		<div class="ui top attached header">
+																		<div class="ui top attached header resolved-placeholder">
 																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui tiny right labeled button show-outdated">
 																				{{svg "octicon-unfold"}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
 																			</button>
-																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
 																				{{svg "octicon-fold"}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
 																			</button>
@@ -201,15 +192,15 @@
 																</td>
 																<td class="lines-num"></td>
 																<td class="lines-type-marker"></td>
-																<td class="add-comment-right">
+																<td class="add-comment-right resolved-placeholder">
 																	{{if and $resolved (eq $line.GetCommentSide "proposed")}}
 																		<div class="ui top attached header">
 																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui tiny right labeled button show-outdated">
 																				{{svg "octicon-unfold"}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
 																			</button>
-																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
 																				{{svg "octicon-fold"}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
 																			</button>

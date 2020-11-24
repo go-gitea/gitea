@@ -548,7 +548,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 	}
 }
 
-func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(pusher, false, false)
 	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -557,9 +557,9 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 
 	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
-		Ref:        refName,
-		Before:     oldCommitID,
-		After:      newCommitID,
+		Ref:        opts.RefFullName,
+		Before:     opts.OldCommitID,
+		After:      opts.NewCommitID,
 		CompareURL: setting.AppURL + commits.CompareURL,
 		Commits:    apiCommits,
 		Repo:       repo.APIFormat(models.AccessModeOwner),
@@ -776,7 +776,7 @@ func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Rel
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
 
-func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(pusher, false, false)
 	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -785,9 +785,9 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *model
 	}
 
 	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
-		Ref:        refName,
-		Before:     oldCommitID,
-		After:      newCommitID,
+		Ref:        opts.RefFullName,
+		Before:     opts.OldCommitID,
+		After:      opts.NewCommitID,
 		CompareURL: setting.AppURL + commits.CompareURL,
 		Commits:    apiCommits,
 		Repo:       repo.APIFormat(models.AccessModeOwner),
@@ -796,4 +796,12 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *model
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
+}
+
+func (m *webhookNotifier) NotifySyncCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	m.NotifyCreateRef(pusher, repo, refType, refFullName)
+}
+
+func (m *webhookNotifier) NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
 }

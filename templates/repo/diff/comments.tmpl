@@ -9,32 +9,48 @@
 			<img src="{{.Poster.RelAvatarLink}}">
 		</a>
 	{{end}}
-	<div class="content">
-		<div class="ui top attached header">
-			<span class="text grey">
+	<div class="content comment-container">
+		<div class="ui top attached header comment-header df ac sb">
+			<div class="comment-header-left df ac">
 				{{if .OriginalAuthor }}
-					<span class="text black"><i class="fa {{MigrationIcon $.root.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span> <span class="text migrate">{{if $.root.Repository.OriginalURL}} ({{$.root.i18n.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+					<span class="text black mr-2">
+						<i class="fa {{MigrationIcon $.root.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+					</span>
+					<span class="text migrate">
+						{{if $.root.Repository.OriginalURL}}
+							({{$.root.i18n.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname | Safe }})
+						{{end}}
+					</span>
 				{{else}}
-					<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a> {{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+					<span class="text grey">
+						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
+							{{.Poster.GetDisplayName}}
+						</a>
+						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+					</span>
 				{{end}}
-			</span>
-			<div class="ui right actions">
-			{{if and .Review}}
-				{{if eq .Review.Type 0}}
-					<div class="item tag review pending">
-					{{$.root.i18n.Tr "repo.issues.review.pending"}}
-					</div>
-				{{else}}
-					<div class="item tag review">
-					{{$.root.i18n.Tr "repo.issues.review.review"}}
-					</div>
+			</div>
+			<div class="comment-header-right actions df ac">
+				{{if and .Review}}
+					{{if eq .Review.Type 0}}
+						<div class="ui label basic small yellow">
+						{{$.root.i18n.Tr "repo.issues.review.pending"}}
+						</div>
+					{{else}}
+						<div class="ui label basic small">
+						{{$.root.i18n.Tr "repo.issues.review.review"}}
+						</div>
+					{{end}}
 				{{end}}
-			{{end}}
-			{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
-			{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
+				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
-		<div class="ui attached segment">
+		<div class="ui attached segment comment-body">
 			<div class="render-content markdown">
 			{{if .RenderedContent}}
 				{{.RenderedContent|Str2html}}
@@ -48,7 +64,7 @@
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
 			<div class="ui attached segment reactions">
-			{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/reactions" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
 			</div>
 		{{end}}
 	</div>

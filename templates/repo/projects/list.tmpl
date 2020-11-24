@@ -28,7 +28,7 @@
 			<div class="ui dropdown type jump item">
 				<span class="text">
 					{{.i18n.Tr "repo.issues.filter_sort"}}
-					<i class="dropdown icon"></i>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="menu">
 					<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
@@ -57,7 +57,7 @@
 						{{if .IsClosed}}
 							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.i18n.Tr "repo.projects.open"}}</a>
 						{{else}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x"}} {{$.i18n.Tr "repo.projects.close"}}</a>
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.i18n.Tr "repo.projects.close"}}</a>
 						{{end}}
 						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 					</div>
@@ -78,7 +78,7 @@
 {{if or .CanWriteIssues .CanWritePulls}}
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.projects.deletion"}}
 	</div>
 	<div class="content">

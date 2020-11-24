@@ -29,7 +29,7 @@
   opacity: 1 !important;
 }
 
-.editor-toolbar a:not(:hover) {
+.editor-toolbar button:not(:hover) {
   background-color: transparent !important;
 }
 
@@ -49,12 +49,8 @@
 .edit-diff > div > .ui.table {
   border-top: none !important;
   border-bottom: none !important;
-  border-left: 1px solid #d4d4d5 !important;
-  border-right: 1px solid #d4d4d5 !important;
-}
-
-#edit_area {
-  display: none;
+  border-left: 1px solid var(--color-secondary) !important;
+  border-right: 1px solid var(--color-secondary) !important;
 }
 
 .monaco-editor-container {
@@ -72,4 +68,9 @@
   border: none !important;
   color: transparent !important;
   background-color: transparent !important;
+}
+
+.edit.githook .monaco-editor-container {
+  border: 1px solid var(--color-secondary);
+  height: 70vh;
 }
