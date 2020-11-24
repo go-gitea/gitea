@@ -38,7 +38,7 @@
 						{{end}}
 					{{end}}
 					{{range .Labels}}
-						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 					{{end}}
 				</div>
 				<div class="desc issue-item-bottom-row df ac my-1">
@@ -53,7 +53,7 @@
 					{{else}}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
-					{{if .Milestone}}
+					{{if and .Milestone (ne $.listType "milestone")}}
 						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/milestone/{{.Milestone.ID}}"{{end}}>
 							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
 						</a>
