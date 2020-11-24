@@ -160,25 +160,26 @@ var (
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum      int
-		IssuePagingNum        int
-		RepoSearchPagingNum   int
-		MembersPagingNum      int
-		FeedMaxCommitNum      int
-		FeedPagingNum         int
-		GraphMaxCommitNum     int
-		CodeCommentLines      int
-		ReactionMaxUserNum    int
-		ThemeColorMetaTag     string
-		MaxDisplayFileSize    int64
-		ShowUserEmail         bool
-		DefaultShowFullName   bool
-		DefaultTheme          string
-		Themes                []string
-		Reactions             []string
-		ReactionsMap          map[string]bool
-		SearchRepoDescription bool
-		UseServiceWorker      bool
+		ExplorePagingNum       int
+		IssuePagingNum         int
+		RepoSearchPagingNum    int
+		MembersPagingNum       int
+		FeedMaxCommitNum       int
+		FeedPagingNum          int
+		GraphMaxCommitNum      int
+		CodeCommentLines       int
+		ReactionMaxUserNum     int
+		ThemeColorMetaTag      string
+		MaxDisplayFileSize     int64
+		ShowUserEmail          bool
+		DefaultShowFullName    bool
+		DefaultTheme           string
+		Themes                 []string
+		Reactions              []string
+		ReactionsMap           map[string]bool
+		SearchRepoDescription  bool
+		UseServiceWorker       bool
+		ShowSysAdminCommentTag bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -907,6 +908,7 @@ func NewContext() {
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
+	UI.ShowSysAdminCommentTag = Cfg.Section("ui").Key("SHOW_SYS_ADMIN_COMMENT_TAG").MustBool(false)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 

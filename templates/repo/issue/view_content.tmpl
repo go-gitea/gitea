@@ -48,6 +48,8 @@
 											{{$.i18n.Tr "repo.issues.collaborator"}}
 										{{else if eq .Issue.ShowTag 3}}
 											{{$.i18n.Tr "repo.issues.owner"}}
+										{{else if eq .Issue.ShowTag 4}}
+											{{$.i18n.Tr "repo.issues.sys_admin"}}
 										{{end}}
 									</div>
 								{{end}}

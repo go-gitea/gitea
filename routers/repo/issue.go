@@ -980,8 +980,23 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 		return models.CommentTagNone, err
 	}
 	if perm.IsOwner() {
-		return models.CommentTagOwner, nil
-	} else if perm.CanWrite(models.UnitTypeCode) {
+		ok, err := models.IsUserRealRepoAdmin(repo, poster)
+		if err != nil {
+			return models.CommentTagNone, err
+		}
+
+		if ok {
+			return models.CommentTagOwner, nil
+		}
+
+		if setting.UI.ShowSysAdminCommentTag && poster.IsAdmin {
+			return models.CommentTagSysAdmin, nil
+		}
+
+		return models.CommentTagNone, nil
+	}
+
+	if perm.CanWrite(models.UnitTypeCode) {
 		return models.CommentTagWriter, nil
 	}
 
