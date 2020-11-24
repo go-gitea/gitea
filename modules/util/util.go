@@ -104,7 +104,7 @@ func NormalizeEOL(input []byte) []byte {
 
 // MergeInto merges pairs of values into a "dict"
 func MergeInto(dict map[string]interface{}, startIndex int, values ...interface{}) (map[string]interface{}, error) {
-	for i := 0; i < len(values); i++ {
+	for i := startIndex; i < len(values); i++ {
 		switch key := values[i].(type) {
 		case string:
 			i++
