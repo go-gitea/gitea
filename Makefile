@@ -152,7 +152,7 @@ all: build
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - \"\"                               equivalent to \"build\""
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
@@ -180,7 +180,7 @@ help:
 	@echo " - revive                           run revive linter"
 	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - test[\#TestSpecificName]    	   run unit test"
+	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
