@@ -1390,6 +1390,15 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
+	if !repo.IsPrivate {
+		if _, err = sess.Exec("UPDATE `user` SET num_public_repos=num_public_repos+1 WHERE id=?", newOwner.ID); err != nil {
+			return fmt.Errorf("increase new owner public repository count: %v", err)
+		} else if _, err = sess.Exec("UPDATE `user` SET num_public_repos=num_public_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+			return fmt.Errorf("decrease old owner public repository count: %v", err)
+		}
+
+	}
+
 	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	}

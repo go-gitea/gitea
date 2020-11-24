@@ -41,7 +41,7 @@ func updateNumPublicRepos(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.Select("owner_id as id, count(id) AS num_public_repos").Table("repository").Where("repository.is_private", false).GroupBy("owner_id").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
+		if err := sess.Select("owner_id AS id, count(id) AS num_public_repos").Table("repository").Where("repository.is_private", false).GroupBy("owner_id").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
 			return err
 		}
 
