@@ -145,10 +145,11 @@ type User struct {
 	UseCustomAvatar bool
 
 	// Counters
-	NumFollowers int
-	NumFollowing int `xorm:"NOT NULL DEFAULT 0"`
-	NumStars     int
-	NumRepos     int
+	NumFollowers   int
+	NumFollowing   int `xorm:"NOT NULL DEFAULT 0"`
+	NumStars       int
+	NumRepos       int
+	NumPublicRepos int `xorm:"INDEX NOT NULL DEFAULT 0"`
 
 	// For organization
 	NumTeams                  int
@@ -1428,14 +1429,15 @@ func GetUser(user *User) (bool, error) {
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	ListOptions
-	Keyword       string
-	Type          UserType
-	UID           int64
-	OrderBy       SearchOrderBy
-	Visible       []structs.VisibleType
-	Actor         *User // The user doing the search
-	IsActive      util.OptionalBool
-	SearchByEmail bool // Search by email as well as username/full name
+	Keyword                  string
+	Type                     UserType
+	UID                      int64
+	OrderBy                  SearchOrderBy
+	Visible                  []structs.VisibleType
+	Actor                    *User // The user doing the search
+	IsActive                 util.OptionalBool
+	SearchByEmail            bool // Search by email as well as username/full name
+	OnlyUsersWithPublicRepos bool
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1487,6 +1489,10 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	}
+
+	if opts.OnlyUsersWithPublicRepos {
+		cond = cond.And(builder.Gt{"num_public_repos": 0})
 	}
 
 	return cond

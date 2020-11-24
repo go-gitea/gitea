@@ -195,6 +195,14 @@ func reqToken() macaron.Handler {
 	}
 }
 
+func reqExploreSignIn() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if setting.UI.Explore.RequireSigninView && !ctx.IsSigned {
+			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
+		}
+	}
+}
+
 func reqBasicAuth() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
@@ -538,7 +546,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		// Users
 		m.Group("/users", func() {
-			m.Get("/search", user.Search)
+			m.Get("/search", reqExploreSignIn, user.Search)
 
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)

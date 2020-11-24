@@ -1212,6 +1212,12 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 		return fmt.Errorf("increment user total_repos: %v", err)
 	}
 	u.NumRepos++
+	if !repo.IsPrivate {
+		if _, err = ctx.e.Incr("num_public_repos").ID(u.ID).Update(new(User)); err != nil {
+			return fmt.Errorf("increment user total_public_repos: %v", err)
+		}
+		u.NumPublicRepos++
+	}
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
@@ -1524,6 +1530,14 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			if err != nil {
 				return err
 			}
+			repo.Owner.NumPublicRepos--
+		} else {
+			repo.Owner.NumPublicRepos++
+		}
+
+		_, err = e.ID(repo.OwnerID).Cols("num_public_repos").Update(repo.Owner)
+		if err != nil {
+			return err
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
@@ -2073,6 +2087,12 @@ func CheckRepoStats(ctx context.Context) error {
 			"SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
 			"UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?",
 			"user count 'num_repos'",
+		},
+		// User.NumPublicRepos
+		{
+			"SELECT `user`.id FROM `user` WHERE `user`.num_public_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id AND is_private=0)",
+			"UPDATE `user` SET num_public_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=? AND is_private=0) WHERE id=?",
+			"user count 'num_public_repos'",
 		},
 		// Issue.NumComments
 		{

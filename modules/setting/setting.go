@@ -201,6 +201,11 @@ var (
 			Description string
 			Keywords    string
 		} `ini:"ui.meta"`
+		// Explore page settings
+		Explore struct {
+			RequireSigninView            bool `ini:"REQUIRE_SIGNIN_VIEW"`
+			OnlyShowUsersWithPublicRepos bool `ini:"ONLY_SHOW_USERS_WITH_PUBLIC_REPOS"`
+		} `ini:"ui.explore"`
 	}{
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
@@ -252,6 +257,10 @@ var (
 			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
 			Keywords:    "go,git,self-hosted,gitea",
 		},
+		Explore: struct {
+			RequireSigninView            bool `ini:"REQUIRE_SIGNIN_VIEW"`
+			OnlyShowUsersWithPublicRepos bool `ini:"ONLY_SHOW_USERS_WITH_PUBLIC_REPOS"`
+		}{},
 	}
 
 	// Markdown settings

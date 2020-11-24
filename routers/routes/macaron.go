@@ -148,6 +148,7 @@ func RegisterMacaronInstallRoute(m *macaron.Macaron) {
 func RegisterMacaronRoutes(m *macaron.Macaron) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView && setting.UI.Explore.RequireSigninView})
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
@@ -196,7 +197,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 		m.Get("/users", routers.ExploreUsers)
 		m.Get("/organizations", routers.ExploreOrganizations)
 		m.Get("/code", routers.ExploreCode)
-	}, ignSignIn)
+	}, ignExploreSignIn)
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)

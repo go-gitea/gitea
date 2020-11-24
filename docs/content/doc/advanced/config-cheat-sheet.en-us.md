@@ -180,6 +180,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - Expore (`ui.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
+- `ONLY_SHOW_USERS_WITH_PUBLIC_REPOS`: **false**: Only show users with public repos on the explore users page.
+
 ### UI - Metadata (`ui.meta`)
 
 - `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
