@@ -265,10 +265,10 @@ func NewFuncMap() []template.FuncMap {
 			dict := make(map[string]interface{})
 			return util.MergeInto(dict, values...)
 		},
-		/* like dict but merge pairs into the first dict and return that */
-		"merge": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
+		/* like dict but merge key-value pairs into the first dict and return it */
+		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
-				return nil, errors.New("invalid merge call")
+				return nil, errors.New("invalid mergeinto call")
 			}
 
 			dict := make(map[string]interface{})
