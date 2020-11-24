@@ -672,7 +672,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		// For legacy support only full commit sha
+		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) == 40 {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
