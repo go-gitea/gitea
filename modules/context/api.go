@@ -302,7 +302,7 @@ func RepoRefForAPI() macaron.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == 40 {
+		} else if len(refName) >= 7 && len(refName) <= 40 {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {
