@@ -41,7 +41,7 @@
 						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 					{{end}}
 				</div>
-				<div class="desc issue-item-bottom-row df ac my-1">
+				<div class="desc issue-item-bottom-row df ac fw my-1">
 					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						#{{.Index}}
 					</a>
