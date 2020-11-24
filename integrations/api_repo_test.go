@@ -332,7 +332,8 @@ func TestAPIRepoMigrate(t *testing.T) {
 				t.Log("test hit github rate limitation")
 			case "migrate from '10.0.0.1' not allowed, host resolve to private ip address '10.0.0.1'":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
-			case "migrate from 'localhost:3000' not allowed, host resolve to private ip address '::1'":
+			case "migrate from 'localhost:3000' not allowed, host resolve to private ip address '::1'",
+				"migrate from 'localhost:3000' not allowed, host resolve to private ip address '127.0.0.1'":
 				assert.EqualValues(t, "local-ip", testCase.repoName)
 			default:
 				t.Errorf("unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
