@@ -263,20 +263,20 @@ func NewFuncMap() []template.FuncMap {
 			}
 
 			dict := make(map[string]interface{})
-			return util.MergeInto(dict, 0, values...)
+			return util.MergeInto(dict, values...)
 		},
 		/* like dict but merge pairs into the first dict and return that */
-		"merge": func(values ...interface{}) (map[string]interface{}, error) {
+		"merge": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid merge call")
 			}
 
 			dict := make(map[string]interface{})
-			for key, value := range values[0].(map[string]interface{}) {
+			for key, value := range root {
 				dict[key] = value
 			}
 
-			return util.MergeInto(dict, 1, values...)
+			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
 			var sum = 0
