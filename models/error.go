@@ -1019,6 +1019,33 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
+// ErrMigrateFromHost explains why a migration failed caused by source host
+type ErrMigrateFromHost struct {
+	Host          string
+	NotResolvedIP bool
+	BlockedDomain bool
+	PrivateNet    string
+}
+
+func (e *ErrMigrateFromHost) Error() string {
+	if e.BlockedDomain {
+		return fmt.Sprintf("migrate from '%s' is not allowed", e.Host)
+	}
+	if e.NotResolvedIP {
+		return fmt.Sprintf("migrate from '%s' failed: unknown hostname", e.Host)
+	}
+	if len(e.PrivateNet) != 0 {
+		return fmt.Sprintf("migrate from '%s' not allowed, host resolve to private ip address '%s'", e.Host, e.PrivateNet)
+	}
+	return fmt.Sprintf("migrate from '%s failed'", e.Host)
+}
+
+// IsErrMigrateFromHost checks if an error is a ErrMigrateFromHost
+func IsErrMigrateFromHost(err error) bool {
+	_, ok := err.(*ErrMigrateFromHost)
+	return ok
+}
+
 // __________                             .__
 // \______   \____________    ____   ____ |  |__
 //  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \

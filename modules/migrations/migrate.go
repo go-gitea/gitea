@@ -34,20 +34,20 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
-func isMigrateURLAllowed(remoteURL string) (bool, error) {
+func isMigrateURLAllowed(remoteURL string) error {
 	u, err := url.Parse(strings.ToLower(remoteURL))
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
 		if len(setting.Migrations.AllowlistedDomains) > 0 {
 			if !allowList.Match(u.Host) {
-				return false, fmt.Errorf("migrate from '%v' is not allowed", u.Host)
+				return &models.ErrMigrateFromHost{Host: u.Host, BlockedDomain: true}
 			}
 		} else {
 			if blockList.Match(u.Host) {
-				return false, fmt.Errorf("migrate from '%v' is not allowed", u.Host)
+				return &models.ErrMigrateFromHost{Host: u.Host, BlockedDomain: true}
 			}
 		}
 	}
@@ -55,22 +55,22 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 	if !setting.Migrations.AllowLocalNetworks {
 		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
-			return false, fmt.Errorf("migrate from '%v' failed: unknown hostname", u.Host)
+			return &models.ErrMigrateFromHost{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
 			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return false, fmt.Errorf("migrate from '%v' not allowed, host resolve to private ip address '%s'", u.Host, addr.String())
+				return &models.ErrMigrateFromHost{Host: u.Host, PrivateNet: addr.String()}
 			}
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
-	allowed, err := isMigrateURLAllowed(opts.CloneAddr)
-	if !allowed {
+	err := isMigrateURLAllowed(opts.CloneAddr)
+	if err != nil {
 		return nil, err
 	}
 
