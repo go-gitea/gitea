@@ -546,7 +546,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		// Users
 		m.Group("/users", func() {
-			m.Get("/search", reqExploreSignIn, user.Search)
+			m.Get("/search", reqExploreSignIn(), user.Search)
 
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
