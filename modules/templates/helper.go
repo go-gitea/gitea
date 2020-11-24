@@ -273,7 +273,7 @@ func NewFuncMap() []template.FuncMap {
 
 			dict := make(map[string]interface{})
 			for key, value := range values[1].(map[string]interface{}) {
-			  dict[key] = value
+				dict[key] = value
 			}
 
 			return util.MergeInto(dict, 2, values...)
