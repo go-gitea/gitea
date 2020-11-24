@@ -53,13 +53,13 @@ func isMigrateURLAllowed(remoteURL string) (bool, error) {
 	}
 
 	if !setting.Migrations.AllowLocalNetworks {
-		addrList, err := net.LookupIP(u.Host)
+		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
 			return false, fmt.Errorf("migrate from '%v' failed: unknown hostname", u.Host)
 		}
 		for _, addr := range addrList {
 			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return false, fmt.Errorf("migrate from '%v' not allowed, has private network address '%s'", u.Host, addr.String())
+				return false, fmt.Errorf("migrate from '%v' not allowed, host resolve to private ip address '%s'", u.Host, addr.String())
 			}
 		}
 	}
