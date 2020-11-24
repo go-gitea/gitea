@@ -92,7 +92,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 				"TmplLoadTimes": func() string {
-					return time.Now().Sub(startTime).String()
+					return time.Since(startTime).String()
 				},
 			},
 			Render:   rnd,
