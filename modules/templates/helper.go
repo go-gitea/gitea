@@ -278,7 +278,6 @@ func NewFuncMap() []template.FuncMap {
 
 			return util.MergeInto(dict, 1, values...)
 		},
-
 		"percentage": func(n int, values ...int) float32 {
 			var sum = 0
 			for i := 0; i < len(values); i++ {
