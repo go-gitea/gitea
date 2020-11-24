@@ -229,12 +229,20 @@ a:hover,
 
 .ui.table {
   color: var(--color-text);
+  background: var(--color-body);
+  border-color: var(--color-secondary);
 }
 
 .ui.ui.selectable.table > tbody > tr:hover,
 .ui.table tbody tr td.selectable:hover {
   color: var(--color-text);
   background-color: var(--color-secondary-alpha-40);
+}
+
+.ui.ui.ui.ui.table tr.grey:not(.marked),
+.ui.ui.table td.grey:not(.marked) {
+  background: var(--color-body);
+  color: var(--color-text);
 }
 
 .ui.modal {
