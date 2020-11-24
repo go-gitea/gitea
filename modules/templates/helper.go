@@ -272,11 +272,11 @@ func NewFuncMap() []template.FuncMap {
 			}
 
 			dict := make(map[string]interface{})
-			for key, value := range values[1].(map[string]interface{}) {
+			for key, value := range values[0].(map[string]interface{}) {
 				dict[key] = value
 			}
 
-			return util.MergeInto(dict, 2, values...)
+			return util.MergeInto(dict, 1, values...)
 		},
 
 		"percentage": func(n int, values ...int) float32 {
