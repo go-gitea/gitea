@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/xorm"
 )
 
@@ -40,9 +41,18 @@ func updateNumPublicRepos(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-
-		if err := sess.Select("owner_id AS id, count(id) AS num_public_repos").Table("repository").Where("repository.is_private = ?", false).GroupBy("repository.owner_id").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
-			return err
+		switch {
+		case setting.Database.UseMSSQL:
+			if _, err := sess.Exec("SELECT owner_id AS id, COUNT(id) AS num_public_repos INTO #temp_user FROM repository WHERE repository.is_private = 0 GROUP BY owner_id"); err != nil {
+				return err
+			}
+			if err := sess.Table("#temp_user").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
+				return err
+			}
+		default:
+			if err := sess.Select("owner_id AS id, count(id) AS num_public_repos").Table("repository").Where("repository.is_private = ?", false).GroupBy("repository.owner_id").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
+				return err
+			}
 		}
 
 		if len(users) == 0 {
