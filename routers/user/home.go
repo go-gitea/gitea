@@ -374,6 +374,8 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeCreate
 		case "mentioned":
 			filterMode = models.FilterModeMention
+		case "review_requested":
+			filterMode = models.FilterModeReviewRequested
 		case "your_repositories": // filterMode already set to All
 		default:
 			viewType = "your_repositories"
@@ -452,6 +454,8 @@ func Issues(ctx *context.Context) {
 		opts.PosterID = ctxUser.ID
 	case models.FilterModeMention:
 		opts.MentionedID = ctxUser.ID
+	case models.FilterModeReviewRequested:
+		opts.ReviewRequestedID = ctxUser.ID
 	}
 
 	var forceEmpty bool

@@ -1090,6 +1090,7 @@ type IssuesOptions struct {
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
+	ReviewRequestedID  int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1174,6 +1175,13 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 			And("issue_user.is_mentioned = ?", true).
 			And("issue_user.uid = ?", opts.MentionedID)
+	}
+
+	if opts.ReviewRequestedID > 0 {
+		sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+			And("r.reviewer_id = ?", opts.ReviewRequestedID).
+			And("r.type = ?", ReviewTypeRequest).
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)")
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1359,6 +1367,7 @@ type IssueStats struct {
 	AssignCount            int64
 	CreateCount            int64
 	MentionCount           int64
+	ReviewRequestedCount   int64
 }
 
 // Filter modes.
@@ -1367,6 +1376,7 @@ const (
 	FilterModeAssign
 	FilterModeCreate
 	FilterModeMention
+	FilterModeReviewRequested
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1381,14 +1391,15 @@ func parseCountResult(results []map[string][]byte) int64 {
 
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
-	RepoID      int64
-	Labels      string
-	MilestoneID int64
-	AssigneeID  int64
-	MentionedID int64
-	PosterID    int64
-	IsPull      util.OptionalBool
-	IssueIDs    []int64
+	RepoID            int64
+	Labels            string
+	MilestoneID       int64
+	AssigneeID        int64
+	MentionedID       int64
+	PosterID          int64
+	ReviewRequestedID int64
+	IsPull            util.OptionalBool
+	IssueIDs          []int64
 }
 
 // GetIssueStats returns issue statistic information by given conditions.
@@ -1417,6 +1428,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		accum.AssignCount += stats.AssignCount
 		accum.CreateCount += stats.CreateCount
 		accum.OpenCount += stats.MentionCount
+		accum.ReviewRequestedCount += stats.ReviewRequestedCount
 		i = chunk
 	}
 	return accum, nil
@@ -1466,6 +1478,13 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 				And("issue_user.uid = ?", opts.MentionedID).
 				And("issue_user.is_mentioned = ?", true)
+		}
+
+		if opts.ReviewRequestedID > 0 {
+			sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+				And("r.reviewer_id = ?", opts.ReviewRequestedID).
+				And("r.type = ?", ReviewTypeRequest).
+				And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)")
 		}
 
 		switch opts.IsPull {
@@ -1573,6 +1592,25 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
+	case FilterModeReviewRequested:
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+			And("r.reviewer_id = ?", opts.UserID).
+			And("r.type = ?", ReviewTypeRequest).
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+			And("r.reviewer_id = ?", opts.UserID).
+			And("r.type = ?", ReviewTypeRequest).
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
@@ -1601,6 +1639,16 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	stats.YourRepositoriesCount, err = x.Where(cond).
 		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.ReviewRequestedCount, err = x.Where(cond).
+		Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+		And("r.reviewer_id = ?", opts.UserID).
+		And("r.type = ?", ReviewTypeRequest).
+		And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
