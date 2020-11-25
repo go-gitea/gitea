@@ -2586,109 +2586,8 @@
   display: none;
 }
 
-.ui.checkbox.issue-checkbox {
-  vertical-align: middle;
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
-}
-
-.issue.list {
-  list-style: none;
-
-  > .item {
-    padding-top: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px dashed #aaaaaa;
-
-    .title {
-      color: #444444;
-      font-size: 15px;
-      font-weight: 500;
-      margin: 0 6px;
-
-      &:hover {
-        color: #000000;
-      }
-    }
-
-    .comment {
-      padding-right: 10px;
-      color: #666666;
-    }
-
-    .desc {
-      padding-top: 5px;
-      color: #999999;
-
-      .waiting,
-      .approvals,
-      .rejects {
-        padding-left: 5px;
-      }
-
-      .checklist {
-        padding-left: 5px;
-
-        .progress-bar {
-          margin-left: 2px;
-          width: 80px;
-          height: 6px;
-          display: inline-block;
-          background-color: #eeeeee;
-          overflow: hidden;
-          border-radius: 3px;
-          vertical-align: 2px !important;
-
-          .progress {
-            background-color: #cccccc;
-            display: block;
-            height: 100%;
-          }
-        }
-      }
-
-      .conflicting {
-        padding-left: 5px;
-      }
-
-      .due-date {
-        padding-left: 5px;
-      }
-
-      a.milestone {
-        margin-left: 5px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-      }
-
-      a.ref {
-        margin-left: 8px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-
-        span {
-          margin-right: -4px;
-        }
-      }
-
-      .assignee {
-        margin-top: -5px;
-        margin-right: 5px;
-      }
-
-      .overdue {
-        color: var(--color-red);
-      }
-    }
-  }
 }
 
 .page.buttons {
@@ -2975,15 +2874,31 @@
   flex-wrap: wrap;
 }
 
-.labels.list .item {
+.labels.list .item,
+.timeline-item .label {
   padding: .3em .5em !important;
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 3px;
 }
 
-.labels.list .item + .item {
-  margin-left: 3px;
+.issue-item-top-row .label {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 1.5px;
+  margin-bottom: 1.5px;
+}
+
+.labels.list .item,
+.timeline-item .label,
+.issue-item-top-row .label {
+  margin-right: 3px;
+  display: inline !important;
+}
+
+.timeline-item .label:last-of-type,
+.issue-item-top-row .label:last-of-type {
+  margin-right: 0;
 }
 
 tbody.commit-list {
