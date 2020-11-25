@@ -980,6 +980,10 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 		return models.CommentTagNone, err
 	}
 	if perm.IsOwner() {
+		if !poster.IsAdmin {
+			return models.CommentTagOwner, nil
+		}
+
 		ok, err := models.IsUserRealRepoAdmin(repo, poster)
 		if err != nil {
 			return models.CommentTagNone, err
@@ -993,7 +997,11 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 			return models.CommentTagSysAdmin, nil
 		}
 
-		return models.CommentTagNone, nil
+		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
+			return models.CommentTagWriter, nil
+		}
+
+		return models.CommentTagNone, err
 	}
 
 	if perm.CanWrite(models.UnitTypeCode) {
