@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
@@ -672,8 +673,11 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
-			return refName
+		// For legacy and API support only full commit sha
+		parts := strings.Split(path, "/")
+		if len(parts) > 0 && len(parts[0]) == 40 {
+			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			return parts[0]
 		}
 		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
 			return refName
@@ -686,7 +690,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -778,7 +782,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) == 40 {
+			} else if len(refName) >= 7 && len(refName) <= 40 {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -786,6 +790,11 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				if err != nil {
 					ctx.NotFound("GetCommit", err)
 					return
+				}
+				// If short commit ID add canonical link header
+				if len(refName) < 40 {
+					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
