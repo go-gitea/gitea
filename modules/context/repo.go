@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
@@ -789,6 +790,11 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				if err != nil {
 					ctx.NotFound("GetCommit", err)
 					return
+				}
+				// If short commit ID add canonical link header
+				if len(refName) < 40 {
+					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
