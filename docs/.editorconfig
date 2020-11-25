@@ -11,7 +11,7 @@ trim_trailing_whitespace = true
 indent_style = tab
 indent_size = 8
 
-[*.{tmpl,html}]
+[*.{tmpl, html}]
 indent_style = tab
 indent_size = 4
 

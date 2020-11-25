@@ -93,7 +93,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
 * INI (config file)
   * `-c` flag
   * Else `%(CustomPath)/conf/app.ini`
-* SQLite Database 
+* SQLite Database
   * `PATH` in `database` section of `app.ini`
   * Else `%(AppDataPath)/gitea.db`
 
@@ -114,7 +114,7 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
 The correct path for the template(s) will be relative to the `CustomPath`
 
-1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration 
+1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration
   * If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
@@ -123,7 +123,7 @@ The correct path for the template(s) will be relative to the `CustomPath`
 In Gitea, an "active" user refers to a user that has activated their account via email.  
 A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
 
-## Setting up logging 
+## Setting up logging
 * [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
 
 ## What is Swagger?
@@ -167,7 +167,7 @@ Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor an
 ## How to add/use custom themes
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)  
-  
+
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
 Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
@@ -196,7 +196,7 @@ Whether you want to change a translation or add a new one, it will need to be th
 ## Hooks aren't running
 If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
 See [SSH Issues](#ssh-issues) for more information.  
-  
+
 You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
 
 ## SSH issues
@@ -213,8 +213,8 @@ If this is unexpected, please log in with password and setup Gitea under another
 
 If you do not get the above message but still connect, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
 
-If you cannot connect at all, your SSH key may not be configured correctly locally. 
-This is specific to SSH and not Gitea, so will not be covered here. 
+If you cannot connect at all, your SSH key may not be configured correctly locally.
+This is specific to SSH and not Gitea, so will not be covered here.
 
 ### SSH Common Errors
 
@@ -269,7 +269,7 @@ To migrate an repository *with* all tags, you need to do two things:
 ```
  git push --tags
  ```
- 
+
  * (Re-)sync tags of all repositories within Gitea:
  ```
  gitea admin repo-sync-releases
@@ -285,7 +285,7 @@ Check that you have proper access to the repository
 error: failed to push some refs to '<GIT_REPO_URL>'
 ```
 Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.  
-By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
+By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit.
 
 You may want to set this value to `60m` or `120m`.
 
@@ -300,11 +300,11 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
   - By navigating to your `Site Administration -> User Accounts` page and editing a user.  
   - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
   Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
-- As a **user** you can change it... 
+- As a **user** you can change it...
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link.  
    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
-   
+
 ## Why is my markdown broken
 In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
 If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
