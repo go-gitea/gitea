@@ -58,17 +58,19 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	ctx.Data["CurDbOption"] = "MySQL"
+	var curDBOption = "MySQL"
 	switch setting.Database.Type {
 	case "postgres":
-		ctx.Data["CurDbOption"] = "PostgreSQL"
+		curDBOption = "PostgreSQL"
 	case "mssql":
-		ctx.Data["CurDbOption"] = "MSSQL"
+		curDBOption = "MSSQL"
 	case "sqlite3":
 		if setting.EnableSQLite3 {
-			ctx.Data["CurDbOption"] = "SQLite3"
+			curDBOption = "SQLite3"
 		}
 	}
+
+	ctx.Data["CurDbOption"] = curDBOption
 
 	// Application general settings
 	form.AppName = setting.AppName

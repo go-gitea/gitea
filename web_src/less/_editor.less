@@ -29,7 +29,7 @@
   opacity: 1 !important;
 }
 
-.editor-toolbar a:not(:hover) {
+.editor-toolbar button:not(:hover) {
   background-color: transparent !important;
 }
 
@@ -53,10 +53,6 @@
   border-right: 1px solid var(--color-secondary) !important;
 }
 
-#edit_area {
-  display: none;
-}
-
 .monaco-editor-container {
   width: 100%;
   min-height: 200px;
@@ -72,4 +68,9 @@
   border: none !important;
   color: transparent !important;
   background-color: transparent !important;
+}
+
+.edit.githook .monaco-editor-container {
+  border: 1px solid var(--color-secondary);
+  height: 70vh;
 }

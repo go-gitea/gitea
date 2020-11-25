@@ -7,20 +7,17 @@ package repo
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -327,78 +324,49 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(404)
 }
 
-// Download download an archive of a repository
+// Download an archive of a repository
 func Download(ctx *context.Context) {
-	var (
-		uri         = ctx.Params("*")
-		refName     string
-		ext         string
-		archivePath string
-		archiveType git.ArchiveType
-	)
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
-	switch {
-	case strings.HasSuffix(uri, ".zip"):
-		ext = ".zip"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/zip")
-		archiveType = git.ZIP
-	case strings.HasSuffix(uri, ".tar.gz"):
-		ext = ".tar.gz"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/targz")
-		archiveType = git.TARGZ
-	default:
-		log.Trace("Unknown format: %s", uri)
+	if aReq == nil {
 		ctx.Error(404)
 		return
 	}
-	refName = strings.TrimSuffix(uri, ext)
 
-	if !com.IsDir(archivePath) {
-		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
-			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
-			return
-		}
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete = aReq.WaitForCompletion(ctx)
 	}
 
-	// Get corresponding commit.
-	var (
-		commit *git.Commit
-		err    error
-	)
-	gitRepo := ctx.Repo.GitRepo
-	if gitRepo.IsBranchExist(refName) {
-		commit, err = gitRepo.GetBranchCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-	} else if gitRepo.IsTagExist(refName) {
-		commit, err = gitRepo.GetTagCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetTagCommit", err)
-			return
-		}
-	} else if len(refName) >= 4 && len(refName) <= 40 {
-		commit, err = gitRepo.GetCommit(refName)
-		if err != nil {
-			ctx.NotFound("GetCommit", nil)
-			return
-		}
+	if complete {
+		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.NotFound("Download", nil)
+		ctx.Error(404)
+	}
+}
+
+// InitiateDownload will enqueue an archival request, as needed.  It may submit
+// a request that's already in-progress, but the archiver service will just
+// kind of drop it on the floor if this is the case.
+func InitiateDownload(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
+
+	if aReq == nil {
+		ctx.Error(404)
 		return
 	}
 
-	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
-	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(ctx.Req.Context(), archivePath, git.CreateArchiveOpts{
-			Format: archiveType,
-			Prefix: setting.Repository.PrefixArchiveFiles,
-		}); err != nil {
-			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
-			return
-		}
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
-	ctx.ServeFile(archivePath, ctx.Repo.Repository.Name+"-"+refName+ext)
+	ctx.JSON(200, map[string]interface{}{
+		"complete": complete,
+	})
 }

@@ -184,6 +184,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	ctx.Data["BaseIsCommit"] = baseIsCommit
 	ctx.Data["BaseIsBranch"] = baseIsBranch
 	ctx.Data["BaseIsTag"] = baseIsTag
+	ctx.Data["IsPull"] = true
 
 	// Now we have the repository that represents the base
 

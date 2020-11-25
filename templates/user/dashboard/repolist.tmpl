@@ -29,9 +29,9 @@
 			<div class="ui attached secondary segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
 					<input @input="searchRepos(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
-					<i class="search icon"></i>
-					<div class="ui dropdown button" title="{{.i18n.Tr "home.filter"}}">
-						<i class="icon filter"></i>
+					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+					<div class="ui dropdown icon button" title="{{.i18n.Tr "home.filter"}}">
+						<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 						<div class="menu">
 							<div class="item">
 								<a @click="toggleArchivedFilter()">
@@ -91,7 +91,7 @@
 					</a>
 				</div>
 			</div>
-			<div class="ui attached table segment">
+			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
 						<a :href="suburl + '/' + repo.full_name">
@@ -139,7 +139,7 @@
 					</a>
 				</div>
 			</h4>
-			<div class="ui attached table segment">
+			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
 						<a :href="suburl + '/' + org.name">

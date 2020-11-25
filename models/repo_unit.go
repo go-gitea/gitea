@@ -113,6 +113,24 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 
+// AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
+func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
+	count := 0
+	if cfg.AllowMerge {
+		count++
+	}
+	if cfg.AllowRebase {
+		count++
+	}
+	if cfg.AllowRebaseMerge {
+		count++
+	}
+	if cfg.AllowSquash {
+		count++
+	}
+	return count
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {

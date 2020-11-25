@@ -1,3 +1,4 @@
 * text=auto eol=lf
 /vendor/** -text -eol linguist-vendored
 /public/vendor/** -text -eol linguist-vendored
+/templates/**/*.tmpl linguist-language=Handlebars

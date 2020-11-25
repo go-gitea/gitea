@@ -16,6 +16,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -207,6 +208,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"DiffStatsWidth": func(adds int, dels int) string {
+			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
+		},
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
 			if err != nil {
@@ -252,31 +256,27 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
+		// pass key-value pairs to a partial template which receives them as a dict
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid dict call")
 			}
 
 			dict := make(map[string]interface{})
-
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
+			return util.MergeInto(dict, values...)
+		},
+		/* like dict but merge key-value pairs into the first dict and return it */
+		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid mergeinto call")
 			}
-			return dict, nil
+
+			dict := make(map[string]interface{})
+			for key, value := range root {
+				dict[key] = value
+			}
+
+			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
 			var sum = 0
@@ -309,6 +309,26 @@ func NewFuncMap() []template.FuncMap {
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
+		},
+		"containGeneric": func(arr interface{}, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+
+			return false
 		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {

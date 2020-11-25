@@ -312,8 +312,8 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint web_src/js build webpack.config.js
-	npx stylelint web_src/less
+	npx eslint --max-warnings=0 web_src/js build webpack.config.js
+	npx stylelint --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -638,8 +638,8 @@ fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
-	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
-	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
+	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
 

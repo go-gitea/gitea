@@ -235,6 +235,10 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+				MergeMessageField: "doAPIMergePullRequest Merge",
+				Do:                string(models.MergeStyleMerge),
+			})
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}
 

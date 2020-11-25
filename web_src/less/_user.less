@@ -1,3 +1,5 @@
+@import "variables.less";
+
 .user {
   &:not(.icon) {
     padding-top: 15px;
@@ -11,7 +13,7 @@
       }
 
       .header {
-        font-weight: 700;
+        font-weight: 500;
         font-size: 1.3rem;
         margin-top: -.2rem;
         line-height: 1.3rem;
@@ -29,7 +31,7 @@
             list-style: none;
 
             &:not(:last-child) {
-              border-bottom: 1px solid #eaeaea;
+              border-bottom: 1px solid var(--color-secondary);
             }
 
             .svg,
@@ -51,18 +53,18 @@
         img {
           width: 100%;
         }
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           height: 250px;
           overflow: hidden;
 
           img {
-            max-height: 768px;
-            max-width: 768px;
+            max-height: 767px;
+            max-width: 767px;
           }
         }
       }
 
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         width: 100%;
       }
     }
@@ -99,19 +101,19 @@
       font-size: 2em;
 
       &.green {
-        color: #21ba45;
+        color: var(--color-green);
       }
 
       &.red {
-        color: #d01919;
+        color: var(--color-red);
       }
 
       &.purple {
-        color: #a333c8;
+        color: var(--color-purple);
       }
 
       &.blue {
-        color: #2185d0;
+        color: var(--color-blue);
       }
     }
 

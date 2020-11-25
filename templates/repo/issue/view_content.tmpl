@@ -19,7 +19,7 @@
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
 			{{end}}
-				<div class="content">
+				<div class="content comment-container">
 					<div class="ui top attached header comment-header df ac sb">
 						<div class="comment-header-left df ac">
 							{{if .Issue.OriginalAuthor }}
@@ -56,7 +56,7 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="ui attached segment">
+					<div class="ui attached segment comment-body">
 						<div class="render-content markdown">
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}
