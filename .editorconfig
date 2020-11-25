@@ -1,3 +1,5 @@
+# http://editorconfig.org
+
 root = true
 
 [*]
@@ -20,3 +22,9 @@ insert_final_newline = false
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.go]
+indent_size = 8
+
+[*.{tmpl, html, less, js}]
+indent_size = 4
