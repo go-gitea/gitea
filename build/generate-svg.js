@@ -50,8 +50,7 @@ async function processFile(file, {prefix = ''} = {}) {
 async function main() {
   try {
     await mkdir(outputDir);
-  } catch {
-  }
+  } catch {}
 
   for (const file of glob('../node_modules/@primer/octicons/build/svg/*-16.svg')) {
     await processFile(file, {prefix: 'octicon'});
