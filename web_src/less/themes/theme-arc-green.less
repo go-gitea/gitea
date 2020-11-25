@@ -567,7 +567,8 @@ body {
 
 .following.bar.light {
   background: #2e323e;
-  border-bottom: 1px solid #313131;
+  box-shadow: none;
+  border-color: var(--color-secondary-alpha-40);
 }
 
 .ui.secondary.menu .active.item {
@@ -720,10 +721,6 @@ a.ui.basic.green.label:hover {
 .ui.pagination.menu .active.item {
   color: #fff;
   background-color: #87ab63;
-}
-
-.repository .header-wrapper {
-  background-color: #2a2e3a;
 }
 
 .ui.header,
@@ -994,8 +991,9 @@ a.ui.basic.green.label:hover {
   color: #dedede;
 }
 
-.repository .comment.form .ui.tabular.menu .item.active {
-  background: #353945;
+.ui.tabular.menu:not(.new-menu) .active.item,
+.ui.tabular.menu:not(.new-menu) .active.item:hover {
+  border-color: transparent !important;
 }
 
 .ui.basic.green.active.button,
