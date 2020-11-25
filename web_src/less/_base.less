@@ -76,6 +76,7 @@
   /* target-based colors */
   --color-body: #ffffff;
   --color-text: #212121;
+  --color-text-light: #444444;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
   --color-timeline: #ececec;
@@ -139,6 +140,15 @@ samp {
 b,
 strong {
   font-weight: 500;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
 }
 
 body {
@@ -229,12 +239,20 @@ a:hover,
 
 .ui.table {
   color: var(--color-text);
+  background: var(--color-body);
+  border-color: var(--color-secondary);
 }
 
 .ui.ui.selectable.table > tbody > tr:hover,
 .ui.table tbody tr td.selectable:hover {
   color: var(--color-text);
   background-color: var(--color-secondary-alpha-40);
+}
+
+.ui.ui.ui.ui.table tr.grey:not(.marked),
+.ui.ui.table td.grey:not(.marked) {
+  background: var(--color-body);
+  color: var(--color-text);
 }
 
 .ui.modal {
@@ -440,7 +458,7 @@ a:hover,
       color: var(--color-red) !important;
 
       a {
-        color: var(--color-red) !important;
+        color: inherit !important;
 
         &:hover {
           color: #e67777 !important;
@@ -449,19 +467,19 @@ a:hover,
     }
 
     &.blue {
-      color: var(--color-primary-dark-1) !important;
+      color: var(--color-primary) !important;
 
       a {
-        color: var(--color-primary) !important;
+        color: inherit !important;
 
         &:hover {
-          color: var(--color-primary-dark-2) !important;
+          color: var(--color-primary-dark-1) !important;
         }
       }
     }
 
     &.black {
-      color: #444444;
+      color: var(--color-body);
 
       &:hover {
         color: #000000;
@@ -469,13 +487,13 @@ a:hover,
     }
 
     &.grey {
-      color: var(--color-grey) !important;
+      color: var(--color-text-light) !important;
 
       a {
-        color: #444444 !important;
+        color: inherit !important;
 
         &:hover {
-          color: #000000 !important;
+          color: var(--color-primary) !important;
         }
       }
     }
