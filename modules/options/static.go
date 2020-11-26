@@ -136,11 +136,13 @@ func AssetNames() []string {
 
 // AssetIsDir checks if an asset is a directory
 func AssetIsDir(name string) (bool, error) {
-	if f, err := Assets.Open("/" + name); err != nil {
+	f, err := Assets.Open("/" + name);
+	if err != nil {
 		return false, err
 	}
 	defer f.Close()
-	if fi, err := f.Stat(); err != nil {
+	fi, err := f.Stat()
+	if err != nil {
 		return false, err
 	}
 	return fi.IsDir(), nil
