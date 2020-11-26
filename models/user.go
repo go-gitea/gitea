@@ -503,7 +503,7 @@ func (u *User) GetActiveRepositoryIDs(units ...UnitType) ([]int64, error) {
 		sess = sess.In("repo_unit.type", units)
 	}
 
-	sess.Where("is_archived <> true")
+	sess.Where(builder.Eq{"is_archived": false})
 
 	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
 }
@@ -539,7 +539,7 @@ func (u *User) GetActiveOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
 		Join("INNER", "team_repo", "(? != ? and repository.is_private != ?) OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true, u.IsRestricted, true).
 		Where("team_user.uid = ?", u.ID).
-		Where("is_archived <> true").
+		Where(builder.Eq{"is_archived": false}).
 		GroupBy("repository.id").Find(&ids); err != nil {
 		return nil, err
 	}

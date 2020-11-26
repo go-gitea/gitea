@@ -1209,7 +1209,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.ExcludeArchivedRepos == util.OptionalBoolTrue {
-		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And("repository.is_archived <> true")
+		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And(builder.Eq{"repository.is_archived": false})
 	}
 
 	if opts.LabelIDs != nil {
@@ -1524,7 +1524,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	if opts.ExcludeArchivedRepos {
 		activeRepoIDs := []int64{}
 		r := []*Repository{}
-		s := x.Table("repository").Where("is_archived <> true")
+		s := x.Table("repository").Where(builder.Eq{"is_archived": false})
 		s.Select("id").Find(&activeRepoIDs)
 		s.Find(&r)
 		cond = cond.And(builder.In("issue.repo_id", activeRepoIDs))

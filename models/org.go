@@ -839,7 +839,7 @@ func (env *accessibleReposEnv) ActiveRepoIDs(page, pageSize int) ([]int64, error
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
-		Where("is_archived <> true").
+		Where(builder.Eq{"is_archived": false}).
 		GroupBy("`repository`.id,`repository`."+strings.Fields(string(env.orderBy))[0]).
 		OrderBy(string(env.orderBy)).
 		Limit(pageSize, (page-1)*pageSize).
