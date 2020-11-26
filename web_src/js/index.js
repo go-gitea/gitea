@@ -1138,16 +1138,16 @@ async function initRepository() {
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-https').removeClass('blue');
+    $(this).addClass('primary');
+    $('#repo-clone-https').removeClass('primary');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
   $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
+    $(this).addClass('primary');
     if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('blue');
+      $('#repo-clone-ssh').removeClass('primary');
       localStorage.setItem('repo-clone-protocol', 'https');
     }
   });
@@ -2519,22 +2519,6 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
-
-  // Repo clone url.
-  if ($('#repo-clone-url').length > 0) {
-    switch (localStorage.getItem('repo-clone-protocol')) {
-      case 'ssh':
-        if ($('#repo-clone-ssh').length > 0) {
-          $('#repo-clone-ssh').trigger('click');
-        } else {
-          $('#repo-clone-https').trigger('click');
-        }
-        break;
-      default:
-        $('#repo-clone-https').trigger('click');
-        break;
-    }
-  }
 
   const routes = {
     'div.user.settings': initUserSettings,
