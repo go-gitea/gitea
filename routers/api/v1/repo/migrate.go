@@ -212,7 +212,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(models.ErrNameCharsNotAllowed).Name))
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
-	case models.IsErrMigrateFromHost(err):
+	case models.IsErrMigrationNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)

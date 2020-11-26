@@ -43,11 +43,11 @@ func isMigrateURLAllowed(remoteURL string) error {
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
 		if len(setting.Migrations.AllowlistedDomains) > 0 {
 			if !allowList.Match(u.Host) {
-				return &models.ErrMigrateFromHost{Host: u.Host, BlockedDomain: true}
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
 			}
 		} else {
 			if blockList.Match(u.Host) {
-				return &models.ErrMigrateFromHost{Host: u.Host, BlockedDomain: true}
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
 			}
 		}
 	}
@@ -55,11 +55,11 @@ func isMigrateURLAllowed(remoteURL string) error {
 	if !setting.Migrations.AllowLocalNetworks {
 		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
-			return &models.ErrMigrateFromHost{Host: u.Host, NotResolvedIP: true}
+			return &models.ErrMigrationNotAllowed{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
 			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return &models.ErrMigrateFromHost{Host: u.Host, PrivateNet: addr.String()}
+				return &models.ErrMigrationNotAllowed{Host: u.Host, PrivateNet: addr.String()}
 			}
 		}
 	}
