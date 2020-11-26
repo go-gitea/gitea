@@ -313,8 +313,10 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build webpack.config.js
-	npx stylelint --max-warnings=0 web_src/less
+	@echo "running eslint..."
+	@npx eslint --max-warnings=0 web_src/js build webpack.config.js
+	@echo "running stylelint..."
+	@npx stylelint --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -698,11 +700,11 @@ pr\#%: clean-all
 
 .PHONY: golangci-lint
 golangci-lint:
+	@echo "running golangci-lint..."
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.33.0; \
 	fi
-	@echo "running golangci-lint..."
 	@golangci-lint run --timeout 5m ./ $(addsuffix /...,$(GO_DIRS_OWN))
 
 .PHONY: docker
