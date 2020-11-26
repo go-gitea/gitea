@@ -1,6 +1,4 @@
 .repository {
-  padding-top: 15px;
-
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -144,8 +142,7 @@
   }
 
   .header-wrapper {
-    background-color: #fafafa;
-    margin-top: -15px;
+    background-color: var(--color-navbar);
     padding-top: 15px;
 
     .ui.tabs.divider {
@@ -519,21 +516,23 @@
         padding: 15px;
         margin-bottom: 10px;
         border: 1px solid var(--color-secondary);
+        background: var(--color-box-body);
         border-radius: 3px;
         #avatar-arrow;
 
         &::after {
-          border-right-color: var(--color-box-header);
+          border-right-color: var(--color-box-body);
         }
 
         .quick-pull-choice {
           .branch-name {
             display: inline-block;
-            padding: 3px 6px;
+            padding: 2px 4px;
             font: 12px var(--fonts-monospace);
-            color: rgba(0, 0, 0, .65);
-            background-color: rgba(209, 227, 237, .45);
+            color: var(--color-text);
+            background: var(--color-secondary);
             border-radius: 3px;
+            margin: 0 2px;
           }
 
           .new-branch-name-input {
@@ -739,14 +738,6 @@
         .review-item-right {
           display: flex;
           align-items: center;
-        }
-
-        .avatar,
-        .type-icon {
-          .svg {
-            width: 23px;
-            height: 23px;
-          }
         }
 
         .text {
@@ -2629,10 +2620,6 @@
 
   .list {
     > .item {
-      .green:not(.ui.button) {
-        color: var(--color-green);
-      }
-
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
