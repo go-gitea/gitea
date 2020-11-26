@@ -22,12 +22,10 @@ linters:
 run:
   timeout: 3m
 
-skip-dirs:
-  - node_modules
-  - public
-  - templates
-  - vendor
-  - web_src
+skip-files:
+  - modules/options/bindata.go
+  - modules/public/bindata.go
+  - modules/templates/bindata.go
 
 linters-settings:
   gocritic:

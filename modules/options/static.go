@@ -53,6 +53,7 @@ func Dir(name string) ([]string, error) {
 	return directories.AddAndGet(name, result), nil
 }
 
+// AssetDir returns the asset directory
 func AssetDir(dirName string) ([]string, error) {
 	d, err := Assets.Open(dirName)
 	if err != nil {
@@ -113,6 +114,7 @@ func fileFromDir(name string) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
+// Asset returns a asset by path
 func Asset(name string) ([]byte, error) {
 	f, err := Assets.Open("/" + name)
 	if err != nil {
@@ -122,6 +124,7 @@ func Asset(name string) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
+// AssetNames returns an array of asset paths
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	var results = make([]string, 0, len(realFS))
@@ -131,17 +134,16 @@ func AssetNames() []string {
 	return results
 }
 
+// AssetIsDir checks if an asset is a directory
 func AssetIsDir(name string) (bool, error) {
 	if f, err := Assets.Open("/" + name); err != nil {
 		return false, err
-	} else {
-		defer f.Close()
-		if fi, err := f.Stat(); err != nil {
-			return false, err
-		} else {
-			return fi.IsDir(), nil
-		}
 	}
+	defer f.Close()
+	if fi, err := f.Stat(); err != nil {
+		return false, err
+	}
+	return fi.IsDir(), nil
 }
 
 // IsDynamic will return false when using embedded data (-tags bindata)

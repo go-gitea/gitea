@@ -227,7 +227,7 @@ func runExtractDo(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", destdir, err)
 	} else if !fi.IsDir() {
-		return fmt.Errorf("%s is not a directory.", destdir)
+		return fmt.Errorf("%s is not a directory", destdir)
 	}
 
 	fmt.Printf("Extracting to %s:\n", destdir)
@@ -324,9 +324,8 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	for i := range args {
 		if g, err := glob.Compile(args[i], '/'); err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %v", args[i], err)
-		} else {
-			pat[i] = g
 		}
+		pat[i] = g
 	}
 	return pat, nil
 }

@@ -28,15 +28,18 @@ var (
 	bodyTemplates    = template.New("")
 )
 
-type templateFileSystem struct {
+// TemplateFileSystem defines a array of TemplateFile
+type TemplateFileSystem struct {
 	files []macaron.TemplateFile
 }
 
-func (templates templateFileSystem) ListFiles() []macaron.TemplateFile {
+// ListFiles returns a list of files
+func (templates TemplateFileSystem) ListFiles() []macaron.TemplateFile {
 	return templates.files
 }
 
-func (templates templateFileSystem) Get(name string) (io.Reader, error) {
+// Get retrieves a file
+func (templates TemplateFileSystem) Get(name string) (io.Reader, error) {
 	for i := range templates.files {
 		if templates.files[i].Name()+templates.files[i].Ext() == name {
 			return bytes.NewReader(templates.files[i].Data()), nil
@@ -46,8 +49,9 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 	return nil, fmt.Errorf("file '%s' not found", name)
 }
 
-func NewTemplateFileSystem() templateFileSystem {
-	fs := templateFileSystem{}
+// NewTemplateFileSystem creates a new template file system
+func NewTemplateFileSystem() TemplateFileSystem {
+	fs := TemplateFileSystem{}
 	fs.files = make([]macaron.TemplateFile, 0, 10)
 
 	for _, assetPath := range AssetNames() {
@@ -203,6 +207,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 	return subjectTemplates, bodyTemplates
 }
 
+// Asset returns a asset by path
 func Asset(name string) ([]byte, error) {
 	f, err := Assets.Open("/" + name)
 	if err != nil {
@@ -212,6 +217,7 @@ func Asset(name string) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
+// AssetNames returns an array of asset paths
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	var results = make([]string, 0, len(realFS))
@@ -221,15 +227,14 @@ func AssetNames() []string {
 	return results
 }
 
+// AssetIsDir checks if an asset is a directory
 func AssetIsDir(name string) (bool, error) {
 	if f, err := Assets.Open("/" + name); err != nil {
 		return false, err
-	} else {
-		defer f.Close()
-		if fi, err := f.Stat(); err != nil {
-			return false, err
-		} else {
-			return fi.IsDir(), nil
-		}
 	}
+	defer f.Close()
+	if fi, err := f.Stat(); err != nil {
+		return false, err
+	}
+	return fi.IsDir(), nil
 }

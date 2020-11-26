@@ -7,7 +7,7 @@
 package setting
 
 import (
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 func init() {

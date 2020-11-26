@@ -110,7 +110,8 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-GO_DIRS := cmd integrations models modules routers build services vendor
+GO_DIRS_OWN := cmd integrations models modules routers build services
+GO_DIRS := $(GO_DIRS_OWN) vendor
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
 
@@ -272,7 +273,8 @@ errcheck:
 
 .PHONY: revive
 revive:
-	GO111MODULE=on $(GO) run -mod=vendor build/lint.go -config .revive.toml -exclude=./vendor/... ./... || exit 1
+	@echo "running revive..."
+	@GO111MODULE=on $(GO) run -mod=vendor build/lint.go -config .revive.toml $(GO_SOURCES_OWN) || exit 1
 
 .PHONY: misspell-check
 misspell-check:
@@ -548,7 +550,8 @@ backend: go-check generate $(EXECUTABLE)
 
 .PHONY: generate
 generate: $(TAGS_PREREQ)
-	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+	@echo "running go generate..."
+	@CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -698,9 +701,9 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.33.0; \
 	fi
-	golangci-lint run --timeout 5m
+	golangci-lint run --timeout 5m ./ $(addsuffix /...,$(GO_DIRS_OWN))
 
 .PHONY: docker
 docker:
