@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -46,7 +46,8 @@ const HeaderLen = 12
 
 // Constants for the checksum methods supported by xz.
 const (
-	CRC32  byte = 0x1
+	None   byte = 0x0
+	CRC32       = 0x1
 	CRC64       = 0x4
 	SHA256      = 0xa
 )
@@ -58,7 +59,7 @@ var errInvalidFlags = errors.New("xz: invalid flags")
 // invalid.
 func verifyFlags(flags byte) error {
 	switch flags {
-	case CRC32, CRC64, SHA256:
+	case None, CRC32, CRC64, SHA256:
 		return nil
 	default:
 		return errInvalidFlags
@@ -67,6 +68,7 @@ func verifyFlags(flags byte) error {
 
 // flagstrings maps flag values to strings.
 var flagstrings = map[byte]string{
+	None:   "None",
 	CRC32:  "CRC-32",
 	CRC64:  "CRC-64",
 	SHA256: "SHA-256",
@@ -85,6 +87,8 @@ func flagString(flags byte) string {
 // hash method encoded in flags.
 func newHashFunc(flags byte) (newHash func() hash.Hash, err error) {
 	switch flags {
+	case None:
+		newHash = newNoneHash
 	case CRC32:
 		newHash = newCRC32
 	case CRC64:

@@ -896,13 +896,7 @@ func UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConfigOption) e
 	return v.UnmarshalKey(key, rawVal, opts...)
 }
 func (v *Viper) UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConfigOption) error {
-	err := decode(v.Get(key), defaultDecoderConfig(rawVal, opts...))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return decode(v.Get(key), defaultDecoderConfig(rawVal, opts...))
 }
 
 // Unmarshal unmarshals the config into a Struct. Make sure that the tags
@@ -911,13 +905,7 @@ func Unmarshal(rawVal interface{}, opts ...DecoderConfigOption) error {
 	return v.Unmarshal(rawVal, opts...)
 }
 func (v *Viper) Unmarshal(rawVal interface{}, opts ...DecoderConfigOption) error {
-	err := decode(v.AllSettings(), defaultDecoderConfig(rawVal, opts...))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return decode(v.AllSettings(), defaultDecoderConfig(rawVal, opts...))
 }
 
 // defaultDecoderConfig returns default mapsstructure.DecoderConfig with suppot
@@ -956,13 +944,7 @@ func (v *Viper) UnmarshalExact(rawVal interface{}, opts ...DecoderConfigOption) 
 	config := defaultDecoderConfig(rawVal, opts...)
 	config.ErrorUnused = true
 
-	err := decode(v.AllSettings(), config)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return decode(v.AllSettings(), config)
 }
 
 // BindPFlags binds a full flag set to the configuration, using each flag's long

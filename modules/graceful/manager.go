@@ -31,7 +31,7 @@ const (
 //
 // If you add an additional place you must increment this number
 // and add a function to call manager.InformCleanup if it's not going to be used
-const numberOfServersToCreate = 3
+const numberOfServersToCreate = 4
 
 // Manager represents the graceful server manager interface
 var manager *Manager

@@ -37,6 +37,12 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 	p.urlParams = append(p.urlParams, urlParam)
 }
 
+// AddParamString adds a string parameter directly
+func (p *Pagination) AddParamString(key string, value string) {
+	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
+	p.urlParams = append(p.urlParams, urlParam)
+}
+
 // GetParams returns the configured URL params
 func (p *Pagination) GetParams() template.URL {
 	return template.URL(strings.Join(p.urlParams, "&"))

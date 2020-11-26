@@ -23,6 +23,7 @@ import (
 	zapv12 "github.com/blevesearch/zap/v12"
 	zapv13 "github.com/blevesearch/zap/v13"
 	zapv14 "github.com/blevesearch/zap/v14"
+	zapv15 "github.com/blevesearch/zap/v15"
 )
 
 var supportedSegmentPlugins map[string]map[uint32]segment.Plugin
@@ -30,6 +31,7 @@ var defaultSegmentPlugin segment.Plugin
 
 func init() {
 	ResetPlugins()
+	RegisterPlugin(zapv15.Plugin(), false)
 	RegisterPlugin(zapv14.Plugin(), false)
 	RegisterPlugin(zapv13.Plugin(), false)
 	RegisterPlugin(zapv12.Plugin(), false)

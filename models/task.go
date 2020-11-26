@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -101,9 +102,9 @@ func (task *Task) UpdateCols(cols ...string) error {
 }
 
 // MigrateConfig returns task config when migrate repository
-func (task *Task) MigrateConfig() (*structs.MigrateRepoOption, error) {
+func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
-		var opts structs.MigrateRepoOption
+		var opts migration.MigrateOptions
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -144,6 +145,27 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
 	}
 	return &task, nil
+}
+
+// GetMigratingTaskByID returns the migrating task by repo's id
+func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+	var task = Task{
+		ID:     id,
+		DoerID: doerID,
+		Type:   structs.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&task)
+	if err != nil {
+		return nil, nil, err
+	} else if !has {
+		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
+	}
+
+	var opts migration.MigrateOptions
+	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
+		return nil, nil, err
+	}
+	return &task, &opts, nil
 }
 
 // FindTaskOptions find all tasks

@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
-
-	"github.com/klauspost/compress/zstd/internal/xxhash"
 )
 
 const (
@@ -24,51 +22,10 @@ type tableEntry struct {
 	offset int32
 }
 
-type fastBase struct {
-	// cur is the offset at the start of hist
-	cur int32
-	// maximum offset. Should be at least 2x block size.
-	maxMatchOff int32
-	hist        []byte
-	crc         *xxhash.Digest
-	tmp         [8]byte
-	blk         *blockEnc
-}
-
 type fastEncoder struct {
 	fastBase
-	table [tableSize]tableEntry
-}
-
-// CRC returns the underlying CRC writer.
-func (e *fastBase) CRC() *xxhash.Digest {
-	return e.crc
-}
-
-// AppendCRC will append the CRC to the destination slice and return it.
-func (e *fastBase) AppendCRC(dst []byte) []byte {
-	crc := e.crc.Sum(e.tmp[:0])
-	dst = append(dst, crc[7], crc[6], crc[5], crc[4])
-	return dst
-}
-
-// WindowSize returns the window size of the encoder,
-// or a window size small enough to contain the input size, if > 0.
-func (e *fastBase) WindowSize(size int) int32 {
-	if size > 0 && size < int(e.maxMatchOff) {
-		b := int32(1) << uint(bits.Len(uint(size)))
-		// Keep minimum window.
-		if b < 1024 {
-			b = 1024
-		}
-		return b
-	}
-	return e.maxMatchOff
-}
-
-// Block returns the current block.
-func (e *fastBase) Block() *blockEnc {
-	return e.blk
+	table     [tableSize]tableEntry
+	dictTable []tableEntry
 }
 
 // Encode mimmics functionality in zstd_fast.c
@@ -660,96 +617,45 @@ encodeLoop:
 	}
 }
 
-func (e *fastBase) addBlock(src []byte) int32 {
-	if debugAsserts && e.cur > bufferReset {
-		panic(fmt.Sprintf("ecur (%d) > buffer reset (%d)", e.cur, bufferReset))
+// ResetDict will reset and set a dictionary if not nil
+func (e *fastEncoder) Reset(d *dict, singleBlock bool) {
+	e.resetBase(d, singleBlock)
+	if d == nil {
+		return
 	}
-	// check if we have space already
-	if len(e.hist)+len(src) > cap(e.hist) {
-		if cap(e.hist) == 0 {
-			l := e.maxMatchOff * 2
-			// Make it at least 1MB.
-			if l < 1<<20 {
-				l = 1 << 20
+
+	// Init or copy dict table
+	if len(e.dictTable) != len(e.table) || d.id != e.lastDictID {
+		if len(e.dictTable) != len(e.table) {
+			e.dictTable = make([]tableEntry, len(e.table))
+		}
+		if true {
+			end := e.maxMatchOff + int32(len(d.content)) - 8
+			for i := e.maxMatchOff; i < end; i += 3 {
+				const hashLog = tableBits
+
+				cv := load6432(d.content, i-e.maxMatchOff)
+				nextHash := hash6(cv, hashLog)      // 0 -> 5
+				nextHash1 := hash6(cv>>8, hashLog)  // 1 -> 6
+				nextHash2 := hash6(cv>>16, hashLog) // 2 -> 7
+				e.dictTable[nextHash] = tableEntry{
+					val:    uint32(cv),
+					offset: i,
+				}
+				e.dictTable[nextHash1] = tableEntry{
+					val:    uint32(cv >> 8),
+					offset: i + 1,
+				}
+				e.dictTable[nextHash2] = tableEntry{
+					val:    uint32(cv >> 16),
+					offset: i + 2,
+				}
 			}
-			e.hist = make([]byte, 0, l)
-		} else {
-			if cap(e.hist) < int(e.maxMatchOff*2) {
-				panic("unexpected buffer size")
-			}
-			// Move down
-			offset := int32(len(e.hist)) - e.maxMatchOff
-			copy(e.hist[0:e.maxMatchOff], e.hist[offset:])
-			e.cur += offset
-			e.hist = e.hist[:e.maxMatchOff]
 		}
-	}
-	s := int32(len(e.hist))
-	e.hist = append(e.hist, src...)
-	return s
-}
-
-// useBlock will replace the block with the provided one,
-// but transfer recent offsets from the previous.
-func (e *fastBase) UseBlock(enc *blockEnc) {
-	enc.reset(e.blk)
-	e.blk = enc
-}
-
-func (e *fastBase) matchlenNoHist(s, t int32, src []byte) int32 {
-	// Extend the match to be as long as possible.
-	return int32(matchLen(src[s:], src[t:]))
-}
-
-func (e *fastBase) matchlen(s, t int32, src []byte) int32 {
-	if debugAsserts {
-		if s < 0 {
-			err := fmt.Sprintf("s (%d) < 0", s)
-			panic(err)
-		}
-		if t < 0 {
-			err := fmt.Sprintf("s (%d) < 0", s)
-			panic(err)
-		}
-		if s-t > e.maxMatchOff {
-			err := fmt.Sprintf("s (%d) - t (%d) > maxMatchOff (%d)", s, t, e.maxMatchOff)
-			panic(err)
-		}
-		if len(src)-int(s) > maxCompressedBlockSize {
-			panic(fmt.Sprintf("len(src)-s (%d) > maxCompressedBlockSize (%d)", len(src)-int(s), maxCompressedBlockSize))
-		}
+		e.lastDictID = d.id
 	}
 
-	// Extend the match to be as long as possible.
-	return int32(matchLen(src[s:], src[t:]))
-}
-
-// Reset the encoding table.
-func (e *fastBase) Reset(singleBlock bool) {
-	if e.blk == nil {
-		e.blk = &blockEnc{}
-		e.blk.init()
-	} else {
-		e.blk.reset(nil)
-	}
-	e.blk.initNewEncode()
-	if e.crc == nil {
-		e.crc = xxhash.New()
-	} else {
-		e.crc.Reset()
-	}
-	if !singleBlock && cap(e.hist) < int(e.maxMatchOff*2) {
-		l := e.maxMatchOff * 2
-		// Make it at least 1MB.
-		if l < 1<<20 {
-			l = 1 << 20
-		}
-		e.hist = make([]byte, 0, l)
-	}
-	// We offset current position so everything will be out of reach.
-	// If above reset line, history will be purged.
-	if e.cur < bufferReset {
-		e.cur += e.maxMatchOff + int32(len(e.hist))
-	}
-	e.hist = e.hist[:0]
+	e.cur = e.maxMatchOff
+	// Reset table to initial state
+	copy(e.table[:], e.dictTable)
 }

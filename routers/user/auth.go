@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
@@ -896,14 +897,20 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {
@@ -957,6 +964,9 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplLinkAccount, &form)
+		case models.IsErrEmailInvalid(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSignUp, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplLinkAccount, &form)
@@ -1040,6 +1050,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
 	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -1058,6 +1069,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -1073,14 +1085,20 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {
@@ -1136,6 +1154,9 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignUp, &form)
+		case models.IsErrEmailInvalid(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSignUp, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplSignUp, &form)

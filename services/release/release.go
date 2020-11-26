@@ -43,8 +43,12 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			notification.NotifyPushCommits(
-				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
-				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
+				rel.Publisher, rel.Repo,
+				&repository.PushUpdateOptions{
+					RefFullName: git.TagPrefix + rel.TagName,
+					OldCommitID: git.EmptySHA,
+					NewCommitID: commit.ID.String(),
+				}, repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
@@ -58,6 +62,12 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+
+		u, err := models.GetUserByEmail(commit.Author.Email)
+		if err == nil {
+			rel.PublisherID = u.ID
+		}
+
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
@@ -147,10 +157,6 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		}
 	} else {
 		rel.IsTag = true
-		rel.IsDraft = false
-		rel.IsPrerelease = false
-		rel.Title = ""
-		rel.Note = ""
 
 		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)

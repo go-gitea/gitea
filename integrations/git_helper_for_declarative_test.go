@@ -82,7 +82,7 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 		defer prepareTestEnv(t, 1)()
 	}
 	s := http.Server{
-		Handler: mac,
+		Handler: c,
 	}
 
 	u, err := url.Parse(setting.AppURL)

@@ -5,7 +5,6 @@ It offers a very wide range of compression / speed trade-off, while being backed
 A high performance compression algorithm is implemented. For now focused on speed. 
 
 This package provides [compression](#Compressor) to and [decompression](#Decompressor) of Zstandard content. 
-Note that custom dictionaries are only supported for decompression.
 
 This package is pure Go and without use of "unsafe". 
 
@@ -232,41 +231,6 @@ nyc-taxi-data-10M.csv   gzstd   1   3325605752  928656485   23876   132.83
 nyc-taxi-data-10M.csv   gzkp    1   3325605752  924718719   16388   193.53
 ```
 
-### Converters
-
-As part of the development process a *Snappy* -> *Zstandard* converter was also built.
-
-This can convert a *framed* [Snappy Stream](https://godoc.org/github.com/golang/snappy#Writer) to a zstd stream. 
-Note that a single block is not framed.
-
-Conversion is done by converting the stream directly from Snappy without intermediate full decoding.
-Therefore the compression ratio is much less than what can be done by a full decompression
-and compression, and a faulty Snappy stream may lead to a faulty Zstandard stream without
-any errors being generated.
-No CRC value is being generated and not all CRC values of the Snappy stream are checked.
-However, it provides really fast re-compression of Snappy streams.
-
-
-```
-BenchmarkSnappy_ConvertSilesia-8           1  1156001600 ns/op   183.35 MB/s
-Snappy len 103008711 -> zstd len 82687318
-
-BenchmarkSnappy_Enwik9-8           1  6472998400 ns/op   154.49 MB/s
-Snappy len 508028601 -> zstd len 390921079
-```
-
-
-```Go
-    s := zstd.SnappyConverter{}
-    n, err = s.Convert(input, output)
-    if err != nil {
-        fmt.Println("Re-compressed stream to", n, "bytes")
-    }
-```
-
-The converter `s` can be reused to avoid allocations, even after errors.
-
-
 ## Decompressor
 
 Staus: STABLE - there may still be subtle bugs, but a wide variety of content has been tested.
@@ -287,14 +251,14 @@ For streaming use a simple setup could look like this:
 import "github.com/klauspost/compress/zstd"
 
 func Decompress(in io.Reader, out io.Writer) error {
-    d, err := zstd.NewReader(input)
+    d, err := zstd.NewReader(in)
     if err != nil {
         return err
     }
     defer d.Close()
     
     // Copy content...
-    _, err := io.Copy(out, d)
+    _, err = io.Copy(out, d)
     return err
 }
 ```
@@ -336,6 +300,21 @@ The dictionary will be used automatically for the data that specifies them.
 A re-used Decoder will still contain the dictionaries registered.
 
 When registering multiple dictionaries with the same ID, the last one will be used.
+
+It is possible to use dictionaries when compressing data.
+
+To enable a dictionary use `WithEncoderDict(dict []byte)`. Here only one dictionary will be used 
+and it will likely be used even if it doesn't improve compression. 
+
+The used dictionary must be used to decompress the content.
+
+For any real gains, the dictionary should be built with similar data. 
+If an unsuitable dictionary is used the output may be slightly larger than using no dictionary.
+Use the [zstd commandline tool](https://github.com/facebook/zstd/releases) to build a dictionary from sample data.
+For information see [zstd dictionary information](https://github.com/facebook/zstd#the-case-for-small-data-compression). 
+
+For now there is a fixed startup performance penalty for compressing content with dictionaries. 
+This will likely be improved over time. Just be aware to test performance when implementing.  
 
 ### Allocation-less operation
 

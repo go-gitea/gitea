@@ -46,7 +46,7 @@ func remoteAddress(repoPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if git.CheckGitVersionConstraint(">= 2.7") == nil {
+	if git.CheckGitVersionAtLeast("2.7") == nil {
 		cmd = git.NewCommand("remote", "get-url", "origin")
 	} else {
 		cmd = git.NewCommand("config", "--get", "remote.origin.url")
@@ -89,8 +89,8 @@ func AddressNoCredentials(m *models.Mirror) string {
 	return u.String()
 }
 
-// SaveAddress writes new address to Git repository config.
-func SaveAddress(m *models.Mirror, addr string) error {
+// UpdateAddress writes new address to Git repository and database
+func UpdateAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
 	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
@@ -117,7 +117,9 @@ func SaveAddress(m *models.Mirror, addr string) error {
 			return err
 		}
 	}
-	return nil
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // gitShortEmptySha Git short empty SHA
@@ -301,8 +303,8 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		return nil, false
 	}
 
-	for i := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
+	for _, branch := range branches {
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name, true))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
@@ -420,6 +422,10 @@ func syncMirror(repoID string) {
 			return
 		}
 		defer gitRepo.Close()
+
+		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
+			return
+		}
 	}
 
 	for _, result := range results {
@@ -466,7 +472,11 @@ func syncMirror(repoID string) {
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+			RefFullName: result.refName,
+			OldCommitID: oldCommitID,
+			NewCommitID: newCommitID,
+		}, theCommits)
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
@@ -483,6 +493,67 @@ func syncMirror(repoID string) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
+}
+
+func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+	if !m.Repo.IsEmpty {
+		return true
+	}
+
+	hasDefault := false
+	hasMaster := false
+	defaultBranchName := m.Repo.DefaultBranch
+	if len(defaultBranchName) == 0 {
+		defaultBranchName = setting.Repository.DefaultBranch
+	}
+	firstName := ""
+	for _, result := range results {
+		if strings.HasPrefix(result.refName, "refs/pull/") {
+			continue
+		}
+		tp, name := git.SplitRefName(result.refName)
+		if len(tp) > 0 && tp != git.BranchPrefix {
+			continue
+		}
+		if len(firstName) == 0 {
+			firstName = name
+		}
+
+		hasDefault = hasDefault || name == defaultBranchName
+		hasMaster = hasMaster || name == "master"
+	}
+
+	if len(firstName) > 0 {
+		if hasDefault {
+			m.Repo.DefaultBranch = defaultBranchName
+		} else if hasMaster {
+			m.Repo.DefaultBranch = "master"
+		} else {
+			m.Repo.DefaultBranch = firstName
+		}
+		// Update the git repository default branch
+		if err := gitRepo.SetDefaultBranch(m.Repo.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
+				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
+				if err = models.CreateRepositoryNotice(desc); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+				return false
+			}
+		}
+		m.Repo.IsEmpty = false
+		// Update the is empty and default_branch columns
+		if err := models.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
+			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
+			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			if err = models.CreateRepositoryNotice(desc); err != nil {
+				log.Error("CreateRepositoryNotice: %v", err)
+			}
+			return false
+		}
+	}
+	return true
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors

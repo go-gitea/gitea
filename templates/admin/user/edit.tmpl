@@ -19,7 +19,7 @@
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
 						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
@@ -43,7 +43,7 @@
 				<input class="fake" type="password">
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
-					<input id="password" name="password" type="password">
+					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
@@ -90,7 +90,7 @@
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox" data-tooltip="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}">
+					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
@@ -123,7 +123,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">

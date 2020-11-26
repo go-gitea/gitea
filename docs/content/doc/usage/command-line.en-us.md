@@ -40,6 +40,7 @@ Starts the server:
 
 - Options:
     - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
+    - `--install-port number`: Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
     - `--pid path`, `-P path`: Pidfile path. Optional.
 - Examples:
     - `gitea web`
@@ -55,28 +56,40 @@ Starts the server:
 Admin operations:
 
 - Commands:
-    - `create-user`
-        - Options:
-            - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
-            - `--username value`: Username. Required. New in gitea 1.9.0.
-            - `--password value`: Password. Required.
-            - `--email value`: Email. Required.
-            - `--admin`: If provided, this makes the user an admin. Optional.
-            - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
-            - `--must-change-password`: If provided, the created user will be required to choose a newer password after
+    - `user`:
+        - `list`:
+            - Options:
+                - `--admin`: List only admin users. Optional.
+            - Description: lists all users that exist
+            - Examples:
+                - `gitea admin user list`
+        - `delete`:
+            - Options:
+                - `--id`: ID of user to be deleted. Required.
+            - Examples:
+                - `gitea admin user delete --id 1`
+        - `create`:
+            - Options:
+                - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
+                - `--username value`: Username. Required. New in gitea 1.9.0.
+                - `--password value`: Password. Required.
+                - `--email value`: Email. Required.
+                - `--admin`: If provided, this makes the user an admin. Optional.
+                - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
+                - `--must-change-password`: If provided, the created user will be required to choose a newer password after
 	    the initial login. Optional. (default: true).
-            - ``--random-password``: If provided, a randomly generated password will be used as the password of
+                - ``--random-password``: If provided, a randomly generated password will be used as the password of
 	    the created user. The value of `--password` will be discarded. Optional.
-            - `--random-password-length`: If provided, it will be used to configure the length of the randomly
+                - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
-        - Examples:
-            - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
-    - `change-password`
-        - Options:
-            - `--username value`, `-u value`: Username. Required.
-            - `--password value`, `-p value`: New password. Required.
-        - Examples:
-            - `gitea admin change-password --username myname --password asecurepassword`
+            - Examples:
+                - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
+        - `change-password`:
+            - Options:
+                - `--username value`, `-u value`: Username. Required.
+                - `--password value`, `-p value`: New password. Required.
+            - Examples:
+                - `gitea admin user change-password --username myname --password asecurepassword`
     - `regenerate`
         - Options:
             - `hooks`: Regenerate git-hooks for all repositories

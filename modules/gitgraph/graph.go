@@ -17,23 +17,42 @@ import (
 )
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int) (*Graph, error) {
-	format := "DATA:%d|%H|%ad|%an|%ae|%h|%s"
+func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+	format := "DATA:%D|%H|%ad|%h|%s"
 
 	if page == 0 {
 		page = 1
 	}
 
-	graphCmd := git.NewCommand("log")
-	graphCmd.AddArguments("--graph",
-		"--date-order",
-		"--all",
+	args := make([]string, 0, 12+len(branches)+len(files))
+
+	args = append(args, "--graph", "--date-order", "--decorate=full")
+
+	if hidePRRefs {
+		args = append(args, "--exclude=refs/pull/*")
+	}
+
+	if len(branches) == 0 {
+		args = append(args, "--all")
+	}
+
+	args = append(args,
 		"-C",
 		"-M",
 		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
 		"--date=iso",
-		fmt.Sprintf("--pretty=format:%s", format),
-	)
+		fmt.Sprintf("--pretty=format:%s", format))
+
+	if len(branches) > 0 {
+		args = append(args, branches...)
+	}
+	args = append(args, "--")
+	if len(files) > 0 {
+		args = append(args, files...)
+	}
+
+	graphCmd := git.NewCommand("log")
+	graphCmd.AddArguments(args...)
 	graph := NewGraph()
 
 	stderr := new(strings.Builder)

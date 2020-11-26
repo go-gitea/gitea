@@ -5,15 +5,35 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
-func addUserPinnedRepoTable(x *xorm.Engine) error {
-
-	type UserPinnedRepo struct {
-		UID    int64 `xorm:"pk INDEX NOT NULL"`
-		RepoID int64 `xorm:"pk NOT NULL"`
+func addPrimaryKeyToRepoTopic(x *xorm.Engine) error {
+	// Topic represents a topic of repositories
+	type Topic struct {
+		ID          int64  `xorm:"pk autoincr"`
+		Name        string `xorm:"UNIQUE VARCHAR(25)"`
+		RepoCount   int
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync2(new(UserPinnedRepo))
+	// RepoTopic represents associated repositories and topics
+	type RepoTopic struct {
+		RepoID  int64 `xorm:"pk"`
+		TopicID int64 `xorm:"pk"`
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	recreateTable(sess, &Topic{})
+	recreateTable(sess, &RepoTopic{})
+
+	return sess.Commit()
 }

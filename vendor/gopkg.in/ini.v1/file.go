@@ -302,6 +302,9 @@ func (f *File) Reload() (err error) {
 			}
 			return err
 		}
+		if f.options.ShortCircuit {
+			return nil
+		}
 	}
 	return nil
 }
@@ -499,7 +502,7 @@ func (f *File) WriteTo(w io.Writer) (int64, error) {
 // SaveToIndent writes content to file system with given value indention.
 func (f *File) SaveToIndent(filename, indent string) error {
 	// Note: Because we are truncating with os.Create,
-	// 	so it's safer to save to a temporary file location and rename afte done.
+	// 	so it's safer to save to a temporary file location and rename after done.
 	buf, err := f.writeToBuffer(indent)
 	if err != nil {
 		return err

@@ -12,7 +12,7 @@
 
 	{{template "base/footer_content" .}}
 {{if .RequireSimpleMDE}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
 	<script>
@@ -27,6 +27,9 @@
 {{if .EnableCaptcha}}
 	{{if eq .CaptchaType "recaptcha"}}
 		<script src='{{ URLJoin .RecaptchaURL "api.js"}}' async></script>
+	{{end}}
+	{{if eq .CaptchaType "hcaptcha"}}
+		<script src='https://hcaptcha.com/1/api.js' async></script>
 	{{end}}
 {{end}}
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
