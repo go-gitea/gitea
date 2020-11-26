@@ -172,7 +172,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
-- `SHOW_SYS_ADMIN_COMMENT_TAG`: **false**: show `system administrator` tag on comment header
 
 ### UI - Admin (`ui.admin`)
 

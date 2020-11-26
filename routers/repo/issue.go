@@ -993,10 +993,6 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 			return models.CommentTagOwner, nil
 		}
 
-		if setting.UI.ShowSysAdminCommentTag && poster.IsAdmin {
-			return models.CommentTagSysAdmin, nil
-		}
-
 		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
 			return models.CommentTagWriter, nil
 		}

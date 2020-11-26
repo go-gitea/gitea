@@ -111,7 +111,6 @@ const (
 	CommentTagPoster
 	CommentTagWriter
 	CommentTagOwner
-	CommentTagSysAdmin
 )
 
 // Comment represents a comment in commit and issue page.
