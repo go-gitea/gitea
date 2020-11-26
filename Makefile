@@ -228,11 +228,10 @@ fmt:
 
 .PHONY: vet
 vet:
-	# Default vet
-	$(GO) vet $(GO_PACKAGES)
-	# Custom vet
-	$(GO) build -mod=vendor code.gitea.io/gitea-vet
-	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+	@echo "running go vet..."
+	@$(GO) vet $(GO_PACKAGES)
+	@$(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -703,7 +702,8 @@ golangci-lint:
 		export BINARY="golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.33.0; \
 	fi
-	golangci-lint run --timeout 5m ./ $(addsuffix /...,$(GO_DIRS_OWN))
+	@echo "running golangci-lint..."
+	@golangci-lint run --timeout 5m ./ $(addsuffix /...,$(GO_DIRS_OWN))
 
 .PHONY: docker
 docker:
