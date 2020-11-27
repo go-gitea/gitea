@@ -322,7 +322,8 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		if g, err := glob.Compile(args[i], '/'); err != nil {
+		g, err := glob.Compile(args[i], '/')
+		if err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %v", args[i], err)
 		}
 		pat[i] = g
