@@ -108,15 +108,15 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models
 		}
 	} else if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
-	}
-
-	isDir, err := util.IsDir(remoteAddr)
-	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
-		return "", err
-	}
-	if !isDir {
-		return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+	} else {
+		isDir, err := util.IsDir(remoteAddr)
+		if err != nil {
+			log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
+			return "", err
+		}
+		if !isDir {
+			return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+		}
 	}
 
 	return remoteAddr, nil
