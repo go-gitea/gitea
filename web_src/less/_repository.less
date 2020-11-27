@@ -1,6 +1,4 @@
 .repository {
-  padding-top: 15px;
-
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -144,8 +142,7 @@
   }
 
   .header-wrapper {
-    background-color: #fafafa;
-    margin-top: -15px;
+    background-color: var(--color-navbar);
     padding-top: 15px;
 
     .ui.tabs.divider {
@@ -519,21 +516,23 @@
         padding: 15px;
         margin-bottom: 10px;
         border: 1px solid var(--color-secondary);
+        background: var(--color-box-body);
         border-radius: 3px;
         #avatar-arrow;
 
         &::after {
-          border-right-color: var(--color-box-header);
+          border-right-color: var(--color-box-body);
         }
 
         .quick-pull-choice {
           .branch-name {
             display: inline-block;
-            padding: 3px 6px;
+            padding: 2px 4px;
             font: 12px var(--fonts-monospace);
-            color: rgba(0, 0, 0, .65);
-            background-color: rgba(209, 227, 237, .45);
+            color: var(--color-text);
+            background: var(--color-secondary);
             border-radius: 3px;
+            margin: 0 2px;
           }
 
           .new-branch-name-input {
@@ -739,14 +738,6 @@
         .review-item-right {
           display: flex;
           align-items: center;
-        }
-
-        .avatar,
-        .type-icon {
-          .svg {
-            width: 23px;
-            height: 23px;
-          }
         }
 
         .text {
@@ -2586,109 +2577,8 @@
   display: none;
 }
 
-.ui.checkbox.issue-checkbox {
-  vertical-align: middle;
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
-}
-
-.issue.list {
-  list-style: none;
-
-  > .item {
-    padding-top: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px dashed #aaaaaa;
-
-    .title {
-      color: #444444;
-      font-size: 15px;
-      font-weight: 500;
-      margin: 0 6px;
-
-      &:hover {
-        color: #000000;
-      }
-    }
-
-    .comment {
-      padding-right: 10px;
-      color: #666666;
-    }
-
-    .desc {
-      padding-top: 5px;
-      color: #999999;
-
-      .waiting,
-      .approvals,
-      .rejects {
-        padding-left: 5px;
-      }
-
-      .checklist {
-        padding-left: 5px;
-
-        .progress-bar {
-          margin-left: 2px;
-          width: 80px;
-          height: 6px;
-          display: inline-block;
-          background-color: #eeeeee;
-          overflow: hidden;
-          border-radius: 3px;
-          vertical-align: 2px !important;
-
-          .progress {
-            background-color: #cccccc;
-            display: block;
-            height: 100%;
-          }
-        }
-      }
-
-      .conflicting {
-        padding-left: 5px;
-      }
-
-      .due-date {
-        padding-left: 5px;
-      }
-
-      a.milestone {
-        margin-left: 5px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-      }
-
-      a.ref {
-        margin-left: 8px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-
-        span {
-          margin-right: -4px;
-        }
-      }
-
-      .assignee {
-        margin-top: -5px;
-        margin-right: 5px;
-      }
-
-      .overdue {
-        color: var(--color-red);
-      }
-    }
-  }
 }
 
 .page.buttons {
@@ -2730,10 +2620,6 @@
 
   .list {
     > .item {
-      .green:not(.ui.button) {
-        color: var(--color-green);
-      }
-
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
@@ -2975,15 +2861,31 @@
   flex-wrap: wrap;
 }
 
-.labels.list .item {
+.labels.list .item,
+.timeline-item .label {
   padding: .3em .5em !important;
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 3px;
 }
 
-.labels.list .item + .item {
-  margin-left: 3px;
+.issue-item-top-row .label {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 1.5px;
+  margin-bottom: 1.5px;
+}
+
+.labels.list .item,
+.timeline-item .label,
+.issue-item-top-row .label {
+  margin-right: 3px;
+  display: inline !important;
+}
+
+.timeline-item .label:last-of-type,
+.issue-item-top-row .label:last-of-type {
+  margin-right: 0;
 }
 
 tbody.commit-list {
