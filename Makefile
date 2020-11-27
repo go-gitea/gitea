@@ -312,7 +312,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build webpack.config.js
+	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
 	npx stylelint --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
