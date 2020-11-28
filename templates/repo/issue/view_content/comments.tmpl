@@ -29,7 +29,7 @@
 					</div>
 					<div class="header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if eq .PosterID .Issue.PosterID }}
+							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (eq .Issue.OriginalAuthorID .OriginalAuthorID) }}
 								<div class="item tag">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
