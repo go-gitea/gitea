@@ -49,7 +49,7 @@ You can configure the outputs of this logger by setting the `MODE`
 value in the `[log]` section of the configuration.
 
 Each output sublogger is configured in a separate `[log.sublogger.default]`
-which inherits from the sublogger `[log.sublogger]` section and from the 
+which inherits from the sublogger `[log.sublogger]` section and from the
 generic `[log]` section, but there are certain default values. These will
 not be inherited from the `[log]` section:
 
@@ -361,7 +361,7 @@ If you are running on Unix you may wish to release-and-reopen logs in order to u
 It is possible force gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
 running process, or running `gitea manager logging release-and-reopen`.
 
-Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the 
+Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the
 `gitea manager logging pause` and `gitea manager logging resume` commands. Please note that whilst logging
 is paused log events below INFO level will not be stored and only a limited number of events will be stored.
 Logging may block, albeit temporarily, slowing gitea considerably whilst paused - therefore it is

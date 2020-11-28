@@ -39,7 +39,7 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 Vous devriez avoir une instance fonctionnelle de Gitea. Pour accèder à l'interface web, visitez l'adresse http://hostname:10080 avec votre navigateur web préféré. Si vous voulez clôner un dépôt, vous pouvez le faire avec la commande  `git clone ssh://git@hostname:10022/username/repo.git`.
 
-## Named Volumes 
+## Named Volumes
 
 Ce guide aboutira à une installation avec les données Gita et PostgreSQL stockées dans des volumes nommés. Cela permet une sauvegarde, une restauration et des mises à niveau en toute simplicité.
 
