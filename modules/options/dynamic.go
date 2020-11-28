@@ -11,7 +11,9 @@ import (
 	"io/ioutil"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -32,7 +34,11 @@ func Dir(name string) ([]string, error) {
 
 	customDir := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsDir(customDir) {
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %v", customDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(customDir, true)
 
 		if err != nil {
@@ -44,7 +50,11 @@ func Dir(name string) ([]string, error) {
 
 	staticDir := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsDir(staticDir) {
+	isDir, err = util.IsDir(staticDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Unabe to check if static directory %s is a directory. %v", staticDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(staticDir, true)
 
 		if err != nil {
@@ -86,13 +96,21 @@ func Labels(name string) ([]byte, error) {
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsFile(customPath) {
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(customPath)
 	}
 
 	staticPath := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsFile(staticPath) {
+	isFile, err = util.IsFile(staticPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(staticPath)
 	}
 

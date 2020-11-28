@@ -30,7 +30,7 @@ Access Token Endpoint  | `/login/oauth/access_token`
 ## Supported OAuth2 Grants
 
 At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636) extension.
- 
+
 
 To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings.
 
@@ -46,7 +46,7 @@ Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea
 
 ```curl
 https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE
-``` 
+```
 
 The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to prevent CSRF attacks.
 

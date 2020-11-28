@@ -278,14 +278,14 @@
 
 		{{if .IsSplitStyle}}
 			<script>
-				document.addEventListener('DOMContentLoaded', function() {
+				document.addEventListener('DOMContentLoaded', () => {
 					$('tr.add-code').each(function() {
-						var prev = $(this).prev();
-						if(prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
-							while(prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
+						let prev = $(this).prev();
+						if (prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
+							while (prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
 								prev = prev.prev();
 							}
-							prev.children().eq(3).attr("data-line-num", $(this).children().eq(3).attr("data-line-num"));
+							prev.children().eq(3).attr('data-line-num', $(this).children().eq(3).attr('data-line-num'));
 							prev.children().eq(3).html($(this).children().eq(3).html());
 							prev.children().eq(4).html($(this).children().eq(4).html());
 							prev.children().eq(5).html($(this).children().eq(5).html());

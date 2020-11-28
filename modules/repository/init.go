@@ -175,7 +175,12 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 func checkInitRepository(owner, name string) (err error) {
 	// Somehow the directory could exist.
 	repoPath := models.RepoPath(owner, name)
-	if com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if isExist {
 		return models.ErrRepoFilesAlreadyExist{
 			Uname: owner,
 			Name:  name,
@@ -192,7 +197,12 @@ func checkInitRepository(owner, name string) (err error) {
 }
 
 func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
-	if !com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if !isExist {
 		return fmt.Errorf("adoptRepository: path does not already exist: %s", repoPath)
 	}
 
