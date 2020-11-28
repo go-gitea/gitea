@@ -62,7 +62,7 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			SHA:         sha,
 			Size:        16,
 			Type:        "file",
-			Commit:      CommitID,
+			Commit:      commitID,
 			Encoding:    &encoding,
 			Content:     &content,
 			URL:         &selfURL,
