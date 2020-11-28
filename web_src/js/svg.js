@@ -34,7 +34,7 @@ const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
 // retrieve a HTML string for given SVG icon name, size and additional classes
-export function svg(name, size = 16, className) {
+export function svg(name, size = 16, className = '') {
   if (!(name in svgs)) return '';
   if (size === 16 && !className) return svgs[name];
 
@@ -42,6 +42,6 @@ export function svg(name, size = 16, className) {
   const svgNode = document.firstChild;
   if (size !== 16) svgNode.setAttribute('width', String(size));
   if (size !== 16) svgNode.setAttribute('height', String(size));
-  if (className) svgNode.setAttribute('class', `svg ${name} ${className}`);
+  if (className) svgNode.classList.add(...className.split(/\s+/));
   return serializer.serializeToString(svgNode);
 }
