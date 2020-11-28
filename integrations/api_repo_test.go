@@ -325,7 +325,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		if resp.Code == http.StatusUnprocessableEntity {
 			respJSON := map[string]string{}
 			DecodeJSON(t, resp, &respJSON)
-			if assert.Equal(t, respJSON["message"], "Remote visit addressed rate limitation.") {
+			if assert.Equal(t, "Remote visit addressed rate limitation.", respJSON["message"]) {
 				t.Log("test hit github rate limitation")
 			}
 		} else {
