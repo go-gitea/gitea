@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AdoptOrDeleteRepository adopts or deletes a repository
@@ -30,10 +30,18 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	root := filepath.Join(models.UserPath(ctxUser.LowerName))
 
 	// check not a repo
-	if has, err := models.IsRepositoryExist(ctxUser, dir); err != nil {
+	has, err := models.IsRepositoryExist(ctxUser, dir)
+	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
-	} else if has || !com.IsDir(filepath.Join(root, dir+".git")) {
+	}
+
+	isDir, err := util.IsDir(filepath.Join(root, dir+".git"))
+	if err != nil {
+		ctx.ServerError("IsDir", err)
+		return
+	}
+	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" && allowAdopt {
 		if _, err := repository.AdoptRepository(ctxUser, ctxUser, models.CreateRepoOptions{

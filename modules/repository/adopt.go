@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // AdoptRepository adopts a repository for the user/organization.
@@ -49,7 +48,12 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 
 	if err := models.WithTx(func(ctx models.DBContext) error {
 		repoPath := models.RepoPath(u.Name, repo.Name)
-		if !com.IsExist(repoPath) {
+		isExist, err := util.IsExist(repoPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			return err
+		}
+		if !isExist {
 			return models.ErrRepoNotExist{
 				OwnerName: u.Name,
 				Name:      repo.Name,
@@ -91,7 +95,12 @@ func DeleteUnadoptedRepository(doer, u *models.User, repoName string) error {
 	}
 
 	repoPath := models.RepoPath(u.Name, repoName)
-	if !com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if !isExist {
 		return models.ErrRepoNotExist{
 			OwnerName: u.Name,
 			Name:      repoName,
