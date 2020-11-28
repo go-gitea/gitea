@@ -45,7 +45,7 @@ server {
 Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
 
 ##  Using Nginx as a reverse proxy and serve static resources directly
-We can tune the performance in splitting requests into categories static and dynamic. 
+We can tune the performance in splitting requests into categories static and dynamic.
 
 CSS files, JavaScript files, images and web fonts are static content.
 The front page, a repository view or issue list is dynamic content.
@@ -205,7 +205,7 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
   - Open the IIS Manager Console and click on the `Gitea Proxy` Website from the tree view on the left. Select and double click the URL Rewrite Icon from the middle pane to load the URL Rewrite interface.
   - Choose the `Add Rule` action from the right pane of the management console and select the `Reverse Proxy Rule` from the `Inbound and Outbound Rules` category.
   - In the Inbound Rules section, set the server name to be the host that Gitea is running on with its port. e.g. if you are running Gitea on the localhost with port 3000, the following should work: `127.0.0.1:3000`
-  - Enable SSL Offloading 
+  - Enable SSL Offloading
   - In the Outbound Rules, ensure `Rewrite the domain names of the links in HTTP response` is set and set the `From:` field as above and the `To:` to your external hostname, say: `git.example.com`
   - Now edit the `web.config` for your website to match the following: (changing `127.0.0.1:3000` and `git.example.com` as appropriate)
 

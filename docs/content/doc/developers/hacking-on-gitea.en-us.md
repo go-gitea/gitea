@@ -82,7 +82,7 @@ from within the `$GOPATH`, hence the `go get` approach is no longer recommended.
 
 ## Forking Gitea
 
-Download the master Gitea source code as above. Then, fork the 
+Download the master Gitea source code as above. Then, fork the
 [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
