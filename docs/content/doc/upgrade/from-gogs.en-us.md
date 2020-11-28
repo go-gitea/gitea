@@ -81,7 +81,7 @@ Then repeat the procedure, but this time using the [lastest release](https://dl.
 
 ## Upgrading from a more recent version of Gogs
 
-Upgrading from a more recent version of Gogs is also possible, but requires a bit more work. 
+Upgrading from a more recent version of Gogs is also possible, but requires a bit more work.
 See [#4286](https://github.com/go-gitea/gitea/issues/4286).
 
 ## Troubleshooting

@@ -21,8 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ArchiveRequest defines the parameters of an archive request, which notably
@@ -138,7 +137,12 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	}
 
 	r.refName = strings.TrimSuffix(r.uri, r.ext)
-	if !com.IsDir(r.archivePath) {
+	isDir, err := util.IsDir(r.archivePath)
+	if err != nil {
+		ctx.ServerError("Download -> util.IsDir(archivePath)", err)
+		return nil
+	}
+	if !isDir {
 		if err := os.MkdirAll(r.archivePath, os.ModePerm); err != nil {
 			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
 			return nil
@@ -146,9 +150,6 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	}
 
 	// Get corresponding commit.
-	var (
-		err error
-	)
 	if r.repo.IsBranchExist(r.refName) {
 		r.commit, err = r.repo.GetBranchCommit(r.refName)
 		if err != nil {
@@ -179,7 +180,11 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	}
 
 	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID.String())+r.ext)
-	r.archiveComplete = com.IsFile(r.archivePath)
+	r.archiveComplete, err = util.IsFile(r.archivePath)
+	if err != nil {
+		ctx.ServerError("util.IsFile", err)
+		return nil
+	}
 	return r
 }
 
@@ -198,7 +203,11 @@ func doArchive(r *ArchiveRequest) {
 	// race conditions and difficulties in locking.  Do one last check that
 	// the archive we're referring to doesn't already exist.  If it does exist,
 	// then just mark the request as complete and move on.
-	if com.IsFile(r.archivePath) {
+	isFile, err := util.IsFile(r.archivePath)
+	if err != nil {
+		log.Error("Unable to check if %s util.IsFile: %v. Will ignore and recreate.", r.archivePath, err)
+	}
+	if isFile {
 		r.archiveComplete = true
 		return
 	}

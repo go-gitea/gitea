@@ -17,7 +17,7 @@ menu:
 
 To use Gitea's built-in Email support, update the `app.ini` config file [mailer] section:
 
-## Sendmail version 
+## Sendmail version
 Use the operating system’s sendmail command instead of SMTP. This is common on Linux servers.  
 Note: For use in the official Gitea Docker image, please configure with the SMTP version.
 ```ini
@@ -48,7 +48,7 @@ For the full list of options check the [Config Cheat Sheet]({{< relref "doc/adva
 
 - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS or `HOST=localhost`. TLS encryption can be through:
   - Via the server supporting TLS through STARTTLS - usually provided on port 587. (Also known as Opportunistic TLS.)
-  - SMTPS connection (SMTP over transport layer security) via the default port 465. 
+  - SMTPS connection (SMTP over transport layer security) via the default port 465.
   - Forced SMTPS connection with `IS_TLS_ENABLED=true`. (These are both known as Implicit TLS.)
 - This is due to protections imposed by the Go internal libraries against STRIPTLS attacks.
 

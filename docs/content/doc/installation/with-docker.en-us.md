@@ -306,7 +306,7 @@ container if you wish to use SSH support. If you wish to do this without running
 SSH on a non-standard port (or move your host port to a non-standard port), you can forward
 SSH connections destined for the container with a little extra setup.
 
-This guide assumes that you have created a user on the host called `git` which shares the same 
+This guide assumes that you have created a user on the host called `git` which shares the same
 UID/GID as the container values `USER_UID`/`USER_GID`. You should also create the directory
 `/var/lib/gitea` on the host, owned by the `git` user and mounted in the container, e.g.
 
