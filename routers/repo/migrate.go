@@ -204,6 +204,9 @@ func CancelMigration(ctx *context.Context) {
 		return
 	}
 
+	// TODO: get task from queues and kill it
+	// https://github.com/go-gitea/gitea/pull/12917/files#r492109921
+
 	if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
