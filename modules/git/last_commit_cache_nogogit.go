@@ -57,11 +57,11 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 }
 
 // CacheCommit will cache the commit from the gitRepository
-func (c *LastCommitCache) CacheCommit(gitRepo *Repository, commit *Commit) error {
-	return c.recursiveCache(gitRepo, commit, &commit.Tree, "", 1)
+func (c *LastCommitCache) CacheCommit(commit *Commit) error {
+	return c.recursiveCache(commit, &commit.Tree, "", 1)
 }
 
-func (c *LastCommitCache) recursiveCache(gitRepo *Repository, commit *Commit, tree *Tree, treePath string, level int) error {
+func (c *LastCommitCache) recursiveCache(commit *Commit, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (c *LastCommitCache) recursiveCache(gitRepo *Repository, commit *Commit, tr
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(gitRepo, commit, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(commit, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}
