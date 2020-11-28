@@ -41,7 +41,7 @@ func isMigrateURLAllowed(remoteURL string) error {
 	}
 
 	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if len(setting.Migrations.AllowlistedDomains) > 0 {
+		if len(setting.Migrations.AllowedDomains) > 0 {
 			if !allowList.Match(u.Host) {
 				return &models.ErrMigrationNotAllowed{Host: u.Host}
 			}
@@ -356,12 +356,12 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 // Init migrations service
 func Init() error {
 	var err error
-	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowlistedDomains...)
+	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowedDomains...)
 	if err != nil {
 		return fmt.Errorf("init migration allowList domains failed: %v", err)
 	}
 
-	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlocklistedDomains...)
+	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlockedDomains...)
 	if err != nil {
 		return fmt.Errorf("init migration blockList domains failed: %v", err)
 	}

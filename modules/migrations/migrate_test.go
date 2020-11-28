@@ -13,7 +13,7 @@ import (
 )
 
 func TestMigrateWhiteBlocklist(t *testing.T) {
-	setting.Migrations.AllowlistedDomains = []string{"github.com"}
+	setting.Migrations.AllowedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
 	err := isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")
@@ -22,8 +22,8 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	err = isMigrateURLAllowed("https://github.com/go-gitea/gitea.git")
 	assert.NoError(t, err)
 
-	setting.Migrations.AllowlistedDomains = []string{}
-	setting.Migrations.BlocklistedDomains = []string{"github.com"}
+	setting.Migrations.AllowedDomains = []string{}
+	setting.Migrations.BlockedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
 	err = isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")
