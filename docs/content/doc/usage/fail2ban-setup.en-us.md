@@ -41,7 +41,7 @@ Add our jail in `/etc/fail2ban/jail.d/gitea.conf`:
 [gitea]
 enabled = true
 filter = gitea
-logpath = /home/git/gitea/log/gitea.log
+logpath = /var/lib/gitea/log/gitea.log
 maxretry = 10
 findtime = 3600
 bantime = 900
