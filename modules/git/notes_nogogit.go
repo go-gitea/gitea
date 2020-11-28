@@ -10,16 +10,6 @@ import (
 	"io/ioutil"
 )
 
-// NotesRef is the git ref where Gitea will look for git-notes data.
-// The value ("refs/notes/commits") is the default ref used by git-notes.
-const NotesRef = "refs/notes/commits"
-
-// Note stores information about a note created using git-notes.
-type Note struct {
-	Message []byte
-	Commit  *Commit
-}
-
 // GetNote retrieves the git-notes data for a given commit.
 func GetNote(repo *Repository, commitID string, note *Note) error {
 	notes, err := repo.GetCommit(NotesRef)

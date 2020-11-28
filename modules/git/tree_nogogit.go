@@ -26,43 +26,6 @@ type Tree struct {
 	entriesRecursiveParsed bool
 }
 
-// NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id SHA1) *Tree {
-	return &Tree{
-		ID:   id,
-		repo: repo,
-	}
-}
-
-// SubTree get a sub tree by the sub dir path
-func (t *Tree) SubTree(rpath string) (*Tree, error) {
-	if len(rpath) == 0 {
-		return t, nil
-	}
-
-	paths := strings.Split(rpath, "/")
-	var (
-		err error
-		g   = t
-		p   = t
-		te  *TreeEntry
-	)
-	for _, name := range paths {
-		te, err = p.GetTreeEntryByPath(name)
-		if err != nil {
-			return nil, err
-		}
-
-		g, err = t.repo.getTree(te.ID)
-		if err != nil {
-			return nil, err
-		}
-		g.ptree = p
-		p = g
-	}
-	return g, nil
-}
-
 // ListEntries returns all entries of current tree.
 func (t *Tree) ListEntries() (Entries, error) {
 	if t.entriesParsed {

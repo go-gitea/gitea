@@ -110,6 +110,8 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
+TEST_TAGS ?= "sqlite sqlite_unlock_notify"
+
 GO_DIRS := cmd integrations models modules routers build services vendor
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -336,7 +338,7 @@ watch-backend: go-check
 
 .PHONY: test
 test:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-check
 test-check:
@@ -352,7 +354,7 @@ test-check:
 
 .PHONY: test\#%
 test\#%:
-	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
+	$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -360,7 +362,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -505,7 +507,7 @@ integrations.mssql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
 integrations.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
 integrations.cover.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
@@ -528,7 +530,7 @@ migrations.mssql.test: $(GO_SOURCES)
 
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
 check: test

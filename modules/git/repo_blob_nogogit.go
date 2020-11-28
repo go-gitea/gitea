@@ -15,12 +15,3 @@ func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
 		repoPath: repo.Path,
 	}, nil
 }
-
-// GetBlob finds the blob object in the repository.
-func (repo *Repository) GetBlob(idStr string) (*Blob, error) {
-	id, err := NewIDFromString(idStr)
-	if err != nil {
-		return nil, err
-	}
-	return repo.getBlob(id)
-}

@@ -1,4 +1,4 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,11 +11,6 @@ import (
 	"io"
 	"strings"
 )
-
-// GetRefs returns all references of the repository.
-func (repo *Repository) GetRefs() ([]*Reference, error) {
-	return repo.GetRefsFiltered("")
-}
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
 func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {

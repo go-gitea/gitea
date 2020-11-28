@@ -2,12 +2,15 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build nogogit
+// +build !nogogit
 
 package git
 
 import (
 	"path"
+
+	"github.com/go-git/go-git/v5/plumbing/object"
+	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 // LastCommitCache represents a cache to store last commit
@@ -15,7 +18,7 @@ type LastCommitCache struct {
 	repoPath    string
 	ttl         int64
 	repo        *Repository
-	commitCache map[string]*Commit
+	commitCache map[string]*object.Commit
 	cache       Cache
 }
 
@@ -27,7 +30,7 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl int64, cache C
 	return &LastCommitCache{
 		repoPath:    repoPath,
 		repo:        gitRepo,
-		commitCache: make(map[string]*Commit),
+		commitCache: make(map[string]*object.Commit),
 		ttl:         ttl,
 		cache:       cache,
 	}
@@ -46,7 +49,7 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := c.repo.getCommit(id)
+		commit, err := c.repo.GoGitRepo().CommitObject(id)
 		if err != nil {
 			return nil, err
 		}
@@ -58,10 +61,18 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 
 // CacheCommit will cache the commit from the gitRepository
 func (c *LastCommitCache) CacheCommit(gitRepo *Repository, commit *Commit) error {
-	return c.recursiveCache(gitRepo, commit, &commit.Tree, "", 1)
+
+	commitNodeIndex, _ := gitRepo.CommitNodeIndex()
+
+	index, err := commitNodeIndex.Get(commit.ID)
+	if err != nil {
+		return err
+	}
+
+	return c.recursiveCache(gitRepo, index, &commit.Tree, "", 1)
 }
 
-func (c *LastCommitCache) recursiveCache(gitRepo *Repository, commit *Commit, tree *Tree, treePath string, level int) error {
+func (c *LastCommitCache) recursiveCache(gitRepo *Repository, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -78,14 +89,13 @@ func (c *LastCommitCache) recursiveCache(gitRepo *Repository, commit *Commit, tr
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(commit, treePath, entryPaths)
+	commits, err := GetLastCommitForPaths(index, treePath, entryPaths)
 	if err != nil {
 		return err
 	}
 
-	for i, entryCommit := range commits {
-		entry := entryPaths[i]
-		if err := c.Put(commit.ID.String(), path.Join(treePath, entryPaths[i]), entryCommit.ID.String()); err != nil {
+	for entry, cm := range commits {
+		if err := c.Put(index.ID().String(), path.Join(treePath, entry), cm.ID().String()); err != nil {
 			return err
 		}
 		if entryMap[entry].IsDir() {
@@ -93,7 +103,7 @@ func (c *LastCommitCache) recursiveCache(gitRepo *Repository, commit *Commit, tr
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(gitRepo, commit, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(gitRepo, index, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}
