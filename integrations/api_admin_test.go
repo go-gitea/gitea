@@ -144,3 +144,22 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
+
+func TestAPICreateUserInvalidEmail(t *testing.T) {
+	defer prepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		"email":                "invalid_email@domain.com\r\n",
+		"full_name":            "invalid user",
+		"login_name":           "invalidUser",
+		"must_change_password": "true",
+		"password":             "password",
+		"send_notify":          "true",
+		"source_id":            "0",
+		"username":             "invalidUser",
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+}

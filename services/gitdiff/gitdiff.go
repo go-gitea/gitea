@@ -676,6 +676,15 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 	leftLine, rightLine := 1, 1
 
 	for {
+		for isFragment {
+			curFile.IsIncomplete = true
+			_, isFragment, err = input.ReadLine()
+			if err != nil {
+				// Now by the definition of ReadLine this cannot be io.EOF
+				err = fmt.Errorf("Unable to ReadLine: %v", err)
+				return
+			}
+		}
 		sb.Reset()
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
@@ -789,6 +798,10 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 					return
 				}
 			}
+		}
+		if len(line) > maxLineCharacters {
+			curFile.IsIncomplete = true
+			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 
