@@ -162,10 +162,10 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, err := git.NewCommand("push", "origin", "master:"+defaultBranch).
+	if stdout, err := git.NewCommand("push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
-		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
+		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
 
