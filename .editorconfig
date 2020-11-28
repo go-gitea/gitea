@@ -9,7 +9,7 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.{go,tmpl,html}]
+[*.{go, tmpl, html}]
 indent_style = tab
 
 [Makefile]
