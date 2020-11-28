@@ -121,6 +121,17 @@ headerLoop:
 
 const hextable = "0123456789abcdef"
 
+// to40ByteSHA converts a 20byte SHA in a 40 byte slice into a 40 byte sha
+func to40ByteSHA(sha []byte) []byte {
+	for i := 19; i >= 0; i-- {
+		v := sha[i]
+		vhi, vlo := v>>4, v&0x0f
+		shi, slo := hextable[vhi], hextable[vlo]
+		sha[i*2], sha[i*2+1] = shi, slo
+	}
+	return sha
+}
+
 func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sha []byte, n int, err error) {
 	var readBytes []byte
 	readBytes, err = rd.ReadSlice(' ')
@@ -156,12 +167,6 @@ func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sh
 			return
 		}
 		idx += read
-	}
-	for i := 19; i >= 0; i-- {
-		v := shaBuf[i]
-		vhi, vlo := v>>4, v&0x0f
-		shi, slo := hextable[vhi], hextable[vlo]
-		shaBuf[i*2], shaBuf[i*2+1] = shi, slo
 	}
 	sha = shaBuf
 	return
@@ -211,12 +216,6 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 			return
 		}
 		idx += read
-	}
-	for i := 19; i >= 0; i-- {
-		v := shaBuf[i]
-		vhi, vlo := v>>4, v&0x0f
-		shi, slo := hextable[vhi], hextable[vlo]
-		shaBuf[i*2], shaBuf[i*2+1] = shi, slo
 	}
 	sha = shaBuf
 	return
@@ -383,8 +382,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
 
-	allShaBuf := make([]byte, len(paths)*40)
-	shaBuf := make([]byte, 40)
+	allShaBuf := make([]byte, (len(paths)+1)*20)
+	shaBuf := make([]byte, 20)
 	tmpTreeID := make([]byte, 40)
 
 	// commits is the returnable commits matching the paths provided
@@ -450,8 +449,8 @@ revListLoop:
 					if ok {
 						// Now if this is the first time round set the initial Blob(ish) SHA ID and the commit
 						if len(ids[idx]) == 0 {
-							copy(allShaBuf[40*idx:40*(idx+1)], shaBuf)
-							ids[idx] = allShaBuf[40*idx : 40*(idx+1)]
+							copy(allShaBuf[20*(idx+1):20*(idx+2)], shaBuf)
+							ids[idx] = allShaBuf[20*(idx+1) : 20*(idx+2)]
 							commits[idx] = string(commitID)
 						} else if bytes.Equal(ids[idx], shaBuf) {
 							commits[idx] = string(commitID)
@@ -519,13 +518,14 @@ revListLoop:
 			// if we've now found the curent path check its sha id and commit status
 			if treePath == currentPath && paths[0] == "" {
 				if len(ids[0]) == 0 {
-					copy(allShaBuf[0:40], treeID)
-					ids[0] = allShaBuf[0:40]
+					copy(allShaBuf[0:20], treeID)
+					ids[0] = allShaBuf[0:20]
 					commits[0] = string(commitID)
 				} else if bytes.Equal(ids[0], treeID) {
 					commits[0] = string(commitID)
 				}
 			}
+			treeID = to40ByteSHA(treeID)
 			_, err = batchStdinWriter.Write(treeID)
 			if err != nil {
 				return nil, err
