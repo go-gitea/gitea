@@ -289,6 +289,24 @@ a.muted:hover,
   background: var(--color-hover);
 }
 
+.ui.dropdown .menu .active.item {
+  font-weight: normal;
+}
+
+.ui.selection.dropdown .menu > .item {
+  border-color: var(--color-secondary);
+}
+
+.ui.selection.visible.dropdown > .text:not(.default) {
+  color: var(--color-text);
+}
+
+.ui.dropdown.selected,
+.ui.dropdown .menu .selected.item {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu a.item:hover {
