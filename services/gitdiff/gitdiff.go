@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/common"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -425,7 +426,7 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	if err != nil {
 		return 0
 	}
-	lineCount, err := blob.GetBlobLineCount()
+	lineCount, err := common.GetBlobLineCount(blob)
 	if err != nil {
 		return 0
 	}
