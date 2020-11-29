@@ -2856,35 +2856,20 @@
   }
 }
 
-.labels.list {
-  display: flex;
+.labels-list {
+  display: inline-flex;
   flex-wrap: wrap;
 }
 
-.labels.list .item,
-.timeline-item .label {
-  padding: .3em .5em !important;
-  margin-left: 0;
-  margin-right: 0;
-  margin-bottom: 3px;
-}
-
-.issue-item-top-row .label {
-  margin-left: 0;
-  margin-right: 0;
+.labels-list .label {
   margin-top: 1.5px;
   margin-bottom: 1.5px;
-}
-
-.labels.list .item,
-.timeline-item .label,
-.issue-item-top-row .label {
   margin-right: 3px;
-  display: inline !important;
+  margin-left: 0;
+  display: inline-block !important;
 }
 
-.timeline-item .label:last-of-type,
-.issue-item-top-row .label:last-of-type {
+.labels-list .label:last-of-type {
   margin-right: 0;
 }
 
