@@ -89,10 +89,12 @@
   --color-hover: #ffffff0d;
   --color-active: #ffffff14;
   --color-menu: #2e323e;
+  --color-card: #2e323e;
   --color-markdown-table-row: #ffffff06;
   --color-markdown-code-block: #2a2e3a;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
+  --color-shadow: #00000060;
 }
 
 /* LineTableTD */
@@ -817,22 +819,6 @@ td.blob-hunk {
   background: #353945;
 }
 
-.ui.card,
-.ui.cards > .card {
-  background: #353945;
-  box-shadow: 0 0 0 1px var(--color-secondary);
-}
-
-.ui.card > .content > .header,
-.ui.cards > .card > .content > .header {
-  color: #dbdbdb;
-}
-
-.ui.card > .extra a:not(.ui),
-.ui.cards > .card > .extra a:not(.ui) {
-  color: #87ab63;
-}
-
 .ui .text.black {
   color: var(--color-secondary-dark-6);
 }
@@ -1365,20 +1351,4 @@ img[src$="/img/matrix.svg"] {
 .markdown-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
-}
-
-.migrate .cards .card {
-  text-align: center;
-}
-
-.migrate .cards .card .content a {
-  color: rgb(158, 158, 158) !important;
-}
-
-.migrate .cards .card .content a:hover {
-  color: rgb(255, 255, 255) !important;
-}
-
-.migrate .cards .card .content .description {
-  color: rgb(158, 158, 158);
 }
