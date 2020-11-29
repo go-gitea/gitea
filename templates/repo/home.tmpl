@@ -23,12 +23,12 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui" id="repo-topics">
-		{{range .Topics}}<a class="ui repo-topic small label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		<div class="mt-3" id="repo-topics">
+		{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
+		<div class="ui repo-topic-edit grid form" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">

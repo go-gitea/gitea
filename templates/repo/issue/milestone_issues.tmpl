@@ -14,9 +14,9 @@
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
 					{{if or .CanWriteIssues .CanWritePulls}}
-					<a class="ui grey button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
+					<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
 					{{end}}
-					<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
+					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
