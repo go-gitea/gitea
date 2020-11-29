@@ -116,7 +116,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v1.0.12
+# github.com/blevesearch/bleve v1.0.13
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -166,15 +166,15 @@ github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.12
+# github.com/blevesearch/zap/v11 v11.0.13
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.12
+# github.com/blevesearch/zap/v12 v12.0.13
 github.com/blevesearch/zap/v12
-# github.com/blevesearch/zap/v13 v13.0.4
+# github.com/blevesearch/zap/v13 v13.0.5
 github.com/blevesearch/zap/v13
-# github.com/blevesearch/zap/v14 v14.0.3
+# github.com/blevesearch/zap/v14 v14.0.4
 github.com/blevesearch/zap/v14
-# github.com/blevesearch/zap/v15 v15.0.1
+# github.com/blevesearch/zap/v15 v15.0.2
 github.com/blevesearch/zap/v15
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
