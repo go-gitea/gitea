@@ -35,11 +35,11 @@
 			</div>
 			<div class="twelve wide column content">
 				<div class="ui compact tiny menu">
-					<a class="item {{if not .IsShowClosed}}active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
+					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
 						{{svg "octicon-issue-opened" 16 "mr-3"}}
 						{{.i18n.Tr "repo.milestones.open_tab" .MilestoneStats.OpenCount}}
 					</a>
-					<a class="item {{if .IsShowClosed}}active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
+					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
 						{{svg "octicon-issue-closed" 16 "mr-3"}}
 						{{.i18n.Tr "repo.milestones.close_tab" .MilestoneStats.ClosedCount}}
 					</a>
