@@ -25,9 +25,9 @@ type Blob struct {
 	name     string
 }
 
-// DataAsync gets a ReadCloser for the contents of a blob without reading it all.
+// Reader gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (io.ReadCloser, error) {
+func (b *Blob) Reader() (io.ReadCloser, error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	var err error
 

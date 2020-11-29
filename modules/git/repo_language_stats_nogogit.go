@@ -89,7 +89,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 func readFile(entry *TreeEntry, limit int64) ([]byte, error) {
 	// FIXME: We can probably be a little more efficient here... see above
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().Reader()
 	if err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ THE SOFTWARE.
 	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
 	assert.NoError(t, err)
 
-	r, err := testBlob.DataAsync()
+	r, err := testBlob.Reader()
 	assert.NoError(t, err)
 	require.NotNil(t, r)
 	defer r.Close()
@@ -65,7 +65,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		r, err := testBlob.DataAsync()
+		r, err := testBlob.Reader()
 		if err != nil {
 			b.Fatal(err)
 		}

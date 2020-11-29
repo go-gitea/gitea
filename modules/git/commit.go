@@ -94,7 +94,7 @@ func (c *Commit) IsImageFile(name string) bool {
 		return false
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.Reader()
 	if err != nil {
 		return false
 	}
@@ -124,7 +124,7 @@ func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.Reader()
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		return nil, err
 	}
 
-	rd, err := entry.Blob().DataAsync()
+	rd, err := entry.Blob().Reader()
 	if err != nil {
 		return nil, err
 	}

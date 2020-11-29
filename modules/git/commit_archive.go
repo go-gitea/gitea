@@ -41,11 +41,11 @@ type CreateArchiveOpts struct {
 
 // CreateArchive create archive content to the target path
 func (c *Commit) CreateArchive(ctx context.Context, target string, opts CreateArchiveOpts) error {
-	return c.repo.CreateArchive(ctx, c.ID, target, opts)
+	return c.repo.CreateArchive(ctx, c.ID.String(), target, opts)
 }
 
 // CreateArchive create archive content to the target path
-func (r *Repository) CreateArchive(ctx context.Context, id SHA1, target string, opts CreateArchiveOpts) error {
+func (r *Repository) CreateArchive(ctx context.Context, treeishID, target string, opts CreateArchiveOpts) error {
 	if opts.Format.String() == "unknown" {
 		return fmt.Errorf("unknown format: %v", opts.Format)
 	}
@@ -61,7 +61,7 @@ func (r *Repository) CreateArchive(ctx context.Context, id SHA1, target string, 
 		"--format="+opts.Format.String(),
 		"-o",
 		target,
-		id.String(),
+		treeishID,
 	)
 
 	_, err := NewCommandContext(ctx, args...).RunInDir(r.Path())

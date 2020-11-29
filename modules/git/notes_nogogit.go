@@ -38,7 +38,7 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		}
 	}
 
-	dataRc, err := entry.Blob().DataAsync()
+	dataRc, err := entry.Blob().Reader()
 	if err != nil {
 		return err
 	}

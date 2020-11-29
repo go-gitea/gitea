@@ -54,7 +54,7 @@ type UpdateRepoFileOptions struct {
 }
 
 func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
-	reader, err := entry.Blob().DataAsync()
+	reader, err := entry.Blob().Reader()
 	if err != nil {
 		// return default
 		return "UTF-8", false

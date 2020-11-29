@@ -30,7 +30,7 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	}
 
 	// read the link
-	r, err := te.Blob().DataAsync()
+	r, err := te.Blob().Reader()
 	if err != nil {
 		return nil, err
 	}

@@ -61,7 +61,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.Reader()
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
 func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.Reader()
 	if err != nil {
 		return err
 	}

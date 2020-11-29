@@ -668,7 +668,7 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight 
 	if err != nil {
 		return nil, err
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.Reader()
 	if err != nil {
 		return nil, err
 	}

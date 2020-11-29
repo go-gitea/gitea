@@ -62,13 +62,15 @@ func OpenRepository(repoPath string) (*Repository, error) {
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() error {
 	if repo == nil || repo.gogitStorage == nil {
-		return
+		return nil
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
 		log.Error("Error closing storage: %v", err)
+		return err
 	}
+	return nil
 }
 
 // GoGitRepo gets the go-git repo representation

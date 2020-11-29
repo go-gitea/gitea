@@ -18,7 +18,7 @@ import (
 
 // GetBlobContent Gets the content of the blob as raw text
 func GetBlobContent(b *git.Blob) (string, error) {
-	dataRc, err := b.DataAsync()
+	dataRc, err := b.Reader()
 	if err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ func GetBlobContent(b *git.Blob) (string, error) {
 
 // GetBlobLineCount gets line count of lob as raw text
 func GetBlobLineCount(b *git.Blob) (int, error) {
-	reader, err := b.DataAsync()
+	reader, err := b.Reader()
 	if err != nil {
 		return 0, err
 	}
@@ -53,7 +53,7 @@ func GetBlobLineCount(b *git.Blob) (int, error) {
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
 func GetBlobContentBase64(b *git.Blob) (string, error) {
-	dataRc, err := b.DataAsync()
+	dataRc, err := b.Reader()
 	if err != nil {
 		return "", err
 	}

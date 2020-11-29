@@ -230,7 +230,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
 		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob().DataAsync()
+	reader, err := treeEntry.Blob().Reader()
 	if err != nil {
 		return nil, err
 	}
@@ -882,9 +882,9 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 					log.Debug("Issue template is too large: %s", entry.Name())
 					continue
 				}
-				r, err := entry.Blob().DataAsync()
+				r, err := entry.Blob().Reader()
 				if err != nil {
-					log.Debug("DataAsync: %v", err)
+					log.Debug("Reader: %v", err)
 					continue
 				}
 				defer r.Close()

@@ -252,7 +252,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["ReadmeExist"] = true
 		ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
 
-		dataRc, err := readmeFile.blob.DataAsync()
+		dataRc, err := readmeFile.blob.Reader()
 		if err != nil {
 			ctx.ServerError("Data", err)
 			return
@@ -372,9 +372,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
 	blob := entry.Blob()
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.Reader()
 	if err != nil {
-		ctx.ServerError("DataAsync", err)
+		ctx.ServerError("Reader", err)
 		return
 	}
 	defer dataRc.Close()

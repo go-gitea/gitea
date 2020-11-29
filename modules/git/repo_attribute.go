@@ -17,7 +17,7 @@ type CheckAttributeOpts struct {
 	Filenames     []string
 }
 
-// CheckAttribute return the Blame object of file
+// CheckAttribute returns an attribute map
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
 	err := LoadGitVersion()
 	if err != nil {

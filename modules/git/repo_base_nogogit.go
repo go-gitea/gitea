@@ -36,7 +36,8 @@ func OpenRepository(repoPath string) (*Repository, error) {
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() error {
+	return nil
 }
 
 // Path returns the path to the repository
