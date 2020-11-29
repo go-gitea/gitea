@@ -213,6 +213,6 @@ func CancelMigration(ctx *context.Context) {
 	}
 	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
+	ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
 	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
 }
