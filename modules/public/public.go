@@ -5,18 +5,14 @@
 package public
 
 import (
-	"encoding/base64"
-	"fmt"
 	"log"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
 )
 
 // Options represents the available options to configure the macaron handler.
@@ -24,11 +20,8 @@ type Options struct {
 	Directory   string
 	IndexFile   string
 	SkipLogging bool
-	// if set to true, will enable caching. Expires header will also be set to
-	// expire after the defined time.
-	ExpiresAfter time.Duration
-	FileSystem   http.FileSystem
-	Prefix       string
+	FileSystem  http.FileSystem
+	Prefix      string
 }
 
 // KnownPublicEntries list all direct children in the `public` directory
@@ -41,7 +34,7 @@ var KnownPublicEntries = []string{
 }
 
 // Custom implements the macaron static handler for serving custom assets.
-func Custom(opts *Options) macaron.Handler {
+func Custom(opts *Options) func(next http.Handler) http.Handler {
 	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
 }
 
@@ -52,7 +45,7 @@ type staticFileSystem struct {
 
 func newStaticFileSystem(directory string) staticFileSystem {
 	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(macaron.Root, directory)
+		directory = filepath.Join(setting.AppWorkPath, directory)
 	}
 	dir := http.Dir(directory)
 	return staticFileSystem{&dir}
@@ -63,39 +56,43 @@ func (fs staticFileSystem) Open(name string) (http.File, error) {
 }
 
 // StaticHandler sets up a new middleware for serving static files in the
-func StaticHandler(dir string, opts *Options) macaron.Handler {
+func StaticHandler(dir string, opts *Options) func(next http.Handler) http.Handler {
 	return opts.staticHandler(dir)
 }
 
-func (opts *Options) staticHandler(dir string) macaron.Handler {
-	// Defaults
-	if len(opts.IndexFile) == 0 {
-		opts.IndexFile = "index.html"
-	}
-	// Normalize the prefix if provided
-	if opts.Prefix != "" {
-		// Ensure we have a leading '/'
-		if opts.Prefix[0] != '/' {
-			opts.Prefix = "/" + opts.Prefix
+func (opts *Options) staticHandler(dir string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		// Defaults
+		if len(opts.IndexFile) == 0 {
+			opts.IndexFile = "index.html"
 		}
-		// Remove any trailing '/'
-		opts.Prefix = strings.TrimRight(opts.Prefix, "/")
-	}
-	if opts.FileSystem == nil {
-		opts.FileSystem = newStaticFileSystem(dir)
-	}
+		// Normalize the prefix if provided
+		if opts.Prefix != "" {
+			// Ensure we have a leading '/'
+			if opts.Prefix[0] != '/' {
+				opts.Prefix = "/" + opts.Prefix
+			}
+			// Remove any trailing '/'
+			opts.Prefix = strings.TrimRight(opts.Prefix, "/")
+		}
+		if opts.FileSystem == nil {
+			opts.FileSystem = newStaticFileSystem(dir)
+		}
 
-	return func(ctx *macaron.Context, log *log.Logger) {
-		opts.handle(ctx, log, opts)
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if !opts.handle(w, req, opts) {
+				next.ServeHTTP(w, req)
+			}
+		})
 	}
 }
 
-func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options) bool {
-	if ctx.Req.Method != "GET" && ctx.Req.Method != "HEAD" {
+func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
+	if req.Method != "GET" && req.Method != "HEAD" {
 		return false
 	}
 
-	file := ctx.Req.URL.Path
+	file := req.URL.Path
 	// if we have a prefix, filter requests by stripping the prefix
 	if opt.Prefix != "" {
 		if !strings.HasPrefix(file, opt.Prefix) {
@@ -117,7 +114,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 			}
 			for _, entry := range KnownPublicEntries {
 				if entry == parts[1] {
-					ctx.Resp.WriteHeader(404)
+					w.WriteHeader(404)
 					return true
 				}
 			}
@@ -135,8 +132,8 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	// Try to serve index file
 	if fi.IsDir() {
 		// Redirect if missing trailing slash.
-		if !strings.HasSuffix(ctx.Req.URL.Path, "/") {
-			http.Redirect(ctx.Resp, ctx.Req.Request, path.Clean(ctx.Req.URL.Path+"/"), http.StatusFound)
+		if !strings.HasSuffix(req.URL.Path, "/") {
+			http.Redirect(w, req, path.Clean(req.URL.Path+"/"), http.StatusFound)
 			return true
 		}
 
@@ -148,7 +145,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 
 		fi, err = f.Stat()
 		if err != nil || fi.IsDir() {
-			return true
+			return false
 		}
 	}
 
@@ -156,23 +153,10 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		log.Println("[Static] Serving " + file)
 	}
 
-	// Add an Expires header to the static content
-	if opt.ExpiresAfter > 0 {
-		ctx.Resp.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
-		tag := GenerateETag(fmt.Sprint(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
-		ctx.Resp.Header().Set("ETag", tag)
-		if ctx.Req.Header.Get("If-None-Match") == tag {
-			ctx.Resp.WriteHeader(304)
-			return false
-		}
+	if httpcache.HandleEtagCache(req, w, fi) {
+		return true
 	}
 
-	http.ServeContent(ctx.Resp, ctx.Req.Request, file, fi.ModTime(), f)
+	http.ServeContent(w, req, file, fi.ModTime(), f)
 	return true
-}
-
-// GenerateETag generates an ETag based on size, filename and file modification time
-func GenerateETag(fileSize, fileName, modTime string) string {
-	etag := fileSize + fileName + modTime
-	return base64.StdEncoding.EncodeToString([]byte(etag))
 }

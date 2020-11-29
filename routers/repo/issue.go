@@ -131,6 +131,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			posterID = ctx.User.ID
 		case "mentioned":
 			mentionedID = ctx.User.ID
+		case "assigned":
+			assigneeID = ctx.User.ID
 		}
 	}
 
@@ -978,8 +980,27 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 		return models.CommentTagNone, err
 	}
 	if perm.IsOwner() {
-		return models.CommentTagOwner, nil
-	} else if perm.CanWrite(models.UnitTypeCode) {
+		if !poster.IsAdmin {
+			return models.CommentTagOwner, nil
+		}
+
+		ok, err := models.IsUserRealRepoAdmin(repo, poster)
+		if err != nil {
+			return models.CommentTagNone, err
+		}
+
+		if ok {
+			return models.CommentTagOwner, nil
+		}
+
+		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
+			return models.CommentTagWriter, nil
+		}
+
+		return models.CommentTagNone, err
+	}
+
+	if perm.CanWrite(models.UnitTypeCode) {
 		return models.CommentTagWriter, nil
 	}
 
@@ -1434,6 +1455,7 @@ func ViewIssue(ctx *context.Context) {
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
+			ctx.Data["IsBlockedByOfficialReviewRequests"] = pull.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pull)
 			ctx.Data["IsBlockedByOutdatedBranch"] = pull.ProtectedBranch.MergeBlockedByOutdatedBranch(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
@@ -2390,67 +2412,34 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) str
 }
 
 func combineLabelComments(issue *models.Issue) {
-	for i := 0; i < len(issue.Comments); {
-		c := issue.Comments[i]
-		var shouldMerge bool
-		var removingCur bool
-		var prev *models.Comment
-
-		if i == 0 {
-			shouldMerge = false
-		} else {
+	for i := 0; i < len(issue.Comments); i++ {
+		var (
+			prev *models.Comment
+			cur  = issue.Comments[i]
+		)
+		if i > 0 {
 			prev = issue.Comments[i-1]
-			removingCur = c.Content != "1"
-
-			shouldMerge = prev.PosterID == c.PosterID && c.CreatedUnix-prev.CreatedUnix < 60 &&
-				c.Type == prev.Type
 		}
-
-		if c.Type == models.CommentTypeLabel {
-			if !shouldMerge {
-				if removingCur {
-					c.RemovedLabels = make([]*models.Label, 1)
-					c.AddedLabels = make([]*models.Label, 0)
-					c.RemovedLabels[0] = c.Label
+		if i == 0 || cur.Type != models.CommentTypeLabel ||
+			(prev != nil && prev.PosterID != cur.PosterID) ||
+			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
+			if cur.Type == models.CommentTypeLabel {
+				if cur.Content != "1" {
+					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
 				} else {
-					c.RemovedLabels = make([]*models.Label, 0)
-					c.AddedLabels = make([]*models.Label, 1)
-					c.AddedLabels[0] = c.Label
+					cur.AddedLabels = append(cur.AddedLabels, cur.Label)
 				}
-			} else {
-				// Remove duplicated "added" and "removed" labels
-				// This way, adding and immediately removing a label won't generate a comment.
-				var appendingTo *[]*models.Label
-				var other *[]*models.Label
-
-				if removingCur {
-					appendingTo = &prev.RemovedLabels
-					other = &prev.AddedLabels
-				} else {
-					appendingTo = &prev.AddedLabels
-					other = &prev.RemovedLabels
-				}
-
-				appending := true
-
-				for i := 0; i < len(*other); i++ {
-					l := (*other)[i]
-					if l.ID == c.Label.ID {
-						*other = append((*other)[:i], (*other)[i+1:]...)
-						appending = false
-						break
-					}
-				}
-
-				if appending {
-					*appendingTo = append(*appendingTo, c.Label)
-				}
-
-				prev.CreatedUnix = c.CreatedUnix
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-				continue
 			}
+			continue
 		}
-		i++
+
+		if cur.Content != "1" {
+			prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+		} else {
+			prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+		}
+		prev.CreatedUnix = cur.CreatedUnix
+		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+		i--
 	}
 }

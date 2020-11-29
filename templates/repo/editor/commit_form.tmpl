@@ -2,9 +2,11 @@
 	<img width="48" height="48" class="ui image commit-avatar" src="{{.SignedUser.RelAvatarLink}}">
 	<div class="commit-form">
 		<h3>{{- if .CanCommitToBranch.WillSign}}
-		<i title="{{.i18n.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}" class="lock green icon"></i>{{.i18n.Tr "repo.editor.commit_signed_changes"}}
+			<span title="{{.i18n.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>
+			{{.i18n.Tr "repo.editor.commit_signed_changes"}}
 		{{- else}}
-		<i title="{{.i18n.Tr (printf "repo.signing.wont_sign.%s" .CanCommitToBranch.WontSignReason)}}" class="unlock grey icon"></i>{{.i18n.Tr "repo.editor.commit_changes"}}
+			<span title="{{.i18n.Tr (printf "repo.signing.wont_sign.%s" .CanCommitToBranch.WontSignReason)}}">{{svg "octicon-unlock" 24}}</span>
+			{{.i18n.Tr "repo.editor.commit_changes"}}
 		{{- end}}</h3>
 		<div class="field">
 			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{.i18n.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{.i18n.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{.i18n.Tr "repo.editor.add_tmpl"}}{{else}}{{.i18n.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>

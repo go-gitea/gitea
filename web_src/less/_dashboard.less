@@ -1,6 +1,4 @@
 .dashboard {
-  padding-top: 15px;
-
   &.feeds,
   &.issues {
     .context.user.menu {
@@ -33,7 +31,7 @@
           left: 90%;
           width: 15%;
 
-          @media only screen and (max-width: 768px) {
+          @media @mediaSm {
             top: 10px;
             left: auto;
             width: auto;
@@ -55,25 +53,25 @@
         left: auto !important;
       }
 
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         width: 100%;
       }
     }
 
     .right.stackable.menu > .item.active {
-      color: #d9453d;
+      color: var(--color-red);
     }
   }
 
-  /* Accomodate for Semantic's 1px hacks on .attached elements */
-
   .dashboard-repos {
-    margin: 0 1px;
+    margin: 0 1px; /* Accomodate for Semantic's 1px hacks on .attached elements */
   }
 
   .dashboard-navbar {
     width: 100vw;
-    padding: 0 .5rem;
+    padding-left: .5rem;
+    padding-right: .5rem;
+    padding-top: 15px;
     .org-visibility .label {
       margin-left: 5px;
     }
@@ -144,18 +142,6 @@
   }
 
   .list {
-    .header {
-      .ui.label {
-        margin-top: -4px;
-        padding: 4px 5px;
-        font-weight: normal;
-      }
-
-      .plus.icon {
-        margin-top: 5px;
-      }
-    }
-
     ul {
       list-style: none;
       margin: 0;

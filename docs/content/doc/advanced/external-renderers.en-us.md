@@ -15,7 +15,7 @@ menu:
 
 # Custom files rendering configuration
 
-Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries, 
+Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries,
 it is just a matter of:
 
 * installing external binaries
@@ -26,7 +26,7 @@ This supports rendering of whole files. If you want to render code blocks in mar
 
 ## Installing external binaries
 
-In order to get file rendering through external binaries, their associated packages must be installed. 
+In order to get file rendering through external binaries, their associated packages must be installed.
 If you're using a Docker image, your `Dockerfile` should contain something along this lines:
 
 ```
@@ -41,7 +41,7 @@ RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-d
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -U setuptools
-RUN pip3 install jupyter docutils 
+RUN pip3 install jupyter docutils
 # add above any other python package you may need to install
 ```
 

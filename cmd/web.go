@@ -16,13 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
-
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
@@ -135,9 +133,9 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		m := routes.NewMacaron()
-		routes.RegisterInstallRoute(m)
-		err := listen(m, false)
+		c := routes.NewChi()
+		routes.RegisterInstallRoute(c)
+		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -167,11 +165,12 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// Set up Macaron
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	// Set up Chi routes
+	c := routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
-	err := listen(m, true)
+	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
@@ -189,7 +188,11 @@ func setPort(port string) error {
 	default:
 		// Save LOCAL_ROOT_URL if port changed
 		cfg := ini.Empty()
-		if com.IsFile(setting.CustomConf) {
+		isFile, err := util.IsFile(setting.CustomConf)
+		if err != nil {
+			log.Fatal("Unable to check if %s is a file", err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfg.Append(setting.CustomConf); err != nil {
 				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
@@ -212,7 +215,7 @@ func setPort(port string) error {
 	return nil
 }
 
-func listen(m *macaron.Macaron, handleRedirector bool) error {
+func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)

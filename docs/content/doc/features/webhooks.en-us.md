@@ -168,7 +168,7 @@ if (empty($header_signature)) {
 $payload_signature = hash_hmac('sha256', $payload, $secret_key, false);
 
 // check payload signature against header signature
-if ($header_signature != $payload_signature) {
+if ($header_signature !== $payload_signature) {
     error_log('FAILED - payload signature');
     exit();
 }
