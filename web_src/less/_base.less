@@ -1131,14 +1131,17 @@ footer {
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background-image: linear-gradient(to right, transparent, var(--color-navbar) 100%);
-  content: ' ';
+  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
+  content: '';
   right: 0;
   height: 39px;
-  z-index: 1000;
   width: 60px;
   visibility: visible;
   pointer-events: none;
+}
+
+.ui.menu.new-menu.shadow-body::after {
+  background: linear-gradient(to right, transparent, var(--color-body) 100%);
 }
 
 .ui.menu.new-menu .item {
