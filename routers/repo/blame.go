@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/common"
+	"code.gitea.io/gitea/modules/git/content"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
@@ -117,7 +117,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	ctx.Data["NumLines"], err = common.GetBlobLineCount(blob)
+	ctx.Data["NumLines"], err = content.GetBlobLineCount(blob)
 	if err != nil {
 		ctx.NotFound("GetBlobLineCount", err)
 		return

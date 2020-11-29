@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/content"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
@@ -42,21 +43,25 @@ func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 
 // setImageCompareContext sets context data that is required by image compare template
 func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit) {
-	ctx.Data["IsImageFileInHead"] = head.IsImageFile
-	ctx.Data["IsImageFileInBase"] = base.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
+	ctx.Data["IsImageFileInHead"] = func(file string) bool {
+		return content.IsImageFile(head, file)
+	}
+	ctx.Data["IsImageFileInBase"] = func(file string) bool {
+		return content.IsImageFile(base, file)
+	}
+	ctx.Data["ImageInfoBase"] = func(name string) *content.ImageMetaData {
 		if base == nil {
 			return nil
 		}
-		result, err := base.ImageInfo(name)
+		result, err := content.ImageInfo(base, name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
 			return nil
 		}
 		return result
 	}
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := head.ImageInfo(name)
+	ctx.Data["ImageInfo"] = func(name string) *content.ImageMetaData {
+		result, err := content.ImageInfo(head, name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
 			return nil

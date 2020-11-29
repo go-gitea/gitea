@@ -1,9 +1,8 @@
-// Copyright 2015 The Gogs Authors. All rights reserved.
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package common
+package content
 
 import (
 	"bytes"
@@ -14,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-// This file contains common functions between the gogit and nogogit variants for git Blobs
+// This file contains content functions for git Blobs
 
 // GetBlobContent Gets the content of the blob as raw text
 func GetBlobContent(b *git.Blob) (string, error) {

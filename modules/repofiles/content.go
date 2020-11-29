@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/common"
+	"code.gitea.io/gitea/modules/git/content"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -174,7 +174,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := common.GetBlobContent(entry.Blob())
+		targetFromContent, err := content.GetBlobContent(entry.Blob())
 		if err != nil {
 			return nil, err
 		}

@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const content = "Wiki contents for unit tests"
-const message = "Wiki commit message for unit tests"
+const wikiTestContent = "Wiki contents for unit tests"
+const wikiTestMessage = "Wiki commit message for unit tests"
 
 func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(repo.WikiPath())
@@ -116,12 +116,12 @@ func TestNewWikiPost(t *testing.T) {
 		test.LoadRepo(t, ctx, 1)
 		NewWikiPost(ctx, auth.NewWikiForm{
 			Title:   title,
-			Content: content,
-			Message: message,
+			Content: wikiTestContent,
+			Message: wikiTestMessage,
 		})
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
+		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), wikiTestContent)
 	}
 }
 
@@ -133,8 +133,8 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	test.LoadRepo(t, ctx, 1)
 	NewWikiPost(ctx, auth.NewWikiForm{
 		Title:   "_edit",
-		Content: content,
-		Message: message,
+		Content: wikiTestContent,
+		Message: wikiTestMessage,
 	})
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page"), ctx.Flash.ErrorMsg)
@@ -166,12 +166,12 @@ func TestEditWikiPost(t *testing.T) {
 		test.LoadRepo(t, ctx, 1)
 		EditWikiPost(ctx, auth.NewWikiForm{
 			Title:   title,
-			Content: content,
-			Message: message,
+			Content: wikiTestContent,
+			Message: wikiTestMessage,
 		})
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
+		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), wikiTestContent)
 		if title != "Home" {
 			assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 		}
