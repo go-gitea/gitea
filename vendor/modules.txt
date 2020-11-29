@@ -69,7 +69,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.5.5
 ## explicit
 github.com/RoaringBitmap/roaring
-# github.com/alecthomas/chroma v0.8.1
+# github.com/alecthomas/chroma v0.8.2
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
