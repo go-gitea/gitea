@@ -9,7 +9,7 @@ ignorePatterns:
 
 parserOptions:
   sourceType: module
-  ecmaVersion: 2020
+  ecmaVersion: 2021
 
 plugins:
   - eslint-plugin-unicorn
@@ -235,6 +235,7 @@ rules:
   no-new-symbol: [2]
   no-new-wrappers: [2]
   no-new: [0]
+  no-nonoctal-decimal-escape: [2]
   no-obj-calls: [2]
   no-octal-escape: [2]
   no-octal: [2]

@@ -255,7 +255,7 @@ swagger-check: generate-swagger
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: swagger-validate
 swagger-validate:
@@ -296,7 +296,7 @@ fmt-check:
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: checks
 checks: checks-frontend checks-backend
@@ -348,7 +348,7 @@ test-check:
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: test\#%
 test\#%:
@@ -373,7 +373,7 @@ test-vendor: vendor
 		echo "Please run 'make vendor' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -623,7 +623,7 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
-	npm install --no-save
+	npm install --no-save --no-optional
 	@touch node_modules
 
 .PHONY: npm-update
@@ -637,6 +637,9 @@ npm-update: node-check | node_modules
 fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
+	@if [ ! -d node_modules/fomantic-ui ]; then \
+		npm install --no-save; \
+	fi
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
@@ -664,7 +667,7 @@ svg-check: svg
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: update-translations
 update-translations:
