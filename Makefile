@@ -623,7 +623,7 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
-	npm install --no-save --no-audit -no-optional
+	npm install --no-save -no-optional
 	@touch node_modules
 
 .PHONY: npm-update
@@ -638,7 +638,7 @@ fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
 	@if [ ! -d node_modules/fomantic-ui ]; then \
-		npm install --no-save --no-audit; \
+		npm install --no-save; \
 	fi
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
