@@ -12,6 +12,8 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ResolveReference resolves a name to a reference
@@ -101,7 +103,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
 	default:
 		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
-		log("Unknown typ: %s", typ)
+		log.Error("Unknown git typ: %s for ID: %s", typ, id.String())
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}

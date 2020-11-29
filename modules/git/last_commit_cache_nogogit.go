@@ -8,6 +8,8 @@ package git
 
 import (
 	"path"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // LastCommitCache represents a cache to store last commit
@@ -37,9 +39,9 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl int64, cache C
 func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
-		log("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
+		log.Trace("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
 		if commit, ok := c.commitCache[vs]; ok {
-			log("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, vs)
+			log.Trace("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, vs)
 			return commit, nil
 		}
 		id, err := c.repo.ConvertToSHA1(vs)

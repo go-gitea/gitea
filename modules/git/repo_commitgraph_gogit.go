@@ -11,7 +11,7 @@ import (
 	"os"
 	"path"
 
-	gitealog "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-git/go-git/v5/plumbing/format/commitgraph"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
@@ -31,7 +31,7 @@ func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
 	}
 
 	if !os.IsNotExist(err) {
-		gitealog.Warn("Unable to read commit-graph for %s: %v", r.Path, err)
+		log.Warn("Unable to read commit-graph for %s: %v", r.Path, err)
 	}
 
 	return cgobject.NewObjectCommitNodeIndex(r.gogitRepo.Storer), nil

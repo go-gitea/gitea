@@ -11,6 +11,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Blob represents a Git object.
@@ -62,13 +64,13 @@ func (b *Blob) Size() int64 {
 
 	size, err := NewCommand("cat-file", "-s", b.ID.String()).RunInDir(b.repoPath)
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repoPath, err)
+		log.Error("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repoPath, err)
 		return 0
 	}
 
 	b.size, err = strconv.ParseInt(size[:len(size)-1], 10, 64)
 	if err != nil {
-		log("error whilst parsing size %s for %s in %s. Error: %v", size, b.ID.String(), b.repoPath, err)
+		log.Error("error whilst parsing size %s for %s in %s. Error: %v", size, b.ID.String(), b.repoPath, err)
 		return 0
 	}
 	b.gotSize = true

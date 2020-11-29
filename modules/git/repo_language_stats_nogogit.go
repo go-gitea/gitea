@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -27,7 +28,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	// It's more complicated so...
 	commit, err := repo.GetCommit(commitID)
 	if err != nil {
-		log("Unable to get commit for: %s", commitID)
+		log.Error("Unable to get commit for: %s", commitID)
 		return nil, err
 	}
 

@@ -41,19 +41,6 @@ var (
 	goVersionLessThan115 = true
 )
 
-func log(format string, args ...interface{}) {
-	if !Debug {
-		return
-	}
-
-	fmt.Print(Prefix)
-	if len(args) == 0 {
-		fmt.Println(format)
-	} else {
-		fmt.Printf(format+"\n", args...)
-	}
-}
-
 // LocalVersion returns current Git version from shell.
 func LocalVersion() (*version.Version, error) {
 	if err := LoadGitVersion(); err != nil {

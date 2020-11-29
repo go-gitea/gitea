@@ -11,7 +11,8 @@ import (
 	"errors"
 	"path/filepath"
 
-	gitealog "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-git/go-billy/v5/osfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
@@ -66,7 +67,7 @@ func (repo *Repository) Close() {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
-		gitealog.Error("Error closing storage: %v", err)
+		log.Error("Error closing storage: %v", err)
 	}
 }
 

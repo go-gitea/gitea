@@ -8,6 +8,8 @@ package git
 import (
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -31,15 +33,16 @@ func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error
 }
 
 func (repo *Repository) getTag(id SHA1) (*Tag, error) {
-	t, ok := repo.tagCache.Get(id.String())
+	idStr := id.String()
+	t, ok := repo.tagCache.Get(idStr)
 	if ok {
-		log("Hit cache: %s", id)
+		log.Trace("Hit cache: %s", idStr)
 		tagClone := *t.(*Tag)
 		return &tagClone, nil
 	}
 
 	// Get tag name
-	name, err := repo.GetTagNameBySHA(id.String())
+	name, err := repo.GetTagNameBySHA(idStr)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +80,7 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 
 	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(id.String())
+		commit, err := repo.GetCommit(idStr)
 		if err != nil {
 			return nil, err
 		}
@@ -91,12 +94,12 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 			repo:    repo,
 		}
 
-		repo.tagCache.Set(id.String(), tag)
+		repo.tagCache.Set(idStr, tag)
 		return tag, nil
 	}
 
 	// The tag is an annotated tag with a message.
-	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
+	data, err := NewCommand("cat-file", "-p", idStr).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +114,7 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	tag.repo = repo
 	tag.Type = tp
 
-	repo.tagCache.Set(id.String(), tag)
+	repo.tagCache.Set(idStr, tag)
 	return tag, nil
 }
 

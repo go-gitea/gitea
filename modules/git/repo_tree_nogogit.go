@@ -54,7 +54,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = resolvedID
-		log("tag.commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
+
 		return &commit.Tree, nil
 	case "commit":
 		commit, err := CommitFromReader(repo, id, bufReader)
@@ -63,7 +63,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = commit.ID
-		log("commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
+
 		return &commit.Tree, nil
 	case "tree":
 		stdoutReader.Close()
