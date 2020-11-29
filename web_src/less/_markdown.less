@@ -104,14 +104,14 @@
     padding-bottom: .3em;
     font-size: 2.25em;
     line-height: 1.2;
-    border-bottom: 1px solid #eeeeee;
+    border-bottom: 1px solid var(--color-secondary);
   }
 
   h2 {
     padding-bottom: .3em;
     font-size: 1.75em;
     line-height: 1.225;
-    border-bottom: 1px solid #eeeeee;
+    border-bottom: 1px solid var(--color-secondary);
   }
 
   h3 {
@@ -129,7 +129,7 @@
 
   h6 {
     font-size: 1em;
-    color: #777777;
+    color: var(--color-text-light-2);
   }
 
   p,
@@ -147,7 +147,7 @@
     height: 4px;
     padding: 0;
     margin: 16px 0;
-    background-color: #e7e7e7;
+    background-color: var(--color-secondary);
     border: 0;
   }
 
@@ -204,8 +204,8 @@
   blockquote {
     margin-left: 0;
     padding: 0 15px;
-    color: #777777;
-    border-left: 4px solid #dddddd;
+    color: var(--color-text-light-2);
+    border-left: 4px solid var(--color-secondary);
   }
 
   blockquote > :first-child {
@@ -230,16 +230,15 @@
   table th,
   table td {
     padding: 6px 13px !important;
-    border: 1px solid #dddddd !important;
+    border: 1px solid var(--color-secondary) !important;
   }
 
   table tr {
-    background-color: #ffffff;
-    border-top: 1px solid #cccccc;
+    border-top: 1px solid var(--color-secondary);
   }
 
   table tr:nth-child(2n) {
-    background-color: #f8f8f8;
+    background-color: var(--color-markdown-table-row);
   }
 
   img {
@@ -263,7 +262,7 @@
     padding: 7px;
     margin: 13px 0 0;
     overflow: hidden;
-    border: 1px solid #dddddd;
+    border: 1px solid var(--color-secondary);
   }
 
   span.frame span img {
@@ -275,7 +274,7 @@
     display: block;
     padding: 5px 0 0;
     clear: both;
-    color: #333333;
+    color: var(--color-text);
   }
 
   span.align-center {
@@ -344,7 +343,7 @@
     padding: .2em .3em;
     margin: 0;
     font-size: 85%;
-    background-color: rgba(0, 0, 0, .04);
+    background-color: var(--color-label);
     border-radius: 3px;
   }
 
@@ -377,7 +376,7 @@
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
-    background-color: #f7f7f7;
+    background-color: var(--color-markdown-code-block);
     border-radius: 3px;
   }
 
@@ -415,13 +414,12 @@
     padding: 3px 5px;
     font-size: 11px;
     line-height: 10px;
-    color: #555555;
+    color: var(--color-text-light);
     vertical-align: middle;
-    background-color: #fcfcfc;
-    border: solid 1px #cccccc;
-    border-bottom-color: #bbbbbb;
+    background-color: var(--color-label);
+    border: 1px solid var(--color-secondary);
     border-radius: 3px;
-    box-shadow: inset 0 -1px 0 #bbbbbb;
+    box-shadow: inset 0 -1px 0 var(--color-secondary);
   }
 
   input[type="checkbox"] {
@@ -441,7 +439,6 @@
   .csv-data .blob-num {
     padding: 10px 8px 9px;
     text-align: right;
-    background: #ffffff;
     border: 0;
   }
 
@@ -451,7 +448,6 @@
 
   .csv-data th {
     font-weight: 600;
-    background: #f8f8f8;
     border-top: 0;
   }
 
