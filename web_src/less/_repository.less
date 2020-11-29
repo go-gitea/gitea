@@ -1,6 +1,4 @@
 .repository {
-  padding-top: 15px;
-
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -144,8 +142,7 @@
   }
 
   .header-wrapper {
-    background-color: #fafafa;
-    margin-top: -15px;
+    background-color: var(--color-navbar);
     padding-top: 15px;
 
     .ui.tabs.divider {
@@ -168,14 +165,14 @@
       .label-filter .menu .info {
         display: inline-block;
         padding: .5rem .25rem;
-        border-bottom: 1px solid #cccccc;
+        border-bottom: 1px solid var(--color-secondary);
         font-size: 12px;
         width: 100%;
         white-space: nowrap;
         text-align: center;
 
         code {
-          border: 1px solid #cccccc;
+          border: 1px solid var(--color-secondary);
           border-radius: 3px;
           padding: 1px 2px;
           font-size: 11px;
@@ -391,7 +388,7 @@
       }
 
       .jumpable-path {
-        color: #888888;
+        color: var(--color-text-light-2);
       }
     }
 
@@ -519,21 +516,23 @@
         padding: 15px;
         margin-bottom: 10px;
         border: 1px solid var(--color-secondary);
+        background: var(--color-box-body);
         border-radius: 3px;
         #avatar-arrow;
 
         &::after {
-          border-right-color: var(--color-box-header);
+          border-right-color: var(--color-box-body);
         }
 
         .quick-pull-choice {
           .branch-name {
             display: inline-block;
-            padding: 3px 6px;
+            padding: 2px 4px;
             font: 12px var(--fonts-monospace);
-            color: rgba(0, 0, 0, .65);
-            background-color: rgba(209, 227, 237, .45);
+            color: var(--color-text);
+            background: var(--color-secondary);
             border-radius: 3px;
+            margin: 0 2px;
           }
 
           .new-branch-name-input {
@@ -685,9 +684,7 @@
         }
 
         .index {
-          font-weight: 300;
-          color: #aaaaaa;
-          letter-spacing: -1px;
+          color: var(--color-text-light-2);
         }
 
         .label {
@@ -739,14 +736,6 @@
         .review-item-right {
           display: flex;
           align-items: center;
-        }
-
-        .avatar,
-        .type-icon {
-          .svg {
-            width: 23px;
-            height: 23px;
-          }
         }
 
         .text {
@@ -837,7 +826,9 @@
         .avatar.image img {
           width: 20px;
           height: 20px;
-          margin-right: .15em;
+          margin-right: .5rem;
+          position: relative;
+          top: -2px;
         }
 
         &:first-child:not(.commit) {
@@ -860,9 +851,9 @@
           border-radius: 50%;
           display: flex;
           float: left;
-          margin-left: -34px;
+          margin-left: -33px;
           margin-right: 8px;
-          color: #666;
+          color: var(--color-text-light-2);
           align-items: center;
           justify-content: center;
 
@@ -891,11 +882,7 @@
           padding-top: 0;
 
           .singular-commit {
-            line-height: 30px;
-
-            &:not(:last-child) {
-              padding-bottom: 2px;
-            }
+            line-height: 34px; /* this must be same as .badge height, to avoid overflow */
 
             .shabox {
               .sha.label {
@@ -1082,11 +1069,11 @@
 
             span.ui.image {
               font-size: 128px;
-              color: #000000;
+              color: var(--color-text);
             }
 
             span.ui.image:hover {
-              color: #000000;
+              color: var(--color-text);
             }
           }
         }
@@ -1231,49 +1218,6 @@
     }
   }
 
-  .labelspage {
-    list-style: none;
-    padding-top: 0;
-
-    .item {
-      margin-top: 0;
-      margin-right: -14px;
-      margin-left: -14px;
-      padding: 10px;
-      border-bottom: 1px solid var(--color-secondary);
-      border-top: none;
-
-      a {
-        font-size: 15px;
-        padding-top: 5px;
-        padding-right: 10px;
-        color: #666666;
-
-        &:hover {
-          color: #000000;
-        }
-
-        &.open-issues {
-          margin-right: 30px;
-        }
-      }
-
-      .ui.label {
-        font-size: 1em;
-      }
-    }
-
-    .item:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .orglabel {
-      opacity: .7;
-    }
-
-  }
-
   .milestone.list {
     list-style: none;
     padding-top: 15px;
@@ -1281,12 +1225,12 @@
     > .item {
       padding-top: 10px;
       padding-bottom: 10px;
-      border-bottom: 1px dashed #aaaaaa;
+      border-bottom: 1px dashed var(--color-secondary);
 
       > a {
         padding-top: 5px;
         padding-right: 10px;
-        color: #000000;
+        color: var(--color-text);
 
         &:hover {
           color: var(--color-primary);
@@ -1305,7 +1249,7 @@
       }
 
       .meta {
-        color: #999999;
+        color: var(--color-text-light-2);
         padding-top: 5px;
 
         .issue-stats .svg {
@@ -1324,10 +1268,10 @@
           font-size: 15px;
           padding-top: 5px;
           padding-right: 10px;
-          color: #666666;
+          color: var(--color-text-light-2);
 
           &:hover {
-            color: #000000;
+            color: var(--color-text);
           }
         }
       }
@@ -1664,7 +1608,7 @@
 
     .file {
       flex: 1;
-      color: #888888;
+      color: var(--color-text-light-2);
       word-break: break-all;
     }
 
@@ -2256,7 +2200,7 @@
       color: #6cc644;
 
       .pull-right {
-        color: #000;
+        color: var(--color-text);
       }
 
       .ui.text {
@@ -2340,19 +2284,19 @@
         }
 
         a {
-          color: black;
+          color: var(--color-text);
 
           &:hover {
-            color: #666666;
+            color: var(--color-primary-light-2);
           }
         }
 
         span.ui {
-          color: black;
+          color: var(--color-text);
         }
 
         &.active {
-          background: rgba(0, 0, 0, .05);
+          background: var(--color-secondary);
         }
       }
     }
@@ -2590,109 +2534,8 @@
   display: none;
 }
 
-.ui.checkbox.issue-checkbox {
-  vertical-align: middle;
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
-}
-
-.issue.list {
-  list-style: none;
-
-  > .item {
-    padding-top: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px dashed #aaaaaa;
-
-    .title {
-      color: #444444;
-      font-size: 15px;
-      font-weight: 500;
-      margin: 0 6px;
-
-      &:hover {
-        color: #000000;
-      }
-    }
-
-    .comment {
-      padding-right: 10px;
-      color: #666666;
-    }
-
-    .desc {
-      padding-top: 5px;
-      color: #999999;
-
-      .waiting,
-      .approvals,
-      .rejects {
-        padding-left: 5px;
-      }
-
-      .checklist {
-        padding-left: 5px;
-
-        .progress-bar {
-          margin-left: 2px;
-          width: 80px;
-          height: 6px;
-          display: inline-block;
-          background-color: #eeeeee;
-          overflow: hidden;
-          border-radius: 3px;
-          vertical-align: 2px !important;
-
-          .progress {
-            background-color: #cccccc;
-            display: block;
-            height: 100%;
-          }
-        }
-      }
-
-      .conflicting {
-        padding-left: 5px;
-      }
-
-      .due-date {
-        padding-left: 5px;
-      }
-
-      a.milestone {
-        margin-left: 5px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-      }
-
-      a.ref {
-        margin-left: 8px;
-        color: #999999 !important;
-
-        &:hover {
-          color: #000000 !important;
-        }
-
-        span {
-          margin-right: -4px;
-        }
-      }
-
-      .assignee {
-        margin-top: -5px;
-        margin-right: 5px;
-      }
-
-      .overdue {
-        color: var(--color-red);
-      }
-    }
-  }
 }
 
 .page.buttons {
@@ -2734,10 +2577,6 @@
 
   .list {
     > .item {
-      .green:not(.ui.button) {
-        color: var(--color-green);
-      }
-
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
@@ -2767,7 +2606,7 @@
     &.key {
       .meta {
         padding-top: 5px;
-        color: #666666;
+        color: var(--color-text-light-2);
       }
     }
 
@@ -2974,20 +2813,21 @@
   }
 }
 
-.labels.list {
-  display: flex;
+.labels-list {
+  display: inline-flex;
   flex-wrap: wrap;
 }
 
-.labels.list .item {
-  padding: .3em .5em !important;
+.labels-list .label {
+  margin-top: 1.5px;
+  margin-bottom: 1.5px;
+  margin-right: 3px;
   margin-left: 0;
-  margin-right: 0;
-  margin-bottom: 3px;
+  display: inline-block !important;
 }
 
-.labels.list .item + .item {
-  margin-left: 3px;
+.labels-list .label:last-of-type {
+  margin-right: 0;
 }
 
 tbody.commit-list {
@@ -3096,10 +2936,15 @@ tbody.commit-list {
 
 #repo-topics {
   margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .repo-topic {
+  font-weight: normal !important;
   cursor: pointer;
+  margin: 2px !important;
 }
 
 #new-dependency-drop-list {
@@ -3306,6 +3151,11 @@ td.blob-excerpt {
   margin-top: 1em;
 }
 
+.sidebar-item-link {
+  display: inline-flex;
+  align-items: center;
+}
+
 .diff-file-box[data-folded="true"] .diff-file-body {
   display: none;
 }
@@ -3341,16 +3191,6 @@ td.blob-excerpt {
       background: none !important;
     }
   }
-}
-
-.select-project .item {
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-}
-
-.select-project .item .svg {
-  margin-right: .5rem;
 }
 
 .migrate .cards .card {

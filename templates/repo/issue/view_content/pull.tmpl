@@ -46,7 +46,7 @@
 
 								{{if .CanChange }}
 									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{svg "octicon-sync"}}
+										{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
 								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
@@ -84,6 +84,7 @@
 	{{- else if .IsPullRequestBroken}}red
 	{{- else if .IsBlockedByApprovals}}red
 	{{- else if .IsBlockedByRejection}}red
+	{{- else if .IsBlockedByOfficialReviewRequests}}red
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if .IsBlockedByChangedProtectedFiles}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
@@ -159,6 +160,11 @@
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
+				{{else if .IsBlockedByOfficialReviewRequests}}
+					<div class="item">
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+					{{$.i18n.Tr "repo.pulls.blocked_by_official_review_requests"}}
+					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
@@ -194,7 +200,7 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item">
@@ -335,23 +341,25 @@
 									{{end}}
 									</span>
 								</button>
-								<div class="ui dropdown icon button">
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										{{if $prUnit.PullRequestsConfig.AllowMerge}}
-										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowRebase}}
-										<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-										<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-										{{end}}
-										{{if $prUnit.PullRequestsConfig.AllowSquash}}
-										<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
-										{{end}}
+								{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
+									<div class="ui dropdown icon button">
+										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+										<div class="menu">
+											{{if $prUnit.PullRequestsConfig.AllowMerge}}
+											<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebase}}
+											<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+											<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowSquash}}
+											<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+											{{end}}
+										</div>
 									</div>
-								</div>
+								{{end}}
 							</div>
 						{{else}}
 							<div class="ui divider"></div>
@@ -382,7 +390,12 @@
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+						{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if .IsBlockedByOfficialReviewRequests}}
+					<div class="item text red">
+						{{svg "octicon-x"}}
+						{{$.i18n.Tr "repo.pulls.blocked_by_official_review_requests"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item text red">
