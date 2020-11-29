@@ -155,7 +155,7 @@
 													<span class="ui text right poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 														{{svg "octicon-info"}}
 													</span>
-													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+													<a target="_blank" rel="noopener noreferrer" href="{{$.RepoLink}}/releases/download/{{$release.TagName | PathEscape}}/{{.Name | PathEscape}}">
 														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
 														<span class="ui text grey right">{{.Size | FileSize}}</span>
 													</a>
