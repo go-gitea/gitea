@@ -235,7 +235,7 @@ github.com/dsnet/compress/internal/prefix
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/editorconfig/editorconfig-core-go/v2 v2.3.8
+# github.com/editorconfig/editorconfig-core-go/v2 v2.3.9
 ## explicit
 github.com/editorconfig/editorconfig-core-go/v2
 # github.com/emirpasic/gods v1.12.0

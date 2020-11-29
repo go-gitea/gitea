@@ -31,7 +31,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/editorconfig/editorconfig-core-go/v2 v2.3.8
+	github.com/editorconfig/editorconfig-core-go/v2 v2.3.9
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
