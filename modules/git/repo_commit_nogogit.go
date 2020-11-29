@@ -18,7 +18,7 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--hash", name).RunInDir(repo.Path)
+	stdout, err := NewCommand("show-ref", "--hash", name).RunInDir(repo.Path())
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -35,7 +35,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repo.Path)
+	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repo.Path())
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -48,7 +48,7 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	_, err := NewCommand("cat-file", "-e", name).RunInDir(repo.Path)
+	_, err := NewCommand("cat-file", "-e", name).RunInDir(repo.Path())
 	return err == nil
 }
 
@@ -61,7 +61,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, &stderr, strings.NewReader(id.String()+"\n"))
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path(), stdoutWriter, &stderr, strings.NewReader(id.String()+"\n"))
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {

@@ -41,7 +41,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
-	basePath := repo.Path
+	basePath := repo.Path()
 
 	hashStr := hash.String()
 
@@ -54,7 +54,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
+		err := git.NewCommand("rev-list", "--all").RunInDirPipeline(repo.Path(), revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -75,7 +75,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
+		err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path(), batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {

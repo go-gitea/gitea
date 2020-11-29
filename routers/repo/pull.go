@@ -594,7 +594,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	diffRepoPath = ctx.Repo.GitRepo.Path
+	diffRepoPath = ctx.Repo.GitRepo.Path()
 	gitRepo = ctx.Repo.GitRepo
 
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())

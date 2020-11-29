@@ -21,7 +21,7 @@ import (
 
 // Repository represents a Git repository.
 type Repository struct {
-	Path string
+	path string
 
 	tagCache *ObjectCache
 
@@ -54,7 +54,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}
 
 	return &Repository{
-		Path:         repoPath,
+		path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
@@ -74,4 +74,9 @@ func (repo *Repository) Close() {
 // GoGitRepo gets the go-git repo representation
 func (repo *Repository) GoGitRepo() *gogit.Repository {
 	return repo.gogitRepo
+}
+
+// Path returns the path to the repository
+func (repo *Repository) Path() string {
+	return repo.path
 }

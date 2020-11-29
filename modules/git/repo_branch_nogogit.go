@@ -18,12 +18,12 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	if name == "" {
 		return false
 	}
-	return IsReferenceExist(repo.Path, BranchPrefix+name)
+	return IsReferenceExist(repo.Path(), BranchPrefix+name)
 }
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	return callShowRef(repo.Path, BranchPrefix, "--heads")
+	return callShowRef(repo.Path(), BranchPrefix, "--heads")
 }
 
 func callShowRef(repoPath, prefix, arg string) ([]string, error) {

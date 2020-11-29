@@ -41,6 +41,11 @@ type CreateArchiveOpts struct {
 
 // CreateArchive create archive content to the target path
 func (c *Commit) CreateArchive(ctx context.Context, target string, opts CreateArchiveOpts) error {
+	return c.repo.CreateArchive(ctx, c.ID, target, opts)
+}
+
+// CreateArchive create archive content to the target path
+func (r *Repository) CreateArchive(ctx context.Context, id SHA1, target string, opts CreateArchiveOpts) error {
 	if opts.Format.String() == "unknown" {
 		return fmt.Errorf("unknown format: %v", opts.Format)
 	}
@@ -49,16 +54,16 @@ func (c *Commit) CreateArchive(ctx context.Context, target string, opts CreateAr
 		"archive",
 	}
 	if opts.Prefix {
-		args = append(args, "--prefix="+filepath.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/")
+		args = append(args, "--prefix="+filepath.Base(strings.TrimSuffix(r.Path(), ".git"))+"/")
 	}
 
 	args = append(args,
 		"--format="+opts.Format.String(),
 		"-o",
 		target,
-		c.ID.String(),
+		id.String(),
 	)
 
-	_, err := NewCommandContext(ctx, args...).RunInDir(c.repo.Path)
+	_, err := NewCommandContext(ctx, args...).RunInDir(r.Path())
 	return err
 }

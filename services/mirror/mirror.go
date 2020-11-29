@@ -469,12 +469,12 @@ func syncMirror(repoID string) {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
+		oldCommitID, err := git.GetFullCommitID(gitRepo.Path(), result.oldCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
+		newCommitID, err := git.GetFullCommitID(gitRepo.Path(), result.newCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue

@@ -54,7 +54,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(cmdArgs...)
 
-	if err := cmd.RunInDirPipeline(repo.Path, stdOut, stdErr); err != nil {
+	if err := cmd.RunInDirPipeline(repo.Path(), stdOut, stdErr); err != nil {
 		return nil, fmt.Errorf("Failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 

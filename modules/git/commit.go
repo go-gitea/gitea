@@ -249,7 +249,7 @@ func CommitsCount(repoPath string, revision ...string) (int64, error) {
 
 // CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+	return CommitsCount(c.repo.Path(), c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
@@ -437,7 +437,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	data, err := NewCommand(args...).RunInDir(c.repo.Path)
+	data, err := NewCommand(args...).RunInDir(c.repo.Path())
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -463,7 +463,7 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path())
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {

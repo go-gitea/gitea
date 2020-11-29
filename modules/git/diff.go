@@ -86,10 +86,10 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 
 	stderr := new(bytes.Buffer)
 
-	cmd.Dir = repo.Path
+	cmd.Dir = repo.Path()
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
-	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path), cancel)
+	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path()), cancel)
 	defer process.GetManager().Remove(pid)
 
 	if err = cmd.Run(); err != nil {

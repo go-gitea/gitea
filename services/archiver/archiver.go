@@ -102,7 +102,7 @@ func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur tim
 func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git.ArchiveType) *ArchiveRequest {
 	for _, r := range archiveInProgress {
 		// Need to be referring to the same repository.
-		if r.repo.Path == repo.Path && r.commit.ID == commit.ID && r.archiveType == archiveType {
+		if r.repo.Path() == repo.Path() && r.commit.ID == commit.ID && r.archiveType == archiveType {
 			return r
 		}
 	}
@@ -125,11 +125,11 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	switch {
 	case strings.HasSuffix(uri, ".zip"):
 		r.ext = ".zip"
-		r.archivePath = path.Join(r.repo.Path, "archives/zip")
+		r.archivePath = path.Join(r.repo.Path(), "archives/zip")
 		r.archiveType = git.ZIP
 	case strings.HasSuffix(uri, ".tar.gz"):
 		r.ext = ".tar.gz"
-		r.archivePath = path.Join(r.repo.Path, "archives/targz")
+		r.archivePath = path.Join(r.repo.Path(), "archives/targz")
 		r.archiveType = git.TARGZ
 	default:
 		log.Trace("Unknown format: %s", uri)

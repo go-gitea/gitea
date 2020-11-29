@@ -64,7 +64,7 @@ func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRef
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.RunInDirTimeoutEnvFullPipelineFunc(nil, -1, r.Path, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
+	if err := graphCmd.RunInDirTimeoutEnvFullPipelineFunc(nil, -1, r.Path(), stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
 		_ = stdoutWriter.Close()
 		defer stdoutReader.Close()
 		parser := &Parser{}

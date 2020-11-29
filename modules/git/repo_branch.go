@@ -37,7 +37,7 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout, err := NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout, err := NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -56,13 +56,13 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	_, err := NewCommand("symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
+	_, err := NewCommand("symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path())
 	return err
 }
 
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
-	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
+	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path())
 }
 
 // GetBranch returns a branch by it's name
@@ -71,7 +71,7 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 		return nil, ErrBranchNotExist{branch}
 	}
 	return &Branch{
-		Path:    repo.Path,
+		Path:    repo.Path(),
 		Name:    branch,
 		gitRepo: repo,
 	}, nil
@@ -118,7 +118,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 	}
 
 	cmd.AddArguments("--", name)
-	_, err := cmd.RunInDir(repo.Path)
+	_, err := cmd.RunInDir(repo.Path())
 
 	return err
 }
@@ -128,7 +128,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 	cmd := NewCommand("branch")
 	cmd.AddArguments("--", branch, oldbranchOrCommit)
 
-	_, err := cmd.RunInDir(repo.Path)
+	_, err := cmd.RunInDir(repo.Path())
 
 	return err
 }
@@ -141,13 +141,13 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	}
 	cmd.AddArguments(name, url)
 
-	_, err := cmd.RunInDir(repo.Path)
+	_, err := cmd.RunInDir(repo.Path())
 	return err
 }
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path)
+	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path())
 	return err
 }
 

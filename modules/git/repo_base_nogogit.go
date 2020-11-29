@@ -14,7 +14,7 @@ import (
 
 // Repository represents a Git repository.
 type Repository struct {
-	Path string
+	path string
 
 	tagCache *ObjectCache
 
@@ -30,11 +30,16 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		return nil, errors.New("no such file or directory")
 	}
 	return &Repository{
-		Path:     repoPath,
+		path:     repoPath,
 		tagCache: newObjectCache(),
 	}, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
 func (repo *Repository) Close() {
+}
+
+// Path returns the path to the repository
+func (repo *Repository) Path() string {
+	return repo.path
 }

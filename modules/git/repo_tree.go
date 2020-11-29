@@ -60,7 +60,7 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
+	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path(), stdout, stderr, messageBytes)
 
 	if err != nil {
 		return SHA1{}, ConcatenateError(err, stderr.String())

@@ -32,7 +32,7 @@ const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path, false)
+	return AllCommitsCount(repo.Path(), false)
 }
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
@@ -78,7 +78,7 @@ func InitRepository(repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
-	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path(), nil, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
 			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
 			return true, nil

@@ -156,11 +156,11 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 			// FIXME validate treePath
 			// Get latest commit referencing the commented line
 			// No need for get commit for base branch changes
-			commit, err := gitRepo.LineBlame(head, gitRepo.Path, treePath, uint(line))
+			commit, err := gitRepo.LineBlame(head, gitRepo.Path(), treePath, uint(line))
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path(), treePath, line, err)
 			}
 		}
 	}
@@ -176,7 +176,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 
 		patchBuf := new(bytes.Buffer)
 		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, commitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, commitID, treePath, err)
+			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path(), pr.MergeBase, commitID, treePath, err)
 		}
 		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}

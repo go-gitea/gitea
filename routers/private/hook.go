@@ -30,7 +30,7 @@ import (
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		log.Error("Unable to create os.Pipe for %s", repo.Path())
 		return err
 	}
 	defer func() {
@@ -40,7 +40,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 
 	// This is safe as force pushes are already forbidden
 	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path(),
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
@@ -53,7 +53,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 				return err
 			})
 	if err != nil && !isErrUnverifiedCommit(err) {
-		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path(), err)
 	}
 	return err
 }
@@ -74,7 +74,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
+		log.Error("Unable to create pipe for %s: %v", repo.Path(), err)
 		return err
 	}
 	defer func() {
@@ -84,7 +84,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	hash := git.MustIDFromString(sha)
 
 	return git.NewCommand("cat-file", "commit", sha).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path(),
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()

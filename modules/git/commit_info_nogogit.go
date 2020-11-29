@@ -133,7 +133,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
+		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path(), revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -154,7 +154,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(commit.repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(commit.repo.Path(), batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {

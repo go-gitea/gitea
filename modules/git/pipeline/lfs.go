@@ -42,7 +42,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
-	basePath := repo.Path
+	basePath := repo.Path()
 	gogitRepo := repo.GoGitRepo()
 
 	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{

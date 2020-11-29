@@ -12,7 +12,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string) error {
 	if len(treeish) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", treeish).RunInDir(repo.Path)
+		res, err := NewCommand("rev-parse", "--verify", treeish).RunInDir(repo.Path())
 		if err != nil {
 			return err
 		}
@@ -28,7 +28,7 @@ func (repo *Repository) ReadTreeToIndex(treeish string) error {
 }
 
 func (repo *Repository) readTreeToIndex(id SHA1) error {
-	_, err := NewCommand("read-tree", id.String()).RunInDir(repo.Path)
+	_, err := NewCommand("read-tree", id.String()).RunInDir(repo.Path())
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (repo *Repository) readTreeToIndex(id SHA1) error {
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, err := NewCommand("read-tree", "--empty").RunInDir(repo.Path)
+	_, err := NewCommand("read-tree", "--empty").RunInDir(repo.Path())
 	return err
 }
 
@@ -49,7 +49,7 @@ func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
 			cmd.AddArguments(arg)
 		}
 	}
-	res, err := cmd.RunInDirBytes(repo.Path)
+	res, err := cmd.RunInDirBytes(repo.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -74,19 +74,19 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 			buffer.WriteByte('\000')
 		}
 	}
-	return cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, bytes.NewReader(buffer.Bytes()))
+	return cmd.RunInDirFullPipeline(repo.Path(), stdout, stderr, bytes.NewReader(buffer.Bytes()))
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
 	cmd := NewCommand("update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
-	_, err := cmd.RunInDir(repo.Path)
+	_, err := cmd.RunInDir(repo.Path())
 	return err
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	res, err := NewCommand("write-tree").RunInDir(repo.Path)
+	res, err := NewCommand("write-tree").RunInDir(repo.Path())
 	if err != nil {
 		return nil, err
 	}

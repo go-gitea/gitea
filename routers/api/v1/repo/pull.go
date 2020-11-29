@@ -904,7 +904,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
 	log.Info("Base branch: %s", baseBranch)
-	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
+	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path())
 	// Check if base branch is valid.
 	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
 		ctx.NotFound("IsBranchExist")

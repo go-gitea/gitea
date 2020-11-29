@@ -9,10 +9,10 @@ package git
 
 // IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
-	return IsReferenceExist(repo.Path, TagPrefix+name)
+	return IsReferenceExist(repo.Path(), TagPrefix+name)
 }
 
 // GetTags returns all tags of the repository.
 func (repo *Repository) GetTags() ([]string, error) {
-	return callShowRef(repo.Path, TagPrefix, "--tags")
+	return callShowRef(repo.Path(), TagPrefix, "--tags")
 }

@@ -252,7 +252,7 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 	// 2. Prep the pipe
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		log.Error("Unable to create os.Pipe for %s", repo.Path())
 		return nil, err
 	}
 	defer func() {
@@ -264,7 +264,7 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 
 	// 3. Run `git diff --name-only` to get the names of the changed files
 	err = git.NewCommand("diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path(),
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
@@ -302,7 +302,7 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 			})
 	// 4. log real errors if there are any...
 	if err != nil && !models.IsErrFilePathProtected(err) {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path(), err)
 	}
 
 	return changedProtectedFiles, err

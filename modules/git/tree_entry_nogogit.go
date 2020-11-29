@@ -46,7 +46,7 @@ func (te *TreeEntry) Size() int64 {
 		return te.size
 	}
 
-	stdout, err := NewCommand("cat-file", "-s", te.ID.String()).RunInDir(te.ptree.repo.Path)
+	stdout, err := NewCommand("cat-file", "-s", te.ID.String()).RunInDir(te.ptree.repo.Path())
 	if err != nil {
 		return 0
 	}
@@ -85,7 +85,7 @@ func (te *TreeEntry) IsExecutable() bool {
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
 		ID:       te.ID,
-		repoPath: te.ptree.repo.Path,
+		repoPath: te.ptree.repo.Path(),
 		name:     te.Name(),
 	}
 }

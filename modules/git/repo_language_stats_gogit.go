@@ -21,7 +21,7 @@ import (
 
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
-	r, err := git.PlainOpen(repo.Path)
+	r, err := git.PlainOpen(repo.Path())
 	if err != nil {
 		return nil, err
 	}

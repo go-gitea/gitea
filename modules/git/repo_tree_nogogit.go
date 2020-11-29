@@ -23,7 +23,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 	go func() {
 		stderr := &strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, stderr, strings.NewReader(id.String()+"\n"))
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path(), stdoutWriter, stderr, strings.NewReader(id.String()+"\n"))
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {
@@ -81,7 +81,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
+		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path())
 		if err != nil {
 			return nil, err
 		}

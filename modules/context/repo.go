@@ -747,7 +747,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				} else if len(brs) == 0 {
 					err = fmt.Errorf("No branches in non-empty repository %s",
-						ctx.Repo.GitRepo.Path)
+						ctx.Repo.GitRepo.Path())
 					ctx.ServerError("GetBranches", err)
 					return
 				}

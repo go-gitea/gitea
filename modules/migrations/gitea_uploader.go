@@ -806,7 +806,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			patchBuf := new(bytes.Buffer)
 			if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
 				// We should ignore the error since the commit maybe removed when force push to the pull request
-				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path(), pr.MergeBase, headCommitID, comment.TreePath, err)
 			} else {
 				patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 			}
