@@ -105,6 +105,10 @@ func (d *chunkedIntDecoder) readUvarint() (uint64, error) {
 	return d.r.ReadUvarint()
 }
 
+func (d *chunkedIntDecoder) readBytes(start, end int) []byte {
+	return d.curChunkBytes[start:end]
+}
+
 func (d *chunkedIntDecoder) SkipUvarint() {
 	d.r.SkipUvarint()
 }
@@ -115,4 +119,8 @@ func (d *chunkedIntDecoder) SkipBytes(count int) {
 
 func (d *chunkedIntDecoder) Len() int {
 	return d.r.Len()
+}
+
+func (d *chunkedIntDecoder) remainingLen() int {
+	return len(d.curChunkBytes) - d.r.Len()
 }

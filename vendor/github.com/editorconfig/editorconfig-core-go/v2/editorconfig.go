@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -122,7 +123,11 @@ func (e *Editorconfig) GetDefinitionForFilename(name string) (*Definition, error
 		}
 
 		if !strings.HasPrefix(name, "/") {
-			name = "/" + name
+			if runtime.GOOS != "windows" {
+				name = "/" + name
+			} else {
+				name = "\\" + name
+			}
 		}
 
 		ok, err := e.FnmatchCase(selector, name)

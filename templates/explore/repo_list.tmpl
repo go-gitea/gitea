@@ -8,7 +8,9 @@
 				<a class="name" href="{{.Link}}">
 					{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 				</a>
-				{{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
+				{{if .IsArchived}}
+          <span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+        {{end}}
 				{{if .IsTemplate}}
 					{{if .IsPrivate}}
 						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
