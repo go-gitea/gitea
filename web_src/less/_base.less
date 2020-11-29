@@ -76,7 +76,7 @@
   /* target-based colors */
   --color-body: #ffffff;
   --color-text: #212121;
-  --color-text-light: #444444;
+  --color-text-light: #555555;
   --color-text-light-2: #888888;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
@@ -91,9 +91,12 @@
   --color-label-hover: #00000015;
   --color-label-basic: #00000008;
   --color-label-border: #00000018;
-  --color-hover: #0000000d;
-  --color-active: #00000014;
+  --color-hover: #0000000a;
+  --color-active: #00000010;
   --color-menu: #ffffff;
+  --color-markdown-table-row: #00000008;
+  --color-markdown-code-block: #00000010;
+  --color-button: #ffffff;
 }
 
 :root:lang(ja) {
@@ -229,6 +232,10 @@ a:hover,
 a.muted:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary-dark-2);
+}
+
+.ui.breadcrumb .divider {
+  color: var(--color-text-light-2);
 }
 
 .ui.input.focus > input,
@@ -1124,14 +1131,17 @@ footer {
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background-image: linear-gradient(to right, transparent, var(--color-navbar) 100%);
-  content: ' ';
+  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
+  content: '';
   right: 0;
   height: 39px;
-  z-index: 1000;
   width: 60px;
   visibility: visible;
   pointer-events: none;
+}
+
+.ui.menu.new-menu.shadow-body::after {
+  background: linear-gradient(to right, transparent, var(--color-body) 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -1401,6 +1411,13 @@ a.ui.label:hover {
 
 .octicon-tiny {
   font-size: .85714286rem;
+}
+
+.ui.button {
+  background: var(--color-button);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none !important;
+  color: var(--color-text);
 }
 
 .ui.blue.button,
@@ -1711,6 +1728,10 @@ table th[data-sortt-desc] {
 .ui.secondary.pointing.menu .dropdown.item:hover,
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
+}
+
+.ui.header {
   color: var(--color-text);
 }
 
