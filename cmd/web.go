@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
@@ -188,7 +188,11 @@ func setPort(port string) error {
 	default:
 		// Save LOCAL_ROOT_URL if port changed
 		cfg := ini.Empty()
-		if com.IsFile(setting.CustomConf) {
+		isFile, err := util.IsFile(setting.CustomConf)
+		if err != nil {
+			log.Fatal("Unable to check if %s is a file", err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfg.Append(setting.CustomConf); err != nil {
 				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)

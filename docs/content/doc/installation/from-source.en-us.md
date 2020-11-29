@@ -40,7 +40,7 @@ Gitea</a>
 
 First, we must retrieve the source code. Since, the advent of go modules, the
 simplest way of doing this is to use git directly as we no longer have to have
-gitea built from within the GOPATH. 
+gitea built from within the GOPATH.
 
 ```bash
 git clone https://github.com/go-gitea/gitea

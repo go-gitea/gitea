@@ -104,7 +104,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
-		ct := fmt.Sprintf("Requested to review #%d.", issue.Index)
+		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{reviewer.Email})
 	}
 }
