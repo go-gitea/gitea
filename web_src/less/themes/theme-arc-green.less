@@ -74,7 +74,7 @@
   --color-box-body: #353945;
   --color-text: #bbc0ca;
   --color-text-light: #969aa5;
-  --color-text-light-2: #666a75;
+  --color-text-light-2: #767a85;
   --color-footer: #2e323e;
   --color-timeline: #4a505c;
   --color-input-text: #d5dbe6;
@@ -82,13 +82,16 @@
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
-  --color-label: #ffffff10;
+  --color-label: #ffffff0d;
   --color-label-hover: #ffffff20;
   --color-label-basic: #00000016;
   --color-label-border: #ffffff28;
   --color-hover: #ffffff0d;
   --color-active: #ffffff14;
   --color-menu: #2e323e;
+  --color-markdown-table-row: #ffffff06;
+  --color-markdown-code-block: #2a2e3a;
+  --color-button: #353846;
 }
 
 /* Background */
@@ -566,11 +569,6 @@ a.ui.basic.green.label:hover {
   color: #b75252 !important;
 }
 
-.ui.header,
-.ui.breadcrumb .divider {
-  color: var(--color-secondary-dark-6);
-}
-
 .ui.divider:not(.vertical):not(.horizontal) {
   border-bottom-color: var(--color-secondary);
   border-top-color: transparent;
@@ -645,12 +643,6 @@ a.ui.basic.green.label:hover {
   background-color: #a0cc75;
 }
 
-.ui.button {
-  background: #353846;
-  border: 1px solid var(--color-secondary);
-  color: #dbdbdb;
-}
-
 .ui.basic.button,
 .ui.basic.buttons .button {
   color: var(--color-secondary-dark-6);
@@ -693,7 +685,6 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
 }
 
-.ui.table thead th,
 .ui.table > thead > tr > th {
   background: var(--color-secondary);
   color: #dbdbdb !important;
@@ -709,33 +700,6 @@ a.ui.basic.green.label:hover {
 
 .ui .text.grey {
   color: var(--color-secondary-dark-6) !important;
-}
-
-.markdown:not(code) h2 {
-  border-bottom: 1px solid #304251;
-}
-
-.markdown:not(code) .highlight pre,
-.markdown:not(code) pre {
-  background-color: #2a2e3a;
-  border: 1px solid var(--color-secondary);
-}
-
-.markdown:not(code) table tr:nth-child(2n) {
-  background-color: #2a2e39;
-}
-
-.markdown:not(code) table tr:nth-child(2n-1) {
-  background-color: #383b44;
-}
-
-.markdown:not(code) table thead tr:nth-child(2n-1) {
-  background-color: #464c5d !important;
-}
-
-.markdown:not(code) table td,
-.markdown:not(code) table th {
-  border-color: var(--color-secondary) !important;
 }
 
 .repository.file.editor.edit,
@@ -1195,6 +1159,30 @@ a.blob-excerpt:hover {
   border-color: #6a737d !important;
 }
 
+/* invert emojis that are hard to read otherwise */
+.emoji[aria-label="check mark"],
+.emoji[aria-label="currency exchange"],
+.emoji[aria-label="TOP arrow"],
+.emoji[aria-label="END arrow"],
+.emoji[aria-label="ON! arrow"],
+.emoji[aria-label="SOON arrow"],
+.emoji[aria-label="heavy dollar sign"],
+.emoji[aria-label="copyright"],
+.emoji[aria-label="registered"],
+.emoji[aria-label="trade mark"],
+.emoji[aria-label="multiply"],
+.emoji[aria-label="plus"],
+.emoji[aria-label="minus"],
+.emoji[aria-label="divide"],
+.emoji[aria-label="curly loop"],
+.emoji[aria-label="double curly loop"],
+.emoji[aria-label="wavy dash"],
+.emoji[aria-label="paw prints"],
+.emoji[aria-label="musical note"],
+.emoji[aria-label="musical notes"] {
+  filter: invert(100%);
+}
+
 .editor-toolbar {
   background-color: var(--color-secondary);
   border-color: var(--color-secondary);
@@ -1380,19 +1368,6 @@ a.blob-excerpt:hover {
       color: #dbdbeb;
     }
   }
-}
-
-.markdown:not(code) h1 {
-  border-bottom-color: #888;
-}
-
-.markdown:not(code) blockquote {
-  border-left-color: #888;
-}
-
-.markdown:not(code) code,
-.markdown:not(code) tt {
-  background-color: #2a2e3a;
 }
 
 footer .container .links > * {

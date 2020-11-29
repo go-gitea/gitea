@@ -225,11 +225,17 @@
 
     .clone.button {
       font-size: 13px;
-      padding: 0 5px;
+      padding: 7.5px 5px;
 
       &:first-child {
         border-radius: var(--border-radius) 0 0 var(--border-radius);
       }
+    }
+
+    #repo-clone-https,
+    #repo-clone-ssh,
+    #clipboard-btn {
+      border-right: none;
     }
 
     .icon.button {
@@ -279,6 +285,10 @@
         @media @mediaSm {
           width: 100%;
         }
+      }
+
+      .button + .button {
+        border-left: none;
       }
     }
 
