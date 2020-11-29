@@ -623,7 +623,7 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
-	npm install --no-save -no-optional
+	npm install --no-save --no-optional
 	@touch node_modules
 
 .PHONY: npm-update
