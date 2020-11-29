@@ -1,0 +1,23 @@
+dist: bionic
+
+language: go
+
+go:
+  - 1.x
+
+env:
+  - GO111MODULE=on
+
+script:
+  - make build
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+git:
+  depth: 1
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod

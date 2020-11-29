@@ -1,0 +1,4 @@
+/.idea
+/coverage.*
+.DS_Store
+*.iml

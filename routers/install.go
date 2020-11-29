@@ -6,7 +6,6 @@
 package routers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,8 +15,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
-	gitea_context "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -39,14 +38,10 @@ const (
 	tplPostInstall = "post-install"
 )
 
-var (
-	installContextKey interface{} = "install_context"
-)
-
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
-	sessionManager := gitea_context.NewSessions()
+	sessionManager := context.NewSessions()
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(func(next http.Handler) http.Handler {
 		return InstallInit(next, sessionManager)
@@ -58,9 +53,6 @@ func InstallRoutes() http.Handler {
 	})
 	return r
 }
-
-// InstallContext represents a context for installation routes
-type InstallContext = gitea_context.DefaultContext
 
 // InstallInit prepare for rendering installation page
 func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Handler {
@@ -77,9 +69,9 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			return
 		}
 
-		var locale = gitea_context.Locale(resp, req)
+		var locale = context.Locale(resp, req)
 		var startTime = time.Now()
-		var ctx = InstallContext{
+		var ctx = context.InstallContext{
 			Resp:   resp,
 			Req:    req,
 			Locale: locale,
@@ -99,22 +91,23 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			Sessions: sessionManager,
 		}
 
-		req = req.WithContext(context.WithValue(req.Context(), installContextKey, &ctx))
+		req = context.WithInstallContext(req, &ctx)
+		ctx.Req = req
 		next.ServeHTTP(resp, req)
 	})
 }
 
 // WrapInstall converts an install route to a chi route
-func WrapInstall(f func(ctx *InstallContext)) http.HandlerFunc {
+func WrapInstall(f func(ctx *context.InstallContext)) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx := req.Context().Value(installContextKey).(*InstallContext)
+		ctx := context.GetInstallContext(req)
 		f(ctx)
 	})
 }
 
 // Install render installation page
-func Install(ctx *InstallContext) {
-	form := auth.InstallForm{}
+func Install(ctx *context.InstallContext) {
+	form := forms.InstallForm{}
 
 	// Database settings
 	form.DbHost = setting.Database.Host
@@ -182,13 +175,14 @@ func Install(ctx *InstallContext) {
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
-	auth.AssignForm(form, ctx.Data)
+	forms.AssignForm(form, ctx.Data)
 	_ = ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
-func InstallPost(ctx *InstallContext) {
-	var form auth.InstallForm
+func InstallPost(ctx *context.InstallContext) {
+	var form forms.InstallForm
+	_ = ctx.Bind(&form)
 
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
@@ -459,7 +453,7 @@ func InstallPost(ctx *InstallContext) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.Req.AddCookie(gitea_context.NewCookie(setting.CookieUserName, u.Name, days))
+		ctx.Req.AddCookie(context.NewCookie(setting.CookieUserName, u.Name, days))
 		//ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 		//	setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
@@ -481,7 +475,7 @@ func InstallPost(ctx *InstallContext) {
 
 	log.Info("First-time run install finished!")
 
-	ctx.Flash(gitea_context.SuccessFlash, ctx.Tr("install.install_success"))
+	ctx.Flash(context.SuccessFlash, ctx.Tr("install.install_success"))
 
 	ctx.Resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
 	if err := ctx.HTML(200, tplPostInstall); err != nil {

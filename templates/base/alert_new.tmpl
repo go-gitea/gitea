@@ -1,0 +1,15 @@
+{{if .ErrorMsg}}
+	<div class="ui negative message flash-error">
+		<p>{{.ErrorMsg | Str2html}}</p>
+	</div>
+{{end}}
+{{if .SuccessMsg}}
+	<div class="ui positive message flash-success">
+		<p>{{.SuccessMsg | Str2html}}</p>
+	</div>
+{{end}}
+{{if .InfoMsg}}
+	<div class="ui info message flash-info">
+		<p>{{.InfoMsg | Str2html}}</p>
+	</div>
+{{end}}

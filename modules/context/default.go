@@ -9,28 +9,26 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/middlewares/binding"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
-	"golang.org/x/text/language"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
+	"golang.org/x/text/language"
 )
 
 // flashes enumerates all the flash types
 const (
-	SuccessFlash = "success"
-	ErrorFlash   = "error"
-	WarnFlash    = "warning"
-	InfoFlash    = "info"
+	SuccessFlash = "SuccessMsg"
+	ErrorFlash   = "ErrorMsg"
+	WarnFlash    = "WarningMsg"
+	InfoFlash    = "InfoMsg"
 )
 
 // Flash represents flashs
-type Flash struct {
-	MessageType string
-	Message     string
-}
+type Flash map[string]string
 
 // DefaultContext represents a context for basic routes, all other context should
 // be derived from the context but not add more fields on this context
@@ -41,12 +39,17 @@ type DefaultContext struct {
 	Render   *render.Render
 	Sessions *scs.SessionManager
 	translation.Locale
-	flash *Flash
+	flash Flash
 }
 
 // HTML wraps render HTML
 func (ctx *DefaultContext) HTML(statusCode int, tmpl string) error {
 	return ctx.Render.HTML(ctx.Resp, statusCode, tmpl, ctx.Data)
+}
+
+// Bind binding a form to a struct
+func (ctx *DefaultContext) Bind(form interface{}) binding.Errors {
+	return binding.Bind(ctx.Req, form)
 }
 
 // HasError returns true if error occurs in form validation.
@@ -93,10 +96,10 @@ func (ctx *DefaultContext) DestroySession() error {
 // Flash set message to flash
 func (ctx *DefaultContext) Flash(tp, v string) {
 	if ctx.flash == nil {
-		ctx.flash = &Flash{}
+		ctx.flash = make(Flash)
 	}
-	ctx.flash.MessageType = tp
-	ctx.flash.Message = v
+	ctx.flash[tp] = v
+	ctx.Data[tp] = v
 	ctx.Data["Flash"] = ctx.flash
 }
 

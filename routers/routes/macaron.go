@@ -188,8 +188,6 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 		m.Get("/organizations", routers.ExploreOrganizations)
 		m.Get("/code", routers.ExploreCode)
 	}, ignSignIn)
-	m.Combo("/install", routers.InstallInit).Get(routers.Install).
-		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
