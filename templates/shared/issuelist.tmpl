@@ -22,9 +22,9 @@
 						{{end}}
 					{{else}}
 						{{if .IsClosed}}
-							{{svg "octicon-issue-opened" 16 "text red"}}
+							{{svg "octicon-issue-closed" 16 "text red"}}
 						{{else}}
-							{{svg "octicon-issue-closed" 16 "text green"}}
+							{{svg "octicon-issue-opened" 16 "text green"}}
 						{{end}}
 					{{end}}
 				</div>
@@ -74,7 +74,10 @@
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
 						<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-							{{svg "octicon-calendar" 14 "mr-2"}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>
+								{{svg "octicon-calendar" 14 "mr-2"}}
+								{{.DeadlineUnix.FormatShort}}
+							</span>
 						</span>
 					{{end}}
 					{{if .IsPull}}

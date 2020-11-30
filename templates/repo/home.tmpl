@@ -63,7 +63,7 @@
 			<!-- If home page, show new PR. If not, show breadcrumb -->
 			{{if eq $n 0}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					<div class="fitted item">
+					<div class="fitted item mx-0">
 						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
 							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}</button>
 						</a>
@@ -72,8 +72,8 @@
 			{{else}}
 				<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			{{end}}
-			<div class="right fitted item" id="file-buttons">
-				<div class="ui tiny blue buttons">
+			<div class="right fitted item mr-0" id="file-buttons">
+				<div class="ui tiny primary buttons">
 					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
