@@ -1208,8 +1208,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.And("issue.is_pull=?", false)
 	}
 
-	if opts.ExcludeArchivedRepos == util.OptionalBoolTrue {
-		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And(builder.Eq{"repository.is_archived": false})
+	if opts.IsArchived != util.OptionalBoolNone {
+		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
 	if opts.LabelIDs != nil {
