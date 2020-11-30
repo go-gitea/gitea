@@ -36,9 +36,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
 - `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
    (non-user) account. Setting this incorrectly will cause Gitea to not start.
-- `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when
-   deployed to a production environment. The installation process will set this to `prod`
-   automatically. \[prod, dev, test\]
+- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 
 ## Repository (`repository`)
 
@@ -846,6 +844,9 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
+- `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
+- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
+- `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 
 ## Mirror (`mirror`)
 

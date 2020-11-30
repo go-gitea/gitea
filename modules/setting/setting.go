@@ -848,7 +848,7 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("dev")
+	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)

@@ -246,6 +246,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 			}
 		}
 		protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
+		protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
 		protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 		protectBranch.RequireSignedCommits = f.RequireSignedCommits
 		protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns

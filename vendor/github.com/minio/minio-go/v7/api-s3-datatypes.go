@@ -89,6 +89,8 @@ type Version struct {
 }
 
 // ListVersionsResult is an element in the list object versions response
+// and has a special Unmarshaler because we need to preserver the order
+// of <Version>  and <DeleteMarker> in ListVersionsResult.Versions slice
 type ListVersionsResult struct {
 	Versions []Version
 
@@ -125,8 +127,7 @@ func (l *ListVersionsResult) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 			switch tagName {
 			case "Name", "Prefix",
 				"Delimiter", "EncodingType",
-				"KeyMarker", "VersionIdMarker",
-				"NextKeyMarker", "NextVersionIdMarker":
+				"KeyMarker", "NextKeyMarker":
 				var s string
 				if err = d.DecodeElement(&s, &se); err != nil {
 					return err
@@ -135,6 +136,20 @@ func (l *ListVersionsResult) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 				if v.IsValid() {
 					v.SetString(s)
 				}
+			case "VersionIdMarker":
+				// VersionIdMarker is a special case because of 'Id' instead of 'ID' in field name
+				var s string
+				if err = d.DecodeElement(&s, &se); err != nil {
+					return err
+				}
+				l.VersionIDMarker = s
+			case "NextVersionIdMarker":
+				// NextVersionIdMarker is a special case because of 'Id' instead of 'ID' in field name
+				var s string
+				if err = d.DecodeElement(&s, &se); err != nil {
+					return err
+				}
+				l.NextVersionIDMarker = s
 			case "IsTruncated": //        bool
 				var b bool
 				if err = d.DecodeElement(&b, &se); err != nil {
@@ -325,9 +340,10 @@ type deletedObject struct {
 
 // nonDeletedObject container for Error element (failed deletion) in MultiObjects Delete XML response
 type nonDeletedObject struct {
-	Key     string
-	Code    string
-	Message string
+	Key       string
+	Code      string
+	Message   string
+	VersionID string `xml:"VersionId"`
 }
 
 // deletedMultiObjects container for MultiObjects Delete XML request
