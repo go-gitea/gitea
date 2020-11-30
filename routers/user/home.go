@@ -410,9 +410,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	isPullList := unitType == models.UnitTypePullRequests
 	opts := &models.IssuesOptions{
-		IsPull:               util.OptionalBoolOf(isPullList),
-		SortType:             sortType,
-		ExcludeArchivedRepos: util.OptionalBoolTrue,
+		IsPull:     util.OptionalBoolOf(isPullList),
+		SortType:   sortType,
+		IsArchived: util.OptionalBoolFalse,
 	}
 
 	// Get repository IDs where User/Org has access.
@@ -552,12 +552,12 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// -------------------------------
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:               ctxUser.ID,
-		UserRepoIDs:          userRepoIDs,
-		FilterMode:           filterMode,
-		IsPull:               isPullList,
-		IsClosed:             isShowClosed,
-		ExcludeArchivedRepos: true,
+		UserID:      ctxUser.ID,
+		UserRepoIDs: userRepoIDs,
+		FilterMode:  filterMode,
+		IsPull:      isPullList,
+		IsClosed:    isShowClosed,
+		IsArchived:  util.OptionalBoolFalse,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
@@ -572,13 +572,13 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:               ctxUser.ID,
-			UserRepoIDs:          userRepoIDs,
-			FilterMode:           filterMode,
-			IsPull:               isPullList,
-			IsClosed:             isShowClosed,
-			IssueIDs:             issueIDsFromSearch,
-			ExcludeArchivedRepos: true,
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+			IsArchived:  util.OptionalBoolFalse,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
@@ -595,13 +595,13 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
 		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
-			UserID:               ctxUser.ID,
-			UserRepoIDs:          userRepoIDs,
-			FilterMode:           filterMode,
-			IsPull:               isPullList,
-			IsClosed:             isShowClosed,
-			IssueIDs:             issueIDsFromSearch,
-			ExcludeArchivedRepos: true,
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+			IsArchived:  util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)

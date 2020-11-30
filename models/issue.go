@@ -1103,8 +1103,8 @@ type IssuesOptions struct {
 	UpdatedAfterUnix   int64
 	UpdatedBeforeUnix  int64
 	// prioritize issues from this repo
-	PriorityRepoID       int64
-	ExcludeArchivedRepos util.OptionalBool
+	PriorityRepoID int64
+	IsArchived     util.OptionalBool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1498,14 +1498,14 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID               int64
-	RepoIDs              []int64
-	UserRepoIDs          []int64
-	FilterMode           int
-	IsPull               bool
-	IsClosed             bool
-	IssueIDs             []int64
-	ExcludeArchivedRepos bool
+	UserID      int64
+	RepoIDs     []int64
+	UserRepoIDs []int64
+	FilterMode  int
+	IsPull      bool
+	IsClosed    bool
+	IssueIDs    []int64
+	IsArchived  util.OptionalBool
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1521,13 +1521,13 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
-	if opts.ExcludeArchivedRepos {
-		activeRepoIDs := []int64{}
+	if opts.IsArchived != util.OptionalBoolNone {
+		relevantRepoIDs := []int64{}
 		r := []*Repository{}
-		s := x.Table("repository").Where(builder.Eq{"is_archived": false})
-		s.Select("id").Find(&activeRepoIDs)
+		s := x.Table("repository").Where(builder.Eq{"is_archived": opts.IsArchived.IsTrue()})
+		s.Select("id").Find(&relevantRepoIDs)
 		s.Find(&r)
-		cond = cond.And(builder.In("issue.repo_id", activeRepoIDs))
+		cond = cond.And(builder.In("issue.repo_id", relevantRepoIDs))
 	}
 
 	switch opts.FilterMode {
