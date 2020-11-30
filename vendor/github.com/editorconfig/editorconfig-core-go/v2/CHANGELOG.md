@@ -1,5 +1,12 @@
 # Change log
 
+## v2.3.9 - 2020-11-28
+
+- Fix path separator on Windows
+  ([#83](https://github.com/editorconfig/editorconfig-core-go/pull/89));
+- Upgrade go-cmp v0.5.4
+  ([#91](https://github.com/editorconfig/editorconfig-core-go/pull/91)).
+
 ## v2.3.8 - 2020-10-17
 
 - Feat more tests

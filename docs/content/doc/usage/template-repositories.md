@@ -69,4 +69,3 @@ Feeding `go-sdk` to the available transformers yields...
 | LOWER       | go-sdk     |
 | UPPER       | GO-SDK     |
 | TITLE       | Go-Sdk     |
-

@@ -249,7 +249,7 @@ This template produces something along these lines:
 >
 > Mike, I think we should tone down the blues a little.  
 > \__________________________________________________________________
-> 
+>
 > [View it on Gitea](#).
 
 ## Advanced

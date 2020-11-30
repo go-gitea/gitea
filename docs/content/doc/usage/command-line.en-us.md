@@ -312,12 +312,12 @@ Diagnose the problems of current gitea instance according the given configuratio
 Currently there are a check list below:
 
 - Check if OpenSSH authorized_keys file id correct
-When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys` 
+When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys`
 when there is any public key added or changed on your gitea instance.
 Sometimes if you moved or renamed your gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
 This check will help you to check if it works well.
 
-For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and 
+For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
 append it to `doctor.go`.
 
 ```go
@@ -407,7 +407,7 @@ Manage running server operations:
               - `--expression value`, `-e value`: Matching expression for the logger
               - `--prefix value`, `-p value`: Prefix for the logger
               - `--color`: Use color in the logs
-              - `--filename value`, `-f value`: Filename for the logger - 
+              - `--filename value`, `-f value`: Filename for the logger -
               - `--rotate`, `-r`: Rotate logs
               - `--max-size value`, `-s value`: Maximum size in bytes before rotation
               - `--daily`, `-d`: Rotate logs daily

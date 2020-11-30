@@ -152,7 +152,7 @@ all: build
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - \"\"                               equivalent to \"build\""
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
@@ -180,7 +180,7 @@ help:
 	@echo " - revive                           run revive linter"
 	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - test[\#TestSpecificName]    	   run unit test"
+	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
@@ -255,7 +255,7 @@ swagger-check: generate-swagger
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: swagger-validate
 swagger-validate:
@@ -296,7 +296,7 @@ fmt-check:
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: checks
 checks: checks-frontend checks-backend
@@ -312,7 +312,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build webpack.config.js
+	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
 	npx stylelint --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
@@ -348,7 +348,7 @@ test-check:
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: test\#%
 test\#%:
@@ -373,7 +373,7 @@ test-vendor: vendor
 		echo "Please run 'make vendor' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -637,6 +637,9 @@ npm-update: node-check | node_modules
 fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
+	@if [ ! -d node_modules/fomantic-ui ]; then \
+		npm install --no-save --no-package-lock fomantic-ui@2.8.7; \
+	fi
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
@@ -664,7 +667,7 @@ svg-check: svg
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: update-translations
 update-translations:

@@ -18,7 +18,6 @@ steps:
       - make node_modules
 
   - name: lint-frontend
-    pull: always
     image: node:14
     commands:
       - make lint-frontend
@@ -35,7 +34,6 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    pull: always
     image: node:14
     commands:
       - make checks-frontend
@@ -49,7 +47,6 @@ steps:
     depends_on: [lint-backend]
 
   - name: build-frontend
-    pull: always
     image: node:14
     commands:
       - make frontend
@@ -66,7 +63,6 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    pull: always
     image: golang:1.15
     environment:
       GO111MODULE: on
@@ -80,7 +76,6 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    pull: always
     image: golang:1.15
     environment:
       GO111MODULE: on
@@ -108,21 +103,18 @@ workspace:
 
 services:
   - name: mysql
-    pull: default
     image: mysql:5.7
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: test
 
   - name: mysql8
-    pull: default
     image: mysql:8.0
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
 
   - name: mssql
-    pull: default
     image: mcr.microsoft.com/mssql/server:latest
     environment:
       ACCEPT_EULA: Y
@@ -130,11 +122,9 @@ services:
       SA_PASSWORD: MwantsaSecurePassword1
 
   - name: ldap
-    pull: default
     image: gitea/test-openldap:latest
 
   - name: elasticsearch
-    pull: default
     environment:
       discovery.type: single-node
     image: elasticsearch:7.5.0
@@ -149,7 +139,6 @@ services:
 
 steps:
   - name: fetch-tags
-    pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
@@ -175,7 +164,6 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
-    pull: always
     image: golang:1.15
     commands:
       - make unit-test-coverage test-check
@@ -186,7 +174,6 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    pull: always
     image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
@@ -202,7 +189,6 @@ steps:
       - build
 
   - name: test-mysql8
-    pull: always
     image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
@@ -217,7 +203,6 @@ steps:
       - build
 
   - name: test-mssql
-    pull: always
     image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
@@ -232,7 +217,6 @@ steps:
       - build
 
   - name: generate-coverage
-    pull: always
     image: golang:1.15
     commands:
       - make coverage
@@ -295,7 +279,6 @@ services:
 
 steps:
   - name: fetch-tags
-    pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
@@ -315,7 +298,6 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: test-sqlite
-    pull: always
     image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
@@ -329,7 +311,6 @@ steps:
       - build
 
   - name: test-pgsql
-    pull: always
     image: golang:1.15
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
@@ -431,7 +412,6 @@ depends_on:
 
 steps:
   - name: fetch-tags
-    pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
@@ -485,7 +465,6 @@ steps:
         - push
 
   - name: release-master
-    pull: always
     image: plugins/s3:1
     settings:
       acl: public-read
@@ -644,7 +623,6 @@ trigger:
 
 steps:
   - name: fetch-tags
-    pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
@@ -668,7 +646,6 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    pull: always
     image: plugins/docker:linux-amd64
     settings:
       dockerfile: Dockerfile.rootless
@@ -747,7 +724,6 @@ trigger:
   - "refs/tags/**"
 steps:
   - name: fetch-tags
-    pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
@@ -774,7 +750,6 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    pull: always
     image: plugins/docker:linux-arm64
     settings:
       dockerfile: Dockerfile.rootless
@@ -817,7 +792,6 @@ steps:
         from_secret: docker_username
 
   - name: manifest
-    pull: always
     image: plugins/manifest
     settings:
       auto_tag: true

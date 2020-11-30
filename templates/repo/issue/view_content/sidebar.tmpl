@@ -55,8 +55,8 @@
 				{{range .PullReviewers}}
 					<div class="item mb-2">
 						{{if .User}}
-							<a href="{{.User.HomeLink}}">
-								<img class="ui avatar image mr-2" src="{{.User.RelAvatarLink}}">
+							<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
+								<img class="ui avatar image mr-3" src="{{.User.RelAvatarLink}}">
 								{{.User.GetDisplayName}}
 							</a>
 						{{else if .Team}}
@@ -70,7 +70,7 @@
 
 							{{if .CanChange}}
 								<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{svg "octicon-sync"}}
+									{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
 								</a>
 							{{end}}
 							{{svg (printf "octicon-%s" .Review.Type.Icon)}}
@@ -153,21 +153,25 @@
 					{{if .OpenMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							{{svg "octicon-milestone"}}
 							{{.i18n.Tr "repo.issues.new.open_milestone"}}
 						</div>
 						{{range .OpenMilestones}}
-							<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
+							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
+								{{svg "octicon-milestone" 16 "mr-2"}}
+								{{.Name}}
+							</a>
 						{{end}}
 					{{end}}
 					{{if .ClosedMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							{{svg "octicon-milestone"}}
 							{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 						</div>
 						{{range .ClosedMilestones}}
-							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
+							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
+								{{svg "octicon-milestone" 16 "mr-2"}}
+								{{.Name}}
+							</a>
 						{{end}}
 					{{end}}
 				{{end}}
@@ -177,14 +181,17 @@
 			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Issue.Milestone}}
-					<a class="item" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name}}</a>
+					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
+						{{svg "octicon-milestone" 18 "mr-3"}}
+						{{.Issue.Milestone.Name}}
+					</a>
 				{{end}}
 			</div>
 		</div>
 
 		{{if .IsProjectsEnabled}}
 		<div class="ui divider"></div>
-		
+
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
@@ -195,21 +202,25 @@
 				{{if .OpenProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						{{svg "octicon-project"}}
 						{{.i18n.Tr "repo.issues.new.open_projects"}}
 					</div>
 					{{range .OpenProjects}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project"}} {{.Title}}</div>
+						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+							{{svg "octicon-project" 18 "mr-3"}}
+							{{.Title}}
+						</a>
 					{{end}}
 				{{end}}
 				{{if .ClosedProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						{{svg "octicon-project"}}
 						{{.i18n.Tr "repo.issues.new.closed_projects"}}
 					</div>
 					{{range .ClosedProjects}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project"}} {{.Title}}</a>
+						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+							{{svg "octicon-project" 18 "mr-3"}}
+							{{.Title}}
+						</a>
 					{{end}}
 				{{end}}
 			</div>
@@ -218,7 +229,10 @@
 			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.ProjectID}}
-					<a class="item" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">{{svg "octicon-project"}} {{.Issue.Project.Title}}</a>
+					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">
+						{{svg "octicon-project" 18 "mr-3"}}
+						{{.Issue.Project.Title}}
+					</a>
 				{{end}}
 			</div>
 		</div>
@@ -264,9 +278,9 @@
 			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignees"}}</span>
 			<div class="selected">
 				{{range .Issue.Assignees}}
-					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-							<img class="ui avatar image mr-2" src="{{.RelAvatarLink}}">
+					<div class="item">
+						<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
+							<img class="ui avatar image mr-3" src="{{.RelAvatarLink}}">
 							{{.GetDisplayName}}
 						</a>
 					</div>
