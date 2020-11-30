@@ -1,4 +1,6 @@
 <div class="ui compact left small menu">
 	<a class="{{if .PageIsLabels}}active{{end}} item" href="{{.RepoLink}}/labels">{{.i18n.Tr "repo.labels"}}</a>
-	<a class="{{if .PageIsMilestones}}active{{end}} item" href="{{.RepoLink}}/milestones">{{.i18n.Tr "repo.milestones"}}</a>
+	{{if not (.Permission.CanRead $.UnitTypeExternalTracker)}}
+		<a class="{{if .PageIsMilestones}}active{{end}} item" href="{{.RepoLink}}/milestones">{{.i18n.Tr "repo.milestones"}}</a>
+	{{end}}
 </div>
