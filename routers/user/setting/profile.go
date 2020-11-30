@@ -94,7 +94,10 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
-	ctx.User.Language = form.Language
+	if len(form.Language) == 5 {
+		// TODO: check if lang code is valide
+		ctx.User.Language = form.Language
+	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	if err := models.UpdateUserSetting(ctx.User); err != nil {

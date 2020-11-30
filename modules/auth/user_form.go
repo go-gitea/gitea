@@ -202,7 +202,7 @@ type UpdateProfileForm struct {
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`
-	Language            string `binding:"Size(5)"`
+	Language            string
 	Description         string `binding:"MaxSize(255)"`
 	KeepActivityPrivate bool
 }
