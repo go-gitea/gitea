@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron/cookie"
 	"gitea.com/macaron/session"
 	"github.com/unknwon/com"
 )
@@ -130,10 +131,12 @@ type Options struct {
 	// Cookie path.
 	CookiePath     string
 	CookieHttpOnly bool
+	// SameSite set the cookie SameSite type
+	SameSite http.SameSite
 	// Key used for getting the unique ID per user.
 	SessionKey string
-	// oldSeesionKey saves old value corresponding to SessionKey.
-	oldSeesionKey string
+	// oldSessionKey saves old value corresponding to SessionKey.
+	oldSessionKey string
 	// If true, send token via X-CSRFToken header.
 	SetHeader bool
 	// If true, send token via _csrf cookie.
@@ -144,6 +147,8 @@ type Options struct {
 	Origin bool
 	// The function called when Validate fails.
 	ErrorFunc func(w http.ResponseWriter)
+	// Cookie life time. Default is 0
+	CookieLifeTime int
 }
 
 func prepareOptions(options []Options) Options {
@@ -171,7 +176,7 @@ func prepareOptions(options []Options) Options {
 	if len(opt.SessionKey) == 0 {
 		opt.SessionKey = "uid"
 	}
-	opt.oldSeesionKey = "_old_" + opt.SessionKey
+	opt.oldSessionKey = "_old_" + opt.SessionKey
 	if opt.ErrorFunc == nil {
 		opt.ErrorFunc = func(w http.ResponseWriter) {
 			http.Error(w, "Invalid csrf token.", http.StatusBadRequest)
@@ -209,10 +214,10 @@ func Generate(options ...Options) macaron.Handler {
 		}
 
 		needsNew := false
-		oldUid := sess.Get(opt.oldSeesionKey)
-		if oldUid == nil || oldUid.(string) != x.ID {
+		oldUID := sess.Get(opt.oldSessionKey)
+		if oldUID == nil || oldUID.(string) != x.ID {
 			needsNew = true
-			sess.Set(opt.oldSeesionKey, x.ID)
+			sess.Set(opt.oldSessionKey, x.ID)
 		} else {
 			// If cookie present, map existing token, else generate a new one.
 			if val := ctx.GetCookie(opt.Cookie); len(val) > 0 {
@@ -227,7 +232,11 @@ func Generate(options ...Options) macaron.Handler {
 			// FIXME: actionId.
 			x.Token = GenerateToken(x.Secret, x.ID, "POST")
 			if opt.SetCookie {
-				ctx.SetCookie(opt.Cookie, x.Token, 0, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, time.Now().AddDate(0, 0, 1))
+				var expires interface{}
+				if opt.CookieLifeTime == 0 {
+					expires = time.Now().AddDate(0, 0, 1)
+				}
+				ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, expires, cookie.SameSite(opt.SameSite))
 			}
 		}
 

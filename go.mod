@@ -10,12 +10,12 @@ require (
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
 	gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
+	gitea.com/macaron/csrf v0.0.0-20201112042935-9889eb38af52
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
+	gitea.com/macaron/i18n v0.0.0-20201112074544-0d444cb7144d
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
-	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
+	gitea.com/macaron/session v0.0.0-20201130021430-b75a2352013f
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
@@ -85,7 +85,6 @@ require (
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.21
-	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
 	github.com/philhofer/fwd v1.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
@@ -117,7 +116,7 @@ require (
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 	golang.org/x/net v0.0.0-20201031054903-ff519b6c9102
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20201106081118-db71ae66460a
