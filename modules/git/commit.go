@@ -73,11 +73,6 @@ func (c *Commit) ParentCount() int {
 	return len(c.Parents)
 }
 
-// GetCommitByPath return the commit of relative path object.
-func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
-	return c.repo.getCommitByPathWithID(c.ID, relpath)
-}
-
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
 	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)

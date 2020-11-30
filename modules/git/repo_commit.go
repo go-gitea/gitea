@@ -74,7 +74,8 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
-func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit, error) {
+// GetCommitByPathWithID returns the last commit of relative path from ID.
+func (repo *Repository) GetCommitByPathWithID(id SHA1, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if relpath[0] == ':' {
 		relpath = `\` + relpath
@@ -95,6 +96,11 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
+	// File name starts with ':' must be escaped.
+	if relpath[0] == ':' {
+		relpath = `\` + relpath
+	}
+
 	stdout, err := NewCommand("log", "-1", prettyLogFormat, "--", relpath).RunInDirBytes(repo.Path())
 	if err != nil {
 		return nil, err

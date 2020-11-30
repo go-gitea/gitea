@@ -78,7 +78,7 @@ func RefBlame(ctx *context.Context) {
 	// or of directory if not in root directory.
 	latestCommit := ctx.Repo.Commit
 	if len(ctx.Repo.TreePath) > 0 {
-		latestCommit, err = ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+		latestCommit, err = ctx.Repo.GitRepo.GetCommitByPathWithID(ctx.Repo.Commit.ID, ctx.Repo.TreePath)
 		if err != nil {
 			ctx.ServerError("GetCommitByPath", err)
 			return
