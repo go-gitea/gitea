@@ -524,7 +524,7 @@ func avatarHTML(src string, size int, class string, name string) template.HTML {
 		name = "avatar"
 	}
 
-	return template.HTML(`<img class="` + class + `" src="` + src + `" alt="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
 // SVG render icons - arguments icon name (string), size (int), class (string)
@@ -571,6 +571,18 @@ func AvatarByEmail(email string, others ...interface{}) template.HTML {
 
 	if src != "" {
 		return avatarHTML(src, size, class, "")
+	}
+
+	return template.HTML("")
+}
+
+// AvatarByEmailAndName renders avatars by email address and name. args: email, size (int), class (string)
+func AvatarByEmailAndName(email string, name string, others ...interface{}) template.HTML {
+	size, class := parseOthers(28, "ui avatar image", others...)
+	src := models.AvatarLink(email)
+
+	if src != "" {
+		return avatarHTML(src, size, class, name)
 	}
 
 	return template.HTML("")
