@@ -44,7 +44,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ldap/ldap/v3 v3.2.4
-	github.com/go-redis/redis/v7 v7.4.0
+	github.com/go-redis/redis/v8 v8.4.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-swagger/go-swagger v0.25.0
 	github.com/go-testfixtures/testfixtures/v3 v3.4.1
@@ -85,7 +85,6 @@ require (
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.21
-	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
 	github.com/philhofer/fwd v1.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
