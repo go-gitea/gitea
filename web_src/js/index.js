@@ -2089,6 +2089,7 @@ function initCodeView() {
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
