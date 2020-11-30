@@ -40,16 +40,7 @@
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-opened"}}
-						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-closed"}}
-						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
-					</a>
-				</div>
+				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
@@ -118,16 +109,7 @@
 		</div>
 		<div id="issue-actions" class="ui stackable grid hide">
 			<div class="six wide column">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-opened"}}
-						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-closed"}}
-						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
-					</a>
-				</div>
+				{{template "repo/issue/openclose" .}}
 			</div>
 
 			{{/* Ten wide does not cope well and makes the columns stack.

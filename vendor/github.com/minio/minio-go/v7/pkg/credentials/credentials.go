@@ -22,6 +22,9 @@ import (
 	"time"
 )
 
+// STSVersion sts version string
+const STSVersion = "2011-06-15"
+
 // A Value is the AWS credentials value for individual credential fields.
 type Value struct {
 	// AWS Access key ID
