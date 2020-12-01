@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,11 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -204,15 +205,16 @@ func CancelMigration(ctx *context.Context) {
 		return
 	}
 
-	// TODO: get task from queues and kill it
-	// https://github.com/go-gitea/gitea/pull/12917/files#r492109921
-
-	if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("DeleteRepository", err)
-		return
+	for _, ps := range process.GetManager().Processes() {
+		if ps.Description == fmt.Sprintf("MigrateTask: %s", ctx.Repo.Repository.FullName()) {
+			log.Trace("Migration Canceled: %s", ctx.Repo.Repository.FullName())
+			process.GetManager().Cancel(ps.PID)
+			ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
+			ctx.Redirect(ctx.Repo.Owner.DashboardLink())
+			return
+		}
 	}
-	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
+	ctx.Flash.Error(ctx.Tr("repo.migrate.migrate.task_not_found", ctx.Repo.Repository.FullName()))
 	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
 }
