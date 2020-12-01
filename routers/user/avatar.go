@@ -5,13 +5,28 @@
 package user
 
 import (
+	"crypto/md5"
+	"errors"
+	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
+
+
+// EmailHash represents a pre-generated hash map
+type EmailHash struct {
+	Hash  string `xorm:"pk varchar(32)"`
+	Email string `xorm:"UNIQUE NOT NULL"`
+}
 
 // Avatar redirect browser to user avatar of requested size
 func Avatar(ctx *context.Context) {
@@ -40,4 +55,27 @@ func Avatar(ctx *context.Context) {
 	}
 
 	ctx.Redirect(user.RealSizedAvatarLink(size))
+}
+
+// AvatarByEmailHash redirects the browser to the appropriate Avatar link
+func AvatarByEmailHash(ctx *context.Context) {
+	hash := ctx.Params(":hash")
+	if len(hash) == 0 {
+		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
+		return
+	}
+	email, err := models.GetEmailForHash(hash)
+	if err != nil {
+		ctx.ServerError("invalid avatar hash", err)
+		return
+	}
+	if len(email) == 0 {
+		ctx.Redirect(base.DefaultAvatarLink())
+		return
+	}
+	size := ctx.QueryInt("size")
+	if size == 0 {
+		size = base.DefaultAvatarSize
+	}
+	ctx.Redirect(base.SizedAvatarLinkWithDomain(email, size))
 }

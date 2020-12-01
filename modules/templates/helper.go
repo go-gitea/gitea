@@ -567,7 +567,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
 	size, class := parseOthers(28, "ui avatar image", others...)
-	src := base.SizedAvatarLinkWithDomain(email, size)
+	src := base.SizedAvatarLinkWithDomain(email, size * 2) // request double size for finer rendering
 
 	if src != "" {
 		return avatarHTML(src, size, class, name)

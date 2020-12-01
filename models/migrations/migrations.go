@@ -256,8 +256,6 @@ var migrations = []Migration{
 	NewMigration("update reactions constraint", updateReactionConstraint),
 	// v160 -> v161
 	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
-	// v161 -> v162
-	NewMigration("Drop EmailHash Table", dropEmailHashTable),
 }
 
 // GetCurrentDBVersion returns the current db version

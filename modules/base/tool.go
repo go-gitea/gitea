@@ -22,6 +22,7 @@ import (
 	"time"
 	"unicode"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -170,11 +171,9 @@ func libravatarURL(email string) (*url.URL, error) {
 func SizedAvatarLink(email string, size int) string {
 	var avatarURL *url.URL
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		var err error
-		avatarURL, err = libravatarURL(email)
-		if err != nil {
-			return DefaultAvatarLink()
-		}
+		// this is the slow path that would need to call libravatarURL() which
+		// does DNS lookups. avoid it by issueing a redirect.
+		return models.AvatarLink(email)
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		copyOfGravatarSourceURL := *setting.GravatarSourceURL
@@ -193,21 +192,14 @@ func SizedAvatarLink(email string, size int) string {
 	return avatarURL.String()
 }
 
-// AvatarLink returns a link to an avatar with the default size
-func AvatarLink(email string) string {
-	return SizedAvatarLink(email, DefaultAvatarSize)
-}
-
 // SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
 // address.
 func SizedAvatarLinkWithDomain(email string, size int) string {
 	var avatarURL *url.URL
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		var err error
-		avatarURL, err = libravatarURL(email)
-		if err != nil {
-			return DefaultAvatarLink()
-		}
+		// this is the slow path that would need to call libravatarURL() which
+		// does DNS lookups. avoid it by issueing a redirect.
+		return models.AvatarLink(email)
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		copyOfGravatarSourceURL := *setting.GravatarSourceURL
