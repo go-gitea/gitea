@@ -1,4 +1,4 @@
-import {SwaggerUIBundle as SwaggerUI} from 'swagger-ui-dist';
+import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
 
 window.addEventListener('load', async () => {
