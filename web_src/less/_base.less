@@ -238,6 +238,16 @@ a.muted:hover,
   color: var(--color-text-light-2);
 }
 
+.page-content {
+  margin-top: 15px;
+}
+
+.page-content .header-wrapper,
+.page-content .new-menu {
+  margin-top: -15px !important;
+  padding-top: 15px !important;
+}
+
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
@@ -513,6 +523,10 @@ a.muted:hover,
 
 .ui.form .field > .selection.dropdown > .dropdown.icon {
   height: auto;
+}
+
+.ui.loading.segment::before {
+  background: none;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -1101,7 +1115,6 @@ footer {
 }
 
 .ui.menu.new-menu {
-  padding-top: 15px;
   margin-bottom: 15px;
   background: var(--color-navbar);
   border-bottom: 1px solid var(--color-secondary) !important;
