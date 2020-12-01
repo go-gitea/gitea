@@ -5,8 +5,6 @@
 package migrations
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -19,7 +17,7 @@ func dropEmailHashTable(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := sess.Exec(fmt.Sprintf("DROP TABLE email_hash")); err != nil {
+	if _, err := sess.Exec("DROP TABLE email_hash"); err != nil {
 		log.Error("Unable to drop table email_hash. Error: %v", err)
 		return err
 	}
