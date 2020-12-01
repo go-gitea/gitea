@@ -215,6 +215,6 @@ func CancelMigration(ctx *context.Context) {
 		}
 	}
 
-	ctx.Flash.Error(ctx.Tr("repo.migrate.migrate.task_not_found", ctx.Repo.Repository.FullName()))
+	ctx.Flash.Error(ctx.Tr("repo.migrate.task_not_found", ctx.Repo.Repository.FullName()))
 	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
 }
