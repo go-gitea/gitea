@@ -325,8 +325,6 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 	})
 	// ***** END: User *****
 
-	m.Get("/avatar/:hash", user.AvatarByEmailHash)
-
 	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****

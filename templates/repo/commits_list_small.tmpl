@@ -11,7 +11,7 @@
 				{{avatar .User}}
 			</a>
 		{{else}}
-			{{avatarByEmail .Author.Email}}
+			{{avatarByEmail .Author.Email .Author.Name}}
 		{{end}}
 
 		<span class="ui float right shabox">

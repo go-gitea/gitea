@@ -127,7 +127,6 @@ func init() {
 		new(OAuth2Grant),
 		new(Task),
 		new(LanguageStat),
-		new(EmailHash),
 		new(Project),
 		new(ProjectBoard),
 		new(ProjectIssue),

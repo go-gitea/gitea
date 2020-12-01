@@ -193,6 +193,11 @@ func SizedAvatarLink(email string, size int) string {
 	return avatarURL.String()
 }
 
+// AvatarLink returns a link to an avatar with the default size
+func AvatarLink(email string) string {
+	return SizedAvatarLink(email, DefaultAvatarSize)
+}
+
 // SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
 // address.
 func SizedAvatarLinkWithDomain(email string, size int) string {

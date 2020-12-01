@@ -70,7 +70,7 @@
 							{{avatar $commit.User}}
 							<a href="{{AppSubUrl}}/{{$commit.User}}">{{$userName}}</a>
 						{{else}}
-							{{avatarByEmail $commit.Commit.Author.Email}}
+							{{avatarByEmail $commit.Commit.Author.Email $userName}}
 							{{$userName}}
 						{{end}}
 					</span>

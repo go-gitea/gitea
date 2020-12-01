@@ -214,7 +214,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				if commit.User != nil {
 					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmailAndName(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
+					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
 
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))

@@ -11,7 +11,7 @@
 					{{end}}
 				{{else}}
 					{{if .LatestCommit.Author}}
-						{{avatarByEmail .LatestCommit.Author.Email 28 "img-12"}}
+						{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 28 "img-12"}}
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}

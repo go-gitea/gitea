@@ -6,7 +6,7 @@
 			{{avatar .verification.SigningUser "signature"}}
 		{{else}}
 			<span title="{{$.root.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
-			{{avatarByEmail .verification.SigningEmail 28 "signature"}}
+			{{avatarByEmail .verification.SigningEmail "" 28 "signature"}}
 		{{end}}
 		</div>
 	{{else}}

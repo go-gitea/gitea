@@ -45,7 +45,7 @@
 							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
 					{{else}}
-						{{avatarByEmail .Commit.Author.Email 12}}
+						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 12}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
@@ -56,7 +56,7 @@
 								{{avatar .Verification.CommittingUser}}
 								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 							{{else}}
-								{{avatarByEmail .Commit.Committer.Email}}
+								{{avatarByEmail .Commit.Committer.Email .Commit.Committer.Name}}
 								<strong>{{.Commit.Committer.Name}}</strong>
 							{{end}}
 						</div>
@@ -104,7 +104,7 @@
 					{{else}}
 						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
 						<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
-						{{avatarByEmail .Verification.SigningEmail}}
+						{{avatarByEmail .Verification.SigningEmail ""}}
 						<strong>{{.Verification.SigningUser.Name}}</strong>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
 					{{end}}

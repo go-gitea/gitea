@@ -564,22 +564,10 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 	return template.HTML("")
 }
 
-// AvatarByEmail renders avatars by email address. args: email, size (int), class (string)
-func AvatarByEmail(email string, others ...interface{}) template.HTML {
+// AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
+func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
 	size, class := parseOthers(28, "ui avatar image", others...)
-	src := models.AvatarLink(email)
-
-	if src != "" {
-		return avatarHTML(src, size, class, "")
-	}
-
-	return template.HTML("")
-}
-
-// AvatarByEmailAndName renders avatars by email address and name. args: email, size (int), class (string)
-func AvatarByEmailAndName(email string, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
-	src := models.AvatarLink(email)
+	src := base.SizedAvatarLinkWithDomain(email, size)
 
 	if src != "" {
 		return avatarHTML(src, size, class, name)

@@ -20,7 +20,7 @@
 								{{end}}
 								{{avatar .User 28 "mr-2"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail .Author.Email 28 "mr-2"}}
+								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
 								{{$userName}}
 							{{end}}
 						</td>
