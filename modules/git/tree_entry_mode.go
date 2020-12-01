@@ -34,3 +34,28 @@ func ToEntryMode(value string) EntryMode {
 	v, _ := strconv.ParseInt(value, 8, 32)
 	return EntryMode(v)
 }
+
+// IsSubModule if the entry is a sub module
+func (e EntryMode) IsSubModule() bool {
+	return e == EntryModeCommit
+}
+
+// IsDir if the entry is a sub dir
+func (e EntryMode) IsDir() bool {
+	return e == EntryModeTree
+}
+
+// IsLink if the entry is a symlink
+func (e EntryMode) IsLink() bool {
+	return e == EntryModeSymlink
+}
+
+// IsRegular if the entry is a regular file
+func (e EntryMode) IsRegular() bool {
+	return e == EntryModeBlob
+}
+
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (e EntryMode) IsExecutable() bool {
+	return e == EntryModeExec
+}
