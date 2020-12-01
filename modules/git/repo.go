@@ -184,7 +184,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		return err
 	}
 
-	cmd := NewCommandNoGlobals(args...).AddArguments("clone").SetParentContext(ctx)
+	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
