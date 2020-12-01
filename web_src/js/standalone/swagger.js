@@ -1,5 +1,5 @@
-import SwaggerUI from 'swagger-ui';
-import 'swagger-ui/dist/swagger-ui.css';
+import {SwaggerUIBundle as SwaggerUI} from 'swagger-ui-dist';
+import 'swagger-ui-dist/swagger-ui.css';
 
 window.addEventListener('load', async () => {
   const url = document.getElementById('swagger-ui').dataset.source;
