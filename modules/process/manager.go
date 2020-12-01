@@ -15,6 +15,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	gouuid "github.com/google/uuid"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -44,6 +46,9 @@ type Manager struct {
 
 	counter   int64
 	processes map[int64]*Process
+
+	// guid is a unique id for a gitea instance
+	guid int64
 }
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
@@ -51,9 +56,15 @@ func GetManager() *Manager {
 	if manager == nil {
 		manager = &Manager{
 			processes: make(map[int64]*Process),
+			guid:      int64(gouuid.New().ID()),
 		}
 	}
 	return manager
+}
+
+// GUID return a unique id of a gitea instance
+func (pm *Manager) GUID() int64 {
+	return pm.guid
 }
 
 // Add a process to the ProcessManager and returns its PID.

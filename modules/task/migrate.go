@@ -84,11 +84,6 @@ func runMigrateTask(t *models.Task) (err error) {
 	if err = t.LoadOwner(); err != nil {
 		return
 	}
-	t.StartTime = timeutil.TimeStampNow()
-	t.Status = structs.TaskStatusRunning
-	if err = t.UpdateCols("start_time", "status"); err != nil {
-		return
-	}
 
 	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
@@ -104,6 +99,14 @@ func runMigrateTask(t *models.Task) (err error) {
 	pm := process.GetManager()
 	pid := pm.Add(fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName), cancel)
 	defer pm.Remove(pid)
+
+	t.StartTime = timeutil.TimeStampNow()
+	t.Status = structs.TaskStatusRunning
+	t.Process = fmt.Sprintf("%d/%d", process.GetManager().GUID(), pid)
+	if err = t.UpdateCols("start_time", "status", "process"); err != nil {
+		return
+	}
+
 	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts)
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)

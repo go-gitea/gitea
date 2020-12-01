@@ -31,6 +31,7 @@ type Task struct {
 	PayloadContent string             `xorm:"TEXT"`
 	Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
 	Created        timeutil.TimeStamp `xorm:"created"`
+	Process        string             // process GUID and PID
 }
 
 // LoadRepo loads repository of the task
@@ -112,6 +113,17 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 		return &opts, nil
 	}
 	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type.Name())
+}
+
+// GUIDandPID return GUID and PID of a running task
+func (task *Task) GUIDandPID() (guid int64, pid int64) {
+	if task.Status != structs.TaskStatusRunning {
+		return 0, 0
+	}
+	if _, err := fmt.Sscanf(task.Process, "%d/%d", &guid, &pid); err != nil {
+		return 0, 0
+	}
+	return
 }
 
 // ErrTaskDoesNotExist represents a "TaskDoesNotExist" kind of error.

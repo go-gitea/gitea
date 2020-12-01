@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -205,14 +204,19 @@ func CancelMigration(ctx *context.Context) {
 		return
 	}
 
-	for _, ps := range process.GetManager().Processes() {
-		if ps.Description == fmt.Sprintf("MigrateTask: %s", ctx.Repo.Repository.FullName()) {
-			log.Trace("Migration Canceled: %s", ctx.Repo.Repository.FullName())
-			process.GetManager().Cancel(ps.PID)
-			ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
-			ctx.Redirect(ctx.Repo.Owner.DashboardLink())
-			return
-		}
+	guid := process.GetManager().GUID()
+	task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	tGUID, tPID := task.GUIDandPID()
+	if guid == tGUID {
+		log.Trace("Migration [%s] cancel PID [%d] ", ctx.Repo.Repository.FullName(), tPID)
+		process.GetManager().Cancel(tPID)
+		ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
+		ctx.Redirect(ctx.Repo.Owner.DashboardLink())
+		return
 	}
 
 	ctx.Flash.Error(ctx.Tr("repo.migrate.task_not_found", ctx.Repo.Repository.FullName()))
