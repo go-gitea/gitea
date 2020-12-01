@@ -19,7 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -210,6 +212,25 @@ func CancelMigration(ctx *context.Context) {
 		ctx.InternalServerError(err)
 		return
 	}
+	if task.Status != structs.TaskStatusRunning {
+		task.Status = structs.TaskStatusStopped
+		task.EndTime = timeutil.TimeStampNow()
+		task.RepoID = 0
+
+		if err = task.UpdateCols("status", "repo_id", "end_time"); err != nil {
+			log.Error("Task UpdateCols failed: %v", err)
+		}
+
+		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
+			ctx.ServerError("DeleteRepository", err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.migrate.cancelled"))
+		ctx.Redirect(ctx.Repo.Owner.DashboardLink())
+		return
+	}
+
 	tGUID, tPID := task.GUIDandPID()
 	if guid == tGUID {
 		log.Trace("Migration [%s] cancel PID [%d] ", ctx.Repo.Repository.FullName(), tPID)
