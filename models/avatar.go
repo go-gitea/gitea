@@ -27,6 +27,11 @@ type EmailHash struct {
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
 	u, err := url.Parse(setting.AppSubURL)
+	if err != nil {
+		log.Error("GetUserByEmail: %v", err)
+		return ""
+	}
+
 	u.Path = path.Join(u.Path, "/img/avatar_default.png")
 	return u.String()
 }
