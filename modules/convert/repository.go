@@ -5,8 +5,6 @@
 package convert
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -28,8 +26,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	if !isParent {
 		err := repo.GetBaseRepo()
 		if err != nil {
-			fmt.Errorf("APIFormat: %v", err)
-			//TODO: return nil, err
+			return nil
 		}
 		if repo.BaseRepo != nil {
 			parent = innerToRepo(repo.BaseRepo, mode, true)
@@ -88,22 +85,15 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		hasProjects = true
 	}
 
-	repo.GetOwner()
+	if err := repo.GetOwner(); err != nil {
+		return nil
+	}
 
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
 
 	return &api.Repository{
-		ID:    repo.ID,
-		Owner: ToUser(repo.Owner, false, false),
-		/*Owner: &api.User{
-			ID:        repo.Owner.ID,
-			UserName:  repo.Owner.Name,
-			FullName:  repo.Owner.FullName,
-			Email:     repo.Owner.GetEmail(),
-			AvatarURL: repo.Owner.AvatarLink(),
-			LastLogin: repo.Owner.LastLoginUnix.AsTime(),
-			Created:   repo.Owner.CreatedUnix.AsTime(),
-		},*/
+		ID:                        repo.ID,
+		Owner:                     ToUser(repo.Owner, mode != models.AccessModeNone, mode >= models.AccessModeAdmin),
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
