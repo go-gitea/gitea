@@ -93,6 +93,17 @@ func HashedAvatarLink(email string) string {
 	return setting.AppSubURL + "/avatar/" + url.PathEscape(sum)
 }
 
+// MakeFinalAvatarUrl constructs the final URL string from a net.URL
+func MakeFinalAvatarUrl(u *url.URL, size int) string {
+	vals := u.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	u.RawQuery = vals.Encode()
+	return u.String()
+}
+
 // SizedAvatarLink returns a sized link to the avatar for the given email address.
 func SizedAvatarLink(email string, size int) string {
 	var avatarURL *url.URL
@@ -109,11 +120,5 @@ func SizedAvatarLink(email string, size int) string {
 		return DefaultAvatarLink()
 	}
 
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	return avatarURL.String()
+	return MakeFinalAvatarUrl(avatarURL, size)
 }

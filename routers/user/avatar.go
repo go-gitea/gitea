@@ -80,11 +80,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		}
 	}
 
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != models.DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	ctx.Redirect(avatarURL.String())
+	ctx.Redirect(models.MakeFinalAvatarUrl(avatarURL, size))
 }
