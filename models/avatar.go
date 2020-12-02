@@ -93,7 +93,7 @@ func HashedAvatarLink(email string) string {
 	return setting.AppSubURL + "/avatar/" + url.PathEscape(sum)
 }
 
-// MakeFinalAvatarURL constructs the final URL string from a net.URL
+// MakeFinalAvatarURL constructs the final avatar URL string
 func MakeFinalAvatarURL(u *url.URL, size int) string {
 	vals := u.Query()
 	vals.Set("d", "identicon")
@@ -108,8 +108,9 @@ func MakeFinalAvatarURL(u *url.URL, size int) string {
 func SizedAvatarLink(email string, size int) string {
 	var avatarURL *url.URL
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		// this is the slow path that would need to call libravatarURL() which
-		// does DNS lookups. avoid it by issuing a redirect.
+		// This is the slow path that would need to call LibravatarURL() which
+		// does DNS lookups. Avoid it by issuing a redirect so we don't block
+		// the template render with network requests.
 		return HashedAvatarLink(email)
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
