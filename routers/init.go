@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -173,6 +174,10 @@ func GlobalInit(ctx context.Context) {
 		log.Info("SQLite3 Supported")
 	}
 	checkRunMode()
+
+	if err := repo_migrations.Init(); err != nil {
+		log.Fatal("Failed to initialize repository migrations: %v", err)
+	}
 
 	// Now because Install will re-run GlobalInit once it has set InstallLock
 	// we can't tell if the ssh port will remain unused until that's done.
