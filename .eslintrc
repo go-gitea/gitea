@@ -3,15 +3,19 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
+  - /templates/base/head.tmpl
+  - /templates/repo/activity.tmpl
+  - /templates/repo/view_file.tmpl
 
 parserOptions:
   sourceType: module
-  ecmaVersion: 2020
+  ecmaVersion: 2021
 
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
   - eslint-plugin-vue
+  - eslint-plugin-html
 
 extends:
   - plugin:vue/recommended
@@ -27,12 +31,19 @@ globals:
   SimpleMDE: false
   u2fApi: false
 
+settings:
+  html/html-extensions: [".tmpl"]
+
 overrides:
-  - files: ["web_src/**/*.js", "web_src/**/*.vue"]
+  - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl"]
     env:
       browser: true
       jquery: true
       node: false
+  - files: ["templates/**/*.tmpl"]
+    rules:
+      no-tabs: [0]
+      indent: [2, tab, {SwitchCase: 1}]
   - files: ["web_src/**/*worker.js"]
     env:
       worker: true
@@ -224,6 +235,7 @@ rules:
   no-new-symbol: [2]
   no-new-wrappers: [2]
   no-new: [0]
+  no-nonoctal-decimal-escape: [2]
   no-obj-calls: [2]
   no-octal-escape: [2]
   no-octal: [2]

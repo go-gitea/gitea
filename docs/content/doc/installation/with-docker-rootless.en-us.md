@@ -19,7 +19,7 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-The rootless image use Gitea internal ssh to provide git protocol and doesn't support openssh. 
+The rootless image use Gitea internal ssh to provide git protocol and doesn't support openssh.
 
 This reference setup guides users through the setup based on `docker-compose`, but the installation
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
@@ -240,7 +240,7 @@ You can configure some of Gitea's settings via environment variables:
 (Default values are provided in **bold**)
 
 * `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
-* `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
+* `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 * `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
 * `SSH_PORT`: **2222**: SSH port displayed in clone URL.
 * `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.

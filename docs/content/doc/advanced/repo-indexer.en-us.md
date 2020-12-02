@@ -56,5 +56,3 @@ Pattern matching works as follows:
 * To match all files named `Makefile`, use `**Makefile`.
 * Matching a directory has no effect; the pattern `resources/bin` will not include/exclude files inside that directory; `resources/bin/**` will.
 * All files and patterns are normalized to lower case, so `**Makefile`, `**makefile` and `**MAKEFILE` are equivalent.
-
-

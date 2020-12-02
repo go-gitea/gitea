@@ -1,50 +1,65 @@
 #user-heatmap {
-  width: 107%; // Fixes newest contributions not showing
+  width: 100%;
   text-align: center;
+  position: relative;
+  min-height: 125px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > svg {
+    width: 100%;
+  }
 
   svg:not(:root) {
     overflow: inherit;
     padding: 0 !important;
   }
 
-  @media (max-width: 1200px) {
-    & {
-      display: none;
-    }
+  text {
+    fill: currentColor !important;
   }
 
   .total-contributions {
-    text-align: left;
-    font-weight: 500;
-    margin-top: 0;
+    font-size: 11px;
+    position: absolute;
+    bottom: 0;
+    left: 25px;
+  }
+
+  @media @mediaLgAndDown {
+    & {
+      min-height: 105px;
+    }
+    .total-contributions {
+      left: 21px;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    & {
+      min-height: 80px;
+    }
+    .total-contributions {
+      font-size: 10px;
+      left: 17px;
+      bottom: -4px;
+    }
   }
 }
 
-.heatmap-container {
-  position: relative;
+.user.profile #user-heatmap {
+  min-height: 135px;
 }
 
-.heatmap-container .total-contributions {
-  font-size: 11px;
-  position: absolute;
-  bottom: 0;
-  left: 25px;
-}
-
-@media (max-width: 1200px) {
-  .heatmap-container .total-contributions {
-    left: 21px;
+@media @mediaLgAndDown {
+  .user.profile #user-heatmap {
+    min-height: 115px;
   }
 }
 
 @media (max-width: 1000px) {
-  .heatmap-container .total-contributions {
-    font-size: 10px;
-    left: 17px;
-    bottom: -2px;
+  .user.profile #user-heatmap {
+    min-height: 90px;
   }
-}
-
-.heatmap-container text {
-  fill: currentColor !important;
 }
