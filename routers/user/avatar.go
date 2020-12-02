@@ -80,5 +80,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		}
 	}
 
-	ctx.Redirect(models.MakeFinalAvatarUrl(avatarURL, size))
+	ctx.Redirect(models.MakeFinalAvatarURL(avatarURL, size))
 }
