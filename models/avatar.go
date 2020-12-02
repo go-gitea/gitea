@@ -26,7 +26,9 @@ type EmailHash struct {
 
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
-	return setting.AppSubURL + "/img/avatar_default.png"
+	u, err := url.Parse(setting.AppSubURL)
+	u.Path = path.Join(u.Path, "/img/avatar_default.png")
+	return u.String()
 }
 
 // DefaultAvatarSize is a sentinel value for the default avatar size, as
