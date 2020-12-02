@@ -12,9 +12,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -22,7 +20,6 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -135,12 +132,6 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 	return code
 }
 
-// HashEmail hashes email address to MD5 string.
-// https://en.gravatar.com/site/implement/hash/
-func HashEmail(email string) string {
-	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
-}
-
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
 	return setting.AppSubURL + "/img/avatar_default.png"
@@ -149,74 +140,6 @@ func DefaultAvatarLink() string {
 // DefaultAvatarSize is a sentinel value for the default avatar size, as
 // determined by the avatar-hosting service.
 const DefaultAvatarSize = -1
-
-// libravatarURL returns the URL for the given email. This function should only
-// be called if a federated avatar service is enabled.
-func libravatarURL(email string) (*url.URL, error) {
-	urlStr, err := setting.LibravatarService.FromEmail(email)
-	if err != nil {
-		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
-		return nil, err
-	}
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
-		return nil, err
-	}
-	return u, nil
-}
-
-// SizedAvatarLink returns a sized link to the avatar for the given email
-// address.
-func SizedAvatarLink(email string, size int) string {
-	var avatarURL *url.URL
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		// this is the slow path that would need to call libravatarURL() which
-		// does DNS lookups. avoid it by issueing a redirect.
-		return models.AvatarLink(email)
-	} else if !setting.DisableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		copyOfGravatarSourceURL := *setting.GravatarSourceURL
-		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
-	} else {
-		return DefaultAvatarLink()
-	}
-
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	return avatarURL.String()
-}
-
-// SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
-// address.
-func SizedAvatarLinkWithDomain(email string, size int) string {
-	var avatarURL *url.URL
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		// this is the slow path that would need to call libravatarURL() which
-		// does DNS lookups. avoid it by issueing a redirect.
-		return models.AvatarLink(email)
-	} else if !setting.DisableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		copyOfGravatarSourceURL := *setting.GravatarSourceURL
-		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
-	} else {
-		return DefaultAvatarLink()
-	}
-
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	return avatarURL.String()
-}
 
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {

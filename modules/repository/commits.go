@@ -123,7 +123,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		var err error
 		u, err = models.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = models.AvatarLink(email)
+			pc.avatars[email] = models.HashedAvatarLink(email)
 			if !models.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
