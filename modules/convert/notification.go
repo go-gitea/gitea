@@ -21,7 +21,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 	//since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = n.Repository.APIFormat(models.AccessModeRead)
+		result.Repository = ToRepo(n.Repository, models.AccessModeRead)
 	}
 
 	//handle Subject

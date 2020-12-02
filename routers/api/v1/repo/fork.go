@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -58,7 +59,7 @@ func ListForks(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		apiForks[i] = fork.APIFormat(access)
+		apiForks[i] = convert.ToRepo(fork, access)
 	}
 	ctx.JSON(http.StatusOK, apiForks)
 }
@@ -125,5 +126,5 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	}
 
 	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, fork.APIFormat(models.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, models.AccessModeOwner))
 }
