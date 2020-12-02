@@ -27,31 +27,31 @@ type webhook struct {
 
 var (
 	webhooks = map[models.HookTaskType]*webhook{
-		models.SLACK: &webhook{
+		models.SLACK: {
 			name:           models.SLACK,
 			payloadCreator: GetSlackPayload,
 		},
-		models.DISCORD: &webhook{
+		models.DISCORD: {
 			name:           models.DISCORD,
 			payloadCreator: GetDiscordPayload,
 		},
-		models.DINGTALK: &webhook{
+		models.DINGTALK: {
 			name:           models.DINGTALK,
 			payloadCreator: GetDingtalkPayload,
 		},
-		models.TELEGRAM: &webhook{
+		models.TELEGRAM: {
 			name:           models.TELEGRAM,
 			payloadCreator: GetTelegramPayload,
 		},
-		models.MSTEAMS: &webhook{
+		models.MSTEAMS: {
 			name:           models.MSTEAMS,
 			payloadCreator: GetMSTeamsPayload,
 		},
-		models.FEISHU: &webhook{
+		models.FEISHU: {
 			name:           models.FEISHU,
 			payloadCreator: GetFeishuPayload,
 		},
-		models.MATRIX: &webhook{
+		models.MATRIX: {
 			name:           models.MATRIX,
 			payloadCreator: GetMatrixPayload,
 		},
