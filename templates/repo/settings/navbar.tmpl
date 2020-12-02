@@ -1,29 +1,31 @@
-<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
-	<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
-		{{.i18n.Tr "repo.settings.options"}}
-	</a>
-	<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
-		{{.i18n.Tr "repo.settings.collaboration"}}
-	</a>
-	{{if not .Repository.IsEmpty}}
-		<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
-			{{.i18n.Tr "repo.settings.branches"}}
+<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar shadow-body">
+	<div class="new-menu-inner">
+		<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
+			{{.i18n.Tr "repo.settings.options"}}
 		</a>
-	{{end}}
-	<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
-		{{.i18n.Tr "repo.settings.hooks"}}
-	</a>
-	{{if .SignedUser.CanEditGitHook}}
-		<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
-			{{.i18n.Tr "repo.settings.githooks"}}
+		<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
+			{{.i18n.Tr "repo.settings.collaboration"}}
 		</a>
-	{{end}}
-	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
-		{{.i18n.Tr "repo.settings.deploy_keys"}}
-	</a>
-	{{if .LFSStartServer}}
-		<a class="{{if .PageIsSettingsLFS}}active{{end}} item" href="{{.RepoLink}}/settings/lfs">
-			{{.i18n.Tr "repo.settings.lfs"}}
+		{{if not .Repository.IsEmpty}}
+			<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
+				{{.i18n.Tr "repo.settings.branches"}}
+			</a>
+		{{end}}
+		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
+			{{.i18n.Tr "repo.settings.hooks"}}
 		</a>
-	{{end}}
+		{{if .SignedUser.CanEditGitHook}}
+			<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
+				{{.i18n.Tr "repo.settings.githooks"}}
+			</a>
+		{{end}}
+		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
+			{{.i18n.Tr "repo.settings.deploy_keys"}}
+		</a>
+		{{if .LFSStartServer}}
+			<a class="{{if .PageIsSettingsLFS}}active{{end}} item" href="{{.RepoLink}}/settings/lfs">
+				{{.i18n.Tr "repo.settings.lfs"}}
+			</a>
+		{{end}}
+	</div>
 </div>

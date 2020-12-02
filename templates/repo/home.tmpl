@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository file list {{if .IsBlame}}blame{{end}}">
+<div class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
@@ -23,12 +23,12 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui" id="repo-topics">
-		{{range .Topics}}<a class="ui repo-topic small label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		<div class="mt-3" id="repo-topics">
+		{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
+		<div class="ui repo-topic-edit grid form" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">
@@ -63,7 +63,7 @@
 			<!-- If home page, show new PR. If not, show breadcrumb -->
 			{{if eq $n 0}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					<div class="fitted item">
+					<div class="fitted item mx-0">
 						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
 							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}</button>
 						</a>
@@ -72,8 +72,8 @@
 			{{else}}
 				<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			{{end}}
-			<div class="right fitted item" id="file-buttons">
-				<div class="ui tiny blue buttons">
+			<div class="right fitted item mr-0" id="file-buttons">
+				<div class="ui tiny primary buttons">
 					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
@@ -111,12 +111,12 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{if not $.DisableHTTP}}
-							<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
+							<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
 								{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
 							</button>
 						{{end}}
 						{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-							<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
+							<button class="ui basic clone button no-transition" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
 								SSH
 							</button>
 						{{end}}
@@ -125,6 +125,19 @@
 						{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
 						{{end}}
+						<script defer>
+							const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
+							const sshButton = document.getElementById('repo-clone-ssh');
+							const httpsButton = document.getElementById('repo-clone-https');
+							const input = document.getElementById('repo-clone-url');
+							if (input) input.value = (isSSH ? sshButton : httpsButton).dataset.link;
+							if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
+							if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
+							setTimeout(() => {
+								if (sshButton) sshButton.classList.remove('no-transition');
+								if (httpsButton) httpsButton.classList.remove('no-transition');
+							}, 100);
+						</script>
 						{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
 								{{svg "octicon-clippy"}}

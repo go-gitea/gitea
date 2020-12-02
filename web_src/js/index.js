@@ -517,20 +517,23 @@ function initCommentForm() {
           $(this).data('id'),
         ).then(reload);
       }
-      switch (input_id) {
-        case '#milestone_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#project_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
-                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEscape($(this).text())}</a>`);
+
+      let icon = '';
+      if (input_id === '#milestone_id') {
+        icon = svg('octicon-milestone', 18, 'mr-3');
+      } else if (input_id === '#project_id') {
+        icon = svg('octicon-project', 18, 'mr-3');
+      } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
+
+      $list.find('.selected').html(`
+        <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
+          ${icon}
+          ${htmlEscape($(this).text())}
+        </a>
+      `);
+
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
@@ -1138,16 +1141,16 @@ async function initRepository() {
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-https').removeClass('blue');
+    $(this).addClass('primary');
+    $('#repo-clone-https').removeClass('primary');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
   $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
+    $(this).addClass('primary');
     if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('blue');
+      $('#repo-clone-ssh').removeClass('primary');
       localStorage.setItem('repo-clone-protocol', 'https');
     }
   });
@@ -2115,6 +2118,7 @@ function initCodeView() {
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
@@ -2519,22 +2523,6 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
-
-  // Repo clone url.
-  if ($('#repo-clone-url').length > 0) {
-    switch (localStorage.getItem('repo-clone-protocol')) {
-      case 'ssh':
-        if ($('#repo-clone-ssh').length > 0) {
-          $('#repo-clone-ssh').trigger('click');
-        } else {
-          $('#repo-clone-https').trigger('click');
-        }
-        break;
-      default:
-        $('#repo-clone-https').trigger('click');
-        break;
-    }
-  }
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -3340,7 +3328,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            const link = $('<a class="ui repo-topic small label topic"></a>');
+            const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);

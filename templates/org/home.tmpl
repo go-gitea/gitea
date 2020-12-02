@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="organization profile">
+<div class="page-content organization profile">
 	{{/* overflow: auto is the clearfix - this avoids the image going beyond
 	the container where it is supposed to stay inside. */}}
 	<div class="ui container" style="overflow: auto">
@@ -8,8 +8,8 @@
 			<div class="ui header">
 				{{.Org.DisplayName}}
 				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<div class="ui large orange horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<div class="ui large red horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
 				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear"}}</a>{{end}}
 			</div>

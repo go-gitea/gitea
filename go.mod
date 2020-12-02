@@ -19,10 +19,10 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
-	github.com/alecthomas/chroma v0.8.1
+	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/blevesearch/bleve v1.0.12
+	github.com/blevesearch/bleve v1.0.13
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -31,7 +31,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/editorconfig/editorconfig-core-go/v2 v2.3.8
+	github.com/editorconfig/editorconfig-core-go/v2 v2.3.9
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
@@ -64,7 +64,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.11.2
+	github.com/klauspost/compress v1.11.3
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
@@ -78,7 +78,7 @@ require (
 	github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.4
-	github.com/minio/minio-go/v7 v7.0.5
+	github.com/minio/minio-go/v7 v7.0.6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646

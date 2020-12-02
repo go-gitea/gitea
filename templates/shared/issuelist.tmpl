@@ -1,0 +1,139 @@
+<div class="issue list">
+	{{ $approvalCounts := .ApprovalCounts}}
+	{{range .Issues}}
+		<li class="item df py-3">
+			<div class="issue-item-left df py-1">
+				{{if $.CanWriteIssuesOrPulls}}
+					<div class="ui checkbox issue-checkbox">
+						<input type="checkbox" data-issue-id={{.ID}}></input>
+						<label></label>
+					</div>
+				{{end}}
+				<div class="issue-item-icon">
+					{{if .IsPull}}
+						{{if .PullRequest.HasMerged}}
+							{{svg "octicon-git-merge" 16 "text purple"}}
+						{{else}}
+							{{if .IsClosed}}
+								{{svg "octicon-git-pull-request" 16 "text red"}}
+							{{else}}
+								{{svg "octicon-git-pull-request" 16 "text green"}}
+							{{end}}
+						{{end}}
+					{{else}}
+						{{if .IsClosed}}
+							{{svg "octicon-issue-closed" 16 "text red"}}
+						{{else}}
+							{{svg "octicon-issue-opened" 16 "text green"}}
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+			<div class="issue-item-main f1 fc df">
+				<div class="issue-item-top-row df ac fw">
+					<a class="title mr-3" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
+					{{if .IsPull }}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+						{{end}}
+					{{end}}
+					<span class="labels-list">
+						{{range .Labels}}
+							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+						{{end}}
+					</span>
+				</div>
+				<div class="desc issue-item-bottom-row df ac fw my-1">
+					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						#{{.Index}}
+					</a>
+					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+					{{if .OriginalAuthor }}
+						{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+					{{else if gt .Poster.ID 0}}
+						{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+					{{else}}
+						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+					{{end}}
+					{{if and .Milestone (ne $.listType "milestone")}}
+						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/milestone/{{.Milestone.ID}}"{{end}}>
+							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
+						</a>
+					{{end}}
+					{{if .Ref}}
+						<a class="ref" {{if $.RepoLink}}href="{{$.RepoLink}}{{index $.IssueRefURLs .ID}}"{{else}}href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{index $.IssueRefURLs .ID}}"{{end}}>
+							{{svg "octicon-git-branch" 14 "mr-2"}}{{index $.IssueRefEndNames .ID}}
+						</a>
+					{{end}}
+					{{$tasks := .GetTasks}}
+					{{if gt $tasks 0}}
+						{{$tasksDone := .GetTasksDone}}
+						<span class="checklist">
+							{{svg "octicon-checklist" 14 "mr-2"}}{{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+						</span>
+					{{end}}
+					{{if ne .DeadlineUnix 0}}
+						<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
+							<span{{if .IsOverdue}} class="overdue"{{end}}>
+								{{svg "octicon-calendar" 14 "mr-2"}}
+								{{.DeadlineUnix.FormatShort}}
+							</span>
+						</span>
+					{{end}}
+					{{if .IsPull}}
+						{{$approveOfficial := call $approvalCounts .ID "approve"}}
+						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
+						{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
+						{{if gt $approveOfficial 0}}
+							<span class="approvals df ac">
+								{{svg "octicon-check" 14 "mr-2"}}
+								{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+							</span>
+						{{end}}
+						{{if gt $rejectOfficial 0}}
+							<span class="rejects df ac">
+								{{svg "octicon-diff" 14 "mr-2"}}
+								{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+							</span>
+						{{end}}
+						{{if gt $waitingOfficial 0}}
+							<span class="waiting df ac">
+								{{svg "octicon-eye" 14}}
+								{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
+							</span>
+						{{end}}
+						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
+							<span class="conflicting df ac">
+								{{svg "octicon-x" 14}}
+								{{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}
+							</span>
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+			<div class="issue-item-icons-right df p-2">
+				<div class="issue-item-icon-right text grey">
+					{{if .TotalTrackedTime}}
+						{{svg "octicon-clock" 16 "mr-2"}}
+						{{.TotalTrackedTime | Sec2Time}}
+					{{end}}
+				</div>
+				<div class="issue-item-icon-right text grey">
+					{{range .Assignees}}
+						<a class="ui assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}">
+						</a>
+					{{end}}
+				</div>
+				<div class="issue-item-icon-right text grey">
+					{{if .NumComments}}
+						<a href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
+						</a>
+					{{end}}
+				</div>
+			</div>
+		</li>
+	{{end}}
+</div>
+{{template "base/paginate" .}}

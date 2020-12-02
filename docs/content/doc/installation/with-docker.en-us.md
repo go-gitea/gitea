@@ -257,7 +257,7 @@ You can configure some of Gitea's settings via environment variables:
 (Default values are provided in **bold**)
 
 * `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
-* `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
+* `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 * `DOMAIN`: **localhost**: Domain name of this server, used for the displayed http clone URL in Gitea's UI.
 * `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
@@ -306,7 +306,7 @@ container if you wish to use SSH support. If you wish to do this without running
 SSH on a non-standard port (or move your host port to a non-standard port), you can forward
 SSH connections destined for the container with a little extra setup.
 
-This guide assumes that you have created a user on the host called `git` which shares the same 
+This guide assumes that you have created a user on the host called `git` which shares the same
 UID/GID as the container values `USER_UID`/`USER_GID`. You should also create the directory
 `/var/lib/gitea` on the host, owned by the `git` user and mounted in the container, e.g.
 

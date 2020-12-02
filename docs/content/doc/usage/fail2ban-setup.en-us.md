@@ -15,11 +15,11 @@ menu:
 
 # Fail2ban setup to block users after failed login attempts
 
-**Remember that fail2ban is powerful and can cause lots of issues if you do it incorrectly, so make 
+**Remember that fail2ban is powerful and can cause lots of issues if you do it incorrectly, so make
 sure to test this before relying on it so you don't lock yourself out.**
 
-Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in 
-`app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this 
+Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in
+`app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this
 on a bad authentication:
 
 ```log
@@ -41,14 +41,14 @@ Add our jail in `/etc/fail2ban/jail.d/gitea.conf`:
 [gitea]
 enabled = true
 filter = gitea
-logpath = /home/git/gitea/log/gitea.log
+logpath = /var/lib/gitea/log/gitea.log
 maxretry = 10
 findtime = 3600
 bantime = 900
 action = iptables-allports
 ```
 
-If you're using Docker, you'll also need to add an additional jail to handle the **FORWARD** 
+If you're using Docker, you'll also need to add an additional jail to handle the **FORWARD**
 chain in **iptables**. Configure it in `/etc/fail2ban/jail.d/gitea-docker.conf`:
 
 ```ini
@@ -62,14 +62,14 @@ bantime = 900
 action = iptables-allports[chain="FORWARD"]
 ```
 
-Then simply run `service fail2ban restart` to apply your changes. You can check to see if 
+Then simply run `service fail2ban restart` to apply your changes. You can check to see if
 fail2ban has accepted your configuration using `service fail2ban status`.
 
-Make sure and read up on fail2ban and configure it to your needs, this bans someone 
+Make sure and read up on fail2ban and configure it to your needs, this bans someone
 for **15 minutes** (from all ports) when they fail authentication 10 times in an hour.
 
 If you run Gitea behind a reverse proxy with Nginx (for example with Docker), you need to add
-this to your Nginx configuration so that IPs don't show up as 127.0.0.1: 
+this to your Nginx configuration so that IPs don't show up as 127.0.0.1:
 
 ```
 proxy_set_header X-Real-IP $remote_addr;

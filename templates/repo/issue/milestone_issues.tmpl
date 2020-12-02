@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository">
+<div class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui three column stackable grid">
@@ -14,9 +14,9 @@
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
 					{{if or .CanWriteIssues .CanWritePulls}}
-					<a class="ui grey button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
+					<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
 					{{end}}
-					<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
+					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
@@ -40,16 +40,7 @@
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-opened"}}
-						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-closed"}}
-						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
-					</a>
-				</div>
+				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
@@ -118,16 +109,7 @@
 		</div>
 		<div id="issue-actions" class="ui stackable grid hide">
 			<div class="six wide column">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-opened"}}
-						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						{{svg "octicon-issue-closed"}}
-						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
-					</a>
-				</div>
+				{{template "repo/issue/openclose" .}}
 			</div>
 
 			{{/* Ten wide does not cope well and makes the columns stack.
@@ -177,127 +159,7 @@
 				</div>
 			</div>
 		</div>
-
-		<div class="issue list">
-			{{ $approvalCounts := .ApprovalCounts}}
-			{{range .Issues}}
-				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
-				<li class="item">
-					{{if or (and $.CanWriteIssues (not .IsPull)) (and $.CanWritePulls .IsPull)}}
-					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}}></input>
-					</div>
-					{{end}}
-
-					{{if .IsClosed}}
-						{{if .IsPull}}
-							{{if .PullRequest.HasMerged}}
-								<div class="ui purple label">#{{.Index}}</div>
-								<a class="ui purple text">{{svg "octicon-git-pull-request"}}</a>
-							{{else}}
-								<div class="ui red label">#{{.Index}}</div>
-								<a class="ui red text">{{svg "octicon-git-pull-request"}}</a>
-							{{end}}
-						{{else}}
-							<div class="ui red label">#{{.Index}}</div>
-							<a class="ui red text">{{svg "octicon-issue-closed"}}</a>
-						{{end}}
-					{{else}}
-						{{if .IsRead}}
-							<div class="ui white label">#{{.Index}}</div>
-						{{else}}
-							<div class="ui green label">#{{.Index}}</div>
-						{{end}}
-						{{if .IsPull}}
-							<a class="ui green text">{{svg "octicon-git-pull-request"}}</a>
-						{{else}}
-							<a class="ui green text">{{svg "octicon-issue-opened"}}</a>
-						{{end}}
-					{{end}}
-
-					<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
-
-					{{if .IsPull }}
-						{{if (index $.CommitStatus .PullRequest.ID)}}
-							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
-						{{end}}
-					{{end}}
-
-					{{range .Labels}}
-						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmoji}}</a>
-					{{end}}
-
-					{{if .NumComments}}
-						<span class="comment ui right">{{svg "octicon-comment"}} {{.NumComments}}</span>
-					{{end}}
-
-					{{if .TotalTrackedTime}}
-						<span class="comment ui right">{{svg "octicon-clock"}} {{.TotalTrackedTime | Sec2Time}}</span>
-					{{end}}
-
-					<p class="desc">
-						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-						{{if .OriginalAuthor }}
-							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
-						{{else if gt .Poster.ID 0}}
-							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
-						{{else}}
-							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
-						{{end}}
-
-						{{if .Ref}}
-							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
-								{{svg "octicon-git-branch"}} {{index $.IssueRefEndNames .ID}}
-							</a>
-						{{end}}
-						{{$tasks := .GetTasks}}
-						{{if gt $tasks 0}}
-							{{$tasksDone := .GetTasksDone}}
-							<span class="checklist">
-								{{svg "octicon-checklist"}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
-							</span>
-						{{end}}
-						{{if ne .DeadlineUnix 0}}
-							{{svg "octicon-calendar"}}
-							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
-						{{end}}
-						{{range .Assignees}}
-							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
-								<img class="ui avatar image" src="{{.RelAvatarLink}}">
-							</a>
-						{{end}}
-						{{if .IsPull}}
-							{{$approveOfficial := call $approvalCounts .ID "approve"}}
-							{{$rejectOfficial := call $approvalCounts .ID "reject"}}
-							{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
-							{{if gt $approveOfficial 0}}
-								<span class="approvals">{{svg "octicon-check"}}
-									{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
-								</span>
-							{{end}}
-
-							{{if gt $rejectOfficial 0}}
-								<span class="rejects">{{svg "octicon-diff"}}
-									{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
-								</span>
-							{{end}}
-
-							{{if gt $waitingOfficial 0}}
-								<span class="waiting">{{svg "octicon-eye"}}
-									{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
-								</span>
-							{{end}}
-
-							{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-								<span class="conflicting">{{svg "octicon-x"}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
-							{{end}}
-						{{end}}
-					</p>
-				</li>
-			{{end}}
-
-			{{template "base/paginate" .}}
-		</div>
+		{{template "shared/issuelist" mergeinto . "listType" "milestone"}}
 	</div>
 </div>
 {{template "base/footer" .}}

@@ -36,9 +36,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
 - `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
    (non-user) account. Setting this incorrectly will cause Gitea to not start.
-- `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when
-   deployed to a production environment. The installation process will set this to `prod`
-   automatically. \[prod, dev, test\]
+- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 
 ## Repository (`repository`)
 
@@ -240,7 +238,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
-- `SSH_ROOT_PATH`: **~/.ssh**: Root path of SSH directory. 
+- `SSH_ROOT_PATH`: **~/.ssh**: Root path of SSH directory.
 - `SSH_CREATE_AUTHORIZED_KEYS_FILE`: **true**: Gitea will create a authorized_keys file by default when it is not using the internal ssh server. If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
 - `SSH_AUTHORIZED_KEYS_BACKUP`: **true**: Enable SSH Authorized Key Backup when rewriting all keys, default is true.
 - `SSH_TRUSTED_USER_CA_KEYS`: **\<empty\>**: Specifies the public keys of certificate authorities that are trusted to sign user certificates for authentication. Multiple keys should be comma separated. E.g.`ssh-<algorithm> <key>` or `ssh-<algorithm> <key1>, ssh-<algorithm> <key2>`. For more information see `TrustedUserCAKeys` in the sshd config man pages. When empty no file will be created and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` will default to `off`.
@@ -294,7 +292,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
 - `SCHEMA`: **\<empty\>**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
-  the user must have creation privileges on it, and the user search path must be set to the look into the schema first 
+  the user must have creation privileges on it, and the user search path must be set to the look into the schema first
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
 - `SSL_MODE`: **disable**: SSL/TLS encryption mode for connecting to the database. This option is only applied for PostgreSQL and MySQL.
   - Valid values for MySQL:
@@ -318,7 +316,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connnection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
-  
+
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
 
@@ -465,7 +463,7 @@ relation to port exhaustion.
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
-- `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true. 
+- `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
@@ -493,7 +491,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
 - `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
   - Using opportunistic TLS via STARTTLS on port 587 is recommended per RFC 6409.
-- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port. 
+- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port.
   - Note, if the port ends with `465` SMTPS/SMTP over TLS will be used despite this setting.
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
@@ -846,6 +844,9 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
+- `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
+- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
+- `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 
 ## Mirror (`mirror`)
 
@@ -855,7 +856,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## LFS (`lfs`)
 
 Storage configuration for lfs data. It will be derived from default `[storage]` or
-`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. When derived, the default of `PATH` 
+`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. When derived, the default of `PATH`
 is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 - `STORAGE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`

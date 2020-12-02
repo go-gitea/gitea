@@ -146,7 +146,7 @@ type Filter struct {
 	XMLName xml.Name `xml:"Filter" json:"-"`
 	And     And      `xml:"And,omitempty" json:"And,omitempty"`
 	Prefix  string   `xml:"Prefix,omitempty" json:"Prefix,omitempty"`
-	Tag     Tag      `xml:"Tag,omitempty" json:"-"`
+	Tag     Tag      `xml:"Tag,omitempty" json:"Tag,omitempty"`
 }
 
 // MarshalXML - produces the xml representation of the Filter struct

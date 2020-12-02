@@ -1,15 +1,17 @@
 {{template "base/head" .}}
-<div class="repository wiki pages">
+<div class="page-content repository wiki pages">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="ui header">
-			{{.i18n.Tr "repo.wiki.pages"}}
-			{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
-			<div class="ui right">
-				<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+		<h2 class="ui header df ac sb">
+			<div>
+				{{.i18n.Tr "repo.wiki.pages"}}
 			</div>
-			{{end}}
-		</div>
+			<div>
+				{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
+					<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+				{{end}}
+			</div>
+		</h2>
 		<table class="ui table">
 			<tbody>
 				{{range .Pages}}

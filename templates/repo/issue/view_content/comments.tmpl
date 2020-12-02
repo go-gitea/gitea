@@ -43,7 +43,7 @@
 					</div>
 					<div class="comment-header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if eq .PosterID .Issue.PosterID }}
+							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (eq .Issue.OriginalAuthorID .OriginalAuthorID) }}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
@@ -403,10 +403,10 @@
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
 				{{end}}
-				<span class="badge {{if eq .Review.Type 1}}green
-				{{- else if eq .Review.Type 2}}grey
-				{{- else if eq .Review.Type 3}}red
-				{{- else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
+				<span class="badge {{if eq .Review.Type 1}}bg-green
+				{{- else if eq .Review.Type 2}}bg-grey
+				{{- else if eq .Review.Type 3}}bg-red
+				{{- else}}bg-grey{{end}} text-white">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 				<span class="text grey">
 					{{if .OriginalAuthor }}
 						<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>

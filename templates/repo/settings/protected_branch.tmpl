@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository settings branches">
+<div class="page-content repository settings branches">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -209,6 +209,13 @@
 							<input name="block_on_rejected_reviews" type="checkbox" {{if .Branch.BlockOnRejectedReviews}}checked{{end}}>
 							<label for="block_on_rejected_reviews">{{.i18n.Tr "repo.settings.block_rejected_reviews"}}</label>
 							<p class="help">{{.i18n.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="block_on_official_review_requests" type="checkbox" {{if .Branch.BlockOnOfficialReviewRequests}}checked{{end}}>
+							<label for="block_on_official_review_requests">{{.i18n.Tr "repo.settings.block_on_official_review_requests"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
