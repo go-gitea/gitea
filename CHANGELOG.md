@@ -6,13 +6,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-12-01
 * SECURITY
+  * Add Allow-/Block-List for Migrate & Mirrors (#13610) (#13776)
+  * Prevent git operations for inactive users (#13527) (#13536)
+  * Disallow urlencoded new lines in git protocol paths if there is a port (#13521) (#13524)
   * Mitigate Security vulnerability in the git hook feature (#13058)
   * Disable DSA ssh keys by default (#13056)
   * Set TLS minimum version to 1.2 (#12689)
   * Use argon as default password hash algorithm (#12688)
-  * Disallow urlencoded new lines in git protocol paths if there is a port (#13521) (#13524)
-  * Prevent git operations for inactive users (#13527) (#13536)
-  * Add Allow-/Block-List for Migrate & Mirrors (#13610) (#13776)
 * BREAKING
   * Set RUN_MODE prod by default (#13765) (#13767)
   * Don't replace underscores in auto-generated IDs in goldmark (#12805)
