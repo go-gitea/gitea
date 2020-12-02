@@ -143,7 +143,6 @@
 
   .header-wrapper {
     background-color: var(--color-navbar);
-    padding-top: 15px;
 
     .ui.tabs.divider {
       border-bottom: 0;
@@ -837,8 +836,6 @@
           width: 20px;
           height: 20px;
           margin-right: .5rem;
-          position: relative;
-          top: -2px;
         }
 
         &:first-child:not(.commit) {
@@ -893,6 +890,12 @@
 
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
+
+            > .avatar.image,
+            > .avatar.image img {
+              position: relative;
+              top: -2px;
+            }
 
             .shabox {
               .sha.label {
