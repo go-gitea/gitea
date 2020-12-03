@@ -13,7 +13,7 @@ menu:
     identifier: "config-cheat-sheet"
 ---
 
-# Configuration Cheat Sheet
+# Configuration Cheat Sheet <!-- omit in toc -->
 
 This is a cheat sheet for the Gitea configuration file. It contains most of the settings
 that can be configured as well as their default values.
@@ -30,6 +30,83 @@ by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values re
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
+
+## Table of Contents. <!-- omit in toc -->
+
+<!-- Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Overall (`DEFAULT`)](#overall-default)
+- [Repository (`repository`)](#repository-repository)
+  - [Repository - Editor (`repository.editor`)](#repository---editor-repositoryeditor)
+  - [Repository - Pull Request (`repository.pull-request`)](#repository---pull-request-repositorypull-request)
+  - [Repository - Issue (`repository.issue`)](#repository---issue-repositoryissue)
+  - [Repository - Upload (`repository.upload`)](#repository---upload-repositoryupload)
+  - [Repository - Release (`repository.release`)](#repository---release-repositoryrelease)
+  - [Repository - Signing (`repository.signing`)](#repository---signing-repositorysigning)
+- [Repository - Local (`repository.local`)](#repository---local-repositorylocal)
+- [CORS (`cors`)](#cors-cors)
+- [UI (`ui`)](#ui-ui)
+  - [UI - Admin (`ui.admin`)](#ui---admin-uiadmin)
+  - [UI - Metadata (`ui.meta`)](#ui---metadata-uimeta)
+  - [UI - Notification (`ui.notification`)](#ui---notification-uinotification)
+- [Markdown (`markdown`)](#markdown-markdown)
+- [Server (`server`)](#server-server)
+- [Database (`database`)](#database-database)
+- [Indexer (`indexer`)](#indexer-indexer)
+- [Queue (`queue` and `queue.*`)](#queue-queue-and-queue)
+- [Admin (`admin`)](#admin-admin)
+- [Security (`security`)](#security-security)
+- [OpenID (`openid`)](#openid-openid)
+- [Service (`service`)](#service-service)
+- [SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)](#ssh-minimum-key-sizes-sshminimum_key_sizes)
+- [Webhook (`webhook`)](#webhook-webhook)
+- [Mailer (`mailer`)](#mailer-mailer)
+- [Cache (`cache`)](#cache-cache)
+- [Cache - LastCommitCache settings (`cache.last_commit`)](#cache---lastcommitcache-settings-cachelast_commit)
+- [Session (`session`)](#session-session)
+- [Picture (`picture`)](#picture-picture)
+- [Project (`project`)](#project-project)
+- [Issue and pull request attachments (`attachment`)](#issue-and-pull-request-attachments-attachment)
+- [Log (`log`)](#log-log)
+  - [Log subsections (`log.name`, `log.name.*`)](#log-subsections-logname-logname)
+  - [Console log mode (`log.console`, `log.console.*`, or `MODE=console`)](#console-log-mode-logconsole-logconsole-or-modeconsole)
+  - [File log mode (`log.file`, `log.file.*` or `MODE=file`)](#file-log-mode-logfile-logfile-or-modefile)
+  - [Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`)](#conn-log-mode-logconn-logconn-or-modeconn)
+  - [SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`)](#smtp-log-mode-logsmtp-logsmtp-or-modesmtp)
+- [Cron (`cron`)](#cron-cron)
+  - [Basic cron tasks - enabled by default](#basic-cron-tasks---enabled-by-default)
+    - [Cron - Cleanup old repository archives (`cron.archive_cleanup`)](#cron---cleanup-old-repository-archives-cronarchive_cleanup)
+    - [Cron - Update Mirrors (`cron.update_mirrors`)](#cron---update-mirrors-cronupdate_mirrors)
+    - [Cron - Repository Health Check (`cron.repo_health_check`)](#cron---repository-health-check-cronrepo_health_check)
+    - [Cron - Repository Statistics Check (`cron.check_repo_stats`)](#cron---repository-statistics-check-croncheck_repo_stats)
+    - [Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)](#cron---update-migration-poster-id-cronupdate_migration_poster_id)
+    - [Cron - Sync External Users (`cron.sync_external_users`)](#cron---sync-external-users-cronsync_external_users)
+  - [Extended cron tasks (not enabled by default)](#extended-cron-tasks-not-enabled-by-default)
+    - [Cron - Garbage collect all repositories ('cron.git_gc_repos')](#cron---garbage-collect-all-repositories-crongit_gc_repos)
+    - [Cron - Update the '.ssh/authorized_keys' file with Gitea SSH keys ('cron.resync_all_sshkeys')](#cron---update-the-sshauthorized_keys-file-with-gitea-ssh-keys-cronresync_all_sshkeys)
+    - [Cron - Resynchronize pre-receive, update and post-receive hooks of all repositories ('cron.resync_all_hooks')](#cron---resynchronize-pre-receive-update-and-post-receive-hooks-of-all-repositories-cronresync_all_hooks)
+    - [Cron - Reinitialize all missing Git repositories for which records exist ('cron.reinit_missing_repos')](#cron---reinitialize-all-missing-git-repositories-for-which-records-exist-cronreinit_missing_repos)
+    - [Cron - Delete all repositories missing their Git files ('cron.delete_missing_repos')](#cron---delete-all-repositories-missing-their-git-files-crondelete_missing_repos)
+    - [Cron -  Delete generated repository avatars ('cron.delete_generated_repository_avatars')](#cron----delete-generated-repository-avatars-crondelete_generated_repository_avatars)
+- [Git (`git`)](#git-git)
+- [Git - Timeout settings (`git.timeout`)](#git---timeout-settings-gittimeout)
+- [Metrics (`metrics`)](#metrics-metrics)
+- [API (`api`)](#api-api)
+- [OAuth2 (`oauth2`)](#oauth2-oauth2)
+- [i18n (`i18n`)](#i18n-i18n)
+- [U2F (`U2F`)](#u2f-u2f)
+- [Markup (`markup`)](#markup-markup)
+- [Time (`time`)](#time-time)
+- [Task (`task`)](#task-task)
+- [Migrations (`migrations`)](#migrations-migrations)
+- [Mirror (`mirror`)](#mirror-mirror)
+- [LFS (`lfs`)](#lfs-lfs)
+- [Storage (`storage`)](#storage-storage)
+- [Other (`other`)](#other-other)
+
+---
 
 ## Overall (`DEFAULT`)
 
