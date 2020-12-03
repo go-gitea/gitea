@@ -1621,8 +1621,14 @@ a.ui.basic.label:hover {
 }
 
 /* fix misaligned right buttons on box headers */
+.ui.attached.header {
+  position: relative;
+}
 .ui.attached.header .right {
-  margin-top: -6px;
+  position: absolute;
+  right: .78571429rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */
