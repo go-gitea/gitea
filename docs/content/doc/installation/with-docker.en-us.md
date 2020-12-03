@@ -13,7 +13,7 @@ menu:
     identifier: "install-with-docker"
 ---
 
-# Installation with Docker
+# Installation with Docker <!-- omit in toc -->
 
 Gitea provides automatically updated Docker images within its Docker Hub organization. It is
 possible to always use the latest stable tag or to use another service that handles updating
@@ -22,6 +22,26 @@ Docker images.
 This reference setup guides users through the setup based on `docker-compose`, but the installation
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
 the official [install instructions](https://docs.docker.com/compose/install/).
+
+## Table of Contents <!-- omit in toc -->
+
+<!-- Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Basics](#basics)
+- [Custom port](#custom-port)
+- [MySQL database](#mysql-database)
+- [PostgreSQL database](#postgresql-database)
+- [Named volumes](#named-volumes)
+- [Start](#start)
+- [Install](#install)
+- [Environments variables](#environments-variables)
+- [Customization](#customization)
+- [Upgrading](#upgrading)
+- [SSH Container Passthrough](#ssh-container-passthrough)
+
+---
 
 ## Basics
 
