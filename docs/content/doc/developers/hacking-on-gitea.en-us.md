@@ -13,7 +13,35 @@ menu:
     identifier: "hacking-on-gitea"
 ---
 
-# Hacking on Gitea
+# Hacking on Gitea <!-- omit in toc -->
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Installing go](#installing-go)
+- [Installing Make](#installing-make)
+    - [On Linux](#on-linux)
+    - [On Windows](#on-windows)
+- [Downloading and cloning the Gitea source code](#downloading-and-cloning-the-gitea-source-code)
+- [Forking Gitea](#forking-gitea)
+- [Building Gitea (Basic)](#building-gitea-basic)
+- [Building continuously](#building-continuously)
+  - [Formatting, code analysis and spell check](#formatting-code-analysis-and-spell-check)
+  - [Working on JS and CSS](#working-on-js-and-css)
+  - [Building and adding SVGs](#building-and-adding-svgs)
+  - [Building the Logo](#building-the-logo)
+  - [Updating the API](#updating-the-api)
+  - [Creating new configuration options](#creating-new-configuration-options)
+  - [Changing the logo](#changing-the-logo)
+  - [Database Migrations](#database-migrations)
+- [Testing](#testing)
+- [Documentation for the website](#documentation-for-the-website)
+- [Visual Studio Code](#visual-studio-code)
+- [Submitting PRs](#submitting-prs)
+
+---
 
 ## Installing go
 
