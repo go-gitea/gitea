@@ -114,6 +114,9 @@
 							<div class="file-body file-code has-context-menu code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
 								<table class="chroma">
 									<tbody>
+										{{if $file.IsIgnored }}
+											{{template "repo/diff/ignored_diff" dict "file" . "root" $}}
+										{{end}}
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" . "root" $}}
 										{{else}}
