@@ -13,11 +13,40 @@ menu:
     identifier: "install-from-binary"
 ---
 
-# Installation from binary
+# Installation from binary <!-- omit in toc -->
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
+embedded assets. This may be different for older releases.
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Download](#download)
+- [Verify GPG signature](#verify-gpg-signature)
+- [Recommended server configuration](#recommended-server-configuration)
+  - [Prepare environment](#prepare-environment)
+  - [Create required directory structure](#create-required-directory-structure)
+  - [Configure Gitea's working directory](#configure-giteas-working-directory)
+  - [Copy Gitea binary to global location](#copy-gitea-binary-to-global-location)
+- [Running Gitea](#running-gitea)
+  - [1. Creating a service file to start Gitea automatically (recommended)](#1-creating-a-service-file-to-start-gitea-automatically-recommended)
+  - [2. Running from command-line/terminal](#2-running-from-command-lineterminal)
+- [Updating to a new version](#updating-to-a-new-version)
+  - [1. Restarting gitea with systemd (recommended)](#1-restarting-gitea-with-systemd-recommended)
+  - [2. Restarting gitea without systemd](#2-restarting-gitea-without-systemd)
+- [Troubleshooting](#troubleshooting)
+  - [Old glibc versions](#old-glibc-versions)
+  - [Running Gitea on another port](#running-gitea-on-another-port)
+  - [Running Gitea on Raspbian](#running-gitea-on-raspbian)
+  - [Git error after updating to a new version of Gitea](#git-error-after-updating-to-a-new-version-of-gitea)
+
+---
+
+## Download
+
+Choose the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
 the URL and replace the URL within the commands below:
 
 ```sh
