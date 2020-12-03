@@ -278,7 +278,7 @@ You can configure some of Gitea's settings via environment variables:
 * `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 * `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
-# Customization
+## Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
 be placed in `/data/gitea` directory. If using host volumes, it's quite easy to access these
@@ -286,7 +286,7 @@ files; for named volumes, this is done through another container or by direct ac
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
 
-# Upgrading
+## Upgrading
 
 :exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:
 
@@ -299,7 +299,7 @@ docker-compose pull
 docker-compose up -d
 ```
 
-# SSH Container Passthrough
+## SSH Container Passthrough
 
 Since SSH is running inside the container, you'll have to pass SSH from the host to the
 container if you wish to use SSH support. If you wish to do this without running the container
