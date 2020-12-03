@@ -14,18 +14,18 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text" title="{{.ContextUser.Name}}">
-								<img class="ui mini image" src="{{.ContextUser.RelAvatarLink}}">
+								{{avatar .ContextUser 28 "mini"}}
 								{{.ContextUser.ShortName 20}}
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
+									{{avatar .SignedUser 28 "mini"}}
 									{{.SignedUser.ShortName 20}}
 								</div>
 								{{range .Orgs}}
 									<div class="item" data-value="{{.ID}}" title="{{.Name}}">
-										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{avatar . 28 "mini"}}
 										{{.ShortName 20}}
 									</div>
 								{{end}}

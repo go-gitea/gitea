@@ -1,9 +1,7 @@
 {{template "base/head" .}}
 <div class="page-content organization profile">
-	{{/* overflow: auto is the clearfix - this avoids the image going beyond
-	the container where it is supposed to stay inside. */}}
-	<div class="ui container" style="overflow: auto">
-		<img class="ui left" id="org-avatar" src="{{.Org.SizedRelAvatarLink 140}}"/>
+	<div class="ui container df">
+		{{avatar .Org 140 "org-avatar"}}
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
@@ -53,7 +51,9 @@
 					{{$isMember := .IsOrganizationMember}}
 					{{range .Members}}
 						{{if or $isMember (.IsPublicMember $.Org.ID)}}
-							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}"><img class="ui avatar" src="{{.RelAvatarLink}}"></a>
+							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">
+								{{avatar .}}
+							</a>
 						{{end}}
 					{{end}}
 				</div>
