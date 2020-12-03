@@ -223,15 +223,15 @@ clean:
 
 .PHONY: fmt
 fmt:
-	$(GOFMT) -w $(GO_SOURCES_OWN)
+	@echo "Running go fmt..."
+	@$(GOFMT) -w $(GO_SOURCES_OWN)
 
 .PHONY: vet
 vet:
-	# Default vet
-	$(GO) vet $(GO_PACKAGES)
-	# Custom vet
-	$(GO) build -mod=vendor code.gitea.io/gitea-vet
-	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+	@echo "Running go vet..."
+	@$(GO) vet $(GO_PACKAGES)
+	@$(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -268,7 +268,8 @@ errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
 	fi
-	errcheck $(GO_PACKAGES)
+	@echo "Running errcheck..."
+	@errcheck $(GO_PACKAGES)
 
 .PHONY: revive
 revive:
@@ -279,14 +280,16 @@ misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
+	@echo "Running misspell-check..."
+	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -w -i unknwon $(GO_SOURCES_OWN)
+	@echo "Running go misspell..."
+	@misspell -w -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: fmt-check
 fmt-check:
@@ -336,11 +339,12 @@ watch-backend: go-check
 
 .PHONY: test
 test:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+	@echo "Running go test..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
 
 .PHONY: test-check
 test-check:
-	@echo "Checking if tests have changed the source tree...";
+	@echo "Running test-check...";
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test has changed files in the source tree:"; \
@@ -352,7 +356,8 @@ test-check:
 
 .PHONY: test\#%
 test\#%:
-	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@echo "Running go test..."
+	@$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -360,7 +365,8 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -548,7 +554,8 @@ backend: go-check generate $(EXECUTABLE)
 
 .PHONY: generate
 generate: $(TAGS_PREREQ)
-	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+	@echo "Running go generate..."
+	@CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@

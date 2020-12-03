@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -217,7 +218,7 @@ func Search(ctx *context.APIContext) {
 				Error: err.Error(),
 			})
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
@@ -265,7 +266,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -406,7 +407,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -445,7 +446,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -494,7 +495,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
