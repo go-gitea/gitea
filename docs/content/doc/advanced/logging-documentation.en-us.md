@@ -13,9 +13,42 @@ menu:
     identifier: "logging-configuration"
 ---
 
-# Logging Configuration
+# Logging Configuration <!-- omit in toc -->
 
 The logging framework has been revamped in Gitea 1.9.0.
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Log Groups](#log-groups)
+  - [The go log logger](#the-go-log-logger)
+  - [The "Default" logger](#the-default-logger)
+  - [The "Macaron" logger](#the-macaron-logger)
+  - [The "Router" logger](#the-router-logger)
+  - [The "Access" logger](#the-access-logger)
+    - [The ACCESS_LOG_TEMPLATE](#the-access_log_template)
+  - [The "XORM" logger](#the-xorm-logger)
+- [Log outputs](#log-outputs)
+  - [Non-inherited default values](#non-inherited-default-values)
+    - [`EXPRESSION`](#expression)
+    - [`FLAGS`](#flags)
+  - [Console mode](#console-mode)
+  - [File mode](#file-mode)
+  - [Conn mode](#conn-mode)
+  - [SMTP mode](#smtp-mode)
+- [Debugging problems](#debugging-problems)
+- [Empty Configuration](#empty-configuration)
+- [Releasing-and-Reopening, Pausing and Resuming logging](#releasing-and-reopening-pausing-and-resuming-logging)
+- [Adding and removing logging whilst Gitea is running](#adding-and-removing-logging-whilst-gitea-is-running)
+- [Log colorization](#log-colorization)
+- [ColorFormat & ColorFormatted](#colorformat--colorformatted)
+- [Log Spoofing protection](#log-spoofing-protection)
+- [Creating a new named logger group](#creating-a-new-named-logger-group)
+- [Using `logrotate` instead of built-in log rotation](#using-logrotate-instead-of-built-in-log-rotation)
+
+---
 
 ## Log Groups
 
