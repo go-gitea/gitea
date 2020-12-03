@@ -1,12 +1,12 @@
-import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
-import {uniq} from '../utils.js';
+import {emojiKeys, emojiHTML, emojiString} from "./emoji.js";
+import {uniq} from "../utils.js";
 
 function makeCollections({mentions, emoji}) {
   const collections = [];
 
   if (mentions) {
     collections.push({
-      trigger: ':',
+      trigger: ":",
       requireLeadingSpace: true,
       values: (query, cb) => {
         const matches = [];
@@ -20,7 +20,7 @@ function makeCollections({mentions, emoji}) {
       },
       lookup: (item) => item,
       selectTemplate: (item) => {
-        if (typeof item === 'undefined') return null;
+        if (typeof item === "undefined") return null;
         return emojiString(item.original);
       },
       menuItemTemplate: (item) => {
@@ -38,7 +38,7 @@ function makeCollections({mentions, emoji}) {
           <div class="tribute-item">
             <img src="${item.original.avatar}"/>
             <span class="name">${item.original.name}</span>
-            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
+            ${item.original.fullname && item.original.fullname !== "" ? `<span class="fullname">${item.original.fullname}</span>` : ""}
           </div>
         `;
       }
@@ -50,19 +50,19 @@ function makeCollections({mentions, emoji}) {
 
 export default async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
   if (!window.config.Tribute || !elementOrNodeList) return;
-  const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
+  const nodes = Array.from("length" in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
   if (!nodes.length) return;
 
   const mentionNodes = nodes.filter((node) => {
-    return mentions || node.id === 'content';
+    return mentions || node.id === "content";
   });
   const emojiNodes = nodes.filter((node) => {
-    return emoji || node.id === 'content' || node.classList.contains('emoji-input');
+    return emoji || node.id === "content" || node.classList.contains("emoji-input");
   });
   const uniqueNodes = uniq([...mentionNodes, ...emojiNodes]);
   if (!uniqueNodes.length) return;
 
-  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */"tributejs");
 
   const collections = makeCollections({
     mentions: mentions || mentionNodes.length > 0,

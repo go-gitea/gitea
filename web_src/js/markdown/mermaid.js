@@ -1,17 +1,17 @@
 const MAX_SOURCE_CHARACTERS = 5000;
 
 function displayError(el, err) {
-  el.closest('pre').classList.remove('is-loading');
-  const errorNode = document.createElement('div');
-  errorNode.setAttribute('class', 'ui message error markdown-block-error mono');
+  el.closest("pre").classList.remove("is-loading");
+  const errorNode = document.createElement("div");
+  errorNode.setAttribute("class", "ui message error markdown-block-error mono");
   errorNode.textContent = err.str || err.message || String(err);
-  el.closest('pre').before(errorNode);
+  el.closest("pre").before(errorNode);
 }
 
 export async function renderMermaid(els) {
   if (!els || !els.length) return;
 
-  const mermaid = await import(/* webpackChunkName: "mermaid" */'mermaid');
+  const mermaid = await import(/* webpackChunkName: "mermaid" */"mermaid");
 
   mermaid.initialize({
     mermaid: {
@@ -21,8 +21,8 @@ export async function renderMermaid(els) {
       useMaxWidth: true,
       htmlLabels: false,
     },
-    theme: 'neutral',
-    securityLevel: 'strict',
+    theme: "neutral",
+    securityLevel: "strict",
   });
 
   for (const el of els) {
@@ -39,15 +39,15 @@ export async function renderMermaid(els) {
     }
 
     if (!valid) {
-      el.closest('pre').classList.remove('is-loading');
+      el.closest("pre").classList.remove("is-loading");
       continue;
     }
 
     try {
       mermaid.init(undefined, el, (id) => {
         const svg = document.getElementById(id);
-        svg.classList.add('mermaid-chart');
-        svg.closest('pre').replaceWith(svg);
+        svg.classList.add("mermaid-chart");
+        svg.closest("pre").replaceWith(svg);
       });
     } catch (err) {
       displayError(el, err);

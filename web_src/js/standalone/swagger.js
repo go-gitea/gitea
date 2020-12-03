@@ -1,8 +1,8 @@
-import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
-import 'swagger-ui-dist/swagger-ui.css';
+import SwaggerUI from "swagger-ui-dist/swagger-ui-es-bundle.js";
+import "swagger-ui-dist/swagger-ui.css";
 
-window.addEventListener('load', async () => {
-  const url = document.getElementById('swagger-ui').dataset.source;
+window.addEventListener("load", async () => {
+  const url = document.getElementById("swagger-ui").dataset.source;
   const res = await fetch(url);
   const spec = await res.json();
 
@@ -16,9 +16,9 @@ window.addEventListener('load', async () => {
 
   const ui = SwaggerUI({
     spec,
-    dom_id: '#swagger-ui',
+    dom_id: "#swagger-ui",
     deepLinking: true,
-    docExpansion: 'none',
+    docExpansion: "none",
     presets: [
       SwaggerUI.presets.apis
     ],

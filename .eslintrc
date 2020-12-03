@@ -318,7 +318,7 @@ rules:
   prefer-spread: [2]
   prefer-template: [2]
   quote-props: [0]
-  quotes: [2, single, {avoidEscape: true, allowTemplateLiterals: true}]
+  quotes: [2, double, {avoidEscape: true, allowTemplateLiterals: true}]
   radix: [2, as-needed]
   require-atomic-updates: [0]
   require-await: [0]

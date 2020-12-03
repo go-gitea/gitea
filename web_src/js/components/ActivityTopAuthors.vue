@@ -49,7 +49,7 @@
   </div>
 </template>
 <script>
-import VueBarGraph from 'vue-bar-graph';
+import VueBarGraph from "vue-bar-graph";
 
 export default {
   components: {VueBarGraph},
@@ -58,9 +58,9 @@ export default {
   },
   data: () => ({
     colors: {
-      barColor: 'green',
-      textColor: 'black',
-      textAltColor: 'white',
+      barColor: "green",
+      textColor: "black",
+      textAltColor: "white",
     },
   }),
   computed: {
@@ -94,7 +94,7 @@ export default {
   },
   methods: {
     hasHomeLink(i) {
-      return this.graphData[i].homeLink !== '' && this.graphData[i].homeLink !== null;
+      return this.graphData[i].homeLink !== "" && this.graphData[i].homeLink !== null;
     },
   }
 };

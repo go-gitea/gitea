@@ -14,10 +14,10 @@
   </div>
 </template>
 <script>
-import {CalendarHeatmap} from 'vue-calendar-heatmap';
+import {CalendarHeatmap} from "vue-calendar-heatmap";
 
 export default {
-  name: 'ActivityHeatmap',
+  name: "ActivityHeatmap",
   components: {CalendarHeatmap},
   props: {
     values: {
@@ -27,17 +27,17 @@ export default {
   },
   data: () => ({
     colorRange: [
-      'var(--color-secondary-alpha-70)',
-      'var(--color-primary-light-4)',
-      'var(--color-primary-light-2)',
-      'var(--color-primary)',
-      'var(--color-primary-dark-2)',
-      'var(--color-primary-dark-4)',
+      "var(--color-secondary-alpha-70)",
+      "var(--color-primary-light-4)",
+      "var(--color-primary-light-2)",
+      "var(--color-primary)",
+      "var(--color-primary-dark-2)",
+      "var(--color-primary-dark-4)",
     ],
     endDate: new Date(),
     locale: {
-      contributions: 'contributions',
-      no_contributions: 'No contributions',
+      contributions: "contributions",
+      no_contributions: "No contributions",
     },
   }),
 };

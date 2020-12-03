@@ -1,5 +1,5 @@
 const {UseServiceWorker, AppSubUrl, AppVer} = window.config;
-const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
+const cachePrefix = "static-cache-v"; // actual version is set in the service worker script
 
 async function unregister() {
   const registrations = await navigator.serviceWorker.getRegistrations();
@@ -17,17 +17,17 @@ async function invalidateCache() {
 
 async function checkCacheValidity() {
   const cacheKey = AppVer;
-  const storedCacheKey = localStorage.getItem('staticCacheKey');
+  const storedCacheKey = localStorage.getItem("staticCacheKey");
 
   // invalidate cache if it belongs to a different gitea version
   if (cacheKey && storedCacheKey !== cacheKey) {
     await invalidateCache();
-    localStorage.setItem('staticCacheKey', cacheKey);
+    localStorage.setItem("staticCacheKey", cacheKey);
   }
 }
 
 export default async function initServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
+  if (!("serviceWorker" in navigator)) return;
 
   if (UseServiceWorker) {
     try {

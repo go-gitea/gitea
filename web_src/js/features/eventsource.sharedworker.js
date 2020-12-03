@@ -1,4 +1,4 @@
-self.name = 'eventsource.sharedworker.js';
+self.name = "eventsource.sharedworker.js";
 
 const sourcesByUrl = {};
 const sourcesByPort = {};
@@ -9,10 +9,10 @@ class Source {
     this.eventSource = new EventSource(url);
     this.listening = {};
     this.clients = [];
-    this.listen('open');
-    this.listen('logout');
-    this.listen('notification-count');
-    this.listen('error');
+    this.listen("open");
+    this.listen("logout");
+    this.listen("notification-count");
+    this.listen("error");
   }
 
   register(port) {
@@ -21,7 +21,7 @@ class Source {
     this.clients.push(port);
 
     port.postMessage({
-      type: 'status',
+      type: "status",
       message: `registered to ${this.url}`,
     });
   }
@@ -62,7 +62,7 @@ class Source {
 
   status(port) {
     port.postMessage({
-      type: 'status',
+      type: "status",
       message: `url: ${this.url} readyState: ${this.eventSource.readyState}`,
     });
   }
@@ -70,8 +70,8 @@ class Source {
 
 self.onconnect = (e) => {
   for (const port of e.ports) {
-    port.addEventListener('message', (event) => {
-      if (event.data.type === 'start') {
+    port.addEventListener("message", (event) => {
+      if (event.data.type === "start") {
         const url = event.data.url;
         if (sourcesByUrl[url]) {
           // we have a Source registered to this url
@@ -98,10 +98,10 @@ self.onconnect = (e) => {
         source.register(port);
         sourcesByUrl[url] = source;
         sourcesByPort[port] = source;
-      } else if (event.data.type === 'listen') {
+      } else if (event.data.type === "listen") {
         const source = sourcesByPort[port];
         source.listen(event.data.eventType);
-      } else if (event.data.type === 'close') {
+      } else if (event.data.type === "close") {
         const source = sourcesByPort[port];
 
         if (!source) return;
@@ -112,12 +112,12 @@ self.onconnect = (e) => {
           sourcesByUrl[source.url] = null;
           sourcesByPort[port] = null;
         }
-      } else if (event.data.type === 'status') {
+      } else if (event.data.type === "status") {
         const source = sourcesByPort[port];
         if (!source) {
           port.postMessage({
-            type: 'status',
-            message: 'not connected',
+            type: "status",
+            message: "not connected",
           });
           return;
         }
@@ -125,7 +125,7 @@ self.onconnect = (e) => {
       } else {
         // just send it back
         port.postMessage({
-          type: 'error',
+          type: "error",
           message: `received but don't know how to handle: ${event.data}`,
         });
       }
