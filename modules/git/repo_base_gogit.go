@@ -57,7 +57,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
-		tagCache:     newObjectCache(),
+		tagCache:     NewObjectCache(),
 	}, nil
 }
 

@@ -31,7 +31,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}
 	return &Repository{
 		path:     repoPath,
-		tagCache: newObjectCache(),
+		tagCache: NewObjectCache(),
 	}, nil
 }
 

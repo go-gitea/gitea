@@ -308,7 +308,7 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 
 	defer rd.Close()
 	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
+	c.submoduleCache = NewObjectCache()
 	var ismodule bool
 	var path string
 	for scanner.Scan() {

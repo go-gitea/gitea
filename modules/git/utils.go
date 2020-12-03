@@ -19,7 +19,8 @@ type ObjectCache struct {
 	cache map[string]interface{}
 }
 
-func newObjectCache() *ObjectCache {
+// NewObjectCache creates an object cache opeations.
+func NewObjectCache() *ObjectCache {
 	return &ObjectCache{
 		cache: make(map[string]interface{}, 10),
 	}
