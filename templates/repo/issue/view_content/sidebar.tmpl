@@ -26,7 +26,7 @@
 							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
-									<img class="ui avatar image mr-2" loading="lazy" src="{{.User.RelAvatarLink}}">
+									{{avatar .User 28 "mr-3"}}
 									{{.User.GetDisplayName}}
 								</span>
 							</a>
@@ -56,7 +56,7 @@
 					<div class="item mb-2">
 						{{if .User}}
 							<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
-								<img class="ui avatar image mr-3" src="{{.User.RelAvatarLink}}">
+								{{avatar .User 28 "mr-3"}}
 								{{.User.GetDisplayName}}
 							</a>
 						{{else if .Team}}
@@ -267,7 +267,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							<img class="ui avatar image mr-2" loading="lazy" src="{{.RelAvatarLink}}">
+							{{avatar . 28 "mr-3"}}
 							{{.GetDisplayName}}
 						</span>
 					</a>
@@ -280,7 +280,7 @@
 				{{range .Issue.Assignees}}
 					<div class="item">
 						<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-							<img class="ui avatar image mr-3" src="{{.RelAvatarLink}}">
+							{{avatar . 28 "mr-3"}}
 							{{.GetDisplayName}}
 						</a>
 					</div>
@@ -295,7 +295,9 @@
 			<div>
 				{{range .Participants}}
 					<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}}>
-						<img class="ui avatar image poping up" src="{{.RelAvatarLink}}" data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
+						<div class="ui poping up" data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
+							{{avatar .}}
+						</div>
 					</a>
 				{{end}}
 			</div>
@@ -376,7 +378,7 @@
 						{{range $user, $trackedtime := .WorkingUsers}}
 							<div class="comment">
 								<a class="avatar">
-									<img src="{{$user.RelAvatarLink}}">
+									{{avatar $user}}
 								</a>
 								<div class="content">
 									<a class="author">{{$user.DisplayName}}</a>

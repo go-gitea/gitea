@@ -121,7 +121,7 @@
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
 						<a class="ui assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							{{avatar .}}
 						</a>
 					{{end}}
 				</div>

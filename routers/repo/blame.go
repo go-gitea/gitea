@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html"
 	gotemplate "html/template"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -19,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -209,17 +208,15 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			commit := commitNames[part.Sha]
 			if index == 0 {
 				// User avatar image
-				avatar := ""
 				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+
+				var avatar string
 				if commit.User != nil {
-					authorName := commit.Author.Name
-					if len(commit.User.FullName) > 0 {
-						authorName = commit.User.FullName
-					}
-					avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(authorName))
+					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
 				} else {
-					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(models.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
+					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
+
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
