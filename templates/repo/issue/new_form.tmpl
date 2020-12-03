@@ -9,7 +9,7 @@
 		<div class="ui comments">
 			<div class="comment">
 				<a class="avatar" href="{{.SignedUser.HomeLink}}">
-					<img src="{{.SignedUser.RelAvatarLink}}">
+					{{avatar .SignedUser}}
 				</a>
 				<div class="ui segment content">
 					<div class="field">
@@ -219,7 +219,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+									{{avatar . 28 "mr-3"}}{{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -231,7 +231,7 @@
 					</span>
 					{{range .Assignees}}
 						<a class="hide item p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.GetDisplayName}}
+							{{avatar . 28 "mr-3 vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>

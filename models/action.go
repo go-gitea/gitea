@@ -140,12 +140,6 @@ func (a *Action) GetDisplayNameTitle() string {
 	return a.GetActFullName()
 }
 
-// GetActAvatar the action's user's avatar link
-func (a *Action) GetActAvatar() string {
-	a.loadActUser()
-	return a.ActUser.RelAvatarLink()
-}
-
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
 	a.loadRepo()
