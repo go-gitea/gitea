@@ -13,7 +13,29 @@ menu:
     identifier: "command-line"
 ---
 
-# Command Line
+# Command Line <!-- omit in toc -->
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Usage](#usage)
+- [Global options](#global-options)
+- [Commands](#commands)
+  - [web](#web)
+  - [admin](#admin)
+  - [cert](#cert)
+  - [dump](#dump)
+  - [generate](#generate)
+  - [keys](#keys)
+  - [migrate](#migrate)
+  - [convert](#convert)
+  - [doctor](#doctor)
+    - [doctor recreate-table](#doctor-recreate-table)
+  - [manager](#manager)
+
+---
 
 ## Usage
 
