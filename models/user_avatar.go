@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -76,13 +75,13 @@ func (u *User) SizedRelAvatarLink(size int) string {
 //
 func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
-		return base.DefaultAvatarLink()
+		return DefaultAvatarLink()
 	}
 
 	switch {
 	case u.UseCustomAvatar:
 		if u.Avatar == "" {
-			return base.DefaultAvatarLink()
+			return DefaultAvatarLink()
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
@@ -101,7 +100,7 @@ func (u *User) RealSizedAvatarLink(size int) string {
 // may either be a sub-URL to this site, or a full URL to an external avatar
 // service.
 func (u *User) RelAvatarLink() string {
-	return u.SizedRelAvatarLink(base.DefaultAvatarSize)
+	return u.SizedRelAvatarLink(DefaultAvatarSize)
 }
 
 // AvatarLink returns user avatar absolute link.

@@ -132,15 +132,6 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 	return code
 }
 
-// DefaultAvatarLink the default avatar link
-func DefaultAvatarLink() string {
-	return setting.AppSubURL + "/img/avatar_default.png"
-}
-
-// DefaultAvatarSize is a sentinel value for the default avatar size, as
-// determined by the avatar-hosting service.
-const DefaultAvatarSize = -1
-
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))

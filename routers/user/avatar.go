@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -62,12 +61,12 @@ func AvatarByEmailHash(ctx *context.Context) {
 		return
 	}
 	if len(email) == 0 {
-		ctx.Redirect(base.DefaultAvatarLink())
+		ctx.Redirect(models.DefaultAvatarLink())
 		return
 	}
 	size := ctx.QueryInt("size")
 	if size == 0 {
-		size = base.DefaultAvatarSize
+		size = models.DefaultAvatarSize
 	}
 
 	var avatarURL *url.URL
