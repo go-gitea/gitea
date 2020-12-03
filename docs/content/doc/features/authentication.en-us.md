@@ -13,7 +13,20 @@ menu:
     identifier: "authentication"
 ---
 
-# Authentication
+# Authentication <!-- omit in toc -->
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [LDAP (Lightweight Directory Access Protocol)](#ldap-lightweight-directory-access-protocol)
+- [PAM (Pluggable Authentication Module)](#pam-pluggable-authentication-module)
+- [SMTP (Simple Mail Transfer Protocol)](#smtp-simple-mail-transfer-protocol)
+- [FreeIPA](#freeipa)
+- [SPNEGO with SSPI (Kerberos/NTLM, for Windows only)](#spnego-with-sspi-kerberosntlm-for-windows-only)
+
+---
 
 ## LDAP (Lightweight Directory Access Protocol)
 
