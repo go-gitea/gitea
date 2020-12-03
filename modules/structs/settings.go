@@ -12,6 +12,7 @@ type GeneralRepoSettings struct {
 
 // GeneralUISettings contains global ui settings exposed by API
 type GeneralUISettings struct {
+	DefaultTheme     string   `json:"default_theme"`
 	AllowedReactions []string `json:"allowed_reactions"`
 }
 
