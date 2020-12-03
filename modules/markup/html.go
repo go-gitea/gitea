@@ -268,6 +268,25 @@ func RenderCommitMessageSubject(
 	return ctx.postProcess(rawHTML)
 }
 
+// RenderIssueTitle to process title on individual issue/pull page
+func RenderIssueTitle(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			issueIndexPatternProcessor,
+			sha1CurrentPatternProcessor,
+			emojiShortCodeProcessor,
+			emojiProcessor,
+		},
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(

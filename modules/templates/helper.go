@@ -154,6 +154,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
@@ -628,6 +629,16 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+// RenderIssueTitle renders issue/pull title with defined post processors
+func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+	renderedText, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(text)), urlPrefix, metas)
+	if err != nil {
+		log.Error("RenderIssueTitle: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
 }
 
 // RenderEmoji renders html text with emoji post processors
