@@ -11,12 +11,12 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 )
 
-func Fuzz(data []byte) int {
+func FuzzMarkdownRenderRaw(data []byte) int {
 	_ = markdown.RenderRaw(data, "", false)
 	return 1
 }
 
-func Fuzz2(data []byte) int {
+func FuzzMarkupPostProcess(data []byte) int {
 	var localMetas = map[string]string{
 		"user": "gogits",
 		"repo": "gogs",
