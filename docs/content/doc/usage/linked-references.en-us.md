@@ -13,7 +13,7 @@ menu:
     identifier: "automatically-linked-references"
 ---
 
-# Automatically Linked References in Issues, Pull Requests and Commit Messages
+# Automatically Linked References in Issues, Pull Requests and Commit Messages <!-- omit in toc -->
 
 When an issue, pull request or comment is posted, the text description is parsed
 in search for references. These references will be shown as links in the Issue View
@@ -26,6 +26,21 @@ To prevent the creation of unintended references, there are certain rules
 for them to be recognized. For example, they should not be included inside code
 text. They should also be reasonably cleared from their surrounding text
 (for example, using spaces).
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [User, Team and Organization Mentions](#user-team-and-organization-mentions)
+- [Commits](#commits)
+- [Issues and Pull Requests](#issues-and-pull-requests)
+- [Actionable References in Pull Requests and Commit Messages](#actionable-references-in-pull-requests-and-commit-messages)
+- [Time tracking in Pull Requests and Commit Messages](#time-tracking-in-pull-requests-and-commit-messages)
+- [External Trackers](#external-trackers)
+- [Issues and Pull Requests References Summary](#issues-and-pull-requests-references-summary)
+
+---
 
 ## User, Team and Organization Mentions
 
