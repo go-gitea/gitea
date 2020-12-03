@@ -492,7 +492,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = repo.APIFormat(access)
+		repos[i] = convert.ToRepo(repo, access)
 	}
 	ctx.JSON(http.StatusOK, repos)
 }
