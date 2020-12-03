@@ -628,7 +628,7 @@ a.muted:hover,
     }
 
     &.black {
-      color: var(--color-body);
+      color: var(--color-text);
 
       &:hover {
         color: #000000;
@@ -1433,6 +1433,19 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.buttons .button:first-child {
+  border-left: 1px solid var(--color-secondary);
+}
+
+.ui.buttons .button + .button {
+  border-left: none;
+}
+
 .ui.blue.button,
 .ui.blue.buttons .button,
 .ui.primary.button,
@@ -1615,10 +1628,6 @@ table th[data-sortt-desc] {
       min-height: 100px;
     }
   }
-}
-
-.dropdown .ui.label {
-  margin-left: 0 !important;
 }
 
 .ui.dropdown .menu .item {
