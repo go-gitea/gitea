@@ -13,7 +13,7 @@ menu:
     identifier: "install-from-source"
 ---
 
-# Installation from source
+# Installation from source <!-- omit in toc -->
 
 You should [install go](https://golang.org/doc/install) and set up your go
 environment correctly. In particular, it is recommended to set the `$GOPATH`
@@ -35,6 +35,19 @@ executable path, you will have to manage this yourself.
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Download](#download)
+- [Build](#build)
+- [Test](#test)
+- [Changing default paths](#changing-default-paths)
+- [Cross Build](#cross-build)
+
+---
 
 ## Download
 
