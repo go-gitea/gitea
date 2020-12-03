@@ -68,7 +68,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: pr.BaseRepo.APIFormat(models.AccessModeNone),
+			Repository: ToRepo(pr.BaseRepo, models.AccessModeNone),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -97,7 +97,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 
 	if pr.HeadRepo != nil {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = pr.HeadRepo.APIFormat(models.AccessModeNone)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
