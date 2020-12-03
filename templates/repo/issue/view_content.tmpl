@@ -16,7 +16,7 @@
 				<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
 			{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
-					<img src="{{.Issue.Poster.RelAvatarLink}}">
+					{{avatar .Issue.Poster}}
 				</a>
 			{{end}}
 				<div class="content comment-container">
@@ -93,7 +93,7 @@
 				{{ if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived) }}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-						<img src="{{.SignedUser.RelAvatarLink}}">
+						{{avatar .SignedUser}}
 					</a>
 					<div class="content">
 						<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
@@ -144,7 +144,7 @@
 					{{if .Repository.IsArchived}}
 					<div class="timeline-item comment form">
 						<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-							<img src="{{.SignedUser.RelAvatarLink}}">
+							{{avatar .SignedUser}}
 						</a>
 						<div class="content">
 							<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
