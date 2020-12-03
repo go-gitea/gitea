@@ -13,7 +13,25 @@ menu:
     identifier: "reverse-proxies"
 ---
 
-# Reverse Proxies
+# Reverse Proxies <!-- omit in toc -->
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Using Nginx](#using-nginx)
+- [Using Nginx with a sub-path](#using-nginx-with-a-sub-path)
+- [Using Nginx and serve static resources directly](#using-nginx-and-serve-static-resources-directly)
+  - [Using a single node and a single domain](#using-a-single-node-and-a-single-domain)
+  - [Using two nodes and two domains](#using-two-nodes-and-two-domains)
+- [Using Apache HTTPD](#using-apache-httpd)
+- [Using Apache HTTPD with a sub-path](#using-apache-httpd-with-a-sub-path)
+- [Using Caddy](#using-caddy)
+- [Using Caddy with a sub-path](#using-caddy-with-a-sub-path)
+- [Using IIS](#using-iis)
+
+---
 
 ##  Using Nginx
 If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:
