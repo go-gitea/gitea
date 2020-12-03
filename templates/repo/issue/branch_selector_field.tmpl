@@ -8,11 +8,11 @@
 <div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
-		<i class="dropdown icon"></i>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</div>
 	<div class="menu">
 		<div class="ui icon search input">
-			<i class="filter icon"></i>
+			<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="header">

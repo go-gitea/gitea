@@ -182,6 +182,7 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
 
 // shouldWriteInline represents combinations where we manually write inline changes
 func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
@@ -205,10 +206,36 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 				match = ""
 			}
 			// Chroma HTML syntax highlighting is done before diffing individual lines in order to maintain consistency.
-			// Since inline changes might split in the middle of a chroma span tag, make we manually put it back together
-			// before writing so we don't try insert added/removed code spans in the middle of an existing chroma span
-			// and create broken HTML.
+			// Since inline changes might split in the middle of a chroma span tag or HTML entity, make we manually put it back together
+			// before writing so we don't try insert added/removed code spans in the middle of one of those
+			// and create broken HTML. This is done by moving incomplete HTML forward until it no longer matches our pattern of
+			// a line ending with an incomplete HTML entity or partial/opening <span>.
+
+			// EX:
+			// diffs[{Type: dmp.DiffDelete, Text: "language</span><span "},
+			// {Type: dmp.DiffEqual, Text: "c"},
+			// {Type: dmp.DiffDelete, Text: "lass="p">}]
+
+			// After first iteration
+			// diffs[{Type: dmp.DiffDelete, Text: "language</span>"}, //write out
+			// {Type: dmp.DiffEqual, Text: "<span c"},
+			// {Type: dmp.DiffDelete, Text: "lass="p">,</span>}]
+
+			// After second iteration
+			// {Type: dmp.DiffEqual, Text: ""}, // write out
+			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
+
+			// Final
+			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
+			// end up writing <span class="removed-code"><span class="p">,</span></span>
+			// Instead of <span class="removed-code">lass="p",</span></span>
+
 			m := trailingSpanRegex.FindStringSubmatchIndex(diff.Text)
+			if m != nil {
+				match = diff.Text[m[0]:m[1]]
+				diff.Text = strings.TrimSuffix(diff.Text, match)
+			}
+			m = entityRegex.FindStringSubmatchIndex(diff.Text)
 			if m != nil {
 				match = diff.Text[m[0]:m[1]]
 				diff.Text = strings.TrimSuffix(diff.Text, match)
@@ -329,6 +356,9 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }
 
@@ -646,6 +676,15 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 	leftLine, rightLine := 1, 1
 
 	for {
+		for isFragment {
+			curFile.IsIncomplete = true
+			_, isFragment, err = input.ReadLine()
+			if err != nil {
+				// Now by the definition of ReadLine this cannot be io.EOF
+				err = fmt.Errorf("Unable to ReadLine: %v", err)
+				return
+			}
+		}
 		sb.Reset()
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
@@ -759,6 +798,10 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 					return
 				}
 			}
+		}
+		if len(line) > maxLineCharacters {
+			curFile.IsIncomplete = true
+			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 

@@ -7,6 +7,8 @@ package convert
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -105,28 +107,29 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 	}
 
 	return &api.BranchProtection{
-		BranchName:                  bp.BranchName,
-		EnablePush:                  bp.CanPush,
-		EnablePushWhitelist:         bp.EnableWhitelist,
-		PushWhitelistUsernames:      pushWhitelistUsernames,
-		PushWhitelistTeams:          pushWhitelistTeams,
-		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
-		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
-		MergeWhitelistUsernames:     mergeWhitelistUsernames,
-		MergeWhitelistTeams:         mergeWhitelistTeams,
-		EnableStatusCheck:           bp.EnableStatusCheck,
-		StatusCheckContexts:         bp.StatusCheckContexts,
-		RequiredApprovals:           bp.RequiredApprovals,
-		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
-		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
-		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
-		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
-		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
-		DismissStaleApprovals:       bp.DismissStaleApprovals,
-		RequireSignedCommits:        bp.RequireSignedCommits,
-		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
-		Created:                     bp.CreatedUnix.AsTime(),
-		Updated:                     bp.UpdatedUnix.AsTime(),
+		BranchName:                    bp.BranchName,
+		EnablePush:                    bp.CanPush,
+		EnablePushWhitelist:           bp.EnableWhitelist,
+		PushWhitelistUsernames:        pushWhitelistUsernames,
+		PushWhitelistTeams:            pushWhitelistTeams,
+		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:       mergeWhitelistUsernames,
+		MergeWhitelistTeams:           mergeWhitelistTeams,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableApprovalsWhitelist:      bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames:   approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
+		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
+		DismissStaleApprovals:         bp.DismissStaleApprovals,
+		RequireSignedCommits:          bp.RequireSignedCommits,
+		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
+		Created:                       bp.CreatedUnix.AsTime(),
+		Updated:                       bp.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -363,4 +366,16 @@ func ToCommitStatus(status *models.CommitStatus) *api.Status {
 	}
 
 	return apiStatus
+}
+
+// ToLFSLock convert a LFSLock to api.LFSLock
+func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	return &api.LFSLock{
+		ID:       strconv.FormatInt(l.ID, 10),
+		Path:     l.Path,
+		LockedAt: l.Created.Round(time.Second),
+		Owner: &api.LFSLockOwner{
+			Name: l.Owner.DisplayName(),
+		},
+	}
 }

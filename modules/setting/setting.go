@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
@@ -67,6 +68,7 @@ var (
 	// AppVer settings
 	AppVer         string
 	AppBuiltWith   string
+	AppStartTime   time.Time
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -369,6 +371,7 @@ var (
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
 	ProdMode      bool
+	RunMode       string
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
@@ -503,7 +506,11 @@ func NewContext() {
 		createPIDFile(PIDFile)
 	}
 
-	if com.IsFile(CustomConf) {
+	isFile, err := util.IsFile(CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+	}
+	if isFile {
 		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
 		}
@@ -751,7 +758,11 @@ func NewContext() {
 				return
 			}
 			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
+			isFile, err := util.IsFile(CustomConf)
+			if err != nil {
+				log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+			}
+			if isFile {
 				if err := cfg.Append(CustomConf); err != nil {
 					log.Error("failed to load custom conf %s: %v", CustomConf, err)
 					return
@@ -851,6 +862,7 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
@@ -919,7 +931,10 @@ func NewContext() {
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
-	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
+	}
 
 	newMarkup()
 
@@ -1016,7 +1031,11 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 		// Save secret
 		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
+		isFile, err := util.IsFile(CustomConf)
+		if err != nil {
+			log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfgSave.Append(CustomConf); err != nil {
 				log.Error("Failed to load custom conf '%s': %v", CustomConf, err)

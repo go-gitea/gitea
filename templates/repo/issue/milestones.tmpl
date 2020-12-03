@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository milestones">
+<div class="page-content repository milestones">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="navbar">
@@ -12,13 +12,13 @@
 		</div>
 		<div class="ui divider"></div>
 		{{template "base/alert" .}}
-		<div class="ui tiny basic buttons">
-			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.RepoLink}}/milestones?state=open">
-				{{svg "octicon-milestone"}}
+		<div class="ui compact tiny menu">
+			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open">
+				{{svg "octicon-milestone" 16 "mr-3"}}
 				{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
 			</a>
-			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.RepoLink}}/milestones?state=closed">
-				{{svg "octicon-milestone"}}
+			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed">
+				{{svg "octicon-milestone" 16 "mr-3"}}
 				{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
 			</a>
 		</div>
@@ -28,7 +28,7 @@
 			<div class="ui dropdown type jump item">
 				<span class="text">
 					{{.i18n.Tr "repo.issues.filter_sort"}}
-					<i class="dropdown icon"></i>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="menu">
 					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>

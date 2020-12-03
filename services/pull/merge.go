@@ -591,6 +591,11 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 			Reason: "There are requested changes",
 		}
 	}
+	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are official review requests",
+		}
+	}
 
 	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
 		return models.ErrNotAllowedToMerge{

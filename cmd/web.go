@@ -16,13 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
-
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
@@ -40,6 +38,11 @@ and it takes care of all the other things for you`,
 			Name:  "port, p",
 			Value: "3000",
 			Usage: "Temporary port number to prevent conflict",
+		},
+		cli.StringFlag{
+			Name:  "install-port",
+			Value: "3000",
+			Usage: "Temporary port number to run the install page on to prevent conflict",
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
@@ -116,19 +119,23 @@ func runWeb(ctx *cli.Context) error {
 		setting.WritePIDFile = true
 	}
 
-	// Flag for port number in case first time run conflict.
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
-			return err
-		}
-	}
-
 	// Perform pre-initialization
 	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
 	if needsInstall {
-		m := routes.NewMacaron()
-		routes.RegisterInstallRoute(m)
-		err := listen(m, false)
+		// Flag for port number in case first time run conflict
+		if ctx.IsSet("port") {
+			if err := setPort(ctx.String("port")); err != nil {
+				return err
+			}
+		}
+		if ctx.IsSet("install-port") {
+			if err := setPort(ctx.String("install-port")); err != nil {
+				return err
+			}
+		}
+		c := routes.NewChi()
+		routes.RegisterInstallRoute(c)
+		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -152,11 +159,18 @@ func runWeb(ctx *cli.Context) error {
 	// Perform global initialization
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 
-	// Set up Macaron
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	// Override the provided port number within the configuration
+	if ctx.IsSet("port") {
+		if err := setPort(ctx.String("port")); err != nil {
+			return err
+		}
+	}
+	// Set up Chi routes
+	c := routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
-	err := listen(m, true)
+	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
@@ -174,7 +188,11 @@ func setPort(port string) error {
 	default:
 		// Save LOCAL_ROOT_URL if port changed
 		cfg := ini.Empty()
-		if com.IsFile(setting.CustomConf) {
+		isFile, err := util.IsFile(setting.CustomConf)
+		if err != nil {
+			log.Fatal("Unable to check if %s is a file", err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfg.Append(setting.CustomConf); err != nil {
 				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
@@ -190,7 +208,6 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-
 		if err := cfg.SaveTo(setting.CustomConf); err != nil {
 			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
 		}
@@ -198,7 +215,7 @@ func setPort(port string) error {
 	return nil
 }
 
-func listen(m *macaron.Macaron, handleRedirector bool) error {
+func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)

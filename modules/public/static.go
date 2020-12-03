@@ -8,12 +8,11 @@ package public
 
 import (
 	"io/ioutil"
-
-	"gitea.com/macaron/macaron"
+	"net/http"
 )
 
 // Static implements the macaron static handler for serving assets.
-func Static(opts *Options) macaron.Handler {
+func Static(opts *Options) func(next http.Handler) http.Handler {
 	opts.FileSystem = Assets
 	// we don't need to pass the directory, because the directory var is only
 	// used when in the options there is no FileSystem.

@@ -1,22 +1,135 @@
+input,
+textarea,
+.ui.input > input,
+.ui.form input:not([type]),
+.ui.form textarea,
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="file"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="text"],
+.ui.form input[type="time"],
+.ui.form input[type="url"],
+.ui.selection.dropdown,
+.ui.checkbox label::before,
+.ui.checkbox input:checked ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+input:hover,
+textarea:hover,
+.ui.input input:hover,
+.ui.form input:not([type]):hover,
+.ui.form textarea:hover,
+.ui.form input[type="date"]:hover,
+.ui.form input[type="datetime-local"]:hover,
+.ui.form input[type="email"]:hover,
+.ui.form input[type="file"]:hover,
+.ui.form input[type="number"]:hover,
+.ui.form input[type="password"]:hover,
+.ui.form input[type="search"]:hover,
+.ui.form input[type="tel"]:hover,
+.ui.form input[type="text"]:hover,
+.ui.form input[type="time"]:hover,
+.ui.form input[type="url"]:hover,
+.ui.selection.dropdown:hover,
+.ui.checkbox label:hover::before,
+.ui.checkbox label:active::before,
+.ui.radio.checkbox label::after,
+.ui.radio.checkbox input:focus ~ label::before,
+.ui.radio.checkbox input:checked ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-input-border-hover);
+  color: var(--color-input-text);
+}
+
+input:focus,
+textarea:focus,
+.ui.input input:focus,
+.ui.form input:not([type]):focus,
+.ui.form textarea:focus,
+.ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"]:focus,
+.ui.form input[type="email"]:focus,
+.ui.form input[type="file"]:focus,
+.ui.form input[type="number"]:focus,
+.ui.form input[type="password"]:focus,
+.ui.form input[type="search"]:focus,
+.ui.form input[type="tel"]:focus,
+.ui.form input[type="text"]:focus,
+.ui.form input[type="time"]:focus,
+.ui.form input[type="url"]:focus,
+.ui.selection.dropdown:focus,
+.ui.checkbox input:focus ~ label::before,
+.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::before,
+.ui.checkbox input:checked:focus ~ label::before,
+.ui.radio.checkbox input:focus:checked ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-primary);
+  color: var(--color-input-text);
+}
+
+.ui.form .field > label,
+.ui.form .inline.fields > label,
+.ui.form .inline.fields .field > label,
+.ui.form .inline.fields .field > p,
+.ui.form .inline.field > label,
+.ui.form .inline.field > p,
+.ui.checkbox label,
+.ui.checkbox + label,
+.ui.checkbox label:hover,
+.ui.checkbox + label:hover,
+.ui.checkbox input:focus ~ label,
+.ui.checkbox input:active ~ label {
+  color: var(--color-text);
+}
+
+.ui.input,
+.ui.checkbox input:focus ~ label::after,
+.ui.checkbox input:checked ~ label::after,
+.ui.checkbox label:active::after,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::after,
+.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::after,
+.ui.checkbox input:checked:focus ~ label::after,
+.ui.disabled.checkbox label,
+.ui.checkbox input[disabled] ~ label {
+  color: var(--color-input-text);
+}
+
+.ui.radio.checkbox input:focus ~ label::after,
+.ui.radio.checkbox input:checked ~ label::after,
+.ui.radio.checkbox input:focus:checked ~ label::after {
+  background: var(--color-input-text);
+}
+
+.ui.toggle.checkbox label::before {
+  background: var(--color-input-background);
+}
+
+.ui.toggle.checkbox label,
+.ui.toggle.checkbox input:checked ~ label,
+.ui.toggle.checkbox input:focus:checked ~ label {
+  color: var(--color-text) !important;
+}
+
+.ui.toggle.checkbox input:checked ~ label::before,
+.ui.toggle.checkbox input:focus:checked ~ label::before {
+  background: var(--color-primary) !important;
+}
+
 .form {
   .help {
     color: #999999;
     padding-top: .6em;
     padding-bottom: .6em;
     display: inline-block;
-  }
-}
-
-.ui.attached.header {
-  background: #f0f0f0;
-
-  .right {
-    margin-top: -5px;
-
-    .button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
   }
 }
 
@@ -29,7 +142,7 @@
       text-align: center;
     }
 
-    @media only screen and (min-width: 768px) {
+    @media @mediaMdAndUp {
       width: 800px !important;
 
       .header {
@@ -56,7 +169,7 @@
       }
     }
 
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       .optional .title {
         margin-left: 15px;
       }
@@ -98,7 +211,7 @@
   }
 }
 
-@media only screen and (min-width: 768px) {
+@media @mediaMdAndUp {
   .g-recaptcha,
   .h-captcha {
     margin: 0 auto !important;
@@ -107,7 +220,7 @@
   }
 }
 
-@media screen and (max-height: 575px) {
+@media (max-height: 575px) {
   #rc-imageselect,
   .g-recaptcha,
   .h-captcha {
@@ -119,6 +232,7 @@
 .user.activate,
 .user.forgot.password,
 .user.reset.password,
+.user.link-account,
 .user.signin,
 .user.signup {
   @input-padding: 200px;
@@ -138,7 +252,7 @@
 
     .inline.field > label,
     input {
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         width: 100% !important;
       }
     }
@@ -162,19 +276,8 @@
     #create-page-form;
 
     form {
-      .dropdown {
-        .dropdown.icon {
-          margin-top: -7px !important;
-          padding-bottom: 5px;
-        }
-
-        .text {
-          margin-right: 0 !important;
-
-          i {
-            margin-right: 0 !important;
-          }
-        }
+      .dropdown .text {
+        margin-right: 0 !important;
       }
 
       .header {
@@ -187,7 +290,7 @@
         width: 50% !important;
       }
 
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         label,
         input,
         .selection.dropdown {
@@ -205,7 +308,7 @@
 
   &.new.repo {
     .ui.form {
-      @media only screen and (min-width: 768px) {
+      @media @mediaMdAndUp {
         #auto-init {
           margin-left: @create-page-form-input-padding+15px;
         }
@@ -214,7 +317,7 @@
       .selection.dropdown:not(.owner) {
         width: 50% !important;
 
-        @media only screen and (max-width: 768px) {
+        @media @mediaSm {
           width: 100% !important;
         }
       }
@@ -243,7 +346,7 @@
 }
 
 .new.org .ui.form {
-  @media only screen and (max-width: 768px) {
+  @media @mediaSm {
     .field button,
     .field a {
       margin-bottom: 1em;
