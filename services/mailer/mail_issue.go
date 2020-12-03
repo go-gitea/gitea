@@ -122,7 +122,21 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 		if err != nil {
 			return err
 		}
-		// TODO: Check issue visibility for each user
+
+		// Make sure all recipients can still see the issue
+		idx := 0
+		for _, r := range recipients {
+			if ctx.Issue.Repo.CheckUnitUser(r, models.UnitTypeIssues) {
+				recipients[idx] = r
+				idx++
+			}
+		}
+		// Clean up potential memory leak
+		for j := idx; j < len(recipients); j++ {
+			recipients[j] = nil
+		}
+		recipients = recipients[:idx]
+
 		// TODO: Separate recipients by language for i18n mail templates
 		tos := make([]string, len(recipients))
 		for i := range recipients {
