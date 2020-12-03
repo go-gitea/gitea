@@ -13,7 +13,7 @@ menu:
     weight: 9
 ---
 
-# Customizing Gitea
+# Customizing Gitea <!-- omit in toc -->
 
 Customizing Gitea is typically done using the `CustomPath` folder - by default this is
 the `custom` folder from the running directory, but may be different if your build has
@@ -44,6 +44,34 @@ environment variable; this can be used to override the default path to something
 - [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
+
+## Table of Contents. <!-- omit in toc -->
+
+<!-- Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Serving custom public files](#serving-custom-public-files)
+- [Changing the default avatar](#changing-the-default-avatar)
+- [Customizing Gitea pages and resources](#customizing-gitea-pages-and-resources)
+  - [Customizing startpage / homepage](#customizing-startpage--homepage)
+  - [Adding links and tabs](#adding-links-and-tabs)
+  - [Other additions to the page](#other-additions-to-the-page)
+    - [Example: PlantUML](#example-plantuml)
+    - [Example: STL Preview](#example-stl-preview)
+- [Customizing Gitea mails](#customizing-gitea-mails)
+- [Adding Analytics to Gitea](#adding-analytics-to-gitea)
+- [Customizing gitignores, labels, licenses, locales, and readmes.](#customizing-gitignores-labels-licenses-locales-and-readmes)
+  - [gitignores](#gitignores)
+  - [Labels](#labels)
+  - [Licenses](#licenses)
+  - [Locales](#locales)
+  - [Readmes](#readmes)
+  - [Reactions](#reactions)
+- [Customizing the look of Gitea](#customizing-the-look-of-gitea)
+- [Customizing fonts](#customizing-fonts)
+
+---
 
 ## Serving custom public files
 
