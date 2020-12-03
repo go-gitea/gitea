@@ -13,13 +13,30 @@ menu:
     identifier: "mail-templates"
 ---
 
-# Mail templates
+# Mail templates <!-- omit in toc -->
 
 To craft the e-mail subject and contents for certain operations, Gitea can be customized by using templates. The templates
 for these functions are located under the [`custom` directory](https://docs.gitea.io/en-us/customizing-gitea/).
 Gitea has an internal template that serves as default in case there's no custom alternative.
 
 Custom templates are loaded when Gitea starts. Changes made to them are not recognized until Gitea is restarted again.
+
+<!-- Table of Contents.
+Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
+    in VS Code
+        https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+
+- [Mail notifications supporting templates](#mail-notifications-supporting-templates)
+- [Template syntax](#template-syntax)
+  - [The _subject_ part of the template](#the-subject-part-of-the-template)
+  - [The _mail body_ part of the template](#the-mail-body-part-of-the-template)
+- [Troubleshooting](#troubleshooting)
+- [Example](#example)
+    - [Subject](#subject)
+    - [Mail body](#mail-body)
+- [Advanced](#advanced)
+
+---
 
 ## Mail notifications supporting templates
 
