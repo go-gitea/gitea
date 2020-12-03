@@ -57,7 +57,7 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 
-	// Gitea 1.5.3 ends at v70
+	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
@@ -66,7 +66,7 @@ var migrations = []Migration{
 	// v72 -> v73
 	NewMigration("add review", addReview),
 
-	// Gitea 1.6.4 ends at v73
+	// Gitea 1.6.0 ends at v73
 
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
@@ -75,7 +75,7 @@ var migrations = []Migration{
 	// v75 -> v76
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
 
-	// Gitea 1.7.6 ends at v76
+	// Gitea 1.7.0 ends at v76
 
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
@@ -90,7 +90,7 @@ var migrations = []Migration{
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
 
-	// Gitea 1.8.3 ends at v82
+	// Gitea 1.8.0 ends at v82
 
 	// v82 -> v83
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
@@ -105,7 +105,7 @@ var migrations = []Migration{
 	// v87 -> v88
 	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
 
-	// Gitea 1.9.6 ends at v88
+	// Gitea 1.9.0 ends at v88
 
 	// v88 -> v89
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
@@ -129,14 +129,14 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
-
-	// Gitea 1.10.3 ends at v99
-
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
+
+	// Gitea 1.10.0 ends at v102
+
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
@@ -167,6 +167,9 @@ var migrations = []Migration{
 	// v115 -> v116
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
+
+	// Gitea 1.11.0 ends at v117
+
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
@@ -213,6 +216,9 @@ var migrations = []Migration{
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
+
+	// Gitea 1.12.0 ends at v140
+
 	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
@@ -243,6 +249,9 @@ var migrations = []Migration{
 	// v153 > v154
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
+
+	// Gitea 1.13.0 ends at v155
+
 	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 	// v155 -> v156
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
