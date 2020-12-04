@@ -340,6 +340,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"svg":           SVG,
 		"avatar":        Avatar,
+		"avatarHTML":    AvatarHTML,
 		"avatarByEmail": AvatarByEmail,
 		"repoAvatar":    RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
@@ -519,7 +520,8 @@ func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 	return size, class
 }
 
-func avatarHTML(src string, size int, class string, name string) template.HTML {
+// AvatarHTML creates the HTML for an avatar
+func AvatarHTML(src string, size int, class string, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
 
 	if name == "" {
@@ -548,33 +550,33 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(user *models.User, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	src := user.RealSizedAvatarLink(size * 2) // request double size for finer rendering
+	src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
 	if src != "" {
-		return avatarHTML(src, size, class, user.DisplayName())
+		return AvatarHTML(src, size, class, user.DisplayName())
 	}
 	return template.HTML("")
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
-		return avatarHTML(src, size, class, repo.FullName())
+		return AvatarHTML(src, size, class, repo.FullName())
 	}
 	return template.HTML("")
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
-	src := models.SizedAvatarLink(email, size*2) // request double size for finer rendering
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	src := models.SizedAvatarLink(email, size*models.AvatarRenderedSizeFactor)
 
 	if src != "" {
-		return avatarHTML(src, size, class, name)
+		return AvatarHTML(src, size, class, name)
 	}
 
 	return template.HTML("")
