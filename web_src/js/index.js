@@ -1094,7 +1094,11 @@ async function initRepository() {
         $.post($this.data('url'), {
           _csrf: csrf
         }).done(() => {
+          const $conversationHolder = $this.closest('.conversation-holder');
           $(`#${$this.data('comment-id')}`).remove();
+          if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
+            $conversationHolder.remove();
+          }
         });
       }
       return false;

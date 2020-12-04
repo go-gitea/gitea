@@ -68,7 +68,10 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
-								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.GetDisplayName}}</a>
+								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}">
+									{{avatar . 28 "mr-2"}}
+									{{.GetDisplayName}}
+								</a>
 							{{end}}
 						</div>
 					</div>
@@ -151,7 +154,8 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									<img src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+									{{avatar . 28 "mr-2"}}
+									{{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>

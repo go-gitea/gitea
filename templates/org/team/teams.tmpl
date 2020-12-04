@@ -32,7 +32,7 @@
 					<div class="ui attached segment members">
 						{{range .Members}}
 							<a href="{{.HomeLink}}" title="{{.Name}}">
-								<img class="ui avatar image" src="{{.RelAvatarLink}}">
+								{{avatar .}}
 							</a>
 						{{end}}
 					</div>

@@ -1,7 +1,7 @@
 {{range .Feeds}}
 	<div class="news">
 		<div class="ui left">
-			<img class="ui avatar image" src="{{.GetActAvatar}}" alt="">
+			{{avatar .ActUser}}
 		</div>
 		<div class="ui grid">
 			<div class="ui fourteen wide column">
@@ -84,7 +84,13 @@
 								{{if $push.Commits}}
 									{{range $push.Commits}}
 										{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}</span></li>
+										<li>
+											{{avatarByEmail .AuthorEmail .AuthorName 28 "img-8 mr-2"}}
+											<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+											<span class="text truncate light grey">
+												{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}
+											</span>
+										</li>
 									{{end}}
 								{{end}}
 								{{if and (gt $push.Len 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" $push.Len}} »</a></li>{{end}}
