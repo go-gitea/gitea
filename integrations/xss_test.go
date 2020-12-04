@@ -24,7 +24,7 @@ func TestXSSUserFullName(t *testing.T) {
 		"name":      user.Name,
 		"full_name": fullName,
 		"email":     user.Email,
-		"language":  "en-us",
+		"language":  "en-US",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
