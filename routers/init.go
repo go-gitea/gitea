@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -42,13 +43,15 @@ import (
 )
 
 func checkRunMode() {
-	switch setting.Cfg.Section("").Key("RUN_MODE").String() {
-	case "prod":
+	switch setting.RunMode {
+	case "dev":
+		git.Debug = true
+	case "test":
+		git.Debug = true
+	default:
 		macaron.Env = macaron.PROD
 		macaron.ColorLog = false
 		setting.ProdMode = true
-	default:
-		git.Debug = true
 	}
 	log.Info("Run Mode: %s", strings.Title(macaron.Env))
 }
@@ -200,6 +203,9 @@ func GlobalInit(ctx context.Context) {
 	}
 	if err := task.Init(); err != nil {
 		log.Fatal("Failed to initialize task scheduler: %v", err)
+	}
+	if err := repo_migrations.Init(); err != nil {
+		log.Fatal("Failed to initialize repository migrations: %v", err)
 	}
 	eventsource.GetManager().Init()
 

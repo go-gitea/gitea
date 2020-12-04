@@ -1,5 +1,12 @@
-.CodeMirror {
+.EasyMDEContainer .CodeMirror {
+  color: var(--color-input-text);
+  background-color: var(--color-input-background);
+  border-color: var(--color-secondary);
   font: 14px var(--fonts-monospace);
+
+  .CodeMirror-cursor {
+    border-left: 1px solid var(--color-input-text);
+  }
 
   &.cm-s-default {
     border-radius: 3px;
@@ -27,14 +34,29 @@
 
 .editor-toolbar {
   opacity: 1 !important;
+  border-color: var(--color-secondary);
 }
 
-.editor-toolbar a:not(:hover) {
+.editor-toolbar button {
+  border: none !important;
+  color: var(--color-text-light);
+}
+
+.editor-toolbar button:not(:hover) {
   background-color: transparent !important;
 }
 
 .editor-toolbar i.separator {
   border-left: none;
+  border-right-color: var(--color-secondary);
+}
+
+.editor-toolbar button:hover {
+  background: var(--color-hover);
+}
+
+.editor-toolbar button.active {
+  background: var(--color-active);
 }
 
 .editor-loading {
@@ -53,10 +75,6 @@
   border-right: 1px solid var(--color-secondary) !important;
 }
 
-#edit_area {
-  display: none;
-}
-
 .monaco-editor-container {
   width: 100%;
   min-height: 200px;
@@ -72,4 +90,9 @@
   border: none !important;
   color: transparent !important;
   background-color: transparent !important;
+}
+
+.edit.githook .monaco-editor-container {
+  border: 1px solid var(--color-secondary);
+  height: 70vh;
 }

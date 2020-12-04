@@ -8,9 +8,13 @@ package migrations
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -20,6 +24,9 @@ type MigrateOptions = base.MigrateOptions
 
 var (
 	factories []base.DownloaderFactory
+
+	allowList *matchlist.Matchlist
+	blockList *matchlist.Matchlist
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -27,12 +34,49 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
+func isMigrateURLAllowed(remoteURL string) error {
+	u, err := url.Parse(strings.ToLower(remoteURL))
+	if err != nil {
+		return err
+	}
+
+	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
+		if len(setting.Migrations.AllowedDomains) > 0 {
+			if !allowList.Match(u.Host) {
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
+			}
+		} else {
+			if blockList.Match(u.Host) {
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
+			}
+		}
+	}
+
+	if !setting.Migrations.AllowLocalNetworks {
+		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
+		if err != nil {
+			return &models.ErrMigrationNotAllowed{Host: u.Host, NotResolvedIP: true}
+		}
+		for _, addr := range addrList {
+			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
+				return &models.ErrMigrationNotAllowed{Host: u.Host, PrivateNet: addr.String()}
+			}
+		}
+	}
+
+	return nil
+}
+
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+	err := isMigrateURLAllowed(opts.CloneAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
-		err        error
 	)
 
 	for _, factory := range factories {
@@ -307,4 +351,33 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 
 	return nil
+}
+
+// Init migrations service
+func Init() error {
+	var err error
+	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowedDomains...)
+	if err != nil {
+		return fmt.Errorf("init migration allowList domains failed: %v", err)
+	}
+
+	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlockedDomains...)
+	if err != nil {
+		return fmt.Errorf("init migration blockList domains failed: %v", err)
+	}
+
+	return nil
+}
+
+// isIPPrivate reports whether ip is a private address, according to
+// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
+// from https://github.com/golang/go/pull/42793
+// TODO remove if https://github.com/golang/go/issues/29146 got resolved
+func isIPPrivate(ip net.IP) bool {
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
+			(ip4[0] == 192 && ip4[1] == 168)
+	}
+	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }

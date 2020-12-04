@@ -3,7 +3,7 @@
 		<div class="item">
 			<div class="ui floating dropdown link jump">
 				<span class="text">
-					<img class="ui avatar image" src="{{.ContextUser.RelAvatarLink}}" title="{{.ContextUser.Name}}" width="28" height="28">
+					{{avatar .ContextUser}}
 					{{.ContextUser.ShortName 20}}
 					{{if .ContextUser.IsOrganization}}
 						<span class="org-visibility">
@@ -19,12 +19,11 @@
 					</div>
 					<div class="scrolling menu items">
 						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
-							<img class="ui avatar image" src="{{.SignedUser.RelAvatarLink}}" width="28" height="28">
-							{{.SignedUser.Name}}
+							{{avatar .SignedUser}}
 						</a>
 						{{range .Orgs}}
 							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
-								<img class="ui avatar image" src="{{.RelAvatarLink}}" width="28" height="28">
+								{{avatar .}}
 								{{.ShortName 20}}
 								<span class="org-visibility">
 									{{if .Visibility.IsLimited}}<div class="ui orange tiny horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}

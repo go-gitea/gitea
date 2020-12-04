@@ -13,8 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 // CreateRepository creates a repository for the user/organization.
@@ -58,7 +56,12 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		}
 
 		repoPath := models.RepoPath(u.Name, repo.Name)
-		if com.IsExist(repoPath) {
+		isExist, err := util.IsExist(repoPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			return err
+		}
+		if isExist {
 			// repo already exists - We have two or three options.
 			// 1. We fail stating that the directory exists
 			// 2. We create the db repository to go with this data and adopt the git repo

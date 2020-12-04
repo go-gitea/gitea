@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -37,7 +38,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 			return
 		}
 		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
-			apiRepos = append(apiRepos, repos[i].APIFormat(access))
+			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
 
@@ -125,7 +126,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)

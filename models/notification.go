@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -332,56 +331,6 @@ func countUnread(e Engine, userID int64) int64 {
 	return exist
 }
 
-// APIFormat converts a Notification to api.NotificationThread
-func (n *Notification) APIFormat() *api.NotificationThread {
-	result := &api.NotificationThread{
-		ID:        n.ID,
-		Unread:    !(n.Status == NotificationStatusRead || n.Status == NotificationStatusPinned),
-		Pinned:    n.Status == NotificationStatusPinned,
-		UpdatedAt: n.UpdatedUnix.AsTime(),
-		URL:       n.APIURL(),
-	}
-
-	//since user only get notifications when he has access to use minimal access mode
-	if n.Repository != nil {
-		result.Repository = n.Repository.APIFormat(AccessModeRead)
-	}
-
-	//handle Subject
-	switch n.Source {
-	case NotificationSourceIssue:
-		result.Subject = &api.NotificationSubject{Type: "Issue"}
-		if n.Issue != nil {
-			result.Subject.Title = n.Issue.Title
-			result.Subject.URL = n.Issue.APIURL()
-			result.Subject.State = n.Issue.State()
-			comment, err := n.Issue.GetLastComment()
-			if err == nil && comment != nil {
-				result.Subject.LatestCommentURL = comment.APIURL()
-			}
-		}
-	case NotificationSourcePullRequest:
-		result.Subject = &api.NotificationSubject{Type: "Pull"}
-		if n.Issue != nil {
-			result.Subject.Title = n.Issue.Title
-			result.Subject.URL = n.Issue.APIURL()
-			result.Subject.State = n.Issue.State()
-			comment, err := n.Issue.GetLastComment()
-			if err == nil && comment != nil {
-				result.Subject.LatestCommentURL = comment.APIURL()
-			}
-		}
-	case NotificationSourceCommit:
-		result.Subject = &api.NotificationSubject{
-			Type:  "Commit",
-			Title: n.CommitID,
-		}
-		//unused until now
-	}
-
-	return result
-}
-
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (n *Notification) LoadAttributes() (err error) {
 	return n.loadAttributes(x)
@@ -469,15 +418,6 @@ func (n *Notification) APIURL() string {
 
 // NotificationList contains a list of notifications
 type NotificationList []*Notification
-
-// APIFormat converts a NotificationList to api.NotificationThread list
-func (nl NotificationList) APIFormat() []*api.NotificationThread {
-	var result = make([]*api.NotificationThread, 0, len(nl))
-	for _, n := range nl {
-		result = append(result, n.APIFormat())
-	}
-	return result
-}
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes() (err error) {

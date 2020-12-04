@@ -740,10 +740,17 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 	}()
 
-	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedKeysBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = com.Copy(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -769,7 +776,12 @@ func regeneratePublicKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err
@@ -1210,10 +1222,17 @@ func rewriteAllPrincipalKeys(e Engine) error {
 		os.Remove(tmpPath)
 	}()
 
-	if setting.SSH.AuthorizedPrincipalsBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedPrincipalsBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = com.Copy(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1253,7 +1272,12 @@ func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err

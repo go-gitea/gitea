@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
@@ -58,17 +59,19 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	ctx.Data["CurDbOption"] = "MySQL"
+	var curDBOption = "MySQL"
 	switch setting.Database.Type {
 	case "postgres":
-		ctx.Data["CurDbOption"] = "PostgreSQL"
+		curDBOption = "PostgreSQL"
 	case "mssql":
-		ctx.Data["CurDbOption"] = "MSSQL"
+		curDBOption = "MSSQL"
 	case "sqlite3":
 		if setting.EnableSQLite3 {
-			ctx.Data["CurDbOption"] = "SQLite3"
+			curDBOption = "SQLite3"
 		}
 	}
+
+	ctx.Data["CurDbOption"] = curDBOption
 
 	// Application general settings
 	form.AppName = setting.AppName
@@ -258,7 +261,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Save settings.
 	cfg := ini.Empty()
-	if com.IsFile(setting.CustomConf) {
+	isFile, err := util.IsFile(setting.CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+	}
+	if isFile {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
 			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)

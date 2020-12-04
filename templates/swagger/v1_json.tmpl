@@ -1880,9 +1880,47 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) assigned to you, default is false",
+            "name": "assigned",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) created by you, default is false",
+            "name": "created",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) mentioning you, default is false",
+            "name": "mentioned",
+            "in": "query"
+          },
+          {
             "type": "integer",
-            "description": "page number of requested issues",
+            "description": "page number of results to return (1-based)",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -2541,6 +2579,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Branch"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2582,6 +2623,9 @@
           },
           "403": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11282,6 +11326,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -11615,6 +11663,10 @@
             "type": "string"
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
         },
         "block_on_outdated_branch": {
           "type": "boolean",
@@ -12561,6 +12613,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -13091,7 +13147,8 @@
       "description": "EditUserOption edit user options",
       "type": "object",
       "required": [
-        "email"
+        "source_id",
+        "login_name"
       ],
       "properties": {
         "active": {
@@ -13466,6 +13523,10 @@
             "type": "string"
           },
           "x-go-name": "AllowedReactions"
+        },
+        "default_theme": {
+          "type": "string",
+          "x-go-name": "DefaultTheme"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
