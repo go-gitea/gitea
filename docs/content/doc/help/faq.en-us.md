@@ -18,11 +18,6 @@ menu:
 This page contains some common questions and answers.  
 Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 
-<!-- Table of Contents.
-    Keep this list up to date and the links in it working across rewordings of headings using one of these markdown extensions in your IDE of choice:
-        in VS Code
-            https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
-
 - [Difference between 1.x and 1.x.x downloads](#difference-between-1x-and-1xx-downloads)
 - [How to migrate from Gogs/GitHub/etc. to Gitea](#how-to-migrate-from-gogsgithubetc-to-gitea)
 - [Where does Gitea store what file](#where-does-gitea-store-what-file)
