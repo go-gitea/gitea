@@ -450,7 +450,7 @@ func syncMirror(repoID string) {
 			}
 			commitID, err := gitRepo.GetRefCommitID(result.refName)
 			if err != nil {
-				log.Error("gitRepo.GetRefCommitID [repo_id: %s, ref_name: %s]: %v", m.RepoID, result.refName,  err)
+				log.Error("gitRepo.GetRefCommitID [repo_id: %s, ref_name: %s]: %v", m.RepoID, result.refName, err)
 				continue
 			}
 			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
