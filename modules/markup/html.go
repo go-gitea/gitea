@@ -632,16 +632,18 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			// When parsing HTML, x/net/html will change all quotes which are
 			// not used for syntax into UTF-8 quotes. So checking val[0] won't
 			// be enough, since that only checks a single byte.
-			if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
-				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
-				const lenQuote = len("‘")
-				val = val[lenQuote : len(val)-lenQuote]
-			} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
-				(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
-				val = val[1 : len(val)-1]
-			} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
-				const lenQuote = len("‘")
-				val = val[1 : len(val)-lenQuote]
+			if len(val) > 1 {
+				if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
+					(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
+					const lenQuote = len("‘")
+					val = val[lenQuote : len(val)-lenQuote]
+				} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+					(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+					val = val[1 : len(val)-1]
+				} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+					const lenQuote = len("‘")
+					val = val[1 : len(val)-lenQuote]
+				}
 			}
 			props[key] = val
 		}
