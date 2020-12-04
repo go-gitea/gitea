@@ -27,9 +27,11 @@
         <div class="ui small images">
             {{- range .Attachments -}}
                 {{if FilenameIsImage .Name}}
-                    <a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-                        <img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
-                    </a>
+                    {{if .Content not contains .DownloadURL}} ## NEED HELP HERE
+                        <a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+                            <img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+                        </a>
+                    {{end}}
                 {{end}}
             {{end -}}
         </div>
