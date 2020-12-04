@@ -69,7 +69,7 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #767676;
+  --color-grey: #888888;
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
@@ -97,6 +97,7 @@
   --color-markdown-table-row: #00000008;
   --color-markdown-code-block: #00000010;
   --color-button: #ffffff;
+  --color-code-bg: #ffffff;
 }
 
 :root:lang(ja) {
@@ -253,6 +254,10 @@ a.muted:hover,
   border-color: var(--color-primary);
 }
 
+.CodeMirror-focused {
+  border-color: var(--color-primary) !important;
+}
+
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
@@ -288,6 +293,10 @@ a.muted:hover,
   background: none;
 }
 
+.ui.ui.menu .item.disabled {
+  color: var(--color-text-light-2);
+}
+
 .ui.dropdown .menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
@@ -307,6 +316,8 @@ a.muted:hover,
 }
 
 .ui.dropdown .menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
   font-weight: normal;
 }
 
@@ -523,15 +534,13 @@ a.muted:hover,
   flex-direction: inherit;
 }
 
-.ui.dropdown:not(.labeled) > .dropdown.icon {
-  height: 14px;
-  vertical-align: bottom;
-  margin-bottom: -2px;
-  margin-left: .5rem;
-}
-
 .ui.dropdown .menu {
   border-color: var(--color-secondary);
+}
+
+.ui.pagination.menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
 }
 
 .ui.form .field > .selection.dropdown > .dropdown.icon {
@@ -1266,6 +1275,11 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.basic.labels a.label:hover,
+a.ui.basic.label:hover {
+  background: var(--color-label-hover);
+}
+
 .ui.label > .detail .icons {
   margin-right: .25em;
 }
@@ -1597,6 +1611,7 @@ a.ui.label:hover {
 }
 
 .ui.attached.header {
+  position: relative;
   background: var(--color-box-header);
   border-color: var(--color-secondary);
 
@@ -1604,6 +1619,14 @@ a.ui.label:hover {
     padding: 8px 10px;
     font-weight: normal;
   }
+}
+
+/* fix misaligned right buttons on box headers */
+.ui.attached.header .right {
+  position: absolute;
+  right: .78571429rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */
