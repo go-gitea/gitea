@@ -45,7 +45,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"_csrf":                 GetCSRF(t, session, "/user/settings"),
 		"name":                  privateActivityTestUser,
 		"email":                 privateActivityTestUser + "@example.com",
-		"language":              "en-us",
+		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
