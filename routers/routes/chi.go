@@ -217,7 +217,6 @@ func RegisterInstallRoute(c chi.Router) {
 	// We need at least one handler in chi so that it does not drop
 	// our middleware: https://github.com/go-gitea/gitea/issues/13725#issuecomment-735244395
 	c.Get("/", func(w http.ResponseWriter, req *http.Request) {
-		panic("lll")
 		m.ServeHTTP(w, req)
 	})
 
