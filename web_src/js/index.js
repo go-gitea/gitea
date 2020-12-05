@@ -914,10 +914,10 @@ async function initRepository() {
           $simplemde.value(`${content}`);
         }
       }
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         $simplemde.codemirror.focus();
         $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
-      }, 0);
+      });
       event.preventDefault();
     });
 
@@ -1080,10 +1080,10 @@ async function initRepository() {
         $textarea.val($rawContent.text());
         $simplemde.value($rawContent.text());
       }
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         $textarea.focus();
         $simplemde.codemirror.focus();
-      }, 0);
+      });
       event.preventDefault();
     });
 
