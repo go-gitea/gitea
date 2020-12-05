@@ -323,57 +323,59 @@
 								</form>
 							</div>
 							{{end}}
-							<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} left buttons merge-button">
-								<button class="ui button" data-do="{{.MergeStyle}}">
-									{{svg "octicon-git-merge"}}
-									<span class="button-text">
-									{{if eq .MergeStyle "merge"}}
-										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
-									{{end}}
-									{{if eq .MergeStyle "rebase"}}
-										{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
-									{{end}}
-									{{if eq .MergeStyle "rebase-merge"}}
-										{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
-									{{end}}
-									{{if eq .MergeStyle "squash"}}
-										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
-									{{end}}
-									</span>
-								</button>
-								{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
-									<div class="ui dropdown icon button">
-										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-										<div class="menu">
-											{{if $prUnit.PullRequestsConfig.AllowMerge}}
-											<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
-											{{end}}
-											{{if $prUnit.PullRequestsConfig.AllowRebase}}
-											<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-											{{end}}
-											{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-											<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-											{{end}}
-											{{if $prUnit.PullRequestsConfig.AllowSquash}}
-											<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
-											{{end}}
+							<div style="display:inline-block">
+								<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
+									<button class="ui button" data-do="{{.MergeStyle}}">
+										{{svg "octicon-git-merge"}}
+										<span class="button-text">
+										{{if eq .MergeStyle "merge"}}
+											{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
+										{{end}}
+										{{if eq .MergeStyle "rebase"}}
+											{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
+										{{end}}
+										{{if eq .MergeStyle "rebase-merge"}}
+											{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
+										{{end}}
+										{{if eq .MergeStyle "squash"}}
+											{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
+										{{end}}
+										</span>
+									</button>
+									{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
+										<div class="ui dropdown icon button">
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="menu">
+												{{if $prUnit.PullRequestsConfig.AllowMerge}}
+												<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
+												{{end}}
+												{{if $prUnit.PullRequestsConfig.AllowRebase}}
+												<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+												{{end}}
+												{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+												<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
+												{{end}}
+												{{if $prUnit.PullRequestsConfig.AllowSquash}}
+												<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+												{{end}}
+											</div>
 										</div>
-									</div>
-								{{end}}
+									{{end}}
+								</div>
 							</div>
-							<div class="right">You can also view <a class="show-instruction">command line instructions</a></div>
+							<div style="display:inline-block">{{$.i18n.Tr "repo.pulls.merge_instruction_hint"}} <a class="show-instruction">{{$.i18n.Tr "repo.pulls.merge_instruction_link_text"}}</a></div>
 							<div class="instruct" style="display:none">
 								<div class="ui divider"></div>
-								<div><h3 style="display:inline">Step 1: </h3>From your project repository, check out a new branch and test the changes.</div>
+								<div><h3 style="display:inline">{{$.i18n.Tr "repo.pulls.merge_instruction_step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
 								<div class="ui secondary segment">
-									<p>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</p>
-									<p>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</p>
+									<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
+									<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
 								</div>
-								<div><h3 style="display:inline">Step 2: </h3>Merge the changes and update on GitHub.</div>
+								<div><h3 style="display:inline">{{$.i18n.Tr "repo.pulls.merge_instruction_step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
 								<div class="ui secondary segment">
-									<p>git checkout {{.Issue.PullRequest.BaseBranch}}</p>
-									<p>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</p>
-									<p>git push origin {{.Issue.PullRequest.BaseBranch}}</p>
+									<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
+									<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
+									<div>git push origin {{.Issue.PullRequest.BaseBranch}}</div>
 								</div>
 							</div>
 						{{else}}
