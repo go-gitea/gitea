@@ -94,10 +94,12 @@
   --color-hover: #0000000a;
   --color-active: #00000010;
   --color-menu: #ffffff;
+  --color-card: #ffffff;
   --color-markdown-table-row: #00000008;
   --color-markdown-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
+  --color-shadow: #00000024;
 }
 
 :root:lang(ja) {
@@ -144,10 +146,7 @@ samp {
 }
 
 b,
-strong {
-  font-weight: 500;
-}
-
+strong,
 h1,
 h2,
 h3,
@@ -372,6 +371,48 @@ a.muted:hover,
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
   background: var(--color-box-body);
   box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.cards > .card,
+.ui.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none;
+}
+
+.ui.cards > .card > .content,
+.ui.card > .content {
+  border-color: var(--color-secondary);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra,
+.ui.cards > .card > .extra a:not(.ui),
+.ui.card > .extra a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .extra a:not(.ui):hover,
+.ui.card > .extra a:not(.ui):hover {
+  color: var(--color-primary);
+}
+
+.ui.cards > .card > .content > .header,
+.ui.card > .content > .header {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .content > .description,
+.ui.card > .content > .description {
+  color: var(--color-text);
+}
+
+.ui.cards a.card:hover,
+.ui.link.cards .card:not(.icon):hover,
+a.ui.card:hover,
+.ui.link.card:hover {
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
 }
 
 .ui.progress[data-percent="0"] .bar .progress {
@@ -702,7 +743,7 @@ a.muted:hover,
     }
 
     &.bold {
-      font-weight: 500;
+      font-weight: 600;
     }
 
     &.italic {
@@ -737,7 +778,6 @@ a.muted:hover,
   }
 
   &.bottom.attached.message {
-    font-weight: 500;
     text-align: left;
     color: black;
 
@@ -998,7 +1038,7 @@ a.muted:hover,
 
 .scrolling.menu {
   .item.selected {
-    font-weight: 500 !important;
+    font-weight: 600 !important;
   }
 }
 
