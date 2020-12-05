@@ -323,7 +323,7 @@
 								</form>
 							</div>
 							{{end}}
-							<div style="display:inline-block">
+							<div class="dib">
 								<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 									<button class="ui button" data-do="{{.MergeStyle}}">
 										{{svg "octicon-git-merge"}}
@@ -363,15 +363,15 @@
 									{{end}}
 								</div>
 							</div>
-							<div style="display:inline-block">{{$.i18n.Tr "repo.pulls.merge_instruction_hint"}} <a class="show-instruction">{{$.i18n.Tr "repo.pulls.merge_instruction_link_text"}}</a></div>
+							<div class="dib">{{$.i18n.Tr "repo.pulls.merge_instruction_hint"}} <a class="show-instruction">{{$.i18n.Tr "repo.pulls.merge_instruction_link_text"}}</a></div>
 							<div class="instruct" style="display:none">
 								<div class="ui divider"></div>
-								<div><h3 style="display:inline">{{$.i18n.Tr "repo.pulls.merge_instruction_step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
+								<div><h3 class="di">{{$.i18n.Tr "repo.pulls.merge_instruction_step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
 								<div class="ui secondary segment">
 									<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
 									<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
 								</div>
-								<div><h3 style="display:inline">{{$.i18n.Tr "repo.pulls.merge_instruction_step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
+								<div><h3 class="di">{{$.i18n.Tr "repo.pulls.merge_instruction_step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
 								<div class="ui secondary segment">
 									<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
 									<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
