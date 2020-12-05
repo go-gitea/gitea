@@ -39,7 +39,7 @@
 											{{if $.allowAdopt}}
 												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.i18n.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
-													<i class="close icon"></i>
+													{{svg "octicon-x" 16 "close inside"}}
 													<div class="header">
 														<span class="label">{{$.i18n.Tr "repo.adopt_preexisting"}}</span>
 													</div>
@@ -66,7 +66,7 @@
 											{{if $.allowDelete}}
 												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.i18n.Tr "repo.delete_preexisting_label"}}</span></button>
 												<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
-													<i class="close icon"></i>
+													{{svg "octicon-x" 16 "close inside"}}
 													<div class="header">
 														<span class="label">{{$.i18n.Tr "repo.delete_preexisting"}}</span>
 													</div>
