@@ -98,6 +98,7 @@ require (
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
+	github.com/unrolled/render v1.0.3
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.39.0

@@ -7,9 +7,12 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
@@ -24,6 +27,58 @@ var (
 	subjectTemplates = texttmpl.New("")
 	bodyTemplates    = template.New("")
 )
+
+func GetAsset(name string) ([]byte, error) {
+	fmt.Println("=====2", name)
+
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		return bs, nil
+	}
+
+	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
+}
+
+func GetAssetNames() []string {
+	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
+	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
+	return append(tmpls, tmpls2...)
+}
+
+func getDirAssetNames(dir string) []string {
+	var tmpls []string
+	isDir, err := util.IsDir(dir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", dir, err)
+		return tmpls
+	}
+	if !isDir {
+		log.Warn("Templates dir %s is a not directory.", dir)
+		return tmpls
+	}
+
+	files, err := com.StatDir(dir)
+	if err != nil {
+		log.Warn("Failed to read %s templates dir. %v", dir, err)
+		return tmpls
+	}
+	for _, filePath := range files {
+		if strings.HasPrefix(filePath, "mail/") {
+			continue
+		}
+
+		if !strings.HasSuffix(filePath, ".tmpl") {
+			continue
+		}
+
+		fmt.Println("=======3333", filePath, filePath)
+
+		tmpls = append(tmpls, "templates/"+filePath)
+	}
+	return tmpls
+}
 
 // HTMLRenderer implements the macaron handler for serving HTML templates.
 func HTMLRenderer() macaron.Handler {

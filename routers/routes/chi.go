@@ -22,11 +22,13 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/unrolled/render"
 )
 
 type routerLoggerOptions struct {
@@ -102,11 +104,34 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 // with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
+		rnd := render.New(render.Options{
+			Extensions:    []string{".tmpl"},
+			Directory:     "templates",
+			Funcs:         templates.NewFuncMap(),
+			Asset:         templates.GetAsset,
+			AssetNames:    templates.GetAssetNames,
+			IsDevelopment: setting.RunMode != "prod",
+		})
+
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					http.Error(w, combinedErr, 500)
+					log.Error("%v", combinedErr)
+
+					var (
+						data      = templates.Vars{
+							"Language": ctx.Locale.Language(),
+							"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
+						}
+					)
+					if setting.RunMode != "prod" {
+						data["ErrMsg"] = combinedErr
+					}
+					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(data))
+					if err != nil {
+						log.Error("%v", err)
+					}
 				}
 			}()
 
@@ -202,6 +227,7 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
@@ -233,6 +259,7 @@ func RegisterInstallRoute(c chi.Router) {
 	// We need at least one handler in chi so that it does not drop
 	// our middleware: https://github.com/go-gitea/gitea/issues/13725#issuecomment-735244395
 	c.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		panic("lll")
 		m.ServeHTTP(w, req)
 	})
 
