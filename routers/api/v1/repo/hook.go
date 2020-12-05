@@ -146,7 +146,7 @@ func TestHook(ctx *context.APIContext) {
 		Commits: []*api.PayloadCommit{
 			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
-		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
 		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
 		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
 	}); err != nil {
