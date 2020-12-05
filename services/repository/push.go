@@ -131,7 +131,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
-						if refName != "master" {
+						if repo.DefaultBranch != setting.Repository.DefaultBranch {
 							if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 								if !git.IsErrUnsupportedVersion(err) {
 									return err
