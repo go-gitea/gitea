@@ -19,16 +19,15 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unrolled/render"
 )
 
 type routerLoggerOptions struct {
@@ -95,47 +94,6 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 
 			status := ww.Status()
 			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
-		})
-	}
-}
-
-// Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
-// Although similar to macaron.Recovery() the main difference is that this error will be created
-// with the gitea 500 page.
-func Recovery() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		rnd := render.New(render.Options{
-			Extensions:    []string{".tmpl"},
-			Directory:     "templates",
-			Funcs:         templates.NewFuncMap(),
-			Asset:         templates.GetAsset,
-			AssetNames:    templates.GetAssetNames,
-			IsDevelopment: setting.RunMode != "prod",
-		})
-
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
-
-					var (
-						data      = templates.Vars{
-							"Language": ctx.Locale.Language(),
-							"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
-						}
-					)
-					if setting.RunMode != "prod" {
-						data["ErrMsg"] = combinedErr
-					}
-					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(data))
-					if err != nil {
-						log.Error("%v", err)
-					}
-				}
-			}()
-
-			next.ServeHTTP(w, req)
 		})
 	}
 }
@@ -228,7 +186,7 @@ func NewChi() chi.Router {
 		}
 	}
 
-	c.Use(Recovery())
+	c.Use(middlewares.Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}

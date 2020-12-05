@@ -241,7 +241,6 @@ func (r *Render) compileTemplatesFromAsset() {
 	r.templates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
 
 	for _, path := range r.opt.AssetNames() {
-		fmt.Println("0000000", path, dir)
 		if !strings.HasPrefix(path, dir) {
 			continue
 		}

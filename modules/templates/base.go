@@ -5,9 +5,13 @@
 package templates
 
 import (
+	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+	"github.com/unknwon/com"
 )
 
 // Vars represents variables to be render in golang templates
@@ -25,20 +29,51 @@ func (vars Vars) Merge(another map[string]interface{}) Vars {
 func BaseVars() Vars {
 	var startTime = time.Now()
 	return map[string]interface{}{
-		"IsLandingPageHome": setting.LandingPageURL == setting.LandingPageHome,
-		"IsLandingPageExplore": setting.LandingPageURL == setting.LandingPageExplore,
+		"IsLandingPageHome":          setting.LandingPageURL == setting.LandingPageHome,
+		"IsLandingPageExplore":       setting.LandingPageURL == setting.LandingPageExplore,
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
-		"ShowRegistrationButton": setting.Service.ShowRegistrationButton,
+		"ShowRegistrationButton":      setting.Service.ShowRegistrationButton,
 		"ShowMilestonesDashboardPage": setting.Service.ShowMilestonesDashboardPage,
-		"ShowFooterBranding": setting.ShowFooterBranding,
-		"ShowFooterVersion": setting.ShowFooterVersion,
+		"ShowFooterBranding":          setting.ShowFooterBranding,
+		"ShowFooterVersion":           setting.ShowFooterVersion,
 
-		"EnableSwagger": setting.API.EnableSwagger,
+		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
-		"PageStartTime": startTime,
+		"PageStartTime":      startTime,
 		"TmplLoadTimes": func() string {
 			return time.Since(startTime).String()
 		},
 	}
+}
+
+func getDirAssetNames(dir string) []string {
+	var tmpls []string
+	isDir, err := util.IsDir(dir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", dir, err)
+		return tmpls
+	}
+	if !isDir {
+		log.Warn("Templates dir %s is a not directory.", dir)
+		return tmpls
+	}
+
+	files, err := com.StatDir(dir)
+	if err != nil {
+		log.Warn("Failed to read %s templates dir. %v", dir, err)
+		return tmpls
+	}
+	for _, filePath := range files {
+		if strings.HasPrefix(filePath, "mail/") {
+			continue
+		}
+
+		if !strings.HasSuffix(filePath, ".tmpl") {
+			continue
+		}
+
+		tmpls = append(tmpls, "templates/"+filePath)
+	}
+	return tmpls
 }
