@@ -168,7 +168,7 @@ func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPICo
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       base.DefaultAvatarLink(),
+		Avatar:                       models.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {

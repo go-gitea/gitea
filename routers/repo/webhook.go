@@ -1073,7 +1073,7 @@ func TestWebhook(ctx *context.Context) {
 				},
 			},
 		},
-		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
 		Pusher: apiUser,
 		Sender: apiUser,
 	}

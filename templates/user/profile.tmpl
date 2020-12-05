@@ -6,19 +6,19 @@
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
+							{{avatar .Owner 290}}
 						</a>
 					{{else}}
-						<span class="image">
-							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}" height="290" width="290"/>
+						<span class="image" id="profile-avatar">
+							{{avatar .Owner 290}}
 						</span>
 					{{end}}
-					<div class="content word-break">
+					<div class="content word-break profile-avatar-name">
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
 					</div>
 					<div class="extra content word-break">
-						<ul class="text black">
+						<ul>
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
@@ -54,7 +54,9 @@
 								{{range .Orgs}}
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
-										<a href="{{.HomeLink}}"><img class="ui image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
+										<a class="poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted">
+											{{avatar .}}
+										</a>
 									</li>
 									{{end}}
 								{{end}}

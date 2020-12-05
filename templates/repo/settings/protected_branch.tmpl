@@ -48,7 +48,7 @@
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											<img class="ui mini image" src="{{.RelAvatarLink}}">
+											{{avatar . 28 "mini"}}
 											{{.GetDisplayName}}
 										</div>
 									{{end}}
@@ -98,7 +98,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{avatar . 28 "mini"}}
 									{{.GetDisplayName}}
 									</div>
 								{{end}}
@@ -178,7 +178,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{avatar . 28 "mini"}}
 									{{.GetDisplayName}}
 									</div>
 								{{end}}

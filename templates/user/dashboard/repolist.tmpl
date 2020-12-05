@@ -23,8 +23,15 @@
 			<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 		</div>
 		<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
-			<h4 class="ui top attached header">
-				{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
+			<h4 class="ui top attached header df ac">
+				<div class="f1 df ac">
+					{{.i18n.Tr "home.my_repos"}}
+					<span class="ui grey label ml-3">${reposTotalCount}</span>
+				</div>
+				<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+					{{svg "octicon-plus"}}
+					<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
+				</a>
 			</h4>
 			<div class="ui attached secondary segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
@@ -94,13 +101,16 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a :href="suburl + '/' + repo.full_name">
-							<component v-bind:is="repoIcon(repo)" size="16"></component>
-							<strong class="text truncate item-name">${repo.full_name}</strong>
-							<i v-if="repo.archived" class="archive icon archived-icon"></i>
-							<span class="ui right text light grey">
-								${repo.stars_count} <span class="rear">{{svg "octicon-star"}}</span>
-							</span>
+						<a class="df ac sb" :href="suburl + '/' + repo.full_name">
+							<div class="f1 df ac">
+								<component v-bind:is="repoIcon(repo)" size="16"></component>
+								<strong class="text truncate item-name">${repo.full_name}</strong>
+								<i v-if="repo.archived" class="archive icon archived-icon"></i>
+							</div>
+							<div class="text light grey df ac">
+								${repo.stars_count}
+								{{svg "octicon-star" 16 "rear ml-2"}}
+							</div>
 						</a>
 					</li>
 					<li v-if="showMoreReposLink">
@@ -129,25 +139,29 @@
 				</ul>
 			</div>
 		</div>
-		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
-			<h4 class="ui top attached header">
-				{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${organizationsTotalCount}</span>
-				<div v-if="canCreateOrganization" class="ui right">
-					<a class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
-						<i class="plus icon"></i>
-						<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
-					</a>
+		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
+			<h4 class="ui top attached header df ac">
+				<div class="f1 df ac">
+					{{.i18n.Tr "home.my_orgs"}}
+					<span class="ui grey label ml-3">${organizationsTotalCount}</span>
 				</div>
+				<a v-if="canCreateOrganization" class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+					{{svg "octicon-plus"}}
+					<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
+				</a>
 			</h4>
 			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
-						<a :href="suburl + '/' + org.name">
-							{{svg "octicon-organization"}}
-							<strong class="text truncate item-name">${org.name}</strong>
-							<span class="ui right text light grey">
-								${org.num_repos} <span class="rear">{{svg "octicon-repo"}}</span>
-							</span>
+						<a class="df ac sb" :href="suburl + '/' + org.name">
+							<div class="f1">
+								{{svg "octicon-organization" 16 "mr-2"}}
+								<strong class="text truncate item-name">${org.name}</strong>
+							</div>
+							<div class="text light grey df ac">
+								${org.num_repos}
+								{{svg "octicon-repo" 16 "rear ml-2 mt-1"}}
+							</div>
 						</a>
 					</li>
 				</ul>
