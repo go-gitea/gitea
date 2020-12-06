@@ -104,7 +104,7 @@
 						<a class="df ac sb" :href="suburl + '/' + repo.full_name">
 							<div class="f1 df ac">
 								<component v-bind:is="repoIcon(repo)" size="16"></component>
-								<strong class="text truncate item-name">${repo.full_name}</strong>
+								<strong class="text truncate item-name ml-2">${repo.full_name}</strong>
 								<i v-if="repo.archived" class="archive icon archived-icon"></i>
 							</div>
 							<div class="text light grey df ac">
