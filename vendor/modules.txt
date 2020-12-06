@@ -273,7 +273,7 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
-# github.com/go-enry/go-enry/v2 v2.5.2
+# github.com/go-enry/go-enry/v2 v2.6.0
 ## explicit
 github.com/go-enry/go-enry/v2
 github.com/go-enry/go-enry/v2/data
