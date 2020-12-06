@@ -3,8 +3,8 @@
 	<div class="ui container">
 		<div class="repo-header">
 			<div class="ui huge breadcrumb repo-title">
-				{{if .RelAvatarLink}}
-					<img class="ui avatar image" src="{{.RelAvatarLink}}">
+				{{if .Name}}
+					{{avatar .}}
 				{{else}}
 					{{template "repo/header_icon" .}}
 				{{end}}
