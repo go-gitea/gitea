@@ -363,7 +363,7 @@
 									{{end}}
 								</div>
 							</div>
-							<div class="dib">{{$.i18n.Tr "repo.pulls.merge_instruction_hint"}} <a class="show-instruction">{{$.i18n.Tr "repo.pulls.merge_instruction_link_text"}}</a></div>
+							<div class="dib ml-3">{{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}}</div>
 							<div class="instruct" style="display:none">
 								<div class="ui divider"></div>
 								<div><h3 class="di">{{$.i18n.Tr "repo.pulls.merge_instruction_step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
@@ -389,7 +389,6 @@
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
-						
 					{{else}}
 						<div class="ui divider"></div>
 						<div class="item text grey">
