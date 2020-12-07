@@ -287,19 +287,17 @@
 				{{end}}
 			</div>
 		</div>
-
 		<div class="ui divider"></div>
-
-		<div class="ui participants">
+		{{if .Participants}}
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
-			<div class="ui list df fw">
+			<div class="ui participants list df fw">
 				{{range .Participants}}
 					<a class="ui poping up" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
 						{{avatar . 28 "my-1 mr-2"}}
 					</a>
 				{{end}}
 			</div>
-		</div>
+		{{end}}
 
 		{{if and $.IssueWatch (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
@@ -370,7 +368,7 @@
 			{{end}}
 			{{if gt (len .WorkingUsers) 0}}
 				<div class="ui divider"></div>
-				<div class="ui participants comments">
+				<div class="ui comments">
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 					<div>
 						{{range $user, $trackedtime := .WorkingUsers}}
