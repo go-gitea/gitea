@@ -292,7 +292,7 @@
 
 		<div class="ui participants">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
-			<div class="my-4 df fw">
+			<div class="ui list df fw">
 				{{range .Participants}}
 					<a class="ui poping up" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
 						{{avatar . 28 "my-1 mr-2"}}
