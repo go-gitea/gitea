@@ -13,7 +13,9 @@ menu:
     identifier: "api-usage"
 ---
 
-# Gitea API Usage
+# API Usage
+
+{{< toc >}}
 
 ## Enabling/configuring API access
 
@@ -22,7 +24,7 @@ By default, `ENABLE_SWAGGER` is true, and
 Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) for more
 information.
 
-## Authentication via the API
+## Authentication
 
 Gitea supports these methods of API authentication:
 
@@ -39,7 +41,7 @@ Gitea parses queries and headers to find the token in
 You can create an API key token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
-### OAuth2
+## OAuth2 Provider
 
 Access tokens obtained from Gitea's [OAuth2 provider](https://docs.gitea.io/en-us/oauth2-provider) are accepted by these methods:
 
