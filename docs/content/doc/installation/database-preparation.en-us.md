@@ -13,11 +13,15 @@ menu:
     identifier: "database-prep"
 ---
 
+# Database Preparation
+
 You need a database to use Gitea. Gitea supports PostgreSQL, MySQL, SQLite, and MSSQL. This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
 Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password.  The steps assumes that you run Linux for both database and Gitea servers.
+
+{{< toc >}}
 
 ## MySQL
 

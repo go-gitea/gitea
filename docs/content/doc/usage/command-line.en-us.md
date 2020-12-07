@@ -13,13 +13,15 @@ menu:
     identifier: "command-line"
 ---
 
-## Command Line
+# Command Line
 
-### Usage
+{{< toc >}}
+
+## Usage
 
 `gitea [global options] command [command or global options] [arguments...]`
 
-### Global options
+## Global options
 
 All global options can be placed at the command level.
 
@@ -32,9 +34,9 @@ All global options can be placed at the command level.
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).
 
-### Commands
+## Commands
 
-#### web
+### web
 
 Starts the server:
 
@@ -51,7 +53,7 @@ Starts the server:
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
       redone every time you update Gitea.
 
-#### admin
+### admin
 
 Admin operations:
 
@@ -229,7 +231,7 @@ Admin operations:
                 - `gitea admin auth update-ldap-simple --id 1 --name "my ldap auth source"`
                 - `gitea admin auth update-ldap-simple --id 1 --username-attribute uid --firstname-attribute givenName --surname-attribute sn`
 
-#### cert
+### cert
 
 Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in the current
 directory and will overwrite any existing files.
@@ -247,7 +249,7 @@ directory and will overwrite any existing files.
 - Examples:
     - `gitea cert --host git.example.com,example.com,www.example.com --ca`
 
-#### dump
+### dump
 
 Dumps all files and databases into a zip file. Outputs into a file like `gitea-dump-1482906742.zip`
 in the current directory.
@@ -262,7 +264,7 @@ in the current directory.
     - `gitea dump`
     - `gitea dump --verbose`
 
-#### generate
+### generate
 
 Generates random values and tokens for usage in configuration file. Useful for generating values
 for automatic deployments.
@@ -278,7 +280,7 @@ for automatic deployments.
             - `gitea generate secret JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
 
-#### keys
+### keys
 
 Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd config file:
 
@@ -300,14 +302,14 @@ writable by group or others. The program must be specified by an absolute
 path.
 NB: Gitea must be running for this command to succeed.
 
-#### migrate
+### migrate
 Migrates the database. This command can be used to run other commands before starting the server for the first time.  
 This command is idempotent.
 
-#### convert
+### convert
 Converts an existing MySQL database from utf8 to utf8mb4.
 
-#### doctor
+### doctor
 Diagnose the problems of current gitea instance according the given configuration.
 Currently there are a check list below:
 
@@ -332,7 +334,7 @@ var checklist = []check{
 
 This function will receive a command line context and return a list of details about the problems or error.
 
-##### doctor recreate-table
+#### doctor recreate-table
 
 Sometimes when there are migrations the old columns and default values may be left
 unchanged in the database schema. This may lead to warning such as:
@@ -362,7 +364,7 @@ gitea doctor recreate-table
 
 It is highly recommended to back-up your database before running these commands.
 
-#### manager
+### manager
 
 Manage running server operations:
 

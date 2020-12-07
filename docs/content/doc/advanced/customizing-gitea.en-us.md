@@ -45,6 +45,10 @@ environment variable; this can be used to override the default path to something
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
+# Table of Contents
+
+{{< toc >}}
+
 ## Serving custom public files
 
 To make Gitea serve custom public files (like pages and images), use the folder
