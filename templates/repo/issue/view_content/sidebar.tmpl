@@ -328,7 +328,7 @@
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
-					<div>
+					<div class="mt-3">
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 							{{$.CsrfTokenHtml}}
 						</form>
@@ -374,7 +374,7 @@
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 					<div>
 						{{range $user, $trackedtime := .WorkingUsers}}
-							<div class="comment">
+							<div class="comment mt-3">
 								<a class="avatar">
 									{{avatar $user}}
 								</a>
