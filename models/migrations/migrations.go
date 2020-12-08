@@ -265,6 +265,8 @@ var migrations = []Migration{
 	NewMigration("update reactions constraint", updateReactionConstraint),
 	// v160 -> v161
 	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	// v161 -> v162
+	NewMigration("Convert task type from int to string", convertTaskTypeToString),
 }
 
 // GetCurrentDBVersion returns the current db version
