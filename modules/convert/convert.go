@@ -7,6 +7,8 @@ package convert
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -14,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -235,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.HookTaskType),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,
@@ -364,4 +366,16 @@ func ToCommitStatus(status *models.CommitStatus) *api.Status {
 	}
 
 	return apiStatus
+}
+
+// ToLFSLock convert a LFSLock to api.LFSLock
+func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	return &api.LFSLock{
+		ID:       strconv.FormatInt(l.ID, 10),
+		Path:     l.Path,
+		LockedAt: l.Created.Round(time.Second),
+		Owner: &api.LFSLockOwner{
+			Name: l.Owner.DisplayName(),
+		},
+	}
 }

@@ -7,6 +7,7 @@
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
+	<meta name="default-theme" content="{{DefaultTheme}}" />
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
 	<meta name="keywords" content="{{MetaKeywords}}">

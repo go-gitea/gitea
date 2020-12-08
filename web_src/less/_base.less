@@ -1,10 +1,10 @@
 :root {
   /* documented customizable variables */
-  --fonts-proportional: -apple-system, "BlinkMacSystemFont", system-ui, "Segoe UI", "Roboto", "Helvetica", "Arial";
-  --fonts-monospace: "SF Mono", "Consolas", "Menlo", "Liberation Mono", "Monaco", "Lucida Console", monospace;
-  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  --fonts-proportional: system-ui, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", sans-serif;
+  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla";
   /* other variables */
-  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
+  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji);
   --border-radius: .28571429rem;
   --color-primary: #4183c4;
   --color-primary-dark-1: #3876b3;
@@ -69,14 +69,14 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #767676;
+  --color-grey: #888888;
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
   /* target-based colors */
   --color-body: #ffffff;
   --color-text: #212121;
-  --color-text-light: #444444;
+  --color-text-light: #555555;
   --color-text-light-2: #888888;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
@@ -91,9 +91,15 @@
   --color-label-hover: #00000015;
   --color-label-basic: #00000008;
   --color-label-border: #00000018;
-  --color-hover: #0000000d;
-  --color-active: #00000014;
+  --color-hover: #0000000a;
+  --color-active: #00000010;
   --color-menu: #ffffff;
+  --color-card: #ffffff;
+  --color-markdown-table-row: #00000008;
+  --color-markdown-code-block: #00000010;
+  --color-button: #ffffff;
+  --color-code-bg: #ffffff;
+  --color-shadow: #00000024;
 }
 
 :root:lang(ja) {
@@ -128,14 +134,6 @@
   font-weight: 500;
 }
 
-@font-face {
-  font-family: "Noto Color Emoji";
-  src:
-    local("Noto Color Emoji"),
-    local("Noto-Color-Emoji"),
-    url("../fonts/noto-color-emoji/NotoColorEmoji.ttf") format("truetype");
-}
-
 textarea {
   font-family: var(--fonts-regular);
 }
@@ -148,10 +146,7 @@ samp {
 }
 
 b,
-strong {
-  font-weight: 500;
-}
-
+strong,
 h1,
 h2,
 h3,
@@ -231,9 +226,27 @@ a.muted:hover,
   color: var(--color-primary-dark-2);
 }
 
+.ui.breadcrumb .divider {
+  color: var(--color-text-light-2);
+}
+
+.page-content {
+  margin-top: 15px;
+}
+
+.page-content .header-wrapper,
+.page-content .new-menu {
+  margin-top: -15px !important;
+  padding-top: 15px !important;
+}
+
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
+}
+
+.CodeMirror-focused {
+  border-color: var(--color-primary) !important;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -271,6 +284,10 @@ a.muted:hover,
   background: none;
 }
 
+.ui.ui.menu .item.disabled {
+  color: var(--color-text-light-2);
+}
+
 .ui.dropdown .menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
@@ -290,6 +307,8 @@ a.muted:hover,
 }
 
 .ui.dropdown .menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
   font-weight: normal;
 }
 
@@ -354,6 +373,48 @@ a.muted:hover,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
+.ui.cards > .card,
+.ui.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none;
+}
+
+.ui.cards > .card > .content,
+.ui.card > .content {
+  border-color: var(--color-secondary);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra,
+.ui.cards > .card > .extra a:not(.ui),
+.ui.card > .extra a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .extra a:not(.ui):hover,
+.ui.card > .extra a:not(.ui):hover {
+  color: var(--color-primary);
+}
+
+.ui.cards > .card > .content > .header,
+.ui.card > .content > .header {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .content > .description,
+.ui.card > .content > .description {
+  color: var(--color-text);
+}
+
+.ui.cards a.card:hover,
+.ui.link.cards .card:not(.icon):hover,
+a.ui.card:hover,
+.ui.link.card:hover {
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
+}
+
 .ui.progress[data-percent="0"] .bar .progress {
   color: var(--color-text);
 }
@@ -391,6 +452,19 @@ a.muted:hover,
 
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
+}
+
+.ui.avatar.images .image,
+.ui.avatar.images img,
+.ui.avatar.images svg,
+.ui.avatar.image img,
+.ui.avatar.image svg,
+.ui.avatar.image,
+.ui.cards > .card img.avatar,
+.ui.cards > .card .avatar img,
+.ui.card img.avatar,
+.ui.card .avatar img {
+  border-radius: var(--border-radius);
 }
 
 .dont-break-out {
@@ -493,19 +567,21 @@ a.muted:hover,
   flex-direction: inherit;
 }
 
-.ui.dropdown:not(.labeled) > .dropdown.icon {
-  height: 14px;
-  vertical-align: bottom;
-  margin-bottom: -2px;
-  margin-left: .5rem;
-}
-
 .ui.dropdown .menu {
   border-color: var(--color-secondary);
 }
 
+.ui.pagination.menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
 .ui.form .field > .selection.dropdown > .dropdown.icon {
   height: auto;
+}
+
+.ui.loading.segment::before {
+  background: none;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -607,7 +683,7 @@ a.muted:hover,
     }
 
     &.black {
-      color: var(--color-body);
+      color: var(--color-text);
 
       &:hover {
         color: #000000;
@@ -667,7 +743,7 @@ a.muted:hover,
     }
 
     &.bold {
-      font-weight: 500;
+      font-weight: 600;
     }
 
     &.italic {
@@ -702,7 +778,6 @@ a.muted:hover,
   }
 
   &.bottom.attached.message {
-    font-weight: 500;
     text-align: left;
     color: black;
 
@@ -768,15 +843,6 @@ a.muted:hover,
 
   .normal.header {
     font-weight: normal;
-  }
-
-  .avatar.image,
-  .avatar.image img,
-  .avatar.image svg,
-  .avatar.images .image,
-  .avatar.images img,
-  .avatar.images svg {
-    border-radius: 3px;
   }
 
   .form {
@@ -972,7 +1038,7 @@ a.muted:hover,
 
 .scrolling.menu {
   .item.selected {
-    font-weight: 500 !important;
+    font-weight: 600 !important;
   }
 }
 
@@ -1094,7 +1160,6 @@ footer {
 }
 
 .ui.menu.new-menu {
-  padding-top: 15px;
   margin-bottom: 15px;
   background: var(--color-navbar);
   border-bottom: 1px solid var(--color-secondary) !important;
@@ -1124,14 +1189,17 @@ footer {
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background-image: linear-gradient(to right, transparent, var(--color-navbar) 100%);
-  content: ' ';
+  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
+  content: '';
   right: 0;
   height: 39px;
-  z-index: 1000;
   width: 60px;
   visibility: visible;
   pointer-events: none;
+}
+
+.ui.menu.new-menu.shadow-body::after {
+  background: linear-gradient(to right, transparent, var(--color-body) 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -1177,6 +1245,32 @@ footer {
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
   margin-bottom: 2px !important;
+}
+
+.repo-title {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  word-break: break-all;
+  color: var(--color-text-light);
+
+  .avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .labels {
+    margin-left: .5rem;
+
+    > * + * {
+      margin-left: .5rem;
+    }
+  }
+}
+
+.repo-icon {
+  display: inline-block;
 }
 
 .activity-bar-graph {
@@ -1237,6 +1331,11 @@ a.ui.label:hover {
   background: var(--color-label-basic);
   border-color: var(--color-label-border);
   color: var(--color-text);
+}
+
+.ui.basic.labels a.label:hover,
+a.ui.basic.label:hover {
+  background: var(--color-label-hover);
 }
 
 .ui.label > .detail .icons {
@@ -1403,6 +1502,26 @@ a.ui.label:hover {
   font-size: .85714286rem;
 }
 
+.ui.button {
+  background: var(--color-button);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none !important;
+  color: var(--color-text);
+}
+
+.ui.button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.buttons .button:first-child {
+  border-left: 1px solid var(--color-secondary);
+}
+
+.ui.buttons .button + .button {
+  border-left: none;
+}
+
 .ui.blue.button,
 .ui.blue.buttons .button,
 .ui.primary.button,
@@ -1516,6 +1635,11 @@ a.ui.label:hover {
   margin-bottom: .4em;
 }
 
+.ui.cards > .card > .extra,
+.ui.card > .extra {
+  color: var(--color-text);
+}
+
 .color-icon {
   margin-right: .5em;
   margin-left: .5em;
@@ -1545,6 +1669,7 @@ a.ui.label:hover {
 }
 
 .ui.attached.header {
+  position: relative;
   background: var(--color-box-header);
   border-color: var(--color-secondary);
 
@@ -1552,6 +1677,14 @@ a.ui.label:hover {
     padding: 8px 10px;
     font-weight: normal;
   }
+}
+
+/* fix misaligned right buttons on box headers */
+.ui.attached.header .right {
+  position: absolute;
+  right: .78571429rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */
@@ -1585,10 +1718,6 @@ table th[data-sortt-desc] {
       min-height: 100px;
     }
   }
-}
-
-.dropdown .ui.label {
-  margin-left: 0 !important;
 }
 
 .ui.dropdown .menu .item {
@@ -1711,6 +1840,10 @@ table th[data-sortt-desc] {
 .ui.secondary.pointing.menu .dropdown.item:hover,
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
+}
+
+.ui.header {
   color: var(--color-text);
 }
 

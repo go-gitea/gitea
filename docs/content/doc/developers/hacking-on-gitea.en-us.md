@@ -15,6 +15,8 @@ menu:
 
 # Hacking on Gitea
 
+{{< toc >}}
+
 ## Installing go
 
 You should [install go](https://golang.org/doc/install) and set up your go
@@ -42,7 +44,7 @@ running. As of last update, it should be Go version {{< go-version >}}.
 Gitea makes heavy use of Make to automate tasks and improve development. This
 guide covers how to install Make.
 
-#### On Linux
+### On Linux
 
 Install with the package manager.
 
@@ -58,7 +60,7 @@ On Fedora/RHEL/CentOS:
 sudo yum install make
 ```
 
-#### On Windows
+### On Windows
 
 One of these three distributions of Make will run on Windows:
 

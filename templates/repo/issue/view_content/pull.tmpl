@@ -9,8 +9,8 @@
 					<div class="review-item">
 						<div class="review-item-left">
 							{{if .User}}
-								<a class="ui avatar image" href="{{.User.HomeLink}}">
-									<img src="{{.User.RelAvatarLink}}">
+								<a href="{{.User.HomeLink}}">
+									{{avatar .User}}
 								</a>
 							{{end}}
 							<span class="text grey">

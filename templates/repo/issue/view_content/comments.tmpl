@@ -15,7 +15,7 @@
 			<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-				<img src="{{.Poster.RelAvatarLink}}">
+				{{avatar .Poster}}
 			</a>
 		{{end}}
 			<div class="content comment-container">
@@ -92,8 +92,8 @@
 	{{else if eq .Type 1}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -107,8 +107,8 @@
 	{{else if eq .Type 2}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge bg-red text-white">{{svg "octicon-circle-slash"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -122,8 +122,8 @@
 	{{else if eq .Type 28}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -147,8 +147,8 @@
 		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-bookmark"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			{{if eq .RefAction 3}}<del>{{end}}
 			<span class="text grey">
@@ -164,8 +164,8 @@
 	{{else if eq .Type 4}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-bookmark"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -180,8 +180,8 @@
 		{{if or .AddedLabels .RemovedLabels}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-tag"}}</span>
-				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-					<img src="{{.Poster.RelAvatarLink}}">
+				<a href="{{.Poster.HomeLink}}">
+					{{avatar .Poster}}
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -198,8 +198,8 @@
 	{{else if eq .Type 8}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-milestone"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -211,8 +211,8 @@
 			<span class="badge">{{svg "octicon-person"}}</span>
 			{{if gt .AssigneeID 0}}
 				{{if .RemovedAssignee}}
-					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
-						<img src="{{.Assignee.RelAvatarLink}}">
+					<a href="{{.Assignee.HomeLink}}">
+						{{avatar .Assignee}}
 					</a>
 					<span class="text grey">
 						<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
@@ -223,8 +223,8 @@
 						{{ end }}
 					</span>
 				{{else}}
-					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
-						<img src="{{.Assignee.RelAvatarLink}}">
+					<a href="{{.Assignee.HomeLink}}">
+						{{avatar .Assignee}}
 					</a>
 					<span class="text grey">
 						<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
@@ -240,8 +240,8 @@
 	{{else if eq .Type 10}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-pencil"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -251,8 +251,8 @@
 	{{else if eq .Type 11}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-git-branch"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -262,8 +262,8 @@
 	{{else if eq .Type 12}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -273,8 +273,8 @@
 	{{else if eq .Type 13}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -288,8 +288,8 @@
 	{{else if eq .Type 14}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -303,8 +303,8 @@
 	{{else if eq .Type 15}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -314,8 +314,8 @@
 	{{else if eq .Type 16}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -325,8 +325,8 @@
 	{{else if eq .Type 17}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -336,8 +336,8 @@
 	{{else if eq .Type 18}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -347,8 +347,8 @@
 	{{else if eq .Type 19}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-package-dependents"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -372,8 +372,8 @@
 	{{else if eq .Type 20}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-package-dependents"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -400,7 +400,7 @@
 				{{if .OriginalAuthor }}
 				{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-					<img src="{{.Poster.RelAvatarLink}}">
+					{{avatar .Poster}}
 				</a>
 				{{end}}
 				<span class="badge {{if eq .Review.Type 1}}bg-green
@@ -509,7 +509,7 @@
 											<div class="comment code-comment" id="{{.HashTag}}">
 												{{if not .OriginalAuthor }}
 													<a class="avatar">
-														<img src="{{.Poster.RelAvatarLink}}">
+														{{avatar .Poster}}
 													</a>
 												{{end}}
 												<div class="content">
@@ -560,8 +560,8 @@
 	{{else if eq .Type 23}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-lock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			{{ if .Content }}
 				<span class="text grey">
@@ -578,8 +578,8 @@
 	{{else if eq .Type 24}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-key"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -589,8 +589,8 @@
 	{{else if eq .Type 25}}
 		<div class="timeline-item event">
 			<span class="badge">{{svg "octicon-git-branch"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
@@ -600,8 +600,8 @@
 	{{else if eq .Type 26}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -615,8 +615,8 @@
 	{{else if eq .Type 27}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-eye"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
@@ -658,8 +658,8 @@
 		{{if not $.UnitProjectsGlobalDisabled}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-project"}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
