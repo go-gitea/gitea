@@ -23,6 +23,8 @@ This reference setup guides users through the setup based on `docker-compose`, b
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
+{{< toc >}}
+
 ## Basics
 
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest`
