@@ -547,68 +547,20 @@ func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
 //        \/                    \/              \/     \/     \/
 
 // HookTaskType is the type of an hook task
-type HookTaskType int
+type HookTaskType string
 
 // Types of hook tasks
 const (
-	GOGS HookTaskType = iota + 1
-	SLACK
-	GITEA
-	DISCORD
-	DINGTALK
-	TELEGRAM
-	MSTEAMS
-	FEISHU
-	MATRIX
+	GITEA    HookTaskType = "gitea"
+	GOGS     HookTaskType = "gogs"
+	SLACK    HookTaskType = "slack"
+	DISCORD  HookTaskType = "discord"
+	DINGTALK HookTaskType = "dingtalk"
+	TELEGRAM HookTaskType = "telegram"
+	MSTEAMS  HookTaskType = "msteams"
+	FEISHU   HookTaskType = "feishu"
+	MATRIX   HookTaskType = "matrix"
 )
-
-var hookTaskTypes = map[string]HookTaskType{
-	"gitea":    GITEA,
-	"gogs":     GOGS,
-	"slack":    SLACK,
-	"discord":  DISCORD,
-	"dingtalk": DINGTALK,
-	"telegram": TELEGRAM,
-	"msteams":  MSTEAMS,
-	"feishu":   FEISHU,
-	"matrix":   MATRIX,
-}
-
-// ToHookTaskType returns HookTaskType by given name.
-func ToHookTaskType(name string) HookTaskType {
-	return hookTaskTypes[name]
-}
-
-// Name returns the name of an hook task type
-func (t HookTaskType) Name() string {
-	switch t {
-	case GITEA:
-		return "gitea"
-	case GOGS:
-		return "gogs"
-	case SLACK:
-		return "slack"
-	case DISCORD:
-		return "discord"
-	case DINGTALK:
-		return "dingtalk"
-	case TELEGRAM:
-		return "telegram"
-	case MSTEAMS:
-		return "msteams"
-	case FEISHU:
-		return "feishu"
-	case MATRIX:
-		return "matrix"
-	}
-	return ""
-}
-
-// IsValidHookTaskType returns true if given name is a valid hook task type.
-func IsValidHookTaskType(name string) bool {
-	_, ok := hookTaskTypes[name]
-	return ok
-}
 
 // HookEventType is the type of an hook event
 type HookEventType string
@@ -687,7 +639,7 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Type            HookTaskType
+	Typ             HookTaskType
 	URL             string `xorm:"TEXT"`
 	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
