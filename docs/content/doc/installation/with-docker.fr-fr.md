@@ -17,6 +17,8 @@ menu:
 
 Nous fournissons des images Docker mises à jour automatiquement via le Docker Hub de notre organisation. C'est à vous, lors devotre déploiement, de vous assurez d'utiliser toujours la dernière version stable ou d'utiliser un autre service qui met à jour l'image Docker pour vous.
 
+{{< toc >}}
+
 ## Données stockées sur l'hôte
 
 Tout d'abord, vous devez simplement récupérer l'image Docker avec la commande suivante :
