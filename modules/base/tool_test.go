@@ -188,6 +188,44 @@ func TestIsTextFile(t *testing.T) {
 	assert.True(t, IsTextFile([]byte("lorem ipsum")))
 }
 
+func TestIsSVGImageFile(t *testing.T) {
+	assert.True(t, IsSVGImageFile([]byte("<svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte("    <svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte(`<svg width="100"></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte("<svg/>")))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?><svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiline
+	Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multline
+	Comment -->
+	<svg></svg>`)))
+	assert.False(t, IsSVGImageFile([]byte{}))
+	assert.False(t, IsSVGImageFile([]byte("svg")))
+	assert.False(t, IsSVGImageFile([]byte("<svgfoo></svgfoo>")))
+	assert.False(t, IsSVGImageFile([]byte("text<svg></svg>")))
+	assert.False(t, IsSVGImageFile([]byte("<html><body><svg></svg></body></html>")))
+	assert.False(t, IsSVGImageFile([]byte(`<script>"<svg></svg>"</script>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
+}
+
 func TestFormatNumberSI(t *testing.T) {
 	assert.Equal(t, "125", FormatNumberSI(int(125)))
 	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
