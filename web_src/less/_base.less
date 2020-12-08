@@ -1247,6 +1247,32 @@ footer {
   margin-bottom: 2px !important;
 }
 
+.repo-title {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  word-break: break-all;
+  color: var(--color-text-light);
+
+  .avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .labels {
+    margin-left: .5rem;
+
+    > * + * {
+      margin-left: .5rem;
+    }
+  }
+}
+
+.repo-icon {
+  display: inline-block;
+}
+
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: #fff;

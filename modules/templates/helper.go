@@ -341,6 +341,7 @@ func NewFuncMap() []template.FuncMap {
 		"svg":           SVG,
 		"avatar":        Avatar,
 		"avatarByEmail": AvatarByEmail,
+		"repoAvatar":    RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -545,23 +546,25 @@ func SVG(icon string, others ...interface{}) template.HTML {
 	return template.HTML("")
 }
 
-// Avatar renders user and repo avatars. args: user/repo, size (int), class (string)
-func Avatar(item interface{}, others ...interface{}) template.HTML {
+// Avatar renders user avatars. args: user, size (int), class (string)
+func Avatar(user *models.User, others ...interface{}) template.HTML {
 	size, class := parseOthers(28, "ui avatar image", others...)
-	if user, ok := item.(*models.User); ok {
-		src := user.RealSizedAvatarLink(size * 2) // request double size for finer rendering
-		if src != "" {
-			return avatarHTML(src, size, class, user.DisplayName())
-		}
-	}
 
-	if repo, ok := item.(*models.Repository); ok {
-		src := repo.RelAvatarLink()
-		if src != "" {
-			return avatarHTML(src, size, class, repo.FullName())
-		}
+	src := user.RealSizedAvatarLink(size * 2) // request double size for finer rendering
+	if src != "" {
+		return avatarHTML(src, size, class, user.DisplayName())
 	}
+	return template.HTML("")
+}
 
+// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
+func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+	size, class := parseOthers(28, "ui avatar image", others...)
+
+	src := repo.RelAvatarLink()
+	if src != "" {
+		return avatarHTML(src, size, class, repo.FullName())
+	}
 	return template.HTML("")
 }
 
