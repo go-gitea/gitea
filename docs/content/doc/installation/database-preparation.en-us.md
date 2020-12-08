@@ -13,11 +13,15 @@ menu:
     identifier: "database-prep"
 ---
 
+# Database Preparation
+
 You need a database to use Gitea. Gitea supports PostgreSQL, MySQL, SQLite, and MSSQL. This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
 Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password.  The steps assumes that you run Linux for both database and Gitea servers.
+
+{{< toc >}}
 
 ## MySQL
 
@@ -34,7 +38,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Enter the password as prompted.
 
-3.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance. 
+3.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance.
 
     For local database:
 
@@ -147,7 +151,7 @@ Note: All steps below requires that the database engine of your choice is instal
     Note: rules on `pg_hba.conf` are evaluated sequentially, that is the first matching rule will be used for authentication. Your PostgreSQL installation may come with generic authentication rules that match all users and databases. You may need to place the rules presented here above such generic rules if it is the case.
 
     Restart PostgreSQL to apply new authentication rules.
-    
+
 7.  On your Gitea server, test connection to the database.
 
     For local database:

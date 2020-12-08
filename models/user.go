@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -191,9 +190,6 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
@@ -235,22 +231,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// APIFormat converts a User to api.User
-func (u *User) APIFormat() *api.User {
-	if u == nil {
-		return nil
-	}
-	return &api.User{
-		ID:        u.ID,
-		UserName:  u.Name,
-		FullName:  u.FullName,
-		Email:     u.GetEmail(),
-		AvatarURL: u.AvatarLink(),
-		Language:  u.Language,
-		IsAdmin:   u.IsAdmin,
-		LastLogin: u.LastLoginUnix.AsTime(),
-		Created:   u.CreatedUnix.AsTime(),
-	}
+// GetAllUsers returns a slice of all users found in DB.
+func GetAllUsers() ([]*User, error) {
+	users := make([]*User, 0)
+	return users, x.OrderBy("id").Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -824,6 +808,10 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
+	}
+
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
@@ -835,7 +823,6 @@ func CreateUser(u *User) (err error) {
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
-	u.Avatar = base.HashEmail(u.AvatarEmail)
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
@@ -967,8 +954,12 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) error {
-	_, err := e.ID(u.ID).AllCols().Update(u)
+func updateUser(e Engine, u *User) (err error) {
+	u.Email = strings.ToLower(u.Email)
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
+	}
+	_, err = e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -988,13 +979,21 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) error {
+func UpdateUserSetting(u *User) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
 	if !u.IsOrganization() {
-		if err := checkDupEmail(x, u); err != nil {
+		if err = checkDupEmail(sess, u); err != nil {
 			return err
 		}
 	}
-	return updateUser(x, u)
+	if err = updateUser(sess, u); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.

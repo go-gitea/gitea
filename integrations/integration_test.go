@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -27,19 +26,21 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 )
 
-var mac *macaron.Macaron
+var c chi.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -59,13 +60,16 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 }
 
 func TestMain(m *testing.M) {
+	defer log.Close()
+
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -142,6 +146,10 @@ func initIntegrationTest() {
 	util.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
+	if err := storage.Init(); err != nil {
+		fmt.Printf("Init storage failed: %v", err)
+		os.Exit(1)
+	}
 
 	switch {
 	case setting.Database.UseMySQL:
@@ -149,27 +157,27 @@ func initIntegrationTest() {
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
-			log.Fatalf("db.Query: %v", err)
+			log.Fatal("db.Query: %v", err)
 		}
 		defer dbrows.Close()
 
 		if !dbrows.Next() {
 			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-				log.Fatalf("db.Exec: CREATE DATABASE: %v", err)
+				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
 			}
 		}
 		// Check if we need to setup a specific schema
@@ -183,18 +191,18 @@ func initIntegrationTest() {
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
 		if err != nil {
-			log.Fatalf("db.Query: %v", err)
+			log.Fatal("db.Query: %v", err)
 		}
 		defer schrows.Close()
 
 		if !schrows.Next() {
 			// Create and setup a DB schema
 			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
-				log.Fatalf("db.Exec: CREATE SCHEMA: %v", err)
+				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
 			}
 		}
 
@@ -203,10 +211,10 @@ func initIntegrationTest() {
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+			log.Fatal("db.Exec: %v", err)
 		}
 		defer db.Close()
 	}
@@ -397,7 +405,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -410,7 +418,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {

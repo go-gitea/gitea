@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="user settings repos">
+<div class="page-content user settings repos">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -119,7 +119,7 @@
 									{{else}}
 										<span class="iconFloat">{{svg "octicon-repo"}}</span>
 									{{end}}
-									<a class="name" href="{{AppSubUrl}}/{{$.OwnerName}}/{{.Name}}">{{$.OwnerName}}/{{.Name}}</a>
+									<a class="name" href="{{AppSubUrl}}/{{.OwnerName}}/{{.Name}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{SizeFmt .Size}}</span>
 									{{if .IsFork}}
 										{{$.i18n.Tr "repo.forked_from"}}
@@ -142,7 +142,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">

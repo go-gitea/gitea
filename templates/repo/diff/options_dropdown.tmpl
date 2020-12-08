@@ -1,6 +1,6 @@
-<div class="ui dropdown tiny button">
+<div class="ui dropdown tiny basic button">
 	{{.i18n.Tr "repo.diff.options_button"}}
-	<i class="dropdown icon"></i>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<a class="item tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
 		{{if .Issue.Index}}

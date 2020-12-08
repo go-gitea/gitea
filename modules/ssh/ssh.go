@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gliderlabs/ssh"
 	"github.com/unknwon/com"
@@ -211,7 +212,11 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	}
 
 	keyPath := filepath.Join(setting.AppDataPath, "ssh/gogs.rsa")
-	if !com.IsExist(keyPath) {
+	isExist, err := util.IsExist(keyPath)
+	if err != nil {
+		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+	}
+	if !isExist {
 		filePath := filepath.Dir(keyPath)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
@@ -225,7 +230,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		log.Trace("New private key is generated: %s", keyPath)
 	}
 
-	err := srv.SetOption(ssh.HostKeyFile(keyPath))
+	err = srv.SetOption(ssh.HostKeyFile(keyPath))
 	if err != nil {
 		log.Error("Failed to set Host Key. %s", err)
 	}

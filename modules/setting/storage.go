@@ -21,7 +21,7 @@ type Storage struct {
 
 // MapTo implements the Mappable interface
 func (s *Storage) MapTo(v interface{}) error {
-	pathValue := reflect.ValueOf(v).FieldByName("Path")
+	pathValue := reflect.ValueOf(v).Elem().FieldByName("Path")
 	if pathValue.IsValid() && pathValue.Kind() == reflect.String {
 		pathValue.SetString(s.Path)
 	}
@@ -32,21 +32,19 @@ func (s *Storage) MapTo(v interface{}) error {
 }
 
 func getStorage(name, typ string, overrides ...*ini.Section) Storage {
-	sectionName := "storage"
-	if len(name) > 0 {
-		sectionName = sectionName + "." + typ
-	}
+	const sectionName = "storage"
 	sec := Cfg.Section(sectionName)
 
 	if len(overrides) == 0 {
 		overrides = []*ini.Section{
+			Cfg.Section(sectionName + "." + typ),
 			Cfg.Section(sectionName + "." + name),
 		}
 	}
 
 	var storage Storage
 
-	storage.Type = sec.Key("STORAGE_TYPE").MustString("")
+	storage.Type = sec.Key("STORAGE_TYPE").MustString(typ)
 	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 
 	// Global Defaults

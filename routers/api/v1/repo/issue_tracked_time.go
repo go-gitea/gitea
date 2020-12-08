@@ -86,7 +86,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
@@ -491,7 +491,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
@@ -554,7 +554,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 

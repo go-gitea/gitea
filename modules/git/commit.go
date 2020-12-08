@@ -262,8 +262,19 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string) (int64, error) {
-	stdout, err := NewCommand("rev-list", "--all", "--count").RunInDir(repoPath)
+func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+	args := []string{"--all", "--count"}
+	if hidePRRefs {
+		args = append([]string{"--exclude=refs/pull/*"}, args...)
+	}
+	cmd := NewCommand("rev-list")
+	cmd.AddArguments(args...)
+	if len(files) > 0 {
+		cmd.AddArguments("--")
+		cmd.AddArguments(files...)
+	}
+
+	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return 0, err
 	}
@@ -271,7 +282,8 @@ func AllCommitsCount(repoPath string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-func commitsCount(repoPath string, revision, relpath []string) (int64, error) {
+// CommitsCountFiles returns number of total commits of until given revision.
+func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
@@ -288,8 +300,8 @@ func commitsCount(repoPath string, revision, relpath []string) (int64, error) {
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath, revision string) (int64, error) {
-	return commitsCount(repoPath, []string{revision}, []string{})
+func CommitsCount(repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
@@ -477,7 +489,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	args := []string{
 		"name-rev",
 	}
-	if CheckGitVersionConstraint(">= 2.13.0") == nil {
+	if CheckGitVersionAtLeast("2.13.0") == nil {
 		args = append(args, "--exclude", "refs/tags/*")
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())

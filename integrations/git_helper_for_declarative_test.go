@@ -82,7 +82,7 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 		defer prepareTestEnv(t, 1)()
 	}
 	s := http.Server{
-		Handler: mac,
+		Handler: c,
 	}
 
 	u, err := url.Parse(setting.AppURL)
@@ -111,7 +111,7 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{}))
+		assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{}))
 		assert.True(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
 	}
 }
