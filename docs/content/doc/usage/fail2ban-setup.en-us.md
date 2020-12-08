@@ -18,8 +18,8 @@ menu:
 **Remember that fail2ban is powerful and can cause lots of issues if you do it incorrectly, so make
 sure to test this before relying on it so you don't lock yourself out.**
 
-Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in 
-`app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this 
+Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in
+`app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this
 on a bad authentication from the web or CLI using SSH or HTTP respectively:
 
 ```log
