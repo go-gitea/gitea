@@ -48,8 +48,8 @@ menu:
       url: https://blog.gitea.io/
       weight: 30
       pre: rss
-    - name: Code
-      url: https://code.gitea.io/
+    - name: Shop
+      url: https://shop.gitea.io/
       weight: 40
       pre: code
     - name: Translation
