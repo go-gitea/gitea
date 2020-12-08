@@ -21,8 +21,15 @@ var (
 		Name:  "generate",
 		Usage: "Command line interface for running generators",
 		Subcommands: []cli.Command{
+			subcmdMan,
 			subcmdSecret,
 		},
+	}
+
+	subcmdMan = cli.Command{
+		Name:   "man",
+		Usage:  "Generate man page for gitea commands",
+		Action: runGenerateMan,
 	}
 
 	subcmdSecret = cli.Command{
@@ -98,4 +105,10 @@ func runGenerateSecretKey(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func runGenerateMan(c *cli.Context) error {
+	out, err := c.Parent().Parent().App.ToMan()
+	fmt.Print(out)
+	return err
 }
