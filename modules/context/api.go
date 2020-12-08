@@ -7,6 +7,7 @@ package context
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -60,25 +61,53 @@ type APIForbiddenError struct {
 // swagger:response notFound
 type APINotFound struct{}
 
+//APIConflict is a conflict empty response
+// swagger:response conflict
+type APIConflict struct{}
+
 //APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}
 
-// Error responses error message to client with given message.
+//APIString is a string response
+// swagger:response string
+type APIString string
+
+// Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
 	} else {
-		message = obj.(string)
+		message = fmt.Sprintf("%s", obj)
 	}
 
-	if status == 500 {
-		log.Error("%s: %s", title, message)
+	if status == http.StatusInternalServerError {
+		log.ErrorWithSkip(1, "%s: %s", title, message)
+
+		if macaron.Env == macaron.PROD && !(ctx.User != nil && ctx.User.IsAdmin) {
+			message = ""
+		}
 	}
 
 	ctx.JSON(status, APIError{
+		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// InternalServerError responds with an error message to the client with the error as a message
+// and the file and line of the caller.
+func (ctx *APIContext) InternalServerError(err error) {
+	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+
+	var message string
+	if macaron.Env != macaron.PROD || (ctx.User != nil && ctx.User.IsAdmin) {
+		message = err.Error()
+	}
+
+	ctx.JSON(http.StatusInternalServerError, APIError{
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
@@ -140,11 +169,11 @@ func (ctx *APIContext) RequireCSRF() {
 	if len(headerToken) > 0 || len(formValueToken) > 0 {
 		csrf.Validate(ctx.Context.Context, ctx.csrf)
 	} else {
-		ctx.Context.Error(401)
+		ctx.Context.Error(401, "Missing CSRF token.")
 	}
 }
 
-// CheckForOTP validateds OTP
+// CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
@@ -229,4 +258,62 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		"documentation_url": setting.API.SwaggerURL,
 		"errors":            errors,
 	})
+}
+
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI() macaron.Handler {
+	return func(ctx *APIContext) {
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		var err error
+
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
+		}
+
+		refName := getRefName(ctx.Context, RepoRefAny)
+
+		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		} else if len(refName) == 40 {
+			ctx.Repo.CommitID = refName
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			if err != nil {
+				ctx.NotFound("GetCommit", err)
+				return
+			}
+		} else {
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			return
+		}
+
+		ctx.Next()
+	}
 }

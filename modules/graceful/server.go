@@ -128,6 +128,8 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
 	go srv.awaitShutdown()
 
+	tlsConfig.MinVersion = tls.VersionTLS12
+
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)
@@ -160,7 +162,7 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
-	if err != nil && strings.Contains(err.Error(), "use of closed") {
+	if err == nil || strings.Contains(err.Error(), "use of closed") || strings.Contains(err.Error(), "http: Server closed") {
 		return nil
 	}
 	return err

@@ -85,12 +85,30 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	org.Visibility = form.Visibility
 	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
+
+	visibilityChanged := form.Visibility != org.Visibility
+	org.Visibility = form.Visibility
+
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
+
+	// update forks visibility
+	if visibilityChanged {
+		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+			ctx.ServerError("GetRepositories", err)
+			return
+		}
+		for _, repo := range org.Repos {
+			if err := models.UpdateRepository(repo, true); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
+	}
+
 	log.Trace("Organization setting updated: %s", org.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
@@ -184,7 +202,6 @@ func DeleteWebhook(ctx *context.Context) {
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireMinicolors"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.HTML(200, tplSettingsLabels)

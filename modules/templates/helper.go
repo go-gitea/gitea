@@ -16,6 +16,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -86,7 +88,6 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
@@ -98,8 +99,19 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a, b int) int {
-			return a + b
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
 		},
 		"ActionIcon": ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
@@ -108,8 +120,9 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": base.FileSize,
-		"List":    List,
+		"SizeFmt":  base.FileSize,
+		"CountFmt": base.FormatNumberSI,
+		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -140,6 +153,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
@@ -164,9 +178,16 @@ func NewFuncMap() []template.FuncMap {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
-		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
+		"TabSizeClass": func(ec interface{}, filename string) string {
+			var (
+				value *editorconfig.Editorconfig
+				ok    bool
+			)
 			if ec != nil {
-				def, err := ec.GetDefinitionForFilename(filename)
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
+					return "tab-size-8"
+				}
+				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
 					log.Error("tab size class: getting definition for filename: %v", err)
 					return "tab-size-8"
@@ -186,6 +207,9 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"DiffStatsWidth": func(adds int, dels int) string {
+			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
@@ -232,31 +256,27 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
+		// pass key-value pairs to a partial template which receives them as a dict
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid dict call")
 			}
 
 			dict := make(map[string]interface{})
-
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
+			return util.MergeInto(dict, values...)
+		},
+		/* like dict but merge key-value pairs into the first dict and return it */
+		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid mergeinto call")
 			}
-			return dict, nil
+
+			dict := make(map[string]interface{})
+			for key, value := range root {
+				dict[key] = value
+			}
+
+			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
 			var sum = 0
@@ -282,13 +302,33 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
-		"NotificationSettings": func() map[string]int {
-			return map[string]int{
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
+		},
+		"containGeneric": func(arr interface{}, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+
+			return false
 		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
@@ -298,8 +338,42 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": func(icon string, size int) template.HTML {
-			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+		"svg":           SVG,
+		"avatar":        Avatar,
+		"avatarByEmail": AvatarByEmail,
+		"repoAvatar":    RepoAvatar,
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return SVG("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return SVG("octicon-triangle-down", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return SVG("octicon-triangle-up", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
+		},
+		"RenderLabels": func(labels []*models.Label) template.HTML {
+			html := `<span class="labels-list">`
+			for _, label := range labels {
+				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
+					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+			}
+			html += "</span>"
+			return template.HTML(html)
 		},
 	}}
 }
@@ -407,7 +481,103 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
+		},
 	}}
+}
+
+var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
+var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+
+func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
+	size := defaultSize
+	if len(others) > 0 && others[0].(int) != 0 {
+		size = others[0].(int)
+	}
+
+	class := defaultClass
+	if len(others) > 1 && others[1].(string) != "" {
+		if defaultClass == "" {
+			class = others[1].(string)
+		} else {
+			class = defaultClass + " " + others[1].(string)
+		}
+	}
+
+	return size, class
+}
+
+func avatarHTML(src string, size int, class string, name string) template.HTML {
+	sizeStr := fmt.Sprintf(`%d`, size)
+
+	if name == "" {
+		name = "avatar"
+	}
+
+	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+}
+
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	size, class := parseOthers(16, "", others...)
+
+	if svgStr, ok := svg.SVGs[icon]; ok {
+		if size != 16 {
+			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
+			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		if class != "" {
+			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
+		}
+		return template.HTML(svgStr)
+	}
+	return template.HTML("")
+}
+
+// Avatar renders user avatars. args: user, size (int), class (string)
+func Avatar(user *models.User, others ...interface{}) template.HTML {
+	size, class := parseOthers(28, "ui avatar image", others...)
+
+	src := user.RealSizedAvatarLink(size * 2) // request double size for finer rendering
+	if src != "" {
+		return avatarHTML(src, size, class, user.DisplayName())
+	}
+	return template.HTML("")
+}
+
+// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
+func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+	size, class := parseOthers(28, "ui avatar image", others...)
+
+	src := repo.RelAvatarLink()
+	if src != "" {
+		return avatarHTML(src, size, class, repo.FullName())
+	}
+	return template.HTML("")
+}
+
+// AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
+func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+	size, class := parseOthers(28, "ui avatar image", others...)
+	src := models.SizedAvatarLink(email, size*2) // request double size for finer rendering
+
+	if src != "" {
+		return avatarHTML(src, size, class, name)
+	}
+
+	return template.HTML("")
 }
 
 // Safe render raw as HTML
@@ -517,6 +687,16 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
+// RenderIssueTitle renders issue/pull title with defined post processors
+func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+	renderedText, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(text)), urlPrefix, metas)
+	if err != nil {
+		log.Error("RenderIssueTitle: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
 	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
@@ -537,7 +717,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
@@ -594,7 +774,9 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
-		return "request-changes"
+		return "diff"
+	case models.ActionPublishRelease:
+		return "tag"
 	default:
 		return "question"
 	}
@@ -612,7 +794,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 // DiffTypeToStr returns diff type name
 func DiffTypeToStr(diffType int) string {
 	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename",
+		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
 	}
 	return diffTypes[diffType]
 }

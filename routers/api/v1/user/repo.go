@@ -6,19 +6,24 @@ package user
 
 import (
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
-	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+	opts := utils.GetListOptions(ctx)
+
+	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: opts,
+		OrderBy:     "id ASC",
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
@@ -33,9 +38,13 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 			return
 		}
 		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
-			apiRepos = append(apiRepos, repos[i].APIFormat(access))
+			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
+
+	ctx.SetLinkHeader(int(count), opts.PageSize)
+	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
@@ -58,7 +67,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -86,37 +95,44 @@ func ListMyRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
-		Actor:       ctx.User,
-		Private:     true,
-		ListOptions: utils.GetListOptions(ctx),
-	})
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
-		return
+	opts := &models.SearchRepoOptions{
+		ListOptions:        utils.GetListOptions(ctx),
+		Actor:              ctx.User,
+		OwnerID:            ctx.User.ID,
+		Private:            ctx.IsSigned,
+		IncludeDescription: true,
 	}
-	accessibleReposMap, err := ctx.User.GetRepositoryAccesses()
+
+	var err error
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetRepositoryAccesses", err)
+		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
 		return
 	}
 
-	apiRepos := make([]*api.Repository, len(ownRepos)+len(accessibleReposMap))
-	for i := range ownRepos {
-		apiRepos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
+	results := make([]*api.Repository, len(repos))
+	for i, repo := range repos {
+		if err = repo.GetOwner(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
+			return
+		}
+		accessMode, err := models.AccessLevel(ctx.User, repo)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+		}
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
-	i := len(ownRepos)
-	for repo, access := range accessibleReposMap {
-		apiRepos[i] = repo.APIFormat(access)
-		i++
-	}
-	ctx.JSON(http.StatusOK, &apiRepos)
+
+	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.JSON(http.StatusOK, &results)
 }
 
 // ListOrgRepos - list the repositories of an organization.
@@ -138,7 +154,7 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -27,7 +28,7 @@ func getWatchedRepos(user *models.User, private bool, listOptions models.ListOpt
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = watched.APIFormat(access)
+		repos[i] = convert.ToRepo(watched, access)
 	}
 	return repos, nil
 }
@@ -51,7 +52,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -80,7 +81,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":

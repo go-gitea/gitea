@@ -5,6 +5,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -15,16 +16,16 @@ type loggerMap struct {
 	sync.Map
 }
 
-func (m *loggerMap) Load(k string) (*Logger, bool) {
+func (m *loggerMap) Load(k string) (*MultiChannelledLogger, bool) {
 	v, ok := m.Map.Load(k)
 	if !ok {
 		return nil, false
 	}
-	l, ok := v.(*Logger)
+	l, ok := v.(*MultiChannelledLogger)
 	return l, ok
 }
 
-func (m *loggerMap) Store(k string, v *Logger) {
+func (m *loggerMap) Store(k string, v *MultiChannelledLogger) {
 	m.Map.Store(k, v)
 }
 
@@ -41,7 +42,7 @@ var (
 )
 
 // NewLogger create a logger for the default logger
-func NewLogger(bufLen int64, name, provider, config string) *Logger {
+func NewLogger(bufLen int64, name, provider, config string) *MultiChannelledLogger {
 	err := NewNamedLogger(DEFAULT, bufLen, name, provider, config)
 	if err != nil {
 		CriticalWithSkip(1, "Unable to create default logger: %v", err)
@@ -82,7 +83,7 @@ func DelLogger(name string) error {
 }
 
 // GetLogger returns either a named logger or the default logger
-func GetLogger(name string) *Logger {
+func GetLogger(name string) *MultiChannelledLogger {
 	logger, ok := NamedLoggers.Load(name)
 	if ok {
 		return logger
@@ -192,6 +193,42 @@ func IsFatal() bool {
 	return GetLevel() <= FATAL
 }
 
+// Pause pauses all the loggers
+func Pause() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		logger.Pause()
+		logger.Flush()
+		return true
+	})
+}
+
+// Resume resumes all the loggers
+func Resume() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		logger.Resume()
+		return true
+	})
+}
+
+// ReleaseReopen releases and reopens logging files
+func ReleaseReopen() error {
+	var accumulatedErr error
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		if err := logger.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+			} else {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+			}
+		}
+		return true
+	})
+	return accumulatedErr
+}
+
 // Close closes all the loggers
 func Close() {
 	l, ok := NamedLoggers.Load(DEFAULT)
@@ -213,15 +250,15 @@ func Log(skip int, level Level, format string, v ...interface{}) {
 
 // LoggerAsWriter is a io.Writer shim around the gitea log
 type LoggerAsWriter struct {
-	ourLoggers []*Logger
+	ourLoggers []*MultiChannelledLogger
 	level      Level
 }
 
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
-func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
+func NewLoggerAsWriter(level string, ourLoggers ...*MultiChannelledLogger) *LoggerAsWriter {
 	if len(ourLoggers) == 0 {
 		l, _ := NamedLoggers.Load(DEFAULT)
-		ourLoggers = []*Logger{l}
+		ourLoggers = []*MultiChannelledLogger{l}
 	}
 	l := &LoggerAsWriter{
 		ourLoggers: ourLoggers,

@@ -8,9 +8,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -56,6 +55,43 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 
 	notification.NotifyNewPullRequest(pr)
+
+	// add first push codes comment
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer baseGitRepo.Close()
+
+	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return err
+	}
+
+	if compareInfo.Commits.Len() > 0 {
+		data := models.PushActionContent{IsForcePush: false}
+		data.CommitIDs = make([]string, 0, compareInfo.Commits.Len())
+		for e := compareInfo.Commits.Back(); e != nil; e = e.Prev() {
+			data.CommitIDs = append(data.CommitIDs, e.Value.(*git.Commit).ID.String())
+		}
+
+		dataJSON, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		ops := &models.CreateCommentOptions{
+			Type:        models.CommentTypePullPush,
+			Doer:        pull.Poster,
+			Repo:        repo,
+			Issue:       pr.Issue,
+			IsForcePush: false,
+			Content:     string(dataJSON),
+		}
+
+		_, _ = models.CreateComment(ops)
+	}
 
 	return nil
 }
@@ -128,7 +164,16 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if pr.Status == models.PullRequestStatusChecking {
 		pr.Status = models.PullRequestStatusMergeable
 	}
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch"); err != nil {
+
+	// Update Commit Divergence
+	divergence, err := GetDiverging(pr)
+	if err != nil {
+		return err
+	}
+	pr.CommitsAhead = divergence.Ahead
+	pr.CommitsBehind = divergence.Behind
+
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
@@ -166,18 +211,6 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 		gitRepo.Close()
 	}()
 	return nil
-}
-
-func addHeadRepoTasks(prs []*models.PullRequest) {
-	for _, pr := range prs {
-		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := PushToBaseRepo(pr); err != nil {
-			log.Error("PushToBaseRepo: %v", err)
-			continue
-		}
-
-		AddToTaskQueue(pr)
-	}
 }
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
@@ -236,7 +269,19 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 		}
 
-		addHeadRepoTasks(prs)
+		for _, pr := range prs {
+			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			if err := PushToBaseRepo(pr); err != nil {
+				log.Error("PushToBaseRepo: %v", err)
+				continue
+			}
+
+			AddToTaskQueue(pr)
+			comment, err := models.CreatePushPullComment(doer, pr, oldCommitID, newCommitID)
+			if err == nil && comment != nil {
+				notification.NotifyPullRequestPushCommits(doer, pr, comment)
+			}
+		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
 		prs, err = models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
@@ -336,54 +381,17 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
-	// Clone base repo.
-	tmpBasePath, err := models.CreateTemporaryPath("pull")
-	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
-		return err
-	}
-	defer func() {
-		err := models.RemoveTemporaryPath(tmpBasePath)
-		if err != nil {
-			log.Error("Error whilst removing temporary path: %s Error: %v", tmpBasePath, err)
-		}
-	}()
-
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
-	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
-		Bare:   true,
-		Shared: true,
-		Branch: pr.HeadBranch,
-		Quiet:  true,
-	}); err != nil {
-		log.Error("git clone tmpBasePath: %v", err)
-		return err
-	}
-	gitRepo, err := git.OpenRepository(tmpBasePath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
-		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
-	}
-	defer gitRepo.Close()
-
-	headFile := pr.GetGitRefName()
-
-	// Remove head in case there is a conflict.
-	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
-
-	_ = os.Remove(file)
+	baseRepoPath := pr.BaseRepo.RepoPath()
 
 	if err = pr.LoadIssue(); err != nil {
 		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
@@ -392,14 +400,26 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
 	}
 
-	if err = git.Push(tmpBasePath, git.PushOptions{
-		Remote: "base",
-		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+	gitRefName := pr.GetGitRefName()
+
+	if err := git.Push(headRepoPath, git.PushOptions{
+		Remote: baseRepoPath,
+		Branch: pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
-		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), headFile, err)
+		if git.IsErrPushOutOfDate(err) {
+			// This should not happen as we're using force!
+			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
+			return err
+		} else if git.IsErrPushRejected(err) {
+			rejectErr := err.(*git.ErrPushRejected)
+			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		}
+		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
+		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
 	}
 
 	return nil
@@ -536,7 +556,8 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
-	element := list.Front()
+	// commits list is in reverse chronological order
+	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
 
@@ -561,7 +582,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 			authors = append(authors, authorString)
 			authorsMap[authorString] = true
 		}
-		element = element.Next()
+		element = element.Prev()
 	}
 
 	// Consider collecting the remaining authors
@@ -589,7 +610,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 				}
 				element = element.Next()
 			}
-
+			skip += limit
 		}
 	}
 

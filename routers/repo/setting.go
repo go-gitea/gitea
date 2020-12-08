@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
@@ -29,7 +30,6 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -50,6 +50,11 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+
+	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
+	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningSettings"] = setting.Repository.Signing
+
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -75,13 +80,25 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
 					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 				case models.IsErrNameReserved(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplSettingsOptions, &form)
+				case models.IsErrRepoFilesAlreadyExist(err):
+					ctx.Data["Err_RepoName"] = true
+					switch {
+					case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
+					case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
+					case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
+					default:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+					}
 				case models.IsErrNamePatternNotAllowed(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
@@ -101,7 +118,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
-			form.Private = repo.BaseRepo.IsPrivate
+			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
@@ -184,8 +201,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
-			ctx.ServerError("SaveAddress", err)
+		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+			ctx.ServerError("UpdateAddress", err)
 			return
 		}
 
@@ -283,6 +300,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
+		if form.EnableProjects && !models.UnitTypeProjects.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else if !models.UnitTypeProjects.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+
 		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
@@ -304,6 +330,26 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "signing":
+		changed := false
+
+		trustModel := models.ToTrustModel(form.TrustModel)
+		if trustModel != repo.TrustModel {
+			repo.TrustModel = trustModel
+			changed = true
+		}
+
+		if changed {
+			if err := models.UpdateRepository(repo, false); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
+		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -355,9 +401,46 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
-		log.Trace("Repository converted from mirror to regular: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name)
+		ctx.Redirect(repo.Link())
+
+	case "convert_fork":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+			return
+		}
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+		if repo.Name != form.RepoName {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+			return
+		}
+
+		if !repo.IsFork {
+			ctx.Error(404)
+			return
+		}
+
+		if !ctx.Repo.Owner.CanCreateRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+
+		repo.IsFork = false
+		repo.ForkID = 0
+		if err := models.UpdateRepository(repo, false); err != nil {
+			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+
+		log.Trace("Repository converted from fork to regular: %s", repo.FullName())
+		ctx.Flash.Success(ctx.Tr("repo.settings.convert_fork_succeed"))
+		ctx.Redirect(repo.Link())
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
@@ -377,6 +460,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			ctx.ServerError("IsUserExist", err)
 			return
+		}
+
+		if newOwner.Type == models.UserTypeOrganization {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
+				// The user shouldn't know about this organization
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+				return
+			}
 		}
 
 		// Close the GitRepo if open
@@ -696,7 +787,6 @@ func GitHooks(ctx *context.Context) {
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
@@ -793,6 +883,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+		case models.IsErrDeployKeyNameAlreadyUsed(err):
+			ctx.Data["Err_Title"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
@@ -833,7 +926,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 		// No avatar is uploaded and we not removing it here.
 		// No random avatar generated here.
 		// Just exit, no action.
-		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+		if ctxRepo.CustomAvatarRelativePath() == "" {
 			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
 		}
 		return nil
@@ -845,7 +938,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	}
 	defer r.Close()
 
-	if form.Avatar.Size > setting.AvatarMaxFileSize {
+	if form.Avatar.Size > setting.Avatar.MaxFileSize {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 

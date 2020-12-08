@@ -6,7 +6,6 @@ package release
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -43,9 +43,14 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			notification.NotifyPushCommits(
-				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
-				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
+				rel.Publisher, rel.Repo,
+				&repository.PushUpdateOptions{
+					RefFullName: git.TagPrefix + rel.TagName,
+					OldCommitID: git.EmptySHA,
+					NewCommitID: commit.ID.String(),
+				}, repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -53,11 +58,16 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+
+		u, err := models.GetUserByEmail(commit.Author.Email)
+		if err == nil {
+			rel.PublisherID = u.ID
+		}
+
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
@@ -95,8 +105,8 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	return nil
 }
 
-// UpdateRelease updates information of a release.
-func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string) (err error) {
+// UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
@@ -110,7 +120,14 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		log.Error("AddReleaseAttachments: %v", err)
 	}
 
-	notification.NotifyUpdateRelease(doer, rel)
+	if !isCreate {
+		notification.NotifyUpdateRelease(doer, rel)
+		return
+	}
+
+	if !rel.IsDraft {
+		notification.NotifyNewRelease(rel)
+	}
 
 	return err
 }
@@ -140,10 +157,6 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		}
 	} else {
 		rel.IsTag = true
-		rel.IsDraft = false
-		rel.IsPrerelease = false
-		rel.Title = ""
-		rel.Note = ""
 
 		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
@@ -161,7 +174,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 
 	for i := range rel.Attachments {
 		attachment := rel.Attachments[i]
-		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
+		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
 			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
 		}
 	}

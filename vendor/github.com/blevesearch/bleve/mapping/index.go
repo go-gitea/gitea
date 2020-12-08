@@ -50,7 +50,7 @@ type IndexMappingImpl struct {
 	DefaultField          string                      `json:"default_field"`
 	StoreDynamic          bool                        `json:"store_dynamic"`
 	IndexDynamic          bool                        `json:"index_dynamic"`
-	DocValuesDynamic      bool                        `json:"docvalues_dynamic,omitempty"`
+	DocValuesDynamic      bool                        `json:"docvalues_dynamic"`
 	CustomAnalysis        *customAnalysis             `json:"analysis,omitempty"`
 	cache                 *registry.Cache
 }
@@ -101,26 +101,26 @@ func (im *IndexMappingImpl) AddCustomTokenFilter(name string, config map[string]
 // returned analyzer is registered in the IndexMapping.
 //
 // bleve comes with predefined analyzers, like
-// github.com/blevesearch/bleve/analysis/analyzers/custom_analyzer. They are
+// github.com/blevesearch/bleve/analysis/analyzer/custom. They are
 // available only if their package is imported by client code. To achieve this,
 // use their metadata to fill configuration entries:
 //
 //   import (
-//       "github.com/blevesearch/bleve/analysis/analyzers/custom_analyzer"
-//       "github.com/blevesearch/bleve/analysis/char_filters/html_char_filter"
-//       "github.com/blevesearch/bleve/analysis/token_filters/lower_case_filter"
-//       "github.com/blevesearch/bleve/analysis/tokenizers/unicode"
+//       "github.com/blevesearch/bleve/analysis/analyzer/custom"
+//       "github.com/blevesearch/bleve/analysis/char/html"
+//       "github.com/blevesearch/bleve/analysis/token/lowercase"
+//       "github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 //   )
 //
 //   m := bleve.NewIndexMapping()
 //   err := m.AddCustomAnalyzer("html", map[string]interface{}{
-//       "type": custom_analyzer.Name,
+//       "type": custom.Name,
 //       "char_filters": []string{
-//           html_char_filter.Name,
+//           html.Name,
 //       },
 //       "tokenizer":     unicode.Name,
 //       "token_filters": []string{
-//           lower_case_filter.Name,
+//           lowercase.Name,
 //           ...
 //       },
 //   })

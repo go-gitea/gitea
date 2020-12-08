@@ -5,106 +5,118 @@
 package gitgraph
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// GraphItem represent one commit, or one relation in timeline
-type GraphItem struct {
-	GraphAcii    string
-	Relation     string
-	Branch       string
-	Rev          string
-	Date         string
-	Author       string
-	AuthorEmail  string
-	ShortRev     string
-	Subject      string
-	OnlyRelation bool
-}
-
-// GraphItems is a list of commits from all branches
-type GraphItems []GraphItem
-
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
+func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+	format := "DATA:%D|%H|%ad|%h|%s"
 
-	var CommitGraph []GraphItem
+	if page == 0 {
+		page = 1
+	}
 
-	format := "DATA:|%d|%H|%ad|%an|%ae|%h|%s"
+	args := make([]string, 0, 12+len(branches)+len(files))
 
-	graphCmd := git.NewCommand("log")
-	graphCmd.AddArguments("--graph",
-		"--date-order",
-		"--all",
+	args = append(args, "--graph", "--date-order", "--decorate=full")
+
+	if hidePRRefs {
+		args = append(args, "--exclude=refs/pull/*")
+	}
+
+	if len(branches) == 0 {
+		args = append(args, "--all")
+	}
+
+	args = append(args,
 		"-C",
 		"-M",
-		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum),
-		fmt.Sprintf("--skip=%d", setting.UI.GraphMaxCommitNum*(page-1)),
+		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
 		"--date=iso",
-		fmt.Sprintf("--pretty=format:%s", format),
-	)
-	graph, err := graphCmd.RunInDir(r.Path)
+		fmt.Sprintf("--pretty=format:%s", format))
+
+	if len(branches) > 0 {
+		args = append(args, branches...)
+	}
+	args = append(args, "--")
+	if len(files) > 0 {
+		args = append(args, files...)
+	}
+
+	graphCmd := git.NewCommand("log")
+	graphCmd.AddArguments(args...)
+	graph := NewGraph()
+
+	stderr := new(strings.Builder)
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return CommitGraph, err
+		return nil, err
 	}
+	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
 
-	CommitGraph = make([]GraphItem, 0, 100)
-	for _, s := range strings.Split(graph, "\n") {
-		GraphItem, err := graphItemFromString(s, r)
-		if err != nil {
-			return CommitGraph, err
+	scanner := bufio.NewScanner(stdoutReader)
+
+	if err := graphCmd.RunInDirTimeoutEnvFullPipelineFunc(nil, -1, r.Path, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
+		_ = stdoutWriter.Close()
+		defer stdoutReader.Close()
+		parser := &Parser{}
+		parser.firstInUse = -1
+		parser.maxAllowedColors = maxAllowedColors
+		if maxAllowedColors > 0 {
+			parser.availableColors = make([]int, maxAllowedColors)
+			for i := range parser.availableColors {
+				parser.availableColors[i] = i + 1
+			}
+		} else {
+			parser.availableColors = []int{1, 2}
 		}
-		CommitGraph = append(CommitGraph, GraphItem)
+		for commitsToSkip > 0 && scanner.Scan() {
+			line := scanner.Bytes()
+			dataIdx := bytes.Index(line, []byte("DATA:"))
+			if dataIdx < 0 {
+				dataIdx = len(line)
+			}
+			starIdx := bytes.IndexByte(line, '*')
+			if starIdx >= 0 && starIdx < dataIdx {
+				commitsToSkip--
+			}
+			parser.ParseGlyphs(line[:dataIdx])
+		}
+
+		row := 0
+
+		// Skip initial non-commit lines
+		for scanner.Scan() {
+			line := scanner.Bytes()
+			if bytes.IndexByte(line, '*') >= 0 {
+				if err := parser.AddLineToGraph(graph, row, line); err != nil {
+					cancel()
+					return err
+				}
+				break
+			}
+			parser.ParseGlyphs(line)
+		}
+
+		for scanner.Scan() {
+			row++
+			line := scanner.Bytes()
+			if err := parser.AddLineToGraph(graph, row, line); err != nil {
+				cancel()
+				return err
+			}
+		}
+		return scanner.Err()
+	}); err != nil {
+		return graph, err
 	}
-
-	return CommitGraph, nil
-}
-
-func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {
-
-	var ascii string
-	var data = "|||||||"
-	lines := strings.SplitN(s, "DATA:", 2)
-
-	switch len(lines) {
-	case 1:
-		ascii = lines[0]
-	case 2:
-		ascii = lines[0]
-		data = lines[1]
-	default:
-		return GraphItem{}, fmt.Errorf("Failed parsing grap line:%s. Expect 1 or two fields", s)
-	}
-
-	rows := strings.SplitN(data, "|", 8)
-	if len(rows) < 8 {
-		return GraphItem{}, fmt.Errorf("Failed parsing grap line:%s - Should containt 8 datafields", s)
-	}
-
-	/* // see format in getCommitGraph()
-	   0	Relation string
-	   1	Branch string
-	   2	Rev string
-	   3	Date string
-	   4	Author string
-	   5	AuthorEmail string
-	   6	ShortRev string
-	   7	Subject string
-	*/
-	gi := GraphItem{ascii,
-		rows[0],
-		rows[1],
-		rows[2],
-		rows[3],
-		rows[4],
-		rows[5],
-		rows[6],
-		rows[7],
-		len(rows[2]) == 0, // no commits referred to, only relation in current line.
-	}
-	return gi, nil
+	return graph, nil
 }

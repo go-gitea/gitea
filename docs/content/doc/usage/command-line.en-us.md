@@ -13,13 +13,15 @@ menu:
     identifier: "command-line"
 ---
 
-## Command Line
+# Command Line
 
-### Usage
+{{< toc >}}
+
+## Usage
 
 `gitea [global options] command [command or global options] [arguments...]`
 
-### Global options
+## Global options
 
 All global options can be placed at the command level.
 
@@ -32,51 +34,64 @@ All global options can be placed at the command level.
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).
 
-### Commands
+## Commands
 
-#### web
+### web
 
 Starts the server:
 
 - Options:
     - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
+    - `--install-port number`: Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
     - `--pid path`, `-P path`: Pidfile path. Optional.
 - Examples:
     - `gitea web`
     - `gitea web --port 80`
-    - `gitea web --config /etc/gitea.ini --pid /var/run/gitea.pid`
+    - `gitea web --config /etc/gitea.ini --pid /some/custom/gitea.pid`
 - Notes:
     - Gitea should not be run as root. To bind to a port below 1024, you can use setcap on
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
       redone every time you update Gitea.
 
-#### admin
+### admin
 
 Admin operations:
 
 - Commands:
-    - `create-user`
-        - Options:
-            - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
-            - `--username value`: Username. Required. New in gitea 1.9.0.
-            - `--password value`: Password. Required.
-            - `--email value`: Email. Required.
-            - `--admin`: If provided, this makes the user an admin. Optional.
-            - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
-            - `--must-change-password`: If provided, the created user will be required to choose a newer password after
+    - `user`:
+        - `list`:
+            - Options:
+                - `--admin`: List only admin users. Optional.
+            - Description: lists all users that exist
+            - Examples:
+                - `gitea admin user list`
+        - `delete`:
+            - Options:
+                - `--id`: ID of user to be deleted. Required.
+            - Examples:
+                - `gitea admin user delete --id 1`
+        - `create`:
+            - Options:
+                - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
+                - `--username value`: Username. Required. New in gitea 1.9.0.
+                - `--password value`: Password. Required.
+                - `--email value`: Email. Required.
+                - `--admin`: If provided, this makes the user an admin. Optional.
+                - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
+                - `--must-change-password`: If provided, the created user will be required to choose a newer password after
 	    the initial login. Optional. (default: true).
-            - ``--random-password``: If provided, a randomly generated password will be used as the password of
+                - ``--random-password``: If provided, a randomly generated password will be used as the password of
 	    the created user. The value of `--password` will be discarded. Optional.
-            - `--random-password-length`: If provided, it will be used to configure the length of the randomly
+                - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
-        - Examples:
-            - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
-    - `change-password`
-        - Options:
-            - `--username value`, `-u value`: Username. Required.
-            - `--password value`, `-p value`: New password. Required.
-        - Examples:
-            - `gitea admin change-password --username myname --password asecurepassword`
+            - Examples:
+                - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
+        - `change-password`:
+            - Options:
+                - `--username value`, `-u value`: Username. Required.
+                - `--password value`, `-p value`: New password. Required.
+            - Examples:
+                - `gitea admin user change-password --username myname --password asecurepassword`
     - `regenerate`
         - Options:
             - `hooks`: Regenerate git-hooks for all repositories
@@ -216,7 +231,7 @@ Admin operations:
                 - `gitea admin auth update-ldap-simple --id 1 --name "my ldap auth source"`
                 - `gitea admin auth update-ldap-simple --id 1 --username-attribute uid --firstname-attribute givenName --surname-attribute sn`
 
-#### cert
+### cert
 
 Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in the current
 directory and will overwrite any existing files.
@@ -234,7 +249,7 @@ directory and will overwrite any existing files.
 - Examples:
     - `gitea cert --host git.example.com,example.com,www.example.com --ca`
 
-#### dump
+### dump
 
 Dumps all files and databases into a zip file. Outputs into a file like `gitea-dump-1482906742.zip`
 in the current directory.
@@ -249,7 +264,7 @@ in the current directory.
     - `gitea dump`
     - `gitea dump --verbose`
 
-#### generate
+### generate
 
 Generates random values and tokens for usage in configuration file. Useful for generating values
 for automatic deployments.
@@ -265,7 +280,7 @@ for automatic deployments.
             - `gitea generate secret JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
 
-#### keys
+### keys
 
 Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd config file:
 
@@ -287,24 +302,24 @@ writable by group or others. The program must be specified by an absolute
 path.
 NB: Gitea must be running for this command to succeed.
 
-#### migrate
+### migrate
 Migrates the database. This command can be used to run other commands before starting the server for the first time.  
 This command is idempotent.
 
-#### convert
+### convert
 Converts an existing MySQL database from utf8 to utf8mb4.
 
-#### doctor
+### doctor
 Diagnose the problems of current gitea instance according the given configuration.
 Currently there are a check list below:
 
 - Check if OpenSSH authorized_keys file id correct
-When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys` 
+When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys`
 when there is any public key added or changed on your gitea instance.
 Sometimes if you moved or renamed your gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
 This check will help you to check if it works well.
 
-For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and 
+For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
 append it to `doctor.go`.
 
 ```go
@@ -318,3 +333,115 @@ var checklist = []check{
 ```
 
 This function will receive a command line context and return a list of details about the problems or error.
+
+#### doctor recreate-table
+
+Sometimes when there are migrations the old columns and default values may be left
+unchanged in the database schema. This may lead to warning such as:
+
+```
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+```
+
+You can cause Gitea to recreate these tables and copy the old data into the new table
+with the defaults set appropriately by using:
+
+```
+gitea doctor recreate-table user
+```
+
+You can ask gitea to recreate multiple tables using:
+
+```
+gitea doctor recreate-table table1 table2 ...
+```
+
+And if you would like Gitea to recreate all tables simply call:
+
+```
+gitea doctor recreate-table
+```
+
+It is highly recommended to back-up your database before running these commands.
+
+### manager
+
+Manage running server operations:
+
+- Commands:
+  - `shutdown`:      Gracefully shutdown the running process
+  - `restart`:       Gracefully restart the running process - (not implemented for windows servers)
+  - `flush-queues`:  Flush queues in the running process
+    - Options:
+      - `--timeout value`: Timeout for the flushing process (default: 1m0s)
+      - `--non-blocking`: Set to true to not wait for flush to complete before returning
+  - `logging`:       Adjust logging commands
+    - Commands:
+      - `pause`:   Pause logging
+        - Notes:
+          - The logging level will be raised to INFO temporarily if it is below this level.
+          - Gitea will buffer logs up to a certain point and will drop them after that point.
+      - `resume`:  Resume logging
+      - `release-and-reopen`: Cause Gitea to release and re-open files and connections used for logging (Equivalent to sending SIGUSR1 to Gitea.)
+      - `remove name`: Remove the named logger
+        - Options:
+          - `--group group`, `-g group`: Set the group to remove the sublogger from. (defaults to `default`)
+      - `add`:     Add a logger
+        - Commands:
+          - `console`: Add a console logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--stderr`: Output console logs to stderr - only relevant for console
+          - `file`: Add a file logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--filename value`, `-f value`: Filename for the logger -
+              - `--rotate`, `-r`: Rotate logs
+              - `--max-size value`, `-s value`: Maximum size in bytes before rotation
+              - `--daily`, `-d`: Rotate logs daily
+              - `--max-days value`, `-D value`: Maximum number of daily logs to keep
+              - `--compress`, `-z`: Compress rotated logs
+              - `--compression-level value`, `-Z value`: Compression level to use
+          - `conn`: Add a network connection logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--reconnect-on-message`, `-R`: Reconnect to host for every message
+              - `--reconnect`, `-r`: Reconnect to host when connection is dropped
+              - `--protocol value`, `-P value`: Set protocol to use: tcp, unix, or udp (defaults to tcp)
+              - `--address value`, `-a value`: Host address and port to connect to (defaults to :7020)
+          - `smtp`: Add an SMTP logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--username value`, `-u value`: Mail server username
+              - `--password value`, `-P value`: Mail server password
+              - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
+              - `--send-to value`, `-s value`: Email address(es) to send to
+              - `--subject value`, `-S value`: Subject header of sent emails

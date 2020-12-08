@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository settings">
+<div class="page-content repository settings">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -33,7 +33,7 @@
 									{{.Fingerprint}}
 								</div>
 								<div class="activity meta">
-									<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}} - <span>{{$.i18n.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.i18n.Tr "settings.can_write_info"}} {{end}}</span></i>
+									<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}} - <span>{{$.i18n.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.i18n.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
 							</div>
 						</div>
@@ -82,7 +82,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.settings.deploy_key_deletion"}}
 	</div>
 	<div class="content">

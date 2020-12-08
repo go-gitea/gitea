@@ -6,7 +6,6 @@ package issues
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -14,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1"
 
@@ -40,7 +40,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	defer func() {
 		setting.Indexer.IssueQueueDir = oldQueueDir
 		setting.Indexer.IssuePath = oldIssuePath
-		os.RemoveAll(tmpIndexerDir)
+		util.RemoveAll(tmpIndexerDir)
 	}()
 
 	setting.Indexer.IssueType = "bleve"

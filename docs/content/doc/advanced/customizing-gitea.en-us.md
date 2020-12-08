@@ -35,7 +35,7 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
@@ -44,6 +44,10 @@ environment variable; this can be used to override the default path to something
 - [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
+
+# Table of Contents
+
+{{< toc >}}
 
 ## Serving custom public files
 
@@ -107,45 +111,6 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
-
-#### Example: Mermaid.js
-
-If you would like to add [mermaid.js](https://mermaid-js.github.io/mermaid) support to Gitea's markdown you simply add:
-
-```html
-{{if .RequireHighlightJS}}
-<script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
-<!-- or wherever you have placed it -->
-<script>mermaid.init(".language-mermaid")</script>
-{{end}}
-```
-
-to `custom/footer.tmpl`. You then can add blocks
-like below to your markdown:
-
-    ```mermaid
-        stateDiagram
-        [*] --> Active
-
-        state Active {
-            [*] --> NumLockOff
-            NumLockOff --> NumLockOn : EvNumLockPressed
-            NumLockOn --> NumLockOff : EvNumLockPressed
-            --
-            [*] --> CapsLockOff
-            CapsLockOff --> CapsLockOn : EvCapsLockPressed
-            CapsLockOn --> CapsLockOff : EvCapsLockPressed
-            --
-            [*] --> ScrollLockOff
-            ScrollLockOff --> ScrollLockOn : EvCapsLockPressed
-            ScrollLockOn --> ScrollLockOff : EvCapsLockPressed
-        }
-    ```
-
-If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
-you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
-
-Mermaid will detect and use tags with `class="language-mermaid"`.
 
 #### Example: PlantUML
 
@@ -334,3 +299,15 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
 As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+
+## Customizing fonts
+
+Fonts can be customized using CSS variables:
+
+```css
+:root {
+  --fonts-proportional: /* custom proportional fonts */ !important;
+  --fonts-monospace: /* custom monospace fonts */ !important;
+  --fonts-emoji: /* custom emoji fonts */ !important;
+}
+```

@@ -10,6 +10,27 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+var uncloseCounterKey = parser.NewContextKey()
+
+type unclosedCounter struct {
+	Single int
+	Double int
+}
+
+func (u *unclosedCounter) Reset() {
+	u.Single = 0
+	u.Double = 0
+}
+
+func getUnclosedCounter(pc parser.Context) *unclosedCounter {
+	v := pc.Get(uncloseCounterKey)
+	if v == nil {
+		v = &unclosedCounter{}
+		pc.Set(uncloseCounterKey, v)
+	}
+	return v.(*unclosedCounter)
+}
+
 // TypographicPunctuation is a key of the punctuations that can be replaced with
 // typographic entities.
 type TypographicPunctuation int
@@ -143,7 +164,6 @@ func (s *typographerParser) Trigger() []byte {
 }
 
 func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser.Context) gast.Node {
-	before := block.PrecendingCharacter()
 	line, _ := block.PeekLine()
 	c := line[0]
 	if len(line) > 2 {
@@ -189,16 +209,21 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 		}
 	}
 	if c == '\'' || c == '"' {
+		before := block.PrecendingCharacter()
 		d := parser.ScanDelimiter(line, before, 1, defaultTypographerDelimiterProcessor)
 		if d == nil {
 			return nil
 		}
+		counter := getUnclosedCounter(pc)
 		if c == '\'' {
 			if s.Substitutions[Apostrophe] != nil {
 				// Handle decade abbrevations such as '90s
 				if d.CanOpen && !d.CanClose && len(line) > 3 && util.IsNumeric(line[1]) && util.IsNumeric(line[2]) && line[3] == 's' {
-					after := util.ToRune(line, 4)
-					if len(line) == 3 || unicode.IsSpace(after) || unicode.IsPunct(after) {
+					after := rune(' ')
+					if len(line) > 4 {
+						after = util.ToRune(line, 4)
+					}
+					if len(line) == 3 || util.IsSpaceRune(after) || util.IsPunctRune(after) {
 						node := gast.NewString(s.Substitutions[Apostrophe])
 						node.SetCode(true)
 						block.Advance(1)
@@ -207,7 +232,7 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 				}
 				// Convert normal apostrophes. This is probably more flexible than necessary but
 				// converts any apostrophe in between two alphanumerics.
-				if len(line) > 1 && (unicode.IsDigit(before) || unicode.IsLetter(before)) && (util.IsAlphaNumeric(line[1])) {
+				if len(line) > 1 && (unicode.IsDigit(before) || unicode.IsLetter(before)) && (unicode.IsLetter(util.ToRune(line, 1))) {
 					node := gast.NewString(s.Substitutions[Apostrophe])
 					node.SetCode(true)
 					block.Advance(1)
@@ -215,16 +240,34 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 				}
 			}
 			if s.Substitutions[LeftSingleQuote] != nil && d.CanOpen && !d.CanClose {
-				node := gast.NewString(s.Substitutions[LeftSingleQuote])
+				nt := LeftSingleQuote
+				// special cases: Alice's, I'm ,Don't, You'd
+				if len(line) > 1 && (line[1] == 's' || line[1] == 'm' || line[1] == 't' || line[1] == 'd') && (len(line) < 3 || util.IsPunct(line[2]) || util.IsSpace(line[2])) {
+					nt = RightSingleQuote
+				}
+				// special cases: I've, I'll, You're
+				if len(line) > 2 && ((line[1] == 'v' && line[2] == 'e') || (line[1] == 'l' && line[2] == 'l') || (line[1] == 'r' && line[2] == 'e')) && (len(line) < 4 || util.IsPunct(line[3]) || util.IsSpace(line[3])) {
+					nt = RightSingleQuote
+				}
+				if nt == LeftSingleQuote {
+					counter.Single++
+				}
+
+				node := gast.NewString(s.Substitutions[nt])
 				node.SetCode(true)
 				block.Advance(1)
 				return node
 			}
-			if s.Substitutions[RightSingleQuote] != nil && d.CanClose && !d.CanOpen {
-				node := gast.NewString(s.Substitutions[RightSingleQuote])
-				node.SetCode(true)
-				block.Advance(1)
-				return node
+			if s.Substitutions[RightSingleQuote] != nil && counter.Single > 0 {
+				isClose := d.CanClose && !d.CanOpen
+				maybeClose := d.CanClose && d.CanOpen && len(line) > 1 && (line[1] == ',' || line[1] == '.' || line[1] == '!' || line[1] == '?') && (len(line) == 2 || (len(line) > 2 && util.IsPunct(line[2]) || util.IsSpace(line[2])))
+				if isClose || maybeClose {
+					node := gast.NewString(s.Substitutions[RightSingleQuote])
+					node.SetCode(true)
+					block.Advance(1)
+					counter.Single--
+					return node
+				}
 			}
 		}
 		if c == '"' {
@@ -232,13 +275,23 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 				node := gast.NewString(s.Substitutions[LeftDoubleQuote])
 				node.SetCode(true)
 				block.Advance(1)
+				counter.Double++
 				return node
 			}
-			if s.Substitutions[RightDoubleQuote] != nil && d.CanClose && !d.CanOpen {
-				node := gast.NewString(s.Substitutions[RightDoubleQuote])
-				node.SetCode(true)
-				block.Advance(1)
-				return node
+			if s.Substitutions[RightDoubleQuote] != nil && counter.Double > 0 {
+				isClose := d.CanClose && !d.CanOpen
+				maybeClose := d.CanClose && d.CanOpen && len(line) > 1 && (line[1] == ',' || line[1] == '.' || line[1] == '!' || line[1] == '?') && (len(line) == 2 || (len(line) > 2 && util.IsPunct(line[2]) || util.IsSpace(line[2])))
+				if isClose || maybeClose {
+					// special case: "Monitor 21""
+					if len(line) > 1 && line[1] == '"' && unicode.IsDigit(before) {
+						return nil
+					}
+					node := gast.NewString(s.Substitutions[RightDoubleQuote])
+					node.SetCode(true)
+					block.Advance(1)
+					counter.Double--
+					return node
+				}
 			}
 		}
 	}
@@ -246,7 +299,7 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 }
 
 func (s *typographerParser) CloseBlock(parent gast.Node, pc parser.Context) {
-	// nothing to do
+	getUnclosedCounter(pc).Reset()
 }
 
 type typographer struct {

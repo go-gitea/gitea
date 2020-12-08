@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository settings lfs">
+<div class="page-content repository settings lfs">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container repository file list">
@@ -13,7 +13,7 @@
 					{{range .Results}}
 						<tr>
 							<td>
-								{{svg "octicon-file" 16}}
+								{{svg "octicon-file"}}
 								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
 							</td>
 							<td class="message">
@@ -24,7 +24,7 @@
 								</span>
 							</td>
 							<td>
-								<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
+								<span class="text grey">{{svg "octicon-git-branch"}}{{.BranchName}}</span>
 							</td>
 							<td>
 								{{if .ParentHashes}}

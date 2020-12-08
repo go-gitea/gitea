@@ -1,250 +1,360 @@
-.form {
-    .help {
-        color: #999999;
-        padding-top: .6em;
-        padding-bottom: .6em;
-        display: inline-block;
-    }
+input,
+textarea,
+.ui.input > input,
+.ui.form input:not([type]),
+.ui.form textarea,
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="file"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="text"],
+.ui.form input[type="time"],
+.ui.form input[type="url"],
+.ui.selection.dropdown,
+.ui.checkbox label::before,
+.ui.checkbox input:checked ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-input-border);
+  color: var(--color-input-text);
 }
 
-.ui.attached.header {
-    background: #f0f0f0;
+input:hover,
+textarea:hover,
+.ui.input input:hover,
+.ui.form input:not([type]):hover,
+.ui.form textarea:hover,
+.ui.form input[type="date"]:hover,
+.ui.form input[type="datetime-local"]:hover,
+.ui.form input[type="email"]:hover,
+.ui.form input[type="file"]:hover,
+.ui.form input[type="number"]:hover,
+.ui.form input[type="password"]:hover,
+.ui.form input[type="search"]:hover,
+.ui.form input[type="tel"]:hover,
+.ui.form input[type="text"]:hover,
+.ui.form input[type="time"]:hover,
+.ui.form input[type="url"]:hover,
+.ui.selection.dropdown:hover,
+.ui.checkbox label:hover::before,
+.ui.checkbox label:active::before,
+.ui.radio.checkbox label::after,
+.ui.radio.checkbox input:focus ~ label::before,
+.ui.radio.checkbox input:checked ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-input-border-hover);
+  color: var(--color-input-text);
+}
 
-    .right {
-        margin-top: -5px;
+input:focus,
+textarea:focus,
+.ui.input input:focus,
+.ui.form input:not([type]):focus,
+.ui.form textarea:focus,
+.ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"]:focus,
+.ui.form input[type="email"]:focus,
+.ui.form input[type="file"]:focus,
+.ui.form input[type="number"]:focus,
+.ui.form input[type="password"]:focus,
+.ui.form input[type="search"]:focus,
+.ui.form input[type="tel"]:focus,
+.ui.form input[type="text"]:focus,
+.ui.form input[type="time"]:focus,
+.ui.form input[type="url"]:focus,
+.ui.selection.dropdown:focus,
+.ui.checkbox input:focus ~ label::before,
+.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::before,
+.ui.checkbox input:checked:focus ~ label::before,
+.ui.radio.checkbox input:focus:checked ~ label::before {
+  background: var(--color-input-background);
+  border-color: var(--color-primary);
+  color: var(--color-input-text);
+}
 
-        .button {
-            padding: 8px 10px;
-            font-weight: normal;
-        }
-    }
+.ui.form .field > label,
+.ui.form .inline.fields > label,
+.ui.form .inline.fields .field > label,
+.ui.form .inline.fields .field > p,
+.ui.form .inline.field > label,
+.ui.form .inline.field > p,
+.ui.checkbox label,
+.ui.checkbox + label,
+.ui.checkbox label:hover,
+.ui.checkbox + label:hover,
+.ui.checkbox input:focus ~ label,
+.ui.checkbox input:active ~ label {
+  color: var(--color-text);
+}
+
+.ui.input,
+.ui.checkbox input:focus ~ label::after,
+.ui.checkbox input:checked ~ label::after,
+.ui.checkbox label:active::after,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::after,
+.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::after,
+.ui.checkbox input:checked:focus ~ label::after,
+.ui.disabled.checkbox label,
+.ui.checkbox input[disabled] ~ label {
+  color: var(--color-input-text);
+}
+
+.ui.radio.checkbox input:focus ~ label::after,
+.ui.radio.checkbox input:checked ~ label::after,
+.ui.radio.checkbox input:focus:checked ~ label::after {
+  background: var(--color-input-text);
+}
+
+.ui.toggle.checkbox label::before {
+  background: var(--color-input-background);
+}
+
+.ui.toggle.checkbox label,
+.ui.toggle.checkbox input:checked ~ label,
+.ui.toggle.checkbox input:focus:checked ~ label {
+  color: var(--color-text) !important;
+}
+
+.ui.toggle.checkbox input:checked ~ label::before,
+.ui.toggle.checkbox input:focus:checked ~ label::before {
+  background: var(--color-primary) !important;
+}
+
+.form {
+  .help {
+    color: #999999;
+    padding-top: .6em;
+    padding-bottom: .6em;
+    display: inline-block;
+  }
 }
 
 @create-page-form-input-padding: 250px !important;
 #create-page-form {
-    form {
-        margin: auto;
+  form {
+    margin: auto;
 
-        .ui.message {
-            text-align: center;
-        }
-
-        @media only screen and (min-width: 768px) {
-            width: 800px !important;
-
-            .header {
-                padding-left: @create-page-form-input-padding+30px;
-            }
-
-            .inline.field > label {
-                text-align: right;
-                width: @create-page-form-input-padding;
-                word-wrap: break-word;
-            }
-
-            .help {
-                margin-left: @create-page-form-input-padding+15px;
-            }
-
-            .optional .title {
-                margin-left: @create-page-form-input-padding;
-            }
-
-            input,
-            textarea {
-                width: 50% !important;
-            }
-        }
-
-        @media only screen and (max-width: 767px) {
-            .optional .title {
-                margin-left: 15px;
-            }
-
-            .inline.field > label {
-                display: block;
-            }
-        }
+    .ui.message {
+      text-align: center;
     }
+
+    @media @mediaMdAndUp {
+      width: 800px !important;
+
+      .header {
+        padding-left: @create-page-form-input-padding+30px;
+      }
+
+      .inline.field > label {
+        text-align: right;
+        width: @create-page-form-input-padding;
+        word-wrap: break-word;
+      }
+
+      .help {
+        margin-left: @create-page-form-input-padding+15px;
+      }
+
+      .optional .title {
+        margin-left: @create-page-form-input-padding;
+      }
+
+      input,
+      textarea {
+        width: 50% !important;
+      }
+    }
+
+    @media @mediaSm {
+      .optional .title {
+        margin-left: 15px;
+      }
+
+      .inline.field > label {
+        display: block;
+      }
+    }
+  }
 }
 
 .signin {
-    .oauth2 {
-        div {
-            display: inline-block;
+  .oauth2 {
+    div {
+      display: inline-block;
 
-            p {
-                margin: 10px 5px 0 0;
-                float: left;
-            }
-        }
-
-        a {
-            margin-right: 3px;
-
-            &:last-child {
-                margin-right: 0;
-            }
-        }
-
-        img {
-            width: 32px;
-            height: 32px;
-
-            &.openidConnect {
-                width: auto;
-            }
-        }
+      p {
+        margin: 10px 5px 0 0;
+        float: left;
+      }
     }
+
+    a {
+      margin-right: 3px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+
+    img {
+      width: 32px;
+      height: 32px;
+
+      &.openidConnect {
+        width: auto;
+      }
+    }
+  }
 }
 
-@media only screen and (min-width: 768px) {
-    .g-recaptcha {
-        margin: 0 auto !important;
-        width: 304px;
-        padding-left: 30px;
-    }
+@media @mediaMdAndUp {
+  .g-recaptcha,
+  .h-captcha {
+    margin: 0 auto !important;
+    width: 304px;
+    padding-left: 30px;
+  }
 }
 
-@media screen and (max-height: 575px) {
-    #rc-imageselect,
-    .g-recaptcha {
-        transform: scale(.77);
-        transform-origin: 0 0;
-    }
+@media (max-height: 575px) {
+  #rc-imageselect,
+  .g-recaptcha,
+  .h-captcha {
+    transform: scale(.77);
+    transform-origin: 0 0;
+  }
 }
 
 .user.activate,
 .user.forgot.password,
 .user.reset.password,
+.user.link-account,
 .user.signin,
 .user.signup {
-    @input-padding: 200px;
-    #create-page-form;
+  @input-padding: 200px;
+  #create-page-form;
 
-    form {
-        width: 700px !important;
+  form {
+    width: 700px !important;
 
-        .header {
-            padding-left: 0 !important;
-            text-align: center;
-        }
-
-        .inline.field > label {
-            width: @input-padding;
-        }
-
-        .inline.field > label,
-        input {
-            @media only screen and (max-width: 768px) {
-                width: 100% !important;
-            }
-        }
-
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+    .header {
+      padding-left: 0 !important;
+      text-align: center;
     }
+
+    .inline.field > label {
+      width: @input-padding;
+    }
+
+    .inline.field > label,
+    input {
+      @media @mediaSm {
+        width: 100% !important;
+      }
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
 }
 
 .repository {
-    &.new.repo,
-    &.new.migrate,
-    &.new.fork {
-        #create-page-form;
+  &.new.repo,
+  &.new.migrate,
+  &.new.fork {
+    #create-page-form;
 
-        form {
-            .dropdown {
-                .dropdown.icon {
-                    margin-top: -7px !important;
-                    padding-bottom: 5px;
-                }
+    form {
+      .dropdown .text {
+        margin-right: 0 !important;
+      }
 
-                .text {
-                    margin-right: 0 !important;
+      .header {
+        padding-left: 0 !important;
+        text-align: center;
+      }
 
-                    i {
-                        margin-right: 0 !important;
-                    }
-                }
-            }
+      .selection.dropdown {
+        vertical-align: middle;
+        width: 50% !important;
+      }
 
-            .header {
-                padding-left: 0 !important;
-                text-align: center;
-            }
-
-            @media only screen and (max-width: 768px) {
-                label,
-                input,
-                .selection.dropdown {
-                    width: 100% !important;
-                }
-
-                .field button,
-                .field a {
-                    margin-bottom: 1em;
-                    width: 100%;
-                }
-            }
+      @media @mediaSm {
+        label,
+        input,
+        .selection.dropdown {
+          width: 100% !important;
         }
-    }
 
-    &.new.repo {
-        .ui.form {
-            @media only screen and (min-width: 768px) {
-                #auto-init {
-                    margin-left: @create-page-form-input-padding+15px;
-                }
-            }
-
-            .selection.dropdown:not(.owner) {
-                width: 50% !important;
-
-                @media only screen and (max-width: 768px) {
-                    width: 100% !important;
-                }
-            }
+        .field button,
+        .field a {
+          margin-bottom: 1em;
+          width: 100%;
         }
+      }
     }
+  }
+
+  &.new.repo {
+    .ui.form {
+      @media @mediaMdAndUp {
+        #auto-init {
+          margin-left: @create-page-form-input-padding+15px;
+        }
+      }
+
+      .selection.dropdown:not(.owner) {
+        width: 50% !important;
+
+        @media @mediaSm {
+          width: 100% !important;
+        }
+      }
+    }
+  }
 }
 
 .new.webhook {
-    form {
-        .help {
-            margin-left: 25px;
-        }
+  form {
+    .help {
+      margin-left: 25px;
     }
+  }
 
-    .events.fields {
-        .column {
-            padding-left: 40px;
-        }
+  .events.fields {
+    .column {
+      padding-left: 40px;
     }
+  }
 }
 
 .githook {
-    textarea {
-        font-family: @monospaced-fonts, monospace;
-    }
+  textarea {
+    font-family: var(--fonts-monospace);
+  }
 }
 
 .new.org .ui.form {
-    @media only screen and (max-width: 768px) {
-        .field button,
-        .field a {
-            margin-bottom: 1em;
-            width: 100%;
-        }
-
-        .field input {
-            width: 100% !important;
-        }
+  @media @mediaSm {
+    .field button,
+    .field a {
+      margin-bottom: 1em;
+      width: 100%;
     }
+
+    .field input {
+      width: 100% !important;
+    }
+  }
 }

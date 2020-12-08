@@ -5,11 +5,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 
 	"github.com/go-git/go-git/v5/internal/url"
 	format "github.com/go-git/go-git/v5/plumbing/format/config"
+	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -32,6 +37,16 @@ var (
 	ErrRemoteConfigEmptyName = errors.New("remote config: empty name")
 )
 
+// Scope defines the scope of a config file, such as local, global or system.
+type Scope int
+
+// Available ConfigScope's
+const (
+	LocalScope Scope = iota
+	GlobalScope
+	SystemScope
+)
+
 // Config contains the repository configuration
 // https://www.kernel.org/pub/software/scm/git/docs/git-config.html#FILES
 type Config struct {
@@ -44,6 +59,27 @@ type Config struct {
 		// CommentChar is the character indicating the start of a
 		// comment for commands like commit and tag
 		CommentChar string
+	}
+
+	User struct {
+		// Name is the personal name of the author and the commiter of a commit.
+		Name string
+		// Email is the email of the author and the commiter of a commit.
+		Email string
+	}
+
+	Author struct {
+		// Name is the personal name of the author of a commit.
+		Name string
+		// Email is the email of the author of a commit.
+		Email string
+	}
+
+	Committer struct {
+		// Name is the personal name of the commiter of a commit.
+		Name string
+		// Email is the email of the  the commiter of a commit.
+		Email string
 	}
 
 	Pack struct {
@@ -82,6 +118,77 @@ func NewConfig() *Config {
 	return config
 }
 
+// ReadConfig reads a config file from a io.Reader.
+func ReadConfig(r io.Reader) (*Config, error) {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := NewConfig()
+	if err = cfg.Unmarshal(b); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// LoadConfig loads a config file from a given scope. The returned Config,
+// contains exclusively information fom the given scope. If couldn't find a
+// config file to the given scope, a empty one is returned.
+func LoadConfig(scope Scope) (*Config, error) {
+	if scope == LocalScope {
+		return nil, fmt.Errorf("LocalScope should be read from the a ConfigStorer.")
+	}
+
+	files, err := Paths(scope)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return nil, err
+		}
+
+		defer f.Close()
+		return ReadConfig(f)
+	}
+
+	return NewConfig(), nil
+}
+
+// Paths returns the config file location for a given scope.
+func Paths(scope Scope) ([]string, error) {
+	var files []string
+	switch scope {
+	case GlobalScope:
+		xdg := os.Getenv("XDG_CONFIG_HOME")
+		if xdg != "" {
+			files = append(files, filepath.Join(xdg, "git/config"))
+		}
+
+		home, err := homedir.Dir()
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files,
+			filepath.Join(home, ".gitconfig"),
+			filepath.Join(home, ".config/git/config"),
+		)
+	case SystemScope:
+		files = append(files, "/etc/gitconfig")
+	}
+
+	return files, nil
+}
+
 // Validate validates the fields and sets the default values.
 func (c *Config) Validate() error {
 	for name, r := range c.Remotes {
@@ -113,6 +220,9 @@ const (
 	branchSection    = "branch"
 	coreSection      = "core"
 	packSection      = "pack"
+	userSection      = "user"
+	authorSection    = "author"
+	committerSection = "committer"
 	fetchKey         = "fetch"
 	urlKey           = "url"
 	bareKey          = "bare"
@@ -121,6 +231,8 @@ const (
 	windowKey        = "window"
 	mergeKey         = "merge"
 	rebaseKey        = "rebase"
+	nameKey          = "name"
+	emailKey         = "email"
 
 	// DefaultPackWindow holds the number of previous objects used to
 	// generate deltas. The value 10 is the same used by git command.
@@ -138,6 +250,7 @@ func (c *Config) Unmarshal(b []byte) error {
 	}
 
 	c.unmarshalCore()
+	c.unmarshalUser()
 	if err := c.unmarshalPack(); err != nil {
 		return err
 	}
@@ -158,6 +271,20 @@ func (c *Config) unmarshalCore() {
 
 	c.Core.Worktree = s.Options.Get(worktreeKey)
 	c.Core.CommentChar = s.Options.Get(commentCharKey)
+}
+
+func (c *Config) unmarshalUser() {
+	s := c.Raw.Section(userSection)
+	c.User.Name = s.Options.Get(nameKey)
+	c.User.Email = s.Options.Get(emailKey)
+
+	s = c.Raw.Section(authorSection)
+	c.Author.Name = s.Options.Get(nameKey)
+	c.Author.Email = s.Options.Get(emailKey)
+
+	s = c.Raw.Section(committerSection)
+	c.Committer.Name = s.Options.Get(nameKey)
+	c.Committer.Email = s.Options.Get(emailKey)
 }
 
 func (c *Config) unmarshalPack() error {
@@ -220,6 +347,7 @@ func (c *Config) unmarshalBranches() error {
 // Marshal returns Config encoded as a git-config file.
 func (c *Config) Marshal() ([]byte, error) {
 	c.marshalCore()
+	c.marshalUser()
 	c.marshalPack()
 	c.marshalRemotes()
 	c.marshalSubmodules()
@@ -239,6 +367,35 @@ func (c *Config) marshalCore() {
 
 	if c.Core.Worktree != "" {
 		s.SetOption(worktreeKey, c.Core.Worktree)
+	}
+}
+
+func (c *Config) marshalUser() {
+	s := c.Raw.Section(userSection)
+	if c.User.Name != "" {
+		s.SetOption(nameKey, c.User.Name)
+	}
+
+	if c.User.Email != "" {
+		s.SetOption(emailKey, c.User.Email)
+	}
+
+	s = c.Raw.Section(authorSection)
+	if c.Author.Name != "" {
+		s.SetOption(nameKey, c.Author.Name)
+	}
+
+	if c.Author.Email != "" {
+		s.SetOption(emailKey, c.Author.Email)
+	}
+
+	s = c.Raw.Section(committerSection)
+	if c.Committer.Name != "" {
+		s.SetOption(nameKey, c.Committer.Name)
+	}
+
+	if c.Committer.Email != "" {
+		s.SetOption(emailKey, c.Committer.Email)
 	}
 }
 

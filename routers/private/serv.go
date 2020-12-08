@@ -46,7 +46,7 @@ func ServNoCommand(ctx *macaron.Context) {
 	}
 	results.Key = key
 
-	if key.Type == models.KeyTypeUser {
+	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
 		user, err := models.GetUserByID(key.OwnerID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -58,6 +58,12 @@ func ServNoCommand(ctx *macaron.Context) {
 			log.Error("Unable to get owner with id: %d for public key: %d Error: %v", key.OwnerID, keyID, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"err": err.Error(),
+			})
+			return
+		}
+		if !user.IsActive || user.ProhibitLogin {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": "Your account is disabled.",
 			})
 			return
 		}
@@ -80,7 +86,7 @@ func ServCommand(ctx *macaron.Context) {
 		KeyID:     keyID,
 	}
 
-	// Now because we're not translating things properly let's just default some Engish strings here
+	// Now because we're not translating things properly let's just default some English strings here
 	modeString := "read"
 	if mode > models.AccessModeRead {
 		modeString = "write to"
@@ -98,9 +104,28 @@ func ServCommand(ctx *macaron.Context) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
+	owner, err := models.GetUserByName(results.OwnerName)
+	if err != nil {
+		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"results": results,
+			"type":    "InternalServerError",
+			"err":     fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
+		})
+		return
+	}
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.JSON(http.StatusForbidden, map[string]interface{}{
+			"results": results,
+			"type":    "ForbiddenError",
+			"err":     "Repository cannot be accessed, you could retry it later",
+		})
+		return
+	}
+
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := models.GetRepositoryByOwnerAndName(results.OwnerName, results.RepoName)
+	repo, err := models.GetRepositoryByName(owner.ID, results.RepoName)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
@@ -127,6 +152,7 @@ func ServCommand(ctx *macaron.Context) {
 	}
 
 	if repoExist {
+		repo.Owner = owner
 		repo.OwnerName = ownerName
 		results.RepoID = repo.ID
 
@@ -217,6 +243,9 @@ func ServCommand(ctx *macaron.Context) {
 		// so for now use the owner of the repository
 		results.UserName = results.OwnerName
 		results.UserID = repo.OwnerID
+		if !repo.Owner.KeepEmailPrivate {
+			results.UserEmail = repo.Owner.Email
+		}
 	} else {
 		// Get the user represented by the Key
 		var err error
@@ -238,7 +267,18 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
+
+		if !user.IsActive || user.ProhibitLogin {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": "Your account is disabled.",
+			})
+			return
+		}
+
 		results.UserName = user.Name
+		if !user.KeepEmailPrivate {
+			results.UserEmail = user.Email
+		}
 	}
 
 	// Don't allow pushing if the repo is archived

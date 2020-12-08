@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin edit authentication">
+<div class="page-content admin edit authentication">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -28,7 +28,7 @@
 						<div class="ui selection security-protocol dropdown">
 							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol}}">
 							<div class="text">{{$cfg.SecurityProtocolName}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .SecurityProtocols}}
 									<div class="item" data-value="{{.Type}}">{{.Name}}</div>
@@ -99,6 +99,31 @@
 					    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 					    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
 					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="groups_enabled"><strong>{{.i18n.Tr "admin.auths.verify_group_membership"}}</strong></label>
+							<input id="groups_enabled" name="groups_enabled" type="checkbox" {{if $cfg.GroupsEnabled}}checked{{end}}>
+						</div>
+					</div>
+					<div id="groups_enabled_change">
+						<div class="field">
+							<label for="group_dn">{{.i18n.Tr "admin.auths.group_search_base"}}</label>
+							<input id="group_dn" name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
+						</div>
+						<div class="field">
+							<label for="group_filter">{{.i18n.Tr "admin.auths.valid_groups_filter"}}</label>
+							<input id="group_filter" name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="e.g. (|(cn=gitea_users)(cn=admins))">
+						</div>
+						<div class="field">
+							<label for="group_member_uid">{{.i18n.Tr "admin.auths.group_attribute_list_users"}}</label>
+							<input id="group_member_uid" name="group_member_uid" value="{{$cfg.GroupMemberUID}}" placeholder="e.g. memberUid">
+						</div>
+						<div class="field">
+							<label for="user_uid">{{.i18n.Tr "admin.auths.user_attribute_in_group"}}</label>
+							<input id="user_uid" name="user_uid" value="{{$cfg.UserUID}}" placeholder="e.g. uid">
+						</div>
+						<br/>
+					</div>
 					{{if .Source.IsLDAP}}
 						<div class="inline field">
 							<div class="ui checkbox">
@@ -133,7 +158,7 @@
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{$cfg.Auth}}" required>
 							<div class="text">{{$cfg.Auth}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .SMTPAuths}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
@@ -173,7 +198,7 @@
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
 							<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range $key, $value := .OAuth2Providers}}
 									<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
@@ -257,7 +282,7 @@
 						<label for="sspi_default_language">{{.i18n.Tr "admin.auths.sspi_default_language"}}</label>
 						<div class="ui language selection dropdown" id="sspi_default_language">
 							<input name="sspi_default_language" type="hidden" value="{{$cfg.DefaultLanguage}}">
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="text">{{range .AllLangs}}{{if eq $cfg.DefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
 							<div class="menu">
 								<div class="item{{if not $.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
@@ -308,7 +333,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "admin.auths.delete_auth_title"}}
 	</div>
 	<div class="content">

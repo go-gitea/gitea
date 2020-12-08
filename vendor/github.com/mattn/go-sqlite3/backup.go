@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -25,18 +25,18 @@ type SQLiteBackup struct {
 }
 
 // Backup make backup from src to dest.
-func (c *SQLiteConn) Backup(dest string, conn *SQLiteConn, src string) (*SQLiteBackup, error) {
+func (destConn *SQLiteConn) Backup(dest string, srcConn *SQLiteConn, src string) (*SQLiteBackup, error) {
 	destptr := C.CString(dest)
 	defer C.free(unsafe.Pointer(destptr))
 	srcptr := C.CString(src)
 	defer C.free(unsafe.Pointer(srcptr))
 
-	if b := C.sqlite3_backup_init(c.db, destptr, conn.db, srcptr); b != nil {
+	if b := C.sqlite3_backup_init(destConn.db, destptr, srcConn.db, srcptr); b != nil {
 		bb := &SQLiteBackup{b: b}
 		runtime.SetFinalizer(bb, (*SQLiteBackup).Finish)
 		return bb, nil
 	}
-	return nil, c.lastError()
+	return nil, destConn.lastError()
 }
 
 // Step to backs up for one step. Calls the underlying `sqlite3_backup_step`

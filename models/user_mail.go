@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,6 +31,21 @@ type EmailAddress struct {
 	Email       string `xorm:"UNIQUE NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"-"`
+}
+
+// ValidateEmail check if email is a allowed address
+func ValidateEmail(email string) error {
+	if len(email) == 0 {
+		return nil
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrEmailInvalid{email}
+	}
+
+	// TODO: add an email allow/block list
+
+	return nil
 }
 
 // GetEmailAddresses returns all email addresses belongs to given user.
@@ -71,8 +87,8 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 // GetEmailAddressByID gets a user's email address by ID
 func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
-	email := &EmailAddress{ID: id, UID: uid}
-	if has, err := x.Get(email); err != nil {
+	email := &EmailAddress{UID: uid}
+	if has, err := x.ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -126,7 +142,7 @@ func isEmailUsed(e Engine, email string) (bool, error) {
 		return true, nil
 	}
 
-	return e.Get(&EmailAddress{Email: email})
+	return e.Where("email=?", email).Get(&EmailAddress{})
 }
 
 // IsEmailUsed returns true if the email has been used.
@@ -141,6 +157,10 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 		return err
 	} else if used {
 		return ErrEmailAlreadyUsed{email.Email}
+	}
+
+	if err = ValidateEmail(email.Email); err != nil {
+		return err
 	}
 
 	_, err = e.Insert(email)
@@ -166,6 +186,9 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 			return err
 		} else if used {
 			return ErrEmailAlreadyUsed{emails[i].Email}
+		}
+		if err = ValidateEmail(emails[i].Email); err != nil {
+			return err
 		}
 	}
 
@@ -251,8 +274,8 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		return ErrEmailNotActivated
 	}
 
-	user := &User{ID: email.UID}
-	has, err = x.Get(user)
+	user := &User{}
+	has, err = x.ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {

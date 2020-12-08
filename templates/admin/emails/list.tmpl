@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -12,7 +12,7 @@
 				<div class="ui dropdown type jump item">
 					<span class="text">
 						{{.i18n.Tr "repo.issues.filter_sort"}}
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
 					<div class="menu">
 						<a class="{{if or (eq .SortType "email") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email"}}</a>
@@ -33,9 +33,15 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>{{.i18n.Tr "admin.users.name"}}</th>
+						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
+							{{.i18n.Tr "admin.users.name"}}
+							{{SortArrow "username" "reverseusername" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.full_name"}}</th>
-						<th>{{.i18n.Tr "email"}}</th>
+						<th data-sortt-asc="email" data-sortt-desc="reverseemail" data-sortt-default="true">
+							{{.i18n.Tr "email"}}
+							{{SortArrow "email" "reverseemail" $.SortType true}}
+						</th>
 						<th>{{.i18n.Tr "admin.emails.primary"}}</th>
 						<th>{{.i18n.Tr "admin.emails.activated"}}</th>
 					</tr>

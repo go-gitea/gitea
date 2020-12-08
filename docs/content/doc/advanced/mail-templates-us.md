@@ -21,6 +21,8 @@ Gitea has an internal template that serves as default in case there's no custom 
 
 Custom templates are loaded when Gitea starts. Changes made to them are not recognized until Gitea is restarted again.
 
+{{< toc >}}
+
 ## Mail notifications supporting templates
 
 Currently, the following notification events make use of templates:
@@ -235,11 +237,11 @@ Please check [Gitea's logs](https://docs.gitea.io/en-us/logging-configuration/) 
 
 This template produces something along these lines:
 
-#### Subject
+### Subject
 
 > [mike/stuff] @rhonda commented on pull request #38: New color palette
 
-#### Mail body
+### Mail body
 
 > [@rhonda](#) (Rhonda Myers) updated [mike/stuff#38](#).
 >
@@ -249,7 +251,7 @@ This template produces something along these lines:
 >
 > Mike, I think we should tone down the blues a little.  
 > \__________________________________________________________________
-> 
+>
 > [View it on Gitea](#).
 
 ## Advanced

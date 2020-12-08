@@ -81,7 +81,12 @@ func (st schemaTypable) AdditionalProperties() swaggerTypable {
 	st.schema.Typed("object", "")
 	return schemaTypable{st.schema.AdditionalProperties.Schema, st.level + 1}
 }
+
 func (st schemaTypable) Level() int { return st.level }
+
+func (st schemaTypable) WithEnum(values ...interface{}) {
+	st.schema.WithEnum(values...)
+}
 
 type schemaValidations struct {
 	current *spec.Schema
@@ -246,6 +251,18 @@ func (scp *schemaParser) parseDecl(definitions map[string]spec.Schema, decl *sch
 		} else {
 			if err := scp.parseNamedType(decl.File, tpe, prop); err != nil {
 				return err
+			}
+		}
+		if enumName, ok := enumName(decl.Decl.Doc); ok {
+			var enumValues = getEnumValues(decl.File, enumName)
+			if len(enumValues) > 0 {
+				var typeName = reflect.TypeOf(enumValues[0]).String()
+				prop.WithEnum(enumValues...)
+
+				err := swaggerSchemaForType(typeName, prop)
+				if err != nil {
+					return fmt.Errorf("file %s, error is: %v", decl.File.Name, err)
+				}
 			}
 		}
 	case *ast.SelectorExpr:
@@ -1025,8 +1042,15 @@ func (scp *schemaParser) parseIdentProperty(pkg *loader.PackageInfo, expr *ast.I
 	}
 
 	if enumName, ok := enumName(gd.Doc); ok {
-		log.Println(enumName)
-		return nil
+		var enumValues = getEnumValues(file, enumName)
+		if len(enumValues) > 0 {
+			prop.WithEnum(enumValues...)
+			var typeName = reflect.TypeOf(enumValues[0]).String()
+			err := swaggerSchemaForType(typeName, prop)
+			if err != nil {
+				return fmt.Errorf("file %s, error is: %v", file.Name, err)
+			}
+		}
 	}
 
 	if defaultName, ok := defaultName(gd.Doc); ok {

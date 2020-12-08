@@ -101,7 +101,7 @@ is supported by go-git.
 | http(s):// (smart)                    | ✔ |
 | git://                                | ✔ |
 | ssh://                                | ✔ |
-| file://                               | ✔ |
+| file://                               | partial | Warning: this is not pure Golang. This shells out to the `git` binary. |
 | custom                                | ✔ |
 | **other features** |
 | gitignore                             | ✔ |

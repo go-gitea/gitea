@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository settings options">
+<div class="page-content repository settings options">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -107,7 +107,7 @@
 							<input class="fake" type="password">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
+								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 							</div>
 						</div>
 					</div>
@@ -269,7 +269,22 @@
 					</div>
 				</div>
 
-				{{if .Repository.CanEnablePulls}}
+				<div class="ui divider"></div>
+
+				{{$isProjectsEnabled := .Repository.UnitEnabled $.UnitTypeProjects}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.project_board"}}</label>
+					{{if .UnitTypeProjects.UnitGlobalDisabled}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.projects_desc"}}</label>
+					</div>
+				</div>
+
+				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
@@ -325,6 +340,52 @@
 			</form>
 		</div>
 
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.signing_settings"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="signing">
+				<div class="field">
+					<label>{{.i18n.Tr "repo.settings.trust_model"}}</label>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
+							<label for="trust_model_default">{{.i18n.Tr "repo.settings.trust_model.default"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.default.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" id="trust_model_collaborator" name="trust_model" {{if eq .Repository.TrustModel.String "collaborator"}}checked="checked"{{end}} value="collaborator">
+							<label for="trust_model_collaborator">{{.i18n.Tr "repo.settings.trust_model.collaborator.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.collaborator.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="trust_model" id="trust_model_committer" {{if eq .Repository.TrustModel.String "committer"}}checked="checked"{{end}} value="committer">
+							<label for="trust_model_committer">{{.i18n.Tr "repo.settings.trust_model.committer.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.committer.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="trust_model" id="trust_model_collaboratorcommitter" {{if eq .Repository.TrustModel.String "collaboratorcommitter"}}checked="checked"{{end}} value="collaboratorcommitter">
+							<label for="trust_model_collaboratorcommitter">{{.i18n.Tr "repo.settings.trust_model.collaboratorcommitter.long"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.trust_model.collaboratorcommitter.desc"}}</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="ui divider"></div>
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+		</div>
+
 		{{if .IsAdmin}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "repo.settings.admin_settings"}}
@@ -353,22 +414,33 @@
 		{{end}}
 
 		{{if .Permission.IsOwner}}
-		<h4 class="ui top attached warning header">
+		<h4 class="ui top attached error header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached warning table danger segment">
+		<div class="ui attached error table danger segment">
 			{{if .Repository.IsMirror}}
-			<div class="item">
-				<div class="ui right">
-					<button class="ui basic red show-modal button" data-modal="#convert-repo-modal">{{.i18n.Tr "repo.settings.convert"}}</button>
+				<div class="item">
+					<div class="ui right">
+						<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{.i18n.Tr "repo.settings.convert"}}</button>
+					</div>
+					<div>
+						<h5>{{.i18n.Tr "repo.settings.convert"}}</h5>
+						<p>{{.i18n.Tr "repo.settings.convert_desc"}}</p>
+					</div>
 				</div>
-				<div>
-					<h5>{{.i18n.Tr "repo.settings.convert"}}</h5>
-					<p>{{.i18n.Tr "repo.settings.convert_desc"}}</p>
+				<div class="ui divider"></div>
+			{{end}}
+			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+				<div class="item">
+					<div class="ui right">
+						<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.i18n.Tr "repo.settings.convert_fork"}}</button>
+					</div>
+					<div>
+						<h5>{{.i18n.Tr "repo.settings.convert_fork"}}</h5>
+						<p>{{.i18n.Tr "repo.settings.convert_fork_desc"}}</p>
+					</div>
 				</div>
-			</div>
-
-			<div class="ui divider"></div>
+				<div class="ui divider"></div>
 			{{end}}
 			<div class="item">
 				<div class="ui right">
@@ -437,37 +509,67 @@
 
 {{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
-	<div class="ui small modal" id="convert-repo-modal">
-		<div class="header">
-			{{.i18n.Tr "repo.settings.convert"}}
-		</div>
-		<div class="content">
-			<div class="ui warning message text left">
-				{{.i18n.Tr "repo.settings.convert_notices_1"}}
+		<div class="ui small modal" id="convert-mirror-repo-modal">
+			<div class="header">
+				{{.i18n.Tr "repo.settings.convert"}}
 			</div>
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="convert">
-				<div class="field">
-					<label>
-						{{.i18n.Tr "repo.settings.transfer_form_title"}}
-						<span class="text red">{{.Repository.Name}}</span>
-					</label>
+			<div class="content">
+				<div class="ui warning message text left">
+					{{.i18n.Tr "repo.settings.convert_notices_1"}}
 				</div>
-				<div class="required field">
-					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required>
-				</div>
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="action" value="convert">
+					<div class="field">
+						<label>
+							{{.i18n.Tr "repo.settings.transfer_form_title"}}
+							<span class="text red">{{.Repository.Name}}</span>
+						</label>
+					</div>
+					<div class="required field">
+						<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+						<input id="repo_name" name="repo_name" required>
+					</div>
 
-				<div class="text right actions">
-					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-					<button class="ui red button">{{.i18n.Tr "repo.settings.convert_confirm"}}</button>
-				</div>
-			</form>
+					<div class="text right actions">
+						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+						<button class="ui red button">{{.i18n.Tr "repo.settings.convert_confirm"}}</button>
+					</div>
+				</form>
+			</div>
 		</div>
-	</div>
 	{{end}}
+	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+		<div class="ui small modal" id="convert-fork-repo-modal">
+			<div class="header">
+				{{.i18n.Tr "repo.settings.convert_fork"}}
+			</div>
+			<div class="content">
+				<div class="ui warning message text left">
+					{{.i18n.Tr "repo.settings.convert_fork_notices_1"}}
+				</div>
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="action" value="convert_fork">
+					<div class="field">
+						<label>
+							{{.i18n.Tr "repo.settings.transfer_form_title"}}
+							<span class="text red">{{.Repository.Name}}</span>
+						</label>
+					</div>
+					<div class="required field">
+						<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+						<input id="repo_name" name="repo_name" required>
+					</div>
 
+					<div class="text right actions">
+						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+						<button class="ui red button">{{.i18n.Tr "repo.settings.convert_fork_confirm"}}</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{{end}}
 	<div class="ui small modal" id="transfer-repo-modal">
 		<div class="header">
 			{{.i18n.Tr "repo.settings.transfer"}}

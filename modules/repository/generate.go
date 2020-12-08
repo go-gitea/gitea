@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
 )
@@ -119,7 +120,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("git clone: %v", err)
 	}
 
-	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
+	if err := util.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %v", err)
 	}
 
@@ -130,7 +131,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 	}
 
 	if gt != nil {
-		if err := os.Remove(gt.Path); err != nil {
+		if err := util.Remove(gt.Path); err != nil {
 			return fmt.Errorf("remove .giteatemplate: %v", err)
 		}
 
@@ -191,7 +192,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 	}
 
 	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
+		if err := util.RemoveAll(tmpDir); err != nil {
 			log.Error("RemoveAll: %v", err)
 		}
 	}()
@@ -242,14 +243,27 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
+		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo); err != nil {
+	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
 		return nil, err
 	}
 
-	repoPath := models.RepoPath(owner.Name, generateRepo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
+	repoPath := generateRepo.RepoPath()
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return nil, err
+	}
+	if isExist {
+		return nil, models.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
+		}
+	}
+
+	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 

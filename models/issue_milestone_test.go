@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -49,7 +50,10 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID, state, ListOptions{})
+		milestones, err := GetMilestones(GetMilestonesOption{
+			RepoID: repo.ID,
+			State:  state,
+		})
 		assert.NoError(t, err)
 
 		var n int
@@ -83,7 +87,10 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen, ListOptions{})
+	milestones, err := GetMilestones(GetMilestonesOption{
+		RepoID: NonexistentID,
+		State:  api.StateOpen,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
@@ -93,7 +100,15 @@ func TestGetMilestones(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
-			milestones, err := GetMilestones(repo.ID, page, false, sortType)
+			milestones, err := GetMilestones(GetMilestonesOption{
+				ListOptions: ListOptions{
+					Page:     page,
+					PageSize: setting.UI.IssuePagingNum,
+				},
+				RepoID:   repo.ID,
+				State:    api.StateOpen,
+				SortType: sortType,
+			})
 			assert.NoError(t, err)
 			assert.Len(t, milestones, repo.NumMilestones-repo.NumClosedMilestones)
 			values := make([]int, len(milestones))
@@ -102,7 +117,16 @@ func TestGetMilestones(t *testing.T) {
 			}
 			assert.True(t, sort.IntsAreSorted(values))
 
-			milestones, err = GetMilestones(repo.ID, page, true, sortType)
+			milestones, err = GetMilestones(GetMilestonesOption{
+				ListOptions: ListOptions{
+					Page:     page,
+					PageSize: setting.UI.IssuePagingNum,
+				},
+				RepoID:   repo.ID,
+				State:    api.StateClosed,
+				Name:     "",
+				SortType: sortType,
+			})
 			assert.NoError(t, err)
 			assert.Len(t, milestones, repo.NumClosedMilestones)
 			values = make([]int, len(milestones))

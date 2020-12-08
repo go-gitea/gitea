@@ -167,7 +167,7 @@ func SetMessageWithDesc(lang, langDesc string, localeFile interface{}, otherLoca
 		lc.langDesc = langDesc
 		lc.message = message
 
-		if locales.Add(lc) == false {
+		if !locales.Add(lc) {
 			return ErrLangAlreadyExist
 		}
 	}

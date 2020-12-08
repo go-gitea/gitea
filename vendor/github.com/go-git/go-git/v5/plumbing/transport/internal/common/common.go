@@ -175,6 +175,13 @@ func (s *session) AdvertisedReferences() (*packp.AdvRefs, error) {
 		}
 	}
 
+	// Some servers like jGit, announce capabilities instead of returning an
+	// packp message with a flush. This verifies that we received a empty
+	// adv-refs, even it contains capabilities.
+	if !s.isReceivePack && ar.IsEmpty() {
+		return nil, transport.ErrEmptyRemoteRepository
+	}
+
 	transport.FilterUnsupportedCapabilities(ar.Capabilities)
 	s.advRefs = ar
 	return ar, nil

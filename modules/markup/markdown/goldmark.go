@@ -151,6 +151,16 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.AppendChild(v, newChild)
 				}
 			}
+		case *ast.Text:
+			if v.SoftLineBreak() && !v.HardLineBreak() {
+				renderMetas := pc.Get(renderMetasKey).(map[string]string)
+				mode := renderMetas["mode"]
+				if mode != "document" {
+					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
+				} else {
+					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
+				}
+			}
 		}
 		return ast.WalkContinue, nil
 	})

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetThread get notification by ID
@@ -44,7 +45,7 @@ func GetThread(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, n.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotificationThread(n))
 }
 
 // ReadThread mark notification as read by ID
@@ -62,6 +63,12 @@ func ReadThread(ctx *context.APIContext) {
 	//   description: id of notification thread
 	//   type: string
 	//   required: true
+	// - name: to-status
+	//   in: query
+	//   description: Status to mark notifications as
+	//   type: string
+	//   default: read
+	//   required: false
 	// responses:
 	//   "205":
 	//     "$ref": "#/responses/empty"
@@ -75,7 +82,12 @@ func ReadThread(ctx *context.APIContext) {
 		return
 	}
 
-	err := models.SetNotificationStatus(n.ID, ctx.User, models.NotificationStatusRead)
+	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	if targetStatus == 0 {
+		targetStatus = models.NotificationStatusRead
+	}
+
+	err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

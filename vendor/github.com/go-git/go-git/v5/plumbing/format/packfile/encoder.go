@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/utils/binary"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 )
 
 // Encoder gets the data from the storage and write it into the writer in PACK
@@ -80,7 +81,7 @@ func (e *Encoder) head(numEntries int) error {
 	)
 }
 
-func (e *Encoder) entry(o *ObjectToPack) error {
+func (e *Encoder) entry(o *ObjectToPack) (err error) {
 	if o.WantWrite() {
 		// A cycle exists in this delta chain. This should only occur if a
 		// selected object representation disappeared during writing
@@ -119,17 +120,22 @@ func (e *Encoder) entry(o *ObjectToPack) error {
 	}
 
 	e.zw.Reset(e.w)
+
+	defer ioutil.CheckClose(e.zw, &err)
+
 	or, err := o.Object.Reader()
 	if err != nil {
 		return err
 	}
+
+	defer ioutil.CheckClose(or, &err)
 
 	_, err = io.Copy(e.zw, or)
 	if err != nil {
 		return err
 	}
 
-	return e.zw.Close()
+	return nil
 }
 
 func (e *Encoder) writeBaseIfDelta(o *ObjectToPack) error {

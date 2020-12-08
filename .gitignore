@@ -53,7 +53,7 @@ coverage.all
 /custom/*
 !/custom/conf
 /custom/conf/*
-!/custom/conf/app.ini.sample
+!/custom/conf/app.example.ini
 /data
 /indexers
 /log
@@ -76,11 +76,23 @@ coverage.all
 /node_modules
 /yarn.lock
 /public/js
+/public/serviceworker.js
 /public/css
 /public/fonts
-/public/fomantic
-/public/img/svg
+/public/img/webpack
+/web_src/fomantic/build/*
+!/web_src/fomantic/build/semantic.js
+!/web_src/fomantic/build/semantic.css
+!/web_src/fomantic/build/themes
+/web_src/fomantic/build/themes/*
+!/web_src/fomantic/build/themes/default
+/web_src/fomantic/build/themes/default/assets/*
+!/web_src/fomantic/build/themes/default/assets/fonts
+/web_src/fomantic/build/themes/default/assets/fonts/*
+!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
+!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
+/.air
 
 # Snapcraft
 snap/.snapcraft/

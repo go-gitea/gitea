@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -64,7 +65,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, status.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(status))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -108,7 +109,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -160,7 +161,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -208,8 +209,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	}
 	repo := ctx.Repo.Repository
 
-	statuses, _, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
-		ListOptions: utils.GetListOptions(ctx),
+	listOptions := utils.GetListOptions(ctx)
+
+	statuses, maxResults, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
+		ListOptions: listOptions,
 		SortType:    ctx.QueryTrim("sort"),
 		State:       ctx.QueryTrim("state"),
 	})
@@ -220,8 +223,12 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	apiStatuses := make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, status.APIFormat())
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 
 	ctx.JSON(http.StatusOK, apiStatuses)
 }
@@ -293,13 +300,13 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	retStatus := &combinedCommitStatus{
 		SHA:        sha,
 		TotalCount: len(statuses),
-		Repo:       repo.APIFormat(ctx.Repo.AccessMode),
+		Repo:       convert.ToRepo(repo, ctx.Repo.AccessMode),
 		URL:        "",
 	}
 
 	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, status.APIFormat())
+		retStatus.Statuses = append(retStatus.Statuses, convert.ToCommitStatus(status))
 		if status.State.NoBetterThan(retStatus.State) {
 			retStatus.State = status.State
 		}

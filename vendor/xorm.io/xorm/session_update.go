@@ -206,7 +206,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
 			col := table.UpdatedColumn()
 			val, t := session.engine.nowTime(col)
-			args = append(args, val)
+			if session.engine.dialect.URI().DBType == schemas.ORACLE {
+				args = append(args, t)
+			} else {
+				args = append(args, val)
+			}
 
 			var colName = col.Name
 			if isStruct {

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -27,6 +28,7 @@ func NewCopyOnWriteBuffer(buffer []byte) CopyOnWriteBuffer {
 }
 
 // Write writes given bytes to the buffer.
+// Write allocate new buffer and clears it at the first time.
 func (b *CopyOnWriteBuffer) Write(value []byte) {
 	if !b.copied {
 		b.buffer = make([]byte, 0, len(b.buffer)+20)
@@ -35,10 +37,35 @@ func (b *CopyOnWriteBuffer) Write(value []byte) {
 	b.buffer = append(b.buffer, value...)
 }
 
+// Append appends given bytes to the buffer.
+// Append copy buffer at the first time.
+func (b *CopyOnWriteBuffer) Append(value []byte) {
+	if !b.copied {
+		tmp := make([]byte, len(b.buffer), len(b.buffer)+20)
+		copy(tmp, b.buffer)
+		b.buffer = tmp
+		b.copied = true
+	}
+	b.buffer = append(b.buffer, value...)
+}
+
 // WriteByte writes the given byte to the buffer.
+// WriteByte allocate new buffer and clears it at the first time.
 func (b *CopyOnWriteBuffer) WriteByte(c byte) {
 	if !b.copied {
 		b.buffer = make([]byte, 0, len(b.buffer)+20)
+		b.copied = true
+	}
+	b.buffer = append(b.buffer, c)
+}
+
+// AppendByte appends given bytes to the buffer.
+// AppendByte copy buffer at the first time.
+func (b *CopyOnWriteBuffer) AppendByte(c byte) {
+	if !b.copied {
+		tmp := make([]byte, len(b.buffer), len(b.buffer)+20)
+		copy(tmp, b.buffer)
+		b.buffer = tmp
 		b.copied = true
 	}
 	b.buffer = append(b.buffer, c)
@@ -268,7 +295,7 @@ func FindClosure(bs []byte, opener, closure byte, codeSpan, allowNesting bool) i
 			if codeSpanCloser == codeSpanOpener {
 				codeSpanOpener = 0
 			}
-		} else if c == '\\' && i < len(bs)-1 && IsPunct(bs[i+1]) {
+		} else if codeSpanOpener == 0 && c == '\\' && i < len(bs)-1 && IsPunct(bs[i+1]) {
 			i += 2
 			continue
 		} else if codeSpan && codeSpanOpener == 0 && c == '`' {
@@ -777,9 +804,19 @@ func IsPunct(c byte) bool {
 	return punctTable[c] == 1
 }
 
+// IsPunct returns true if the given rune is a punctuation, otherwise false.
+func IsPunctRune(r rune) bool {
+	return int32(r) <= 256 && IsPunct(byte(r)) || unicode.IsPunct(r)
+}
+
 // IsSpace returns true if the given character is a space, otherwise false.
 func IsSpace(c byte) bool {
 	return spaceTable[c] == 1
+}
+
+// IsSpace returns true if the given rune is a space, otherwise false.
+func IsSpaceRune(r rune) bool {
+	return int32(r) <= 256 && IsSpace(byte(r)) || unicode.IsSpace(r)
 }
 
 // IsNumeric returns true if the given character is a numeric, otherwise false.

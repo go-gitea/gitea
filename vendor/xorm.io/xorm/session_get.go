@@ -242,7 +242,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *schemas.Table, 
 		if err != nil {
 			return false, err
 		}
-		// close it before covert data
+		// close it before convert data
 		rows.Close()
 
 		dataStruct := utils.ReflectValue(bean)

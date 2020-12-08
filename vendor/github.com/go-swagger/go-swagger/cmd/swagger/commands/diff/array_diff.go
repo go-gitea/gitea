@@ -2,22 +2,29 @@ package diff
 
 // This is a simple DSL for diffing arrays
 
-// FromArrayStruct utility struct to encompass diffing of string arrays
-type FromArrayStruct struct {
+// fromArrayStruct utility struct to encompass diffing of string arrays
+type fromArrayStruct struct {
 	from []string
 }
 
-// FromStringArray starts a fluent diff expression
-func FromStringArray(from []string) FromArrayStruct {
-	return FromArrayStruct{from}
+// fromStringArray starts a fluent diff expression
+func fromStringArray(from []string) fromArrayStruct {
+	return fromArrayStruct{from}
 }
 
-// DiffsTo completes a fluent dff expression
-func (f FromArrayStruct) DiffsTo(toArray []string) (added, deleted, common []string) {
+// DiffsTo completes a fluent diff expression
+func (f fromArrayStruct) DiffsTo(toArray []string) (added, deleted, common []string) {
 	inFrom := 1
 	inTo := 2
 
-	m := make(map[string]int)
+	if f.from == nil {
+		return toArray, []string{}, []string{}
+	}
+
+	m := make(map[string]int, len(toArray))
+	added = make([]string, 0, len(toArray))
+	deleted = make([]string, 0, len(f.from))
+	common = make([]string, 0, len(f.from))
 
 	for _, item := range f.from {
 		m[item] = inFrom
@@ -43,14 +50,14 @@ func (f FromArrayStruct) DiffsTo(toArray []string) (added, deleted, common []str
 	return
 }
 
-// FromMapStruct utility struct to encompass diffing of string arrays
-type FromMapStruct struct {
+// fromMapStruct utility struct to encompass diffing of string arrays
+type fromMapStruct struct {
 	srcMap map[string]interface{}
 }
 
-// FromStringMap starts a comparison by declaring a source map
-func FromStringMap(srcMap map[string]interface{}) FromMapStruct {
-	return FromMapStruct{srcMap}
+// fromStringMap starts a comparison by declaring a source map
+func fromStringMap(srcMap map[string]interface{}) fromMapStruct {
+	return fromMapStruct{srcMap}
 }
 
 // Pair stores a pair of items which share a key in two maps
@@ -60,7 +67,7 @@ type Pair struct {
 }
 
 // DiffsTo - generates diffs for a comparison
-func (f FromMapStruct) DiffsTo(destMap map[string]interface{}) (added, deleted, common map[string]interface{}) {
+func (f fromMapStruct) DiffsTo(destMap map[string]interface{}) (added, deleted, common map[string]interface{}) {
 	added = make(map[string]interface{})
 	deleted = make(map[string]interface{})
 	common = make(map[string]interface{})

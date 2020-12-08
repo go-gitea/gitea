@@ -1,61 +1,77 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
+import {uniq} from '../utils.js';
 
-export const issuesTribute = window.config.Tribute ? new Tribute({
-  values: window.config.tributeValues,
-  noMatchTemplate() { return null },
-  menuItemTemplate(item) {
-    const div = $('<div/>');
-    div.append($('<img/>', {src: item.original.avatar}));
-    div.append($('<span/>', {class: 'name'}).text(item.original.name));
-    if (item.original.fullname && item.original.fullname !== '') {
-      div.append($('<span/>', {class: 'fullname'}).text(item.original.fullname));
-    }
-    return div.html();
-  }
-}) : null;
+function makeCollections({mentions, emoji}) {
+  const collections = [];
 
-export const emojiTribute = window.config.Tribute ? new Tribute({
-  collection: [{
-    trigger: ':',
-    requireLeadingSpace: true,
-    values(query, cb) {
-      const matches = [];
-      for (const name of emojiKeys) {
-        if (name.includes(query)) {
-          matches.push(name);
-          if (matches.length > 5) break;
+  if (mentions) {
+    collections.push({
+      trigger: ':',
+      requireLeadingSpace: true,
+      values: (query, cb) => {
+        const matches = [];
+        for (const name of emojiKeys) {
+          if (name.includes(query)) {
+            matches.push(name);
+            if (matches.length > 5) break;
+          }
         }
+        cb(matches);
+      },
+      lookup: (item) => item,
+      selectTemplate: (item) => {
+        if (typeof item === 'undefined') return null;
+        return emojiString(item.original);
+      },
+      menuItemTemplate: (item) => {
+        return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
       }
-      cb(matches);
-    },
-    lookup(item) {
-      return item;
-    },
-    selectTemplate(item) {
-      if (typeof item === 'undefined') return null;
-      return emojiString(item.original);
-    },
-    menuItemTemplate(item) {
-      return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
-    }
-  }]
-}) : null;
-
-export function initTribute() {
-  if (!window.config.Tribute) return;
-
-  let content = document.getElementById('content');
-  if (content !== null) {
-    issuesTribute.attach(content);
+    });
   }
 
-  const emojiInputs = document.querySelectorAll('.emoji-input');
-  if (emojiInputs.length > 0) {
-    emojiTribute.attach(emojiInputs);
+  if (emoji) {
+    collections.push({
+      values: window.config.tributeValues,
+      noMatchTemplate: () => null,
+      menuItemTemplate: (item) => {
+        return `
+          <div class="tribute-item">
+            <img src="${item.original.avatar}"/>
+            <span class="name">${item.original.name}</span>
+            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
+          </div>
+        `;
+      }
+    });
   }
 
-  content = document.getElementById('content');
-  if (content !== null) {
-    emojiTribute.attach(document.getElementById('content'));
+  return collections;
+}
+
+export default async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
+  if (!window.config.Tribute || !elementOrNodeList) return;
+  const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
+  if (!nodes.length) return;
+
+  const mentionNodes = nodes.filter((node) => {
+    return mentions || node.id === 'content';
+  });
+  const emojiNodes = nodes.filter((node) => {
+    return emoji || node.id === 'content' || node.classList.contains('emoji-input');
+  });
+  const uniqueNodes = uniq([...mentionNodes, ...emojiNodes]);
+  if (!uniqueNodes.length) return;
+
+  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+
+  const collections = makeCollections({
+    mentions: mentions || mentionNodes.length > 0,
+    emoji: emoji || emojiNodes.length > 0,
+  });
+
+  const tribute = new Tribute({collection: collections});
+  for (const node of uniqueNodes) {
+    tribute.attach(node);
   }
+  return tribute;
 }

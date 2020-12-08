@@ -101,7 +101,7 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 	ctx.Data["Feeds"] = actions
 }
 
-// Dashboard render the dashborad page
+// Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
 	ctxUser := getDashboardContextUser(ctx)
 	if ctx.Written() {
@@ -112,8 +112,16 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
-	ctx.Data["HeatmapUser"] = ctxUser.Name
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+		data, err := models.GetUserHeatmapDataByUser(ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserHeatmapDataByUser", err)
+			return
+		}
+		ctx.Data["HeatmapData"] = data
+	}
 
 	var err error
 	var mirrors []*models.Repository

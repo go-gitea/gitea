@@ -19,7 +19,7 @@ Gitea fait largement usage de Make pour automatiser les tâches et avoir un dév
 
 ### Linux
 
-Vous pouvez installer Make avec votre gestionnaire de paquetages 
+Vous pouvez installer Make avec votre gestionnaire de paquetages
 
 Depuis Ubuntu/Debian:
 

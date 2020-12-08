@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	labelText := htmlDoc.doc.Find("#release-list > li .meta .label").First().Text()
 	assert.EqualValues(t, label, labelText)
-	titleText := htmlDoc.doc.Find("#release-list > li .detail h3 a").First().Text()
+	titleText := htmlDoc.doc.Find("#release-list > li .detail h4 a").First().Text()
 	assert.EqualValues(t, version, titleText)
 
 	releaseList := htmlDoc.doc.Find("#release-list > li")
@@ -105,6 +106,12 @@ func TestCreateReleaseDraft(t *testing.T) {
 
 func TestCreateReleasePaging(t *testing.T) {
 	defer prepareTestEnv(t)()
+
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
+	defer func() {
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
+	}()
+	setting.API.DefaultPagingNum = 10
 
 	session := loginUser(t, "user2")
 	// Create enaugh releases to have paging

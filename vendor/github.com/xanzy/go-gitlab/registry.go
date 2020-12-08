@@ -190,9 +190,13 @@ func (s *ContainerRegistryService) DeleteRegistryRepositoryTag(pid interface{}, 
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#delete-repository-tags-in-bulk
 type DeleteRegistryRepositoryTagsOptions struct {
+	NameRegexpDelete *string `url:"name_regex_delete,omitempty" json:"name_regex_delete,omitempty"`
+	NameRegexpKeep   *string `url:"name_regex_keep,omitempty" json:"name_regex_keep,omitempty"`
+	KeepN            *int    `url:"keep_n,omitempty" json:"keep_n,omitempty"`
+	OlderThan        *string `url:"older_than,omitempty" json:"older_than,omitempty"`
+
+	// Deprecated members
 	NameRegexp *string `url:"name_regex,omitempty" json:"name_regex,omitempty"`
-	KeepN      *int    `url:"keep_n,omitempty" json:"keep_n,omitempty"`
-	OlderThan  *string `url:"older_than,omitempty" json:"older_than,omitempty"`
 }
 
 // DeleteRegistryRepositoryTags deletes repository tags in bulk based on

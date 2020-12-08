@@ -116,7 +116,7 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// produces:
 	// - application/json
@@ -150,7 +150,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":

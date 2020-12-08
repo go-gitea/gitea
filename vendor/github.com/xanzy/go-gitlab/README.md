@@ -44,6 +44,7 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] Group Milestones
 - [x] Group-Level Variables
 - [x] Groups
+- [x] Instance Clusters
 - [x] Issue Boards
 - [x] Issues
 - [x] Jobs
@@ -108,7 +109,7 @@ There are a few `With...` option functions that can be used to customize
 the API client. For example, to set a custom base URL:
 
 ```go
-git, err := gitlab.NewClient("yourtokengoeshere", WithBaseURL("https://git.mydomain.com/api/v4"))
+git, err := gitlab.NewClient("yourtokengoeshere", gitlab.WithBaseURL("https://git.mydomain.com/api/v4"))
 if err != nil {
   log.Fatalf("Failed to create client: %v", err)
 }
@@ -161,7 +162,7 @@ func main() {
 	s := &gitlab.CreateProjectSnippetOptions{
 		Title:           gitlab.String("Dummy Snippet"),
 		FileName:        gitlab.String("snippet.go"),
-		Code:            gitlab.String("package main...."),
+		Content:         gitlab.String("package main...."),
 		Visibility:      gitlab.Visibility(gitlab.PublicVisibility),
 	}
 	_, _, err = git.ProjectSnippets.CreateSnippet(project.ID, s)
