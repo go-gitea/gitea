@@ -22,7 +22,7 @@
 								<button type="submit" class="ui blue small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
 							</form>
 						</div>
-						<img class="ui mini image" src="{{.RelAvatarLink}}">
+						{{avatar . 28 "mini"}}
 						<div class="content">
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 						</div>

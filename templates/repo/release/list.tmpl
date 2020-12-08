@@ -90,7 +90,7 @@
 							<p class="text grey">
 								{{ if gt .Publisher.ID 0 }}
 								<span class="author">
-									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
+									{{avatar .Publisher 28 "img-10"}}
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
 								</span>
 								{{ end }}
@@ -117,7 +117,7 @@
 								{{if .OriginalAuthor}}
 									{{svg "octicon-mark-github" 16 "mr-2"}}{{.OriginalAuthor}}
 								{{else if .Publisher}}
-									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
+									{{avatar .Publisher 28 "img-10"}}
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.GetDisplayName}}</a>
 								{{else}}
 									Ghost

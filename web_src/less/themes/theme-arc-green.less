@@ -64,8 +64,8 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #767676;
-  --color-black: #1b1c1d;
+  --color-grey: #767a85;
+  --color-black: #1e222e;
   --color-gold: #a1882b;
   --color-white: #ffffff;
   /* target-based colors */
@@ -73,8 +73,8 @@
   --color-box-header: #454a57;
   --color-box-body: #353945;
   --color-text: #bbc0ca;
-  --color-text-light: #969aa5;
-  --color-text-light-2: #767a85;
+  --color-text-light: #a6aab5;
+  --color-text-light-2: #868a95;
   --color-footer: #2e323e;
   --color-timeline: #4a505c;
   --color-input-text: #d5dbe6;
@@ -89,16 +89,14 @@
   --color-hover: #ffffff0d;
   --color-active: #ffffff14;
   --color-menu: #2e323e;
+  --color-card: #2e323e;
   --color-markdown-table-row: #ffffff06;
   --color-markdown-code-block: #2a2e3a;
   --color-button: #353846;
+  --color-code-bg: #2a2e3a;
+  --color-shadow: #00000060;
 }
 
-/* Background */
-
-.chroma {
-  background-color: #2a2e3a;
-}
 /* LineTableTD */
 
 .chroma .lntd {
@@ -449,7 +447,7 @@
 /* GenericStrong */
 
 .chroma .gs {
-  font-weight: 500;
+  font-weight: 600;
 }
 /* GenericSubheading */
 
@@ -561,12 +559,6 @@ a.ui.basic.green.label:hover {
   background-color: #3d794b !important;
   border-color: #3d794b !important;
   color: #fff !important;
-}
-
-.ui.basic.red.active.button,
-.ui.basic.red.buttons .active.button {
-  box-shadow: 0 0 0 1px #b75252 inset !important;
-  color: #b75252 !important;
 }
 
 .ui.divider:not(.vertical):not(.horizontal) {
@@ -771,19 +763,6 @@ a.ui.basic.green.label:hover {
   border-color: transparent !important;
 }
 
-.ui.basic.green.active.button,
-.ui.basic.green.buttons .active.button {
-  color: #87ab63 !important;
-  box-shadow: 0 0 0 1px #87ab63 inset !important;
-}
-
-.ui.green.buttons .active.button,
-.ui.green.buttons .active.button:active,
-.ui.green.active.button,
-.ui.green.button .active.button:active {
-  background: #87ab63;
-}
-
 .ui .info.segment.top {
   background-color: var(--color-secondary) !important;
 }
@@ -838,39 +817,6 @@ td.blob-hunk {
 
 .code-diff-split .same-code .lines-type-marker {
   background: #353945;
-}
-
-.ui.vertical.menu .active.item {
-  background: #4b5162;
-}
-
-.ui.vertical.menu .item {
-  background: #353945;
-}
-
-.ui.vertical.menu .header.item {
-  background: var(--color-secondary);
-}
-
-.ui.vertical.menu {
-  background: #353945;
-  border: 1px solid #333640;
-}
-
-.ui.card,
-.ui.cards > .card {
-  background: #353945;
-  box-shadow: 0 0 0 1px var(--color-secondary);
-}
-
-.ui.card > .content > .header,
-.ui.cards > .card > .content > .header {
-  color: #dbdbdb;
-}
-
-.ui.card > .extra a:not(.ui),
-.ui.cards > .card > .extra a:not(.ui) {
-  color: #87ab63;
 }
 
 .ui .text.black {
@@ -964,12 +910,6 @@ td.blob-hunk {
 
 .ui.form .dropzone:hover .dz-button {
   color: rgba(158, 158, 158, 1);
-}
-
-.ui.basic.red.button,
-.ui.basic.red.buttons .button {
-  box-shadow: 0 0 0 1px #a04141 inset !important;
-  color: #a04141 !important;
 }
 
 .ui.list .list > .item .header,
@@ -1183,28 +1123,9 @@ a.blob-excerpt:hover {
   filter: invert(100%);
 }
 
-.editor-toolbar {
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
-}
-
 .edit-diff > div > .ui.table {
   border-left-color: var(--color-secondary) !important;
   border-right-color: var(--color-secondary) !important;
-}
-
-.editor-toolbar button {
-  color: #87ab63 !important;
-}
-
-.editor-toolbar button.active,
-.editor-toolbar button:hover {
-  background: #2a2e3a;
-  border-color: transparent;
-}
-
-.editor-toolbar i.separator {
-  border-right-color: #87ab63;
 }
 
 .repository .diff-detail-box {
@@ -1230,11 +1151,6 @@ a.blob-excerpt:hover {
   .footer .markdown-info {
     color: inherit;
   }
-}
-
-.add-comment-left.add-comment-right .ui.attached.header {
-  border-color: var(--color-secondary);
-  border-right: none;
 }
 
 .file-comment {
@@ -1435,20 +1351,4 @@ img[src$="/img/matrix.svg"] {
 .markdown-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
-}
-
-.migrate .cards .card {
-  text-align: center;
-}
-
-.migrate .cards .card .content a {
-  color: rgb(158, 158, 158) !important;
-}
-
-.migrate .cards .card .content a:hover {
-  color: rgb(255, 255, 255) !important;
-}
-
-.migrate .cards .card .content .description {
-  color: rgb(158, 158, 158);
 }
