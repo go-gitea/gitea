@@ -18,14 +18,14 @@ import (
 // Signature represents the Author or Committer information.
 type Signature = object.Signature
 
-// Helper to get a signature from the commit line, which looks like these:
+// NewSignatureFromCommitline is a helper to get a signature from the commit line, which looks like these:
 //     author Patrick Gundlach <gundlach@speedata.de> 1378823654 +0200
 //     author Patrick Gundlach <gundlach@speedata.de> Thu, 07 Apr 2005 22:13:13 +0200
 // but without the "author " at the beginning (this method should)
 // be used for author and committer.
 //
 // FIXME: include timezone for timestamp!
-func newSignatureFromCommitline(line []byte) (_ *Signature, err error) {
+func NewSignatureFromCommitline(line []byte) (_ *Signature, err error) {
 	sig := new(Signature)
 	emailStart := bytes.IndexByte(line, '<')
 	sig.Name = string(line[:emailStart-1])

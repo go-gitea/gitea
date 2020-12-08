@@ -773,7 +773,7 @@ func GitHooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
 
-	hooks, err := ctx.Repo.GitRepo.Hooks()
+	hooks, err := git.ListHooks(ctx.Repo.GitRepo.Path())
 	if err != nil {
 		ctx.ServerError("Hooks", err)
 		return
@@ -789,7 +789,7 @@ func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["PageIsSettingsGitHooks"] = true
 
 	name := ctx.Params(":name")
-	hook, err := ctx.Repo.GitRepo.GetHook(name)
+	hook, err := git.GetHook(ctx.Repo.GitRepo.Path(), name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
 			ctx.NotFound("GetHook", err)
@@ -805,7 +805,7 @@ func GitHooksEdit(ctx *context.Context) {
 // GitHooksEditPost response for editing a git hook of a repository
 func GitHooksEditPost(ctx *context.Context) {
 	name := ctx.Params(":name")
-	hook, err := ctx.Repo.GitRepo.GetHook(name)
+	hook, err := git.GetHook(ctx.Repo.GitRepo.Path(), name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
 			ctx.NotFound("GetHook", err)

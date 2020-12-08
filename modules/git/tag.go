@@ -10,8 +10,11 @@ import (
 	"strings"
 )
 
-const beginpgp = "\n-----BEGIN PGP SIGNATURE-----\n"
-const endpgp = "\n-----END PGP SIGNATURE-----"
+// BeginPGP is represents the start of a signature
+const BeginPGP = "\n-----BEGIN PGP SIGNATURE-----\n"
+
+// EndPGP is represents the end of a signature
+const EndPGP = "\n-----END PGP SIGNATURE-----"
 
 // Tag represents a Git tag.
 type Tag struct {
@@ -56,7 +59,7 @@ l:
 				// A commit can have one or more parents
 				tag.Type = string(line[spacepos+1:])
 			case "tagger":
-				sig, err := newSignatureFromCommitline(line[spacepos+1:])
+				sig, err := NewSignatureFromCommitline(line[spacepos+1:])
 				if err != nil {
 					return nil, err
 				}
@@ -70,13 +73,13 @@ l:
 			break l
 		}
 	}
-	idx := strings.LastIndex(tag.Message, beginpgp)
+	idx := strings.LastIndex(tag.Message, BeginPGP)
 	if idx > 0 {
-		endSigIdx := strings.Index(tag.Message[idx:], endpgp)
+		endSigIdx := strings.Index(tag.Message[idx:], EndPGP)
 		if endSigIdx > 0 {
 			tag.Signature = &CommitGPGSignature{
-				Signature: tag.Message[idx+1 : idx+endSigIdx+len(endpgp)],
-				Payload:   string(data[:bytes.LastIndex(data, []byte(beginpgp))+1]),
+				Signature: tag.Message[idx+1 : idx+endSigIdx+len(EndPGP)],
+				Payload:   string(data[:bytes.LastIndex(data, []byte(BeginPGP))+1]),
 			}
 			tag.Message = tag.Message[:idx+1]
 		}

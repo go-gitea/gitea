@@ -35,7 +35,7 @@ func ListGitHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GitHookList"
 
-	hooks, err := ctx.Repo.GitRepo.Hooks()
+	hooks, err := git.ListHooks(ctx.Repo.GitRepo.Path())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Hooks", err)
 		return
@@ -78,7 +78,7 @@ func GetGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	hookID := ctx.Params(":id")
-	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
+	hook, err := git.GetHook(ctx.Repo.GitRepo.Path(), hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
 			ctx.NotFound()
@@ -124,7 +124,7 @@ func EditGitHook(ctx *context.APIContext, form api.EditGitHookOption) {
 	//     "$ref": "#/responses/notFound"
 
 	hookID := ctx.Params(":id")
-	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
+	hook, err := git.GetHook(ctx.Repo.GitRepo.Path(), hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
 			ctx.NotFound()
@@ -173,7 +173,7 @@ func DeleteGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	hookID := ctx.Params(":id")
-	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
+	hook, err := git.GetHook(ctx.Repo.GitRepo.Path(), hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
 			ctx.NotFound()

@@ -3,15 +3,18 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !gogit
-
-package git
+package service
 
 import (
 	"bytes"
 	"fmt"
 	"strconv"
 	"time"
+)
+
+const (
+	// GitTimeLayout is the (default) time layout used by git.
+	GitTimeLayout = "Mon Jan _2 15:04:05 2006 -0700"
 )
 
 // Signature represents the Author or Committer information.
@@ -28,7 +31,7 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s>", s.Name, s.Email)
 }
 
-// Decode decodes a byte array representing a signature to signature
+// Decode decodes a []byte into a signature
 func (s *Signature) Decode(b []byte) {
 	sig, _ := NewSignatureFromCommitline(b)
 	s.Email = sig.Email
@@ -36,7 +39,7 @@ func (s *Signature) Decode(b []byte) {
 	s.When = sig.When
 }
 
-// Helper to get a signature from the commit line, which looks like these:
+// NewSignatureFromCommitline gets a signature from the commit line, which looks like these:
 //     author Patrick Gundlach <gundlach@speedata.de> 1378823654 +0200
 //     author Patrick Gundlach <gundlach@speedata.de> Thu, 07 Apr 2005 22:13:13 +0200
 // but without the "author " at the beginning (this method should)
