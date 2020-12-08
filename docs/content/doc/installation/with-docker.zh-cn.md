@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "从Docker安装"
 slug: "install-with-docker"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

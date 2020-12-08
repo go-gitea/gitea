@@ -4,7 +4,7 @@ title: "文件"
 slug: "documentation"
 url: "/zh-tw/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
