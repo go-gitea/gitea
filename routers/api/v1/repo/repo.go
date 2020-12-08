@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -217,7 +218,7 @@ func Search(ctx *context.APIContext) {
 				Error: err.Error(),
 			})
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
@@ -244,6 +245,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		IsPrivate:     opt.Private,
 		AutoInit:      opt.AutoInit,
 		DefaultBranch: opt.DefaultBranch,
+		TrustModel:    models.ToTrustModel(opt.TrustModel),
+		IsTemplate:    opt.Template,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -257,7 +260,13 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
+	// reload repo from db to get a real state after creation
+	repo, err = models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -366,7 +375,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	if !ctx.User.IsAdmin {
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
 		} else if !canCreate {
 			ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")
@@ -398,7 +407,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -437,7 +446,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -486,7 +495,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
@@ -811,4 +820,29 @@ func Delete(ctx *context.APIContext) {
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetIssueTemplates returns the issue templates for a repository
+func GetIssueTemplates(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_templates repository repoGetIssueTemplates
+	// ---
+	// summary: Get available issue templates for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueTemplates"
+
+	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
 }

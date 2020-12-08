@@ -16,12 +16,27 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
 )
+
+// IssueTemplateDirCandidates issue templates directory
+var IssueTemplateDirCandidates = []string{
+	"ISSUE_TEMPLATE",
+	"issue_template",
+	".gitea/ISSUE_TEMPLATE",
+	".gitea/issue_template",
+	".github/ISSUE_TEMPLATE",
+	".github/issue_template",
+	".gitlab/ISSUE_TEMPLATE",
+	".gitlab/issue_template",
+}
 
 // PullRequest contains informations to make a pull request
 type PullRequest struct {
@@ -100,7 +115,7 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
@@ -157,6 +172,18 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	})
 }
 
+// GetCommitGraphsCount returns cached commit count for current view
+func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, files []string) (int64, error) {
+	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
+
+	return cache.GetInt64(cacheKey, func() (int64, error) {
+		if len(branches) == 0 {
+			return git.AllCommitsCount(r.Repository.RepoPath(), hidePRRefs, files...)
+		}
+		return git.CommitsCountFiles(r.Repository.RepoPath(), branches, files)
+	})
+}
+
 // BranchNameSubURL sub-URL for the BranchName field
 func (r *Repository) BranchNameSubURL() string {
 	switch {
@@ -208,11 +235,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return editorconfig.ParseBytes(data)
+	return editorconfig.Parse(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
@@ -439,10 +462,14 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-			IncludeDrafts: false,
-			IncludeTags:   true,
+		ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeTags: true,
 		})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID", err)
+			return
+		}
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
 		if err != nil {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
@@ -646,8 +673,11 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
-			return refName
+		// For legacy and API support only full commit sha
+		parts := strings.Split(path, "/")
+		if len(parts) > 0 && len(parts[0]) == 40 {
+			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			return parts[0]
 		}
 		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
 			return refName
@@ -660,7 +690,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -690,7 +720,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			err     error
 		)
 
-		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
@@ -753,14 +782,19 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) == 40 {
+			} else if len(refName) >= 7 && len(refName) <= 40 {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 				if err != nil {
-					ctx.NotFound("GetCommit", nil)
+					ctx.NotFound("GetCommit", err)
 					return
+				}
+				// If short commit ID add canonical link header
+				if len(refName) < 40 {
+					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
@@ -820,4 +854,61 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
+}
+
+// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+	var issueTemplates []api.IssueTemplate
+	if ctx.Repo.Commit == nil {
+		var err error
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			return issueTemplates
+		}
+	}
+
+	for _, dirName := range IssueTemplateDirCandidates {
+		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		if err != nil {
+			continue
+		}
+		entries, err := tree.ListEntries()
+		if err != nil {
+			return issueTemplates
+		}
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".md") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue template is too large: %s", entry.Name())
+					continue
+				}
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Debug("DataAsync: %v", err)
+					continue
+				}
+				defer r.Close()
+				data, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Debug("ReadAll: %v", err)
+					continue
+				}
+				var it api.IssueTemplate
+				content, err := markdown.ExtractMetadata(string(data), &it)
+				if err != nil {
+					log.Debug("ExtractMetadata: %v", err)
+					continue
+				}
+				it.Content = content
+				it.FileName = entry.Name()
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			}
+		}
+		if len(issueTemplates) > 0 {
+			return issueTemplates
+		}
+	}
+	return issueTemplates
 }

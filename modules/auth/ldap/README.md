@@ -103,3 +103,21 @@ share the following fields:
       matching parameter will be substituted with the user's username.
     * Example: (&(objectClass=posixAccount)(cn=%s))
     * Example: (&(objectClass=posixAccount)(uid=%s))
+
+**Verify group membership in LDAP** uses the following fields:
+
+* Group Search Base (optional)
+    * The LDAP DN used for groups.
+    * Example: ou=group,dc=mydomain,dc=com
+
+* Group Name Filter (optional)
+    * An LDAP filter declaring how to find valid groups in the above DN.
+    * Example: (|(cn=gitea_users)(cn=admins))
+
+* User Attribute in Group (optional)
+    * Which user LDAP attribute is listed in the group.
+    * Example: uid
+
+* Group Attribute for User (optional)
+    * Which group LDAP attribute contains an array above user attribute names.
+    * Example: memberUid

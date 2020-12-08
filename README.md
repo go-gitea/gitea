@@ -40,12 +40,12 @@ or if sqlite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.12](https://golang.org/dl/) or greater.
+- `make backend` which requires [Go 1.13](https://golang.org/dl/) or greater.
 - `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
 
-		TAGS="bindata" make backend
+    TAGS="bindata" make backend
 
 Parallelism is not supported for these targets, so please don't include `-j <num>`.
 
@@ -69,11 +69,12 @@ NOTES:
 
 ## Further information
 
-For more information and instructions about how to install Gitea, please look
-at our [documentation](https://docs.gitea.io/en-us/). If you have questions
-that are not covered by the documentation, you can get in contact with us on
-our [Discord server](https://discord.gg/Gitea),
-or [forum](https://discourse.gitea.io/)!
+For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.io/en-us/).
+If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
+
+We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).  
+The hugo-based documentationt theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
+The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
 ## Authors
 

@@ -148,6 +148,8 @@ func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) (shouldAuth bool) {
 		} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
+	} else if isInternalPath(ctx) {
+		shouldAuth = false
 	} else if isAPIPath(ctx) || isAttachmentDownload(ctx) {
 		shouldAuth = true
 	}
@@ -166,7 +168,7 @@ func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPICo
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       base.DefaultAvatarLink(),
+		Avatar:                       models.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {

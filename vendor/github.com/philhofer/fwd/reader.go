@@ -50,11 +50,24 @@ func NewReader(r io.Reader) *Reader {
 }
 
 // NewReaderSize returns a new *Reader that
-// reads from 'r' and has a buffer size 'n'
+// reads from 'r' and has a buffer size 'n'.
 func NewReaderSize(r io.Reader, n int) *Reader {
+	buf := make([]byte, 0, max(n, minReaderSize))
+	return NewReaderBuf(r, buf)
+}
+
+// NewReaderBuf returns a new *Reader that
+// reads from 'r' and uses 'buf' as a buffer.
+// 'buf' is not used when has smaller capacity than 16,
+// custom buffer is allocated instead.
+func NewReaderBuf(r io.Reader, buf []byte) *Reader {
+	if cap(buf) < minReaderSize {
+		buf = make([]byte, 0, minReaderSize)
+	}
+	buf = buf[:0]
 	rd := &Reader{
 		r:    r,
-		data: make([]byte, 0, max(minReaderSize, n)),
+		data: buf,
 	}
 	if s, ok := r.(io.Seeker); ok {
 		rd.rs = s

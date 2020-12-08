@@ -105,6 +105,10 @@ func HTTP(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
 		return
 	}
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
+		return
+	}
 
 	repoExist := true
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
@@ -244,6 +248,11 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
+		if !authUser.IsActive || authUser.ProhibitLogin {
+			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
+			return
+		}
+
 		if repoExist {
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {
@@ -268,6 +277,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.EnvIsDeployKey + "=false",
+			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !authUser.KeepEmailPrivate {
@@ -323,7 +333,7 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req.Request
@@ -496,7 +506,7 @@ func getGitConfig(option, dir string) string {
 }
 
 func getConfigSetting(service, dir string) bool {
-	service = strings.Replace(service, "-", "", -1)
+	service = strings.ReplaceAll(service, "-", "")
 	setting := getGitConfig("http."+service, dir)
 
 	if service == "uploadpack" {
@@ -575,7 +585,7 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
+		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
 		return
 	}
 }

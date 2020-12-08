@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -37,6 +39,7 @@ type CreateRepoForm struct {
 	IssueLabels   string
 	License       string
 	Readme        string
+	Template      bool
 
 	RepoTemplate int64
 	GitContent   bool
@@ -45,6 +48,7 @@ type CreateRepoForm struct {
 	Webhooks     bool
 	Avatar       bool
 	Labels       bool
+	TrustModel   string
 }
 
 // Validate validates the fields
@@ -53,11 +57,14 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 }
 
 // MigrateRepoForm form for migrating repository
+// this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
+	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
+	Service      structs.GitServiceType `json:"service"`
+	AuthUsername string                 `json:"auth_username"`
+	AuthPassword string                 `json:"auth_password"`
+	AuthToken    string                 `json:"auth_token"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
@@ -82,9 +89,8 @@ func (f *MigrateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 // and returns composed URL with needed username and password.
 // It also checks if given user has permission when remote address
 // is actually a local path.
-func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
-	remoteAddr := strings.TrimSpace(f.CloneAddr)
-
+func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models.User) (string, error) {
+	remoteAddr = strings.TrimSpace(remoteAddr)
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	if strings.HasPrefix(remoteAddr, "http://") ||
 		strings.HasPrefix(remoteAddr, "https://") ||
@@ -93,14 +99,24 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 		if err != nil {
 			return "", models.ErrInvalidCloneAddr{IsURLError: true}
 		}
-		if len(f.AuthUsername)+len(f.AuthPassword) > 0 {
-			u.User = url.UserPassword(f.AuthUsername, f.AuthPassword)
+		if len(authUsername)+len(authPassword) > 0 {
+			u.User = url.UserPassword(authUsername, authPassword)
 		}
 		remoteAddr = u.String()
+		if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteAddr, "%0d") || strings.Contains(remoteAddr, "%0a")) {
+			return "", models.ErrInvalidCloneAddr{IsURLError: true}
+		}
 	} else if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
-	} else if !com.IsDir(remoteAddr) {
-		return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+	} else {
+		isDir, err := util.IsDir(remoteAddr)
+		if err != nil {
+			log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
+			return "", err
+		}
+		if !isDir {
+			return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+		}
 	}
 
 	return remoteAddr, nil
@@ -140,6 +156,9 @@ type RepoSettingForm struct {
 	EnableIssueDependencies          bool
 	IsArchived                       bool
 
+	// Signing Settings
+	TrustModel string
+
 	// Admin settings
 	EnableHealthCheck                     bool
 	EnableCloseIssuesViaCommitInAnyBranch bool
@@ -159,25 +178,26 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected                bool
-	EnablePush               string
-	WhitelistUsers           string
-	WhitelistTeams           string
-	WhitelistDeployKeys      bool
-	EnableMergeWhitelist     bool
-	MergeWhitelistUsers      string
-	MergeWhitelistTeams      string
-	EnableStatusCheck        bool `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts      []string
-	RequiredApprovals        int64
-	EnableApprovalsWhitelist bool
-	ApprovalsWhitelistUsers  string
-	ApprovalsWhitelistTeams  string
-	BlockOnRejectedReviews   bool
-	BlockOnOutdatedBranch    bool
-	DismissStaleApprovals    bool
-	RequireSignedCommits     bool
-	ProtectedFilePatterns    string
+	Protected                     bool
+	EnablePush                    string
+	WhitelistUsers                string
+	WhitelistTeams                string
+	WhitelistDeployKeys           bool
+	EnableMergeWhitelist          bool
+	MergeWhitelistUsers           string
+	MergeWhitelistTeams           string
+	EnableStatusCheck             bool
+	StatusCheckContexts           []string
+	RequiredApprovals             int64
+	EnableApprovalsWhitelist      bool
+	ApprovalsWhitelistUsers       string
+	ApprovalsWhitelistTeams       string
+	BlockOnRejectedReviews        bool
+	BlockOnOfficialReviewRequests bool
+	BlockOnOutdatedBranch         bool
+	DismissStaleApprovals         bool
+	RequireSignedCommits          bool
+	ProtectedFilePatterns         string
 }
 
 // Validate validates the fields

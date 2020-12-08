@@ -78,23 +78,6 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user7"}))
 }
 
-func TestUser_APIFormat(t *testing.T) {
-
-	user, err := GetUserByID(1)
-	assert.NoError(t, err)
-	assert.True(t, user.IsAdmin)
-
-	apiUser := user.APIFormat()
-	assert.True(t, apiUser.IsAdmin)
-
-	user, err = GetUserByID(2)
-	assert.NoError(t, err)
-	assert.False(t, user.IsAdmin)
-
-	apiUser = user.APIFormat()
-	assert.False(t, apiUser.IsAdmin)
-}
-
 func TestCanCreateOrganization(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -239,7 +222,7 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	rand.Read(b)
 	u := &User{Salt: string(b)}
-	algos := []string{"pbkdf2", "argon2", "scrypt", "bcrypt"}
+	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
 	for j := 0; j < len(algos); j++ {
 		u.PasswdHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {
@@ -346,6 +329,21 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(user))
 }
 
+func TestCreateUserInvalidEmail(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io\r\n",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	err := CreateUser(user)
+	assert.Error(t, err)
+	assert.True(t, IsErrEmailInvalid(err))
+}
+
 func TestCreateUser_Issue5882(t *testing.T) {
 
 	// Init settings
@@ -388,4 +386,21 @@ func TestGetUserIDsByNames(t *testing.T) {
 	IDs, err = GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
+}
+
+func TestGetMaileableUsersByIDs(t *testing.T) {
+	results, err := GetMaileableUsersByIDs([]int64{1, 4}, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(results))
+	if len(results) > 1 {
+		assert.Equal(t, results[0].ID, 1)
+	}
+
+	results, err = GetMaileableUsersByIDs([]int64{1, 4}, true)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(results))
+	if len(results) > 2 {
+		assert.Equal(t, results[0].ID, 1)
+		assert.Equal(t, results[1].ID, 4)
+	}
 }

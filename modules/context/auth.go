@@ -26,26 +26,40 @@ type ToggleOptions struct {
 // Toggle returns toggle options as middleware
 func Toggle(options *ToggleOptions) macaron.Handler {
 	return func(ctx *Context) {
-		// Cannot view any page before installation.
-		if !setting.InstallLock {
-			ctx.Redirect(setting.AppSubURL + "/install")
-			return
-		}
+		isAPIPath := auth.IsAPIPath(ctx.Req.URL.Path)
 
 		// Check prohibit login users.
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				if isAPIPath {
+					ctx.JSON(403, map[string]string{
+						"message": "This account is not activated.",
+					})
+					return
+				}
 				ctx.HTML(200, "user/auth/activate")
 				return
 			} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				if isAPIPath {
+					ctx.JSON(403, map[string]string{
+						"message": "This account is prohibited from signing in, please contact your site administrator.",
+					})
+					return
+				}
 				ctx.HTML(200, "user/auth/prohibit_login")
 				return
 			}
 
 			if ctx.User.MustChangePassword {
+				if isAPIPath {
+					ctx.JSON(403, map[string]string{
+						"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
+					})
+					return
+				}
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
@@ -78,7 +92,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		if options.SignInRequired {
 			if !ctx.IsSigned {
 				// Restrict API calls with error message.
-				if auth.IsAPIPath(ctx.Req.URL.Path) {
+				if isAPIPath {
 					ctx.JSON(403, map[string]string{
 						"message": "Only signed in user is allowed to call APIs.",
 					})
@@ -94,7 +108,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 				ctx.HTML(200, "user/auth/activate")
 				return
 			}
-			if ctx.IsSigned && auth.IsAPIPath(ctx.Req.URL.Path) && ctx.IsBasicAuth {
+			if ctx.IsSigned && isAPIPath && ctx.IsBasicAuth {
 				twofa, err := models.GetTwoFactorByUID(ctx.User.ID)
 				if err != nil {
 					if models.IsErrTwoFactorNotEnrolled(err) {
@@ -119,7 +133,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
-		if !options.SignOutRequired && !ctx.IsSigned && !auth.IsAPIPath(ctx.Req.URL.Path) &&
+		if !options.SignOutRequired && !ctx.IsSigned && !isAPIPath &&
 			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
 			if ctx.Req.URL.Path != "/user/events" {
 				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)

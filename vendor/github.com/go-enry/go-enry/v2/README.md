@@ -150,9 +150,13 @@ macOS and linux platforms. Windows support is planned under [src-d/enry#150](htt
 
 ## Divergences from Linguist
 
-The `enry` library is based on the data from `github/linguist` version **v7.9.0**.
+The `enry` library is based on the data from `github/linguist` version **v7.12.1**.
 
 Parsing [linguist/samples](https://github.com/github/linguist/tree/master/samples) the following `enry` results are different from the Linguist:
+
+- [Heuristics for ".txt" extension](https://github.com/github/linguist/blob/8083cb5a89cee2d99f5a988f165994d0243f0d1e/lib/linguist/heuristics.yml#L521) in Vim Help File could not be parsed, due to unsupported negative lookahead in RE2 regexp engine.
+
+- [Heuristics for ".sol" extension](https://github.com/github/linguist/blob/8083cb5a89cee2d99f5a988f165994d0243f0d1e/lib/linguist/heuristics.yml#L464) in Solidity could not be parsed, due to unsupported negative lookahead in RE2 regexp engine.
 
 - [Heuristics for ".es" extension](https://github.com/github/linguist/blob/e761f9b013e5b61161481fcb898b59721ee40e3d/lib/linguist/heuristics.yml#L103) in JavaScript could not be parsed, due to unsupported backreference in RE2 regexp engine.
 
@@ -160,14 +164,14 @@ Parsing [linguist/samples](https://github.com/github/linguist/tree/master/sample
 
 - [Heuristics for ".inc" extension](https://github.com/github/linguist/blob/f0e2d0d7f1ce600b2a5acccaef6b149c87d8b99c/lib/linguist/heuristics.yml#L222) in NASL could not be parsed, due to unsupported possessive quantifier in RE2 regexp engine.
 
+- [Heuristics for ".as" extension](https://github.com/github/linguist/blob/223c00bb80eff04788e29010f98c5778993d2b2a/lib/linguist/heuristics.yml#L67) in ActionScript could not be parsed, due to unsupported positive lookahead in RE2 regexp engine.
+
 - As of [Linguist v5.3.2](https://github.com/github/linguist/releases/tag/v5.3.2) it is using [flex-based scanner in C for tokenization](https://github.com/github/linguist/pull/3846). Enry still uses [extract_token](https://github.com/github/linguist/pull/3846/files#diff-d5179df0b71620e3fac4535cd1368d15L60) regex-based algorithm. See [#193](https://github.com/src-d/enry/issues/193).
 
 - Bayesian classifier can't distinguish "SQL" from "PLpgSQL. See [#194](https://github.com/src-d/enry/issues/194).
 
 - Detection of [generated files](https://github.com/github/linguist/blob/bf95666fc15e49d556f2def4d0a85338423c25f3/lib/linguist/generated.rb#L53) is not supported yet.
   (Thus they are not excluded from CLI output). See [#213](https://github.com/src-d/enry/issues/213).
-
-- XML detection strategy is not implemented. See [#192](https://github.com/src-d/enry/issues/192).
 
 - Overriding languages and types though `.gitattributes` is not yet supported. See [#18](https://github.com/src-d/enry/issues/18).
 

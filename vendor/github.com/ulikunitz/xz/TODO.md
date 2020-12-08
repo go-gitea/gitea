@@ -1,5 +1,9 @@
 # TODO list
 
+## Release v0.5.x
+
+1. Support check flag in gxz command.
+
 ## Release v0.6
 
 1. Review encoder and check for lzma improvements under xz.
@@ -85,6 +89,16 @@
 - git push
 
 ## Log
+
+## 2020-08-19
+
+Release v0.5.8 fixes issue
+[issue #35](https://github.com/ulikunitz/xz/issues/35).
+
+### 2020-02-24
+
+Release v0.5.7 supports the check-ID None and fixes
+[issue #27](https://github.com/ulikunitz/xz/issues/27).
 
 ### 2019-02-20
 

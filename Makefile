@@ -26,7 +26,7 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.15.x
-MIN_GO_VERSION := 001012000
+MIN_GO_VERSION := 001013000
 MIN_NODE_VERSION := 010013000
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -42,8 +42,10 @@ ifeq ($(HAS_GO), GO)
 endif
 
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
+	GOFLAGS := -v
 	EXECUTABLE ?= gitea
 endif
 
@@ -55,7 +57,6 @@ endif
 
 GOFMT ?= gofmt -s
 
-GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -93,7 +94,7 @@ FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fom
 FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
 FOMANTIC_DEST_DIR := web_src/fomantic/build
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f) $(FOMANTIC_DEST)
+WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
@@ -119,11 +120,12 @@ endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
 
-#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_EXCLUDE := code.gitea.io/sdk
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -150,10 +152,11 @@ all: build
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - \"\"                               equivalent to \"build\""
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
@@ -169,21 +172,23 @@ help:
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
+	@echo " - generate-license                 update license files"
+	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - revive                           run revive linter"
 	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - test[\#TestSpecificName]    	   run unit test"
+	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.13 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -205,7 +210,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES) $(FOMANTIC_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_ENTRIES)
 
 .PHONY: clean
 clean:
@@ -218,15 +223,15 @@ clean:
 
 .PHONY: fmt
 fmt:
-	$(GOFMT) -w $(GO_SOURCES_OWN)
+	@echo "Running go fmt..."
+	@$(GOFMT) -w $(GO_SOURCES_OWN)
 
 .PHONY: vet
 vet:
-	# Default vet
-	$(GO) vet $(GO_PACKAGES)
-	# Custom vet
-	$(GO) build -mod=vendor code.gitea.io/gitea-vet
-	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+	@echo "Running go vet..."
+	@$(GO) vet $(GO_PACKAGES)
+	@$(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -239,7 +244,7 @@ endif
 
 .PHONY: generate-swagger
 generate-swagger:
-	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
+	$(SWAGGER) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -250,7 +255,7 @@ swagger-check: generate-swagger
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: swagger-validate
 swagger-validate:
@@ -263,7 +268,8 @@ errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
 	fi
-	errcheck $(GO_PACKAGES)
+	@echo "Running errcheck..."
+	@errcheck $(GO_PACKAGES)
 
 .PHONY: revive
 revive:
@@ -274,14 +280,16 @@ misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
+	@echo "Running misspell-check..."
+	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -w -i unknwon $(GO_SOURCES_OWN)
+	@echo "Running go misspell..."
+	@misspell -w -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: fmt-check
 fmt-check:
@@ -291,7 +299,7 @@ fmt-check:
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: checks
 checks: checks-frontend checks-backend
@@ -307,14 +315,18 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint web_src/js build webpack.config.js
-	npx stylelint web_src/less
+	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
+	npx stylelint --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
 
+.PHONY: watch
+watch:
+	bash tools/watch.sh
+
 .PHONY: watch-frontend
-watch-frontend: node-check $(FOMANTIC_DEST) node_modules
+watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
@@ -327,11 +339,12 @@ watch-backend: go-check
 
 .PHONY: test
 test:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+	@echo "Running go test..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
 
 .PHONY: test-check
 test-check:
-	@echo "Checking if tests have changed the source tree...";
+	@echo "Running test-check...";
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test has changed files in the source tree:"; \
@@ -339,11 +352,12 @@ test-check:
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: test\#%
 test\#%:
-	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@echo "Running go test..."
+	@$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -351,7 +365,8 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -364,7 +379,7 @@ test-vendor: vendor
 		echo "Please run 'make vendor' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -461,7 +476,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 
 .PHONY: test-mssql-migration
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -532,14 +547,15 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
+frontend: node-check $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
 
 .PHONY: generate
 generate: $(TAGS_PREREQ)
-	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+	@echo "Running go generate..."
+	@CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -556,7 +572,7 @@ release-windows: | $(DIST_DIRS)
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	@echo "Warning: windows version is built using golang 1.14"
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go go-1.14.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -609,7 +625,7 @@ release-docs: | $(DIST_DIRS) docs
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/gohugoio/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
 
@@ -628,9 +644,12 @@ npm-update: node-check | node_modules
 fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
+	@if [ ! -d node_modules/fomantic-ui ]; then \
+		npm install --no-save --no-package-lock fomantic-ui@2.8.7; \
+	fi
 	rm -rf $(FOMANTIC_DEST_DIR)
-	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
-	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
+	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
 
@@ -655,7 +674,7 @@ svg-check: svg
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: update-translations
 update-translations:
@@ -666,6 +685,15 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
+
+.PHONY: generate-license
+generate-license:
+	GO111MODULE=on $(GO) run build/generate-licenses.go
+
+.PHONY: generate-gitignore
+generate-gitignore:
+	GO111MODULE=on $(GO) run build/generate-gitignores.go
+
 
 .PHONY: generate-images
 generate-images:
@@ -680,7 +708,7 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
 	fi
 	golangci-lint run --timeout 5m
 

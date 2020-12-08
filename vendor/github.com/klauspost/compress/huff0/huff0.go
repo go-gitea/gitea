@@ -55,6 +55,9 @@ const (
 	// ReusePolicyNone will disable re-use of tables.
 	// This is slightly faster than ReusePolicyAllow but may produce larger output.
 	ReusePolicyNone
+
+	// ReusePolicyMust must allow reuse and produce smaller output.
+	ReusePolicyMust
 )
 
 type Scratch struct {
@@ -79,6 +82,13 @@ type Scratch struct {
 	// Slice of the returned data.
 	OutData []byte
 
+	// MaxDecodedSize will set the maximum allowed output size.
+	// This value will automatically be set to BlockSizeMax if not set.
+	// Decoders will return ErrMaxDecodedSizeExceeded is this limit is exceeded.
+	MaxDecodedSize int
+
+	br byteReader
+
 	// MaxSymbolValue will override the maximum symbol value of the next block.
 	MaxSymbolValue uint8
 
@@ -95,12 +105,6 @@ type Scratch struct {
 	// If WantLogLess == 0 any improvement will do.
 	WantLogLess uint8
 
-	// MaxDecodedSize will set the maximum allowed output size.
-	// This value will automatically be set to BlockSizeMax if not set.
-	// Decoders will return ErrMaxDecodedSizeExceeded is this limit is exceeded.
-	MaxDecodedSize int
-
-	br             byteReader
 	symbolLen      uint16 // Length of active part of the symbol table.
 	maxCount       int    // count of the most probable symbol
 	clearCount     bool   // clear count
@@ -113,6 +117,16 @@ type Scratch struct {
 	tmpOut         [4][]byte
 	fse            *fse.Scratch
 	huffWeight     [maxSymbolValue + 1]byte
+}
+
+// TransferCTable will transfer the previously used compression table.
+func (s *Scratch) TransferCTable(src *Scratch) {
+	if cap(s.prevTable) < len(src.prevTable) {
+		s.prevTable = make(cTable, 0, maxSymbolValue+1)
+	}
+	s.prevTable = s.prevTable[:len(src.prevTable)]
+	copy(s.prevTable, src.prevTable)
+	s.prevTableLog = src.prevTableLog
 }
 
 func (s *Scratch) prepare(in []byte) (*Scratch, error) {

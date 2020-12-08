@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -38,7 +38,7 @@
 							<td>
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock" 16}}</span>
+									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>{{.NumTeams}}</td>

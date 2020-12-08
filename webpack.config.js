@@ -1,10 +1,10 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
+const AddAssetPlugin = require('add-asset-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -49,12 +49,17 @@ module.exports = {
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
+      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
     ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
     ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
+    ],
+    'easymde': [
+      resolve(__dirname, 'web_src/js/easymde.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
     ],
     ...themes,
   },
@@ -125,6 +130,7 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              sourceMaps: true,
               cacheDirectory: true,
               cacheCompression: false,
               cacheIdentifier: [
@@ -132,7 +138,6 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -166,19 +171,9 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 1,
+              sourceMap: true,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
-              sourceMap: true,
             },
           },
         ],
@@ -192,19 +187,10 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 2,
+              sourceMap: true,
+              importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              plugins: () => [
-                PostCSSPresetEnv(),
-              ],
-              sourceMap: true,
             },
           },
           {
@@ -273,7 +259,7 @@ module.exports = {
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
     }),
-    new LicenseWebpackPlugin({
+    isProduction ? new LicenseWebpackPlugin({
       outputFilename: 'js/licenses.txt',
       perChunkOutput: false,
       addBanner: false,
@@ -281,6 +267,9 @@ module.exports = {
       modulesDirectories: [
         resolve(__dirname, 'node_modules'),
       ],
+      additionalModules: [
+        '@primer/octicons',
+      ].map((name) => ({name, directory: resolve(__dirname, `node_modules/${name}`)})),
       renderLicenses: (modules) => {
         const line = '-'.repeat(80);
         return modules.map((module) => {
@@ -294,7 +283,7 @@ module.exports = {
         warnings: false,
         errors: true,
       },
-    }),
+    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,

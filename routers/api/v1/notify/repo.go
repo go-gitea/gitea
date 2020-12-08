@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -101,7 +102,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 
 	before, since, err := utils.GetQueryBeforeSince(ctx)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 	opts := models.FindNotificationOptions{
@@ -127,7 +128,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nl.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
 // ReadRepoNotifications mark notification threads as read on a specific repo

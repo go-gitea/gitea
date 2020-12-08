@@ -87,11 +87,21 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		if err != nil {
+			log.Error(err.Error())
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNameCharsNotAllowed(err) ||
+			models.IsErrEmailInvalid(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -145,13 +155,21 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 		return
 	}
 
-	if len(form.Password) > 0 {
+	if len(form.Password) != 0 {
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		var err error
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Data["Err_Password"] = true
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
@@ -164,10 +182,23 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	u.LoginName = form.LoginName
-	u.FullName = form.FullName
-	u.Email = form.Email
-	u.Website = form.Website
-	u.Location = form.Location
+
+	if form.FullName != nil {
+		u.FullName = *form.FullName
+	}
+	if form.Email != nil {
+		u.Email = *form.Email
+		if len(u.Email) == 0 {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
+			return
+		}
+	}
+	if form.Website != nil {
+		u.Website = *form.Website
+	}
+	if form.Location != nil {
+		u.Location = *form.Location
+	}
 	if form.Active != nil {
 		u.IsActive = *form.Active
 	}
@@ -191,7 +222,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)

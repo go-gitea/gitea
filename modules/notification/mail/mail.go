@@ -104,7 +104,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
-		ct := fmt.Sprintf("Requested to review #%d.", issue.Index)
+		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{reviewer.Email})
 	}
 }
@@ -144,4 +144,17 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 	comment.Content = ""
 
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
+}
+
+func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("NotifyNewRelease: %v", err)
+		return
+	}
+
+	if rel.IsDraft || rel.IsPrerelease {
+		return
+	}
+
+	mailer.MailNewRelease(rel)
 }

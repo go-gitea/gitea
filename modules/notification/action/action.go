@@ -92,13 +92,22 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, comment.Content),
 		RepoID:    issue.Repo.ID,
 		Repo:      issue.Repo,
 		Comment:   comment,
 		CommentID: comment.ID,
 		IsPrivate: issue.Repo.IsPrivate,
 	}
+
+	content := ""
+
+	if len(comment.Content) > 200 {
+		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
+	} else {
+		content = comment.Content
+	}
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+
 	if issue.IsPull {
 		act.OpType = models.ActionCommentPull
 	} else {
@@ -266,7 +275,76 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	}
 }
 
-func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("Marshal: %v", err)
+		return
+	}
+
+	opType := models.ActionCommitRepo
+
+	// Check it's tag push or branch.
+	if opts.IsTag() {
+		opType = models.ActionPushTag
+		if opts.IsDelRef() {
+			opType = models.ActionDeleteTag
+		}
+	} else if opts.IsDelRef() {
+		opType = models.ActionDeleteBranch
+	}
+
+	if err = models.NotifyWatchers(&models.Action{
+		ActUserID: pusher.ID,
+		ActUser:   pusher,
+		OpType:    opType,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   opts.RefFullName,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionCommitRepo
+	if refType == "tag" {
+		opType = models.ActionPushTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionDeleteBranch
+	if refType == "tag" {
+		opType = models.ActionDeleteTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)
@@ -280,7 +358,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
+		RefName:   opts.RefFullName,
 		Content:   string(data),
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)
@@ -305,7 +383,7 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncCreate,
+		OpType:    models.ActionMirrorSyncDelete,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,

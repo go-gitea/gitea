@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository file list">
+<div class="page-content repository file list">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui repo-search">
@@ -7,7 +7,7 @@
 				<div class="ui fluid action input">
 					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
 					<button class="ui button" type="submit">
-						<i class="search icon"></i>
+						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					</button>
 				</div>
 			</form>
@@ -48,15 +48,7 @@
 								</table>
 							</div>
 						</div>
-						<div class="ui bottom attached table segment">
-							{{if $result.Language}}
-							<i class="color-icon" style="background-color: {{$result.Color}}"></i>{{$result.Language}}
-							{{end}}
-							&nbsp;
-							{{if not $result.UpdatedUnix.IsZero}}
-							<span class="ui small grey text pull right">{{$.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix $result.UpdatedUnix $.i18n.Lang) | Safe}} &nbsp;</span>
-							{{end}}
-						</div>
+						{{template "shared/searchbottom" dict "root" $ "result" .}}
 					</div>
 				{{end}}
 			</div>

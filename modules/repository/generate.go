@@ -243,14 +243,27 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
+		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo); err != nil {
+	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
 		return nil, err
 	}
 
-	repoPath := models.RepoPath(owner.Name, generateRepo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
+	repoPath := generateRepo.RepoPath()
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return nil, err
+	}
+	if isExist {
+		return nil, models.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
+		}
+	}
+
+	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 

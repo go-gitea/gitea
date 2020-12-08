@@ -15,7 +15,7 @@ export const emojiKeys = Object.keys(tempMap).sort((a, b) => {
   return a.localeCompare(b);
 });
 
-export const emojiMap = {};
+const emojiMap = {};
 for (const key of emojiKeys) {
   emojiMap[key] = tempMap[key];
 }
@@ -24,7 +24,7 @@ for (const key of emojiKeys) {
 export function emojiHTML(name) {
   let inner;
   if (name === 'gitea') {
-    inner = `<img class="emoji" alt=":${name}:" src="${StaticUrlPrefix}/img/emoji/gitea.png" align="absmiddle">`;
+    inner = `<img alt=":${name}:" src="${StaticUrlPrefix}/img/emoji/gitea.png">`;
   } else {
     inner = emojiString(name);
   }

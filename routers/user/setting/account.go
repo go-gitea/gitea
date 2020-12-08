@@ -54,6 +54,13 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
 		ctx.Flash.Error(password.BuildComplexityError(ctx))
+	} else if pwned, err := password.IsPwned(ctx.Req.Context(), form.Password); pwned || err != nil {
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.Flash.Error(errMsg)
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
@@ -171,6 +178,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
+			return
+		} else if models.IsErrEmailInvalid(err) {
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
 			return
 		}
 		ctx.ServerError("AddEmailAddress", err)

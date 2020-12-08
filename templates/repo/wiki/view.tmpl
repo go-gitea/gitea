@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository wiki view">
+<div class="page-content repository wiki view">
 	{{template "repo/header" .}}
 	{{ $title := .title}}
 	<div class="ui container">
@@ -12,11 +12,11 @@
 								{{.i18n.Tr "repo.wiki.page"}}:
 								<strong>{{$title}}</strong>
 							</span>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</div>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="filter icon"></i>
+								<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 								<input name="search" placeholder="{{.i18n.Tr "repo.wiki.filter_page"}}...">
 							</div>
 							<div class="scrolling menu">
@@ -47,7 +47,7 @@
 					{{end}}
 					{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-							{{svg "octicon-clippy" 16}}
+							{{svg "octicon-clippy"}}
 						</button>
 					{{end}}
 				</div>
@@ -56,7 +56,7 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history" 16}}</a>
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}
@@ -101,7 +101,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">

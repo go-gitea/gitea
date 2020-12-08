@@ -82,51 +82,73 @@ func createReviewsForCodeComments(x *xorm.Engine) error {
 	if err := x.Sync2(new(Review), new(Comment)); err != nil {
 		return err
 	}
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	if err := sess.Where("review_id = 0 and type = 21").Iterate(new(Comment), func(idx int, bean interface{}) error {
-		comment := bean.(*Comment)
 
-		review := &Review{
-			Type:             ReviewTypeComment,
-			ReviewerID:       comment.PosterID,
-			IssueID:          comment.IssueID,
-			Official:         false,
-			CommitID:         comment.CommitSHA,
-			Stale:            comment.Invalidated,
-			OriginalAuthor:   comment.OriginalAuthor,
-			OriginalAuthorID: comment.OriginalAuthorID,
-			CreatedUnix:      comment.CreatedUnix,
-			UpdatedUnix:      comment.CreatedUnix,
-		}
-		if _, err := sess.NoAutoTime().Insert(review); err != nil {
+	var updateComment = func(comments []*Comment) error {
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
 			return err
 		}
 
-		reviewComment := &Comment{
-			Type:             22,
-			PosterID:         comment.PosterID,
-			Content:          "",
-			IssueID:          comment.IssueID,
-			ReviewID:         review.ID,
-			OriginalAuthor:   comment.OriginalAuthor,
-			OriginalAuthorID: comment.OriginalAuthorID,
-			CreatedUnix:      comment.CreatedUnix,
-			UpdatedUnix:      comment.CreatedUnix,
+		for _, comment := range comments {
+			review := &Review{
+				Type:             ReviewTypeComment,
+				ReviewerID:       comment.PosterID,
+				IssueID:          comment.IssueID,
+				Official:         false,
+				CommitID:         comment.CommitSHA,
+				Stale:            comment.Invalidated,
+				OriginalAuthor:   comment.OriginalAuthor,
+				OriginalAuthorID: comment.OriginalAuthorID,
+				CreatedUnix:      comment.CreatedUnix,
+				UpdatedUnix:      comment.CreatedUnix,
+			}
+			if _, err := sess.NoAutoTime().Insert(review); err != nil {
+				return err
+			}
+
+			reviewComment := &Comment{
+				Type:             22,
+				PosterID:         comment.PosterID,
+				Content:          "",
+				IssueID:          comment.IssueID,
+				ReviewID:         review.ID,
+				OriginalAuthor:   comment.OriginalAuthor,
+				OriginalAuthorID: comment.OriginalAuthorID,
+				CreatedUnix:      comment.CreatedUnix,
+				UpdatedUnix:      comment.CreatedUnix,
+			}
+			if _, err := sess.NoAutoTime().Insert(reviewComment); err != nil {
+				return err
+			}
+
+			comment.ReviewID = review.ID
+			if _, err := sess.ID(comment.ID).Cols("review_id").NoAutoTime().Update(comment); err != nil {
+				return err
+			}
 		}
-		if _, err := sess.NoAutoTime().Insert(reviewComment); err != nil {
+
+		return sess.Commit()
+	}
+
+	var start = 0
+	var batchSize = 100
+	for {
+		var comments = make([]*Comment, 0, batchSize)
+		if err := x.Where("review_id = 0 and type = 21").Limit(batchSize, start).Find(&comments); err != nil {
 			return err
 		}
 
-		comment.ReviewID = review.ID
-		_, err := sess.ID(comment.ID).Cols("review_id").NoAutoTime().Update(comment)
-		return err
-	}); err != nil {
-		return err
+		if err := updateComment(comments); err != nil {
+			return err
+		}
+
+		start += len(comments)
+
+		if len(comments) < batchSize {
+			break
+		}
 	}
 
-	return sess.Commit()
+	return nil
 }

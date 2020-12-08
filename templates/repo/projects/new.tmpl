@@ -1,10 +1,10 @@
 {{template "base/head" .}}
-<div class="repository new milestone">
+<div class="page-content repository new milestone">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditProject}}
+			{{if and .CanWriteProjects .PageIsEditProject}}
 			<div class="ui right floated secondary menu">
 				<a class="ui green button" href="{{$.RepoLink}}/projects/new">{{.i18n.Tr "repo.milestones.new"}}</a>
 			</div>

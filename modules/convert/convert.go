@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,16 +7,16 @@ package convert
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -43,7 +44,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 		return &api.Branch{
 			Name:                b.Name,
-			Commit:              ToCommit(repo, c),
+			Commit:              ToPayloadCommit(repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
@@ -55,7 +56,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 	branch := &api.Branch{
 		Name:                b.Name,
-		Commit:              ToCommit(repo, c),
+		Commit:              ToPayloadCommit(repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
@@ -106,28 +107,29 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 	}
 
 	return &api.BranchProtection{
-		BranchName:                  bp.BranchName,
-		EnablePush:                  bp.CanPush,
-		EnablePushWhitelist:         bp.EnableWhitelist,
-		PushWhitelistUsernames:      pushWhitelistUsernames,
-		PushWhitelistTeams:          pushWhitelistTeams,
-		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
-		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
-		MergeWhitelistUsernames:     mergeWhitelistUsernames,
-		MergeWhitelistTeams:         mergeWhitelistTeams,
-		EnableStatusCheck:           bp.EnableStatusCheck,
-		StatusCheckContexts:         bp.StatusCheckContexts,
-		RequiredApprovals:           bp.RequiredApprovals,
-		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
-		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
-		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
-		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
-		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
-		DismissStaleApprovals:       bp.DismissStaleApprovals,
-		RequireSignedCommits:        bp.RequireSignedCommits,
-		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
-		Created:                     bp.CreatedUnix.AsTime(),
-		Updated:                     bp.UpdatedUnix.AsTime(),
+		BranchName:                    bp.BranchName,
+		EnablePush:                    bp.CanPush,
+		EnablePushWhitelist:           bp.EnableWhitelist,
+		PushWhitelistUsernames:        pushWhitelistUsernames,
+		PushWhitelistTeams:            pushWhitelistTeams,
+		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:       mergeWhitelistUsernames,
+		MergeWhitelistTeams:           mergeWhitelistTeams,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableApprovalsWhitelist:      bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames:   approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
+		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
+		DismissStaleApprovals:         bp.DismissStaleApprovals,
+		RequireSignedCommits:          bp.RequireSignedCommits,
+		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
+		Created:                       bp.CreatedUnix.AsTime(),
+		Updated:                       bp.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -139,41 +141,6 @@ func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
 		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
-	}
-}
-
-// ToCommit convert a git.Commit to api.PayloadCommit
-func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
-	authorUsername := ""
-	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
-		authorUsername = author.Name
-	} else if !models.IsErrUserNotExist(err) {
-		log.Error("GetUserByEmail: %v", err)
-	}
-
-	committerUsername := ""
-	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
-		committerUsername = committer.Name
-	} else if !models.IsErrUserNotExist(err) {
-		log.Error("GetUserByEmail: %v", err)
-	}
-
-	return &api.PayloadCommit{
-		ID:      c.ID.String(),
-		Message: c.Message(),
-		URL:     util.URLJoin(repo.HTMLURL(), "commit", c.ID.String()),
-		Author: &api.PayloadUser{
-			Name:     c.Author.Name,
-			Email:    c.Author.Email,
-			UserName: authorUsername,
-		},
-		Committer: &api.PayloadUser{
-			Name:     c.Committer.Name,
-			Email:    c.Committer.Email,
-			UserName: committerUsername,
-		},
-		Timestamp:    c.Author.When,
-		Verification: ToVerification(c),
 	}
 }
 
@@ -270,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.HookTaskType),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,
@@ -320,6 +287,10 @@ func ToOrganization(org *models.User) *api.Organization {
 
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
+	if team == nil {
+		return nil
+	}
+
 	return &api.Team{
 		ID:                      team.ID,
 		Name:                    team.Name,
@@ -329,29 +300,6 @@ func ToTeam(team *models.Team) *api.Team {
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}
-}
-
-// ToUser convert models.User to api.User
-// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func ToUser(user *models.User, signed, authed bool) *api.User {
-	result := &api.User{
-		UserName:  user.Name,
-		AvatarURL: user.AvatarLink(),
-		FullName:  markup.Sanitize(user.FullName),
-		Created:   user.CreatedUnix.AsTime(),
-	}
-	// hide primary email if API caller is anonymous or user keep email private
-	if signed && (!user.KeepEmailPrivate || authed) {
-		result.Email = user.Email
-	}
-	// only site admin will get these information and possibly user himself
-	if authed {
-		result.ID = user.ID
-		result.IsAdmin = user.IsAdmin
-		result.LastLogin = user.LastLoginUnix.AsTime()
-		result.Language = user.Language
-	}
-	return result
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
@@ -376,25 +324,6 @@ func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.Anno
 	}
 }
 
-// ToCommitUser convert a git.Signature to an api.CommitUser
-func ToCommitUser(sig *git.Signature) *api.CommitUser {
-	return &api.CommitUser{
-		Identity: api.Identity{
-			Name:  sig.Name,
-			Email: sig.Email,
-		},
-		Date: sig.When.UTC().Format(time.RFC3339),
-	}
-}
-
-// ToCommitMeta convert a git.Tag to an api.CommitMeta
-func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
-	return &api.CommitMeta{
-		SHA: tag.Object.String(),
-		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
-	}
-}
-
 // ToTopicResponse convert from models.Topic to api.TopicResponse
 func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
@@ -415,5 +344,38 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 		ClientSecret: app.ClientSecret,
 		RedirectURIs: app.RedirectURIs,
 		Created:      app.CreatedUnix.AsTime(),
+	}
+}
+
+// ToCommitStatus converts models.CommitStatus to api.Status
+func ToCommitStatus(status *models.CommitStatus) *api.Status {
+	apiStatus := &api.Status{
+		Created:     status.CreatedUnix.AsTime(),
+		Updated:     status.CreatedUnix.AsTime(),
+		State:       api.StatusState(status.State),
+		TargetURL:   status.TargetURL,
+		Description: status.Description,
+		ID:          status.Index,
+		URL:         status.APIURL(),
+		Context:     status.Context,
+	}
+
+	if status.CreatorID != 0 {
+		creator, _ := models.GetUserByID(status.CreatorID)
+		apiStatus.Creator = ToUser(creator, false, false)
+	}
+
+	return apiStatus
+}
+
+// ToLFSLock convert a LFSLock to api.LFSLock
+func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	return &api.LFSLock{
+		ID:       strconv.FormatInt(l.ID, 10),
+		Path:     l.Path,
+		LockedAt: l.Created.Round(time.Second),
+		Owner: &api.LFSLockOwner{
+			Name: l.Owner.DisplayName(),
+		},
 	}
 }

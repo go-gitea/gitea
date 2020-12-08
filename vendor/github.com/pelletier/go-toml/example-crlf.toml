@@ -27,3 +27,4 @@ enabled = true
 
 [clients]
 data = [ ["gamma", "delta"], [1, 2] ] # just an update to make sure parsers support it
+score = 4e-08 # to make sure leading zeroes in exponent parts of floats are supported

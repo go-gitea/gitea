@@ -284,6 +284,12 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	if form.Head == form.Base {
+		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
+			"Invalid PullRequest: There are no changes between the head and the base")
+		return
+	}
+
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
@@ -725,7 +731,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if err = pr.LoadHeadRepo(); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
@@ -774,7 +780,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
 			return
@@ -885,7 +891,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			if models.IsErrUserNotExist(err) {
 				ctx.NotFound("GetUserByName")
 			} else {
-				ctx.ServerError("GetUserByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
 			return nil, nil, nil, nil, "", ""
 		}
@@ -929,7 +935,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
@@ -948,7 +954,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permHead.CanRead(models.UnitTypeCode) {

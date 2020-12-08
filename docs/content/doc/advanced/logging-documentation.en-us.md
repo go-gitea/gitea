@@ -17,6 +17,8 @@ menu:
 
 The logging framework has been revamped in Gitea 1.9.0.
 
+{{< toc >}}
+
 ## Log Groups
 
 The fundamental thing to be aware of in Gitea is that there are several
@@ -49,7 +51,7 @@ You can configure the outputs of this logger by setting the `MODE`
 value in the `[log]` section of the configuration.
 
 Each output sublogger is configured in a separate `[log.sublogger.default]`
-which inherits from the sublogger `[log.sublogger]` section and from the 
+which inherits from the sublogger `[log.sublogger]` section and from the
 generic `[log]` section, but there are certain default values. These will
 not be inherited from the `[log]` section:
 
@@ -290,9 +292,48 @@ messages. However, you could perhaps set this logger to work on `FATAL`.
 * `RECEIVERS`: Email addresses to send to.
 * `SUBJECT`: **Diagnostic message from Gitea**
 
-## Default Configuration
+## Debugging problems
 
-The default empty configuration is equivalent to:
+When submitting logs in Gitea issues it is often helpful to submit
+merged logs obtained by either by redirecting the console log to a file or
+copying and pasting it. To that end it is recommended to set your logging to:
+
+```ini
+[database]
+LOG_SQL = false ; SQL logs are rarely helpful unless we specifically ask for them
+
+...
+
+[log]
+MODE = console
+LEVEL = debug ; please set the level to debug when we are debugging a problem
+REDIRECT_MACARON_LOG = true
+MACARON = console
+ROUTER = console
+COLORIZE = false ; this can be true if you can strip out the ansi coloring
+```
+
+Sometimes it will be helpful get some specific `TRACE` level logging retricted
+to messages that match a specific `EXPRESSION`. Adjusting the `MODE` in the
+`[log]` section to `MODE = console,traceconsole` to add a new logger output
+`traceconsole` and then adding its corresponding section would be helpful:
+
+```ini
+[log.traceconsole] ; traceconsole here is just a name
+MODE = console ; this is the output that the traceconsole writes to
+LEVEL = trace
+EXPRESSION = ; putting a string here will restrict this logger to logging only those messages that match this expression
+```
+
+(It's worth noting that log messages that match the expression at or above debug
+level will get logged twice so don't worry about that.)
+
+`STACKTRACE_LEVEL` should generally be left unconfigured (and hence kept at
+`none`). There are only very specific occasions when it useful.
+
+## Empty Configuration
+
+The empty configuration is equivalent to:
 
 ```ini
 [log]
@@ -322,7 +363,7 @@ If you are running on Unix you may wish to release-and-reopen logs in order to u
 It is possible force gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
 running process, or running `gitea manager logging release-and-reopen`.
 
-Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the 
+Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the
 `gitea manager logging pause` and `gitea manager logging resume` commands. Please note that whilst logging
 is paused log events below INFO level will not be stored and only a limited number of events will be stored.
 Logging may block, albeit temporarily, slowing gitea considerably whilst paused - therefore it is
