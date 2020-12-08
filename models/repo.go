@@ -426,6 +426,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		HTMLURL:                   repo.HTMLURL(),
 		SSHURL:                    cloneLink.SSH,
 		CloneURL:                  cloneLink.HTTPS,
+		OriginalURL:               repo.SanitizedOriginalURL(),
 		Website:                   repo.Website,
 		Stars:                     repo.NumStars,
 		Forks:                     repo.NumForks,
