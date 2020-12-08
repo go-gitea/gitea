@@ -706,7 +706,7 @@ generate-images:
 generate-manpage:
 	@[ -f gitea ] || make backend
 	@mkdir -p man/man1/ man/man5
-	@./gitea generate man > man/man1/gitea.1
+	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as man page
 	@tail -n +36 docs/content/doc/advanced/config-cheat-sheet.en-us.md > man/man5/gitea.app.ini.5.md
