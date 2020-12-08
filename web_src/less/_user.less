@@ -9,10 +9,14 @@
       }
 
       .header {
-        font-weight: 500;
+        font-weight: 600;
         font-size: 1.3rem;
         margin-top: -.2rem;
         line-height: 1.3rem;
+      }
+
+      .profile-avatar-name {
+        border-top: none;
       }
 
       .extra.content {
@@ -46,9 +50,16 @@
       }
 
       #profile-avatar {
+        background: none;
+        padding: 1rem 1rem .25rem;
+
         img {
           width: 100%;
+          height: auto;
+          object-fit: contain;
+          margin: 0;
         }
+
         @media @mediaSm {
           height: 250px;
           overflow: hidden;

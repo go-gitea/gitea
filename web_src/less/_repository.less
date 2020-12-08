@@ -826,8 +826,8 @@
           position: absolute;
           left: -72px;
           img {
-            width: 40px;
-            height: 40px;
+            width: 40px !important;
+            height: 40px !important;
           }
         }
 
@@ -969,7 +969,7 @@
         }
 
         .author {
-          font-weight: 500;
+          font-weight: 600;
         }
 
         .comment-form-reply .footer {
@@ -3206,6 +3206,13 @@ td.blob-excerpt {
   }
 }
 
-.migrate .cards .card {
-  text-align: center;
+.repository.migrate .card {
+  transition: all .1s ease-in-out;
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
+}
+
+.repository.migrate .card:hover {
+  transform: scale(105%);
+  box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
 }
