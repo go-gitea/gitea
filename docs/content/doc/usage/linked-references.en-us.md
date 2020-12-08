@@ -27,6 +27,8 @@ for them to be recognized. For example, they should not be included inside code
 text. They should also be reasonably cleared from their surrounding text
 (for example, using spaces).
 
+{{< toc >}}
+
 ## User, Team and Organization Mentions
 
 When a text in the form `@username` is found and `username` matches the name

@@ -18,37 +18,7 @@ menu:
 This page contains some common questions and answers.  
 Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 
-- [Difference between 1.x and 1.x.x downloads](#difference-between-1x-and-1xx-downloads)
-- [How to migrate from Gogs/GitHub/etc. to Gitea](#how-to-migrate-from-gogsgithubetc-to-gitea)
-- [Where does Gitea store what file](#where-does-gitea-store-what-file)
-- [Not seeing a clone URL or the clone URL being incorrect](#not-seeing-a-clone-url-or-the-clone-url-being-incorrect)
-- [Custom Templates not loading or working incorrectly](#custom-templates-not-loading-or-working-incorrectly)
-- [Active user vs login prohibited user](#active-user-vs-login-prohibited-user)
-- [Setting up logging](#setting-up-logging)
-- [What is Swagger?](#what-is-swagger)
-- [Adjusting your server for public/private use](#adjusting-your-server-for-publicprivate-use)
-  - [Preventing spammers](#preventing-spammers)
-  - [Only allow certain email domains](#only-allow-certain-email-domains)
-  - [Only allow/block certain OpenID providers](#only-allowblock-certain-openid-providers)
-  - [Issue only users](#issue-only-users)
-  - [Restricted users](#restricted-users)
-  - [Enable Fail2ban](#enable-fail2ban)
-- [How to add/use custom themes](#how-to-adduse-custom-themes)
-- [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
-- [Gitea is running slow](#gitea-is-running-slow)
-- [Can't create repositories/files](#cant-create-repositoriesfiles)
-- [Translation is incorrect/how to add more translations](#translation-is-incorrecthow-to-add-more-translations)
-- [Hooks aren't running](#hooks-arent-running)
-- [SSH issues](#ssh-issues)
-  - [SSH Common Errors](#ssh-common-errors)
-- [Missing releases after migrating repository with tags](#missing-releases-after-migrating-repository-with-tags)
-- [LFS Issues](#lfs-issues)
-- [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
-- [How can I enable password reset](#how-can-i-enable-password-reset)
-- [How can a user's password be changed](#how-can-a-users-password-be-changed)
-- [Why is my markdown broken](#why-is-my-markdown-broken)
-- [Upgrade errors with MySQL](#upgrade-errors-with-mysql)
-- [Why Are Emoji Broken On MySQL](#why-are-emoji-broken-on-mysql)
+{{< toc >}}
 
 ## Difference between 1.x and 1.x.x downloads
 Version 1.7.x will be used for this example.  
