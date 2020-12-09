@@ -174,12 +174,12 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrUserProhibitLogin(err) {
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(200, "user/auth/prohibit_login")
 		} else if models.IsErrUserInactive(err) {
@@ -187,7 +187,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(200, TplActivate)
 			} else {
-				log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+				log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(200, "user/auth/prohibit_login")
 			}
