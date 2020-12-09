@@ -36,14 +36,14 @@
 				<td class="lines-type-marker"></td>
 				<td class="add-comment-left">
 					{{if eq $line.GetCommentSide "previous"}}
-						{{template "repo/diff/conversation" mergeinto $ "comments" $line.Comments}}
+						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 					{{end}}
 				</td>
 				<td class="lines-num"></td>
 				<td class="lines-type-marker"></td>
 				<td class="add-comment-right">
 					{{if eq $line.GetCommentSide "proposed"}}
-						{{template "repo/diff/conversation" mergeinto $ "comments" $line.Comments}}
+						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 					{{end}}
 				</td>
 			</tr>
