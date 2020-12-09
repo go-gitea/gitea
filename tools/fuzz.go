@@ -25,8 +25,8 @@ func FuzzMarkdownRenderRaw(data []byte) int {
 
 func FuzzMarkupPostProcess(data []byte) int {
 	var localMetas = map[string]string{
-		"user": "gogits",
-		"repo": "gogs",
+		"user": "go-gitea",
+		"repo": "gitea",
 	}
 	_, err := markup.PostProcess(data, "/tmp", localMetas, false)
 	if err != nil {
