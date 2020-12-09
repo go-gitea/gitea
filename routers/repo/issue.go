@@ -2399,7 +2399,7 @@ func updateAttachments(item interface{}, files []string) error {
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment,content string) string {
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, content string) string {
 	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
 		"ctx":         ctx.Data,
 		"Attachments": attachments,
