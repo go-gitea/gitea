@@ -340,7 +340,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"svg":            SVG,
 		"avatar":         Avatar,
-    "avatarHTML":     AvatarHTML,
+		"avatarHTML":     AvatarHTML,
 		"avatarByAction": AvatarByAction,
 		"avatarByEmail":  AvatarByEmail,
 		"repoAvatar":     RepoAvatar,
