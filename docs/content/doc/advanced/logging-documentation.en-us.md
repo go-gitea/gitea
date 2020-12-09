@@ -17,6 +17,8 @@ menu:
 
 The logging framework has been revamped in Gitea 1.9.0.
 
+{{< toc >}}
+
 ## Log Groups
 
 The fundamental thing to be aware of in Gitea is that there are several

@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -181,7 +181,7 @@ func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.GITEA.Name()
+	ctx.Data["HookType"] = models.GITEA
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -235,7 +235,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.GOGS.Name()
+	ctx.Data["HookType"] = models.GOGS
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -283,7 +283,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.DISCORD.Name()
+	ctx.Data["HookType"] = models.DISCORD
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -334,7 +334,7 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.DINGTALK.Name()
+	ctx.Data["HookType"] = models.DINGTALK
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -376,7 +376,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.TELEGRAM.Name()
+	ctx.Data["HookType"] = models.TELEGRAM
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -427,7 +427,7 @@ func MatrixHooksNewPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.MATRIX.Name()
+	ctx.Data["HookType"] = models.MATRIX
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -481,7 +481,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.MSTEAMS.Name()
+	ctx.Data["HookType"] = models.MSTEAMS
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -523,7 +523,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.SLACK.Name()
+	ctx.Data["HookType"] = models.SLACK
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -582,7 +582,7 @@ func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = models.FEISHU.Name()
+	ctx.Data["HookType"] = models.FEISHU
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -647,7 +647,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		return nil, nil
 	}
 
-	ctx.Data["HookType"] = w.HookTaskType.Name()
+	ctx.Data["HookType"] = w.HookTaskType
 	switch w.HookTaskType {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = webhook.GetSlackHook(w)

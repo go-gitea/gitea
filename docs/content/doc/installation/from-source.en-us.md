@@ -36,6 +36,8 @@ obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
 
+{{< toc >}}
+
 ## Download
 
 First, we must retrieve the source code. Since, the advent of go modules, the
