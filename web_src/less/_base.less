@@ -73,8 +73,17 @@
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-removed-word-bg: #fdb8c0;
+  --color-diff-added-word-bg: #acf2bd;
+  --color-diff-removed-bg-linenum: #ffe5e4;
+  --color-diff-added-bg-linenum: #cdffd8;
+  --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-added-row-bg: #e6ffed;
+  --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-added-row-border: #e6ffed;
   /* target-based colors */
   --color-body: #ffffff;
+  --color-text-dark: #080808;
   --color-text: #212121;
   --color-text-light: #555555;
   --color-text-light-2: #888888;
@@ -262,6 +271,10 @@ a.muted:hover,
 
 .ui.menu .item {
   color: var(--color-text);
+}
+
+.ui.menu .item > .label {
+  background: var(--color-grey);
 }
 
 .ui.link.menu .item:hover,
@@ -711,7 +724,7 @@ a.ui.card:hover,
       color: var(--color-text);
 
       &:hover {
-        color: #000000;
+        color: var(--color-text-dark);
       }
     }
 
@@ -719,7 +732,7 @@ a.ui.card:hover,
       color: var(--color-text-light) !important;
 
       a {
-        color: inherit !important;
+        color: var(--color-text) !important;
 
         &:hover {
           color: var(--color-primary) !important;
@@ -1840,7 +1853,7 @@ table th[data-sortt-desc] {
 
 .ui.tabular.menu .item {
   padding: 11px 12px;
-  color: var(--color-secondary-dark-6);
+  color: var(--color-text-light-2);
 }
 
 .ui.tabular.menu .item:hover {
@@ -1855,12 +1868,17 @@ table th[data-sortt-desc] {
   margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
+.ui.segment .ui.tabular.menu .active.item,
+.ui.segment .ui.tabular.menu .active.item:hover {
+  background: var(--color-box-body);
+}
+
 .ui.secondary.pointing.menu {
   border-color: var(--color-secondary);
 }
 
 .ui.secondary.pointing.menu .item {
-  color: var(--color-secondary-dark-6);
+  color: var(--color-text-light-2);
 }
 
 .ui.secondary.pointing.menu .active.item,
