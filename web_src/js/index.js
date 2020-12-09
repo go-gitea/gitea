@@ -1262,11 +1262,10 @@ function initPullRequestReview() {
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
-  }).closest('.dropdown').find('.link.close')
-    .on('click', function (e) {
-      e.preventDefault();
-      $(this).closest('.menu').toggle('visible');
-    });
+  }).closest('.dropdown').find('.close').on('click', function (e) {
+    e.preventDefault();
+    $(this).closest('.menu').toggle('visible');
+  });
 
   $('.add-code-comment').on('click', function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745

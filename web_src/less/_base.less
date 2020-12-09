@@ -253,7 +253,8 @@ a.muted:hover,
   border-right-color: var(--color-primary);
 }
 
-.ui.menu {
+.ui.menu,
+.ui.vertical.menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
 }
@@ -272,6 +273,7 @@ a.muted:hover,
 
 .ui.menu .active.item,
 .ui.menu .active.item:hover,
+.ui.vertical.menu .active.item,
 .ui.vertical.menu .active.item:hover {
   color: var(--color-text);
   background: var(--color-active);
@@ -330,6 +332,15 @@ a.muted:hover,
 .ui.dropdown .menu .selected.item {
   color: var(--color-text);
   background: var(--color-hover);
+}
+
+.ui.menu .ui.dropdown .menu > .selected.item {
+  color: var(--color-text) !important;
+  background: var(--color-hover) !important;
+}
+
+.ui.dropdown .menu > .message:not(.ui) {
+  color: var(--color-text-light-2);
 }
 
 .ui.secondary.menu .dropdown.item:hover,
@@ -451,8 +462,15 @@ a.ui.card:hover,
   background: var(--color-body);
 }
 
+.ui.modal > .header {
+  border-color: var(--color-secondary);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
 .ui.modal > .close.inside,
 .ui.fullscreen.modal > .close {
+  top: 11px; /* align modal close icon, for example admin notices */
   color: var(--body-color);
 }
 
@@ -1046,6 +1064,10 @@ a.ui.card:hover,
   .item.selected {
     font-weight: 600 !important;
   }
+}
+
+.ui.dropdown .scrolling.menu {
+  border-color: var(--color-secondary);
 }
 
 footer {
