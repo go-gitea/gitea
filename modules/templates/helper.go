@@ -550,12 +550,20 @@ func SVG(icon string, others ...interface{}) template.HTML {
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(user *models.User, others ...interface{}) template.HTML {
+func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
-	if src != "" {
-		return AvatarHTML(src, size, class, user.DisplayName())
+	if user, ok := item.(*models.User); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	if user, ok := item.(*models.Collaborator); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
 	}
 	return template.HTML("")
 }
