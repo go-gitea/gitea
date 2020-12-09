@@ -132,10 +132,10 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			},
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive:     form.Active,
-		HookTaskType: models.HookTaskType(form.Type),
+		IsActive: form.Active,
+		Type:     models.HookTaskType(form.Type),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
@@ -219,7 +219,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 			w.ContentType = models.ToHookContentType(ct)
 		}
 
-		if w.HookTaskType == models.SLACK {
+		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,

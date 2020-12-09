@@ -110,11 +110,11 @@ type Webhook struct {
 	Secret          string `xorm:"TEXT"`
 	Events          string `xorm:"TEXT"`
 	*HookEvent      `xorm:"-"`
-	IsSSL           bool `xorm:"is_ssl"`
-	IsActive        bool `xorm:"INDEX"`
-	HookTaskType    HookTaskType
-	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus // Last delivery status
+	IsSSL           bool         `xorm:"is_ssl"`
+	IsActive        bool         `xorm:"INDEX"`
+	Type            HookTaskType `xorm:"char(16) 'type'"`
+	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus   // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

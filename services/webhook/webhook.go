@@ -128,7 +128,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
 	// Integration webhooks (e.g. drone) still receive the required data.
 	if pushEvent, ok := p.(*api.PushPayload); ok &&
-		w.HookTaskType != models.GITEA && w.HookTaskType != models.GOGS &&
+		w.Type != models.GITEA && w.Type != models.GOGS &&
 		len(pushEvent.Commits) == 0 {
 		return nil
 	}
@@ -144,11 +144,11 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	var payloader api.Payloader
 	var err error
-	webhook, ok := webhooks[w.HookTaskType]
+	webhook, ok := webhooks[w.Type]
 	if ok {
 		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("create payload for %s[%s]: %v", w.HookTaskType, event, err)
+			return fmt.Errorf("create payload for %s[%s]: %v", w.Type, event, err)
 		}
 	} else {
 		p.SetSecret(w.Secret)
@@ -172,7 +172,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 	if err = models.CreateHookTask(&models.HookTask{
 		RepoID:      repo.ID,
 		HookID:      w.ID,
-		Typ:         w.HookTaskType,
+		Typ:         w.Type,
 		URL:         w.URL,
 		Signature:   signature,
 		Payloader:   payloader,

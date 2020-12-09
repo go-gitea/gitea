@@ -227,7 +227,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		s := webhook.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
@@ -237,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    string(w.HookTaskType),
+		Type:    string(w.Type),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,
