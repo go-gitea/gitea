@@ -96,7 +96,7 @@
   --color-menu: #ffffff;
   --color-card: #ffffff;
   --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000010;
+  --color-markdown-code-block: #00000008;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
   --color-shadow: #00000024;
@@ -312,6 +312,12 @@ a.muted:hover,
   color: var(--color-text);
   background: var(--color-active);
   font-weight: normal;
+}
+
+/* fix misaligned images in webhook dropdown */
+.ui.dropdown .menu > .item > img {
+  margin-top: -.25rem;
+  margin-bottom: -.25rem;
 }
 
 .ui.selection.dropdown .menu > .item {
@@ -1123,16 +1129,6 @@ footer {
   text-align: center;
 }
 
-.generate-img(16);
-.generate-img(@n, @i: 1) when (@i =< @n) {
-  .img-@{i} {
-    width: (2px * @i) !important;
-    height: (2px * @i) !important;
-  }
-
-  .generate-img(@n, (@i + 1));
-}
-
 // Conditional display
 @media @mediaMdAndUp {
   .mobile-only,
@@ -1680,6 +1676,11 @@ a.ui.basic.label:hover {
 
 .invisible {
   visibility: hidden;
+}
+
+/* prevent stacking context issue on webhook dropdown */
+.ui.segment {
+  position: static;
 }
 
 .ui.segment,
