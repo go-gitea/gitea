@@ -112,7 +112,7 @@ type Webhook struct {
 	*HookEvent      `xorm:"-"`
 	IsSSL           bool `xorm:"is_ssl"`
 	IsActive        bool `xorm:"INDEX"`
-	HookTaskType    HookTaskType
+	Type HookTaskType `xorm:"char(16) 'type'"`
 	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus // Last delivery status
 

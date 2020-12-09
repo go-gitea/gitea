@@ -267,6 +267,8 @@ var migrations = []Migration{
 	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
 	// v161 -> v162
 	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	// v162 -> v163
+	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
 }
 
 // GetCurrentDBVersion returns the current db version
