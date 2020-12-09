@@ -312,6 +312,12 @@ a.muted:hover,
   font-weight: normal;
 }
 
+/* fix misaligned images in webhook dropdown */
+.ui.dropdown .menu > .item > img {
+  margin-top: -.25rem;
+  margin-bottom: -.25rem;
+}
+
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -1101,16 +1107,6 @@ footer {
   text-align: center;
 }
 
-.generate-img(16);
-.generate-img(@n, @i: 1) when (@i =< @n) {
-  .img-@{i} {
-    width: (2px * @i) !important;
-    height: (2px * @i) !important;
-  }
-
-  .generate-img(@n, (@i + 1));
-}
-
 // Conditional display
 @media @mediaMdAndUp {
   .mobile-only,
@@ -1658,6 +1654,11 @@ a.ui.basic.label:hover {
 
 .invisible {
   visibility: hidden;
+}
+
+/* prevent stacking context issue on webhook dropdown */
+.ui.segment {
+  position: static;
 }
 
 .ui.segment,
