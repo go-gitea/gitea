@@ -1,5 +1,7 @@
 <div class="dropzone-attachments">
-    <div class="ui clearing divider"></div>
+    {{if .Attachments}}
+        <div class="ui clearing divider"></div>
+    {{end}}
     <div class="ui middle aligned padded grid">
         {{$hasThumbnails := false}}
         {{- range .Attachments -}}
