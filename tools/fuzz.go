@@ -28,7 +28,7 @@ func FuzzMarkupPostProcess(data []byte) int {
 		"user": "go-gitea",
 		"repo": "gitea",
 	}
-	_, err := markup.PostProcess(data, "/tmp", localMetas, false)
+	_, err := markup.PostProcess(data, "https://example.com", localMetas, false)
 	if err != nil {
 		return 0
 	}
