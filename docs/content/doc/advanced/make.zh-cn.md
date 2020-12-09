@@ -3,7 +3,7 @@ date: "2017-01-14T11:00:00-02:00"
 title: "Make 安装"
 slug: "make"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

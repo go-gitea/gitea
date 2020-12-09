@@ -312,6 +312,12 @@ a.muted:hover,
   font-weight: normal;
 }
 
+/* fix misaligned images in webhook dropdown */
+.ui.dropdown .menu > .item > img {
+  margin-top: -.25rem;
+  margin-bottom: -.25rem;
+}
+
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -1101,16 +1107,6 @@ footer {
   text-align: center;
 }
 
-.generate-img(16);
-.generate-img(@n, @i: 1) when (@i =< @n) {
-  .img-@{i} {
-    width: (2px * @i) !important;
-    height: (2px * @i) !important;
-  }
-
-  .generate-img(@n, (@i + 1));
-}
-
 // Conditional display
 @media @mediaMdAndUp {
   .mobile-only,
@@ -1245,6 +1241,32 @@ footer {
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
   margin-bottom: 2px !important;
+}
+
+.repo-title {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  word-break: break-all;
+  color: var(--color-text-light);
+
+  .avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .labels {
+    margin-left: .5rem;
+
+    > * + * {
+      margin-left: .5rem;
+    }
+  }
+}
+
+.repo-icon {
+  display: inline-block;
 }
 
 .activity-bar-graph {
@@ -1632,6 +1654,11 @@ a.ui.basic.label:hover {
 
 .invisible {
   visibility: hidden;
+}
+
+/* prevent stacking context issue on webhook dropdown */
+.ui.segment {
+  position: static;
 }
 
 .ui.segment,

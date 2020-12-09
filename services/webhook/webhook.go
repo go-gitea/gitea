@@ -20,6 +20,55 @@ import (
 	"github.com/gobwas/glob"
 )
 
+type webhook struct {
+	name           models.HookTaskType
+	payloadCreator func(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error)
+}
+
+var (
+	webhooks = map[models.HookTaskType]*webhook{
+		models.SLACK: {
+			name:           models.SLACK,
+			payloadCreator: GetSlackPayload,
+		},
+		models.DISCORD: {
+			name:           models.DISCORD,
+			payloadCreator: GetDiscordPayload,
+		},
+		models.DINGTALK: {
+			name:           models.DINGTALK,
+			payloadCreator: GetDingtalkPayload,
+		},
+		models.TELEGRAM: {
+			name:           models.TELEGRAM,
+			payloadCreator: GetTelegramPayload,
+		},
+		models.MSTEAMS: {
+			name:           models.MSTEAMS,
+			payloadCreator: GetMSTeamsPayload,
+		},
+		models.FEISHU: {
+			name:           models.FEISHU,
+			payloadCreator: GetFeishuPayload,
+		},
+		models.MATRIX: {
+			name:           models.MATRIX,
+			payloadCreator: GetMatrixPayload,
+		},
+	}
+)
+
+// RegisterWebhook registers a webhook
+func RegisterWebhook(name string, webhook *webhook) {
+	webhooks[models.HookTaskType(name)] = webhook
+}
+
+// IsValidHookTaskType returns true if a webhook registered
+func IsValidHookTaskType(name string) bool {
+	_, ok := webhooks[models.HookTaskType(name)]
+	return ok
+}
+
 // hookQueue is a global queue of web hooks
 var hookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 
@@ -95,44 +144,13 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	var payloader api.Payloader
 	var err error
-	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
-	switch w.HookTaskType {
-	case models.SLACK:
-		payloader, err = GetSlackPayload(p, event, w.Meta)
+	webhook, ok := webhooks[w.HookTaskType]
+	if ok {
+		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("GetSlackPayload: %v", err)
+			return fmt.Errorf("create payload for %s[%s]: %v", w.HookTaskType, event, err)
 		}
-	case models.DISCORD:
-		payloader, err = GetDiscordPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDiscordPayload: %v", err)
-		}
-	case models.DINGTALK:
-		payloader, err = GetDingtalkPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDingtalkPayload: %v", err)
-		}
-	case models.TELEGRAM:
-		payloader, err = GetTelegramPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetTelegramPayload: %v", err)
-		}
-	case models.MSTEAMS:
-		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetMSTeamsPayload: %v", err)
-		}
-	case models.FEISHU:
-		payloader, err = GetFeishuPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetFeishuPayload: %v", err)
-		}
-	case models.MATRIX:
-		payloader, err = GetMatrixPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetMatrixPayload: %v", err)
-		}
-	default:
+	} else {
 		p.SetSecret(w.Secret)
 		payloader = p
 	}
@@ -154,7 +172,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 	if err = models.CreateHookTask(&models.HookTask{
 		RepoID:      repo.ID,
 		HookID:      w.ID,
-		Type:        w.HookTaskType,
+		Typ:         w.HookTaskType,
 		URL:         w.URL,
 		Signature:   signature,
 		Payloader:   payloader,
