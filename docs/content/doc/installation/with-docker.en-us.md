@@ -284,6 +284,28 @@ You can configure some of Gitea's settings via environment variables:
 - `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 - `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
+See [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) for a detailed description of the `[mailer]` variables.
+
+- `MAILER_ENABLED`: false
+- `MAILER_SEND_BUFFER_LEN`: 100
+- `MAILER_SUBJECT_PREFIX`: **"\<empty>"**
+- `MAILER_HOST`: **"\<empty>"**
+- `MAILER_DISABLE_HELO`: **"\<empty>"**
+- `MAILER_HELO_HOSTNAME`: **"\<empty>"**
+- `MAILER_SKIP_VERIFY`: false
+- `MAILER_USE_CERTIFICATE`: false
+- `MAILER_CERT_FILE`: custom/mailer/cert.pem
+- `MAILER_KEY_FILE`: custom/mailer/key.pem
+- `MAILER_IS_TLS_ENABLED`: false
+- `MAILER_FROM`: **"\<empty>"**
+- `MAILER_USER`: **"\<empty>"**
+- `MAILER_PASSWD`: **"\<empty>"**
+- `MAILER_SEND_AS_PLAIN_TEXT`: false
+- `MAILER_MAILER_TYPE`: smtp
+- `MAILER_SENDMAIL_PATH`: sendmail
+- `MAILER_SENDMAIL_ARGS`: **"\<empty>"**
+- `MAILER_SENDMAIL_TIMEOUT`: 5m
+
 ## Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
