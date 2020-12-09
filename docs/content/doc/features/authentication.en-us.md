@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Authentication"
 slug: "authentication"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,25 +15,32 @@ menu:
 
 # Authentication
 
+{{< toc >}}
+
 ## LDAP (Lightweight Directory Access Protocol)
 
 Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 
 - Authorization Name **(required)**
+
   - A name to assign to the new method of authorization.
 
 - Host **(required)**
+
   - The address where the LDAP server can be reached.
   - Example: `mydomain.com`
 
 - Port **(required)**
+
   - The port to use when connecting to the server.
   - Example: `389` for LDAP or `636` for LDAP SSL
 
 - Enable TLS Encryption (optional)
+
   - Whether to use TLS when connecting to the LDAP server.
 
 - Admin Filter (optional)
+
   - An LDAP filter specifying if a user should be given administrator
     privileges. If a user account passes the filter, the user will be
     privileged as an administrator.
@@ -41,6 +48,7 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
   - Example for Microsoft Active Directory (AD): `(memberOf=CN=admin-group,OU=example,DC=example,DC=org)`
 
 - Username attribute (optional)
+
   - The attribute of the user's LDAP record containing the user name. Given
     attribute value will be used for new Gitea account user name after first
     successful sign-in. Leave empty to use login name given on sign-in form.
@@ -51,11 +59,13 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
   - Example for Microsoft Active Directory (AD): `sAMAccountName`
 
 - First name attribute (optional)
+
   - The attribute of the user's LDAP record containing the user's first name.
     This will be used to populate their account information.
   - Example: `givenName`
 
 - Surname attribute (optional)
+
   - The attribute of the user's LDAP record containing the user's surname.
     This will be used to populate their account information.
   - Example: `sn`
@@ -65,19 +75,24 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     address. This will be used to populate their account information.
   - Example: `mail`
 
-**LDAP via BindDN** adds the following fields:
+### LDAP via BindDN
+
+Adds the following fields:
 
 - Bind DN (optional)
+
   - The DN to bind to the LDAP server with when searching for the user. This
     may be left blank to perform an anonymous search.
   - Example: `cn=Search,dc=mydomain,dc=com`
 
 - Bind Password (optional)
+
   - The password for the Bind DN specified above, if any. _Note: The password
     is stored in plaintext at the server. As such, ensure that the Bind DN
     has as few privileges as possible._
 
 - User Search Base **(required)**
+
   - The LDAP base at which user accounts will be searched for.
   - Example: `ou=Users,dc=mydomain,dc=com`
 
@@ -94,24 +109,28 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 - Enable user synchronization
   - This option enables a periodic task that synchronizes the Gitea users with
     the LDAP server. The default period is every 24 hours but that can be
-    changed in the app.ini file.  See the *cron.sync_external_users* section in
+    changed in the app.ini file. See the _cron.sync_external_users_ section in
     the [sample
     app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
-    for detailed comments about that section.  The *User Search Base* and *User
-    Filter* settings described above will limit which users can use Gitea and
-    which users will be synchronized.  When initially run the task will create
+    for detailed comments about that section. The _User Search Base_ and _User
+    Filter_ settings described above will limit which users can use Gitea and
+    which users will be synchronized. When initially run the task will create
     all LDAP users that match the given settings so take care if working with
     large Enterprise LDAP directories.
 
-**LDAP using simple auth** adds the following fields:
+### LDAP using simple auth
+
+Adds the following fields:
 
 - User DN **(required)**
+
   - A template to use as the user's DN. The `%s` matching parameter will be
     substituted with login name given on sign-in form.
   - Example: `cn=%s,ou=Users,dc=mydomain,dc=com`
   - Example: `uid=%s,ou=Users,dc=mydomain,dc=com`
 
-- User Search Base  (optional)
+- User Search Base (optional)
+
   - The LDAP base at which user accounts will be searched for.
   - Example: `ou=Users,dc=mydomain,dc=com`
 
@@ -122,23 +141,28 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
   - Example: `(&(objectClass=posixAccount)(cn=%s))`
   - Example: `(&(objectClass=posixAccount)(uid=%s))`
 
-**Verify group membership in LDAP** uses the following fields:
+### Verify group membership in LDAP
 
-* Group Search Base (optional)
-    * The LDAP DN used for groups.
-    * Example: `ou=group,dc=mydomain,dc=com`
+Uses the following fields:
 
-* Group Name Filter (optional)
-    * An LDAP filter declaring how to find valid groups in the above DN.
-    * Example: `(|(cn=gitea_users)(cn=admins))`
+- Group Search Base (optional)
 
-* User Attribute in Group (optional)
-    * Which user LDAP attribute is listed in the group.
-    * Example: `uid`
+  - The LDAP DN used for groups.
+  - Example: `ou=group,dc=mydomain,dc=com`
 
-* Group Attribute for User (optional)
-    * Which group LDAP attribute contains an array above user attribute names.
-    * Example: `memberUid`
+- Group Name Filter (optional)
+
+  - An LDAP filter declaring how to find valid groups in the above DN.
+  - Example: `(|(cn=gitea_users)(cn=admins))`
+
+- User Attribute in Group (optional)
+
+  - Which user LDAP attribute is listed in the group.
+  - Example: `uid`
+
+- Group Attribute for User (optional)
+  - Which group LDAP attribute contains an array above user attribute names.
+  - Example: `memberUid`
 
 ## PAM (Pluggable Authentication Module)
 
@@ -152,28 +176,35 @@ This option allows Gitea to log in to an SMTP host as a Gitea user. To
 configure this, set the fields below:
 
 - Authentication Name **(required)**
+
   - A name to assign to the new method of authorization.
 
 - SMTP Authentication Type **(required)**
+
   - Type of authentication to use to connect to SMTP host, PLAIN or LOGIN.
 
 - Host **(required)**
+
   - The address where the SMTP host can be reached.
   - Example: `smtp.mydomain.com`
 
 - Port **(required)**
+
   - The port to use when connecting to the server.
   - Example: `587`
 
 - Allowed Domains
+
   - Restrict what domains can log in if using a public SMTP host or SMTP host
     with multiple domains.
   - Example: `gitea.io,mydomain.com,mydomain2.com`
 
 - Enable TLS Encryption
+
   - Enable TLS encryption on authentication.
 
 - Skip TLS Verify
+
   - Disable TLS verify on authentication.
 
 - This authentication is activate
@@ -186,7 +217,8 @@ configure this, set the fields below:
 
 - On the FreeIPA server, create a `gitea.ldif` file, replacing `dc=example,dc=com`
   with your DN, and provide an appropriately secure password:
-```
+
+  ```sh
   dn: uid=gitea,cn=sysaccounts,cn=etc,dc=example,dc=com
   changetype: add
   objectclass: account
@@ -195,18 +227,22 @@ configure this, set the fields below:
   userPassword: secure password
   passwordExpirationTime: 20380119031407Z
   nsIdleTimeout: 0
-```
+  ```
 
 - Import the LDIF (change localhost to an IPA server if needed). A prompt for
- Directory Manager password will be presented:
-```
+  Directory Manager password will be presented:
+
+  ```sh
   ldapmodify -h localhost -p 389 -x -D \
   "cn=Directory Manager" -W -f gitea.ldif
-```
-- Add an IPA group for gitea\_users :
-```
+  ```
+
+- Add an IPA group for gitea_users :
+
+  ```sh
   ipa group-add --desc="Gitea Users" gitea_users
-```
+  ```
+
 - Note: For errors about IPA credentials, run `kinit admin` and provide the
   domain admin account password.
 
@@ -222,13 +258,15 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 - Create a separate user account in active directory, under which the `gitea.exe` process will be running (eg. `user` under domain `domain.local`):
 
 - Create a service principal name for the host where `gitea.exe` is running with class `HTTP`:
+
   - Start `Command Prompt` or `PowerShell` as a priviledged domain user (eg. Domain Administrator)
   - Run the command below, replacing `host.domain.local` with the fully qualified domain name (FQDN) of the server where the web application will be running, and `domain\user` with the name of the account created in the previous step:
-  ```
-    setspn -A HTTP/host.domain.local domain\user
+
+  ```sh
+  setspn -A HTTP/host.domain.local domain\user
   ```
 
-- Sign in (*sign out if you were already signed in*) with the user created
+- Sign in (_sign out if you were already signed in_) with the user created
 
 - Make sure that `ROOT_URL` in the `[server]` section of `custom/conf/app.ini` is the fully qualified domain name of the server where the web application will be running - the same you used when creating the service principal name (eg. `host.domain.local`)
 

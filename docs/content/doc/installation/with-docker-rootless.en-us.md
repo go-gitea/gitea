@@ -3,7 +3,7 @@ date: "2020-02-09T20:00:00+02:00"
 title: "Installation with Docker (rootless)"
 slug: "install-with-docker-rootless"
 weight: 10
-toc: true
+toc: false
 draft: true
 menu:
   sidebar:

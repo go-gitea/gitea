@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -52,7 +52,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 // CheckCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
 func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
-	if !models.IsValidHookTaskType(form.Type) {
+	if !webhook.IsValidHookTaskType(form.Type) {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Invalid hook type")
 		return false
 	}
@@ -133,7 +133,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			BranchFilter: form.BranchFilter,
 		},
 		IsActive:     form.Active,
-		HookTaskType: models.ToHookTaskType(form.Type),
+		HookTaskType: models.HookTaskType(form.Type),
 	}
 	if w.HookTaskType == models.SLACK {
 		channel, ok := form.Config["channel"]
