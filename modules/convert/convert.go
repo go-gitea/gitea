@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -237,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.HookTaskType),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,

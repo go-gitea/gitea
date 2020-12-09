@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Installation depuis le code source"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

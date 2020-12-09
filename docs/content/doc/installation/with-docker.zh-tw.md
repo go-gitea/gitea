@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Docker 安裝"
 slug: "install-with-docker"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,8 @@ menu:
 ---
 
 # 用 Docker 安裝
+
+{{< toc >}}
 
 我們在 Docker Hub 提供了自動更新的映像檔，它會保持最新穩定版。根據您的部屬環境來使用最新版本或用其他服務來更新 Docker 映像檔。首先您需要下載映像檔：
 

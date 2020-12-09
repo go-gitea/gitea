@@ -2,35 +2,40 @@
 {{with .Repository}}
 	<div class="ui container">
 		<div class="repo-header">
-			<div class="ui huge breadcrumb repo-title">
-				{{if .Name}}
-					{{avatar .}}
-				{{else}}
-					{{template "repo/header_icon" .}}
-				{{end}}
-				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
-				<div class="divider"> / </div>
-				<a href="{{$.RepoLink}}">{{.Name}}</a>
-				{{if .IsTemplate}}
-					{{if .IsPrivate}}
-						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+			<div class="repo-title-wrap df fc">
+				<div class="repo-title">
+					{{$avatar := (repoAvatar . 32 "mr-3")}}
+					{{if $avatar}}
+						{{$avatar}}
 					{{else}}
-						{{if .Owner.Visibility.IsPrivate}}
-							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
-						{{end}}
+						{{template "repo/icon" .}}
 					{{end}}
-				{{else}}
-					{{if .IsPrivate}}
-						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
-					{{else}}
-						{{if .Owner.Visibility.IsPrivate}}
-							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+					<div class="mx-2">/</div>
+					<a href="{{$.RepoLink}}">{{.Name}}</a>
+					<div class="labels df ac fw">
+						{{if .IsTemplate}}
+							{{if .IsPrivate}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+							{{else}}
+								{{if .Owner.Visibility.IsPrivate}}
+									<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+								{{end}}
+							{{end}}
+						{{else}}
+							{{if .IsPrivate}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+							{{else}}
+								{{if .Owner.Visibility.IsPrivate}}
+									<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+								{{end}}
+							{{end}}
 						{{end}}
-					{{end}}
-				{{end}}
-				{{if .IsArchived}}
-          <span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
-        {{end}}
+						{{if .IsArchived}}
+						  <span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+						{{end}}
+					</div>
+				</div>
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}</a></div>{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
