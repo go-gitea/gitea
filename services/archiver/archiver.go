@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -35,7 +36,7 @@ type ArchiveRequest struct {
 	refName         string
 	ext             string
 	archivePath     string
-	archiveType     git.ArchiveType
+	archiveType     gitservice.ArchiveType
 	archiveComplete bool
 	commit          *git.Commit
 	cchan           chan struct{}
@@ -99,7 +100,7 @@ func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur tim
 }
 
 // The caller must hold the archiveMutex across calls to getArchiveRequest.
-func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git.ArchiveType) *ArchiveRequest {
+func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType gitservice.ArchiveType) *ArchiveRequest {
 	for _, r := range archiveInProgress {
 		// Need to be referring to the same repository.
 		if r.repo.Path() == repo.Path() && r.commit.ID == commit.ID && r.archiveType == archiveType {
@@ -126,11 +127,11 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	case strings.HasSuffix(uri, ".zip"):
 		r.ext = ".zip"
 		r.archivePath = path.Join(r.repo.Path(), "archives/zip")
-		r.archiveType = git.ZIP
+		r.archiveType = gitservice.ZIP
 	case strings.HasSuffix(uri, ".tar.gz"):
 		r.ext = ".tar.gz"
 		r.archivePath = path.Join(r.repo.Path(), "archives/targz")
-		r.archiveType = git.TARGZ
+		r.archiveType = gitservice.TARGZ
 	default:
 		log.Trace("Unknown format: %s", uri)
 		return nil
@@ -225,7 +226,11 @@ func doArchive(r *ArchiveRequest) {
 		os.Remove(tmpArchive.Name())
 	}()
 
-	if err = r.commit.CreateArchive(graceful.GetManager().ShutdownContext(), tmpArchive.Name(), git.CreateArchiveOpts{
+	// FIXME:
+	repo, _ := git.Service.OpenRepository(r.repo.Path())
+	defer repo.Close()
+
+	if err = git.Service.CreateArchive(graceful.GetManager().ShutdownContext(), repo, r.commit.ID.String(), tmpArchive.Name(), gitservice.CreateArchiveOpts{
 		Format: r.archiveType,
 		Prefix: setting.Repository.PrefixArchiveFiles,
 	}); err != nil {

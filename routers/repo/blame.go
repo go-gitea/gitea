@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/content"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
@@ -123,14 +124,14 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx.Req.Context(), models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.Service.CreateBlameReader(ctx.Req.Context(), models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
 	defer blameReader.Close()
 
-	blameParts := make([]git.BlamePart, 0)
+	blameParts := make([]gitservice.BlamePart, 0)
 
 	for {
 		blamePart, err := blameReader.NextPart()
@@ -148,7 +149,7 @@ func RefBlame(ctx *context.Context) {
 	commits := list.New()
 
 	for _, part := range blameParts {
-		sha := part.Sha
+		sha := part.SHA
 		if _, ok := commitNames[sha]; ok {
 			continue
 		}
@@ -187,7 +188,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []gitservice.BlamePart, commitNames map[string]models.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0)
@@ -206,7 +207,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				attr = " bottom-line"
 			}
-			commit := commitNames[part.Sha]
+			commit := commitNames[part.SHA]
 			if index == 0 {
 				// User avatar image
 				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
@@ -218,7 +219,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
 
-				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
+				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.SHA, html.EscapeString(commit.CommitMessage), commitSince))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
 			}
