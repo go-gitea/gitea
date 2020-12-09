@@ -338,11 +338,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":           SVG,
-		"avatar":        Avatar,
-		"avatarHTML":    AvatarHTML,
-		"avatarByEmail": AvatarByEmail,
-		"repoAvatar":    RepoAvatar,
+		"svg":            SVG,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -557,6 +558,12 @@ func Avatar(user *models.User, others ...interface{}) template.HTML {
 		return AvatarHTML(src, size, class, user.DisplayName())
 	}
 	return template.HTML("")
+}
+
+// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
+func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+	action.LoadActUser()
+	return Avatar(action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
