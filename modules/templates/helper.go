@@ -787,7 +787,7 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
-		return "repo-clone"
+		return "mirror"
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
