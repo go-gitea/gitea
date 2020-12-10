@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 )
 
-// This file contains common functions between the gogit and nogogit variants for git Blobs
+// This file contains common functions between the gogit and !gogit variants for git Blobs
 
 // Name returns name of the tree entry this blob object was created from (or empty string)
 func (b *Blob) Name() string {

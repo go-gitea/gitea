@@ -33,7 +33,7 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
-  - name: lint-backend-nogogit
+  - name: lint-backend-gogit
     pull: always
     image: golang:1.15
     commands:
@@ -41,7 +41,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata nogogit sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
     image: node:14
@@ -79,7 +79,7 @@ steps:
       GOPROXY: off
       GOOS: linux
       GOARCH: arm64
-      TAGS: bindata nogogit
+      TAGS: bindata gogit
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
@@ -183,14 +183,14 @@ steps:
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
-  - name: unit-test-nogogit
+  - name: unit-test-gogit
     pull: always
     image: golang:1.15
     commands:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
-      TAGS: bindata nogogit sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
@@ -316,7 +316,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata nogogit sqlite sqlite_unlock_notify
+      TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: test-sqlite
     image: golang:1.15
@@ -326,8 +326,8 @@ steps:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
-      TAGS: bindata nogogit sqlite sqlite_unlock_notify
-      TEST_TAGS: nogogit sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
@@ -340,8 +340,8 @@ steps:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
-      TAGS: bindata nogogit
-      TEST_TAGS: nogogit
+      TAGS: bindata gogit
+      TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
