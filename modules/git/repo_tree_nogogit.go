@@ -25,9 +25,9 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		stderr := &strings.Builder{}
 		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, stderr, strings.NewReader(id.String()+"\n"))
 		if err != nil {
-			stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {
-			stdoutWriter.Close()
+			_ = stdoutWriter.Close()
 		}
 	}()
 
@@ -59,7 +59,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	case "commit":
 		commit, err := CommitFromReader(repo, id, bufReader)
 		if err != nil {
-			stdoutReader.CloseWithError(err)
+			_ = stdoutReader.CloseWithError(err)
 			return nil, err
 		}
 		commit.Tree.ResolvedID = commit.ID
@@ -71,7 +71,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		tree.ResolvedID = id
 		return tree, nil
 	default:
-		stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}

@@ -34,9 +34,9 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 		err = NewCommand("cat-file", "--batch").RunInDirFullPipeline(b.repoPath, stdoutWriter, stderr, strings.NewReader(b.ID.String()+"\n"))
 		if err != nil {
 			err = ConcatenateError(err, stderr.String())
-			stdoutWriter.CloseWithError(err)
+			_ = stdoutWriter.CloseWithError(err)
 		} else {
-			stdoutWriter.Close()
+			_ = stdoutWriter.Close()
 		}
 	}()
 

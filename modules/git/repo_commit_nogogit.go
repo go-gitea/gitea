@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+// ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
 	stdout, err := NewCommand("show-ref", "--hash", name).RunInDir(repo.Path)
 	if err != nil {
@@ -100,7 +100,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	case "commit":
 		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
 	default:
-		stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 		log("Unknown typ: %s", typ)
 		return nil, ErrNotExist{
 			ID: id.String(),

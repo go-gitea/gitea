@@ -28,6 +28,7 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s>", s.Name, s.Email)
 }
 
+// Decode decodes a byte array representing a signature to signature
 func (s *Signature) Decode(b []byte) {
 	sig, _ := newSignatureFromCommitline(b)
 	s.Email = sig.Email

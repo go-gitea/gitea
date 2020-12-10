@@ -311,7 +311,7 @@ revListLoop:
 			}
 			currentPath += target
 
-			// if we've now found the curent path check its sha id and commit status
+			// if we've now found the current path check its sha id and commit status
 			if treePath == currentPath && paths[0] == "" {
 				if len(ids[0]) == 0 {
 					copy(allShaBuf[0:20], treeID)
