@@ -47,7 +47,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		if base.IsSVGImageFile(buf) {
-			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
 			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 			ctx.Resp.Header().Set("Content-Type", base.SVGMimeType)
 		}
