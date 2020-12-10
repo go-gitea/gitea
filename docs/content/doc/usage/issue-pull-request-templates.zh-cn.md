@@ -3,7 +3,7 @@ date: "2018-05-10T16:00:00+02:00"
 title: "使用：Issue 和 Pull Request 模板"
 slug: "issue-pull-request-templates"
 weight: 15
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

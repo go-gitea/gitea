@@ -77,7 +77,8 @@ func (a *Action) GetOpType() ActionType {
 	return a.OpType
 }
 
-func (a *Action) loadActUser() {
+// LoadActUser loads a.ActUser
+func (a *Action) LoadActUser() {
 	if a.ActUser != nil {
 		return
 	}
@@ -105,13 +106,13 @@ func (a *Action) loadRepo() {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.Name
 }
 

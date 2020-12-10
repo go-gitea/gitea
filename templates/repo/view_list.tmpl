@@ -3,7 +3,7 @@
 		<tr class="commit-list">
 			<th colspan="2">
 				{{if .LatestCommitUser}}
-					{{avatar .LatestCommitUser 28 "img-12"}}
+					{{avatar .LatestCommitUser 24}}
 					{{if .LatestCommitUser.FullName}}
 						<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 					{{else}}
@@ -11,7 +11,7 @@
 					{{end}}
 				{{else}}
 					{{if .LatestCommit.Author}}
-						{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 28 "img-12"}}
+						{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}

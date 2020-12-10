@@ -41,10 +41,10 @@
 							<td>{{.ID}}</td>
 							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
 							<td><span class="text truncate email">{{.Email}}</span></td>
-							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
-							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
-							<td><i class="fa fa{{if .IsRestricted}}-check{{end}}-square-o"></i></td>
-							<td><i class="fa fa{{if index $.UsersTwoFaStatus .ID}}-check{{end}}-square-o"></i></td>
+							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if .IsAdmin}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}
@@ -52,7 +52,7 @@
 							{{else}}
 								<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
-							<td><a href="{{$.Link}}/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
+							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

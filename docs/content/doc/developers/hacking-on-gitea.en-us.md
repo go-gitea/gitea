@@ -15,6 +15,8 @@ menu:
 
 # Hacking on Gitea
 
+**Table of Contents**
+
 {{< toc >}}
 
 ## Installing go
@@ -127,9 +129,9 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 
 To run and continously rebuild when source files change:
 
-````bash
+```bash
 make watch
-````
+```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
 
@@ -268,7 +270,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Integration tests
-require  `git lfs` to be installed. Other database tests are available but
+require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
 Look at
