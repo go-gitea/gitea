@@ -1079,67 +1079,18 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if review == nil {
 		review = &Review{ID: 0}
 	}
-	//Find comments
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		ReviewID: review.ID,
 	}
-	conds := opts.toConds()
-	if review.ID == 0 {
-		conds = conds.And(builder.Eq{"invalidated": false})
-	}
 
-	var comments []*Comment
-	if err := e.Where(conds).
-		Asc("comment.created_unix").
-		Asc("comment.id").
-		Find(&comments); err != nil {
-		return nil, err
-	}
-
-	if err := issue.loadRepo(e); err != nil {
-		return nil, err
-	}
-
-	if err := CommentList(comments).loadPosters(e); err != nil {
-		return nil, err
-	}
-
-	// Find all reviews by ReviewID
-	reviews := make(map[int64]*Review)
-	var ids = make([]int64, 0, len(comments))
-	for _, comment := range comments {
-		if comment.ReviewID != 0 {
-			ids = append(ids, comment.ReviewID)
-		}
-	}
-	if err := e.In("id", ids).Find(&reviews); err != nil {
+	comments, err := findCodeComments(e, opts, issue, currentUser, review)
+	if err != nil {
 		return nil, err
 	}
 
 	for _, comment := range comments {
-		if err := comment.LoadResolveDoer(); err != nil {
-			return nil, err
-		}
-
-		if err := comment.LoadReactions(issue.Repo); err != nil {
-			return nil, err
-		}
-
-		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
-			// If the review is pending only the author can see the comments (except the review is set)
-			if review.ID == 0 {
-				if re.Type == ReviewTypePending &&
-					(currentUser == nil || currentUser.ID != re.ReviewerID) {
-					continue
-				}
-			}
-			comment.Review = re
-		}
-
-		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
-			issue.Repo.ComposeMetas()))
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
 		}
@@ -1148,16 +1099,16 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	return pathToLineToComment, nil
 }
 
-// FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, line int64) ([]*Comment, error) {
-	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  issue.ID,
-		TreePath: treePath,
-		Line:     line,
-	}
+func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentUser *User, review *Review) ([]*Comment, error) {
 	var comments []*Comment
-	if err := x.Where(opts.toConds()).
+	if review == nil {
+		review = &Review{ID: 0}
+	}
+	conds := opts.toConds()
+	if review.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+	if err := x.Where(conds).
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
@@ -1184,7 +1135,19 @@ func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, l
 		return nil, err
 	}
 
+	n := 0
 	for _, comment := range comments {
+		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
+			// If the review is pending only the author can see the comments (except if the review is set)
+			if review.ID == 0 && re.Type == ReviewTypePending &&
+				(currentUser == nil || currentUser.ID != re.ReviewerID) {
+				continue
+			}
+			comment.Review = re
+		}
+		comments[n] = comment
+		n++
+
 		if err := comment.LoadResolveDoer(); err != nil {
 			return nil, err
 		}
@@ -1193,19 +1156,21 @@ func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, l
 			return nil, err
 		}
 
-		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
-			// If the review is pending only the author can see the comments (except the review is set)
-			if re.Type == ReviewTypePending &&
-				(currentUser == nil || currentUser.ID != re.ReviewerID) {
-				continue
-			}
-			comment.Review = re
-		}
-
 		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
 			issue.Repo.ComposeMetas()))
 	}
-	return comments, nil
+	return comments[:n], nil
+}
+
+// FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
+func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, line int64) ([]*Comment, error) {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  issue.ID,
+		TreePath: treePath,
+		Line:     line,
+	}
+	return findCodeComments(x, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
