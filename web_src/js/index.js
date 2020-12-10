@@ -1201,6 +1201,12 @@ async function initRepository() {
   }
 }
 
+function initPullRequestMergeInstruction() {
+  $('.show-instruction').on('click', () => {
+    $('.instruct').toggle();
+  });
+}
+
 function initPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -2526,6 +2532,7 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
+  initPullRequestMergeInstruction();
 
   const routes = {
     'div.user.settings': initUserSettings,
