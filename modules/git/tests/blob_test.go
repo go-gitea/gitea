@@ -3,17 +3,23 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package git
+package tests
 
 import (
 	"io/ioutil"
 	"testing"
+
+	// cause provider registration
+
+	"code.gitea.io/gitea/modules/git/service"
+	_ "code.gitea.io/gitea/modules/git/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBlob_Data(t *testing.T) {
+
 	output := `Copyright (c) 2016 The Gitea Authors
 Copyright (c) 2015 The Gogs Authors
 
@@ -35,41 +41,44 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 `
-	repo, err := Service.OpenRepository("../../.git")
-	assert.NoError(t, err)
-	defer repo.Close()
 
-	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
-	assert.NoError(t, err)
+	RunTestPerProvider(t, func(service service.GitService, t *testing.T) {
+		repo, err := service.OpenRepository("../../../.git")
+		assert.NoError(t, err)
+		defer repo.Close()
 
-	r, err := testBlob.Reader()
-	assert.NoError(t, err)
-	require.NotNil(t, r)
-	defer r.Close()
+		testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+		assert.NoError(t, err)
 
-	data, err := ioutil.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Equal(t, output, string(data))
-}
-
-func Benchmark_Blob_Data(b *testing.B) {
-	repo, err := OpenRepository("../../.git")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer repo.Close()
-
-	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	for i := 0; i < b.N; i++ {
 		r, err := testBlob.Reader()
-		if err != nil {
-			b.Fatal(err)
-		}
+		assert.NoError(t, err)
+		require.NotNil(t, r)
 		defer r.Close()
-		ioutil.ReadAll(r)
-	}
+
+		data, err := ioutil.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Equal(t, output, string(data))
+	})
+}
+func Benchmark_Blob_Data(b *testing.B) {
+	RunBenchmarkPerProvider(b, func(service service.GitService, b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			repo, err := service.OpenRepository("../../../.git")
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer repo.Close()
+			testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			r, err := testBlob.Reader()
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer r.Close()
+			ioutil.ReadAll(r)
+		}
+	})
 }
