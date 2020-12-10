@@ -7,7 +7,7 @@
 		<div class="ui user list">
 			{{range .Users}}
 				<div class="item">
-				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
+					{{avatar .}}
 				  <div class="content">
 					<span class="header">
 						<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}

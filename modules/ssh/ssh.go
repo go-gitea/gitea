@@ -186,7 +186,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
-		log.Error("SearchPublicKeyByContent: %v", err)
+		log.Error("SearchPublicKeyByContent: %v Failed authentication attempt from %s", err, ctx.RemoteAddr())
 		return false
 	}
 

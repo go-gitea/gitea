@@ -7,9 +7,11 @@
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a class="ui avatar image" href="{{AppSubUrl}}/{{.User.Name}}"><img src="{{.User.RelAvatarLink}}" alt=""/></a>
+			<a href="{{AppSubUrl}}/{{.User.Name}}">
+				{{avatar .User}}
+			</a>
 		{{else}}
-			<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>
+			{{avatarByEmail .Author.Email .Author.Name}}
 		{{end}}
 
 		<span class="ui float right shabox">

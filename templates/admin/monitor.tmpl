@@ -86,7 +86,7 @@
 							<td>{{.Description}}</td>
 							<td>{{DateFmtLong .Start}}</td>
 							<td>{{TimeSince .Start $.Lang}}</td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}"><i class="close icon text red"></i></a></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}">{{svg "octicon-trashcan" 16 "text-red"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -96,7 +96,7 @@
 </div>
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="close icon"></i>
+		{{svg "octicon-x" 16 "close inside"}}
 		{{.i18n.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">

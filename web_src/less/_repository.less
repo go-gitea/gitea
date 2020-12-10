@@ -8,38 +8,9 @@
       margin-top: 0;
     }
 
-    .ui.huge.breadcrumb {
-      font-weight: 400;
-      font-size: 1.5rem;
-
-      .label {
-        vertical-align: middle;
-        margin-top: -.29165em;
-      }
-
-      &.repo-title .repo-header-icon {
-        display: inline-block;
-        position: relative;
-
-        .avatar {
-          position: absolute;
-          right: 0;
-          bottom: 0;
-          width: 16px;
-          height: 16px;
-          color: #fafafa;
-          box-shadow: 0 0 0 2px;
-          margin: 0;
-        }
-      }
-    }
-
     .fork-flag {
-      margin-left: 36px;
-      margin-top: 3px;
-      display: block;
       font-size: 12px;
-      white-space: nowrap;
+      margin-top: 2px;
     }
 
     .repo-buttons .svg {
@@ -826,8 +797,8 @@
           position: absolute;
           left: -72px;
           img {
-            width: 40px;
-            height: 40px;
+            width: 40px !important;
+            height: 40px !important;
           }
         }
 
@@ -969,7 +940,7 @@
         }
 
         .author {
-          font-weight: 500;
+          font-weight: 600;
         }
 
         .comment-form-reply .footer {
@@ -1186,13 +1157,6 @@
             margin-left: 6px;
           }
         }
-      }
-    }
-
-    .ui.participants {
-      img {
-        margin-top: 5px;
-        margin-right: 5px;
       }
     }
 
@@ -2992,6 +2956,7 @@ tbody.commit-list {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
+  word-break: break-all;
 }
 
 .repo-header .repo-buttons {
@@ -3206,6 +3171,13 @@ td.blob-excerpt {
   }
 }
 
-.migrate .cards .card {
-  text-align: center;
+.repository.migrate .card {
+  transition: all .1s ease-in-out;
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
+}
+
+.repository.migrate .card:hover {
+  transform: scale(105%);
+  box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
 }

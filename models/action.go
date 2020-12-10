@@ -77,7 +77,8 @@ func (a *Action) GetOpType() ActionType {
 	return a.OpType
 }
 
-func (a *Action) loadActUser() {
+// LoadActUser loads a.ActUser
+func (a *Action) LoadActUser() {
 	if a.ActUser != nil {
 		return
 	}
@@ -105,13 +106,13 @@ func (a *Action) loadRepo() {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.Name
 }
 
@@ -138,12 +139,6 @@ func (a *Action) GetDisplayNameTitle() string {
 		return a.ShortActUserName()
 	}
 	return a.GetActFullName()
-}
-
-// GetActAvatar the action's user's avatar link
-func (a *Action) GetActAvatar() string {
-	a.loadActUser()
-	return a.ActUser.RelAvatarLink()
 }
 
 // GetRepoUserName returns the name of the action repository owner.

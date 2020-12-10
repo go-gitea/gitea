@@ -3,7 +3,7 @@ date: "2020-03-19T19:27:00+02:00"
 title: "Install on Kubernetes"
 slug: "install-on-kubernetes"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

@@ -4,7 +4,7 @@ title: "Documentation"
 slug: "documentation"
 url: "/en-us/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
