@@ -282,11 +282,12 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User // the user we want activity for
-	Actor           *User // the user viewing the activity
-	IncludePrivate  bool  // include private actions
-	OnlyPerformedBy bool  // only actions performed by requested user
-	IncludeDeleted  bool  // include deleted actions
+	RequestedUser   *User  // the user we want activity for
+	Actor           *User  // the user viewing the activity
+	IncludePrivate  bool   // include private actions
+	OnlyPerformedBy bool   // only actions performed by requested user
+	IncludeDeleted  bool   // include deleted actions
+	Date            string // the day we want activity for: YYYY-M-D
 }
 
 // GetFeeds returns actions according to the provided options
@@ -331,6 +332,17 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
+	}
+
+	if opts.Date != "" {
+		var dateLow time.Time
+		var dateHigh time.Time
+
+		dateLow, _ = time.Parse("2006-1-2", opts.Date)
+		dateHigh = dateLow.Add(86399000000000) // 23h59m59s
+
+		cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+		cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
 	}
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)

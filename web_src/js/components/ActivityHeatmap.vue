@@ -10,6 +10,7 @@
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
+      @day-click="handleDayClick($event)"
     />
   </div>
 </template>
@@ -40,6 +41,11 @@ export default {
       no_contributions: 'No contributions',
     },
   }),
+  methods: {
+    handleDayClick(event) {
+      window.location.search = `?date=${event.date.getFullYear()}-${event.date.getMonth() + 1}-${event.date.getDate()}`;
+    }
+  },
 };
 </script>
 <style scoped/>
