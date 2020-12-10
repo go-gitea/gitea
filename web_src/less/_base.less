@@ -1679,11 +1679,6 @@ a.ui.basic.label:hover {
   visibility: hidden;
 }
 
-/* prevent stacking context issue on webhook dropdown */
-.ui.segment {
-  position: static;
-}
-
 .ui.segment,
 .ui.segments,
 .ui.attached.segment {
@@ -1712,8 +1707,11 @@ a.ui.basic.label:hover {
 .ui.attached.header .right {
   position: absolute;
   right: .78571429rem;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  height: 30px;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */
