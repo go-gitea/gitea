@@ -2,7 +2,7 @@
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
 		{{if or $.root.AfterCommitID (ne .GetType 4)}}
-			<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+			<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
 				{{if eq .GetType 4}}
 					<td colspan="2" class="lines-num">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
@@ -29,11 +29,11 @@
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk"><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{else}}
-					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}" data-new-comment-url="{{$.root.Issue.HTMLURL}}/files/reviews/new_comment">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}
-				<tr>
+				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
 					<td colspan="2" class="lines-num"></td>
 					<td class="add-comment-left add-comment-right" colspan="2">
 						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
