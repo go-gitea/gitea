@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -227,7 +227,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		s := webhook.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
@@ -237,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.Type),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,

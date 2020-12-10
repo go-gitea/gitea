@@ -31,6 +31,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
 
+{{< toc >}}
+
 ## Overall (`DEFAULT`)
 
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
