@@ -89,25 +89,10 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
 
 	if form.Origin == "diff" {
-		comments, err := models.FetchCodeCommentsByLine(issue, ctx.User, comment.TreePath, comment.Line)
-		if err != nil {
-			ctx.ServerError("FetchCodeCommentsByLine", err)
-			return
-		}
-		ctx.Data["PageIsPullFiles"] = true
-		ctx.Data["comments"] = comments
-		ctx.Data["CanMarkConversation"] = true
-		ctx.Data["Issue"] = issue
-		pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitRefName())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return
-		}
-		ctx.Data["AfterCommitID"] = pullHeadCommitID
-		ctx.HTML(200, tplConversation)
-	} else {
-		ctx.Redirect(comment.HTMLURL())
+		renderConversation(ctx, comment)
+		return
 	}
+	ctx.Redirect(comment.HTMLURL())
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -154,31 +139,35 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if origin == "diff" {
-		comments, err := models.FetchCodeCommentsByLine(comment.Issue, ctx.User, comment.TreePath, comment.Line)
-		if err != nil {
-			ctx.ServerError("FetchCodeCommentsByLine", err)
-			return
-		}
-		ctx.Data["PageIsPullFiles"] = true
-		ctx.Data["comments"] = comments
-		ctx.Data["CanMarkConversation"] = true
-		ctx.Data["Issue"] = comment.Issue
-		if err = comment.Issue.LoadPullRequest(); err != nil {
-			ctx.ServerError("comment.Issue.LoadPullReqiest", err)
-			return
-		}
-		pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitRefName())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return
-		}
-		ctx.Data["AfterCommitID"] = pullHeadCommitID
-		ctx.HTML(200, tplConversation)
-	} else {
-		ctx.JSON(200, map[string]interface{}{
-			"ok": true,
-		})
+		renderConversation(ctx, comment)
+		return
 	}
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+func renderConversation(ctx *context.Context, comment *models.Comment) {
+	comments, err := models.FetchCodeCommentsByLine(comment.Issue, ctx.User, comment.TreePath, comment.Line)
+	if err != nil {
+		ctx.ServerError("FetchCodeCommentsByLine", err)
+		return
+	}
+	ctx.Data["PageIsPullFiles"] = true
+	ctx.Data["comments"] = comments
+	ctx.Data["CanMarkConversation"] = true
+	ctx.Data["Issue"] = comment.Issue
+	if err = comment.Issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+		return
+	}
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.HTML(200, tplConversation)
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

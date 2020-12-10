@@ -1281,7 +1281,7 @@ function initPullRequestReview() {
     $(this).closest('.menu').toggle('visible');
   });
 
-  $('a.add-code-comment').on('click', function (e) {
+  $('a.add-code-comment').on('click', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
@@ -1314,22 +1314,18 @@ function initPullRequestReview() {
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
-      const url = $(this).data('new-comment-url');
-      $.post(url, {
-        _csrf: csrf
-      }, (data) => {
-        td.html(data);
-        commentCloud = td.find('.comment-code-cloud');
-        assingMenuAttributes(commentCloud.find('.menu'));
-        td.find("input[name='line']").val(idx);
-        td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-        td.find("input[name='path']").val(path);
-        const $textarea = commentCloud.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
-        const $simplemde = setCommentSimpleMDE($textarea);
-        $textarea.focus();
-        $simplemde.codemirror.focus();
-      });
+      const data = await $.get($(this).data('new-comment-url'));
+      td.html(data);
+      commentCloud = td.find('.comment-code-cloud');
+      assingMenuAttributes(commentCloud.find('.menu'));
+      td.find("input[name='line']").val(idx);
+      td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
+      td.find("input[name='path']").val(path);
+      const $textarea = commentCloud.find('textarea');
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.focus();
+      $simplemde.codemirror.focus();
     }
   });
 }
@@ -2491,28 +2487,24 @@ $(document).ready(async () => {
     $(e).trigger('click');
   });
 
-  $(document).on('click', '.resolve-conversation', function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
-    const id = $(this).data('comment-id');
+    const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    $.post(url, {
-      _csrf: csrf,
-      origin,
-      action,
-      comment_id: id,
-    }, (data) => {
+    const data = await $.post(url, {_csrf: csrf, origin, action, comment_id});
+
+    if ($(this).closest('.conversation-holder').length) {
       const conversation = $(data);
-      if ($(this).closest('.conversation-holder').replaceWith(conversation)) {
-        conversation.find('.dropdown').dropdown();
-        initReactionSelector(conversation);
-        initClipboard();
-      } else {
-        reload();
-      }
-    });
+      $(this).closest('.conversation-holder').replaceWith(conversation);
+      conversation.find('.dropdown').dropdown();
+      initReactionSelector(conversation);
+      initClipboard();
+    } else {
+      reload();
+    }
   });
 
   buttonsClickOnEnter();
@@ -3631,25 +3623,21 @@ $(document).on('click', 'button[name="is_review"]', (e) => {
   $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
 });
 
-$(document).on('submit', '.conversation-holder form', (e) => {
+$(document).on('submit', '.conversation-holder form', async (e) => {
   e.preventDefault();
   const form = $(e.target);
-  $.post(form.attr('action'), form.serialize(), (data) => {
-    const conversation = $(data);
-    const path = conversation.data('path');
-    const side = conversation.data('side');
-    const idx = conversation.data('idx');
-    const lineType = form.closest('tr').data('line-type');
-    form.closest('.conversation-holder').replaceWith(conversation);
-    if (lineType === 'same') {
-      $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).addClass('invisible');
-    } else {
-      $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
-    }
-    conversation.find('.dropdown').dropdown();
-    initReactionSelector(conversation);
-    initClipboard();
-  });
+  const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
+  const {path, side, idx} = newConversationHolder.data();
+
+  form.closest('.conversation-holder').replaceWith(newConversationHolder);
+  if (form.closest('tr').data('line-type') === 'same') {
+    $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).addClass('invisible');
+  } else {
+    $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
+  }
+  newConversationHolder.find('.dropdown').dropdown();
+  initReactionSelector(newConversationHolder);
+  initClipboard();
 });
 
 window.cancelCodeComment = function (btn) {
