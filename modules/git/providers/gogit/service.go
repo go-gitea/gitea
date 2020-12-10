@@ -8,6 +8,7 @@ import (
 	"errors"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/providers/native"
 	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/util"
@@ -19,6 +20,10 @@ import (
 )
 
 var gitService (service.GitService) = &GitService{}
+
+func init() {
+	git.RegisterService("gogit", gitService)
+}
 
 // GitService represents a complete native git service
 type GitService struct {
