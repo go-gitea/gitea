@@ -1108,18 +1108,18 @@ func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentU
 	if review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
-	if err := x.Where(conds).
+	if err := e.Where(conds).
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
 		return nil, err
 	}
 
-	if err := issue.loadRepo(x); err != nil {
+	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(x); err != nil {
+	if err := CommentList(comments).loadPosters(e); err != nil {
 		return nil, err
 	}
 
@@ -1131,7 +1131,7 @@ func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentU
 			ids = append(ids, comment.ReviewID)
 		}
 	}
-	if err := x.In("id", ids).Find(&reviews); err != nil {
+	if err := e.In("id", ids).Find(&reviews); err != nil {
 		return nil, err
 	}
 
