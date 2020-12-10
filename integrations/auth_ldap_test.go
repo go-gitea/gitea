@@ -172,14 +172,14 @@ func TestLDAPUserSync(t *testing.T) {
 		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
 		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
 		if u.IsAdmin {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-check-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-check"))
 		} else {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-x"))
 		}
 		if u.IsRestricted {
-			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-check-square-o"))
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-check"))
 		} else {
-			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-square-o"))
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-x"))
 		}
 	}
 
