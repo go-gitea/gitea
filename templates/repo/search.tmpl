@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository file list">
+<div class="page-content repository file list">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui repo-search">
@@ -48,15 +48,7 @@
 								</table>
 							</div>
 						</div>
-						<div class="ui bottom attached table segment">
-							{{if $result.Language}}
-							<i class="color-icon" style="background-color: {{$result.Color}}"></i>{{$result.Language}}
-							{{end}}
-							&nbsp;
-							{{if not $result.UpdatedUnix.IsZero}}
-							<span class="ui small grey text pull right">{{$.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix $result.UpdatedUnix $.i18n.Lang) | Safe}} &nbsp;</span>
-							{{end}}
-						</div>
+						{{template "shared/searchbottom" dict "root" $ "result" .}}
 					</div>
 				{{end}}
 			</div>

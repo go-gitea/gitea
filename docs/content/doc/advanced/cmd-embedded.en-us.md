@@ -3,7 +3,7 @@ date: "2020-01-25T21:00:00-03:00"
 title: "Embedded data extraction tool"
 slug: "cmd-embedded"
 weight: 40
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,10 @@ menu:
 ---
 
 # Embedded data extraction tool
+
+**Table of Contents**
+
+{{< toc >}}
 
 Gitea's executable contains all the resources required to run: templates, images, style-sheets
 and translations. Any of them can be overridden by placing a replacement in a matching path
@@ -28,7 +32,7 @@ can be used from the OS shell interface.
 
 To list resources embedded in Gitea's executable, use the following syntax:
 
-```
+```sh
 gitea embedded list [--include-vendored] [patterns...]
 ```
 
@@ -48,11 +52,11 @@ a special meaning for your command shell.
 
 If no pattern is provided, all files are listed.
 
-#### Example
+### Example
 
 Listing all embedded files with `openid` in their path:
 
-```
+```sh
 $ gitea embedded list '**openid**'
 public/img/auth/openid_connect.svg
 public/img/openid-16x16.png
@@ -68,7 +72,7 @@ templates/user/settings/security_openid.tmpl
 
 To extract resources embedded in Gitea's executable, use the following syntax:
 
-```
+```sh
 gitea [--config {file}] embedded extract [--destination {dir}|--custom] [--overwrite|--rename] [--include-vendored] {patterns...}
 ```
 
@@ -91,7 +95,7 @@ as `filename.bak`. Previous `.bak` files are overwritten.
 At least one file search pattern must be provided; see `list` subcomand above for pattern
 syntax and examples.
 
-#### Important notice
+### Important notice
 
 Make sure to **only extract those files that require customization**. Files that
 are present in the `custom` directory are not upgraded by Gitea's upgrade process.
@@ -99,11 +103,11 @@ When Gitea is upgraded to a new version (by replacing the executable), many of t
 embedded files will suffer changes. Gitea will honor and use any files found
 in the `custom` directory, even if they are old and incompatible.
 
-#### Example
+### Example
 
 Extracting mail templates to a temporary directory:
 
-```
+```sh
 $ mkdir tempdir
 $ gitea embedded extract --destination tempdir 'templates/mail/**.tmpl'
 Extracting to tempdir:

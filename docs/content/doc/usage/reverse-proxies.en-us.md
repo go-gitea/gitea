@@ -3,7 +3,7 @@ date: "2018-05-22T11:00:00+00:00"
 title: "Usage: Reverse Proxies"
 slug: "reverse-proxies"
 weight: 17
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -13,10 +13,17 @@ menu:
     identifier: "reverse-proxies"
 ---
 
-##  Using Nginx as a reverse proxy
+# Reverse Proxies
+
+**Table of Contents**
+
+{{< toc >}}
+
+## Nginx
+
 If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:
 
-```
+```apacheconf
 server {
     listen 80;
     server_name git.example.com;
@@ -27,11 +34,11 @@ server {
 }
 ```
 
-## Using Nginx with a sub-path as a reverse proxy
+## Nginx with a sub-path
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
 
-```
+```apacheconf
 server {
     listen 80;
     server_name git.example.com;
@@ -44,7 +51,8 @@ server {
 
 Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
 
-##  Using Nginx as a reverse proxy and serve static resources directly
+## Nginx and serve static resources directly
+
 We can tune the performance in splitting requests into categories static and dynamic.
 
 CSS files, JavaScript files, images and web fonts are static content.
@@ -52,20 +60,20 @@ The front page, a repository view or issue list is dynamic content.
 
 Nginx can serve static resources directly and proxy only the dynamic requests to gitea.
 Nginx is optimized for serving static content, while the proxying of large responses might be the opposite of that
- (see https://serverfault.com/q/587386).
+(see https://serverfault.com/q/587386).
 
 Download a snapshot of the Gitea source repository to `/path/to/gitea/`.
 After this, run `make frontend` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
 (You will need to have [Node with npm](https://nodejs.org/en/download/) and `make` installed to generate the static resources)
 
 Depending on the scale of your user base, you might want to split the traffic to two distinct servers,
- or use a cdn for the static files.
+or use a cdn for the static files.
 
-### using a single node and a single domain
+### Single node and single domain
 
 Set `[server] STATIC_URL_PREFIX = /_/static` in your configuration.
 
-```
+```apacheconf
 server {
     listen 80;
     server_name git.example.com;
@@ -80,11 +88,11 @@ server {
 }
 ```
 
-### using two nodes and two domains
+### Two nodes and two domains
 
 Set `[server] STATIC_URL_PREFIX = http://cdn.example.com/gitea` in your configuration.
 
-```
+```apacheconf
 # application server running gitea
 server {
     listen 80;
@@ -96,7 +104,7 @@ server {
 }
 ```
 
-```
+```apacheconf
 # static content delivery server
 server {
     listen 80;
@@ -112,11 +120,11 @@ server {
 }
 ```
 
-## Using Apache HTTPD as a reverse proxy
+## Apache HTTPD
 
 If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
 
-```
+```apacheconf
 <VirtualHost *:80>
     ...
     ProxyPreserveHost On
@@ -131,11 +139,11 @@ Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
 If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
 
-## Using Apache HTTPD with a sub-path as a reverse proxy
+## Apache HTTPD with a sub-path
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Apache HTTPD to serve Gitea under a sub-path by adding the following to you Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
 
-```
+```apacheconf
 <VirtualHost *:80>
     ...
     <Proxy *>
@@ -153,11 +161,11 @@ Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
-## Using Caddy as a reverse proxy
+## Caddy
 
 If you want Caddy to serve your Gitea instance, you can add the following server block to your Caddyfile:
 
-```
+```apacheconf
 git.example.com {
     reverse_proxy localhost:3000
 }
@@ -165,17 +173,17 @@ git.example.com {
 
 If you still use Caddy v1, use:
 
-```
+```apacheconf
 git.example.com {
     proxy / localhost:3000
 }
 ```
 
-## Using Caddy with a sub-path as a reverse proxy
+## Caddy with a sub-path
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Caddy to serve Gitea under a sub-path by adding the following to your server block in your Caddyfile:
 
-```
+```apacheconf
 git.example.com {
     route /git/* {
         uri strip_prefix /git
@@ -186,7 +194,7 @@ git.example.com {
 
 Or, for Caddy v1:
 
-```
+```apacheconf
 git.example.com {
     proxy /git/ localhost:3000
 }
@@ -194,20 +202,21 @@ git.example.com {
 
 Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
 
-## Using IIS as a reverse proxy
+## IIS
 
 If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite as reverse proxy.
 
 1. Setup an empty website in IIS, named let's say, `Gitea Proxy`.
 2. Follow the first two steps in [Microsoft's Technical Community Guide to Setup IIS with URL Rewrite](https://techcommunity.microsoft.com/t5/iis-support-blog/setup-iis-with-url-rewrite-as-a-reverse-proxy-for-real-world/ba-p/846222#M343). That is:
-  - Install Application Request Routing (ARR for short) either by using the Microsoft Web Platform Installer 5.1 (WebPI) or downloading the extension from [IIS.net]( https://www.iis.net/downloads/microsoft/application-request-routing)
-  - Once the module is installed in IIS, you will see a new Icon in the IIS Administration Console called URL Rewrite.
-  - Open the IIS Manager Console and click on the `Gitea Proxy` Website from the tree view on the left. Select and double click the URL Rewrite Icon from the middle pane to load the URL Rewrite interface.
-  - Choose the `Add Rule` action from the right pane of the management console and select the `Reverse Proxy Rule` from the `Inbound and Outbound Rules` category.
-  - In the Inbound Rules section, set the server name to be the host that Gitea is running on with its port. e.g. if you are running Gitea on the localhost with port 3000, the following should work: `127.0.0.1:3000`
-  - Enable SSL Offloading
-  - In the Outbound Rules, ensure `Rewrite the domain names of the links in HTTP response` is set and set the `From:` field as above and the `To:` to your external hostname, say: `git.example.com`
-  - Now edit the `web.config` for your website to match the following: (changing `127.0.0.1:3000` and `git.example.com` as appropriate)
+
+- Install Application Request Routing (ARR for short) either by using the Microsoft Web Platform Installer 5.1 (WebPI) or downloading the extension from [IIS.net](https://www.iis.net/downloads/microsoft/application-request-routing)
+- Once the module is installed in IIS, you will see a new Icon in the IIS Administration Console called URL Rewrite.
+- Open the IIS Manager Console and click on the `Gitea Proxy` Website from the tree view on the left. Select and double click the URL Rewrite Icon from the middle pane to load the URL Rewrite interface.
+- Choose the `Add Rule` action from the right pane of the management console and select the `Reverse Proxy Rule` from the `Inbound and Outbound Rules` category.
+- In the Inbound Rules section, set the server name to be the host that Gitea is running on with its port. e.g. if you are running Gitea on the localhost with port 3000, the following should work: `127.0.0.1:3000`
+- Enable SSL Offloading
+- In the Outbound Rules, ensure `Rewrite the domain names of the links in HTTP response` is set and set the `From:` field as above and the `To:` to your external hostname, say: `git.example.com`
+- Now edit the `web.config` for your website to match the following: (changing `127.0.0.1:3000` and `git.example.com` as appropriate)
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

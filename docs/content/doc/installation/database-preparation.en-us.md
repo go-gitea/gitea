@@ -3,7 +3,7 @@ date: "2020-01-16"
 title: "Database Preparation"
 slug: "database-prep"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -13,11 +13,17 @@ menu:
     identifier: "database-prep"
 ---
 
+# Database Preparation
+
 You need a database to use Gitea. Gitea supports PostgreSQL, MySQL, SQLite, and MSSQL. This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
-Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password.  The steps assumes that you run Linux for both database and Gitea servers.
+Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password. The steps assumes that you run Linux for both database and Gitea servers.
+
+**Table of Contents**
+
+{{< toc >}}
 
 ## MySQL
 
@@ -26,6 +32,7 @@ Note: All steps below requires that the database engine of your choice is instal
     ```ini
     bind-address = 203.0.113.3
     ```
+
 2.  On database instance, login to database console as root:
 
     ```
@@ -54,7 +61,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
-4.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+4.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond _Basic Multilingual Plane_. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
     CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
@@ -183,9 +190,9 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
 
 1.  On the server with the database instance, place the following credentials:
 
-    -  `/path/to/postgresql.crt`: Database instance certificate
-    -  `/path/to/postgresql.key`: Database instance private key
-    -  `/path/to/root.crt`: CA certificate chain to validate client certificates
+    - `/path/to/postgresql.crt`: Database instance certificate
+    - `/path/to/postgresql.key`: Database instance private key
+    - `/path/to/root.crt`: CA certificate chain to validate client certificates
 
 2.  Add following options to `postgresql.conf`:
 
@@ -224,9 +231,9 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
 
 6.  On the server running the Gitea instance, place the following credentials under the home directory of the user who runs Gitea (e.g. `git`):
 
-    -  `~/.postgresql/postgresql.crt`: Database client certificate
-    -  `~/.postgresql/postgresql.key`: Database client private key
-    -  `~/.postgresql/root.crt`: CA certificate chain to validate server certificate
+    - `~/.postgresql/postgresql.crt`: Database client certificate
+    - `~/.postgresql/postgresql.key`: Database client private key
+    - `~/.postgresql/root.crt`: CA certificate chain to validate server certificate
 
     Note: Those file names above are hardcoded in PostgreSQL and it is not possible to change them.
 
@@ -245,19 +252,17 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
 
     You should be prompted to enter password for the database user, and then be connected to the database.
 
-
 ### MySQL
 
 While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
 
 In one-way TLS, the database client verifies the certificate sent from server during the connection handshake, and the server assumes that the connected client is legitimate, since client certificate verification doesn't take place.
 
-
 1.  On the database instance, place the following credentials:
 
-    -  `/path/to/mysql.crt`: Database instance certificate
-    -  `/path/to/mysql.key`: Database instance key
-    -  `/path/to/ca.crt`: CA certificate chain. This file isn't used on one-way TLS, but is used to validate client certificates on two-way TLS.
+    - `/path/to/mysql.crt`: Database instance certificate
+    - `/path/to/mysql.key`: Database instance key
+    - `/path/to/ca.crt`: CA certificate chain. This file isn't used on one-way TLS, but is used to validate client certificates on two-way TLS.
 
 2.  Add following options to `my.cnf`:
 
