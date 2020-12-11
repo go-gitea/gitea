@@ -82,12 +82,14 @@
 					<div class="ui {{if not .Authors}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.filter_author"}}
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 							<div class="menu">
 								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_author_no_select"}}</a>
 								{{range .Authors}}
-									<a class="{{if eq $.AuthorID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.GetDisplayName}}</a>
+									<a class="{{if eq $.AuthorID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{.ID}}">
+										{{avatar .}}
+									</a>
 								{{end}}
 							</div>
 						</div>
@@ -101,7 +103,7 @@
 							</span>
 							<div class="menu">
 								<a class="{{if eq .ViewType "all"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{$.AuthorID}}">{{.i18n.Tr "repo.issues.filter_type.all_issues"}}</a>
-								<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{$.AuthorID}}&author={{$.AuthorID}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+								<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{$.AuthorID}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 								<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{$.AuthorID}}">{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}</a>
 								<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{$.AuthorID}}">{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 							</div>
