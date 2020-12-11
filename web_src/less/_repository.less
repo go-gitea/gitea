@@ -1563,29 +1563,8 @@
     display: flex;
     align-items: center;
 
-    .count {
-      margin-right: 12px;
-      font-size: 13px;
-      flex: 0 0 auto;
-
-      .bar {
-        background-color: var(--color-red);
-        height: 12px;
-        width: 40px;
-        display: inline-block;
-        margin: 2px 4px 0;
-        vertical-align: text-top;
-
-        .add {
-          background-color: var(--color-green);
-          height: 12px;
-        }
-      }
-    }
-
     .file {
       flex: 1;
-      color: var(--color-text-light-2);
       word-break: break-all;
     }
 
@@ -3140,6 +3119,22 @@ td.blob-excerpt {
 
 .diff-file-box[data-folded="true"] .diff-file-header {
   border-radius: var(--border-radius) !important;
+}
+
+.diff-stats-bar {
+  display: inline-block;
+  margin-left: .5rem;
+  margin-right: .75rem;
+  background-color: var(--color-red);
+  height: 12px;
+  width: 40px;
+  position: relative;
+  top: 2px;
+
+  .diff-stats-add-bar {
+    background-color: var(--color-green);
+    height: 100%;
+  }
 }
 
 /* prevent page shaking on language bar click */
