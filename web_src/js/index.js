@@ -2131,20 +2131,19 @@ function initCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', 'a.load-diff', async ({currentTarget}) => {
-    $(currentTarget).prev().addClass("active");
-    $(currentTarget).css("visibility", "hidden");
+    $(currentTarget).prev().addClass('active');
+    $(currentTarget).css('visibility', 'hidden');
     const {url, before, path, pull} = currentTarget.dataset;
-    const diff = await $.get(`${url}?before=${before}&path=${path}&pull=${pull}`, function() {
-}).fail(function() {
-    $(currentTarget).prev().removeClass("active");
-    // TODO a proper error
-    currentTarget.closest('tr').innerHTML = '<div class="p-5">Sorry an error occured</div>'
-  }).always(function() {
-    $(currentTarget).prev().removeClass("active");
-  });
+    const diff = await $.get(`${url}?before=${before}&path=${path}&pull=${pull}`, () => {
+    }).fail(() => {
+      $(currentTarget).prev().removeClass('active');
+      // TODO a proper error
+      currentTarget.closest('tr').innerHTML = '<div class="p-5">Sorry an error occured</div>';
+    }).always(() => {
+      $(currentTarget).prev().removeClass('active');
+    });
     currentTarget.closest('tbody').innerHTML = diff;
   });
-
 }
 
 function initU2FAuth() {
