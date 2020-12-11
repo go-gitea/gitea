@@ -3,7 +3,7 @@ date: "2019-10-15T10:10:00+05:00"
 title: "Usage: Email setup"
 slug: "email-setup"
 weight: 12
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,11 +15,17 @@ menu:
 
 # Email setup
 
+**Table of Contents**
+
+{{< toc >}}
+
 To use Gitea's built-in Email support, update the `app.ini` config file [mailer] section:
 
 ## Sendmail version
+
 Use the operating system’s sendmail command instead of SMTP. This is common on Linux servers.  
 Note: For use in the official Gitea Docker image, please configure with the SMTP version.
+
 ```ini
 [mailer]
 ENABLED       = true
@@ -29,6 +35,7 @@ SENDMAIL_PATH = /usr/sbin/sendmail
 ```
 
 ## SMTP version
+
 ```ini
 [mailer]
 ENABLED        = true

@@ -101,6 +101,9 @@ issues:
     - path: cmd/dump.go
       linters:
         - dupl
+    - path: services/webhook/webhook.go
+      linters:
+        - structcheck
     - text: "commentFormatting: put a space between `//` and comment text"
       linters:
         - gocritic

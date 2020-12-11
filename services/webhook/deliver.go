@@ -78,7 +78,7 @@ func Deliver(t *models.HookTask) error {
 			return err
 		}
 	case http.MethodPut:
-		switch t.Type {
+		switch t.Typ {
 		case models.MATRIX:
 			req, err = getMatrixHookRequest(t)
 			if err != nil {
