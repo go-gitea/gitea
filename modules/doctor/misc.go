@@ -77,7 +77,7 @@ func checkEnablePushOptions(logger log.Logger, autofix bool) error {
 	numNeedUpdate := 0
 	if err := iterateRepositories(func(repo *models.Repository) error {
 		numRepos++
-		r, err := git.OpenRepository(repo.RepoPath())
+		r, err := git.Service.OpenRepository(repo.RepoPath())
 		if err != nil {
 			return err
 		}

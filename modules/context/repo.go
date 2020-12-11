@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -55,9 +56,9 @@ type Repository struct {
 	IsViewCommit bool
 	Repository   *models.Repository
 	Owner        *models.User
-	Commit       *git.Commit
-	Tag          *git.Tag
-	GitRepo      *git.Repository
+	Commit       service.Commit
+	Tag          service.Tag
+	GitRepo      service.Repository
 	BranchName   string
 	TagName      string
 	TreePath     string
@@ -207,7 +208,7 @@ func (r *Repository) FileExists(path string, branch string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if _, err := commit.GetTreeEntryByPath(path); err != nil {
+	if _, err := commit.Tree().GetTreeEntryByPath(path); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -223,14 +224,14 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
+	treeEntry, err := commit.Tree().GetTreeEntryByPath(".editorconfig")
 	if err != nil {
 		return nil, err
 	}
-	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+	if treeEntry.Size() >= setting.UI.MaxDisplayFileSize {
 		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob().Reader()
+	reader, err := treeEntry.Reader()
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +523,7 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+		gitRepo, err := git.Service.OpenRepository(models.RepoPath(userName, repoName))
 		if err != nil {
 			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
 			return
@@ -722,7 +723,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.Service.OpenRepository(repoPath)
 			if err != nil {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
@@ -758,7 +759,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.ServerError("GetBranchCommit", err)
 				return
 			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID().String()
 			ctx.Repo.IsViewBranch = true
 
 		} else {
@@ -772,7 +773,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					ctx.ServerError("GetBranchCommit", err)
 					return
 				}
-				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+				ctx.Repo.CommitID = ctx.Repo.Commit.ID().String()
 
 			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
@@ -781,7 +782,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					ctx.ServerError("GetTagCommit", err)
 					return
 				}
-				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+				ctx.Repo.CommitID = ctx.Repo.Commit.ID().String()
 			} else if len(refName) >= 7 && len(refName) <= 40 {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
@@ -794,7 +795,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
 					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
-						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID().String(), 1))))
 				}
 			} else {
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
@@ -868,7 +869,7 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 	}
 
 	for _, dirName := range IssueTemplateDirCandidates {
-		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		tree, err := ctx.Repo.Commit.Tree().SubTree(dirName)
 		if err != nil {
 			continue
 		}
@@ -878,11 +879,11 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 		}
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".md") {
-				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+				if entry.Size() >= setting.UI.MaxDisplayFileSize {
 					log.Debug("Issue template is too large: %s", entry.Name())
 					continue
 				}
-				r, err := entry.Blob().Reader()
+				r, err := entry.Reader()
 				if err != nil {
 					log.Debug("Reader: %v", err)
 					continue

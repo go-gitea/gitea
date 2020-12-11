@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -185,7 +186,7 @@ func SearchCommits(ctx *context.Context) {
 	}
 
 	all := ctx.QueryBool("all")
-	opts := git.NewSearchCommitsOptions(query, all)
+	opts := service.NewSearchCommitsOptions(query, all)
 	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
@@ -218,7 +219,7 @@ func FileHistory(ctx *context.Context) {
 	}
 
 	branchName := ctx.Repo.BranchName
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName)
+	commitsCount, err := git.Service.FileCommitsCount(ctx.Repo.GitRepo, branchName, fileName)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -232,7 +233,7 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(branchName, fileName, page)
+	commits, err := git.Service.CommitsByFileAndRange(ctx.Repo.GitRepo, branchName, fileName, page, git.CommitsRangeSize)
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
@@ -266,13 +267,13 @@ func Diff(ctx *context.Context) {
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Params(":sha")
 	var (
-		gitRepo  *git.Repository
+		gitRepo  service.Repository
 		err      error
 		repoPath string
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.Service.OpenRepository(ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -293,7 +294,7 @@ func Diff(ctx *context.Context) {
 		return
 	}
 	if len(commitID) != 40 {
-		commitID = commit.ID.String()
+		commitID = commit.ID().String()
 	}
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, commitID, 0)
@@ -326,7 +327,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 
-	var parentCommit *git.Commit
+	var parentCommit service.Commit
 	if commit.ParentCount() > 0 {
 		parentCommit, err = gitRepo.GetCommit(parents[0])
 		if err != nil {

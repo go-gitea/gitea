@@ -132,7 +132,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			t.Parallel()
 			assert.NoError(t, AddWikiPage(doer, repo, wikiName, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			gitRepo, err := git.Service.OpenRepository(repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
@@ -175,7 +175,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepository(repo.WikiPath())
+		gitRepo, err := git.Service.OpenRepository(repo.WikiPath())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
@@ -199,7 +199,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	gitRepo, err := git.Service.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")

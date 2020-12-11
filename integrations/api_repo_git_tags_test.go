@@ -28,34 +28,34 @@ func TestAPIGitTags(t *testing.T) {
 	git.NewCommand("config", "user.name", user.Name).RunInDir(repo.RepoPath())
 	git.NewCommand("config", "user.email", user.Email).RunInDir(repo.RepoPath())
 
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	gitRepo, _ := git.Service.OpenRepository(repo.RepoPath())
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit("master")
 	lTagName := "lightweightTag"
-	gitRepo.CreateTag(lTagName, commit.ID.String())
+	gitRepo.CreateTag(lTagName, commit.ID().String())
 
 	aTagName := "annotatedTag"
 	aTagMessage := "my annotated message"
-	gitRepo.CreateAnnotatedTag(aTagName, aTagMessage, commit.ID.String())
+	gitRepo.CreateAnnotatedTag(aTagName, aTagMessage, commit.ID().String())
 	aTag, _ := gitRepo.GetTag(aTagName)
 
 	// SHOULD work for annotated tags
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, aTag.ID.String(), token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, aTag.ID().String(), token)
 	res := session.MakeRequest(t, req, http.StatusOK)
 
 	var tag *api.AnnotatedTag
 	DecodeJSON(t, res, &tag)
 
 	assert.Equal(t, aTagName, tag.Tag)
-	assert.Equal(t, aTag.ID.String(), tag.SHA)
-	assert.Equal(t, commit.ID.String(), tag.Object.SHA)
+	assert.Equal(t, aTag.ID().String(), tag.SHA)
+	assert.Equal(t, commit.ID().String(), tag.Object.SHA)
 	assert.Equal(t, aTagMessage, tag.Message)
 	assert.Equal(t, user.Name, tag.Tagger.Name)
 	assert.Equal(t, user.Email, tag.Tagger.Email)
-	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)
+	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID().String()), tag.URL)
 
 	// Should NOT work for lightweight tags
-	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, commit.ID.String(), token)
+	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, commit.ID().String(), token)
 	session.MakeRequest(t, badReq, http.StatusBadRequest)
 }

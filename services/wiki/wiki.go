@@ -121,7 +121,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.Service.OpenRepository(basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -129,7 +129,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 	defer gitRepo.Close()
 
 	if hasMasterBranch {
-		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+		if err := git.Service.ReadTreeToIndex(gitRepo, "HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
 			return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 		}
@@ -137,7 +137,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 
 	newWikiPath := NameToFilename(newWikiName)
 	if isNew {
-		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
+		filesInIndex, err := git.Service.LsFiles(gitRepo, newWikiPath)
 		if err != nil {
 			log.Error("%v", err)
 			return err
@@ -149,14 +149,14 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 	} else {
 		oldWikiPath := NameToFilename(oldWikiName)
-		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
+		filesInIndex, err := git.Service.LsFiles(gitRepo, oldWikiPath)
 		if err != nil {
 			log.Error("%v", err)
 			return err
 		}
 
 		if util.IsStringInSlice(oldWikiPath, filesInIndex) {
-			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
+			err := git.Service.RemoveFilesFromIndex(gitRepo, oldWikiPath)
 			if err != nil {
 				log.Error("%v", err)
 				return err
@@ -172,12 +172,12 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return err
 	}
 
-	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+	if err := git.Service.AddObjectToIndex(gitRepo, "100644", objectHash, newWikiPath); err != nil {
 		log.Error("%v", err)
 		return err
 	}
 
-	tree, err := gitRepo.WriteTree()
+	tree, err := git.Service.WriteTree(gitRepo)
 	if err != nil {
 		log.Error("%v", err)
 		return err
@@ -268,7 +268,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.Service.OpenRepository(basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)

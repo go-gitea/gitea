@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,7 +32,7 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *models.Repository, b service.Branch, c service.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var err error
@@ -43,7 +44,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 		}
 
 		return &api.Branch{
-			Name:                b.Name,
+			Name:                b.Name(),
 			Commit:              ToPayloadCommit(repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
@@ -55,7 +56,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 	}
 
 	branch := &api.Branch{
-		Name:                b.Name,
+		Name:                b.Name(),
 		Commit:              ToPayloadCommit(repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
@@ -134,26 +135,26 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 }
 
 // ToTag convert a git.Tag to an api.Tag
-func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+func ToTag(repo *models.Repository, t service.Tag) *api.Tag {
 	return &api.Tag{
-		Name:       t.Name,
-		ID:         t.ID.String(),
+		Name:       t.Name(),
+		ID:         t.ID().String(),
 		Commit:     ToCommitMeta(repo, t),
-		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name()+".zip"),
+		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name()+".tar.gz"),
 	}
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
-func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
+func ToVerification(c service.Commit) *api.PayloadCommitVerification {
 	verif := models.ParseCommitWithSignature(c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
 	}
-	if c.Signature != nil {
-		commitVerification.Signature = c.Signature.Signature
-		commitVerification.Payload = c.Signature.Payload
+	if c.Signature() != nil {
+		commitVerification.Signature = c.Signature().Signature
+		commitVerification.Payload = c.Signature().Payload
 	}
 	if verif.SigningUser != nil {
 		commitVerification.Signer = &structs.PayloadUser{
@@ -303,24 +304,24 @@ func ToTeam(team *models.Team) *api.Team {
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+func ToAnnotatedTag(repo *models.Repository, t service.Tag, c service.Commit) *api.AnnotatedTag {
 	return &api.AnnotatedTag{
-		Tag:          t.Name,
-		SHA:          t.ID.String(),
+		Tag:          t.Name(),
+		SHA:          t.ID().String(),
 		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
-		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
-		Tagger:       ToCommitUser(t.Tagger),
+		Message:      t.Message(),
+		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID().String()),
+		Tagger:       ToCommitUser(t.Tagger()),
 		Verification: ToVerification(c),
 	}
 }
 
 // ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
-func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+func ToAnnotatedTagObject(repo *models.Repository, commit service.Commit) *api.AnnotatedTagObject {
 	return &api.AnnotatedTagObject{
-		SHA:  commit.ID.String(),
-		Type: string(git.ObjectCommit),
-		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+		SHA:  commit.ID().String(),
+		Type: string(service.ObjectCommit),
+		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID().String()),
 	}
 }
 

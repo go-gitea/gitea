@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
@@ -19,9 +20,9 @@ import (
 // Optional - Merger
 func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	var (
-		baseBranch *git.Branch
-		headBranch *git.Branch
-		baseCommit *git.Commit
+		baseBranch service.Branch
+		headBranch service.Branch
+		baseCommit service.Commit
 		err        error
 	)
 
@@ -91,7 +92,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 
 		if err == nil {
-			apiPullRequest.Base.Sha = baseCommit.ID.String()
+			apiPullRequest.Base.Sha = baseCommit.ID().String()
 		}
 	}
 
@@ -99,7 +100,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
 
-		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+		headGitRepo, err := git.Service.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -129,7 +130,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			}
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
-				apiPullRequest.Head.Sha = commit.ID.String()
+				apiPullRequest.Head.Sha = commit.ID().String()
 			}
 		}
 	}

@@ -77,7 +77,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}

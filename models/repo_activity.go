@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 
 	"xorm.io/xorm"
 )
@@ -36,12 +37,12 @@ type ActivityStats struct {
 	UnresolvedIssues            IssueList
 	PublishedReleases           []*Release
 	PublishedReleaseAuthorCount int64
-	Code                        *git.CodeActivityStats
+	Code                        *gitservice.CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
 func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
-	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
+	stats := &ActivityStats{Code: &gitservice.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %v", err)
@@ -61,7 +62,7 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
 	if code {
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
@@ -78,7 +79,7 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}

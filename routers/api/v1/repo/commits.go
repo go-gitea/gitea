@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/validation"
@@ -61,7 +62,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
@@ -127,7 +128,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
@@ -145,7 +146,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	sha := ctx.Query("sha")
 
-	var baseCommit *git.Commit
+	var baseCommit service.Commit
 	if len(sha) == 0 {
 		// no sha supplied - use default branch
 		head, err := gitRepo.GetHEADBranch()
@@ -154,7 +155,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
+		baseCommit, err = gitRepo.GetBranchCommit(head.Name())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
@@ -190,7 +191,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	i := 0
 	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		commit := commitPointer.Value.(*git.Commit)
+		commit := commitPointer.Value.(service.Commit)
 
 		// Create json struct
 		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)

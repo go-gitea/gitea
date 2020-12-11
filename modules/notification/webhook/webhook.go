@@ -685,7 +685,7 @@ func (m *webhookNotifier) NotifyCreateRef(pusher *models.User, repo *models.Repo
 	apiRepo := convert.ToRepo(repo, models.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
 		return

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
@@ -146,7 +147,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
+	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, service.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
@@ -157,7 +158,7 @@ func DeleteBranch(ctx *context.APIContext) {
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
-			OldCommitID:  c.ID.String(),
+			OldCommitID:  c.ID().String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     ctx.User.ID,
 			PusherName:   ctx.User.Name,
@@ -167,7 +168,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		log.Error("Update: %v", err)
 	}
 
-	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, c.ID.String(), ctx.User.ID); err != nil {
+	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, c.ID().String(), ctx.User.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 
@@ -249,7 +250,7 @@ func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branch.Name)
+	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branch.Name())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -299,7 +300,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return

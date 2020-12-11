@@ -685,14 +685,14 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		}
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
+	entry, err := ctx.Repo.Commit.Tree().GetTreeEntryByPath(filename)
 	if err != nil {
 		return "", false
 	}
-	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+	if entry.Size() >= setting.UI.MaxDisplayFileSize {
 		return "", false
 	}
-	r, err := entry.Blob().Reader()
+	r, err := entry.Reader()
 	if err != nil {
 		return "", false
 	}

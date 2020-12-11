@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -54,7 +55,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 
 	var (
 		repo    *Repository
-		gitRepo *git.Repository
+		gitRepo gitservice.Repository
 		user    *User
 	)
 	defer func() {
@@ -107,7 +108,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = git.Service.OpenRepository(repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					return err
 				}
@@ -118,14 +119,14 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				return fmt.Errorf("GetTagCommit: %v", err)
 			}
 
-			if user == nil || !strings.EqualFold(user.Email, commit.Author.Email) {
+			if user == nil || !strings.EqualFold(user.Email, commit.Author().Email) {
 				user = new(User)
-				_, err = sess.Where("email=?", commit.Author.Email).Get(user)
+				_, err = sess.Where("email=?", commit.Author().Email).Get(user)
 				if err != nil {
 					return err
 				}
 
-				user.Email = commit.Author.Email
+				user.Email = commit.Author().Email
 			}
 
 			if user.ID <= 0 {

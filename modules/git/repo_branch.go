@@ -77,31 +77,6 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 	}, nil
 }
 
-// GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
-	gitRepo, err := OpenRepository(path)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	brs, err := gitRepo.GetBranches()
-	if err != nil {
-		return nil, err
-	}
-
-	branches := make([]*Branch, len(brs))
-	for i := range brs {
-		branches[i] = &Branch{
-			Path:    path,
-			Name:    brs[i],
-			gitRepo: gitRepo,
-		}
-	}
-
-	return branches, nil
-}
-
 // DeleteBranchOptions Option(s) for delete branch
 type DeleteBranchOptions struct {
 	Force bool

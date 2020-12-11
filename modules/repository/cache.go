@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -23,7 +24,7 @@ func getRefName(fullRefName string) string {
 }
 
 // CacheRef cachhe last commit information of the branch or the tag
-func CacheRef(repo *models.Repository, gitRepo *git.Repository, fullRefName string) error {
+func CacheRef(repo *models.Repository, gitRepo service.Repository, fullRefName string) error {
 	if !setting.CacheService.LastCommit.Enabled {
 		return nil
 	}

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -351,7 +352,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
 
-	baseGitRepo, err := git.OpenRepository(pull.BaseRepo.RepoPath())
+	baseGitRepo, err := git.Service.OpenRepository(pull.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil
@@ -402,7 +403,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
+		headGitRepo, err := git.Service.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -576,7 +577,7 @@ func ViewPullFiles(ctx *context.Context) {
 		diffRepoPath  string
 		startCommitID string
 		endCommitID   string
-		gitRepo       *git.Repository
+		gitRepo       service.Repository
 	)
 
 	var headTarget string
@@ -1125,14 +1126,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
 
-	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 		return
 	}
 	defer gitRepo.Close()
 
-	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitBaseRepo, err := git.Service.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 		return

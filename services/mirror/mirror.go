@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -249,7 +250,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 	output := stderrBuilder.String()
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
@@ -416,12 +417,12 @@ func syncMirror(repoID string) {
 		return
 	}
 
-	var gitRepo *git.Repository
+	var gitRepo service.Repository
 	if len(results) == 0 {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
+		gitRepo, err = git.Service.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
 			return
@@ -515,7 +516,7 @@ func syncMirror(repoID string) {
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 }
 
-func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo service.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}

@@ -22,7 +22,7 @@ const wikiTestContent = "Wiki contents for unit tests"
 const wikiTestMessage = "Wiki commit message for unit tests"
 
 func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
-	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+	wikiRepo, err := git.Service.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")

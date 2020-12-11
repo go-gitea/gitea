@@ -29,7 +29,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -612,16 +612,16 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 }
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
+func ParseCommitWithSignature(c service.Commit) *CommitVerification {
 	var committer *User
-	if c.Committer != nil {
+	if c.Committer() != nil {
 		var err error
 		//Find Committer account
-		committer, err = GetUserByEmail(c.Committer.Email) //This finds the user by primary email or activated email so commit will not be valid if email is not
-		if err != nil {                                    //Skipping not user for commiter
+		committer, err = GetUserByEmail(c.Committer().Email) //This finds the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                      //Skipping not user for commiter
 			committer = &User{
-				Name:  c.Committer.Name,
-				Email: c.Committer.Email,
+				Name:  c.Committer().Name,
+				Email: c.Committer().Email,
 			}
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
@@ -638,7 +638,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 
 	// If no signature just report the committer
-	if c.Signature == nil {
+	if c.Signature() == nil {
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,                         //Default value
@@ -647,7 +647,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 
 	//Parsing signature
-	sig, err := extractSignature(c.Signature.Signature)
+	sig, err := extractSignature(c.Signature().Signature)
 	if err != nil { //Skipping failed to extract sign
 		log.Error("SignatureRead err: %v", err)
 		return &CommitVerification{
@@ -669,7 +669,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	// First check if the sig has a keyID and if so just look at that
 	if commitVerification := hashAndVerifyForKeyID(
 		sig,
-		c.Signature.Payload,
+		c.Signature().Payload,
 		committer,
 		keyID,
 		setting.AppName,
@@ -698,7 +698,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			canValidate := false
 			email := ""
 			for _, e := range k.Emails {
-				if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
+				if e.IsActivated && strings.EqualFold(e.Email, c.Committer().Email) {
 					canValidate = true
 					email = e.Email
 					break
@@ -708,7 +708,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				continue //Skip this key
 			}
 
-			commitVerification := hashAndVerifyWithSubKeys(sig, c.Signature.Payload, k, committer, committer, email)
+			commitVerification := hashAndVerifyWithSubKeys(sig, c.Signature().Payload, k, committer, committer, email)
 			if commitVerification != nil {
 				return commitVerification
 			}
@@ -717,7 +717,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	if setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
 		// OK we should try the default key
-		gpgSettings := git.GPGSettings{
+		gpgSettings := service.GPGSettings{
 			Sign:  true,
 			KeyID: setting.Repository.Signing.SigningKey,
 			Name:  setting.Repository.Signing.SigningName,
@@ -725,7 +725,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
-		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature().Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
 				defaultReason = BadSignature
 			} else {
@@ -738,9 +738,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
 	} else if defaultGPGSettings == nil {
-		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
+		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID().String())
 	} else if defaultGPGSettings.Sign {
-		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature().Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
 				defaultReason = BadSignature
 			} else {
@@ -760,7 +760,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 }
 
-func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *User, keyID string) *CommitVerification {
+func verifyWithGPGSettings(gpgSettings *service.GPGSettings, sig *packet.Signature, payload string, committer *User, keyID string) *CommitVerification {
 	// First try to find the key in the db
 	if commitVerification := hashAndVerifyForKeyID(sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
 		return commitVerification

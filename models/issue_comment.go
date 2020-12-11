@@ -16,6 +16,8 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
@@ -580,7 +582,7 @@ func (c *Comment) LoadReview() error {
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
 
-func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(doer *User, repo service.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path(), c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
@@ -590,7 +592,7 @@ func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch str
 	if err != nil {
 		return err
 	}
-	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
+	if c.CommitSHA != "" && c.CommitSHA != commit.ID().String() {
 		c.Invalidated = true
 		return UpdateComment(c, doer)
 	}
@@ -599,7 +601,7 @@ func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch str
 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
+func (c *Comment) CheckInvalidation(repo service.Repository, doer *User, branch string) error {
 	return c.checkInvalidation(doer, repo, branch)
 }
 
@@ -657,13 +659,16 @@ func (c *Comment) LoadPushCommits() (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, err := git.Service.OpenRepository(repoPath)
 		if err != nil {
 			return err
 		}
 		defer gitRepo.Close()
 
-		c.Commits = gitRepo.GetCommitsFromIDs(data.CommitIDs)
+		c.Commits, err = git.Service.GetCommitsFromIDs(gitRepo, data.CommitIDs)
+		if err != nil {
+			return err
+		}
 		c.CommitsNum = int64(c.Commits.Len())
 		if c.CommitsNum > 0 {
 			c.Commits = ValidateCommitsWithEmails(c.Commits)
@@ -1210,7 +1215,7 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1225,7 +1230,7 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return nil, false, err
 	}
 
-	if len(oldCommit.Branch) == 0 {
+	if len(oldCommit.Branch()) == 0 {
 		commitIDs = make([]string, 2)
 		commitIDs[0] = oldCommitID
 		commitIDs[1] = newCommitID
@@ -1251,8 +1256,8 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 	commitChecks = make(map[string]commitBranchCheckItem)
 
 	for e := commits.Front(); e != nil; e = e.Next() {
-		commitChecks[e.Value.(*git.Commit).ID.String()] = commitBranchCheckItem{
-			Commit:  e.Value.(*git.Commit),
+		commitChecks[e.Value.(service.Commit).ID().String()] = commitBranchCheckItem{
+			Commit:  e.Value.(service.Commit),
 			Checked: false,
 		}
 	}
@@ -1262,7 +1267,7 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 	}
 
 	for e := commits.Back(); e != nil; e = e.Prev() {
-		commitID := e.Value.(*git.Commit).ID.String()
+		commitID := e.Value.(service.Commit).ID().String()
 		if item, ok := commitChecks[commitID]; ok && item.Checked {
 			commitIDs = append(commitIDs, commitID)
 		}
@@ -1272,11 +1277,11 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 }
 
 type commitBranchCheckItem struct {
-	Commit  *git.Commit
+	Commit  service.Commit
 	Checked bool
 }
 
-func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]commitBranchCheckItem) (err error) {
+func commitBranchCheck(gitRepo gitservice.Repository, startCommit gitservice.Commit, endCommitID, baseBranch string, commitList map[string]commitBranchCheckItem) (err error) {
 	var (
 		item     commitBranchCheckItem
 		ok       bool
@@ -1284,12 +1289,12 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 		tmp      string
 	)
 
-	if startCommit.ID.String() == endCommitID {
+	if startCommit.ID().String() == endCommitID {
 		return
 	}
 
 	checkStack := list.New()
-	checkStack.PushBack(startCommit.ID.String())
+	checkStack.PushBack(startCommit.ID().String())
 	listItem = checkStack.Back()
 
 	for listItem != nil {
@@ -1301,7 +1306,7 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 			continue
 		}
 
-		if item.Commit.ID.String() == endCommitID {
+		if item.Commit.ID().String() == endCommitID {
 			listItem = checkStack.Back()
 			continue
 		}
@@ -1310,7 +1315,7 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 			return
 		}
 
-		if item.Commit.Branch == baseBranch {
+		if item.Commit.Branch() == baseBranch {
 			listItem = checkStack.Back()
 			continue
 		}
@@ -1325,12 +1330,12 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 
 		parentNum := item.Commit.ParentCount()
 		for i := 0; i < parentNum; i++ {
-			var parentCommit *git.Commit
+			var parentCommit service.Commit
 			parentCommit, err = item.Commit.Parent(i)
 			if err != nil {
 				return
 			}
-			checkStack.PushBack(parentCommit.ID.String())
+			checkStack.PushBack(parentCommit.ID().String())
 		}
 
 		listItem = checkStack.Back()

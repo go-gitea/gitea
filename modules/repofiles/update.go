@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -53,8 +54,8 @@ type UpdateRepoFileOptions struct {
 	Dates        *CommitDateOptions
 }
 
-func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
-	reader, err := entry.Blob().Reader()
+func detectEncodingAndBOM(entry service.TreeEntry, repo *models.Repository) (string, bool) {
+	reader, err := entry.Reader()
 	if err != nil {
 		// return default
 		return "UTF-8", false
@@ -226,7 +227,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
-		opts.LastCommitID = commit.ID.String()
+		opts.LastCommitID = commit.ID().String()
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 		if err != nil {
@@ -241,23 +242,23 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	executable := false
 
 	if !opts.IsNewFile {
-		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
+		fromEntry, err := commit.Tree().GetTreeEntryByPath(fromTreePath)
 		if err != nil {
 			return nil, err
 		}
 		if opts.SHA != "" {
 			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
-			if opts.SHA != fromEntry.ID.String() {
+			if opts.SHA != fromEntry.ID().String() {
 				return nil, models.ErrSHADoesNotMatch{
 					Path:       treePath,
 					GivenSHA:   opts.SHA,
-					CurrentSHA: fromEntry.ID.String(),
+					CurrentSHA: fromEntry.ID().String(),
 				}
 			}
 		} else if opts.LastCommitID != "" {
 			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
 			// an error, but only if we aren't creating a new branch.
-			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
+			if commit.ID().String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
 				if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
 					return nil, err
 				} else if changed {
@@ -274,7 +275,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
 		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
-		executable = fromEntry.IsExecutable()
+		executable = fromEntry.Mode().IsExecutable()
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -285,7 +286,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	subTreePath := ""
 	for index, part := range treePathParts {
 		subTreePath = path.Join(subTreePath, part)
-		entry, err := commit.GetTreeEntryByPath(subTreePath)
+		entry, err := commit.Tree().GetTreeEntryByPath(subTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
@@ -294,7 +295,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, err
 		}
 		if index < len(treePathParts)-1 {
-			if !entry.IsDir() {
+			if !entry.Mode().IsDir() {
 				return nil, models.ErrFilePathInvalid{
 					Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 					Path:    subTreePath,
@@ -302,14 +303,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 					Type:    git.EntryModeBlob,
 				}
 			}
-		} else if entry.IsLink() {
+		} else if entry.Mode().IsLink() {
 			return nil, models.ErrFilePathInvalid{
 				Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 				Path:    subTreePath,
 				Name:    part,
 				Type:    git.EntryModeSymlink,
 			}
-		} else if entry.IsDir() {
+		} else if entry.Mode().IsDir() {
 			return nil, models.ErrFilePathInvalid{
 				Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
 				Path:    subTreePath,

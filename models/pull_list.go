@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -146,7 +146,7 @@ func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(x)
 }
 
-func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
+func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo service.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -167,6 +167,6 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *gi
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
+func (prs PullRequestList) InvalidateCodeComments(doer *User, repo service.Repository, branch string) error {
 	return prs.invalidateCodeComments(x, doer, repo, branch)
 }

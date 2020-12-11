@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 )
 
 // ImageMetaData represents metadata of an image file
@@ -33,8 +33,8 @@ func isImageFile(data []byte) (string, bool) {
 }
 
 // IsImageFile is a file image type
-func IsImageFile(c *git.Commit, name string) bool {
-	blob, err := c.GetBlobByPath(name)
+func IsImageFile(c service.Commit, name string) bool {
+	blob, err := c.Tree().GetBlobByPath(name)
 	if err != nil {
 		return false
 	}
@@ -52,12 +52,12 @@ func IsImageFile(c *git.Commit, name string) bool {
 }
 
 // ImageInfo returns information about the dimensions of an image
-func ImageInfo(c *git.Commit, name string) (*ImageMetaData, error) {
+func ImageInfo(c service.Commit, name string) (*ImageMetaData, error) {
 	if !IsImageFile(c, name) {
 		return nil, nil
 	}
 
-	blob, err := c.GetBlobByPath(name)
+	blob, err := c.Tree().GetBlobByPath(name)
 	if err != nil {
 		return nil, err
 	}

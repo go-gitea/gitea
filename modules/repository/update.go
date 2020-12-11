@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
-func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
+func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo service.Repository, addTags, delTags []string) error {
 	return models.WithTx(func(ctx models.DBContext) error {
 		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
@@ -25,7 +25,7 @@ func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, a
 }
 
 // pushUpdateAddTags updates a number of add tags
-func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
+func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo service.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -53,17 +53,17 @@ func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *g
 		if err != nil {
 			return fmt.Errorf("GetTag: %v", err)
 		}
-		commit, err := tag.Commit()
+		commit, err := gitRepo.GetCommit(tag.TagObject().String())
 		if err != nil {
 			return fmt.Errorf("Commit: %v", err)
 		}
 
-		sig := tag.Tagger
+		sig := tag.Tagger()
 		if sig == nil {
-			sig = commit.Author
+			sig = commit.Author()
 		}
 		if sig == nil {
-			sig = commit.Committer
+			sig = commit.Committer()
 		}
 		var author *models.User
 		var createdAt = time.Unix(1, 0)
@@ -97,7 +97,7 @@ func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *g
 				TagName:      tags[i],
 				LowerTagName: lowerTag,
 				Target:       "",
-				Sha1:         commit.ID.String(),
+				Sha1:         commit.ID().String(),
 				NumCommits:   commitsCount,
 				Note:         "",
 				IsDraft:      false,
@@ -111,7 +111,7 @@ func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *g
 
 			newReleases = append(newReleases, rel)
 		} else {
-			rel.Sha1 = commit.ID.String()
+			rel.Sha1 = commit.ID().String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			rel.NumCommits = commitsCount
 			rel.IsDraft = false

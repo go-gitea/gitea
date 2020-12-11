@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -52,7 +53,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 	var (
 		err          error
 		count        int
-		gitRepoCache = make(map[int64]*git.Repository)
+		gitRepoCache = make(map[int64]gitservice.Repository)
 		repoCache    = make(map[int64]*Repository)
 		userCache    = make(map[int64]*User)
 	)
@@ -99,7 +100,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = git.OpenRepository(RepoPath(user.Name, repo.Name))
+				gitRepo, err = git.Service.OpenRepository(RepoPath(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -24,7 +25,7 @@ import (
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
 type TemporaryUploadRepository struct {
 	repo     *models.Repository
-	gitRepo  *git.Repository
+	gitRepo  service.Repository
 	basePath string
 }
 
@@ -65,7 +66,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
 	}
-	gitRepo, err := git.OpenRepository(t.basePath)
+	gitRepo, err := git.Service.OpenRepository(t.basePath)
 	if err != nil {
 		return err
 	}
@@ -377,7 +378,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 }
 
 // GetBranchCommit Gets the commit object of the given branch
-func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (service.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, fmt.Errorf("repository has not been cloned")
 	}
@@ -385,7 +386,7 @@ func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit,
 }
 
 // GetCommit Gets the commit object of the given commit ID
-func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetCommit(commitID string) (service.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, fmt.Errorf("repository has not been cloned")
 	}

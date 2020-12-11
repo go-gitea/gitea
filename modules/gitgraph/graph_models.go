@@ -9,7 +9,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/common"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -84,7 +86,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo service.Repository) error {
 	var err error
 
 	var ok bool
@@ -101,8 +103,8 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
 
-		if c.Commit.Author != nil {
-			email := c.Commit.Author.Email
+		if c.Commit.Author() != nil {
+			email := c.Commit.Author().Email
 			if c.User, ok = emails[email]; !ok {
 				c.User, _ = models.GetUserByEmail(email)
 				emails[email] = c.User
@@ -113,7 +115,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 
 		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository, c.Commit.ID.String(), 0)
+		statuses, err := models.GetLatestCommitStatus(repository, c.Commit.ID().String(), 0)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
@@ -196,7 +198,7 @@ func NewCommit(row, column int, line []byte) (*Commit, error) {
 		Row:    row,
 		Column: column,
 		// 0 matches git log --pretty=format:%d => ref names, like the --decorate option of git-log(1)
-		Refs: newRefsFromRefNames(data[0]),
+		Refs: newRefsFromRefNames(data[0], string(data[1])),
 		// 1 matches git log --pretty=format:%H => commit hash
 		Rev: string(data[1]),
 		// 2 matches git log --pretty=format:%ad => author date (format respects --date= option)
@@ -208,9 +210,10 @@ func NewCommit(row, column int, line []byte) (*Commit, error) {
 	}, nil
 }
 
-func newRefsFromRefNames(refNames []byte) []git.Reference {
+func newRefsFromRefNames(refNames []byte, idStr string) []service.Reference {
 	refBytes := bytes.Split(refNames, []byte{',', ' '})
-	refs := make([]git.Reference, 0, len(refBytes))
+	refs := make([]service.Reference, 0, len(refBytes))
+	id := native.StringHash(idStr)
 	for _, refNameBytes := range refBytes {
 		if len(refNameBytes) == 0 {
 			continue
@@ -221,23 +224,21 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 		} else if refName[0:8] == "HEAD -> " {
 			refName = refName[8:]
 		}
-		refs = append(refs, git.Reference{
-			Name: refName,
-		})
+		refs = append(refs, common.NewReference(refName, id, service.ObjectCommit, nil))
 	}
 	return refs
 }
 
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
-	Commit       *git.Commit
+	Commit       service.Commit
 	User         *models.User
 	Verification *models.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64
 	Row          int
 	Column       int
-	Refs         []git.Reference
+	Refs         []service.Reference
 	Rev          string
 	Date         string
 	ShortRev     string

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -73,8 +74,8 @@ func GetGitRefs(ctx *context.APIContext) {
 	getGitRefsInternal(ctx, ctx.Params("*"))
 }
 
-func getGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+func getGitRefs(ctx *context.APIContext, filter string) ([]service.Reference, string, error) {
+	gitRepo, err := git.Service.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		return nil, "OpenRepository", err
 	}
@@ -102,12 +103,12 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	apiRefs := make([]*api.Reference, len(refs))
 	for i := range refs {
 		apiRefs[i] = &api.Reference{
-			Ref: refs[i].Name,
-			URL: ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Name,
+			Ref: refs[i].Name(),
+			URL: ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Name(),
 			Object: &api.GitObject{
-				SHA:  refs[i].Object.String(),
-				Type: refs[i].Type,
-				URL:  ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Type + "s/" + refs[i].Object.String(),
+				SHA:  refs[i].ID().String(),
+				Type: string(refs[i].Type()),
+				URL:  ctx.Repo.Repository.APIURL() + "/git/" + string(refs[i].Type()) + "s/" + refs[i].ID().String(),
 			},
 		}
 	}

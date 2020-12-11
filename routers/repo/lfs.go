@@ -22,6 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -124,7 +126,7 @@ func LFSLocks(ctx *context.Context) {
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
 	}
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.Service.OpenRepository(tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
@@ -136,12 +138,12 @@ func LFSLocks(ctx *context.Context) {
 		filenames[i] = lock.Path
 	}
 
-	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
+	if err := git.Service.ReadTreeToIndex(gitRepo, ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
 	}
 
-	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	name2attribute2info, err := git.Service.CheckAttribute(gitRepo, service.CheckAttributeOpts{
 		Attributes: []string{"lockable"},
 		Filenames:  filenames,
 		CachedOnly: true,
@@ -164,7 +166,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Lockables"] = lockables
 
-	filelist, err := gitRepo.LsFiles(filenames...)
+	filelist, err := git.Service.LsFiles(gitRepo, filenames...)
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
@@ -373,11 +375,11 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.Query("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	var hash git.SHA1
+	var hash service.Hash
 	if len(sha) == 0 {
 		meta := models.LFSMetaObject{Oid: oid, Size: size}
 		pointer := meta.Pointer()
-		hash = git.ComputeBlobHash([]byte(pointer))
+		hash = native.SHA1{}.ComputeBlobHash([]byte(pointer))
 		sha = hash.String()
 	} else {
 		hash = git.MustIDFromString(sha)

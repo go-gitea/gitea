@@ -317,9 +317,9 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
-		gitRepo, err := git.OpenRepository(pr.Issue.Repo.RepoPath())
+		gitRepo, err := git.Service.OpenRepository(pr.Issue.Repo.RepoPath())
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "git.OpenRepository", err)
+			ctx.Error(http.StatusInternalServerError, "git.Service.OpenRepository", err)
 			return
 		}
 		defer gitRepo.Close()

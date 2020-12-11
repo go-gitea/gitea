@@ -172,7 +172,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			gitRepo, err := git.Service.OpenRepository(repo.WikiPath())
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -181,7 +181,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			if commit.Signature == nil {
+			if commit.Signature() == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(commit)
@@ -225,7 +225,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(tmpBasePath)
+			gitRepo, err := git.Service.OpenRepository(tmpBasePath)
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -234,7 +234,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			if commit.Signature == nil {
+			if commit.Signature() == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(commit)

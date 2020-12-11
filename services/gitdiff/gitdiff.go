@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/content"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -387,7 +388,7 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
+func (diffFile *DiffFile) GetTailSection(gitRepo service.Repository, leftCommitID, rightCommitID string) *DiffSection {
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
 		return nil
 	}
@@ -421,7 +422,7 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 
 }
 
-func getCommitFileLineCount(commit *git.Commit, filePath string) int {
+func getCommitFileLineCount(commit service.Commit, filePath string) int {
 	blob, err := commit.GetBlobByPath(filePath)
 	if err != nil {
 		return 0
@@ -880,7 +881,7 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
 func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}

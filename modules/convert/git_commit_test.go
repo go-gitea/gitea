@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -19,16 +20,17 @@ import (
 func TestToCommitMeta(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 	headRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	sha1, _ := git.NewIDFromString("0000000000000000000000000000000000000000")
-	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
-	tag := &git.Tag{
-		Name:    "Test Tag",
-		ID:      sha1,
-		Object:  sha1,
-		Type:    "Test Type",
-		Tagger:  signature,
-		Message: "Test Message",
-	}
+
+	sha1 := native.StringHash("0000000000000000000000000000000000000000")
+	signature := &service.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
+	tag := native.NewTag(
+		native.NewObject(sha1, nil),
+		"Test Tag",
+		sha1,
+		"Test Type",
+		signature,
+		"Test Message",
+		nil)
 
 	commitMeta := ToCommitMeta(headRepo, tag)
 

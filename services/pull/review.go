@@ -13,12 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
+func CreateCodeComment(doer *models.User, gitRepo service.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 
 	var (
 		existsReview bool
@@ -116,7 +117,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -158,7 +159,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 			// No need for get commit for base branch changes
 			commit, err := gitRepo.LineBlame(head, gitRepo.Path(), treePath, uint(line))
 			if err == nil {
-				commitID = commit.ID.String()
+				commitID = commit.ID().String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path(), treePath, line, err)
 			}
@@ -196,7 +197,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
+func SubmitReview(doer *models.User, gitRepo service.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err

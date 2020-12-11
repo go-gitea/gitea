@@ -136,7 +136,7 @@ func TestAPICreateFile(t *testing.T) {
 			url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 			req := NewRequestWithJSON(t, "POST", url, &createFileOptions)
 			resp := session.MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := git.OpenRepository(repo1.RepoPath())
+			gitRepo, _ := git.Service.OpenRepository(repo1.RepoPath())
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 			expectedFileResponse := getExpectedFileResponseForCreate(commitID, treePath)
 			var fileResponse api.FileResponse

@@ -6,17 +6,17 @@ package repofiles
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/structs"
 )
 
 // GetPayloadCommitVerification returns the verification information of a commit
-func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVerification {
+func GetPayloadCommitVerification(commit service.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
 	commitVerification := models.ParseCommitWithSignature(commit)
-	if commit.Signature != nil {
-		verification.Signature = commit.Signature.Signature
-		verification.Payload = commit.Signature.Payload
+	if commit.Signature() != nil {
+		verification.Signature = commit.Signature().Signature
+		verification.Payload = commit.Signature().Payload
 	}
 	if commitVerification.SigningUser != nil {
 		verification.Signer = &structs.PayloadUser{

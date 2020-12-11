@@ -102,7 +102,7 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 	}
 
 	// check if all required status checks are successful
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	headGitRepo, err := git.Service.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
 		return "", errors.Wrap(err, "OpenRepository")
 	}

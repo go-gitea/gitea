@@ -23,7 +23,8 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -368,8 +369,8 @@ func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 }
 
 // NewGitSig generates and returns the signature of given user.
-func (u *User) NewGitSig() *git.Signature {
-	return &git.Signature{
+func (u *User) NewGitSig() *service.Signature {
+	return &service.Signature{
 		Name:  u.GitName(),
 		Email: u.GetEmail(),
 		When:  time.Now(),
@@ -1326,15 +1327,15 @@ func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) 
 // UserCommit represents a commit with validation of user.
 type UserCommit struct {
 	User *User
-	*git.Commit
+	gitservice.Commit
 }
 
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(c *git.Commit) *User {
-	if c.Author == nil {
+func ValidateCommitWithEmail(c service.Commit) *User {
+	if c.Author() == nil {
 		return nil
 	}
-	u, err := GetUserByEmail(c.Author.Email)
+	u, err := GetUserByEmail(c.Author().Email)
 	if err != nil {
 		return nil
 	}
@@ -1350,12 +1351,12 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 		e          = oldCommits.Front()
 	)
 	for e != nil {
-		c := e.Value.(*git.Commit)
+		c := e.Value.(gitservice.Commit)
 
-		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(c.Author.Email)
-				emails[c.Author.Email] = u
+		if c.Author() != nil {
+			if v, ok := emails[c.Author().Email]; !ok {
+				u, _ = GetUserByEmail(c.Author().Email)
+				emails[c.Author().Email] = u
 			} else {
 				u = v
 			}

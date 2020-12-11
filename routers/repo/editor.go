@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -82,33 +83,32 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
 	if !isNewFile {
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+		entry, err := ctx.Repo.Commit.Tree().GetTreeEntryByPath(ctx.Repo.TreePath)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
 			return
 		}
 
 		// No way to edit a directory online.
-		if entry.IsDir() {
+		if entry.Mode().IsDir() {
 			ctx.NotFound("entry.IsDir", nil)
 			return
 		}
 
-		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		if entry.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.NotFound("blob.Size", err)
 			return
 		}
 
-		dataRc, err := blob.Reader()
+		dataRc, err := entry.Reader()
 		if err != nil {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
 		defer dataRc.Close()
 
-		ctx.Data["FileSize"] = blob.Size()
-		ctx.Data["FileName"] = blob.Name()
+		ctx.Data["FileSize"] = entry.Size()
+		ctx.Data["FileName"] = entry.Name()
 
 		buf := make([]byte, 1024)
 		n, _ := dataRc.Read(buf)
@@ -343,11 +343,11 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.Tree().GetTreeEntryByPath(treePath)
 	if err != nil {
 		ctx.Error(500, "GetTreeEntryByPath: "+err.Error())
 		return
-	} else if entry.IsDir() {
+	} else if entry.Mode().IsDir() {
 		ctx.Error(422)
 		return
 	}
@@ -609,7 +609,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	var newTreePath string
 	for _, part := range treeNames {
 		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+		entry, err := ctx.Repo.Commit.Tree().GetTreeEntryByPath(newTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
@@ -621,7 +621,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		}
 
 		// User can only upload files to a directory.
-		if !entry.IsDir() {
+		if !entry.Mode().IsDir() {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
 			return
@@ -798,12 +798,12 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 // GetClosestParentWithFiles Recursively gets the path of parent in a tree that has files (used when file in a tree is
 // deleted). Returns "" for the root if no parents other than the root have files. If the given treePath isn't a
 // SubTree or it has no entries, we go up one dir and see if we can return the user to that listing.
-func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
+func GetClosestParentWithFiles(treePath string, commit service.Commit) string {
 	if len(treePath) == 0 || treePath == "." {
 		return ""
 	}
 	// see if the tree has entries
-	if tree, err := commit.SubTree(treePath); err != nil {
+	if tree, err := commit.Tree().SubTree(treePath); err != nil {
 		// failed to get tree, going up a dir
 		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
 	} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {

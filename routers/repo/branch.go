@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -29,7 +30,7 @@ const (
 // Branch contains the branch information
 type Branch struct {
 	Name              string
-	Commit            *git.Commit
+	Commit            service.Commit
 	IsProtected       bool
 	IsDeleted         bool
 	IsIncluded        bool
@@ -148,7 +149,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		return err
 	}
 
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
+	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, service.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
 		log.Error("DeleteBranch: %v", err)
@@ -159,7 +160,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
-			OldCommitID:  commit.ID.String(),
+			OldCommitID:  commit.ID().String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     ctx.User.ID,
 			PusherName:   ctx.User.Name,
@@ -169,7 +170,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		log.Error("Update: %v", err)
 	}
 
-	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID.String(), ctx.User.ID); err != nil {
+	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID().String(), ctx.User.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 
@@ -192,7 +193,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 	repoIDToRepo := map[int64]*models.Repository{}
 	repoIDToRepo[ctx.Repo.Repository.ID] = ctx.Repo.Repository
 
-	repoIDToGitRepo := map[int64]*git.Repository{}
+	repoIDToGitRepo := map[int64]service.Repository{}
 	repoIDToGitRepo[ctx.Repo.Repository.ID] = ctx.Repo.GitRepo
 
 	branches := make([]*Branch, len(rawBranches))
@@ -204,7 +205,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 		}
 
 		var isProtected bool
-		branchName := rawBranches[i].Name
+		branchName := rawBranches[i].Name()
 		for _, b := range protectedBranches {
 			if b.BranchName == branchName {
 				isProtected = true
@@ -223,7 +224,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 			return nil
 		}
-		headCommit := commit.ID.String()
+		headCommit := commit.ID().String()
 
 		mergeMovedOn := false
 		if pr != nil {
@@ -245,7 +246,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			if pr.HasMerged {
 				baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 				if !ok {
-					baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+					baseGitRepo, err = git.Service.OpenRepository(pr.BaseRepo.RepoPath())
 					if err != nil {
 						ctx.ServerError("OpenRepository", err)
 						return nil

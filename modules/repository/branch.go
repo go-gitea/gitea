@@ -9,11 +9,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/common"
+	"code.gitea.io/gitea/modules/git/service"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 )
 
 // GetBranch returns a branch by its name
-func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func GetBranch(repo *models.Repository, branch string) (gitservice.Branch, error) {
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -23,13 +26,13 @@ func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
 }
 
 // GetBranches returns all the branches of a repository
-func GetBranches(repo *models.Repository) ([]*git.Branch, error) {
-	return git.GetBranchesByPath(repo.RepoPath())
+func GetBranches(repo *models.Repository) ([]service.Branch, error) {
+	return common.GetBranchesByPath(repo.RepoPath())
 }
 
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(repo *models.Repository, name string) error {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -41,14 +44,14 @@ func checkBranchName(repo *models.Repository, name string) error {
 	}
 
 	for _, branch := range branches {
-		if branch.Name == name {
+		if branch.Name() == name {
 			return models.ErrBranchAlreadyExists{
-				BranchName: branch.Name,
+				BranchName: branch.Name(),
 			}
-		} else if (len(branch.Name) < len(name) && branch.Name+"/" == name[0:len(branch.Name)+1]) ||
-			(len(branch.Name) > len(name) && name+"/" == branch.Name[0:len(name)+1]) {
+		} else if (len(branch.Name()) < len(name) && branch.Name()+"/" == name[0:len(branch.Name())+1]) ||
+			(len(branch.Name()) > len(name) && name+"/" == branch.Name()[0:len(name)+1]) {
 			return models.ErrBranchNameConflict{
-				BranchName: branch.Name,
+				BranchName: branch.Name(),
 			}
 		}
 	}

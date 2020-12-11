@@ -18,7 +18,7 @@ func CreateCommitStatus(repo *models.Repository, creator *models.User, sha strin
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}

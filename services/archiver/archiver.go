@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -32,13 +33,13 @@ import (
 // handle elsewhere.
 type ArchiveRequest struct {
 	uri             string
-	repo            *git.Repository
+	repo            service.Repository
 	refName         string
 	ext             string
 	archivePath     string
 	archiveType     gitservice.ArchiveType
 	archiveComplete bool
-	commit          *git.Commit
+	commit          service.Commit
 	cchan           chan struct{}
 }
 
@@ -100,7 +101,7 @@ func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur tim
 }
 
 // The caller must hold the archiveMutex across calls to getArchiveRequest.
-func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType gitservice.ArchiveType) *ArchiveRequest {
+func getArchiveRequest(repo service.Repository, commit service.Commit, archiveType gitservice.ArchiveType) *ArchiveRequest {
 	for _, r := range archiveInProgress {
 		// Need to be referring to the same repository.
 		if r.repo.Path() == repo.Path() && r.commit.ID == commit.ID && r.archiveType == archiveType {

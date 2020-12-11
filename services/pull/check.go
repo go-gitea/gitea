@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -70,7 +71,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 
 // getMergeCommit checks if a pull request got merged
 // Returns the git.Commit of the pull request if merged
-func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
+func getMergeCommit(pr *models.PullRequest) (service.Commit, error) {
 	if pr.BaseRepo == nil {
 		var err error
 		pr.BaseRepo, err = models.GetRepositoryByID(pr.BaseRepoID)
@@ -122,7 +123,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		mergeCommit = commitID[:40]
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}

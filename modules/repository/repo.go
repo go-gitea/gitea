@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,7 +93,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -111,7 +112,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 				return repo, fmt.Errorf("GetHEADBranch: %v", err)
 			}
 			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+				repo.DefaultBranch = headBranch.Name()
 			}
 		}
 
@@ -186,7 +187,7 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) error {
+func SyncReleasesWithTags(repo *models.Repository, gitRepo gitservice.Repository) error {
 	existingRelTags := make(map[string]struct{})
 	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true, ListOptions: models.ListOptions{PageSize: 50}}
 	for page := 1; ; page++ {
@@ -230,22 +231,22 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName string) error {
+func PushUpdateAddTag(repo *models.Repository, gitRepo gitservice.Repository, tagName string) error {
 	tag, err := gitRepo.GetTag(tagName)
 	if err != nil {
 		return fmt.Errorf("GetTag: %v", err)
 	}
-	commit, err := tag.Commit()
+	commit, err := gitRepo.GetCommit(tag.TagObject().String())
 	if err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	sig := tag.Tagger
+	sig := tag.Tagger()
 	if sig == nil {
-		sig = commit.Author
+		sig = commit.Author()
 	}
 	if sig == nil {
-		sig = commit.Committer
+		sig = commit.Committer()
 	}
 
 	var author *models.User
@@ -268,7 +269,7 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),
-		Sha1:         commit.ID.String(),
+		Sha1:         commit.ID().String(),
 		NumCommits:   commitsCount,
 		CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
 		IsTag:        true,

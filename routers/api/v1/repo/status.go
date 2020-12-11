@@ -197,7 +197,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 		return "", lastMethodName, err
 	}
 	if len(refs) > 0 {
-		return refs[0].Object.String(), "", nil //Return found SHA
+		return refs[0].ID().String(), "", nil //Return found SHA
 	}
 	return "", "", nil
 }

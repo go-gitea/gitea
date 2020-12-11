@@ -51,7 +51,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	mirror, err := repository.MigrateRepositoryGitData(context.Background(), user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

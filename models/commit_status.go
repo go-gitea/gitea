@@ -261,7 +261,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
 		}
-		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		statuses, err := GetLatestCommitStatus(repo, commit.ID().String(), 0)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

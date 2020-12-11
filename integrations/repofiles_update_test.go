@@ -202,7 +202,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.Service.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -238,7 +238,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.Service.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -273,20 +273,21 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.Service.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.TreePath)
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID().String(), opts.TreePath)
 		// assert that the old file no longer exists in the last commit of the branch
-		fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
+		tree := commit.Tree()
+		fromEntry, err := tree.GetTreeEntryByPath(opts.FromTreePath)
 		switch err.(type) {
 		case git.ErrNotExist:
 			// correct, continue
 		default:
 			t.Fatalf("expected git.ErrNotExist, got:%v", err)
 		}
-		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
+		toEntry, err := tree.GetTreeEntryByPath(opts.TreePath)
 		assert.NoError(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
@@ -323,7 +324,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.Service.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)

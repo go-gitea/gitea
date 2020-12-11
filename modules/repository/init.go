@@ -217,7 +217,7 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 	}
 
 	repo.IsEmpty = false
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
@@ -319,7 +319,7 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 		if err != nil {
 			return fmt.Errorf("openRepository: %v", err)
 		}

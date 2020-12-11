@@ -6,6 +6,8 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -24,7 +26,7 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 	}
 	rules := signingModeFromStrings(setting.Repository.Signing.Merges)
 
-	var gitRepo *git.Repository
+	var gitRepo gitservice.Repository
 	var err error
 
 Loop:
@@ -63,7 +65,7 @@ Loop:
 			}
 		case baseSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.Service.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -79,7 +81,7 @@ Loop:
 			}
 		case headSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.Service.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -95,7 +97,7 @@ Loop:
 			}
 		case commitsSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.Service.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -119,7 +121,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for e := commitList.Front(); e != nil; e = e.Next() {
-				commit = e.Value.(*git.Commit)
+				commit = e.Value.(service.Commit)
 				verification := ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}

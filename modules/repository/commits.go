@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -142,15 +143,15 @@ func (pc *PushCommits) AvatarLink(email string) string {
 }
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
-func CommitToPushCommit(commit *git.Commit) *PushCommit {
+func CommitToPushCommit(commit service.Commit) *PushCommit {
 	return &PushCommit{
-		Sha1:           commit.ID.String(),
+		Sha1:           commit.ID().String(),
 		Message:        commit.Message(),
-		AuthorEmail:    commit.Author.Email,
-		AuthorName:     commit.Author.Name,
-		CommitterEmail: commit.Committer.Email,
-		CommitterName:  commit.Committer.Name,
-		Timestamp:      commit.Author.When,
+		AuthorEmail:    commit.Author().Email,
+		AuthorName:     commit.Author().Name,
+		CommitterEmail: commit.Committer().Email,
+		CommitterName:  commit.Committer().Name,
+		Timestamp:      commit.Author().When,
 	}
 }
 
@@ -159,9 +160,9 @@ func ListToPushCommits(l *list.List) *PushCommits {
 	var commits []*PushCommit
 	var actEmail string
 	for e := l.Front(); e != nil; e = e.Next() {
-		commit := e.Value.(*git.Commit)
+		commit := e.Value.(service.Commit)
 		if actEmail == "" {
-			actEmail = commit.Committer.Email
+			actEmail = commit.Committer().Email
 		}
 		commits = append(commits, CommitToPushCommit(commit))
 	}

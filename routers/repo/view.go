@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -53,7 +54,7 @@ func linesBytesCount(s []byte) int {
 }
 
 // FIXME: There has to be a more efficient way of doing this
-func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, error) {
+func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, error) {
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
 		return nil, err
@@ -142,7 +143,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 	}
 
-	var latestCommit *git.Commit
+	var latestCommit service.Commit
 	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)

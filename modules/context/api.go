@@ -216,7 +216,7 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepository(repoPath)
+			gitRepo, err := git.Service.OpenRepository(repoPath)
 			if err != nil {
 				ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
 				return
@@ -272,7 +272,7 @@ func RepoRefForAPI() macaron.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.Service.OpenRepository(repoPath)
 			if err != nil {
 				ctx.InternalServerError(err)
 				return
@@ -294,14 +294,14 @@ func RepoRefForAPI() macaron.Handler {
 				ctx.InternalServerError(err)
 				return
 			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID().String()
 		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
 				ctx.InternalServerError(err)
 				return
 			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID().String()
 		} else if len(refName) == 40 {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)

@@ -9,13 +9,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -27,9 +28,9 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 		}
 	}
 	tree := new(api.GitTreeResponse)
-	tree.SHA = gitTree.ResolvedID.String()
+	tree.SHA = gitTree.ResolvedID().String()
 	tree.URL = repo.APIURL() + "/git/trees/" + tree.SHA
-	var entries git.Entries
+	var entries service.Entries
 	if recursive {
 		entries, err = gitTree.ListEntriesRecursive()
 	} else {
@@ -81,15 +82,15 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 
 		tree.Entries[i].Path = entries[e].Name()
 		tree.Entries[i].Mode = fmt.Sprintf("%06o", entries[e].Mode())
-		tree.Entries[i].Type = entries[e].Type()
+		tree.Entries[i].Type = string(entries[e].Type())
 		tree.Entries[i].Size = entries[e].Size()
-		tree.Entries[i].SHA = entries[e].ID.String()
+		tree.Entries[i].SHA = entries[e].ID().String()
 
-		if entries[e].IsDir() {
-			copy(treeURL[copyPos:], entries[e].ID.String())
+		if entries[e].Mode().IsDir() {
+			copy(treeURL[copyPos:], entries[e].ID().String())
 			tree.Entries[i].URL = string(treeURL)
 		} else {
-			copy(blobURL[copyPos:], entries[e].ID.String())
+			copy(blobURL[copyPos:], entries[e].ID().String())
 			tree.Entries[i].URL = string(blobURL)
 		}
 	}

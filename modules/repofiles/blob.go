@@ -14,7 +14,7 @@ import (
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
 func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +31,8 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 		}
 	}
 	return &api.GitBlobResponse{
-		SHA:      gitBlob.ID.String(),
-		URL:      repo.APIURL() + "/git/blobs/" + gitBlob.ID.String(),
+		SHA:      gitBlob.ID().String(),
+		URL:      repo.APIURL() + "/git/blobs/" + gitBlob.ID().String(),
 		Size:     gitBlob.Size(),
 		Encoding: "base64",
 		Content:  content,

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -60,7 +61,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 }
 
 // ServeBlob download a git.Blob
-func ServeBlob(ctx *context.Context, blob *git.Blob) error {
+func ServeBlob(ctx *context.Context, blob service.Object) error {
 	dataRc, err := blob.Reader()
 	if err != nil {
 		return err
@@ -75,7 +76,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 }
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
-func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
+func ServeBlobOrLFS(ctx *context.Context, blob service.Object) error {
 	dataRc, err := blob.Reader()
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 
 // SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	blob, err := ctx.Repo.Commit.Tree().GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlobByPath", nil)
@@ -124,7 +125,7 @@ func SingleDownload(ctx *context.Context) {
 
 // SingleDownloadOrLFS download a file by repos path redirecting to LFS if necessary
 func SingleDownloadOrLFS(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	blob, err := ctx.Repo.Commit.Tree().GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlobByPath", nil)

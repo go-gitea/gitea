@@ -16,6 +16,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -27,7 +29,7 @@ import (
 	"gitea.com/macaron/macaron"
 )
 
-func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
+func verifyCommits(oldCommitID, newCommitID string, repo service.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path())
@@ -58,7 +60,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	return err
 }
 
-func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository, env []string) error {
+func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo service.Repository, env []string) error {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -71,7 +73,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 	return scanner.Err()
 }
 
-func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
+func readAndVerifyCommit(sha string, repo service.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create pipe for %s: %v", repo.Path(), err)
@@ -81,14 +83,14 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
 	}()
-	hash := git.MustIDFromString(sha)
+	hash := native.StringHash(sha)
 
 	return git.NewCommand("cat-file", "commit", sha).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path(),
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
-				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
+				commit, err := native.CommitFromReader(repo, hash, stdoutReader)
 				if err != nil {
 					return err
 				}
@@ -96,7 +98,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{
-						commit.ID.String(),
+						commit.ID().String(),
 					}
 				}
 				return nil
@@ -129,7 +131,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		return
 	}
 	repo.OwnerName = ownerName
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		log.Error("Unable to get git repository for: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -557,7 +559,7 @@ func SetDefaultBranch(ctx *macaron.Context) {
 	}
 
 	repo.DefaultBranch = branch
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"Err": fmt.Sprintf("Failed to get git repository: %s/%s Error: %v", ownerName, repoName, err),

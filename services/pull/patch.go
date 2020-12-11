@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -29,7 +30,7 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -62,7 +63,7 @@ func TestPatch(pr *models.PullRequest) error {
 		}
 	}()
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.Service.OpenRepository(tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -98,7 +99,7 @@ func TestPatch(pr *models.PullRequest) error {
 	return nil
 }
 
-func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+func checkConflicts(pr *models.PullRequest, gitRepo service.Repository, tmpBasePath string) (bool, error) {
 	// 1. Create a plain patch from head to base
 	tmpPatchFile, err := ioutil.TempFile("", "patch")
 	if err != nil {
@@ -243,7 +244,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo *git.Repository) ([]string, error) {
+func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo service.Repository) ([]string, error) {
 	// 1. If there are no patterns short-circuit and just return nil
 	if len(patterns) == 0 {
 		return nil, nil
@@ -309,7 +310,7 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(pr *models.PullRequest, gitRepo *git.Repository) error {
+func checkPullFilesProtection(pr *models.PullRequest, gitRepo service.Repository) error {
 	if err := pr.LoadProtectedBranch(); err != nil {
 		return err
 	}

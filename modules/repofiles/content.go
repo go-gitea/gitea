@@ -56,7 +56,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 	}
 	treePath = cleanTreePath
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 		return nil, err
 	}
 
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.Tree().GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 	// We are in a directory, so we return a list of FileContentResponse objects
 	var fileList []*api.ContentsResponse
 
-	gitTree, err := commit.SubTree(treePath)
+	gitTree, err := commit.Tree().SubTree(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	}
 	treePath = cleanTreePath
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +126,12 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	if err != nil {
 		return nil, err
 	}
-	commitID := commit.ID.String()
+	commitID := commit.ID().String()
 	if len(ref) >= 4 && strings.HasPrefix(commitID, ref) {
-		ref = commit.ID.String()
+		ref = commit.ID().String()
 	}
 
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.Tree().GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	contentsResponse := &api.ContentsResponse{
 		Name: entry.Name(),
 		Path: treePath,
-		SHA:  entry.ID.String(),
+		SHA:  entry.ID().String(),
 		Size: entry.Size(),
 		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
@@ -160,26 +160,26 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	}
 
 	// Now populate the rest of the ContentsResponse based on entry type
-	if entry.IsRegular() || entry.IsExecutable() {
+	if entry.Mode().IsRegular() || entry.Mode().IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
-		if blobResponse, err := GetBlobBySHA(repo, entry.ID.String()); err != nil {
+		if blobResponse, err := GetBlobBySHA(repo, entry.ID().String()); err != nil {
 			return nil, err
 		} else if !forList {
 			// We don't show the content if we are getting a list of FileContentResponses
 			contentsResponse.Encoding = &blobResponse.Encoding
 			contentsResponse.Content = &blobResponse.Content
 		}
-	} else if entry.IsDir() {
+	} else if entry.Mode().IsDir() {
 		contentsResponse.Type = string(ContentTypeDir)
-	} else if entry.IsLink() {
+	} else if entry.Mode().IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := content.GetBlobContent(entry.Blob())
+		targetFromContent, err := content.GetBlobContent(entry)
 		if err != nil {
 			return nil, err
 		}
 		contentsResponse.Target = &targetFromContent
-	} else if entry.IsSubModule() {
+	} else if entry.Mode().IsSubModule() {
 		contentsResponse.Type = string(ContentTypeSubmodule)
 		submodule, err := commit.GetSubModule(treePath)
 		if err != nil {
@@ -188,7 +188,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 		contentsResponse.SubmoduleGitURL = &submodule.URL
 	}
 	// Handle links
-	if entry.IsRegular() || entry.IsLink() {
+	if entry.Mode().IsRegular() || entry.Mode().IsLink() {
 		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
 		if err != nil {
 			return nil, err
@@ -196,7 +196,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 		downloadURLString := downloadURL.String()
 		contentsResponse.DownloadURL = &downloadURLString
 	}
-	if !entry.IsSubModule() {
+	if !entry.Mode().IsSubModule() {
 		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
 		if err != nil {
 			return nil, err
@@ -205,7 +205,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 		contentsResponse.HTMLURL = &htmlURLString
 		contentsResponse.Links.HTMLURL = &htmlURLString
 
-		gitURL, err := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
+		gitURL, err := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID().String()))
 		if err != nil {
 			return nil, err
 		}

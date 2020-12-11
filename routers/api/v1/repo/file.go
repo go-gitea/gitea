@@ -53,7 +53,7 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	blob, err := ctx.Repo.Commit.Tree().GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
@@ -97,7 +97,7 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.Service.OpenRepository(repoPath)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return

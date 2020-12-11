@@ -20,6 +20,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	gitservice "code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -47,7 +48,7 @@ type GiteaLocalUploader struct {
 	labels         sync.Map
 	milestones     sync.Map
 	issues         sync.Map
-	gitRepo        *git.Repository
+	gitRepo        gitservice.Repository
 	prHeadCache    map[string]struct{}
 	userMap        map[int64]int64 // external user id mapping to user id
 	prCache        map[int64]*models.PullRequest
@@ -141,7 +142,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(r.RepoPath())
+	g.gitRepo, err = git.Service.OpenRepository(r.RepoPath())
 	return err
 }
 

@@ -15,7 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	gogitprovider "code.gitea.io/gitea/modules/git/providers/gogit"
+	"code.gitea.io/gitea/modules/git/service"
+
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -26,7 +28,7 @@ type LFSResult struct {
 	SHA            string
 	Summary        string
 	When           time.Time
-	ParentHashes   []git.SHA1
+	ParentHashes   []service.Hash
 	BranchName     string
 	FullCommitName string
 }
@@ -38,12 +40,15 @@ func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
+func FindLFSFile(repo service.Repository, hash service.Hash) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
 	basePath := repo.Path()
-	gogitRepo := repo.GoGitRepo()
+	gogitRepo, err := gogitprovider.GetGoGitRepo(repo)
+	if err != nil {
+		return nil, err
+	}
 
 	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
 		Order: gogit.LogOrderCommitterTime,
@@ -53,8 +58,8 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 		return nil, fmt.Errorf("Failed to get GoGit CommitsIter. Error: %w", err)
 	}
 
-	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
-		tree, err := gitCommit.Tree()
+	err = commitsIter.ForEach(func(commitObj *object.Commit) error {
+		tree, err := commitObj.Tree()
 		if err != nil {
 			return err
 		}
@@ -65,15 +70,15 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			if err == io.EOF {
 				break
 			}
-			if entry.Hash == hash {
+			if entry.Hash == gogitprovider.ToPlumbingHash(hash) {
 				result := LFSResult{
 					Name:         name,
-					SHA:          gitCommit.Hash.String(),
-					Summary:      strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
-					When:         gitCommit.Author.When,
-					ParentHashes: gitCommit.ParentHashes,
+					SHA:          commitObj.Hash.String(),
+					Summary:      strings.Split(strings.TrimSpace(commitObj.Message), "\n")[0],
+					When:         commitObj.Author.When,
+					ParentHashes: gogitprovider.FromPlumbingHashes(commitObj.ParentHashes),
 				}
-				resultsMap[gitCommit.Hash.String()+":"+name] = &result
+				resultsMap[commitObj.Hash.String()+":"+name] = &result
 			}
 		}
 		return nil

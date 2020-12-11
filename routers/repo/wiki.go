@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -65,7 +66,7 @@ type PageMeta struct {
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
-func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
+func findEntryForFile(commit service.Commit, target string) (*git.TreeEntry, error) {
 	entry, err := commit.GetTreeEntryByPath(target)
 	if err != nil && !git.IsErrNotExist(err) {
 		return nil, err
@@ -82,8 +83,8 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	return commit.GetTreeEntryByPath(unescapedTarget)
 }
 
-func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
+func findWikiRepoCommit(ctx *context.Context) (service.Repository, service.Commit, error) {
+	wikiRepo, err := git.Service.OpenRepository(ctx.Repo.Repository.WikiPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err
@@ -115,7 +116,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
+func wikiContentsByName(ctx *context.Context, commit service.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
 	pageFilename := wiki_service.NameToFilename(wikiName)
 	entry, err := findEntryForFile(commit, pageFilename)
 	if err != nil && !git.IsErrNotExist(err) {
@@ -127,7 +128,7 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 	return wikiContentsByEntry(ctx, entry), entry, pageFilename, false
 }
 
-func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
+func renderViewPage(ctx *context.Context) (service.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
@@ -223,7 +224,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	return wikiRepo, entry
 }
 
-func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
+func renderRevisionPage(ctx *context.Context) (service.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {

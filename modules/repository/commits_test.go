@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,20 +126,23 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 
 func TestCommitToPushCommit(t *testing.T) {
 	now := time.Now()
-	sig := &git.Signature{
+	sig := &service.Signature{
 		Email: "example@example.com",
 		Name:  "John Doe",
 		When:  now,
 	}
 	const hexString = "0123456789abcdef0123456789abcdef01234567"
-	sha1, err := git.NewIDFromString(hexString)
-	assert.NoError(t, err)
-	pushCommit := CommitToPushCommit(&git.Commit{
-		ID:            sha1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Commit Message",
-	})
+	sha1 := native.StringHash(hexString)
+	pushCommit := CommitToPushCommit(native.NewCommit(
+		native.NewObject(sha1, nil),
+		sha1,
+		nil,
+		sig,
+		sig,
+		nil,
+		nil,
+		"Commit Message",
+	))
 	assert.Equal(t, hexString, pushCommit.Sha1)
 	assert.Equal(t, "Commit Message", pushCommit.Message)
 	assert.Equal(t, "example@example.com", pushCommit.AuthorEmail)

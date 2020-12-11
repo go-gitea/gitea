@@ -120,7 +120,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
-		opts.LastCommitID = commit.ID.String()
+		opts.LastCommitID = commit.ID().String()
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 		if err != nil {
@@ -150,23 +150,23 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// Get the entry of treePath and check if the SHA given is the same as the file
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.Tree().GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
 	if opts.SHA != "" {
 		// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
-		if opts.SHA != entry.ID.String() {
+		if opts.SHA != entry.ID().String() {
 			return nil, models.ErrSHADoesNotMatch{
 				Path:       treePath,
 				GivenSHA:   opts.SHA,
-				CurrentSHA: entry.ID.String(),
+				CurrentSHA: entry.ID().String(),
 			}
 		}
 	} else if opts.LastCommitID != "" {
 		// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
 		// an error, but only if we aren't creating a new branch.
-		if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
+		if commit.ID().String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
 			// CommitIDs don't match, but we don't want to throw a ErrCommitIDDoesNotMatch unless
 			// this specific file has been edited since opts.LastCommitID
 			if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
