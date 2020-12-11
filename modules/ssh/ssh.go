@@ -135,6 +135,7 @@ func sessionHandler(session ssh.Session) {
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if ctx.User() != setting.SSH.BuiltinServerUser {
+		log.Warn("Permission Denied: Invalid SSH username %s - must use %s for all git operations via ssh", ctx.User(), setting.SSH.BuiltinServerUser)
 		return false
 	}
 
@@ -145,15 +146,16 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		}
 
 		// look for the exact principal
+	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
 			pkey, err := models.SearchPublicKeyByContentExact(principal)
 			if err != nil {
+				if models.IsErrKeyNotExist(err) {
+					log.Debug("Principal Rejected: Unknown Principal: %s", principal)
+					continue principalLoop
+				}
 				log.Error("SearchPublicKeyByContentExact: %v", err)
 				return false
-			}
-
-			if models.IsErrKeyNotExist(err) {
-				continue
 			}
 
 			c := &gossh.CertChecker{
@@ -170,11 +172,14 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			// check the CA of the cert
 			if !c.IsUserAuthority(cert.SignatureKey) {
-				return false
+				log.Debug("Principal Rejected: Untrusted Authority Signature Fingerprint %s for Principal: %s", gossh.FingerprintSHA256(cert.SignatureKey), principal)
+				continue principalLoop
 			}
 
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
+				// User is presenting an invalid cerficate - STOP any further processing
+				log.Error("Permission Denied: Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal)
 				return false
 			}
 
@@ -186,6 +191,10 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
+		if models.IsErrKeyNotExist(err) {
+			log.Warn("Permission Denied: Unknown public key : %s", gossh.FingerprintSHA256(key))
+			return false
+		}
 		log.Error("SearchPublicKeyByContent: %v Failed authentication attempt from %s", err, ctx.RemoteAddr())
 		return false
 	}
