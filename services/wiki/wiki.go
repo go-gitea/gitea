@@ -37,17 +37,17 @@ func nameAllowed(name string) error {
 
 // NameToSubURL converts a wiki name to its corresponding sub-URL.
 func NameToSubURL(name string) string {
-	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
+	return url.QueryEscape(strings.ReplaceAll(name, " ", "-"))
 }
 
 // NormalizeWikiName normalizes a wiki name
 func NormalizeWikiName(name string) string {
-	return strings.Replace(name, "-", " ", -1)
+	return strings.ReplaceAll(name, "-", " ")
 }
 
 // NameToFilename converts a wiki name to its corresponding filename.
 func NameToFilename(name string) string {
-	name = strings.Replace(name, " ", "-", -1)
+	name = strings.ReplaceAll(name, " ", "-")
 	return url.QueryEscape(name) + ".md"
 }
 

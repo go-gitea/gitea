@@ -17,6 +17,8 @@ menu:
 
 这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
+{{< toc >}}
+
 ## Overall (`DEFAULT`)
 
 - `APP_NAME`: 应用名称，改成你希望的名字。
@@ -182,6 +184,20 @@ menu:
 - `DISABLE_GRAVATAR`: 开启则只使用内部头像。
 - `ENABLE_FEDERATED_AVATAR`: 启用头像联盟支持 (参见 http://www.libravatar.org)
 
+- `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
+- `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
+- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+
+- `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
+- `REPOSITORY_AVATAR_FALLBACK`: **none**: 当头像丢失时的处理方式
+  - none = 不显示头像
+  - random = 显示随机生成的头像
+  - image = 显示默认头像，通过 `REPOSITORY_AVATAR_FALLBACK_IMAGE` 设置
+- `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: 默认仓库头像
+
 ## Attachment (`attachment`)
 
 - `ENABLED`: 是否允许用户上传附件。
@@ -299,6 +315,9 @@ IS_INPUT_FILE = false
 
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
+- `ALLOWED_DOMAINS`: **\<empty\>**: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
+- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项将会被忽略。
+- `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918
 
 ## LFS (`lfs`)
 

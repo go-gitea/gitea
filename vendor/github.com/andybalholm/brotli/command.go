@@ -194,26 +194,28 @@ type command struct {
 }
 
 /* distance_code is e.g. 0 for same-as-last short code, or 16 for offset 1. */
-func initCommand(self *command, dist *distanceParams, insertlen uint, copylen uint, copylen_code_delta int, distance_code uint) {
+func makeCommand(dist *distanceParams, insertlen uint, copylen uint, copylen_code_delta int, distance_code uint) (cmd command) {
 	/* Don't rely on signed int representation, use honest casts. */
 	var delta uint32 = uint32(byte(int8(copylen_code_delta)))
-	self.insert_len_ = uint32(insertlen)
-	self.copy_len_ = uint32(uint32(copylen) | delta<<25)
+	cmd.insert_len_ = uint32(insertlen)
+	cmd.copy_len_ = uint32(uint32(copylen) | delta<<25)
 
 	/* The distance prefix and extra bits are stored in this Command as if
 	   npostfix and ndirect were 0, they are only recomputed later after the
 	   clustering if needed. */
-	prefixEncodeCopyDistance(distance_code, uint(dist.num_direct_distance_codes), uint(dist.distance_postfix_bits), &self.dist_prefix_, &self.dist_extra_)
+	prefixEncodeCopyDistance(distance_code, uint(dist.num_direct_distance_codes), uint(dist.distance_postfix_bits), &cmd.dist_prefix_, &cmd.dist_extra_)
+	getLengthCode(insertlen, uint(int(copylen)+copylen_code_delta), (cmd.dist_prefix_&0x3FF == 0), &cmd.cmd_prefix_)
 
-	getLengthCode(insertlen, uint(int(copylen)+copylen_code_delta), (self.dist_prefix_&0x3FF == 0), &self.cmd_prefix_)
+	return cmd
 }
 
-func initInsertCommand(self *command, insertlen uint) {
-	self.insert_len_ = uint32(insertlen)
-	self.copy_len_ = 4 << 25
-	self.dist_extra_ = 0
-	self.dist_prefix_ = numDistanceShortCodes
-	getLengthCode(insertlen, 4, false, &self.cmd_prefix_)
+func makeInsertCommand(insertlen uint) (cmd command) {
+	cmd.insert_len_ = uint32(insertlen)
+	cmd.copy_len_ = 4 << 25
+	cmd.dist_extra_ = 0
+	cmd.dist_prefix_ = numDistanceShortCodes
+	getLengthCode(insertlen, 4, false, &cmd.cmd_prefix_)
+	return cmd
 }
 
 func commandRestoreDistanceCode(self *command, dist *distanceParams) uint32 {

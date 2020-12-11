@@ -14,8 +14,6 @@ import (
 )
 
 func testRepoCommitsSearch(t *testing.T, query, commit string) {
-	defer prepareTestEnv(t)()
-
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
@@ -28,6 +26,7 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 }
 
 func TestRepoCommitsSearch(t *testing.T) {
+	defer prepareTestEnv(t)()
 	testRepoCommitsSearch(t, "e8eabd", "")
 	testRepoCommitsSearch(t, "38a9cb", "")
 	testRepoCommitsSearch(t, "6e8e", "6e8eabd9a7")

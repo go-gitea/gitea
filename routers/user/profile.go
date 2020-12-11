@@ -94,10 +94,18 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
-	ctx.Data["HeatmapUser"] = ctxUser.Name
+	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+		data, err := models.GetUserHeatmapDataByUser(ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserHeatmapDataByUser", err)
+			return
+		}
+		ctx.Data["HeatmapData"] = data
+	}
+
 	if len(ctxUser.Description) != 0 {
 		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
 	}

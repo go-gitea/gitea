@@ -120,6 +120,10 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	}
 
 	bits, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return user, err
+	}
+
 	err = json.NewDecoder(bytes.NewReader(bits)).Decode(&user.RawData)
 	if err != nil {
 		return user, err

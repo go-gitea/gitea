@@ -173,7 +173,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
@@ -556,7 +556,8 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
-	element := list.Front()
+	// commits list is in reverse chronological order
+	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
 
@@ -581,7 +582,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 			authors = append(authors, authorString)
 			authorsMap[authorString] = true
 		}
-		element = element.Next()
+		element = element.Prev()
 	}
 
 	// Consider collecting the remaining authors
@@ -609,7 +610,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 				}
 				element = element.Next()
 			}
-
+			skip += limit
 		}
 	}
 

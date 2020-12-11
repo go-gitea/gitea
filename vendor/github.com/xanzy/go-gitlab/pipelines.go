@@ -61,7 +61,7 @@ type Pipeline struct {
 	DetailedStatus *DetailedStatus `json:"detailed_status"`
 }
 
-// DetailedStatus contains detailed information about the status of a pipeline
+// DetailedStatus contains detailed information about the status of a pipeline.
 type DetailedStatus struct {
 	Icon         string `json:"icon"`
 	Text         string `json:"text"`
@@ -77,6 +77,41 @@ type DetailedStatus struct {
 }
 
 func (p Pipeline) String() string {
+	return Stringify(p)
+}
+
+// PipelineTestReport contains a detailed report of a test run.
+type PipelineTestReport struct {
+	TotalTime    float64              `json:"total_time"`
+	TotalCount   int                  `json:"total_count"`
+	SuccessCount int                  `json:"success_count"`
+	FailedCount  int                  `json:"failed_count"`
+	SkippedCount int                  `json:"skipped_count"`
+	ErrorCount   int                  `json:"error_count"`
+	TestSuites   []PipelineTestSuites `json:"test_suites"`
+}
+
+// PipelineTestSuites contains test suites results.
+type PipelineTestSuites struct {
+	Name         string              `json:"name"`
+	TotalTime    float64             `json:"total_time"`
+	TotalCount   int                 `json:"total_count"`
+	SuccessCount int                 `json:"success_count"`
+	FailedCount  int                 `json:"failed_count"`
+	SkippedCount int                 `json:"skipped_count"`
+	ErrorCount   int                 `json:"error_count"`
+	TestCases    []PipelineTestCases `json:"test_cases"`
+}
+
+// PipelineTestCases contains test cases details.
+type PipelineTestCases struct {
+	Status        string  `json:"status"`
+	Name          string  `json:"name"`
+	Classname     string  `json:"classname"`
+	ExecutionTime float64 `json:"execution_time"`
+}
+
+func (p PipelineTestReport) String() string {
 	return Stringify(p)
 }
 
@@ -179,6 +214,30 @@ func (s *PipelinesService) GetPipelineVariables(pid interface{}, pipeline int, o
 
 	var p []*PipelineVariable
 	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
+// GetPipelineTestReport gets the test report of a single project pipeline.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/pipelines.html#get-a-pipelines-test-report
+func (s *PipelinesService) GetPipelineTestReport(pid interface{}, pipeline int) (*PipelineTestReport, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/pipelines/%d/test_report", pathEscape(project), pipeline)
+
+	req, err := s.client.NewRequest("GET", u, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p := new(PipelineTestReport)
+	resp, err := s.client.Do(req, p)
 	if err != nil {
 		return nil, resp, err
 	}

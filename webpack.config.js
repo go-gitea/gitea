@@ -57,6 +57,10 @@ module.exports = {
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
     ],
+    'easymde': [
+      resolve(__dirname, 'web_src/js/easymde.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
+    ],
     ...themes,
   },
   devtool: false,
@@ -168,27 +172,8 @@ module.exports = {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              sourceMap: true,
-              postcssOptions: {
-                plugins: [
-                  [
-                    'postcss-preset-env',
-                    {
-                      features: {
-                        'system-ui-font-family': false,
-                      },
-                    },
-                  ],
-                ],
-              },
             },
           },
         ],
@@ -203,27 +188,9 @@ module.exports = {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              importLoaders: 2,
+              importLoaders: 1,
               url: filterCssImport,
               import: filterCssImport,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              sourceMap: true,
-              postcssOptions: {
-                plugins: [
-                  [
-                    'postcss-preset-env',
-                    {
-                      features: {
-                        'system-ui-font-family': false,
-                      },
-                    },
-                  ],
-                ],
-              },
             },
           },
           {

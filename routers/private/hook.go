@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -25,7 +26,6 @@ import (
 
 	"gitea.com/macaron/macaron"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/gobwas/glob"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -55,53 +55,6 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			})
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
-	}
-	return err
-}
-
-func checkFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository, env []string) error {
-
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
-	// This use of ...  is safe as force-pushes have already been ruled out.
-	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				_ = stdoutWriter.Close()
-
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					lpath := strings.ToLower(path)
-					for _, pat := range patterns {
-						if pat.Match(lpath) {
-							cancel()
-							return models.ErrFilePathProtected{
-								Path: path,
-							}
-						}
-					}
-				}
-				if err := scanner.Err(); err != nil {
-					return err
-				}
-				_ = stdoutReader.Close()
-				return err
-			})
-	if err != nil && !models.IsErrFilePathProtected(err) {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
@@ -202,6 +155,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 
+	// Iterate across the provided old commit IDs
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
@@ -224,143 +178,189 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			})
 			return
 		}
-		if protectBranch != nil && protectBranch.IsProtected() {
-			// detect and prevent deletion
-			if newCommitID == git.EmptySHA {
-				log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
+
+		// Allow pushes to non-protected branches
+		if protectBranch == nil || !protectBranch.IsProtected() {
+			continue
+		}
+
+		// This ref is a protected branch.
+		//
+		// First of all we need to enforce absolutely:
+		//
+		// 1. Detect and prevent deletion of the branch
+		if newCommitID == git.EmptySHA {
+			log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": fmt.Sprintf("branch %s is protected from deletion", branchName),
+			})
+			return
+		}
+
+		// 2. Disallow force pushes to protected branches
+		if git.EmptySHA != oldCommitID {
+			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
+			if err != nil {
+				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Fail to detect force push: %v", err),
+				})
+				return
+			} else if len(output) > 0 {
+				log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
-					"err": fmt.Sprintf("branch %s is protected from deletion", branchName),
+					"err": fmt.Sprintf("branch %s is protected from force push", branchName),
+				})
+				return
+
+			}
+		}
+
+		// 3. Enforce require signed commits
+		if protectBranch.RequireSignedCommits {
+			err := verifyCommits(oldCommitID, newCommitID, gitRepo, env)
+			if err != nil {
+				if !isErrUnverifiedCommit(err) {
+					log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
+					})
+					return
+				}
+				unverifiedCommit := err.(*errUnverifiedCommit).sha
+				log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
 				})
 				return
 			}
+		}
 
-			// detect force push
-			if git.EmptySHA != oldCommitID {
-				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
-				if err != nil {
-					log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+		// Now there are several tests which can be overridden:
+		//
+		// 4. Check protected file patterns - this is overridable from the UI
+		changedProtectedfiles := false
+		protectedFilePath := ""
+
+		globs := protectBranch.GetProtectedFilePatterns()
+		if len(globs) > 0 {
+			_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 1, env, gitRepo)
+			if err != nil {
+				if !models.IsErrFilePathProtected(err) {
+					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Fail to detect force push: %v", err),
-					})
-					return
-				} else if len(output) > 0 {
-					log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
-					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("branch %s is protected from force push", branchName),
-					})
-					return
-
-				}
-			}
-
-			// Require signed commits
-			if protectBranch.RequireSignedCommits {
-				err := verifyCommits(oldCommitID, newCommitID, gitRepo, env)
-				if err != nil {
-					if !isErrUnverifiedCommit(err) {
-						log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
-						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-							"err": fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
-						})
-						return
-					}
-					unverifiedCommit := err.(*errUnverifiedCommit).sha
-					log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
-					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+						"err": fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
 					})
 					return
 				}
-			}
 
-			// Detect Protected file pattern
-			globs := protectBranch.GetProtectedFilePatterns()
-			if len(globs) > 0 {
-				err := checkFileProtection(oldCommitID, newCommitID, globs, gitRepo, env)
-				if err != nil {
-					if !models.IsErrFilePathProtected(err) {
-						log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
-						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-							"err": fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
-						})
-						return
-					}
-					protectedFilePath := err.(models.ErrFilePathProtected).Path
+				changedProtectedfiles = true
+				protectedFilePath = err.(models.ErrFilePathProtected).Path
+			}
+		}
+
+		// 5. Check if the doer is allowed to push
+		canPush := false
+		if opts.IsDeployKey {
+			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+		} else {
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(opts.UserID)
+		}
+
+		// 6. If we're not allowed to push directly
+		if !canPush {
+			// Is this is a merge from the UI/API?
+			if opts.ProtectedBranchID == 0 {
+				// 6a. If we're not merging from the UI/API then there are two ways we got here:
+				//
+				// We are changing a protected file and we're not allowed to do that
+				if changedProtectedfiles {
 					log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
 					})
 					return
 				}
-			}
 
-			canPush := false
-			if opts.IsDeployKey {
-				canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
-			} else {
-				canPush = protectBranch.CanUserPush(opts.UserID)
-			}
-			if !canPush && opts.ProtectedBranchID > 0 {
-				// Merge (from UI or API)
-				pr, err := models.GetPullRequestByID(opts.ProtectedBranchID)
-				if err != nil {
-					log.Error("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err),
-					})
-					return
-				}
-				user, err := models.GetUserByID(opts.UserID)
-				if err != nil {
-					log.Error("Unable to get User id %d Error: %v", opts.UserID, err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to get User id %d Error: %v", opts.UserID, err),
-					})
-					return
-				}
-				perm, err := models.GetUserRepoPermission(repo, user)
-				if err != nil {
-					log.Error("Unable to get Repo permission of repo %s/%s of User %s", repo.OwnerName, repo.Name, user.Name, err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", repo.OwnerName, repo.Name, user.Name, err),
-					})
-					return
-				}
-				allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, user)
-				if err != nil {
-					log.Error("Error calculating if allowed to merge: %v", err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Error calculating if allowed to merge: %v", err),
-					})
-					return
-				}
-				if !allowedMerge {
-					log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v and is not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
-					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
-					})
-					return
-				}
-				// Check all status checks and reviews is ok, unless repo admin which can bypass this.
-				if !perm.IsAdmin() {
-					if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
-						if models.IsErrNotAllowedToMerge(err) {
-							log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
-							ctx.JSON(http.StatusForbidden, map[string]interface{}{
-								"err": fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
-							})
-							return
-						}
-						log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", opts.UserID, branchName, repo, pr.Index, err)
-						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-							"err": fmt.Sprintf("Unable to get status of pull request %d. Error: %v", opts.ProtectedBranchID, err),
-						})
-					}
-				}
-			} else if !canPush {
+				// Or we're simply not able to push to this protected branch
 				log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				})
+				return
+			}
+			// 6b. Merge (from UI or API)
+
+			// Get the PR, user and permissions for the user in the repository
+			pr, err := models.GetPullRequestByID(opts.ProtectedBranchID)
+			if err != nil {
+				log.Error("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err),
+				})
+				return
+			}
+			user, err := models.GetUserByID(opts.UserID)
+			if err != nil {
+				log.Error("Unable to get User id %d Error: %v", opts.UserID, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get User id %d Error: %v", opts.UserID, err),
+				})
+				return
+			}
+			perm, err := models.GetUserRepoPermission(repo, user)
+			if err != nil {
+				log.Error("Unable to get Repo permission of repo %s/%s of User %s", repo.OwnerName, repo.Name, user.Name, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", repo.OwnerName, repo.Name, user.Name, err),
+				})
+				return
+			}
+
+			// Now check if the user is allowed to merge PRs for this repository
+			allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, user)
+			if err != nil {
+				log.Error("Error calculating if allowed to merge: %v", err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Error calculating if allowed to merge: %v", err),
+				})
+				return
+			}
+
+			if !allowedMerge {
+				log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v and is not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				})
+				return
+			}
+
+			// If we're an admin for the repository we can ignore status checks, reviews and override protected files
+			if perm.IsAdmin() {
+				continue
+			}
+
+			// Now if we're not an admin - we can't overwrite protected files so fail now
+			if changedProtectedfiles {
+				log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
+				})
+				return
+			}
+
+			// Check all status checks and reviews are ok
+			if err := pull_service.CheckPRReadyToMerge(pr, true); err != nil {
+				if models.IsErrNotAllowedToMerge(err) {
+					log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
+					})
+					return
+				}
+				log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", opts.UserID, branchName, repo, pr.Index, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get status of pull request %d. Error: %v", opts.ProtectedBranchID, err),
 				})
 				return
 			}
@@ -376,7 +376,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]*repo_service.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
@@ -403,7 +403,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repo_service.PushUpdateOptions{
+			option := repo_module.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],

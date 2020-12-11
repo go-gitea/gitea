@@ -187,7 +187,7 @@ func (d *Decoder) Reset(r io.Reader) error {
 		d.current.err = err
 		d.current.flushed = true
 		if debug {
-			println("sync decode to ", len(dst), "bytes, err:", err)
+			println("sync decode to", len(dst), "bytes, err:", err)
 		}
 		return nil
 	}
@@ -303,6 +303,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		frame.history.reset()
 		err := frame.reset(&frame.bBuf)
 		if err == io.EOF {
+			if debug {
+				println("frame reset return EOF")
+			}
 			return dst, nil
 		}
 		if frame.DictionaryID != nil {
@@ -320,18 +323,22 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		}
 		if frame.FrameContentSize > 0 && frame.FrameContentSize < 1<<30 {
 			// Never preallocate moe than 1 GB up front.
-			if uint64(cap(dst)) < frame.FrameContentSize {
+			if cap(dst)-len(dst) < int(frame.FrameContentSize) {
 				dst2 := make([]byte, len(dst), len(dst)+int(frame.FrameContentSize))
 				copy(dst2, dst)
 				dst = dst2
 			}
 		}
 		if cap(dst) == 0 {
-			// Allocate window size * 2 by default if nothing is provided and we didn't get frame content size.
-			size := frame.WindowSize * 2
+			// Allocate len(input) * 2 by default if nothing is provided
+			// and we didn't get frame content size.
+			size := len(input) * 2
 			// Cap to 1 MB.
 			if size > 1<<20 {
 				size = 1 << 20
+			}
+			if uint64(size) > d.o.maxDecodedSize {
+				size = int(d.o.maxDecodedSize)
 			}
 			dst = make([]byte, 0, size)
 		}
@@ -341,6 +348,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			return dst, err
 		}
 		if len(frame.bBuf) == 0 {
+			if debug {
+				println("frame dbuf empty")
+			}
 			break
 		}
 	}

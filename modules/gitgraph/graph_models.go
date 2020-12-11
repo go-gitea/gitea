@@ -7,6 +7,10 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // NewGraph creates a basic graph
@@ -77,6 +81,48 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 	return nil
 }
 
+// LoadAndProcessCommits will load the git.Commits for each commit in the graph,
+// the associate the commit with the user author, and check the commit verification
+// before finally retrieving the latest status
+func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
+	var err error
+
+	var ok bool
+
+	emails := map[string]*models.User{}
+	keyMap := map[string]bool{}
+
+	for _, c := range graph.Commits {
+		if len(c.Rev) == 0 {
+			continue
+		}
+		c.Commit, err = gitRepo.GetCommit(c.Rev)
+		if err != nil {
+			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
+		}
+
+		if c.Commit.Author != nil {
+			email := c.Commit.Author.Email
+			if c.User, ok = emails[email]; !ok {
+				c.User, _ = models.GetUserByEmail(email)
+				emails[email] = c.User
+			}
+		}
+
+		c.Verification = models.ParseCommitWithSignature(c.Commit)
+
+		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
+
+		statuses, err := models.GetLatestCommitStatus(repository, c.Commit.ID.String(), 0)
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		} else {
+			c.Status = models.CalcCommitStatus(statuses)
+		}
+	}
+	return nil
+}
+
 // NewFlow creates a new flow
 func NewFlow(flowID int64, color, row, column int) *Flow {
 	return &Flow{
@@ -142,42 +188,60 @@ var RelationCommit = &Commit{
 
 // NewCommit creates a new commit from a provided line
 func NewCommit(row, column int, line []byte) (*Commit, error) {
-	data := bytes.SplitN(line, []byte("|"), 7)
-	if len(data) < 7 {
+	data := bytes.SplitN(line, []byte("|"), 5)
+	if len(data) < 5 {
 		return nil, fmt.Errorf("malformed data section on line %d with commit: %s", row, string(line))
 	}
 	return &Commit{
 		Row:    row,
 		Column: column,
 		// 0 matches git log --pretty=format:%d => ref names, like the --decorate option of git-log(1)
-		Branch: string(data[0]),
+		Refs: newRefsFromRefNames(data[0]),
 		// 1 matches git log --pretty=format:%H => commit hash
 		Rev: string(data[1]),
 		// 2 matches git log --pretty=format:%ad => author date (format respects --date= option)
 		Date: string(data[2]),
-		// 3 matches git log --pretty=format:%an => author name
-		Author: string(data[3]),
-		// 4 matches git log --pretty=format:%ae => author email
-		AuthorEmail: string(data[4]),
-		// 5 matches git log --pretty=format:%h => abbreviated commit hash
-		ShortRev: string(data[5]),
-		// 6 matches git log --pretty=format:%s => subject
-		Subject: string(data[6]),
+		// 3 matches git log --pretty=format:%h => abbreviated commit hash
+		ShortRev: string(data[3]),
+		// 4 matches git log --pretty=format:%s => subject
+		Subject: string(data[4]),
 	}, nil
+}
+
+func newRefsFromRefNames(refNames []byte) []git.Reference {
+	refBytes := bytes.Split(refNames, []byte{',', ' '})
+	refs := make([]git.Reference, 0, len(refBytes))
+	for _, refNameBytes := range refBytes {
+		if len(refNameBytes) == 0 {
+			continue
+		}
+		refName := string(refNameBytes)
+		if refName[0:5] == "tag: " {
+			refName = refName[5:]
+		} else if refName[0:8] == "HEAD -> " {
+			refName = refName[8:]
+		}
+		refs = append(refs, git.Reference{
+			Name: refName,
+		})
+	}
+	return refs
 }
 
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
-	Flow        int64
-	Row         int
-	Column      int
-	Branch      string
-	Rev         string
-	Date        string
-	Author      string
-	AuthorEmail string
-	ShortRev    string
-	Subject     string
+	Commit       *git.Commit
+	User         *models.User
+	Verification *models.CommitVerification
+	Status       *models.CommitStatus
+	Flow         int64
+	Row          int
+	Column       int
+	Refs         []git.Reference
+	Rev          string
+	Date         string
+	ShortRev     string
+	Subject      string
 }
 
 // OnlyRelation returns whether this a relation only commit

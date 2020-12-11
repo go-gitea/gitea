@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -56,7 +57,7 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 
-	// Gitea 1.5.3 ends at v70
+	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
@@ -65,7 +66,7 @@ var migrations = []Migration{
 	// v72 -> v73
 	NewMigration("add review", addReview),
 
-	// Gitea 1.6.4 ends at v73
+	// Gitea 1.6.0 ends at v73
 
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
@@ -74,7 +75,7 @@ var migrations = []Migration{
 	// v75 -> v76
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
 
-	// Gitea 1.7.6 ends at v76
+	// Gitea 1.7.0 ends at v76
 
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
@@ -89,7 +90,7 @@ var migrations = []Migration{
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
 
-	// Gitea 1.8.3 ends at v82
+	// Gitea 1.8.0 ends at v82
 
 	// v82 -> v83
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
@@ -104,7 +105,7 @@ var migrations = []Migration{
 	// v87 -> v88
 	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
 
-	// Gitea 1.9.6 ends at v88
+	// Gitea 1.9.0 ends at v88
 
 	// v88 -> v89
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
@@ -128,15 +129,15 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
-
-	// Gitea 1.10.3 ends at v99
-
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+
+	// Gitea 1.10.0 ends at v102
+
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
@@ -167,6 +168,9 @@ var migrations = []Migration{
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+
+	// Gitea 1.11.0 ends at v117
+
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 	// v118 -> v119
@@ -213,6 +217,9 @@ var migrations = []Migration{
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
 	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+
+	// Gitea 1.12.0 ends at v140
+
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
 	// v141 -> v142
@@ -239,6 +246,29 @@ var migrations = []Migration{
 	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
 	// v152 -> v153
 	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	// v153 > v154
+	NewMigration("add Team review request support", addTeamReviewRequestSupport),
+	// v154 > v155
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
+
+	// Gitea 1.13.0 ends at v155
+
+	// v155 -> v156
+	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
+	// v156 -> v157
+	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
+	// v157 -> v158
+	NewMigration("ensure repo topics are up-to-date", fixRepoTopics),
+	// v158 -> v159
+	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
+	// v159 -> v160
+	NewMigration("update reactions constraint", updateReactionConstraint),
+	// v160 -> v161
+	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	// v161 -> v162
+	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	// v162 -> v163
+	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -315,12 +345,16 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		return nil
 	}
 
+	// Downgrading Gitea's database version not supported
 	if int(v-minDBVersion) > len(migrations) {
-		// User downgraded Gitea.
-		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.ID(1).Update(currentVersion)
-		return err
+		msg := fmt.Sprintf("Downgrading database version from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
+			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
+		fmt.Fprint(os.Stderr, msg)
+		log.Fatal(msg)
+		return nil
 	}
+
+	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
@@ -680,7 +714,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "`" + strings.ToLower(col) + "`"
 		}
 		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.Replace(cols, "`", "'", -1))
+			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
 			return fmt.Errorf("Find constraints: %v", err)

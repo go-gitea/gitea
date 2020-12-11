@@ -143,7 +143,7 @@ var (
 		MaxCreationLimit:                        -1,
 		MirrorQueueLength:                       1000,
 		PullRequestQueueLength:                  1000,
-		PreferredLicenses:                       []string{"Apache License 2.0,MIT License"},
+		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
@@ -253,7 +253,7 @@ func newRepository() {
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
-	homeDir = strings.Replace(homeDir, "\\", "/", -1)
+	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
 	// Determine and create root git repository path.
 	sec := Cfg.Section("repository")

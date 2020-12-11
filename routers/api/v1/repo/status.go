@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -64,7 +65,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, status.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(status))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -222,7 +223,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	apiStatuses := make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, status.APIFormat())
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -299,13 +300,13 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	retStatus := &combinedCommitStatus{
 		SHA:        sha,
 		TotalCount: len(statuses),
-		Repo:       repo.APIFormat(ctx.Repo.AccessMode),
+		Repo:       convert.ToRepo(repo, ctx.Repo.AccessMode),
 		URL:        "",
 	}
 
 	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, status.APIFormat())
+		retStatus.Statuses = append(retStatus.Statuses, convert.ToCommitStatus(status))
 		if status.State.NoBetterThan(retStatus.State) {
 			retStatus.State = status.State
 		}

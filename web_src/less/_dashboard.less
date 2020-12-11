@@ -1,6 +1,4 @@
 .dashboard {
-  padding-top: 15px;
-
   &.feeds,
   &.issues {
     .context.user.menu {
@@ -33,7 +31,7 @@
           left: 90%;
           width: 15%;
 
-          @media only screen and (max-width: 768px) {
+          @media @mediaSm {
             top: 10px;
             left: auto;
             width: auto;
@@ -55,25 +53,25 @@
         left: auto !important;
       }
 
-      @media only screen and (max-width: 768px) {
+      @media @mediaSm {
         width: 100%;
       }
     }
 
     .right.stackable.menu > .item.active {
-      color: #d9453d;
+      color: var(--color-red);
     }
   }
 
-  /* Accomodate for Semantic's 1px hacks on .attached elements */
-
-  .dashboard-repos {
-    margin: 0 1px;
+  .dashboard-repos,
+  .dashboard-orgs {
+    margin: 0 1px; /* Accomodate for Semantic's 1px hacks on .attached elements */
   }
 
   .dashboard-navbar {
     width: 100vw;
-    padding: 0 .5rem;
+    padding-left: .5rem;
+    padding-right: .5rem;
     .org-visibility .label {
       margin-left: 5px;
     }
@@ -82,7 +80,6 @@
 
 &.feeds {
   .news {
-
     li {
       display: flex;
       align-items: baseline;
@@ -104,7 +101,7 @@
       margin-right: auto;
     }
 
-    .ui.avatar {
+    .left .ui.avatar {
       margin-top: 13px;
     }
 
@@ -128,7 +125,7 @@
     }
 
     .commit-id {
-      font-family: @monospaced-fonts, monospace;
+      font-family: var(--fonts-monospace);
     }
 
     code {
@@ -138,21 +135,13 @@
       border-radius: 3px;
       word-break: break-all;
     }
+
+    &:last-of-type .divider {
+      display: none !important;
+    }
   }
 
   .list {
-    .header {
-      .ui.label {
-        margin-top: -4px;
-        padding: 4px 5px;
-        font-weight: normal;
-      }
-
-      .plus.icon {
-        margin-top: 5px;
-      }
-    }
-
     ul {
       list-style: none;
       margin: 0;
@@ -160,7 +149,7 @@
 
       li {
         &:not(:last-child) {
-          border-bottom: 1px solid #ebebeb;
+          border-bottom: 1px solid var(--color-secondary);
         }
 
         &.private {
@@ -172,7 +161,7 @@
           display: block;
 
           .svg {
-            color: #888888;
+            color: var(--color-secondary-dark-6);
 
             &.rear {
               font-size: 15px;

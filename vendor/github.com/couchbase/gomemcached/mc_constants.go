@@ -74,6 +74,7 @@ const (
 	TAP_VBUCKET_SET      = CommandCode(0x45) // Sets state of vbucket in receiver (used in takeover)
 	TAP_CHECKPOINT_START = CommandCode(0x46) // Notifies start of new checkpoint
 	TAP_CHECKPOINT_END   = CommandCode(0x47) // Notifies end of checkpoint
+	GET_ALL_VB_SEQNOS    = CommandCode(0x48) // Get current high sequence numbers from all vbuckets located on the server
 
 	UPR_OPEN        = CommandCode(0x50) // Open a UPR connection with a name
 	UPR_ADDSTREAM   = CommandCode(0x51) // Sent by ebucketMigrator to UPR Consumer
@@ -102,18 +103,21 @@ const (
 	SUBDOC_MULTI_LOOKUP      = CommandCode(0xd0) // Multi lookup. Doc xattrs and meta.
 
 	DCP_SYSTEM_EVENT = CommandCode(0x5f) // A system event has occurred
-
+	DCP_SEQNO_ADV    = CommandCode(0x64) // Sent when the vb seqno has advanced due to an unsubscribed event
 )
 
 // command codes that are counted toward DCP control buffer
 // when DCP clients receive DCP messages with these command codes, they need to provide acknowledgement
 var BufferedCommandCodeMap = map[CommandCode]bool{
-	SET_VBUCKET:    true,
-	UPR_STREAMEND:  true,
-	UPR_SNAPSHOT:   true,
-	UPR_MUTATION:   true,
-	UPR_DELETION:   true,
-	UPR_EXPIRATION: true}
+	SET_VBUCKET:      true,
+	UPR_STREAMEND:    true,
+	UPR_SNAPSHOT:     true,
+	UPR_MUTATION:     true,
+	UPR_DELETION:     true,
+	UPR_EXPIRATION:   true,
+	DCP_SYSTEM_EVENT: true,
+	DCP_SEQNO_ADV:    true,
+}
 
 // Status field for memcached response.
 type Status uint16
@@ -274,6 +278,8 @@ func init() {
 	CommandNames[SUBDOC_MULTI_LOOKUP] = "SUBDOC_MULTI_LOOKUP"
 	CommandNames[GET_COLLECTIONS_MANIFEST] = "GET_COLLECTIONS_MANIFEST"
 	CommandNames[COLLECTIONS_GET_CID] = "COLLECTIONS_GET_CID"
+	CommandNames[DCP_SYSTEM_EVENT] = "DCP_SYSTEM_EVENT"
+	CommandNames[DCP_SEQNO_ADV] = "DCP_SEQNO_ADV"
 
 	StatusNames = make(map[Status]string)
 	StatusNames[SUCCESS] = "SUCCESS"

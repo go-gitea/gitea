@@ -29,6 +29,19 @@ func NewTermsQuery(name string, values ...interface{}) *TermsQuery {
 	return q
 }
 
+// NewTermsQueryFromStrings creates and initializes a new TermsQuery
+// from strings.
+func NewTermsQueryFromStrings(name string, values ...string) *TermsQuery {
+	q := &TermsQuery{
+		name:   name,
+		values: make([]interface{}, 0),
+	}
+	for _, v := range values {
+		q.values = append(q.values, v)
+	}
+	return q
+}
+
 // TermsLookup adds terms lookup details to the query.
 func (q *TermsQuery) TermsLookup(lookup *TermsLookup) *TermsQuery {
 	q.termsLookup = lookup
