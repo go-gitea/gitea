@@ -28,10 +28,10 @@
 							<td>{{.ID}}</td>
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
-							<td><i class="fa fa{{if .IsActived}}-check{{end}}-square-o"></i></td>
+							<td>{{if .IsActived}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td><span class="poping up" data-content="{{.UpdatedUnix.FormatShort}}" data-variation="tiny">{{.UpdatedUnix.FormatShort}}</span></td>
 							<td><span class="poping up" data-content="{{.CreatedUnix.FormatLong}}" data-variation="tiny">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
+							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
