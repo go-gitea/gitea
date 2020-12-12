@@ -215,7 +215,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		return false
 	}
 
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if neccesary
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
