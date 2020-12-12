@@ -134,7 +134,7 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if neccesary
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
 	}
 
@@ -146,7 +146,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	// check if we have a certificate
 	if cert, ok := key.(*gossh.Certificate); ok {
-		if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if neccesary
+		if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 			log.Debug("Handle Certificate: %s Fingerprint: %s is a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 		}
 
@@ -200,7 +200,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 				return false
 			}
 
-			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if neccesary
+			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 				log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key), principal)
 			}
 			ctx.SetValue(giteaKeyID, pkey.ID)
@@ -232,7 +232,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		return false
 	}
 
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if neccesary
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 	ctx.SetValue(giteaKeyID, pkey.ID)
