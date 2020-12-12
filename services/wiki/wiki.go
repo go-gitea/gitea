@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
@@ -183,7 +184,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return err
 	}
 
-	commitTreeOpts := git.CommitTreeOpts{
+	commitTreeOpts := service.CommitTreeOpts{
 		Message: message,
 	}
 
@@ -275,13 +276,13 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 	}
 	defer gitRepo.Close()
 
-	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+	if err := git.Service.ReadTreeToIndex(gitRepo, "HEAD"); err != nil {
 		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
 	wikiPath := NameToFilename(wikiName)
-	filesInIndex, err := gitRepo.LsFiles(wikiPath)
+	filesInIndex, err := git.Service.LsFiles(gitRepo, wikiPath)
 	found := false
 	for _, file := range filesInIndex {
 		if file == wikiPath {
@@ -290,7 +291,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		}
 	}
 	if found {
-		err := gitRepo.RemoveFilesFromIndex(wikiPath)
+		err := git.Service.RemoveFilesFromIndex(gitRepo, wikiPath)
 		if err != nil {
 			return err
 		}
@@ -300,12 +301,12 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-	tree, err := gitRepo.WriteTree()
+	tree, err := git.Service.WriteTree(gitRepo)
 	if err != nil {
 		return err
 	}
 	message := "Delete page '" + wikiName + "'"
-	commitTreeOpts := git.CommitTreeOpts{
+	commitTreeOpts := service.CommitTreeOpts{
 		Message: message,
 		Parents: []string{"HEAD"},
 	}

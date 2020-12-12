@@ -13,7 +13,7 @@ import (
 )
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
+func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit string) (bool, string, *service.Signature, error) {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err

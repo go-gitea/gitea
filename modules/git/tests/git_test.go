@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+const testReposDir = "repos/"
+
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)

@@ -11,11 +11,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/common"
 	"code.gitea.io/gitea/modules/git/service"
-	gitservice "code.gitea.io/gitea/modules/git/service"
 )
 
 // GetBranch returns a branch by its name
-func GetBranch(repo *models.Repository, branch string) (gitservice.Branch, error) {
+func GetBranch(repo *models.Repository, branch string) (service.Branch, error) {
 	gitRepo, err := git.Service.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err

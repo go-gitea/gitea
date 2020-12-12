@@ -352,9 +352,7 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	note := &git.Note{}
-	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
-	if err == nil {
+	if note, err := git.GetNote(ctx.Repo.GitRepo, commitID); err == nil {
 		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)

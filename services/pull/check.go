@@ -173,7 +173,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 
 		notification.NotifyMergePullRequest(pr, merger)
 
-		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID().String())
 		return true
 	}
 	return false

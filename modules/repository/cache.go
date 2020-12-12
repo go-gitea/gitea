@@ -42,7 +42,7 @@ func CacheRef(repo *models.Repository, gitRepo service.Repository, fullRefName s
 		return nil
 	}
 
-	commitCache := git.NewLastCommitCache(repo.FullName(), gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
+	commitCache := git.Service.NewLastCommitCache(gitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 
 	return commitCache.CacheCommit(commit)
 }

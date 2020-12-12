@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -60,7 +61,7 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 }
 
 // SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(repoPath string) (string, *git.Signature) {
+func SigningKey(repoPath string) (string, *service.Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
 		return "", nil
 	}
@@ -76,13 +77,13 @@ func SigningKey(repoPath string) (string, *git.Signature) {
 		signingKey, _ := git.NewCommand("config", "--get", "user.signingkey").RunInDir(repoPath)
 		signingName, _ := git.NewCommand("config", "--get", "user.name").RunInDir(repoPath)
 		signingEmail, _ := git.NewCommand("config", "--get", "user.email").RunInDir(repoPath)
-		return strings.TrimSpace(signingKey), &git.Signature{
+		return strings.TrimSpace(signingKey), &service.Signature{
 			Name:  strings.TrimSpace(signingName),
 			Email: strings.TrimSpace(signingEmail),
 		}
 	}
 
-	return setting.Repository.Signing.SigningKey, &git.Signature{
+	return setting.Repository.Signing.SigningKey, &service.Signature{
 		Name:  setting.Repository.Signing.SigningName,
 		Email: setting.Repository.Signing.SigningEmail,
 	}
@@ -105,7 +106,7 @@ func PublicSigningKey(repoPath string) (string, error) {
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(repoPath string, u *User) (bool, string, *git.Signature, error) {
+func SignInitialCommit(repoPath string, u *User) (bool, string, *service.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
 	signingKey, sig := SigningKey(repoPath)
 	if signingKey == "" {
@@ -141,7 +142,7 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func (repo *Repository) SignWikiCommit(u *User) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignWikiCommit(u *User) (bool, string, *service.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(repo.WikiPath())
 	if signingKey == "" {
@@ -194,7 +195,7 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string) (bool, string, *service.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
 	signingKey, sig := SigningKey(repo.RepoPath())
 	if signingKey == "" {
