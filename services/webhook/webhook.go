@@ -60,12 +60,12 @@ var (
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {
-	webhooks[models.HookTaskType(name)] = webhook
+	webhooks[models.HookTaskType(strings.TrimSpace(name))] = webhook
 }
 
 // IsValidHookTaskType returns true if a webhook registered
 func IsValidHookTaskType(name string) bool {
-	_, ok := webhooks[models.HookTaskType(name)]
+	_, ok := webhooks[models.HookTaskType(strings.TrimSpace(name))]
 	return ok
 }
 
