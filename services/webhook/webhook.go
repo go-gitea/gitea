@@ -144,7 +144,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	var payloader api.Payloader
 	var err error
-	webhook, ok := webhooks[w.Type]
+	webhook, ok := webhooks[strings.TrimSpace(w.Type)] // NOTICE: w.Type maynot be trimmed before store into database
 	if ok {
 		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {
