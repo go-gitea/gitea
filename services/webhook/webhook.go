@@ -65,6 +65,9 @@ func RegisterWebhook(name string, webhook *webhook) {
 
 // IsValidHookTaskType returns true if a webhook registered
 func IsValidHookTaskType(name string) bool {
+	if name == models.GITEA || name == models.GOGS {
+		return true
+	}
 	_, ok := webhooks[models.HookTaskType(strings.TrimSpace(name))]
 	return ok
 }
