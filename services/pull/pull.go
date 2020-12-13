@@ -641,31 +641,31 @@ func GetCommitMessages(pr *models.PullRequest) string {
 
 // GetLastCommitStatus returns the last commit status for this pull request.
 func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+	// load base repo
+	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
-	if pr.HeadRepo == nil {
-		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer headGitRepo.Close()
-
-	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	// open repo with git
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
 
-	err = pr.LoadBaseRepo()
+	// get list of commits
+	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+		pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
+		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
+			return nil, err
+		}
+
 		return nil, err
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	// get last commit hash for this PR
+	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
 	if err != nil {
 		return nil, err
 	}
