@@ -699,7 +699,7 @@ generate-gitignore:
 .PHONY: generate-images
 generate-images:
 	npm install --no-save --no-package-lock fabric imagemin-zopfli
-	node build/generate-images.js
+	node build/generate-images.js $(TAGS)
 
 .PHONY: pr\#%
 pr\#%: clean-all
