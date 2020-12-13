@@ -36,9 +36,9 @@
 		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
-					<div class="diff-counter count pull-right">
+					<div class="diff-counter pull-right">
 						{{if not .IsBin}}
-							{{template "repo/diff/stats" .}}
+							{{template "repo/diff/stats" dict "file" . "root" $}}
 						{{else}}
 							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
 						{{end}}
@@ -53,9 +53,9 @@
 			{{if $file.IsIncomplete}}
 				<div class="diff-file-box diff-box file-content">
 					<h4 class="ui top attached normal header rounded">
-						<div class="diff-counter count ui left">
+						<div class="diff-counter ui left">
 							{{if not $file.IsRenamed}}
-								{{template "repo/diff/stats" .}}
+								{{template "repo/diff/stats" dict "file" . "root" $}}
 							{{end}}
 						</div>
 						<span class="file">{{$file.Name}}</span>
@@ -87,11 +87,11 @@
 								{{svg "octicon-chevron-down" 18}}
 							</a>
 							{{end}}
-							<div class="diff-counter count">
+							<div class="diff-counter">
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
 								{{else if not $file.IsRenamed}}
-									{{template "repo/diff/stats" .}}
+									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
 							<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
