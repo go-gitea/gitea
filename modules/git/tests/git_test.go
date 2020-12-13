@@ -16,6 +16,7 @@ import (
 )
 
 const testReposDir = "repos/"
+const benchmarkReposDir = "../benchmark/repos/"
 
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
