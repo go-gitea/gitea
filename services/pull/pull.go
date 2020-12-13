@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -663,7 +664,10 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 		return nil, err
 	}
 
-	// get last commit hash for this PR
+	if compareInfo.Commits.Len() == 0 {
+		return nil, errors.New("pull request has no commits")
+	}
+
 	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
 	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
 	if err != nil {
