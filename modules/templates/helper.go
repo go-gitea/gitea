@@ -338,11 +338,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":           SVG,
-		"avatar":        Avatar,
-		"avatarHTML":    AvatarHTML,
-		"avatarByEmail": AvatarByEmail,
-		"repoAvatar":    RepoAvatar,
+		"svg":            SVG,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -549,14 +550,28 @@ func SVG(icon string, others ...interface{}) template.HTML {
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(user *models.User, others ...interface{}) template.HTML {
+func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
-	if src != "" {
-		return AvatarHTML(src, size, class, user.DisplayName())
+	if user, ok := item.(*models.User); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	if user, ok := item.(*models.Collaborator); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
 	}
 	return template.HTML("")
+}
+
+// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
+func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+	action.LoadActUser()
+	return Avatar(action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
@@ -772,7 +787,7 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
-		return "repo-clone"
+		return "mirror"
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:

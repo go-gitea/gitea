@@ -97,6 +97,12 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		}
 		var commits = &repo_module.PushCommits{}
 		if opts.IsTag() { // If is tag reference {
+			if pusher == nil || pusher.ID != opts.PusherID {
+				var err error
+				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
+					return err
+				}
+			}
 			tagName := opts.TagName()
 			if opts.IsDelRef() {
 				delTags = append(delTags, tagName)
