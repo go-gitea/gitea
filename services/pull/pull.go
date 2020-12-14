@@ -642,25 +642,20 @@ func GetCommitMessages(pr *models.PullRequest) string {
 
 // GetLastCommitStatus returns the last commit status for this pull request.
 func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	// load base repo
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
-	// open repo with git
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
 
-	// get list of commits
-	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		pr.MergeBase, pr.GetGitRefName())
+	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			return nil, err
 		}
-
 		return nil, err
 	}
 
