@@ -2,11 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package git
+package tests
 
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,6 +39,7 @@ func TestGetRefURL(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		assert.EqualValues(t, kase.expect, getRefURL(kase.refURL, kase.prefixURL, kase.parentPath, kase.SSHDomain))
+		sf := common.NewSubModuleFile(nil, kase.refURL, "")
+		assert.EqualValues(t, kase.expect, sf.RefURL(kase.prefixURL, kase.parentPath, kase.SSHDomain))
 	}
 }

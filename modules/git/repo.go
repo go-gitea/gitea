@@ -6,8 +6,6 @@
 package git
 
 import (
-	"bytes"
-	"container/list"
 	"context"
 	"fmt"
 	"os"
@@ -16,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git/service"
 	"github.com/unknwon/com"
 )
 
@@ -29,30 +28,6 @@ type GPGSettings struct {
 }
 
 const prettyLogFormat = `--pretty=format:%H`
-
-// GetAllCommitsCount returns count of all commits in repository
-func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path(), false)
-}
-
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
-	l := list.New()
-	if len(logs) == 0 {
-		return l, nil
-	}
-
-	parts := bytes.Split(logs, []byte{'\n'})
-
-	for _, commitID := range parts {
-		commit, err := repo.GetCommit(string(commitID))
-		if err != nil {
-			return nil, err
-		}
-		l.PushBack(commit)
-	}
-
-	return l, nil
-}
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
@@ -73,20 +48,6 @@ func InitRepository(repoPath string, bare bool) error {
 	}
 	_, err = cmd.RunInDir(repoPath)
 	return err
-}
-
-// IsEmpty Check if repository is empty.
-func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
-	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path(), nil, &errbuf); err != nil {
-		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
-			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
-			return true, nil
-		}
-		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
-	}
-
-	return false, nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -337,7 +298,7 @@ func GetLatestCommitTime(repoPath string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	commitTime := strings.TrimSpace(stdout)
-	return time.Parse(GitTimeLayout, commitTime)
+	return time.Parse(service.GitTimeLayout, commitTime)
 }
 
 // DivergeObject represents commit count diverging commits

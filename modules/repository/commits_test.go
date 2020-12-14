@@ -154,34 +154,37 @@ func TestCommitToPushCommit(t *testing.T) {
 
 func TestListToPushCommits(t *testing.T) {
 	now := time.Now()
-	sig := &git.Signature{
+	sig := &service.Signature{
 		Email: "example@example.com",
 		Name:  "John Doe",
 		When:  now,
 	}
 
 	const hexString1 = "0123456789abcdef0123456789abcdef01234567"
-	hash1, err := git.NewIDFromString(hexString1)
-	assert.NoError(t, err)
+	hash1 := git.Service.MustHashFromString(hexString1)
 	const hexString2 = "fedcba9876543210fedcba9876543210fedcba98"
-	hash2, err := git.NewIDFromString(hexString2)
-	assert.NoError(t, err)
+	hash2 := git.Service.MustHashFromString(hexString2)
+	emptyTreeHash := git.Service.MustHashFromString(service.EmptyTreeSHA)
 
 	l := list.New()
 	l.PushBack(native.NewCommit(
-		native.NewObject()
-	)
-		ID:            hash1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message1",
-	})
-	l.PushBack(&git.Commit{
-		ID:            hash2,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message2",
-	})
+		native.NewObject(hash1, nil),
+		emptyTreeHash,
+		nil,
+		sig,
+		sig,
+		nil,
+		nil,
+		"Message1"))
+	l.PushBack(native.NewCommit(
+		native.NewObject(hash2, nil),
+		emptyTreeHash,
+		nil,
+		sig,
+		sig,
+		nil,
+		nil,
+		"Message2"))
 
 	pushCommits := ListToPushCommits(l)
 	assert.Equal(t, 2, pushCommits.Len)

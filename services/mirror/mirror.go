@@ -456,7 +456,7 @@ func syncMirror(repoID string) {
 			}
 			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
 				RefFullName: result.refName,
-				OldCommitID: git.EmptySHA,
+				OldCommitID: service.EmptySHA,
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
 			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)

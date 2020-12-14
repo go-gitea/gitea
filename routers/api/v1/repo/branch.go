@@ -159,7 +159,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  c.ID().String(),
-			NewCommitID:  git.EmptySHA,
+			NewCommitID:  service.EmptySHA,
 			PusherID:     ctx.User.ID,
 			PusherName:   ctx.User.Name,
 			RepoUserName: ctx.Repo.Owner.Name,

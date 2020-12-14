@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/webhook"
@@ -1047,8 +1048,8 @@ func TestWebhook(ctx *context.Context) {
 	if commit == nil {
 		ghost := models.NewGhostUser()
 		commit = native.NewCommit(
-			native.NewObject(git.Service.MustHashFromString(git.EmptySHA), ctx.Repo.GitRepo),
-			git.Service.MustHashFromString(git.EmptyTreeSHA),
+			native.NewObject(git.Service.MustHashFromString(service.EmptySHA), ctx.Repo.GitRepo),
+			git.Service.MustHashFromString(service.EmptyTreeSHA),
 			nil,
 			ghost.NewGitSig(),
 			ghost.NewGitSig(),

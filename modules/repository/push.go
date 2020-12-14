@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 )
 
 // PushUpdateOptions defines the push update options
@@ -24,12 +25,12 @@ type PushUpdateOptions struct {
 
 // IsNewRef return true if it's a first-time push to a branch, tag or etc.
 func (opts PushUpdateOptions) IsNewRef() bool {
-	return opts.OldCommitID == git.EmptySHA
+	return opts.OldCommitID == service.EmptySHA
 }
 
 // IsDelRef return true if it's a deletion to a branch or tag
 func (opts PushUpdateOptions) IsDelRef() bool {
-	return opts.NewCommitID == git.EmptySHA
+	return opts.NewCommitID == service.EmptySHA
 }
 
 // IsUpdateRef return true if it's an update operation

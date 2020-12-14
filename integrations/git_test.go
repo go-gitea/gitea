@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -154,12 +155,12 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		assert.NoError(t, err)
 
 		err = git.CommitChangesWithArgs(dstPath, allowLFSFilters(), git.CommitChangesOptions{
-			Committer: &git.Signature{
+			Committer: &service.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
 				When:  time.Now(),
 			},
-			Author: &git.Signature{
+			Author: &service.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
 				When:  time.Now(),
@@ -333,12 +334,12 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 		return "", err
 	}
 	err = git.CommitChangesWithArgs(repoPath, globalArgs, git.CommitChangesOptions{
-		Committer: &git.Signature{
+		Committer: &service.Signature{
 			Email: email,
 			Name:  fullName,
 			When:  time.Now(),
 		},
-		Author: &git.Signature{
+		Author: &service.Signature{
 			Email: email,
 			Name:  fullName,
 			When:  time.Now(),

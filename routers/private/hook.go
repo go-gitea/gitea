@@ -163,7 +163,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		refFullName := opts.RefFullNames[i]
 
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
-		if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
+		if branchName == repo.DefaultBranch && newCommitID == service.EmptySHA {
 			log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
@@ -190,7 +190,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		// First of all we need to enforce absolutely:
 		//
 		// 1. Detect and prevent deletion of the branch
-		if newCommitID == git.EmptySHA {
+		if newCommitID == service.EmptySHA {
 			log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": fmt.Sprintf("branch %s is protected from deletion", branchName),
@@ -199,7 +199,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		}
 
 		// 2. Disallow force pushes to protected branches
-		if git.EmptySHA != oldCommitID {
+		if service.EmptySHA != oldCommitID {
 			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
 			if err != nil {
 				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
@@ -461,7 +461,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 		branch := git.RefEndName(opts.RefFullNames[i])
 
-		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
+		if newCommitID != service.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			if repo == nil {
 				var err error
 				repo, err = models.GetRepositoryByOwnerAndName(ownerName, repoName)

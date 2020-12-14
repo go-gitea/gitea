@@ -254,11 +254,11 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			ctx.Data["Err_TreePath"] = true
 			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
 				switch fileErr.Type {
-				case git.EntryModeSymlink:
+				case service.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-				case git.EntryModeTree:
+				case service.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-				case git.EntryModeBlob:
+				case service.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
 				default:
 					ctx.Error(500, err.Error())
@@ -449,11 +449,11 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			ctx.Data["Err_TreePath"] = true
 			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
 				switch fileErr.Type {
-				case git.EntryModeSymlink:
+				case service.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplDeleteFile, &form)
-				case git.EntryModeTree:
+				case service.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplDeleteFile, &form)
-				case git.EntryModeBlob:
+				case service.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplDeleteFile, &form)
 				default:
 					ctx.ServerError("DeleteRepoFile", err)
@@ -656,11 +656,11 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 			ctx.Data["Err_TreePath"] = true
 			fileErr := err.(models.ErrFilePathInvalid)
 			switch fileErr.Type {
-			case git.EntryModeSymlink:
+			case service.EntryModeSymlink:
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplUploadFile, &form)
-			case git.EntryModeTree:
+			case service.EntryModeTree:
 				ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplUploadFile, &form)
-			case git.EntryModeBlob:
+			case service.EntryModeBlob:
 				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplUploadFile, &form)
 			default:
 				ctx.Error(500, err.Error())

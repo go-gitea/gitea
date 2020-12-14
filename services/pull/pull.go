@@ -240,7 +240,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 			if err == nil {
 				for _, pr := range prs {
-					if newCommitID != "" && newCommitID != git.EmptySHA {
+					if newCommitID != "" && newCommitID != service.EmptySHA {
 						changed, err := checkIfPRContentChanged(pr, oldCommitID, newCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)

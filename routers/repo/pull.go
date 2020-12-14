@@ -1190,7 +1190,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + pr.HeadBranch,
 			OldCommitID:  branchCommitID,
-			NewCommitID:  git.EmptySHA,
+			NewCommitID:  service.EmptySHA,
 			PusherID:     ctx.User.ID,
 			PusherName:   ctx.User.Name,
 			RepoUserName: pr.HeadRepo.Owner.Name,

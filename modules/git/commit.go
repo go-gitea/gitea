@@ -8,70 +8,13 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"container/list"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/service"
 )
-
-// Commit represents a git commit.
-// type Commit struct {
-// 	// // Branch string // Branch this commit belongs to
-// 	// // Tree
-// 	// // ID            SHA1 // The ID of this commit object
-// 	// // Author        *Signature
-// 	// Committer     *Signature
-// 	// CommitMessage string
-// 	// Signature     *CommitGPGSignature
-
-// 	// Parents        []SHA1 // SHA1 strings
-// 	// submoduleCache *ObjectCache
-// }
-
-// CommitGPGSignature represents a git commit signature part.
-type CommitGPGSignature struct {
-	Signature string
-	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
-}
-
-// // Message returns the commit message. Same as retrieving CommitMessage directly.
-// func (c *Commit) Message() string {
-// 	return c.CommitMessage
-// }
-
-// // Summary returns first line of commit message.
-// func (c *Commit) Summary() string {
-// 	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
-// }
-
-// // ParentID returns oid of n-th parent (0-based index).
-// // It returns nil if no such parent exists.
-// func (c *Commit) ParentID(n int) (SHA1, error) {
-// 	if n >= len(c.Parents) {
-// 		return SHA1{}, ErrNotExist{"", ""}
-// 	}
-// 	return c.Parents[n], nil
-// }
-
-// // Parent returns n-th parent (0-based index) of the commit.
-// func (c *Commit) Parent(n int) (*Commit, error) {
-// 	id, err := c.ParentID(n)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	parent, err := c.repo.getCommit(id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return parent, nil
-// }
-
-// ParentCount returns number of parents of the commit.
-// 0 if this is the root commit,  otherwise 1,2, etc.
-func (c *Commit) ParentCount() int {
-	return len(c.Parents)
-}
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
@@ -91,8 +34,8 @@ func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ..
 
 // CommitChangesOptions the options when a commit created
 type CommitChangesOptions struct {
-	Committer *Signature
-	Author    *Signature
+	Committer *service.Signature
+	Author    *service.Signature
 	Message   string
 }
 
@@ -172,56 +115,6 @@ func CommitsCount(repoPath string, revision ...string) (int64, error) {
 	return CommitsCountFiles(repoPath, revision, []string{})
 }
 
-// // CommitsCount returns number of total commits of until current revision.
-// func (c *Commit) CommitsCount() (int64, error) {
-// 	return CommitsCount(c.repo.Path(), c.ID.String())
-// }
-
-// // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-// func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
-// 	return c.repo.commitsByRange(c.ID, page, pageSize)
-// }
-
-// // CommitsBefore returns all the commits before current revision
-// func (c *Commit) CommitsBefore() (*list.List, error) {
-// 	return c.repo.getCommitsBefore(c.ID)
-// }
-
-// // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-// func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
-// 	for i := 0; i < c.ParentCount(); i++ {
-// 		commit, err := c.Parent(i)
-// 		if err != nil {
-// 			return false, err
-// 		}
-// 		if commit.ID == commitHash {
-// 			return true, nil
-// 		}
-// 		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
-// 		if err != nil {
-// 			return false, err
-// 		}
-// 		if commitInParentCommit {
-// 			return true, nil
-// 		}
-// 	}
-// 	return false, nil
-// }
-
-// // CommitsBeforeLimit returns num commits before current revision
-// func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
-// 	return c.repo.getCommitsBeforeLimit(c.ID, num)
-// }
-
-// // CommitsBeforeUntil returns the commits between commitID to current revision
-// func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
-// 	endCommit, err := c.repo.GetCommit(commitID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return c.repo.CommitsBetween(c, endCommit)
-// }
-
 // SearchCommitsOptions specify the parameters for SearchCommits
 type SearchCommitsOptions struct {
 	Keywords            []string
@@ -260,146 +153,6 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 		All:        forAllRefs,
 	}
 }
-
-// SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
-	return c.repo.searchCommits(c.ID, opts)
-}
-
-// GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
-func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error) {
-	return c.repo.getFilesChanged(pastCommit, c.ID.String())
-}
-
-// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
-// YOU MUST ENSURE THAT pastCommit is a valid commit ID.
-func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
-	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
-}
-
-// HasFile returns true if the file given exists on this commit
-// This does only mean it's there - it does not mean the file was changed during the commit.
-func (c *Commit) HasFile(filename string) (bool, error) {
-	_, err := c.GetBlobByPath(filename)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-// GetSubModules get all the sub modules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache, error) {
-	if c.submoduleCache != nil {
-		return c.submoduleCache, nil
-	}
-
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
-	if err != nil {
-		if _, ok := err.(ErrNotExist); ok {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	rd, err := entry.Blob().Reader()
-	if err != nil {
-		return nil, err
-	}
-
-	defer rd.Close()
-	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = NewObjectCache()
-	var ismodule bool
-	var path string
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
-			continue
-		}
-		if ismodule {
-			fields := strings.Split(scanner.Text(), "=")
-			k := strings.TrimSpace(fields[0])
-			if k == "path" {
-				path = strings.TrimSpace(fields[1])
-			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
-			}
-		}
-	}
-
-	return c.submoduleCache, nil
-}
-
-// GetSubModule get the sub module according entryname
-func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
-	if err != nil {
-		return nil, err
-	}
-
-	if modules != nil {
-		module, has := modules.Get(entryname)
-		if has {
-			return module.(*SubModule), nil
-		}
-	}
-	return nil, nil
-}
-
-// // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
-// func (c *Commit) GetBranchName() (string, error) {
-// 	err := LoadGitVersion()
-// 	if err != nil {
-// 		return "", fmt.Errorf("Git version missing: %v", err)
-// 	}
-
-// 	args := []string{
-// 		"name-rev",
-// 	}
-// 	if CheckGitVersionAtLeast("2.13.0") == nil {
-// 		args = append(args, "--exclude", "refs/tags/*")
-// 	}
-// 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
-
-// 	data, err := NewCommand(args...).RunInDir(c.repo.Path())
-// 	if err != nil {
-// 		// handle special case where git can not describe commit
-// 		if strings.Contains(err.Error(), "cannot describe") {
-// 			return "", nil
-// 		}
-
-// 		return "", err
-// 	}
-
-// 	// name-rev commitID output will be "master" or "master~12"
-// 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
-// }
-
-// // LoadBranchName load branch name for commit
-// func (c *Commit) LoadBranchName() (err error) {
-// 	if len(c.Branch) != 0 {
-// 		return
-// 	}
-
-// 	c.Branch, err = c.GetBranchName()
-// 	return
-// }
-
-// // GetTagName gets the current tag name for given commit
-// func (c *Commit) GetTagName() (string, error) {
-// 	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path())
-// 	if err != nil {
-// 		// handle special case where there is no tag for this commit
-// 		if strings.Contains(err.Error(), "no tag exactly matches") {
-// 			return "", nil
-// 		}
-
-// 		return "", err
-// 	}
-
-// 	return strings.TrimSpace(data), nil
-// }
 
 // CommitFileStatus represents status of files in a commit.
 type CommitFileStatus struct {
@@ -449,12 +202,4 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 
 	<-done
 	return fileStatus, nil
-}
-
-// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
-func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
-	if c.repo == nil {
-		return nil, nil
-	}
-	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
 }

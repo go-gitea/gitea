@@ -8,7 +8,7 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 )
 
 // ErrNotExist represents a non-exist error.
@@ -952,7 +952,7 @@ type ErrFilePathInvalid struct {
 	Message string
 	Path    string
 	Name    string
-	Type    git.EntryMode
+	Type    service.EntryMode
 }
 
 // IsErrFilePathInvalid checks if an error is an ErrFilePathInvalid.

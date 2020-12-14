@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -58,7 +59,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 
 	for _, opt := range opts {
 		if opt.IsNewRef() && opt.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("Old and new revisions are both %s", service.EmptySHA)
 		}
 	}
 
@@ -93,7 +94,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("Old and new revisions are both %s", service.EmptySHA)
 		}
 		var commits = &repo_module.PushCommits{}
 		if opts.IsTag() { // If is tag reference {

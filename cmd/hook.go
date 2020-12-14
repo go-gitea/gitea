@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -360,7 +361,7 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
-		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != service.EmptySHA && count == total {
 			masterPushed = true
 		}
 		count++

@@ -47,7 +47,7 @@ func createTag(gitRepo service.Repository, rel *models.Release) error {
 				rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: git.TagPrefix + rel.TagName,
-					OldCommitID: git.EmptySHA,
+					OldCommitID: service.EmptySHA,
 					NewCommitID: commit.ID().String(),
 				}, repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)

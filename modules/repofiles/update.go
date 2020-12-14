@@ -300,7 +300,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 					Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 					Path:    subTreePath,
 					Name:    part,
-					Type:    git.EntryModeBlob,
+					Type:    service.EntryModeBlob,
 				}
 			}
 		} else if entry.Mode().IsLink() {
@@ -308,14 +308,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 				Path:    subTreePath,
 				Name:    part,
-				Type:    git.EntryModeSymlink,
+				Type:    service.EntryModeSymlink,
 			}
 		} else if entry.Mode().IsDir() {
 			return nil, models.ErrFilePathInvalid{
 				Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
 				Path:    subTreePath,
 				Name:    part,
-				Type:    git.EntryModeTree,
+				Type:    service.EntryModeTree,
 			}
 		} else if fromTreePath != treePath || opts.IsNewFile {
 			// The entry shouldn't exist if we are creating new file or moving to a new path

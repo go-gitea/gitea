@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -30,7 +31,7 @@ func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 	return func(t *testing.T) {
 		assert.NoError(t, ioutil.WriteFile(filepath.Join(dstPath, filename), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s at time: %v", dstPath, time.Now())), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
-		signature := git.Signature{
+		signature := service.Signature{
 			Email: "test@example.com",
 			Name:  "test",
 			When:  time.Now(),

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/util"
@@ -132,7 +133,7 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 		assert.NoError(t, git.InitRepository(dstPath, false))
 		assert.NoError(t, ioutil.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
-		signature := git.Signature{
+		signature := service.Signature{
 			Email: "test@example.com",
 			Name:  "test",
 			When:  time.Now(),

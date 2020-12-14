@@ -162,7 +162,7 @@ func FindLFSFile(repo service.Repository, hash service.Hash) ([]*LFSResult, erro
 							ParentHashes: curCommit.Parents(),
 						}
 						resultsMap[curCommit.ID().String()+":"+curPath+string(fname)] = &result
-					} else if string(mode) == git.EntryModeTree.String() {
+					} else if string(mode) == service.EntryModeTree.String() {
 						trees = append(trees, sha)
 						paths = append(paths, curPath+string(fname)+"/")
 					}

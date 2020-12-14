@@ -896,7 +896,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	ctx, cancel := context.WithCancel(git.DefaultContext)
 	defer cancel()
 	var cmd *exec.Cmd
-	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
+	if (len(beforeCommitID) == 0 || beforeCommitID == service.EmptySHA) && commit.ParentCount() == 0 {
 		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
@@ -951,8 +951,8 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	}
 
 	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
-	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
+	if len(beforeCommitID) == 0 || beforeCommitID == service.EmptySHA {
+		shortstatArgs = []string{service.EmptyTreeSHA, afterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
