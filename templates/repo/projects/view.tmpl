@@ -160,7 +160,7 @@
 						</div>
 						<div class="extra content">
 							{{ range .Labels }}
-							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a>
+							<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 							{{ end }}
 						</div>
 					</div>
