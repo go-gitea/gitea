@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -28,6 +30,25 @@ func Keys(ctx *context.Context) {
 	loadKeysData(ctx)
 
 	ctx.HTML(200, tplSettingsKeys)
+}
+
+func sshKeysExternallyManaged(user *models.User) (bool, error) {
+	if user.LoginSource == 0 {
+		return false, nil
+	}
+	source, err := models.GetLoginSourceByID(user.LoginSource)
+	if err != nil {
+		return false, err
+	}
+	ldapSource := source.LDAP()
+	if ldapSource != nil &&
+		source.IsSyncEnabled &&
+		(source.Type == models.LoginLDAP || source.Type == models.LoginDLDAP) &&
+		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+		// Disable setting SSH keys for this user
+		return true, nil
+	}
+	return false, nil
 }
 
 // KeysPost response for change user's SSH/GPG keys
@@ -105,6 +126,16 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", keyIDs))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
+		external, err := sshKeysExternallyManaged(ctx.User)
+		if err != nil {
+			ctx.ServerError("sshKeysExternalManaged", err)
+			return
+		}
+		if external {
+			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
 		content, err := models.CheckPublicKeyString(form.Content)
 		if err != nil {
 			if models.IsErrSSHDisabled(err) {
@@ -160,6 +191,16 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
+		external, err := sshKeysExternallyManaged(ctx.User)
+		if err != nil {
+			ctx.ServerError("sshKeysExternalManaged", err)
+			return
+		}
+		if external {
+			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
 		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
@@ -181,6 +222,15 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
+	external, err := sshKeysExternallyManaged(ctx.User)
+	if err != nil {
+		ctx.ServerError("sshKeysExternalManaged", err)
+		return
+	}
+	if external {
+		ctx.Data["SSHKeysExternalManaged"] = true
+	}
+
 	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
