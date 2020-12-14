@@ -18,15 +18,6 @@ import (
 	"github.com/unknwon/com"
 )
 
-// GPGSettings represents the default GPG settings for this repository
-type GPGSettings struct {
-	Sign             bool
-	KeyID            string
-	Email            string
-	Name             string
-	PublicKeyContent string
-}
-
 const prettyLogFormat = `--pretty=format:%H`
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
