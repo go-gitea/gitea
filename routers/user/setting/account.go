@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -300,4 +301,12 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
+
+	ctx.Data["UserDeleteWithComments"] = false
+	if section, err := setting.Cfg.GetSection("service"); err == nil {
+		if maxDays, err := section.Key("USER_DELETE_WITH_COMMENTS_MAX_DAYS").Int(); err == nil && maxDays != 0 {
+			ctx.Data["UserDeleteWithCommentsMaxDays"] = maxDays
+			ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(time.Duration(maxDays) * 24 * time.Hour).After(time.Now())
+		}
+	}
 }
