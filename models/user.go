@@ -1588,9 +1588,23 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
-		if err == nil {
-			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
+		var err error
+		found := false
+		keys := []byte(sshKey)
+	loop:
+		for len(sshKey) > 0 && err == nil {
+			var out ssh.PublicKey
+			var comment string
+			// We ignore options as they are not relevant to Gitea
+			out, comment, _, keys, err = ssh.ParseAuthorizedKey(keys)
+			if err != nil {
+				break loop
+			}
+			found = true
+			marshalled := out.Marshal()
+			sshKeyName := fmt.Sprintf("%s-%s", s.Name, marshalled[0:40])
+
+			marshalled = append(marshalled, []byte(" "+comment)...)
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
@@ -1601,7 +1615,8 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) boo
 				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
 				sshKeysNeedUpdate = true
 			}
-		} else {
+		}
+		if !found && err != nil {
 			log.Warn("addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, sshKey)
 		}
 	}
