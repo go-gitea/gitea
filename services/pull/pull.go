@@ -642,7 +642,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 
 // GetLastCommitStatus returns the last commit status for this pull request.
 func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
