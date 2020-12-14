@@ -1048,17 +1048,14 @@ async function initRepository() {
               if (data.attachments !== '') {
                 $content.append(`
                   <div class="dropzone-attachments">
-                    <div class="ui clearing divider"></div>
-                    <div class="ui middle aligned padded grid">
-                    </div>
                   </div>
                 `);
-                $content.find('.dropzone-attachments .grid').html(data.attachments);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
               $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.dropzone-attachments .grid').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
             if (dz) {
               dz.emit('submit');
