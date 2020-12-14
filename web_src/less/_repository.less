@@ -1050,10 +1050,16 @@
 
       .code-comment {
         border: 1px solid transparent;
-        padding: 6px 6px 3px;
+        padding: .5rem 0;
+        margin: 0;
 
         .content {
           border: none !important;
+        }
+
+        .avatar.image {
+          width: 28px;
+          height: 28px;
         }
       }
 
@@ -1498,6 +1504,10 @@
   .diff-file-box {
     .header {
       background-color: var(--color-box-header);
+    }
+
+    .file-body {
+      background: var(--color-code-bg);
     }
 
     .file-body.file-code {
@@ -2456,6 +2466,7 @@
 .comment-header {
   #avatar-arrow;
   border: none !important;
+  background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
   padding: .5rem 1rem !important;
@@ -2503,6 +2514,7 @@
 }
 
 .comment-body {
+  background: var(--color-box-body);
   border: none !important;
   width: 100% !important;
   max-width: 100% !important;

@@ -446,6 +446,28 @@ a.ui.card:hover,
   background: var(--color-card);
 }
 
+.ui.comments .comment .text,
+.ui.comments .comment .author {
+  color: var(--color-text);
+}
+
+.ui.comments .comment a.author:hover {
+  color: var(--color-primary);
+}
+
+.ui.comments .comment .metadata {
+  color: var(--color-text-light-2);
+}
+
+.ui.comments .comment .actions a {
+  color: var(--color-text-light);
+}
+
+.ui.comments .comment .actions a.active,
+.ui.comments .comment .actions a:hover {
+  color: var(--color-primary);
+}
+
 .ui.progress[data-percent="0"] .bar .progress {
   color: var(--color-text);
 }
@@ -741,7 +763,7 @@ a.ui.card:hover,
     }
 
     &.light.grey {
-      color: var(--color-grey) !important;
+      color: var(--color-text-light-2) !important;
     }
 
     &.green {
@@ -1698,6 +1720,10 @@ a.ui.basic.label:hover {
 .ui.attached.segment {
   background: var(--color-box-body);
   color: var(--color-text);
+  border-color: var(--color-secondary);
+}
+
+.ui.segments > .segment {
   border-color: var(--color-secondary);
 }
 
