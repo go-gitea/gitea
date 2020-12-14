@@ -7,6 +7,9 @@
 		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.OrgLink}}/settings/hooks">
 			{{.i18n.Tr "repo.settings.hooks"}}
 		</a>
+		<a class="{{if .PageIsOrgSettingsLabels}}active{{end}} item" href="{{.OrgLink}}/settings/labels">
+			{{.i18n.Tr "repo.labels"}}
+		</a>
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{.OrgLink}}/settings/delete">
 			{{.i18n.Tr "org.settings.delete"}}
 		</a>

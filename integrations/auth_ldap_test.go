@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -17,13 +18,14 @@ import (
 )
 
 type ldapUser struct {
-	UserName    string
-	Password    string
-	FullName    string
-	Email       string
-	OtherEmails []string
-	IsAdmin     bool
-	SSHKeys     []string
+	UserName     string
+	Password     string
+	FullName     string
+	Email        string
+	OtherEmails  []string
+	IsAdmin      bool
+	IsRestricted bool
+	SSHKeys      []string
 }
 
 var gitLDAPUsers = []ldapUser{
@@ -54,10 +56,11 @@ var gitLDAPUsers = []ldapUser{
 		Email:    "fry@planetexpress.com",
 	},
 	{
-		UserName: "leela",
-		Password: "leela",
-		FullName: "Leela Turanga",
-		Email:    "leela@planetexpress.com",
+		UserName:     "leela",
+		Password:     "leela",
+		FullName:     "Leela Turanga",
+		Email:        "leela@planetexpress.com",
+		IsRestricted: true,
 	},
 	{
 		UserName: "bender",
@@ -108,6 +111,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 		"user_base":                "ou=people,dc=planetexpress,dc=com",
 		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
 		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
+		"restricted_filter":        "(uid=leela)",
 		"attribute_username":       "uid",
 		"attribute_name":           "givenName",
 		"attribute_surname":        "sn",
@@ -137,7 +141,7 @@ func TestLDAPUserSignin(t *testing.T) {
 
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
 }
 
 func TestLDAPUserSync(t *testing.T) {
@@ -147,7 +151,7 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
-	models.SyncExternalUsers()
+	models.SyncExternalUsers(context.Background(), true)
 
 	session := loginUser(t, "user1")
 	// Check if users exists
@@ -168,9 +172,14 @@ func TestLDAPUserSync(t *testing.T) {
 		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
 		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
 		if u.IsAdmin {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-check-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-check"))
 		} else {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-x"))
+		}
+		if u.IsRestricted {
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-check"))
+		} else {
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-x"))
 		}
 	}
 
@@ -206,7 +215,8 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
-	models.SyncExternalUsers()
+
+	models.SyncExternalUsers(context.Background(), true)
 
 	// Check if users has SSH keys synced
 	for _, u := range gitLDAPUsers {

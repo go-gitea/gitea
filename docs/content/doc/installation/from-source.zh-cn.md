@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "从源代码安装"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -46,8 +46,8 @@ git checkout v{{< version >}}
 
 要从源代码进行编译，以下依赖程序必须事先安装好：
 
-- `go` 1.11.0 或以上版本, 详见 [here](https://golang.org/dl/)
-- `node` 10.0.0 或以上版本，并且安装 `npm`, 详见 [here](https://nodejs.org/en/download/)
+- `go` {{< min-go-version >}} 或以上版本, 详见 [here](https://golang.org/dl/)
+- `node` {{< min-node-version >}} 或以上版本，并且安装 `npm`, 详见 [here](https://nodejs.org/en/download/)
 - `make`, 详见 <a href='{{< relref "make.zh-cn.md" >}}'>这里</a>
 
 各种可用的 [make 任务](https://github.com/go-gitea/gitea/blob/master/Makefile)
@@ -65,8 +65,6 @@ git checkout v{{< version >}}
 ```bash
 TAGS="bindata" make build
 ```
-
-警告: `generate` 已经废弃，使用 `generate` 会导致资源文件打包失败。
 
 默认的发布版本中的编译选项是： `TAGS="bindata sqlite sqlite_unlock_notify"`。以下为推荐的编译方式：
 

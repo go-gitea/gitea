@@ -19,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
-
-	"github.com/mcuadros/go-version"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -188,11 +186,15 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	commitTimeStr := time.Now().Format(time.RFC3339)
+	return t.CommitTreeWithDate(author, committer, treeHash, message, time.Now(), time.Now())
+}
+
+// CommitTreeWithDate creates a commit from a given tree for the user with provided message
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
@@ -201,10 +203,8 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+committerSig.Name,
-		"GIT_COMMITTER_EMAIL="+committerSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
+		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
+		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
 	messageBytes := new(bytes.Buffer)
@@ -214,14 +214,32 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
+		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
+					// Add trailers
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Authored-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+					_, _ = messageBytes.WriteString("Co-Committed-By: ")
+					_, _ = messageBytes.WriteString(committerSig.String())
+					_, _ = messageBytes.WriteString("\n")
+				}
+				committerSig = signer
+			}
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
 	}
+
+	env = append(env,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
+	)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -238,9 +256,20 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
-
-	if _, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
-		log.Error("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
+	if err := git.Push(t.basePath, git.PushOptions{
+		Remote: t.repo.RepoPath(),
+		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
+		Env:    env,
+	}); err != nil {
+		if git.IsErrPushOutOfDate(err) {
+			return err
+		} else if git.IsErrPushRejected(err) {
+			rejectErr := err.(*git.ErrPushRejected)
+			log.Info("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
+				t.repo.FullName(), t.basePath, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		}
+		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nError: %v",
 			t.repo.FullName(), t.basePath, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
@@ -263,8 +292,8 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	var diff *gitdiff.Diff
 	var finalErr error
 
-	if err := git.NewCommand("diff-index", "--cached", "-p", "HEAD").
-		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) {
+	if err := git.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
+		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
 			if finalErr != nil {
@@ -272,6 +301,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 				cancel()
 			}
 			_ = stdoutReader.Close()
+			return finalErr
 		}); err != nil {
 		if finalErr != nil {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
@@ -283,12 +313,17 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), err, stderr)
 	}
 
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.basePath, "--cached", "HEAD")
+	if err != nil {
+		return nil, err
+	}
+
 	return diff, nil
 }
 
 // CheckAttribute checks the given attribute of the provided files
 func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		log.Error("Error retrieving git version: %v", err)
 		return nil, err
@@ -300,7 +335,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if version.Compare(binVersion, "1.7.8", ">=") {
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")

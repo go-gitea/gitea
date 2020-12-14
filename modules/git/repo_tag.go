@@ -9,8 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mcuadros/go-version"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -187,7 +186,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 }
 
 // GetTagInfos returns all tag infos of the repository.
-func (repo *Repository) GetTagInfos() ([]*Tag, error) {
+func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 	// TODO this a slow implementation, makes one git command per tag
 	stdout, err := NewCommand("tag").RunInDir(repo.Path)
 	if err != nil {
@@ -195,6 +194,18 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 	}
 
 	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+
+	if page != 0 {
+		skip := (page - 1) * pageSize
+		if skip >= len(tagNames) {
+			return nil, nil
+		}
+		if (len(tagNames) - skip) < pageSize {
+			pageSize = len(tagNames) - skip
+		}
+		tagNames = tagNames[skip : skip+pageSize]
+	}
+
 	var tags = make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
@@ -226,8 +237,6 @@ func (repo *Repository) GetTags() ([]string, error) {
 		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
 		return nil
 	})
-
-	version.Sort(tagNames)
 
 	// Reverse order
 	for i := 0; i < len(tagNames)/2; i++ {

@@ -12,6 +12,9 @@
 - Gitea version (or commit ref):
 - Git version:
 - Operating system:
+  <!-- Please include information on whether you built gitea yourself, used one of our downloads or are using some other package -->
+  <!-- Please also tell us how you are running gitea, e.g. if it is being run from docker, a command-line, systemd etc. --->
+  <!-- If you are using a package or systemd tell us what distribution you are using -->
 - Database (use `[x]`):
   - [ ] PostgreSQL
   - [ ] MySQL
@@ -20,8 +23,10 @@
 - Can you reproduce the bug at https://try.gitea.io:
   - [ ] Yes (provide example URL)
   - [ ] No
-  - [ ] Not relevant
 - Log gist:
+<!-- It really is important to provide pertinent logs -->
+<!-- Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems -->
+<!-- In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini -->
 
 ## Description
 

@@ -6,7 +6,11 @@
 
 package unix
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"golang.org/x/sys/internal/unsafeheader"
+)
 
 //sys	closedir(dir uintptr) (err error)
 //sys	readdir_r(dir uintptr, entry *Dirent, result **Dirent) (res Errno)
@@ -22,7 +26,6 @@ func fdopendir(fd int) (dir uintptr, err error) {
 
 func libc_fdopendir_trampoline()
 
-//go:linkname libc_fdopendir libc_fdopendir
 //go:cgo_import_dynamic libc_fdopendir fdopendir "/usr/lib/libSystem.B.dylib"
 
 func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
@@ -71,6 +74,7 @@ func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
 			cnt++
 			continue
 		}
+
 		reclen := int(entry.Reclen)
 		if reclen > len(buf) {
 			// Not enough room. Return for now.
@@ -79,13 +83,15 @@ func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
 			// restarting is O(n^2) in the length of the directory. Oh well.
 			break
 		}
+
 		// Copy entry into return buffer.
-		s := struct {
-			ptr unsafe.Pointer
-			siz int
-			cap int
-		}{ptr: unsafe.Pointer(&entry), siz: reclen, cap: reclen}
-		copy(buf, *(*[]byte)(unsafe.Pointer(&s)))
+		var s []byte
+		hdr := (*unsafeheader.Slice)(unsafe.Pointer(&s))
+		hdr.Data = unsafe.Pointer(&entry)
+		hdr.Cap = reclen
+		hdr.Len = reclen
+		copy(buf, s)
+
 		buf = buf[reclen:]
 		n += reclen
 		cnt++

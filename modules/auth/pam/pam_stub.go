@@ -10,7 +10,10 @@ import (
 	"errors"
 )
 
+// Supported is false when built without PAM
+var Supported = false
+
 // Auth not supported lack of pam tag
-func Auth(serviceName, userName, passwd string) error {
-	return errors.New("PAM not supported")
+func Auth(serviceName, userName, passwd string) (string, error) {
+	return "", errors.New("PAM not supported")
 }

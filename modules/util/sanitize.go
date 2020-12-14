@@ -28,7 +28,7 @@ func URLSanitizedError(err error, unsanitizedURL string) error {
 // SanitizeMessage sanitizes a message which may contains a sensitive URL
 func SanitizeMessage(message, unsanitizedURL string) string {
 	sanitizedURL := SanitizeURLCredentials(unsanitizedURL, true)
-	return strings.Replace(message, unsanitizedURL, sanitizedURL, -1)
+	return strings.ReplaceAll(message, unsanitizedURL, sanitizedURL)
 }
 
 // SanitizeURLCredentials sanitizes a url, either removing user credentials

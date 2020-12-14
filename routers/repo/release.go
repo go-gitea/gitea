@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -53,27 +55,39 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 
 // Releases render releases list page
 func Releases(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
-	ctx.Data["PageIsReleaseList"] = true
+	releasesOrTags(ctx, false)
+}
 
-	page := ctx.QueryInt("page")
-	if page <= 1 {
-		page = 1
-	}
-	limit := ctx.QueryInt("limit")
-	if limit <= 0 {
-		limit = 10
+// TagsList render tags list page
+func TagsList(ctx *context.Context) {
+	releasesOrTags(ctx, true)
+}
+
+func releasesOrTags(ctx *context.Context, isTagList bool) {
+	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+
+	if isTagList {
+		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
+		ctx.Data["PageIsTagList"] = true
+	} else {
+		ctx.Data["Title"] = ctx.Tr("repo.release.releases")
+		ctx.Data["PageIsTagList"] = false
 	}
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		IncludeDrafts: writeAccess,
-		IncludeTags:   true,
+		IncludeTags:   isTagList,
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -85,8 +99,7 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
-	err = models.GetReleaseAttachments(releases...)
-	if err != nil {
+	if err = models.GetReleaseAttachments(releases...); err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
@@ -120,12 +133,76 @@ func Releases(ctx *context.Context) {
 	}
 
 	ctx.Data["Releases"] = releases
+	ctx.Data["ReleasesNum"] = len(releases)
 
-	pager := context.NewPagination(int(count), limit, page, 5)
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplReleases)
+}
+
+// SingleRelease renders a single release's page
+func SingleRelease(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
+	ctx.Data["PageIsReleaseList"] = true
+
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+
+	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetRelease", err)
+			return
+		}
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	err = models.GetReleaseAttachments(release)
+	if err != nil {
+		ctx.ServerError("GetReleaseAttachments", err)
+		return
+	}
+
+	release.Publisher, err = models.GetUserByID(release.PublisherID)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			release.Publisher = models.NewGhostUser()
+		} else {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+	}
+	if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
+		ctx.ServerError("calReleaseNumCommitsBehind", err)
+		return
+	}
+	release.Note = markdown.RenderString(release.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
+
+	ctx.Data["Releases"] = []*models.Release{release}
+	ctx.HTML(200, tplReleases)
+}
+
+// LatestRelease redirects to the latest release
+func LatestRelease(ctx *context.Context) {
+	release, err := models.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("LatestRelease", err)
+			return
+		}
+		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		return
+	}
+
+	if err := release.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	ctx.Redirect(release.HTMLURL())
 }
 
 // NewRelease render creating release page
@@ -133,7 +210,22 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	renderAttachmentSettings(ctx)
+	if tagName := ctx.Query("tag"); len(tagName) > 0 {
+		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
+		if err != nil && !models.IsErrReleaseNotExist(err) {
+			ctx.ServerError("GetRelease", err)
+			return
+		}
+
+		if rel != nil {
+			ctx.Data["tag_name"] = rel.TagName
+			ctx.Data["tag_target"] = rel.Target
+			ctx.Data["title"] = rel.Title
+			ctx.Data["content"] = rel.Note
+		}
+	}
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -153,7 +245,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
@@ -164,7 +256,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			return
 		}
 
-		rel := &models.Release{
+		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,
@@ -203,9 +295,9 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, true); err != nil {
 			ctx.Data["Err_TagName"] = true
-			ctx.ServerError("UpdateRelease", err)
+			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -219,7 +311,8 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -274,7 +367,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
@@ -282,7 +375,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, false); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
@@ -291,10 +384,30 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true); err != nil {
+	deleteReleaseOrTag(ctx, false)
+}
+
+// DeleteTag delete a tag
+func DeleteTag(ctx *context.Context) {
+	deleteReleaseOrTag(ctx, true)
+}
+
+func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
+	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))
+		if isDelTag {
+			ctx.Flash.Success(ctx.Tr("repo.release.deletion_tag_success"))
+		} else {
+			ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))
+		}
+	}
+
+	if isDelTag {
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": ctx.Repo.RepoLink + "/tags",
+		})
+		return
 	}
 
 	ctx.JSON(200, map[string]interface{}{

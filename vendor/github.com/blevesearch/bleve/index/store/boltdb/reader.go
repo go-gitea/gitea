@@ -16,7 +16,7 @@ package boltdb
 
 import (
 	"github.com/blevesearch/bleve/index/store"
-	bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 type Reader struct {

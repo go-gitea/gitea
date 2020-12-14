@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -20,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
+	"xorm.io/xorm/convert"
 )
 
 const (
@@ -57,14 +58,20 @@ type dropdownItem struct {
 }
 
 var (
-	authSources = []dropdownItem{
-		{models.LoginNames[models.LoginLDAP], models.LoginLDAP},
-		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
-		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
-		{models.LoginNames[models.LoginPAM], models.LoginPAM},
-		{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
-		{models.LoginNames[models.LoginSSPI], models.LoginSSPI},
-	}
+	authSources = func() []dropdownItem {
+		items := []dropdownItem{
+			{models.LoginNames[models.LoginLDAP], models.LoginLDAP},
+			{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
+			{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
+			{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
+			{models.LoginNames[models.LoginSSPI], models.LoginSSPI},
+		}
+		if pam.Supported {
+			items = append(items, dropdownItem{models.LoginNames[models.LoginPAM], models.LoginPAM})
+		}
+		return items
+	}()
+
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
 		{models.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
@@ -129,7 +136,14 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			AttributeSSHPublicKey: form.AttributeSSHPublicKey,
 			SearchPageSize:        pageSize,
 			Filter:                form.Filter,
+			GroupsEnabled:         form.GroupsEnabled,
+			GroupDN:               form.GroupDN,
+			GroupFilter:           form.GroupFilter,
+			GroupMemberUID:        form.GroupMemberUID,
+			UserUID:               form.UserUID,
 			AdminFilter:           form.AdminFilter,
+			RestrictedFilter:      form.RestrictedFilter,
+			AllowDeactivateAll:    form.AllowDeactivateAll,
 			Enabled:               true,
 		},
 	}
@@ -212,7 +226,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	hasTLS := false
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
@@ -320,7 +334,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		return
 	}
 
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)

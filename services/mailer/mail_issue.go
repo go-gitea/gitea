@@ -62,7 +62,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID)
+	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -80,6 +80,14 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Avoid mailing the doer
 	visited[ctx.Doer.ID] = true
+	// Avoid mailing explicit unwatched
+	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	if err != nil {
+		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
+	}
+	for _, i := range ids {
+		visited[i] = true
+	}
 
 	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
@@ -110,11 +118,21 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 				visited[id] = true
 			}
 		}
-		recipients, err := models.GetMaileableUsersByIDs(unique)
+		recipients, err := models.GetMaileableUsersByIDs(unique, fromMention)
 		if err != nil {
 			return err
 		}
-		// TODO: Check issue visibility for each user
+
+		// Make sure all recipients can still see the issue
+		idx := 0
+		for _, r := range recipients {
+			if ctx.Issue.Repo.CheckUnitUser(r, models.UnitTypeIssues) {
+				recipients[idx] = r
+				idx++
+			}
+		}
+		recipients = recipients[:idx]
+
 		// TODO: Separate recipients by language for i18n mail templates
 		tos := make([]string, len(recipients))
 		for i := range recipients {

@@ -8,8 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations/base"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -103,9 +102,9 @@ func (task *Task) UpdateCols(cols ...string) error {
 }
 
 // MigrateConfig returns task config when migrate repository
-func (task *Task) MigrateConfig() (*structs.MigrateRepoOption, error) {
+func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
-		var opts structs.MigrateRepoOption
+		var opts migration.MigrateOptions
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -148,6 +147,27 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// GetMigratingTaskByID returns the migrating task by repo's id
+func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+	var task = Task{
+		ID:     id,
+		DoerID: doerID,
+		Type:   structs.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&task)
+	if err != nil {
+		return nil, nil, err
+	} else if !has {
+		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
+	}
+
+	var opts migration.MigrateOptions
+	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
+		return nil, nil, err
+	}
+	return &task, &opts, nil
+}
+
 // FindTaskOptions find all tasks
 type FindTaskOptions struct {
 	Status int
@@ -169,54 +189,14 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 	return tasks, err
 }
 
+// CreateTask creates a task on database
+func CreateTask(task *Task) error {
+	return createTask(x, task)
+}
+
 func createTask(e Engine, task *Task) error {
 	_, err := e.Insert(task)
 	return err
-}
-
-// CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
-	bs, err := json.Marshal(&opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var task = Task{
-		DoerID:         doer.ID,
-		OwnerID:        u.ID,
-		Type:           structs.TaskTypeMigrateRepo,
-		Status:         structs.TaskStatusQueue,
-		PayloadContent: string(bs),
-	}
-
-	if err := createTask(x, &task); err != nil {
-		return nil, err
-	}
-
-	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		OriginalURL: opts.OriginalURL,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      RepositoryBeingMigrated,
-	})
-	if err != nil {
-		task.EndTime = timeutil.TimeStampNow()
-		task.Status = structs.TaskStatusFailed
-		err2 := task.UpdateCols("end_time", "status")
-		if err2 != nil {
-			log.Error("UpdateCols Failed: %v", err2.Error())
-		}
-		return nil, err
-	}
-
-	task.RepoID = repo.ID
-	if err = task.UpdateCols("repo_id"); err != nil {
-		return nil, err
-	}
-
-	return &task, nil
 }
 
 // FinishMigrateTask updates database when migrate task finished

@@ -8,6 +8,7 @@ package git
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -18,11 +19,11 @@ import (
 	"time"
 
 	gitealog "code.gitea.io/gitea/modules/log"
+	"github.com/go-git/go-billy/v5/osfs"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/unknwon/com"
-	"gopkg.in/src-d/go-billy.v4/osfs"
-	gogit "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/cache"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 // Repository represents a Git repository.
@@ -49,7 +50,7 @@ const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path)
+	return AllCommitsCount(repo.Path, false)
 }
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
@@ -166,19 +167,24 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(from, to string, opts CloneRepoOptions) (err error) {
+	return CloneWithContext(DefaultContext, from, to, opts)
+}
+
+// CloneWithContext clones original repository to target path.
+func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) (err error) {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
-	return CloneWithArgs(from, to, cargs, opts)
+	return CloneWithArgs(ctx, from, to, cargs, opts)
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, from, to string, args []string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
+	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -255,7 +261,31 @@ func Push(repoPath string, opts PushOptions) error {
 		cmd.AddArguments("-f")
 	}
 	cmd.AddArguments("--", opts.Remote, opts.Branch)
-	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
+	var outbuf, errbuf strings.Builder
+
+	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, -1, repoPath, &outbuf, &errbuf)
+	if err != nil {
+		if strings.Contains(errbuf.String(), "non-fast-forward") {
+			return &ErrPushOutOfDate{
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
+			err := &ErrPushRejected{
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+			err.GenerateMessage()
+			return err
+		}
+	}
+
+	if errbuf.Len() > 0 && err != nil {
+		return fmt.Errorf("%v - %s", err, errbuf.String())
+	}
+
 	return err
 }
 

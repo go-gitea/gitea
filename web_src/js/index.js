@@ -1,43 +1,53 @@
-/* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
-/* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
+import './publicpath.js';
 
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
+import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
+import 'jquery.are-you-sure';
+import './vendor/semanticdropdown.js';
 
-let csrf;
-let suburl;
+import initMigration from './features/migration.js';
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initClipboard from './features/clipboard.js';
+import initHeatmap from './features/heatmap.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
+import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
+import createDropzone from './features/dropzone.js';
+import initTableSort from './features/tablesort.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
+import {stripTags} from './utils.js';
+
+const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+
 let previewFileModes;
-let simpleMDEditor;
-let codeMirrorEditor;
+const commentMDEditors = {};
 
-// Disable Dropzone auto-discover because it's manually initialized
-if (typeof (Dropzone) !== 'undefined') {
-  Dropzone.autoDiscover = false;
-}
+// Silence fomantic's error logging when tabs are used without a target content element
+$.fn.tab.settings.silent = true;
 
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).click(function () {
+  $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
-      mode: 'gfm',
+      mode: 'comment',
       context: $this.data('context'),
-      text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+      const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      emojify.run($previewPanel[0]);
-      $('pre code', $previewPanel[0]).each(function () {
-        hljs.highlightBlock(this);
-      });
+      renderMarkdownContent();
     });
   });
 
@@ -50,20 +60,24 @@ function initEditPreviewTab($form) {
   const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
   if ($previewTab.length) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
-    $previewTab.click(function () {
+    $previewTab.on('click', function () {
       const $this = $(this);
+      let context = `${$this.data('context')}/`;
+      const mode = $this.data('markdown-mode') || 'comment';
+      const treePathEl = $form.find('input#tree_path');
+      if (treePathEl.length > 0) {
+        context += treePathEl.val();
+      }
+      context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
-        mode: 'gfm',
-        context: $this.data('context'),
-        text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        mode,
+        context,
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
-        const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        emojify.run($previewPanel[0]);
-        $('pre code', $previewPanel[0]).each(function () {
-          hljs.highlightBlock(this);
-        });
+        renderMarkdownContent();
       });
     });
   }
@@ -72,20 +86,18 @@ function initEditPreviewTab($form) {
 function initEditDiffTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).click(function () {
+  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
       context: $this.data('context'),
-      content: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
+      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
-      emojify.run($diffPreviewPanel[0]);
     });
   });
 }
-
 
 function initEditForm() {
   if ($('.edit.form').length === 0) {
@@ -101,14 +113,61 @@ function initBranchSelector() {
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
     const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
     $($(this).data('id-selector')).val(selectedValue);
-    $selectBranch.find('.ui .branch-name').text(selectedValue);
+
+    if (editMode === 'true') {
+      const form = $('#update_issueref_form');
+
+      $.post(form.attr('action'), {
+        _csrf: csrf,
+        ref: selectedValue
+      },
+      () => {
+        window.location.reload();
+      });
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
+    }
   });
-  $selectBranch.find('.reference.column').click(function () {
+  $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
     $selectBranch.find('.reference .text').removeClass('black');
     $($(this).data('target')).css('display', 'block');
     $(this).find('.text').addClass('black');
+    return false;
+  });
+}
+
+function initLabelEdit() {
+// Create label
+  const $newLabelPanel = $('.new-label.segment');
+  $('.new-label.button').on('click', () => {
+    $newLabelPanel.show();
+  });
+  $('.new-label.segment .cancel').on('click', () => {
+    $newLabelPanel.hide();
+  });
+
+  createColorPicker($('.color-picker'));
+
+  $('.precolors .color').on('click', function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
+  });
+  $('.edit-label-button').on('click', function () {
+    $('.color-picker').minicolors('value', $(this).data('color'));
+    $('#label-modal-id').val($(this).data('id'));
+    $('.edit-label .new-label-input').val($(this).data('title'));
+    $('.edit-label .new-label-desc-input').val($(this).data('description'));
+    $('.edit-label .color-picker').val($(this).data('color'));
+    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label.modal').modal({
+      onApprove() {
+        $('.edit-label.form').trigger('submit');
+      }
+    }).modal('show');
     return false;
   });
 }
@@ -122,7 +181,7 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
         _csrf: csrf,
         action,
         issue_ids: issueIds,
-        id: elementId
+        id: elementId,
       },
       success: resolve
     });
@@ -132,25 +191,32 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
 function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
+  $('#repo_migrating_failed_image').hide();
   if (migrating) {
-    const repo_name = migrating.attr('repo');
-    if (typeof repo_name === 'undefined') {
+    const task = migrating.attr('task');
+    if (typeof task === 'undefined') {
       return;
     }
     $.ajax({
       type: 'GET',
-      url: `${suburl}/${repo_name}/status`,
+      url: `${AppSubUrl}/user/task/${task}`,
       data: {
         _csrf: csrf,
       },
       complete(xhr) {
         if (xhr.status === 200) {
           if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 0) {
+            if (xhr.responseJSON.status === 4) {
               window.location.reload();
               return;
+            } else if (xhr.responseJSON.status === 3) {
+              $('#repo_migrating_progress').hide();
+              $('#repo_migrating').hide();
+              $('#repo_migrating_failed').show();
+              $('#repo_migrating_failed_image').show();
+              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+              return;
             }
-
             setTimeout(() => {
               initRepoStatusChecker();
             }, 2000);
@@ -158,7 +224,9 @@ function initRepoStatusChecker() {
           }
         }
         $('#repo_migrating_progress').hide();
+        $('#repo_migrating').hide();
         $('#repo_migrating_failed').show();
+        $('#repo_migrating_failed_image').show();
       }
     });
   }
@@ -171,7 +239,7 @@ function initReactionSelector(parent) {
     reactions = '.reactions > ';
   }
 
-  parent.find(`${reactions}a.label`).popup({ position: 'bottom left', metadata: { content: 'title', title: 'none' } });
+  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
     const vm = this;
@@ -179,9 +247,7 @@ function initReactionSelector(parent) {
 
     if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item')
-      ? $(this).closest('.select-reaction').data('action-url')
-      : $(this).data('action-url');
+    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
     const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
     $.ajax({
       type: 'POST',
@@ -194,7 +260,7 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(vm).closest('.content');
         let react = content.find('.segment.reactions');
-        if (!resp.empty && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
         }
         if (!resp.empty) {
@@ -206,10 +272,6 @@ function initReactionSelector(parent) {
             react.appendTo(content);
           }
           react.html(resp.html);
-          const hasEmoji = react.find('.has-emoji');
-          for (let i = 0; i < hasEmoji.length; i++) {
-            emojify.run(hasEmoji.get(i));
-          }
           react.find('.dropdown').dropdown();
           initReactionSelector(react);
         }
@@ -222,9 +284,7 @@ function insertAtCursor(field, value) {
   if (field.selectionStart || field.selectionStart === 0) {
     const startPos = field.selectionStart;
     const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos)
-            + value
-            + field.value.substring(endPos, field.value.length);
+    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
     field.selectionStart = startPos + value.length;
     field.selectionEnd = startPos + value.length;
   } else {
@@ -244,42 +304,32 @@ function replaceAndKeepCursor(field, oldval, newval) {
   }
 }
 
-function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
-  if (!pasteEvent.clipboardData) {
-    return;
+function getPastedImages(e) {
+  if (!e.clipboardData) return [];
+
+  const files = [];
+  for (const item of e.clipboardData.items || []) {
+    if (!item.type || !item.type.startsWith('image/')) continue;
+    files.push(item.getAsFile());
   }
 
-  const { items } = pasteEvent.clipboardData;
-  if (typeof items === 'undefined') {
-    return;
+  if (files.length) {
+    e.preventDefault();
+    e.stopPropagation();
   }
-
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') === -1) continue;
-    const blob = items[i].getAsFile();
-
-    if (typeof (callback) === 'function') {
-      pasteEvent.preventDefault();
-      pasteEvent.stopPropagation();
-      callback(blob);
-    }
-  }
+  return files;
 }
 
-function uploadFile(file, callback) {
-  const xhr = new XMLHttpRequest();
-
-  xhr.onload = function () {
-    if (xhr.status === 200) {
-      callback(xhr.responseText);
-    }
-  };
-
-  xhr.open('post', `${suburl}/attachments`, true);
-  xhr.setRequestHeader('X-Csrf-Token', csrf);
+async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file, file.name);
-  xhr.send(formData);
+
+  const res = await fetch($('#dropzone').data('upload-url'), {
+    method: 'POST',
+    headers: {'X-Csrf-Token': csrf},
+    body: formData,
+  });
+  return await res.json();
 }
 
 function reload() {
@@ -289,26 +339,40 @@ function reload() {
 function initImagePaste(target) {
   target.each(function () {
     const field = this;
-    field.addEventListener('paste', (event) => {
-      retrieveImageFromClipboardAsBlob(event, (img) => {
+    field.addEventListener('paste', async (e) => {
+      for (const img of getPastedImages(e)) {
         const name = img.name.substr(0, img.name.lastIndexOf('.'));
         insertAtCursor(field, `![${name}]()`);
-        uploadFile(img, (res) => {
-          const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${suburl}/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
-        });
-      });
+        const data = await uploadFile(img);
+        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $('.files').append(input);
+      }
     }, false);
   });
 }
+
+function initSimpleMDEImagePaste(simplemde, files) {
+  simplemde.codemirror.on('paste', async (_, e) => {
+    for (const img of getPastedImages(e)) {
+      const name = img.name.substr(0, img.name.lastIndexOf('.'));
+      const data = await uploadFile(img);
+      const pos = simplemde.codemirror.getCursor();
+      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+      files.append(input);
+    }
+  });
+}
+
+let autoSimpleMDE;
 
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
+  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -318,20 +382,20 @@ function initCommentForm() {
     const $list = $(`.ui.${outerSelector}.list`);
     const $noSelect = $list.find('.no-select');
     const $listMenu = $(`.${selector} .menu`);
-    let hasLabelUpdateAction = $listMenu.data('action') === 'update';
-    const labels = {};
+    let hasUpdateAction = $listMenu.data('action') === 'update';
+    const items = {};
 
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasLabelUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasLabelUpdateAction) {
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+      if (hasUpdateAction) {
         const promises = [];
-        Object.keys(labels).forEach((elementId) => {
-          const label = labels[elementId];
+        Object.keys(items).forEach((elementId) => {
+          const item = items[elementId];
           const promise = updateIssuesMeta(
-            label['update-url'],
-            label.action,
-            label['issue-id'],
-            elementId
+            item['update-url'],
+            item.action,
+            item['issue-id'],
+            elementId,
           );
           promises.push(promise);
         });
@@ -339,57 +403,47 @@ function initCommentForm() {
       }
     });
 
-    $listMenu.find('.item:not(.no-select)').click(function () {
-      // we don't need the action attribute when updating assignees
-      if (selector === 'select-assignees-modify') {
-        // UI magic. We need to do this here, otherwise it would destroy the functionality of
-        // adding/removing labels
-        if ($(this).hasClass('checked')) {
-          $(this).removeClass('checked');
-          $(this).find('.octicon').removeClass('octicon-check');
-        } else {
-          $(this).addClass('checked');
-          $(this).find('.octicon').addClass('octicon-check');
-        }
-
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          '',
-          $listMenu.data('issue-id'),
-          $(this).data('id')
-        );
-        $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+    $listMenu.find('.item:not(.no-select)').on('click', function (e) {
+      e.preventDefault();
+      if ($(this).hasClass('ban-change')) {
         return false;
       }
 
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        $(this).find('.octicon-check').addClass('invisible');
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'detach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
       } else {
         $(this).addClass('checked');
-        $(this).find('.octicon').addClass('octicon-check');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        $(this).find('.octicon-check').removeClass('invisible');
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'attach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
+      }
+
+      // TODO: Which thing should be done for choosing review requests
+      // to make choosed items be shown on time here?
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
       }
 
       const listIds = [];
@@ -409,20 +463,25 @@ function initCommentForm() {
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
-    $listMenu.find('.no-select.item').click(function () {
-      if (hasLabelUpdateAction || selector === 'select-assignees-modify') {
+    $listMenu.find('.no-select.item').on('click', function (e) {
+      e.preventDefault();
+      if (hasUpdateAction) {
         updateIssuesMeta(
           $listMenu.data('update-url'),
           'clear',
           $listMenu.data('issue-id'),
-          ''
+          '',
         ).then(reload);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon').addClass('invisible');
       });
+
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
+      }
 
       $list.find('.item').each(function () {
         $(this).addClass('hide');
@@ -436,13 +495,14 @@ function initCommentForm() {
   initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
+  initListSubmits('select-reviewers-modify', 'assignees');
 
   function selectItem(select_id, input_id) {
     const $menu = $(`${select_id} .menu`);
     const $list = $(`.ui${select_id}.list`);
     const hasUpdateAction = $menu.data('action') === 'update';
 
-    $menu.find('.item:not(.no-select)').click(function () {
+    $menu.find('.item:not(.no-select)').on('click', function () {
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('selected active');
       });
@@ -453,23 +513,30 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
         ).then(reload);
       }
-      switch (input_id) {
-        case '#milestone_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
-          break;
-        case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>`
-                        + `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+
+      let icon = '';
+      if (input_id === '#milestone_id') {
+        icon = svg('octicon-milestone', 18, 'mr-3');
+      } else if (input_id === '#project_id') {
+        icon = svg('octicon-project', 18, 'mr-3');
+      } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
+
+      $list.find('.selected').html(`
+        <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
+          ${icon}
+          ${htmlEscape($(this).text())}
+        </a>
+      `);
+
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
-    $menu.find('.no-select.item').click(function () {
+    $menu.find('.no-select.item').on('click', function () {
       $(this).parent().find('.item:not(.no-select)').each(function () {
         $(this).removeClass('selected active');
       });
@@ -479,7 +546,7 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
         ).then(reload);
       }
 
@@ -489,7 +556,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -506,7 +574,7 @@ function initInstall() {
   }
 
   // Database type change detection.
-  $('#db_type').change(function () {
+  $('#db_type').on('change', function () {
     const sqliteDefault = 'data/gitea.db';
     const tidbDefault = 'data/gitea_tidb';
 
@@ -543,26 +611,26 @@ function initInstall() {
   });
 
   // TODO: better handling of exclusive relations.
-  $('#offline-mode input').change(function () {
+  $('#offline-mode input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-gravatar').checkbox('check');
       $('#federated-avatar-lookup').checkbox('uncheck');
     }
   });
-  $('#disable-gravatar input').change(function () {
+  $('#disable-gravatar input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#federated-avatar-lookup').checkbox('uncheck');
     } else {
       $('#offline-mode').checkbox('uncheck');
     }
   });
-  $('#federated-avatar-lookup input').change(function () {
+  $('#federated-avatar-lookup input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-gravatar').checkbox('uncheck');
       $('#offline-mode').checkbox('uncheck');
     }
   });
-  $('#enable-openid-signin input').change(function () {
+  $('#enable-openid-signin input').on('change', function () {
     if ($(this).is(':checked')) {
       if (!$('#disable-registration input').is(':checked')) {
         $('#enable-openid-signup').checkbox('check');
@@ -571,7 +639,7 @@ function initInstall() {
       $('#enable-openid-signup').checkbox('uncheck');
     }
   });
-  $('#disable-registration input').change(function () {
+  $('#disable-registration input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#enable-captcha').checkbox('uncheck');
       $('#enable-openid-signup').checkbox('uncheck');
@@ -579,7 +647,7 @@ function initInstall() {
       $('#enable-openid-signup').checkbox('check');
     }
   });
-  $('#enable-captcha input').change(function () {
+  $('#enable-captcha input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-registration').checkbox('uncheck');
     }
@@ -587,9 +655,25 @@ function initInstall() {
 }
 
 function initIssueComments() {
-  if ($('.repository.view.issue .comments').length === 0) return;
+  if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $(document).click((event) => {
+  $('.re-request-review').on('click', function (event) {
+    const url = $(this).data('update-url');
+    const issueId = $(this).data('issue-id');
+    const id = $(this).data('id');
+    const isChecked = $(this).hasClass('checked');
+
+    event.preventDefault();
+    updateIssuesMeta(
+      url,
+      isChecked ? 'detach' : 'attach',
+      issueId,
+      id,
+    ).then(reload);
+    return false;
+  });
+
+  $(document).on('click', (event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;
 
@@ -608,7 +692,55 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+function getArchive($target, url, first) {
+  $.ajax({
+    url,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          // XXX Shouldn't happen?
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (!xhr.responseJSON.complete) {
+          $target.closest('.dropdown').children('i').addClass('loading');
+          // Wait for only three quarters of a second initially, in case it's
+          // quickly archived.
+          setTimeout(() => {
+            getArchive($target, url, false);
+          }, first ? 750 : 2000);
+        } else {
+          // We don't need to continue checking.
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          window.location.href = url;
+        }
+      }
+    }
+  });
+}
+
+function initArchiveLinks() {
+  if ($('.archive-link').length === 0) {
+    return;
+  }
+
+  $('.archive-link').on('click', function (event) {
+    const url = $(this).data('url');
+    if (typeof url === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    getArchive($(event.target), url, true);
+  });
+}
+
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -623,7 +755,7 @@ function initRepository() {
           window.location.href = $choice.data('url');
         }
       },
-      message: { noResults: $dropdown.data('no-results') }
+      message: {noResults: $dropdown.data('no-results')}
     });
   }
 
@@ -639,17 +771,8 @@ function initRepository() {
 
   // Options
   if ($('.repository.settings.options').length > 0) {
-    $('#repo_name').keyup(function () {
-      const $prompt = $('#repo-name-change-prompt');
-      if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
-        $prompt.show();
-      } else {
-        $prompt.hide();
-      }
-    });
-
     // Enable or select internal/external wiki system and issue tracker.
-    $('.enable-system').change(function () {
+    $('.enable-system').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
         if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
@@ -658,7 +781,7 @@ function initRepository() {
         if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
       }
     });
-    $('.enable-system-radio').change(function () {
+    $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
@@ -671,54 +794,25 @@ function initRepository() {
 
   // Labels
   if ($('.repository.labels').length > 0) {
-    // Create label
-    const $newLabelPanel = $('.new-label.segment');
-    $('.new-label.button').click(() => {
-      $newLabelPanel.show();
-    });
-    $('.new-label.segment .cancel').click(() => {
-      $newLabelPanel.hide();
-    });
-
-    $('.color-picker').each(function () {
-      $(this).minicolors();
-    });
-    $('.precolors .color').click(function () {
-      const color_hex = $(this).data('color-hex');
-      $('.color-picker').val(color_hex);
-      $('.minicolors-swatch-color').css('background-color', color_hex);
-    });
-    $('.edit-label-button').click(function () {
-      $('#label-modal-id').val($(this).data('id'));
-      $('.edit-label .new-label-input').val($(this).data('title'));
-      $('.edit-label .new-label-desc-input').val($(this).data('description'));
-      $('.edit-label .color-picker').val($(this).data('color'));
-      $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
-      $('.edit-label.modal').modal({
-        onApprove() {
-          $('.edit-label.form').submit();
-        }
-      }).modal('show');
-      return false;
-    });
+    initLabelEdit();
   }
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-    $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
-    });
-    $('#clear-date').click(() => {
+    $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
+    });
+  }
+
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      if (gitignores || license) {
+        $('input[name="auto_init"]').prop('checked', true);
+      }
     });
   }
 
@@ -731,27 +825,64 @@ function initRepository() {
       $issueTitle.toggle();
       $('.not-in-edit').toggle();
       $('#edit-title-input').toggle();
+      $('#pull-desc').toggle();
+      $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
+      $('#issue-title-wrapper').toggleClass('edit-active');
       $editInput.focus();
       return false;
     };
-    $('#edit-title').click(editTitleToggle);
-    $('#cancel-edit-title').click(editTitleToggle);
-    $('#save-edit-title').click(editTitleToggle).click(function () {
+
+    const changeBranchSelect = function () {
+      const selectionTextField = $('#pull-target-branch');
+
+      const baseName = selectionTextField.data('basename');
+      const branchNameNew = $(this).data('branch');
+      const branchNameOld = selectionTextField.data('branch');
+
+      // Replace branch name to keep translation from HTML template
+      selectionTextField.html(selectionTextField.html().replace(
+        `${baseName}:${branchNameOld}`,
+        `${baseName}:${branchNameNew}`
+      ));
+      selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    };
+    $('#branch-select > .item').on('click', changeBranchSelect);
+
+    $('#edit-title').on('click', editTitleToggle);
+    $('#cancel-edit-title').on('click', editTitleToggle);
+    $('#save-edit-title').on('click', editTitleToggle).on('click', function () {
+      const pullrequest_targetbranch_change = function (update_url) {
+        const targetBranch = $('#pull-target-branch').data('branch');
+        const $branchTarget = $('#branch_target');
+        if (targetBranch === $branchTarget.text()) {
+          return false;
+        }
+        $.post(update_url, {
+          _csrf: csrf,
+          target_branch: targetBranch
+        }).done((data) => {
+          $branchTarget.text(data.base_branch);
+        }).always(() => {
+          reload();
+        });
+      };
+
+      const pullrequest_target_update_url = $(this).data('target-update-url');
       if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
         $editInput.val($issueTitle.text());
-        return false;
+        pullrequest_targetbranch_change(pullrequest_target_update_url);
+      } else {
+        $.post($(this).data('update-url'), {
+          _csrf: csrf,
+          title: $editInput.val()
+        }, (data) => {
+          $editInput.val(data.title);
+          $issueTitle.text(data.title);
+          pullrequest_targetbranch_change(pullrequest_target_update_url);
+          reload();
+        });
       }
-
-      $.post($(this).data('update-url'), {
-        _csrf: csrf,
-        title: $editInput.val()
-      },
-      (data) => {
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        reload();
-      });
       return false;
     });
 
@@ -764,63 +895,66 @@ function initRepository() {
     });
 
     // Quote reply
-    $('.quote-reply').click(function (event) {
+    $('.quote-reply').on('click', function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
-
-      let $content;
-      if ($(this).hasClass('quote-reply-diff')) {
-        const $parent = $(this).closest('.comment-code-cloud');
-        $parent.find('button.comment-form-reply').click();
-        $content = $parent.find('[name="content"]');
-      } else {
-        $content = $('#content');
-      }
-
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
       const content = `> ${quote}\n\n`;
-
-      if ($content.val() !== '') {
-        $content.val(`${$content.val()}\n\n${content}`);
-      } else {
-        $content.val(`${content}`);
+      let $simplemde = autoSimpleMDE;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this).closest('.comment-code-cloud');
+        $parent.find('button.comment-form-reply').trigger('click');
+        $simplemde = $parent.find('[name="content"]').data('simplemde');
       }
-      $content.focus();
+      if ($simplemde !== null) {
+        if ($simplemde.value() !== '') {
+          $simplemde.value(`${$simplemde.value()}\n\n${content}`);
+        } else {
+          $simplemde.value(`${content}`);
+        }
+      }
+      requestAnimationFrame(() => {
+        $simplemde.codemirror.focus();
+        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+      });
       event.preventDefault();
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function (event) {
+    $('.edit-content').on('click', async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
+      let $simplemde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        issuesTribute.attach($textarea.get());
-        emojiTribute.attach($textarea.get());
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
+        let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        $dropzone.data('saved', false);
         const $files = $editContentZone.find('.comment-files');
         if ($dropzone.length > 0) {
+          $dropzone.data('saved', false);
+
           const filenameDict = {};
-          $dropzone.dropzone({
+          dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: { 'X-Csrf-Token': csrf },
+            headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
-            acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+            acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
             addRemoveLinks: true,
             dictDefaultMessage: $dropzone.data('default-message'),
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -835,10 +969,10 @@ function initRepository() {
                   return;
                 }
                 $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: filenameDict[file.name].uuid,
-                    _csrf: $dropzone.data('csrf')
+                    _csrf: csrf,
                   });
                 }
               });
@@ -849,15 +983,14 @@ function initRepository() {
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
-                  const drop = $dropzone.get(0).dropzone;
-                  drop.removeAllFiles(true);
+                  dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
-                    const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
-                    drop.emit('addedfile', this);
-                    drop.emit('thumbnail', this, imgSrc);
-                    drop.emit('complete', this);
-                    drop.files.push(this);
+                    const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
+                    dz.emit('addedfile', this);
+                    dz.emit('thumbnail', this, imgSrc);
+                    dz.emit('complete', this);
+                    dz.files.push(this);
                     filenameDict[this.name] = {
                       submitted: true,
                       uuid: this.uuid
@@ -870,7 +1003,7 @@ function initRepository() {
               });
             }
           });
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         }
         // Give new write/preview data-tab name to distinguish from others
         const $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -879,17 +1012,21 @@ function initRepository() {
         $tabMenu.attr('data-preview', $editContentZone.data('preview'));
         $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
-        $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
-        $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
-
+        $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
+        $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
+        $simplemde = setCommentSimpleMDE($textarea);
+        commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
+        initSimpleMDEImagePaste($simplemde, $files);
 
-        $editContentZone.find('.cancel.button').click(() => {
+        $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          $dropzone.get(0).dropzone.emit('reload');
+          if (dz) {
+            dz.emit('reload');
+          }
         });
-        $editContentZone.find('.save.button').click(() => {
+        $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
           const $attachments = $files.find('[name=files]').map(function () {
@@ -901,34 +1038,35 @@ function initRepository() {
             context: $editContentZone.data('context'),
             files: $attachments
           }, (data) => {
-            if (data.length === 0) {
+            if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              emojify.run($renderContent[0]);
-              $('pre code', $renderContent[0]).each(function () {
-                hljs.highlightBlock(this);
-              });
             }
-            const $content = $segment.parent();
-            if (!$content.find('.ui.small.images').length) {
+            const $content = $segment;
+            if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
-                $content.append(
-                  '<div class="ui bottom attached segment"><div class="ui small images"></div></div>'
-                );
-                $content.find('.ui.small.images').html(data.attachments);
+                $content.append(`
+                  <div class="dropzone-attachments">
+                  </div>
+                `);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.ui.small.images').parent().remove();
+              $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.ui.small.images').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
-            $dropzone.get(0).dropzone.emit('submit');
-            $dropzone.get(0).dropzone.emit('reload');
+            if (dz) {
+              dz.emit('submit');
+              dz.emit('reload');
+            }
+            renderMarkdownContent();
           });
         });
       } else {
         $textarea = $segment.find('textarea');
+        $simplemde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -936,19 +1074,27 @@ function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
+        $simplemde.value($rawContent.text());
       }
-      $textarea.focus();
+      requestAnimationFrame(() => {
+        $textarea.focus();
+        $simplemde.codemirror.focus();
+      });
       event.preventDefault();
     });
 
     // Delete comment
-    $('.delete-comment').click(function () {
+    $('.delete-comment').on('click', function () {
       const $this = $(this);
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
-        }).success(() => {
+        }).done(() => {
+          const $conversationHolder = $this.closest('.conversation-holder');
           $(`#${$this.data('comment-id')}`).remove();
+          if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
+            $conversationHolder.remove();
+          }
         });
       }
       return false;
@@ -956,16 +1102,16 @@ function initRepository() {
 
     // Change status
     const $statusButton = $('#status-button');
-    $('#comment-form .edit_area').keyup(function () {
+    $('#comment-form .edit_area').on('keyup', function () {
       if ($(this).val().length === 0) {
         $statusButton.text($statusButton.data('status'));
       } else {
         $statusButton.text($statusButton.data('status-and-comment'));
       }
     });
-    $statusButton.click(() => {
+    $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').submit();
+      $('#comment-form').trigger('submit');
     });
 
     // Pull Request merge button
@@ -991,33 +1137,24 @@ function initRepository() {
     initReactionSelector();
   }
 
-  // Diff
-  if ($('.repository.diff').length > 0) {
-    $('.diff-counter').each(function () {
-      const $item = $(this);
-      const addLine = $item.find('span[data-line].add').data('line');
-      const delLine = $item.find('span[data-line].del').data('line');
-      const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-      $item.find('.bar .add').css('width', `${addPercent}%`);
-    });
-  }
-
   // Quick start and repository home
-  $('#repo-clone-ssh').click(function () {
+  $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-https').removeClass('blue');
+    $(this).addClass('primary');
+    $('#repo-clone-https').removeClass('primary');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
-  $('#repo-clone-https').click(function () {
+  $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    $(this).addClass('primary');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('primary');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
-  $('#repo-clone-url').click(function () {
+  $('#repo-clone-url').on('click', function () {
     $(this).select();
   });
 
@@ -1029,6 +1166,7 @@ function initRepository() {
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
       $repoComparePull.find('.pullrequest-form').show();
+      autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
     });
   }
@@ -1036,41 +1174,52 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
         $($(this).data('target')).addClass('disabled');
       }
     });
-    $('.disable-whitelist').change(function () {
+    $('.disable-whitelist').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
     });
   }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
+    });
+  }
 }
 
-function initMigration() {
-  const toggleMigrations = function () {
-    const authUserName = $('#auth_username').val();
-    const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0)
-        && (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
-      $('#migrate_items').show();
-    } else {
-      $('#migrate_items').hide();
-    }
-  };
-
-  toggleMigrations();
-
-  $('#clone_addr').on('input', toggleMigrations);
-  $('#auth_username').on('input', toggleMigrations);
-  $('#mirror').on('change', toggleMigrations);
+function initPullRequestMergeInstruction() {
+  $('.show-instruction').on('click', () => {
+    $('.instruct').toggle();
+  });
 }
 
 function initPullRequestReview() {
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      if (groupID && groupID.startsWith('code-comments-')) {
+        const id = groupID.substr(14);
+        $(`#show-outdated-${id}`).addClass('hide');
+        $(`#code-comments-${id}`).removeClass('hide');
+        $(`#code-preview-${id}`).removeClass('hide');
+        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(window).scrollTop(commentDiv.offset().top);
+      }
+    }
+  }
+
   $('.show-outdated').on('click', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
@@ -1094,6 +1243,17 @@ function initPullRequestReview() {
     $(this).hide();
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
+    const $textarea = form.find('textarea');
+    let $simplemde;
+    if ($textarea.data('simplemde')) {
+      $simplemde = $textarea.data('simplemde');
+    } else {
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.data('simplemde', $simplemde);
+    }
+    $textarea.focus();
+    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
@@ -1101,48 +1261,50 @@ function initPullRequestReview() {
     return;
   }
 
-  $('.diff-detail-box.ui.sticky').sticky();
-
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
-  }).closest('.dropdown').find('.link.close')
-    .on('click', function (e) {
-      e.preventDefault();
-      $(this).closest('.menu').toggle('visible');
-    });
-
-  $('.code-view .lines-code,.code-view .lines-num')
-    .on('mouseenter', function () {
-      const parent = $(this).closest('td');
-      $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
-          ? 'focus-lines-old' : 'focus-lines-new'
-      );
-    })
-    .on('mouseleave', function () {
-      $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
-    });
-  $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+  }).closest('.dropdown').find('.close').on('click', function (e) {
     e.preventDefault();
+    $(this).closest('.menu').toggle('visible');
+  });
+
+  $('.add-code-comment').on('click', function (e) {
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+    e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
     const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+
+    const oldLineNum = tr.find('.lines-num-old').data('line-num');
+    const newLineNum = tr.find('.lines-num-new').data('line-num');
+    const addCommentKey = `${oldLineNum}|${newLineNum}`;
+    if (document.querySelector(`[data-add-comment-key="${addCommentKey}"]`)) return; // don't add same comment box twice
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
-          : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-add-comment-key="${addCommentKey}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0) {
@@ -1154,7 +1316,12 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
     }
-    commentCloud.find('textarea').focus();
+    const $textarea = commentCloud.find('textarea');
+    attachTribute($textarea.get(), {mentions: true, emoji: true});
+
+    const $simplemde = setCommentSimpleMDE($textarea);
+    $textarea.focus();
+    $simplemde.codemirror.focus();
   });
 }
 
@@ -1174,7 +1341,7 @@ function assingMenuAttributes(menu) {
 
 function initRepositoryCollaboration() {
   // Change collaborator access mode
-  $('.access-mode.menu .item').click(function () {
+  $('.access-mode.menu .item').on('click', function () {
     const $menu = $(this).parent();
     $.post($menu.data('url'), {
       _csrf: csrf,
@@ -1186,7 +1353,7 @@ function initRepositoryCollaboration() {
 
 function initTeamSettings() {
   // Change team access mode
-  $('.organization.new.team input[name=permission]').change(() => {
+  $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
     if (val === 'admin') {
       $('.organization.new.team .team-units').hide();
@@ -1206,28 +1373,26 @@ function initWikiForm() {
       element: $editArea[0],
       forceSync: true,
       previewRender(plainText, preview) { // Async method
+        // FIXME: still send render request when return back to edit mode
+        const render = function () {
+          sideBySideChanges = 0;
+          if (sideBySideTimeout !== null) {
+            clearTimeout(sideBySideTimeout);
+            sideBySideTimeout = null;
+          }
+          $.post($editArea.data('url'), {
+            _csrf: csrf,
+            mode: 'gfm',
+            context: $editArea.data('context'),
+            text: plainText,
+            wiki: true
+          }, (data) => {
+            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+            renderMarkdownContent();
+          });
+        };
+
         setTimeout(() => {
-          // FIXME: still send render request when return back to edit mode
-          const render = function () {
-            sideBySideChanges = 0;
-            if (sideBySideTimeout != null) {
-              clearTimeout(sideBySideTimeout);
-              sideBySideTimeout = null;
-            }
-            $.post($editArea.data('url'), {
-              _csrf: csrf,
-              mode: 'gfm',
-              context: $editArea.data('context'),
-              text: plainText
-            },
-            (data) => {
-              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              emojify.run($('.editor-preview')[0]);
-              $(preview).find('pre code').each((_, e) => {
-                hljs.highlightBlock(e);
-              });
-            });
-          };
           if (!simplemde.isSideBySideActive()) {
             render();
           } else {
@@ -1237,7 +1402,7 @@ function initWikiForm() {
               render();
             }
             // or delay preview by timeout
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1293,7 +1458,16 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+        {
+          name: 'revert-to-textarea',
+          action(e) {
+            e.toTextArea();
+          },
+          className: 'fa fa-file',
+          title: 'Revert to simple textarea',
+        },
+      ]
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
@@ -1305,12 +1479,12 @@ function initWikiForm() {
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
       $bEdit.on('click', () => {
         if ($toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.click();
+          $bPreview.trigger('click');
         }
       });
       $bPrev.on('click', () => {
         if (!$toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.click();
+          $bPreview.trigger('click');
         }
       });
       $bPreview.on('click', () => {
@@ -1355,17 +1529,8 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
+function setCommentSimpleMDE($editArea) {
+  const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
     forceSync: true,
@@ -1375,56 +1540,62 @@ function setSimpleMDE($editArea) {
     indentWithTabs: false,
     tabSize: 4,
     spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        },
-        (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-          emojify.run($('.editor-preview')[0]);
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
+      'code', 'quote', '|', {
+        name: 'checkbox-empty',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-square-o',
+        title: 'Add Checkbox (empty)',
+      },
+      {
+        name: 'checkbox-checked',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-check-square-o',
+        title: 'Add Checkbox (checked)',
+      }, '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side']
+      'clean-block', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
-
-  return true;
+  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+  simplemde.codemirror.setOption('extraKeys', {
+    Enter: () => {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
+        return CodeMirror.Pass;
+      }
+    },
+    Backspace: (cm) => {
+      if (cm.getInputField().trigger) {
+        cm.getInputField().trigger('input');
+      }
+      cm.execCommand('delCharBefore');
+    }
+  });
+  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  return simplemde;
 }
 
-function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
-  }
-
-  if (codeMirrorEditor) {
-    return true;
-  }
-
-  codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
-    lineNumbers: true
-  });
-  codeMirrorEditor.on('change', (cm, _change) => {
-    $editArea.val(cm.getValue());
-  });
-
-  return true;
-}
-
-function initEditor() {
-  $('.js-quick-pull-choice-option').change(function () {
+async function initEditor() {
+  $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       $('.quick-pull-branch-name').show();
       $('.quick-pull-branch-name input').prop('required', true);
@@ -1436,7 +1607,7 @@ function initEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.keyup(function (e) {
+  $editFilename.on('keyup', function (e) {
     const $section = $('.breadcrumb span.section');
     const $divider = $('.breadcrumb div.divider');
     let value;
@@ -1484,89 +1655,7 @@ function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const markdownFileExts = $editArea.data('markdown-file-exts').split(',');
-  const lineWrapExtensions = $editArea.data('line-wrap-extensions').split(',');
-
-  $editFilename.on('keyup', () => {
-    const val = $editFilename.val();
-    let mode, spec, extension, extWithDot, dataUrl, apiCall;
-
-    extension = extWithDot = '';
-    const m = /.+\.([^.]+)$/.exec(val);
-    if (m) {
-      extension = m[1];
-      extWithDot = `.${extension}`;
-    }
-
-    const info = CodeMirror.findModeByExtension(extension);
-    const previewLink = $('a[data-tab=preview]');
-    if (info) {
-      mode = info.mode;
-      spec = info.mime;
-      apiCall = mode;
-    } else {
-      apiCall = extension;
-    }
-
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.indexOf(apiCall) >= 0) {
-      dataUrl = previewLink.data('url');
-      previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
-      previewLink.show();
-    } else {
-      previewLink.hide();
-    }
-
-    // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.indexOf(extWithDot) >= 0) {
-      if (setSimpleMDE($editArea)) {
-        return;
-      }
-    }
-
-    // Else we are going to use CodeMirror
-    if (!codeMirrorEditor && !setCodeMirror($editArea)) {
-      return;
-    }
-
-    if (mode) {
-      codeMirrorEditor.setOption('mode', spec);
-      CodeMirror.autoLoadMode(codeMirrorEditor, mode);
-    }
-
-    if (lineWrapExtensions.indexOf(extWithDot) >= 0) {
-      codeMirrorEditor.setOption('lineWrapping', true);
-    } else {
-      codeMirrorEditor.setOption('lineWrapping', false);
-    }
-
-    // get the filename without any folder
-    let value = $editFilename.val();
-    if (value.length === 0) {
-      return;
-    }
-    value = value.split('/');
-    value = value[value.length - 1];
-
-    $.getJSON($editFilename.data('ec-url-prefix') + value, (editorconfig) => {
-      if (editorconfig.indent_style === 'tab') {
-        codeMirrorEditor.setOption('indentWithTabs', true);
-        codeMirrorEditor.setOption('extraKeys', {});
-      } else {
-        codeMirrorEditor.setOption('indentWithTabs', false);
-        // required because CodeMirror doesn't seems to use spaces correctly for {"indentWithTabs": false}:
-        // - https://github.com/codemirror/CodeMirror/issues/988
-        // - https://codemirror.net/doc/manual.html#keymaps
-        codeMirrorEditor.setOption('extraKeys', {
-          Tab(cm) {
-            const spaces = Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
-            cm.replaceSelection(spaces);
-          }
-        });
-      }
-      codeMirrorEditor.setOption('indentUnit', editorconfig.indent_size || 4);
-      codeMirrorEditor.setOption('tabSize', editorconfig.tab_width || 4);
-    });
-  }).trigger('keyup');
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1575,7 +1664,9 @@ function initEditor() {
   const dirtyFileClass = 'dirty-file';
 
   // Disabling the button at the start
-  $commitButton.prop('disabled', true);
+  if ($('input[name="page_has_posted"]').val() !== 'true') {
+    $commitButton.prop('disabled', true);
+  }
 
   // Registering a custom listener for the file path and the file content
   $editForm.areYouSure({
@@ -1588,12 +1679,12 @@ function initEditor() {
     }
   });
 
-  $commitButton.click((event) => {
+  $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed
     if ($editArea.val().length === 0) {
       $('#edit-empty-content-modal').modal({
         onApprove() {
-          $('.edit.form').submit();
+          $('.edit.form').trigger('submit');
         }
       }).modal('show');
       event.preventDefault();
@@ -1608,7 +1699,7 @@ function initOrganization() {
 
   // Options
   if ($('.organization.settings.options').length > 0) {
-    $('#org_name').keyup(function () {
+    $('#org_name').on('keyup', function () {
       const $prompt = $('#org-name-change-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('org-name').toString().toLowerCase()) {
         $prompt.show();
@@ -1617,12 +1708,17 @@ function initOrganization() {
       }
     });
   }
+
+  // Labels
+  if ($('.organization.settings.labels').length > 0) {
+    initLabelEdit();
+  }
 }
 
 function initUserSettings() {
   // Options
   if ($('.user.settings.profile').length > 0) {
-    $('#username').keyup(function () {
+    $('#username').on('keyup', function () {
       const $prompt = $('#name-change-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
         $prompt.show();
@@ -1633,15 +1729,10 @@ function initUserSettings() {
   }
 }
 
-function initGithook() {
-  if ($('.edit.githook').length === 0) {
-    return;
-  }
-
-  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
-    lineNumbers: true,
-    mode: 'shell'
-  }), 'shell');
+async function initGithook() {
+  if ($('.edit.githook').length === 0) return;
+  const filename = document.querySelector('.hook-filename').textContent;
+  await createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 function initWebhook() {
@@ -1649,12 +1740,12 @@ function initWebhook() {
     return;
   }
 
-  $('.events.checkbox input').change(function () {
+  $('.events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
       $('.events.fields').show();
     }
   });
-  $('.non-events.checkbox input').change(function () {
+  $('.non-events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
       $('.events.fields').hide();
     }
@@ -1665,12 +1756,12 @@ function initWebhook() {
     $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
   };
   updateContentType();
-  $('#http_method').change(() => {
+  $('#http_method').on('change', () => {
     updateContentType();
   });
 
   // Test delivery
-  $('#test-delivery').click(function () {
+  $('#test-delivery').on('click', function () {
     const $this = $(this);
     $this.addClass('loading disabled');
     $.post($this.data('link'), {
@@ -1690,7 +1781,7 @@ function initAdmin() {
 
   // New user
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
-    $('#login_type').change(function () {
+    $('#login_type').on('change', function () {
       if ($(this).val().substring(0, 1) === '0') {
         $('#login_name').removeAttr('required');
         $('.non-local').hide();
@@ -1738,6 +1829,8 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
+      case 'mastodon':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1754,37 +1847,43 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
           break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
+          break;
       }
+    }
+  }
+
+  function onVerifyGroupMembershipChange() {
+    if ($('#groups_enabled').is(':checked')) {
+      $('#groups_enabled_change').show();
+    } else {
+      $('#groups_enabled_change').hide();
     }
   }
 
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
-    $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+    $('#auth_type').on('change', function () {
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -1821,28 +1920,32 @@ function initAdmin() {
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
+        onVerifyGroupMembershipChange();
       }
       if (authType === '2') {
         onUsePagedSearchChange();
       }
     });
-    $('#auth_type').change();
-    $('#security_protocol').change(onSecurityProtocolChange);
-    $('#use_paged_search').change(onUsePagedSearchChange);
-    $('#oauth2_provider').change(onOAuth2Change);
-    $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
+    $('#auth_type').trigger('change');
+    $('#security_protocol').on('change', onSecurityProtocolChange);
+    $('#use_paged_search').on('change', onUsePagedSearchChange);
+    $('#oauth2_provider').on('change', onOAuth2Change);
+    $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
-      $('#security_protocol').change(onSecurityProtocolChange);
+      $('#security_protocol').on('change', onSecurityProtocolChange);
+      $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+      onVerifyGroupMembershipChange();
       if (authType === '2') {
-        $('#use_paged_search').change(onUsePagedSearchChange);
+        $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').change(onOAuth2Change);
-      $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
+      $('#oauth2_provider').on('change', onOAuth2Change);
+      $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
       onOAuth2Change();
     }
   }
@@ -1852,15 +1955,16 @@ function initAdmin() {
     const $detailModal = $('#detail-modal');
 
     // Attach view detail modals
-    $('.view-detail').click(function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+    $('.view-detail').on('click', function () {
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
 
     // Select actions
     const $checkboxes = $('.select.table .ui.checkbox');
-    $('.select.action').click(function () {
+    $('.select.action').on('click', function () {
       switch ($(this).data('action')) {
         case 'select-all':
           $checkboxes.checkbox('check');
@@ -1873,7 +1977,7 @@ function initAdmin() {
           break;
       }
     });
-    $('#delete-selection').click(function () {
+    $('#delete-selection').on('click', function () {
       const $this = $(this);
       $this.addClass('loading disabled');
       const ids = [];
@@ -1893,9 +1997,9 @@ function initAdmin() {
 }
 
 function buttonsClickOnEnter() {
-  $('.ui.button').keypress(function (e) {
+  $('.ui.button').on('keypress', function (e) {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      $(this).click();
+      $(this).trigger('click');
     }
   });
 }
@@ -1905,13 +2009,13 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/users/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -1919,7 +2023,7 @@ function searchUsers() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['login', 'full_name'],
@@ -1932,8 +2036,8 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
-      headers: { 'X-Csrf-Token': csrf },
+      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      headers: {'X-Csrf-Token': csrf},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -1943,7 +2047,7 @@ function searchTeams() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['name', 'description'],
@@ -1956,7 +2060,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -1966,7 +2070,7 @@ function searchRepositories() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['full_name'],
@@ -1975,53 +2079,54 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
-  $('.ui.fold-code').on('click', (e) => {
-    const $foldButton = $(e.target);
-    if ($foldButton.hasClass('fa-chevron-down')) {
-      $(e.target).parent().next().slideUp('fast', () => {
-        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-      });
-    } else {
-      $(e.target).parent().next().slideDown('fast', () => {
-        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-      });
-    }
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
+    const folded = box.dataset.folded !== 'true';
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2030,7 +2135,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${suburl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2043,14 +2148,14 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${suburl}/user/two_factor`;
+      window.location.href = `${AppSubUrl}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${suburl}/user/u2f/sign`,
+    url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
   }).done((res) => {
@@ -2065,9 +2170,9 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${suburl}/user/settings/security/u2f/register`,
+    url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
     success() {
@@ -2090,7 +2195,6 @@ function checkError(resp) {
   return true;
 }
 
-
 function u2fError(errorType) {
   const u2fErrors = {
     browser: $('#unsupported-browser'),
@@ -2111,8 +2215,8 @@ function u2fError(errorType) {
 }
 
 function initU2FRegister() {
-  $('#register-device').modal({ allowMultiple: false });
-  $('#u2f-error').modal({ allowMultiple: false });
+  $('#register-device').modal({allowMultiple: false});
+  $('#u2f-error').modal({allowMultiple: false});
   $('#register-security-key').on('click', (e) => {
     e.preventDefault();
     u2fApi.ensureSupport()
@@ -2124,10 +2228,10 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${suburl}/user/settings/security/u2f/request_register`, {
+  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
-  }).success((req) => {
+  }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
     if (req.registeredKeys === null) {
@@ -2150,15 +2254,16 @@ function u2fRegisterRequest() {
 }
 
 function initWipTitle() {
-  $('.title_wip_desc > a').click((e) => {
+  $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
 
     const $issueTitle = $('#issue_title');
     $issueTitle.focus();
     const value = $issueTitle.val().trim().toUpperCase();
 
-    for (const i in wipPrefixes) {
-      if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
+    for (const prefix of wipPrefixes) {
+      if (value.startsWith(prefix.toUpperCase())) {
         return;
       }
     }
@@ -2172,7 +2277,7 @@ function initTemplateSearch() {
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
-    if ($repoTemplate.val() !== '') {
+    if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
       $templateUnits.show();
       $nonTemplate.hide();
     } else {
@@ -2180,16 +2285,16 @@ function initTemplateSearch() {
       $nonTemplate.show();
     }
   };
-  $repoTemplate.change(checkTemplate);
+  $repoTemplate.on('change', checkTemplate);
   checkTemplate();
 
   const changeOwner = function () {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${suburl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
-            const filteredResponse = { success: true, results: [] };
+            const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
               name: '',
               value: ''
@@ -2197,7 +2302,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -2209,14 +2314,11 @@ function initTemplateSearch() {
         fullTextSearch: true
       });
   };
-  $('#uid').change(changeOwner);
+  $('#uid').on('change', changeOwner);
   changeOwner();
 }
 
-$(document).ready(() => {
-  csrf = $('meta[name=_csrf]').attr('content');
-  suburl = $('meta[name=_suburl]').attr('content');
-
+$(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -2256,39 +2358,37 @@ $(document).ready(() => {
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
-  $('.toggle.button').click(function () {
+  $('.toggle.button').on('click', function () {
     $($(this).data('target')).slideToggle(100);
   });
 
   // make table <tr> element clickable like a link
-  $('tr[data-href]').click(function () {
+  $('tr[data-href]').on('click', function () {
     window.location = $(this).data('href');
   });
 
-  // Highlight JS
-  if (typeof hljs !== 'undefined') {
-    const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-    for (let i = 0; i < nodes.length; i++) {
-      hljs.highlightBlock(nodes[i]);
-    }
-  }
+  // make table <td> element clickable like a link
+  $('td[data-href]').click(function () {
+    window.location = $(this).data('href');
+  });
 
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    new Dropzone('#dropzone', {
+    await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
-      headers: { 'X-Csrf-Token': csrf },
+      headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
-      acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+      acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
       addRemoveLinks: true,
       dictDefaultMessage: $dropzone.data('default-message'),
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2299,10 +2399,10 @@ $(document).ready(() => {
           if (file.name in filenameDict) {
             $(`#${filenameDict[file.name]}`).remove();
           }
-          if ($dropzone.data('remove-url') && $dropzone.data('csrf')) {
+          if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: filenameDict[file.name],
-              _csrf: $dropzone.data('csrf')
+              _csrf: csrf
             });
           }
         });
@@ -2310,46 +2410,16 @@ $(document).ready(() => {
     });
   }
 
-  // Emojify
-  emojify.setConfig({
-    img_dir: `${suburl}/vendor/plugins/emojify/images`,
-    ignore_emoticons: true
-  });
-  const hasEmoji = document.getElementsByClassName('has-emoji');
-  for (let i = 0; i < hasEmoji.length; i++) {
-    emojify.run(hasEmoji[i]);
-    for (let j = 0; j < hasEmoji[i].childNodes.length; j++) {
-      if (hasEmoji[i].childNodes[j].nodeName === 'A') {
-        emojify.run(hasEmoji[i].childNodes[j]);
-      }
-    }
-  }
-
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
-  $('.delete-button').click(showDeletePopup);
-  $('.add-all-button').click(showAddAllPopup);
+  $('.delete-button').on('click', showDeletePopup);
+  $('.add-all-button').on('click', showAddAllPopup);
+  $('.link-action').on('click', linkAction);
+  $('.language-menu a[lang]').on('click', linkLanguageAction);
+  $('.link-email-action').on('click', linkEmailAction);
 
-  $('.delete-branch-button').click(showDeletePopup);
+  $('.delete-branch-button').on('click', showDeletePopup);
 
-  $('.undo-button').click(function () {
+  $('.undo-button').on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
@@ -2358,13 +2428,13 @@ $(document).ready(() => {
       window.location.href = data.redirect;
     });
   });
-  $('.show-panel.button').click(function () {
+  $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
-  $('.show-modal.button').click(function () {
+  $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
-  $('.delete-post.button').click(function () {
+  $('.delete-post.button').on('click', function () {
     const $this = $(this);
     $.post($this.data('request-url'), {
       _csrf: csrf
@@ -2373,27 +2443,7 @@ $(document).ready(() => {
     });
   });
 
-  // Set anchor.
-  $('.markdown').each(function () {
-    const headers = {};
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      const val = encodeURIComponent(node.text().toLowerCase().replace(/[^\u00C0-\u1FFF\u2C00-\uD7FF\w\- ]/g, '').replace(/[ ]/g, '-'));
-      let name = val;
-      if (headers[val] > 0) {
-        name = `${val}-${headers[val]}`;
-      }
-      if (headers[val] === undefined) {
-        headers[val] = 1;
-      } else {
-        headers[val] += 1;
-      }
-      node = node.wrap(`<div id="${name}" class="anchor-wrap" ></div>`);
-      node.append(`<a class="anchor" href="#${name}"><span class="octicon octicon-link"></span></a>`);
-    });
-  });
-
-  $('.issue-checkbox').click(() => {
+  $('.issue-checkbox').on('click', () => {
     const numChecked = $('.issue-checkbox').children('input:checked').length;
     if (numChecked > 0) {
       $('#issue-filters').addClass('hide');
@@ -2404,22 +2454,22 @@ $(document).ready(() => {
     }
   });
 
-  $('.issue-action').click(function () {
-    let { action } = this.dataset;
-    let { elementId } = this.dataset;
+  $('.issue-action').on('click', function () {
+    let {action} = this.dataset;
+    let {elementId} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
       return this.dataset.issueId;
     }).get().join();
-    const { url } = this.dataset;
+    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
     }
-    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
+    updateIssuesMeta(url, action, issueIDs, elementId, '').then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes
-        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false; });
+        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false });
       }
       reload();
     });
@@ -2429,7 +2479,20 @@ $(document).ready(() => {
   // trigger ckecked event, if checkboxes are checked on load
   $('.issue-checkbox input[type="checkbox"]:checked').first().each((_, e) => {
     e.checked = false;
-    $(e).click();
+    $(e).trigger('click');
+  });
+
+  $('.resolve-conversation').on('click', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment-id');
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    $.post(url, {
+      _csrf: csrf,
+      action,
+      comment_id: id,
+    }).then(reload);
   });
 
   buttonsClickOnEnter();
@@ -2437,15 +2500,16 @@ $(document).ready(() => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
+  initArchiveLinks();
   initRepository();
   initMigration();
   initWikiForm();
   initEditForm();
   initEditor();
   initOrganization();
-  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
@@ -2457,45 +2521,41 @@ $(document).ready(() => {
   initU2FAuth();
   initU2FRegister();
   initIssueList();
+  initIssueTimetracking();
+  initIssueDue();
   initWipTitle();
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
-
-  // Repo clone url.
-  if ($('#repo-clone-url').length > 0) {
-    switch (localStorage.getItem('repo-clone-protocol')) {
-      case 'ssh':
-        if ($('#repo-clone-ssh').click().length === 0) {
-          $('#repo-clone-https').click();
-        }
-        break;
-      default:
-        $('#repo-clone-https').click();
-        break;
-    }
-  }
+  initContextPopups();
+  initTableSort();
+  initNotificationsTable();
+  initPullRequestMergeInstruction();
 
   const routes = {
     'div.user.settings': initUserSettings,
     'div.repository.settings.collaboration': initRepositoryCollaboration
   };
 
-  let selector;
-  for (selector in routes) {
+  for (const [selector, fn] of Object.entries(routes)) {
     if ($(selector).length > 0) {
-      routes[selector]();
+      fn();
       break;
     }
   }
 
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.change(() => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
-    }
-  });
+  // parallel init of async loaded features
+  await Promise.all([
+    attachTribute(document.querySelectorAll('#content, .emoji-input')),
+    initGitGraph(),
+    initClipboard(),
+    initHeatmap(),
+    initProject(),
+    initServiceWorker(),
+    initNotificationCount(),
+    renderMarkdownContent(),
+    initGithook(),
+  ]);
 });
 
 function changeHash(hash) {
@@ -2528,7 +2588,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
@@ -2570,7 +2630,7 @@ function showDeletePopup() {
     closable: false,
     onApprove() {
       if ($this.data('type') === 'form') {
-        $($this.data('form')).submit();
+        $($this.data('form')).trigger('submit');
         return;
       }
 
@@ -2599,7 +2659,7 @@ function showAddAllPopup() {
     closable: false,
     onApprove() {
       if ($this.data('type') === 'form') {
-        $($this.data('form')).submit();
+        $($this.data('form')).trigger('submit');
         return;
       }
 
@@ -2614,7 +2674,59 @@ function showAddAllPopup() {
   return false;
 }
 
+function linkAction(e) {
+  e.preventDefault();
+  const $this = $(this);
+  const redirect = $this.data('redirect');
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
+function linkLanguageAction() {
+  const $this = $(this);
+  $.post($this.data('url')).always(() => {
+    window.location.reload();
+  });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
+}
+
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {
+      props: {
+        size: {
+          type: String,
+          default: '16',
+        },
+      },
+      template,
+    });
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2635,7 +2747,7 @@ function initVueComponents() {
       },
       organizations: {
         type: Array,
-        default: []
+        default: () => [],
       },
       isOrganization: {
         type: Boolean,
@@ -2656,32 +2768,70 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'unarchived';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        searchQuery: '',
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
+        finalPage: 1,
+        searchQuery,
         isLoading: false,
+        staticPrefix: StaticUrlPrefix,
+        counts: {},
         repoTypes: {
           all: {
-            count: 0,
             searchMode: '',
           },
           forks: {
-            count: 0,
             searchMode: 'fork',
           },
           mirrors: {
-            count: 0,
             searchMode: 'mirror',
           },
           sources: {
-            count: 0,
             searchMode: 'source',
           },
           collaborative: {
-            count: 0,
             searchMode: 'collaborative',
           },
         }
@@ -2690,21 +2840,26 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
-        }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
+        }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
+        }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
+        }`;
       },
       repoTypeCount() {
-        return this.repoTypes[this.reposFilter].count;
+        return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       }
     },
 
     mounted() {
       this.searchRepos(this.reposFilter);
-
+      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.dropdown').dropdown();
+      this.setCheckboxes();
       const self = this;
       Vue.nextTick(() => {
         self.$refs.search.focus();
@@ -2714,36 +2869,168 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
+      },
+
+      setCheckboxes() {
+        switch (this.archivedFilter) {
+          case 'unarchived':
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'archived':
+            $('#archivedFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+        }
+        switch (this.privateFilter) {
+          case 'public':
+            $('#privateFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'private':
+            $('#privateFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.privateFilter = 'both';
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
       },
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
-        this.repoTypes[filter].count = 0;
-        this.searchRepos(filter);
+        this.page = 1;
+        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
       },
 
-      showRepo(repo, filter) {
-        switch (filter) {
-          case 'sources':
-            return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
-          case 'forks':
-            return repo.owner.id === this.uid && !repo.mirror && repo.fork;
-          case 'mirrors':
-            return repo.mirror;
-          case 'collaborative':
-            return repo.owner.id !== this.uid && !repo.mirror;
-          default:
-            return true;
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'unarchived') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
         }
       },
 
-      searchRepos(reposFilter) {
+      toggleArchivedFilter() {
+        switch (this.archivedFilter) {
+          case 'both':
+            this.archivedFilter = 'unarchived';
+            break;
+          case 'unarchived':
+            this.archivedFilter = 'archived';
+            break;
+          case 'archived':
+            this.archivedFilter = 'both';
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      togglePrivateFilter() {
+        switch (this.privateFilter) {
+          case 'both':
+            this.privateFilter = 'public';
+            break;
+          case 'public':
+            this.privateFilter = 'private';
+            break;
+          case 'private':
+            this.privateFilter = 'both';
+            break;
+          default:
+            this.privateFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+
+      changePage(page) {
+        this.page = page;
+        if (this.page > this.finalPage) {
+          this.page = this.finalPage;
+        }
+        if (this.page < 1) {
+          this.page = 1;
+        }
+        this.repos = [];
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      searchRepos() {
         const self = this;
 
         this.isLoading = true;
 
-        const searchedMode = this.repoTypes[reposFilter].searchMode;
+        if (!this.reposTotalCount) {
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
+            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+          });
+        }
+
+        const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
@@ -2751,10 +3038,12 @@ function initVueComponents() {
           if (searchedURL === self.searchURL) {
             self.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '') {
+            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
               self.reposTotalCount = count;
             }
-            self.repoTypes[reposFilter].count = count;
+            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
+            self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
@@ -2763,24 +3052,28 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
-          return 'octicon octicon-repo-forked';
-        } if (repo.mirror) {
-          return 'octicon octicon-repo-clone';
-        } if (repo.private) {
-          return 'octicon octicon-lock';
+          return 'octicon-repo-forked';
+        } else if (repo.mirror) {
+          return 'octicon-mirror';
+        } else if (repo.template) {
+          return `octicon-repo-template`;
+        } else if (repo.private) {
+          return 'octicon-lock';
+        } else if (repo.internal) {
+          return 'octicon-repo';
         }
-        return 'octicon octicon-repo';
+        return 'octicon-repo';
       }
     }
   });
 }
 
 function initCtrlEnterSubmit() {
-  $('.js-quick-submit').keydown(function (e) {
+  $('.js-quick-submit').on('keydown', function (e) {
     if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').submit();
+      $(this).closest('form').trigger('submit');
     }
   });
 }
@@ -2794,128 +3087,38 @@ function initVueApp() {
   initVueComponents();
 
   new Vue({
-    delimiters: ['${', '}'],
     el,
-    data: {
-      searchLimit: document.querySelector('meta[name=_search_limit]').content,
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: document.querySelector('meta[name=_context_uid]').content,
+    delimiters: ['${', '}'],
+    components: {
+      ActivityTopAuthors,
+    },
+    data: () => {
+      return {
+        searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+        suburl: AppSubUrl,
+        uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+        activityTopAuthors: window.ActivityTopAuthors || [],
+      };
     },
   });
 }
 
-window.timeAddManual = function () {
-  $('.mini.modal')
-    .modal({
+function initIssueTimetracking() {
+  $(document).on('click', '.issue-add-time', () => {
+    $('.mini.modal').modal({
       duration: 200,
       onApprove() {
-        $('#add_time_manual_form').submit();
+        $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
-};
-
-window.toggleStopwatch = function () {
-  $('#toggle_stopwatch_form').submit();
-};
-window.cancelStopwatch = function () {
-  $('#cancel_stopwatch_form').submit();
-};
-
-window.initHeatmap = function (appElementId, heatmapUser, locale) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  locale = locale || {};
-
-  locale.contributions = locale.contributions || 'contributions';
-  locale.no_contributions = locale.no_contributions || 'No contributions';
-
-  const vueDelimeters = ['${', '}'];
-
-  Vue.component('activity-heatmap', {
-    delimiters: vueDelimeters,
-
-    props: {
-      user: {
-        type: String,
-        required: true
-      },
-      suburl: {
-        type: String,
-        required: true
-      },
-      locale: {
-        type: Object,
-        required: true
-      }
-    },
-
-    data() {
-      return {
-        isLoading: true,
-        colorRange: [],
-        endDate: null,
-        values: [],
-        totalContributions: 0,
-      };
-    },
-
-    mounted() {
-      this.colorRange = [
-        this.getColor(0),
-        this.getColor(1),
-        this.getColor(2),
-        this.getColor(3),
-        this.getColor(4),
-        this.getColor(5)
-      ];
-      this.endDate = new Date();
-      this.loadHeatmap(this.user);
-    },
-
-    methods: {
-      loadHeatmap(userName) {
-        const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
-          const chartData = [];
-          for (let i = 0; i < chartRawData.length; i++) {
-            self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
-          }
-          self.values = chartData;
-          self.isLoading = false;
-        });
-      },
-
-      getColor(idx) {
-        const el = document.createElement('div');
-        el.className = `heatmap-color-${idx}`;
-        document.body.appendChild(el);
-
-        const color = getComputedStyle(el).backgroundColor;
-
-        document.body.removeChild(el);
-
-        return color;
-      }
-    },
-
-    template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
   });
-
-  new Vue({
-    delimiters: vueDelimeters,
-    el,
-
-    data: {
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      heatmapUser,
-      locale
-    },
+  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
+    $('#toggle_stopwatch_form').trigger('submit');
   });
-};
+  $(document).on('click', '.issue-cancel-time', () => {
+    $('#cancel_stopwatch_form').trigger('submit');
+  });
+}
 
 function initFilterBranchTagDropdown(selector) {
   $(selector).each(function () {
@@ -2941,24 +3144,30 @@ function initFilterBranchTagDropdown(selector) {
     });
     $data.remove();
     new Vue({
-      delimiters: ['${', '}'],
       el: this,
+      delimiters: ['${', '}'],
       data,
+      computed: {
+        filteredItems() {
+          const items = this.items.filter((item) => {
+            return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+              (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          });
 
-      beforeMount() {
-        const vm = this;
-
-        this.noResults = vm.$el.getAttribute('data-no-results');
-        this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
-
-        document.body.addEventListener('click', (event) => {
-          if (vm.$el.contains(event.target)) {
-            return;
+          // no idea how to fix this so linting rule is disabled instead
+          this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1); // eslint-disable-line vue/no-side-effects-in-computed-properties
+          return items;
+        },
+        showNoResults() {
+          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+        },
+        showCreateNewBranch() {
+          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+            return false;
           }
-          if (vm.menuVisible) {
-            Vue.set(vm, 'menuVisible', false);
-          }
-        });
+
+          return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+        }
       },
 
       watch: {
@@ -2969,30 +3178,16 @@ function initFilterBranchTagDropdown(selector) {
         }
       },
 
-      computed: {
-        filteredItems() {
-          const vm = this;
+      beforeMount() {
+        this.noResults = this.$el.getAttribute('data-no-results');
+        this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
 
-          const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag))
-              && (!vm.searchTerm || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
-          });
-
-          vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
-
-          return items;
-        },
-        showNoResults() {
-          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
-        },
-        showCreateNewBranch() {
-          const vm = this;
-          if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
-            return false;
+        document.body.addEventListener('click', (event) => {
+          if (this.$el.contains(event.target)) return;
+          if (this.menuVisible) {
+            Vue.set(this, 'menuVisible', false);
           }
-
-          return vm.items.filter((item) => item.name.toLowerCase() === vm.searchTerm.toLowerCase()).length === 0;
-        }
+        });
       },
 
       methods: {
@@ -3005,15 +3200,12 @@ function initFilterBranchTagDropdown(selector) {
           window.location.href = item.url;
         },
         createNewBranch() {
-          if (!this.showCreateNewBranch) {
-            return;
-          }
-          this.$refs.newBranchForm.submit();
+          if (!this.showCreateNewBranch) return;
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
-          const vm = this;
           Vue.nextTick(() => {
-            vm.$refs.searchField.focus();
+            this.$refs.searchField.focus();
           });
         },
         getSelected() {
@@ -3030,15 +3222,12 @@ function initFilterBranchTagDropdown(selector) {
         },
         scrollToActive() {
           let el = this.$refs[`listItem${this.active}`];
-          if (!el || el.length === 0) {
-            return;
-          }
+          if (!el || !el.length) return;
           if (Array.isArray(el)) {
             el = el[0];
           }
 
           const cont = this.$refs.scrollContainer;
-
           if (el.offsetTop < cont.scrollTop) {
             cont.scrollTop = el.offsetTop;
           } else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
@@ -3046,49 +3235,41 @@ function initFilterBranchTagDropdown(selector) {
           }
         },
         keydown(event) {
-          const vm = this;
-          if (event.keyCode === 40) {
-            // arrow down
+          if (event.keyCode === 40) { // arrow down
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+            if (this.active + (this.showCreateNewBranch ? 0 : 1) >= this.filteredItems.length) {
               return;
             }
-            vm.active++;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 38) {
-            // arrow up
+            this.active++;
+            this.scrollToActive();
+          } else if (event.keyCode === 38) { // arrow up
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active <= 0) {
+            if (this.active <= 0) {
               return;
             }
-            vm.active--;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 13) {
-            // enter
+            this.active--;
+            this.scrollToActive();
+          } else if (event.keyCode === 13) { // enter
             event.preventDefault();
 
-            if (vm.active >= vm.filteredItems.length) {
-              vm.createNewBranch();
-            } else if (vm.active >= 0) {
-              vm.selectItem(vm.filteredItems[vm.active]);
+            if (this.active >= this.filteredItems.length) {
+              this.createNewBranch();
+            } else if (this.active >= 0) {
+              this.selectItem(this.filteredItems[this.active]);
             }
-          }
-          if (event.keyCode === 27) {
-            // escape
+          } else if (event.keyCode === 27) { // escape
             event.preventDefault();
-            vm.menuVisible = false;
+            this.menuVisible = false;
           }
         }
       }
@@ -3096,7 +3277,7 @@ function initFilterBranchTagDropdown(selector) {
   });
 }
 
-$('.commit-button').click(function (e) {
+$('.commit-button').on('click', function (e) {
   e.preventDefault();
   $(this).parent().find('.commit-body').toggle();
 });
@@ -3105,7 +3286,7 @@ function initNavbarContentToggle() {
   const content = $('#navbar');
   const toggle = $('#navbar-expand-toggle');
   let isExpanded = false;
-  toggle.click(() => {
+  toggle.on('click', () => {
     isExpanded = !isExpanded;
     if (isExpanded) {
       content.addClass('shown');
@@ -3126,7 +3307,7 @@ function initTopicbar() {
   const topicForm = $('#topic_edit.ui.form');
   const topicPrompts = getPrompts();
 
-  mgrBtn.click(() => {
+  mgrBtn.on('click', () => {
     viewDiv.hide();
     editDiv.css('display', ''); // show Semantic UI Grid
   });
@@ -3141,7 +3322,7 @@ function initTopicbar() {
     return prompts;
   }
 
-  saveBtn.click(() => {
+  saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
 
     $.post(saveBtn.data('link'), {
@@ -3155,7 +3336,10 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
+            const link = $('<a class="ui repo-topic large label topic"></a>');
+            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.text(topicArray[i]);
+            link.insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3166,7 +3350,7 @@ function initTopicbar() {
         if (xhr.responseJSON.invalidTopics.length > 0) {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-          const { invalidTopics } = xhr.responseJSON;
+          const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
           topics.split(',').forEach((value, index) => {
@@ -3188,7 +3372,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
-    fields: { name: 'description', value: 'data-value' },
+    fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
@@ -3201,7 +3385,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3209,27 +3393,23 @@ function initTopicbar() {
           success: false,
           results: [],
         };
-        const stripTags = function (text) {
-          return text.replace(/<[^>]*>?/gm, '');
-        };
-
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value); });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
 
         if (res.topics) {
           let found = false;
           for (let i = 0; i < res.topics.length; i++) {
             // skip currently added tags
-            if (current_topics.indexOf(res.topics[i].topic_name) !== -1) {
+            if (current_topics.includes(res.topics[i].topic_name)) {
               continue;
             }
 
             if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({ description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name });
+            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
             found = true;
           }
           formattedResponse.success = found;
@@ -3237,7 +3417,7 @@ function initTopicbar() {
 
         if (query.length > 0 && !found_query) {
           formattedResponse.success = true;
-          formattedResponse.results.unshift({ description: query, 'data-value': query });
+          formattedResponse.results.unshift({description: query, 'data-value': query});
         } else if (query.length > 0 && found_query) {
           formattedResponse.results.sort((a, b) => {
             if (a.description.toLowerCase() === query.toLowerCase()) return -1;
@@ -3247,7 +3427,6 @@ function initTopicbar() {
             return 0;
           });
         }
-
 
         return formattedResponse;
       },
@@ -3295,16 +3474,7 @@ function initTopicbar() {
   });
 }
 
-window.toggleDeadlineForm = function () {
-  $('#deadlineForm').fadeToggle(150);
-};
-
-window.setDeadline = function () {
-  const deadline = $('#deadlineDate').val();
-  window.updateDeadline(deadline);
-};
-
-window.updateDeadline = function (deadlineString) {
+function updateDeadline(deadlineString) {
   $('#deadline-err-invalid-date').hide();
   $('#deadline-loader').addClass('loading');
 
@@ -3338,7 +3508,20 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
     }
   });
-};
+}
+
+function initIssueDue() {
+  $(document).on('click', '.issue-due-edit', () => {
+    $('#deadlineForm').fadeToggle(150);
+  });
+  $(document).on('click', '.issue-due-remove', () => {
+    updateDeadline('');
+  });
+  $(document).on('submit', '.issue-due-form', () => {
+    updateDeadline($('#deadlineDate').val());
+    return false;
+  });
+}
 
 window.deleteDependencyModal = function (id, type) {
   $('.remove-dependency')
@@ -3348,7 +3531,7 @@ window.deleteDependencyModal = function (id, type) {
       onApprove() {
         $('#removeDependencyID').val(id);
         $('#dependencyType').val(type);
-        $('#removeDependencyForm').submit();
+        $('#removeDependencyForm').trigger('submit');
       }
     }).modal('show');
 };
@@ -3357,16 +3540,17 @@ function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}`;
+    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
       apiSettings: {
         url: issueSearchUrl,
         onResponse(response) {
-          const filteredResponse = { success: true, results: [] };
+          const filteredResponse = {success: true, results: []};
           const currIssueId = $('#new-dependency-drop-list').data('issue-id');
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
@@ -3375,8 +3559,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });
@@ -3389,7 +3573,7 @@ function initIssueList() {
     });
 
   $('.menu a.label-filter-item').each(function () {
-    $(this).click(function (e) {
+    $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
 
@@ -3404,7 +3588,7 @@ function initIssueList() {
     });
   });
 
-  $('.menu .ui.dropdown.label-filter').keydown((e) => {
+  $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
 
@@ -3431,6 +3615,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.trigger('submit');
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');

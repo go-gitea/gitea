@@ -1,22 +1,24 @@
 <div class="ui container user-cards">
+	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
 		{{.CardsTitle}}
 	</h2>
+	{{end}}
 	<ul class="list">
 		{{range .Cards}}
 			<li class="item ui segment">
 				<a href="{{.HomeLink}}">
-					<img class="avatar" src="{{.RelAvatarLink}}"/>
+					{{avatar .}}
 				</a>
 				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
 
 				<div class="meta">
 					{{if .Website}}
-						<span class="octicon octicon-link"></span> <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
-						<span class="octicon octicon-location"></span> {{.Location}}
+						{{svg "octicon-location"}} {{.Location}}
 					{{else}}
-						<span class="octicon octicon-clock"></span> {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>

@@ -16,7 +16,9 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<i class="mega-octicon octicon-key {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}"></i>
+				<div class="left floated content">
+					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+				</div>
 				<div class="content">
 					{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
 					<div class="print meta">
@@ -34,7 +36,7 @@
 	</div>
 </div>
 <br>
-<p>{{.i18n.Tr "settings.gpg_helper" "https://help.github.com/articles/about-gpg/" | Str2html}}</p>
+<p>{{.i18n.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
 <div {{if not .HasGPGError}}class="hide"{{end}} id="add-gpg-key-panel">
 	<h4 class="ui top attached header">
 		 {{.i18n.Tr "settings.add_new_gpg_key"}}
@@ -45,7 +47,7 @@
 			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="gpg-key-content" name="content" required>{{.content}}</textarea>
+				<textarea id="gpg-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="gpg">
 			<button class="ui green button">
@@ -57,7 +59,7 @@
 
 <div class="ui small basic delete modal" id="delete-gpg">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.gpg_key_deletion"}}
 	</div>
 	<div class="content">

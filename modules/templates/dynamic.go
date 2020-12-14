@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/unknwon/com"
@@ -48,18 +49,6 @@ func JSONRenderer() macaron.Handler {
 	})
 }
 
-// JSRenderer implements the macaron handler for serving JS templates.
-func JSRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:     NewFuncMap(),
-		Directory: path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{
-			path.Join(setting.CustomPath, "templates"),
-		},
-		HTMLContentType: "application/javascript",
-	})
-}
-
 // Mailer provides the templates required for sending notification mails.
 func Mailer() (*texttmpl.Template, *template.Template) {
 	for _, funcs := range NewTextFuncMap() {
@@ -71,7 +60,11 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 
 	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
 
-	if com.IsDir(staticDir) {
+	isDir, err := util.IsDir(staticDir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", staticDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(staticDir)
 
 		if err != nil {
@@ -96,7 +89,11 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 
 	customDir := path.Join(setting.CustomPath, "templates", "mail")
 
-	if com.IsDir(customDir) {
+	isDir, err = util.IsDir(customDir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(customDir)
 
 		if err != nil {

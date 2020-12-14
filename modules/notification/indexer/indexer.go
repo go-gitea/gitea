@@ -6,9 +6,14 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type indexerNotifier struct {
@@ -103,7 +108,37 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
-	models.DeleteRepoFromIndexer(repo)
+	if setting.Indexer.RepoIndexerEnabled {
+		code_indexer.DeleteRepoFromIndexer(repo)
+	}
+}
+
+func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	issue_indexer.UpdateRepoIndexer(repo)
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+}
+
+func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+}
+
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
@@ -111,5 +146,9 @@ func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 }
 
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	issue_indexer.UpdateIssueIndexer(issue)
+}
+
+func (r *indexerNotifier) NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }

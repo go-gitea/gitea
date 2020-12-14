@@ -48,6 +48,8 @@ const (
 	maxHashOffset       = 1 << 24
 
 	skipNever = math.MaxInt32
+
+	debugDeflate = false
 )
 
 type compressionLevel struct {
@@ -59,15 +61,13 @@ type compressionLevel struct {
 // See https://blog.klauspost.com/rebalancing-deflate-compression-levels/
 var levels = []compressionLevel{
 	{}, // 0
-	// Level 1-4 uses specialized algorithm - values not used
+	// Level 1-6 uses specialized algorithm - values not used
 	{0, 0, 0, 0, 0, 1},
 	{0, 0, 0, 0, 0, 2},
 	{0, 0, 0, 0, 0, 3},
 	{0, 0, 0, 0, 0, 4},
-	// For levels 5-6 we don't bother trying with lazy matches.
-	// Lazy matching is at least 30% slower, with 1.5% increase.
-	{6, 0, 12, 8, 12, 5},
-	{8, 0, 24, 16, 16, 6},
+	{0, 0, 0, 0, 0, 5},
+	{0, 0, 0, 0, 0, 6},
 	// Levels 7-9 use increasingly more lazy matching
 	// and increasingly stringent conditions for "good enough".
 	{8, 8, 24, 16, skipNever, 7},
@@ -80,9 +80,7 @@ type advancedState struct {
 	// deflate state
 	length         int
 	offset         int
-	hash           uint32
 	maxInsertIndex int
-	ii             uint16 // position of last match, intended to overflow to reset.
 
 	// Input hash chains
 	// hashHead[hashValue] contains the largest inputIndex with the specified hash value
@@ -97,6 +95,9 @@ type advancedState struct {
 	// input window: unprocessed data is window[index:windowEnd]
 	index     int
 	hashMatch [maxMatchLength + minMatchLength]uint32
+
+	hash uint32
+	ii   uint16 // position of last match, intended to overflow to reset.
 }
 
 type compressor struct {
@@ -107,18 +108,19 @@ type compressor struct {
 	// compression algorithm
 	fill func(*compressor, []byte) int // copy data to window
 	step func(*compressor)             // process window
-	sync bool                          // requesting flush
 
-	window        []byte
-	windowEnd     int
-	blockStart    int  // window index where current tokens start
-	byteAvailable bool // if true, still need to process window[index-1].
-	err           error
+	window     []byte
+	windowEnd  int
+	blockStart int // window index where current tokens start
+	err        error
 
 	// queued output tokens
 	tokens tokens
 	fast   fastEnc
 	state  *advancedState
+
+	sync          bool // requesting flush
+	byteAvailable bool // if true, still need to process window[index-1].
 }
 
 func (d *compressor) fillDeflate(b []byte) int {
@@ -203,9 +205,8 @@ func (d *compressor) writeBlockSkip(tok *tokens, index int, eof bool) error {
 // This is much faster than doing a full encode.
 // Should only be used after a start/reset.
 func (d *compressor) fillWindow(b []byte) {
-	// Do not fill window if we are in store-only mode,
-	// use constant or Snappy compression.
-	if d.level == 0 {
+	// Do not fill window if we are in store-only or huffman mode.
+	if d.level <= 0 {
 		return
 	}
 	if d.fast != nil {
@@ -368,7 +369,7 @@ func (d *compressor) deflateLazy() {
 	// Sanity enables additional runtime tests.
 	// It's intended to be used during development
 	// to supplement the currently ad-hoc unit tests.
-	const sanity = false
+	const sanity = debugDeflate
 
 	if d.windowEnd-s.index < minMatchLength+maxMatchLength && !d.sync {
 		return
@@ -644,7 +645,7 @@ func (d *compressor) init(w io.Writer, level int) (err error) {
 		d.fill = (*compressor).fillBlock
 		d.step = (*compressor).store
 	case level == ConstantCompression:
-		d.w.logReusePenalty = uint(4)
+		d.w.logNewTablePenalty = 4
 		d.window = make([]byte, maxStoreBlockSize)
 		d.fill = (*compressor).fillBlock
 		d.step = (*compressor).storeHuff
@@ -652,13 +653,13 @@ func (d *compressor) init(w io.Writer, level int) (err error) {
 		level = 5
 		fallthrough
 	case level >= 1 && level <= 6:
-		d.w.logReusePenalty = uint(level + 1)
+		d.w.logNewTablePenalty = 6
 		d.fast = newFastEnc(level)
 		d.window = make([]byte, maxStoreBlockSize)
 		d.fill = (*compressor).fillBlock
 		d.step = (*compressor).storeFast
 	case 7 <= level && level <= 9:
-		d.w.logReusePenalty = uint(level)
+		d.w.logNewTablePenalty = 10
 		d.state = &advancedState{}
 		d.compressionLevel = levels[level]
 		d.initDeflate()
@@ -667,6 +668,7 @@ func (d *compressor) init(w io.Writer, level int) (err error) {
 	default:
 		return fmt.Errorf("flate: invalid compression level %d: want value in range [-2, 9]", level)
 	}
+	d.level = level
 	return nil
 }
 
@@ -720,6 +722,7 @@ func (d *compressor) close() error {
 		return d.w.err
 	}
 	d.w.flush()
+	d.w.reset(nil)
 	return d.w.err
 }
 
@@ -750,22 +753,13 @@ func NewWriter(w io.Writer, level int) (*Writer, error) {
 // can only be decompressed by a Reader initialized with the
 // same dictionary.
 func NewWriterDict(w io.Writer, level int, dict []byte) (*Writer, error) {
-	dw := &dictWriter{w}
-	zw, err := NewWriter(dw, level)
+	zw, err := NewWriter(w, level)
 	if err != nil {
 		return nil, err
 	}
 	zw.d.fillWindow(dict)
 	zw.dict = append(zw.dict, dict...) // duplicate dictionary for Reset method.
 	return zw, err
-}
-
-type dictWriter struct {
-	w io.Writer
-}
-
-func (w *dictWriter) Write(b []byte) (n int, err error) {
-	return w.w.Write(b)
 }
 
 // A Writer takes data written to it and writes the compressed
@@ -805,11 +799,12 @@ func (w *Writer) Close() error {
 // the result of NewWriter or NewWriterDict called with dst
 // and w's level and dictionary.
 func (w *Writer) Reset(dst io.Writer) {
-	if dw, ok := w.d.w.writer.(*dictWriter); ok {
+	if len(w.dict) > 0 {
 		// w was created with NewWriterDict
-		dw.w = dst
-		w.d.reset(dw)
-		w.d.fillWindow(w.dict)
+		w.d.reset(dst)
+		if dst != nil {
+			w.d.fillWindow(w.dict)
+		}
 	} else {
 		// w was created with NewWriter
 		w.d.reset(dst)

@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -101,7 +102,7 @@ func CloseProvidedListeners() error {
 // creates a new one using net.Listen.
 func GetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
-	defer Manager.InformCleanup()
+	defer GetManager().InformCleanup()
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 		tcpAddr, err := net.ResolveTCPAddr(network, address)
@@ -173,7 +174,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	}
 
 	// make a fresh listener
-	if err := os.Remove(address.Name); err != nil && !os.IsNotExist(err) {
+	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("Failed to remove unix socket %s: %v", address.Name, err)
 	}
 

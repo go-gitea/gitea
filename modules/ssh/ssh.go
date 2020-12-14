@@ -5,6 +5,7 @@
 package ssh
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gliderlabs/ssh"
 	"github.com/unknwon/com"
@@ -133,12 +135,67 @@ func sessionHandler(session ssh.Session) {
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if ctx.User() != setting.SSH.BuiltinServerUser {
+		log.Warn("Permission Denied: Invalid SSH username %s - must use %s for all git operations via ssh", ctx.User(), setting.SSH.BuiltinServerUser)
 		return false
+	}
+
+	// check if we have a certificate
+	if cert, ok := key.(*gossh.Certificate); ok {
+		if len(setting.SSH.TrustedUserCAKeys) == 0 {
+			return false
+		}
+
+		// look for the exact principal
+	principalLoop:
+		for _, principal := range cert.ValidPrincipals {
+			pkey, err := models.SearchPublicKeyByContentExact(principal)
+			if err != nil {
+				if models.IsErrKeyNotExist(err) {
+					log.Debug("Principal Rejected: Unknown Principal: %s", principal)
+					continue principalLoop
+				}
+				log.Error("SearchPublicKeyByContentExact: %v", err)
+				return false
+			}
+
+			c := &gossh.CertChecker{
+				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
+						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+							return true
+						}
+					}
+
+					return false
+				},
+			}
+
+			// check the CA of the cert
+			if !c.IsUserAuthority(cert.SignatureKey) {
+				log.Debug("Principal Rejected: Untrusted Authority Signature Fingerprint %s for Principal: %s", gossh.FingerprintSHA256(cert.SignatureKey), principal)
+				continue principalLoop
+			}
+
+			// validate the cert for this principal
+			if err := c.CheckCert(principal, cert); err != nil {
+				// User is presenting an invalid cerficate - STOP any further processing
+				log.Error("Permission Denied: Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal)
+				return false
+			}
+
+			ctx.SetValue(giteaKeyID, pkey.ID)
+
+			return true
+		}
 	}
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
-		log.Error("SearchPublicKeyByContent: %v", err)
+		if models.IsErrKeyNotExist(err) {
+			log.Warn("Permission Denied: Unknown public key : %s", gossh.FingerprintSHA256(key))
+			return false
+		}
+		log.Error("SearchPublicKeyByContent: %v Failed authentication attempt from %s", err, ctx.RemoteAddr())
 		return false
 	}
 
@@ -164,7 +221,11 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	}
 
 	keyPath := filepath.Join(setting.AppDataPath, "ssh/gogs.rsa")
-	if !com.IsExist(keyPath) {
+	isExist, err := util.IsExist(keyPath)
+	if err != nil {
+		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+	}
+	if !isExist {
 		filePath := filepath.Dir(keyPath)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
@@ -178,7 +239,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		log.Trace("New private key is generated: %s", keyPath)
 	}
 
-	err := srv.SetOption(ssh.HostKeyFile(keyPath))
+	err = srv.SetOption(ssh.HostKeyFile(keyPath))
 	if err != nil {
 		log.Error("Failed to set Host Key. %s", err)
 	}

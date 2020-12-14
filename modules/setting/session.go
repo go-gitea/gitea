@@ -11,28 +11,47 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gitea.com/macaron/session"
 )
 
 var (
 	// SessionConfig difines Session settings
-	SessionConfig session.Options
+	SessionConfig = struct {
+		Provider string
+		// Provider configuration, it's corresponding to provider.
+		ProviderConfig string
+		// Cookie name to save session ID. Default is "MacaronSession".
+		CookieName string
+		// Cookie path to store. Default is "/".
+		CookiePath string
+		// GC interval time in seconds. Default is 3600.
+		Gclifetime int64
+		// Max life time in seconds. Default is whatever GC interval time is.
+		Maxlifetime int64
+		// Use HTTPS only. Default is false.
+		Secure bool
+		// Cookie domain name. Default is empty.
+		Domain string
+	}{
+		CookieName:  "i_like_gitea",
+		Gclifetime:  86400,
+		Maxlifetime: 86400,
+	}
 )
 
 func newSessionService() {
-	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
+	sec := Cfg.Section("session")
+	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "nodb"})
-	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
+	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
 	}
-	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
+	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
-	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
-	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
-	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
-	SessionConfig.Domain = Cfg.Section("session").Key("DOMAIN").String()
+	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
+	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
+	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
+	SessionConfig.Domain = sec.Key("DOMAIN").String()
 
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {

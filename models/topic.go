@@ -25,7 +25,7 @@ var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
-	ID          int64
+	ID          int64  `xorm:"pk autoincr"`
 	Name        string `xorm:"UNIQUE VARCHAR(25)"`
 	RepoCount   int
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -34,8 +34,8 @@ type Topic struct {
 
 // RepoTopic represents associated repositories and topics
 type RepoTopic struct {
-	RepoID  int64 `xorm:"UNIQUE(s)"`
-	TopicID int64 `xorm:"UNIQUE(s)"`
+	RepoID  int64 `xorm:"pk"`
+	TopicID int64 `xorm:"pk"`
 }
 
 // ErrTopicNotExist represents an error that a topic is not exist
@@ -129,7 +129,7 @@ func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, err
 }
 
 // removeTopicFromRepo remove a topic from a repo and decrements the topic repo count
-func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
+func removeTopicFromRepo(e Engine, repoID int64, topic *Topic) error {
 	topic.RepoCount--
 	if _, err := e.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
 		return err
@@ -145,12 +145,29 @@ func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
 	return nil
 }
 
+// removeTopicsFromRepo remove all topics from the repo and decrements respective topics repo count
+func removeTopicsFromRepo(e Engine, repoID int64) error {
+	_, err := e.Where(
+		builder.In("id",
+			builder.Select("topic_id").From("repo_topic").Where(builder.Eq{"repo_id": repoID}),
+		),
+	).Cols("repo_count").SetExpr("repo_count", "repo_count-1").Update(&Topic{})
+	if err != nil {
+		return err
+	}
+
+	if _, err = e.Delete(&RepoTopic{RepoID: repoID}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FindTopicOptions represents the options when fdin topics
 type FindTopicOptions struct {
+	ListOptions
 	RepoID  int64
 	Keyword string
-	Limit   int
-	Page    int
 }
 
 func (opts *FindTopicOptions) toConds() builder.Cond {
@@ -172,18 +189,21 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
-	if opts.Limit > 0 {
-		sess.Limit(opts.Limit, opts.Page*opts.Limit)
+	if opts.PageSize != 0 && opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
 // GetRepoTopicByName retrives topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
+	return getRepoTopicByName(x, repoID, topicName)
+}
+func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error) {
 	var cond = builder.NewCond()
 	var topic Topic
 	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
-	sess := x.Table("topic").Where(cond)
+	sess := e.Table("topic").Where(cond)
 	sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	has, err := sess.Get(&topic)
 	if has {
@@ -194,7 +214,13 @@ func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	topic, err := GetRepoTopicByName(repoID, topicName)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	topic, err := getRepoTopicByName(sess, repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +229,25 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return topic, nil
 	}
 
-	return addTopicByNameToRepo(x, repoID, topicName)
+	topic, err = addTopicByNameToRepo(sess, repoID, topicName)
+	if err != nil {
+		return nil, err
+	}
+
+	topicNames := make([]string, 0, 25)
+	if err := sess.Select("name").Table("topic").
+		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		return nil, err
+	}
+
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+		Topics: topicNames,
+	}); err != nil {
+		return nil, err
+	}
+
+	return topic, sess.Commit()
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
@@ -217,7 +261,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(repoID, topic, x)
+	err = removeTopicFromRepo(x, repoID, topic)
 
 	return topic, err
 }
@@ -278,7 +322,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	for _, topic := range removeTopics {
-		err := removeTopicFromRepo(repoID, topic, sess)
+		err := removeTopicFromRepo(sess, repoID, topic)
 		if err != nil {
 			return err
 		}

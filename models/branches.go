@@ -5,46 +5,48 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
-)
-
-const (
-	// ProtectedBranchRepoID protected Repo ID
-	ProtectedBranchRepoID = "GITEA_REPO_ID"
-	// ProtectedBranchPRID protected Repo PR ID
-	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                        int64  `xorm:"pk autoincr"`
-	RepoID                    int64  `xorm:"UNIQUE(s)"`
-	BranchName                string `xorm:"UNIQUE(s)"`
-	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
-	EnableWhitelist           bool
-	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
-	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
-	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
-	WhitelistDeployKeys       bool               `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
-	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
-	EnableApprovalsWhitelist  bool               `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
-	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
-	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
+	ID                            int64  `xorm:"pk autoincr"`
+	RepoID                        int64  `xorm:"UNIQUE(s)"`
+	BranchName                    string `xorm:"UNIQUE(s)"`
+	CanPush                       bool   `xorm:"NOT NULL DEFAULT false"`
+	EnableWhitelist               bool
+	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
+	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
+	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
+	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
+	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts           []string `xorm:"JSON TEXT"`
+	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
+	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
+	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
+	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
+	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
+	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
+	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
+	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
+	ProtectedFilePatterns         string   `xorm:"TEXT"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -89,10 +91,11 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	return in
 }
 
-// CanUserMerge returns if some user could merge a pull request to this protected branch
-func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+// IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
-		return true
+		// Then we need to fall back on whether the user has write permission
+		return permissionInRepo.CanWrite(UnitTypeCode)
 	}
 
 	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
@@ -153,16 +156,107 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	approvals, err := x.Where("issue_id = ?", pr.Issue.ID).
+	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true).
-		Count(new(Review))
+		And("official = ?", true)
+	if protectBranch.DismissStaleApprovals {
+		sess = sess.And("stale = ?", false)
+	}
+	approvals, err := sess.Count(new(Review))
 	if err != nil {
 		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
 	}
 
 	return approvals
+}
+
+// MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
+func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
+	if !protectBranch.BlockOnRejectedReviews {
+		return false
+	}
+	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeReject).
+		And("official = ?", true).
+		Exist(new(Review))
+	if err != nil {
+		log.Error("MergeBlockedByRejectedReview: %v", err)
+		return true
+	}
+
+	return rejectExist
+}
+
+// MergeBlockedByOfficialReviewRequests block merge because of some review request to official reviewer
+// of from official review
+func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(pr *PullRequest) bool {
+	if !protectBranch.BlockOnOfficialReviewRequests {
+		return false
+	}
+	has, err := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeRequest).
+		And("official = ?", true).
+		Exist(new(Review))
+	if err != nil {
+		log.Error("MergeBlockedByOfficialReviewRequests: %v", err)
+		return true
+	}
+
+	return has
+}
+
+// MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
+func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(pr *PullRequest) bool {
+	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
+}
+
+// GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
+func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
+	extarr := make([]glob.Glob, 0, 10)
+	for _, expr := range strings.Split(strings.ToLower(protectBranch.ProtectedFilePatterns), ";") {
+		expr = strings.TrimSpace(expr)
+		if expr != "" {
+			if g, err := glob.Compile(expr, '.', '/'); err != nil {
+				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
+			} else {
+				extarr = append(extarr, g)
+			}
+		}
+	}
+	return extarr
+}
+
+// MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullRequest) bool {
+	glob := protectBranch.GetProtectedFilePatterns()
+	if len(glob) == 0 {
+		return false
+	}
+
+	return len(pr.ChangedProtectedFiles) > 0
+}
+
+// IsProtectedFile return if path is protected
+func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) bool {
+	if len(patterns) == 0 {
+		patterns = protectBranch.GetProtectedFilePatterns()
+		if len(patterns) == 0 {
+			return false
+		}
+	}
+
+	lpath := strings.ToLower(strings.TrimSpace(path))
+
+	r := false
+	for _, pat := range patterns {
+		if pat.Match(lpath) {
+			r = true
+			break
+		}
+	}
+
+	return r
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
@@ -190,8 +284,8 @@ func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*Protected
 
 // GetProtectedBranchByID getting protected branch by ID
 func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: id}
-	has, err := x.Get(rel)
+	rel := &ProtectedBranch{}
+	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -319,27 +413,6 @@ func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) 
 		return true, err
 	} else if has {
 		return !protectedBranch.CanUserPush(doer.ID), nil
-	}
-
-	return false, nil
-}
-
-// IsProtectedBranchForMerging checks if branch is protected for merging
-func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repo.ID,
-		BranchName: branchName,
-	}
-
-	has, err := x.Get(protectedBranch)
-	if err != nil {
-		return true, err
-	} else if has {
-		return !protectedBranch.CanUserMerge(doer.ID) || !protectedBranch.HasEnoughApprovals(pr), nil
 	}
 
 	return false, nil
@@ -480,9 +553,9 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
-	deletedBranch := &DeletedBranch{ID: ID}
-	has, err := x.Get(deletedBranch)
+func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{}
+	has, err := x.ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -524,11 +597,18 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 	deletedBranch.DeletedBy = user
 }
 
+// RemoveDeletedBranch removes all deleted branches
+func RemoveDeletedBranch(repoID int64, branch string) error {
+	_, err := x.Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
+	return err
+}
+
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches() {
+func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
+	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
-	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	deleteBefore := time.Now().Add(-olderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)

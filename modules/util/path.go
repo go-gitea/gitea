@@ -31,3 +31,42 @@ func GetDirectorySize(path string) (int64, error) {
 	})
 	return size, err
 }
+
+// IsDir returns true if given path is a directory,
+// or returns false when it's a file or does not exist.
+func IsDir(dir string) (bool, error) {
+	f, err := os.Stat(dir)
+	if err == nil {
+		return f.IsDir(), nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// IsFile returns true if given path is a file,
+// or returns false when it's a directory or does not exist.
+func IsFile(filePath string) (bool, error) {
+	f, err := os.Stat(filePath)
+	if err == nil {
+		return !f.IsDir(), nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// IsExist checks whether a file or directory exists.
+// It returns false when the file or directory does not exist.
+func IsExist(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil || os.IsExist(err) {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}

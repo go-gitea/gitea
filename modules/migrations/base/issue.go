@@ -15,11 +15,14 @@ type Issue struct {
 	PosterEmail string
 	Title       string
 	Content     string
+	Ref         string
 	Milestone   string
 	State       string // closed, open
 	IsLocked    bool
 	Created     time.Time
+	Updated     time.Time
 	Closed      *time.Time
 	Labels      []*Label
-	Reactions   *Reactions
+	Reactions   []*Reaction
+	Assignees   []string
 }

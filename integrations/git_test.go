@@ -5,12 +5,11 @@
 package integrations
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +51,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, models.AccessModeRead))
@@ -70,11 +70,13 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("MergeFork", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			t.Run("DeleteRepository", doAPIDeleteRepository(httpContext))
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
+
+		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -97,7 +99,7 @@ func testGit(t *testing.T, u *url.URL) {
 			//Setup clone folder
 			dstPath, err := ioutil.TempDir("", sshContext.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstPath)
+			defer util.RemoveAll(dstPath)
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
@@ -108,11 +110,13 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
+				defer PrintCurrentTest(t)()
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				t.Run("DeleteRepository", doAPIDeleteRepository(sshContext))
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
+
+			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
 }
@@ -120,7 +124,7 @@ func testGit(t *testing.T, u *url.URL) {
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
 	dstLocalPath, err := ioutil.TempDir("", "repo1")
 	assert.NoError(t, err)
-	defer os.RemoveAll(dstLocalPath)
+	defer util.RemoveAll(dstLocalPath)
 	t.Run("CloneAnonymous", doGitClone(dstLocalPath, u))
 
 }
@@ -289,17 +293,34 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 
 func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {
 	//Generate random file
-	data := make([]byte, size)
-	_, err := rand.Read(data)
-	if err != nil {
-		return "", err
+	bufSize := 4 * 1024
+	if bufSize > size {
+		bufSize = size
 	}
+
+	buffer := make([]byte, bufSize)
+
 	tmpFile, err := ioutil.TempFile(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
-	_, err = tmpFile.Write(data)
+	written := 0
+	for written < size {
+		n := size - written
+		if n > bufSize {
+			n = bufSize
+		}
+		_, err := rand.Read(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		n, err = tmpFile.Write(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		written += n
+	}
 	if err != nil {
 		return "", err
 	}
@@ -347,6 +368,17 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
+		var pr2 api.PullRequest
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr2, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR2", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username))
@@ -398,13 +430,117 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 
 func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
 		var pr api.PullRequest
 		var err error
+
+		// Create a test pullrequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
-		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
+		// Ensure the PR page works
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+
+		// Then get the diff string
+		var diffStr string
+		t.Run("GetDiff", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffStr = resp.Body.String()
+		})
+
+		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
+		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+
+		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
+		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+
+		// Delete the head repository & make sure that doesn't break the PR page or change its diff
+		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+	}
+}
+
+func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.T) {
+	return func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, diffStr, resp.Body.String())
+	}
+}
+
+func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		// create a context for a currently non-existent repository
+		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
+
+		// Create a temporary directory
+		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		assert.NoError(t, err)
+		defer util.RemoveAll(tmpDir)
+
+		// Now create local repository to push as our test and set its origin
+		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))
+		t.Run("AddRemote", doGitAddRemote(tmpDir, "origin", u))
+
+		// Disable "Push To Create" and attempt to push
+		setting.Repository.EnablePushCreateUser = false
+		t.Run("FailToPushAndCreateTestRepository", doGitPushTestRepositoryFail(tmpDir, "origin", "master"))
+
+		// Enable "Push To Create"
+		setting.Repository.EnablePushCreateUser = true
+
+		// Assert that cloning from a non-existent repository does not create it and that it definitely wasn't create above
+		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(u))
+
+		// Then "Push To Create"x
+		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
+
+		// Finally, fetch repo from database and ensure the correct repository has been created
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
+
+		// Now add a remote that is invalid to "Push To Create"
+		invalidCtx := ctx
+		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = invalidCtx.GitPath()
+		t.Run("AddInvalidRemote", doGitAddRemote(tmpDir, "invalid", u))
+
+		// Fail to "Push To Create" the invalid
+		t.Run("FailToPushAndCreateInvalidTestRepository", doGitPushTestRepositoryFail(tmpDir, "invalid", "master"))
+	}
+}
+
+func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
+			"_csrf": csrf,
+		})
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 	}
 }

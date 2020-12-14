@@ -4,8 +4,6 @@
 
 package options
 
-//go:generate go run -mod=vendor main.go
-
 type directorySet map[string][]string
 
 func (s directorySet) Add(key string, value []string) {

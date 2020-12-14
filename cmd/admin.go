@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -14,8 +15,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -27,16 +30,39 @@ var (
 		Name:  "admin",
 		Usage: "Command line interface to perform common administrative operations",
 		Subcommands: []cli.Command{
-			subcmdCreateUser,
-			subcmdChangePassword,
+			subcmdUser,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
 			subcmdAuth,
+			subcmdSendMail,
 		},
 	}
 
-	subcmdCreateUser = cli.Command{
-		Name:   "create-user",
+	subcmdUser = cli.Command{
+		Name:  "user",
+		Usage: "Modify users",
+		Subcommands: []cli.Command{
+			microcmdUserCreate,
+			microcmdUserList,
+			microcmdUserChangePassword,
+			microcmdUserDelete,
+		},
+	}
+
+	microcmdUserList = cli.Command{
+		Name:   "list",
+		Usage:  "List users",
+		Action: runListUsers,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "admin",
+				Usage: "List only admin users",
+			},
+		},
+	}
+
+	microcmdUserCreate = cli.Command{
+		Name:   "create",
 		Usage:  "Create a new user in database",
 		Action: runCreateUser,
 		Flags: []cli.Flag{
@@ -80,7 +106,7 @@ var (
 		},
 	}
 
-	subcmdChangePassword = cli.Command{
+	microcmdUserChangePassword = cli.Command{
 		Name:   "change-password",
 		Usage:  "Change a user's password",
 		Action: runChangePassword,
@@ -96,6 +122,13 @@ var (
 				Usage: "New password to set for user",
 			},
 		},
+	}
+
+	microcmdUserDelete = cli.Command{
+		Name:   "delete",
+		Usage:  "Delete specific user",
+		Flags:  []cli.Flag{idFlag},
+		Action: runDeleteUser,
 	}
 
 	subcmdRepoSyncReleases = cli.Command{
@@ -144,6 +177,32 @@ var (
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
+		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:  "min-width",
+				Usage: "Minimal cell width including any padding for the formatted table",
+				Value: 0,
+			},
+			cli.IntFlag{
+				Name:  "tab-width",
+				Usage: "width of tab characters in formatted table (equivalent number of spaces)",
+				Value: 8,
+			},
+			cli.IntFlag{
+				Name:  "padding",
+				Usage: "padding added to a cell before computing its width",
+				Value: 1,
+			},
+			cli.StringFlag{
+				Name:  "pad-char",
+				Usage: `ASCII char used for padding if padchar == '\\t', the Writer will assume that the width of a '\\t' in the formatted output is tabwidth, and cells are left-aligned independent of align_left (for correct-looking results, tabwidth must correspond to the tab width in the viewer displaying the result)`,
+				Value: "\t",
+			},
+			cli.BoolFlag{
+				Name:  "vertical-bars",
+				Usage: "Set to true to print vertical bars between columns",
+			},
+		},
 	}
 
 	idFlag = cli.Int64Flag{
@@ -154,6 +213,7 @@ var (
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
+		Flags:  []cli.Flag{idFlag},
 		Action: runDeleteAuth,
 	}
 
@@ -223,6 +283,28 @@ var (
 		Action: runAddOauth,
 		Flags:  oauthCLIFlags,
 	}
+
+	subcmdSendMail = cli.Command{
+		Name:   "sendmail",
+		Usage:  "Send a message to all users",
+		Action: runSendMail,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "title",
+				Usage: `a title of a message`,
+				Value: "",
+			},
+			cli.StringFlag{
+				Name:  "content",
+				Usage: "a content of a message",
+				Value: "",
+			},
+			cli.BoolFlag{
+				Name:  "force,f",
+				Usage: "A flag to bypass a confirmation step",
+			},
+		},
+	}
 )
 
 func runChangePassword(c *cli.Context) error {
@@ -236,6 +318,13 @@ func runChangePassword(c *cli.Context) error {
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
+	pwned, err := pwd.IsPwned(context.Background(), c.String("password"))
+	if err != nil {
+		return err
+	}
+	if pwned {
+		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
+	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {
@@ -246,7 +335,7 @@ func runChangePassword(c *cli.Context) error {
 	}
 	user.HashPassword(c.String("password"))
 
-	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
+	if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -340,6 +429,56 @@ func runCreateUser(c *cli.Context) error {
 	return nil
 }
 
+func runListUsers(c *cli.Context) error {
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	users, err := models.GetAllUsers()
+
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 5, 0, 1, ' ', 0)
+
+	if c.IsSet("admin") {
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\n")
+		for _, u := range users {
+			if u.IsAdmin {
+				fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", u.ID, u.Name, u.Email, u.IsActive)
+			}
+		}
+	} else {
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
+		for _, u := range users {
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
+		}
+
+	}
+
+	w.Flush()
+	return nil
+
+}
+
+func runDeleteUser(c *cli.Context) error {
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	user, err := models.GetUserByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	return models.DeleteUser(user)
+}
+
 func runRepoSyncReleases(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
@@ -348,9 +487,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)
@@ -373,7 +514,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -408,7 +549,7 @@ func runRegenerateHooks(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return models.SyncRepositoryHooks()
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {
@@ -530,11 +671,21 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
+	flags := tabwriter.AlignRight
+	if c.Bool("vertical-bars") {
+		flags |= tabwriter.Debug
+	}
+
+	padChar := byte('\t')
+	if len(c.String("pad-char")) > 0 {
+		padChar = c.String("pad-char")[0]
+	}
+
 	// loop through each source and print
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
 	}
 	w.Flush()
 

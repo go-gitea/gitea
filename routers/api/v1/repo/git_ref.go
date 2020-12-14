@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
@@ -88,7 +90,7 @@ func getGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	refs, lastMethodName, err := getGitRefs(ctx, filter)
 	if err != nil {
-		ctx.Error(500, lastMethodName, err)
+		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return
 	}
 
@@ -111,8 +113,8 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	}
 	// If single reference is found and it matches filter exactly return it as object
 	if len(apiRefs) == 1 && apiRefs[0].Ref == filter {
-		ctx.JSON(200, &apiRefs[0])
+		ctx.JSON(http.StatusOK, &apiRefs[0])
 		return
 	}
-	ctx.JSON(200, &apiRefs)
+	ctx.JSON(http.StatusOK, &apiRefs)
 }

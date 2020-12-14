@@ -33,14 +33,16 @@ var minLonRad = minLon * degreesToRadian
 var minLatRad = minLat * degreesToRadian
 var maxLonRad = maxLon * degreesToRadian
 var maxLatRad = maxLat * degreesToRadian
-var geoTolerance = 1E-6
+var geoTolerance = 1e-6
 var lonScale = float64((uint64(0x1)<<GeoBits)-1) / 360.0
 var latScale = float64((uint64(0x1)<<GeoBits)-1) / 180.0
 
+var geoHashMaxLength = 12
+
 // Point represents a geo point.
 type Point struct {
-	Lon float64
-	Lat float64
+	Lon float64 `json:"lon"`
+	Lat float64 `json:"lat"`
 }
 
 // MortonHash computes the morton hash value for the provided geo point

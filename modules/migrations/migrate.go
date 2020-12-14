@@ -6,13 +6,17 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -20,6 +24,9 @@ type MigrateOptions = base.MigrateOptions
 
 var (
 	factories []base.DownloaderFactory
+
+	allowList *matchlist.Matchlist
+	blockList *matchlist.Matchlist
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -27,23 +34,57 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
+func isMigrateURLAllowed(remoteURL string) error {
+	u, err := url.Parse(strings.ToLower(remoteURL))
+	if err != nil {
+		return err
+	}
+
+	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
+		if len(setting.Migrations.AllowedDomains) > 0 {
+			if !allowList.Match(u.Host) {
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
+			}
+		} else {
+			if blockList.Match(u.Host) {
+				return &models.ErrMigrationNotAllowed{Host: u.Host}
+			}
+		}
+	}
+
+	if !setting.Migrations.AllowLocalNetworks {
+		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
+		if err != nil {
+			return &models.ErrMigrationNotAllowed{Host: u.Host, NotResolvedIP: true}
+		}
+		for _, addr := range addrList {
+			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
+				return &models.ErrMigrationNotAllowed{Host: u.Host, PrivateNet: addr.String()}
+			}
+		}
+	}
+
+	return nil
+}
+
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+	err := isMigrateURLAllowed(opts.CloneAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
-		theFactory base.DownloaderFactory
+		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	)
 
 	for _, factory := range factories {
-		if match, err := factory.Match(opts); err != nil {
-			return nil, err
-		} else if match {
-			downloader, err = factory.New(opts)
+		if factory.GitServiceType() == opts.GitServiceType {
+			downloader, err = factory.New(ctx, opts)
 			if err != nil {
 				return nil, err
 			}
-			theFactory = factory
 			break
 		}
 	}
@@ -56,17 +97,14 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
-		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
-		log.Trace("Will migrate from git: %s", opts.CloneAddr)
-	} else if opts.GitServiceType == structs.NotMigrated {
-		opts.GitServiceType = theFactory.GitServiceType()
+		log.Trace("Will migrate from git: %s", opts.OriginalURL)
 	}
 
 	uploader.gitServiceType = opts.GitServiceType
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
@@ -74,8 +112,8 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 			log.Error("rollback failed: %v", err1)
 		}
 
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.CloneAddr, err)); err2 != nil {
-			log.Error("create respotiry notice failed: ", err2)
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
 	}
@@ -83,7 +121,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	return uploader.repo, nil
 }
 
-// migrateRepository will download informations and upload to Uploader, this is a simple
+// migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
@@ -166,14 +204,22 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err := uploader.CreateReleases(downloader, releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
 		}
+
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		if err := uploader.SyncTags(); err != nil {
+			return err
+		}
 	}
 
-	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
+	var (
+		commentBatchSize = uploader.MaxBatchInsertSize("comment")
+		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
+	)
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
@@ -227,7 +273,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating pull requests and comments")
 		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
-			prs, err := downloader.GetPullRequests(i, prBatchSize)
+			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
 				return err
 			}
@@ -240,6 +286,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
+			// plain comments
 			var allComments = make([]*base.Comment, 0, commentBatchSize)
 			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
@@ -262,11 +309,75 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(prs) < prBatchSize {
+			// migrate reviews
+			var allReviews = make([]*base.Review, 0, reviewBatchSize)
+			for _, pr := range prs {
+				number := pr.Number
+
+				// on gitlab migrations pull number change
+				if pr.OriginalNumber > 0 {
+					number = pr.OriginalNumber
+				}
+
+				reviews, err := downloader.GetReviews(number)
+				if pr.OriginalNumber > 0 {
+					for i := range reviews {
+						reviews[i].IssueIndex = pr.Number
+					}
+				}
+				if err != nil {
+					return err
+				}
+
+				allReviews = append(allReviews, reviews...)
+
+				if len(allReviews) >= reviewBatchSize {
+					if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						return err
+					}
+					allReviews = allReviews[reviewBatchSize:]
+				}
+			}
+			if len(allReviews) > 0 {
+				if err := uploader.CreateReviews(allReviews...); err != nil {
+					return err
+				}
+			}
+
+			if isEnd {
 				break
 			}
 		}
 	}
 
 	return nil
+}
+
+// Init migrations service
+func Init() error {
+	var err error
+	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowedDomains...)
+	if err != nil {
+		return fmt.Errorf("init migration allowList domains failed: %v", err)
+	}
+
+	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlockedDomains...)
+	if err != nil {
+		return fmt.Errorf("init migration blockList domains failed: %v", err)
+	}
+
+	return nil
+}
+
+// isIPPrivate reports whether ip is a private address, according to
+// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
+// from https://github.com/golang/go/pull/42793
+// TODO remove if https://github.com/golang/go/issues/29146 got resolved
+func isIPPrivate(ip net.IP) bool {
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
+			(ip4[0] == 192 && ip4[1] == 168)
+	}
+	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }

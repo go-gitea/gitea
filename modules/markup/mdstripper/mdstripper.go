@@ -6,33 +6,140 @@ package mdstripper
 
 import (
 	"bytes"
+	"net/url"
+	"strings"
+	"sync"
+
 	"io"
 
-	"github.com/russross/blackfriday/v2"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 )
 
-// MarkdownStripper extends blackfriday.Renderer
-type MarkdownStripper struct {
+var (
+	giteaHostInit sync.Once
+	giteaHost     *url.URL
+)
+
+type stripRenderer struct {
+	localhost *url.URL
 	links     []string
-	coallesce bool
 	empty     bool
 }
 
-const (
-	blackfridayExtensions = 0 |
-		blackfriday.NoIntraEmphasis |
-		blackfriday.Tables |
-		blackfriday.FencedCode |
-		blackfriday.Strikethrough |
-		blackfriday.NoEmptyLineBeforeBlock |
-		blackfriday.DefinitionLists |
-		blackfriday.Footnotes |
-		blackfriday.HeadingIDs |
-		blackfriday.AutoHeadingIDs |
-		// Not included in modules/markup/markdown/markdown.go;
-		// required here to process inline links
-		blackfriday.Autolink
-)
+func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
+	return ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch v := n.(type) {
+		case *ast.Text:
+			if !v.IsRaw() {
+				_, prevSibIsText := n.PreviousSibling().(*ast.Text)
+				coalesce := prevSibIsText
+				r.processString(
+					w,
+					v.Text(source),
+					coalesce)
+				if v.SoftLineBreak() {
+					r.doubleSpace(w)
+				}
+			}
+			return ast.WalkContinue, nil
+		case *ast.Link:
+			r.processLink(w, v.Destination)
+			return ast.WalkSkipChildren, nil
+		case *ast.AutoLink:
+			// This could be a reference to an issue or pull - if so convert it
+			r.processAutoLink(w, v.URL(source))
+			return ast.WalkSkipChildren, nil
+		}
+		return ast.WalkContinue, nil
+	})
+}
+
+func (r *stripRenderer) doubleSpace(w io.Writer) {
+	if !r.empty {
+		_, _ = w.Write([]byte{'\n'})
+	}
+}
+
+func (r *stripRenderer) processString(w io.Writer, text []byte, coalesce bool) {
+	// Always break-up words
+	if !coalesce {
+		r.doubleSpace(w)
+	}
+	_, _ = w.Write(text)
+	r.empty = false
+}
+
+// ProcessAutoLinks to detect and handle links to issues and pulls
+func (r *stripRenderer) processAutoLink(w io.Writer, link []byte) {
+	linkStr := string(link)
+	u, err := url.Parse(linkStr)
+	if err != nil {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	// Note: we're not attempting to match the URL scheme (http/https)
+	host := strings.ToLower(u.Host)
+	if host != "" && host != strings.ToLower(r.localhost.Host) {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	// We want: /user/repo/issues/3
+	parts := strings.Split(strings.TrimPrefix(u.EscapedPath(), r.localhost.EscapedPath()), "/")
+	if len(parts) != 5 || parts[0] != "" {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	var sep string
+	if parts[3] == "issues" {
+		sep = "#"
+	} else if parts[3] == "pulls" {
+		sep = "!"
+	} else {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	_, _ = w.Write([]byte(parts[1]))
+	_, _ = w.Write([]byte("/"))
+	_, _ = w.Write([]byte(parts[2]))
+	_, _ = w.Write([]byte(sep))
+	_, _ = w.Write([]byte(parts[4]))
+}
+
+func (r *stripRenderer) processLink(w io.Writer, link []byte) {
+	// Links are processed out of band
+	r.links = append(r.links, string(link))
+}
+
+// GetLinks returns the list of link data collected while parsing
+func (r *stripRenderer) GetLinks() []string {
+	return r.links
+}
+
+// AddOptions adds given option to this renderer.
+func (r *stripRenderer) AddOptions(...renderer.Option) {
+	// no-op
+}
 
 // StripMarkdown parses markdown content by removing all markup and code blocks
 //	in order to extract links and other references
@@ -41,78 +148,52 @@ func StripMarkdown(rawBytes []byte) (string, []string) {
 	return string(buf), links
 }
 
+var stripParser parser.Parser
+var once = sync.Once{}
+
 // StripMarkdownBytes parses markdown content by removing all markup and code blocks
 //	in order to extract links and other references
 func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
-	stripper := &MarkdownStripper{
-		links: make([]string, 0, 10),
-		empty: true,
-	}
-
-	parser := blackfriday.New(blackfriday.WithRenderer(stripper), blackfriday.WithExtensions(blackfridayExtensions))
-	ast := parser.Parse(rawBytes)
-	var buf bytes.Buffer
-	stripper.RenderHeader(&buf, ast)
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		return stripper.RenderNode(&buf, node, entering)
+	once.Do(func() {
+		gdMarkdown := goldmark.New(
+			goldmark.WithExtensions(extension.Table,
+				extension.Strikethrough,
+				extension.TaskList,
+				extension.DefinitionList,
+				common.FootnoteExtension,
+				common.Linkify,
+			),
+			goldmark.WithParserOptions(
+				parser.WithAttribute(),
+				parser.WithAutoHeadingID(),
+			),
+			goldmark.WithRendererOptions(
+				html.WithUnsafe(),
+			),
+		)
+		stripParser = gdMarkdown.Parser()
 	})
-	stripper.RenderFooter(&buf, ast)
+	stripper := &stripRenderer{
+		localhost: getGiteaHost(),
+		links:     make([]string, 0, 10),
+		empty:     true,
+	}
+	reader := text.NewReader(rawBytes)
+	doc := stripParser.Parse(reader)
+	var buf bytes.Buffer
+	if err := stripper.Render(&buf, rawBytes, doc); err != nil {
+		log.Error("Unable to strip: %v", err)
+	}
 	return buf.Bytes(), stripper.GetLinks()
 }
 
-// RenderNode is the main rendering method. It will be called once for
-// every leaf node and twice for every non-leaf node (first with
-// entering=true, then with entering=false). The method should write its
-// rendition of the node to the supplied writer w.
-func (r *MarkdownStripper) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-	if !entering {
-		return blackfriday.GoToNext
-	}
-	switch node.Type {
-	case blackfriday.Text:
-		r.processString(w, node.Literal, node.Parent == nil)
-		return blackfriday.GoToNext
-	case blackfriday.Link:
-		r.processLink(w, node.LinkData.Destination)
-		r.coallesce = false
-		return blackfriday.SkipChildren
-	}
-	r.coallesce = false
-	return blackfriday.GoToNext
-}
-
-// RenderHeader is a method that allows the renderer to produce some
-// content preceding the main body of the output document.
-func (r *MarkdownStripper) RenderHeader(w io.Writer, ast *blackfriday.Node) {
-}
-
-// RenderFooter is a symmetric counterpart of RenderHeader.
-func (r *MarkdownStripper) RenderFooter(w io.Writer, ast *blackfriday.Node) {
-}
-
-func (r *MarkdownStripper) doubleSpace(w io.Writer) {
-	if !r.empty {
-		_, _ = w.Write([]byte{'\n'})
-	}
-}
-
-func (r *MarkdownStripper) processString(w io.Writer, text []byte, coallesce bool) {
-	// Always break-up words
-	if !coallesce || !r.coallesce {
-		r.doubleSpace(w)
-	}
-	_, _ = w.Write(text)
-	r.coallesce = coallesce
-	r.empty = false
-}
-
-func (r *MarkdownStripper) processLink(w io.Writer, link []byte) {
-	// Links are processed out of band
-	r.links = append(r.links, string(link))
-	r.coallesce = false
-}
-
-// GetLinks returns the list of link data collected while parsing
-func (r *MarkdownStripper) GetLinks() []string {
-	return r.links
+// getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
+func getGiteaHost() *url.URL {
+	giteaHostInit.Do(func() {
+		var err error
+		if giteaHost, err = url.Parse(setting.AppURL); err != nil {
+			giteaHost = &url.URL{}
+		}
+	})
+	return giteaHost
 }

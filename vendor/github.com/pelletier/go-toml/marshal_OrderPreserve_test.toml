@@ -27,6 +27,7 @@ title = "TOML Marshal Testing"
   uint = 5001
   bool = true
   float = 123.4
+  float64 = 123.456782132399
   int = 5000
   string = "Bite me"
   date = 1979-05-27T07:32:00Z

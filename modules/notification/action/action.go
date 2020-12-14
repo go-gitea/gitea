@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/repository"
 )
 
 type actionNotifier struct {
@@ -49,6 +49,73 @@ func (a *actionNotifier) NotifyNewIssue(issue *models.Issue) {
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+// NotifyIssueChangeStatus notifies close or reopen issue to notifiers
+func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
+	// Compose comment action, could be plain comment, close or reopen issue/pull request.
+	// This object will be used to notify watchers in the end of function.
+	act := &models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
+		RepoID:    issue.Repo.ID,
+		Repo:      issue.Repo,
+		Comment:   actionComment,
+		CommentID: actionComment.ID,
+		IsPrivate: issue.Repo.IsPrivate,
+	}
+	// Check comment type.
+	if closeOrReopen {
+		act.OpType = models.ActionCloseIssue
+		if issue.IsPull {
+			act.OpType = models.ActionClosePullRequest
+		}
+	} else {
+		act.OpType = models.ActionReopenIssue
+		if issue.IsPull {
+			act.OpType = models.ActionReopenPullRequest
+		}
+	}
+
+	// Notify watchers for whatever action comes in, ignore if no action type.
+	if err := models.NotifyWatchers(act); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+// NotifyCreateIssueComment notifies comment on an issue to notifiers
+func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+	issue *models.Issue, comment *models.Comment) {
+	act := &models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		RepoID:    issue.Repo.ID,
+		Repo:      issue.Repo,
+		Comment:   comment,
+		CommentID: comment.ID,
+		IsPrivate: issue.Repo.IsPrivate,
+	}
+
+	content := ""
+
+	if len(comment.Content) > 200 {
+		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
+	} else {
+		content = comment.Content
+	}
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+
+	if issue.IsPull {
+		act.OpType = models.ActionCommentPull
+	} else {
+		act.OpType = models.ActionCommentIssue
+	}
+
+	// Notify watchers for whatever action comes in, ignore if no action type.
+	if err := models.NotifyWatchers(act); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
@@ -154,7 +221,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
 					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
-					OpType:    models.ActionCommentIssue,
+					OpType:    models.ActionCommentPull,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
 					IsPrivate: review.Issue.Repo.IsPrivate,
@@ -183,7 +250,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		case models.ReviewTypeReject:
 			action.OpType = models.ActionRejectPullRequest
 		default:
-			action.OpType = models.ActionCommentIssue
+			action.OpType = models.ActionCommentPull
 		}
 
 		actions = append(actions, action)
@@ -194,7 +261,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -208,7 +275,76 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	}
 }
 
-func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("Marshal: %v", err)
+		return
+	}
+
+	opType := models.ActionCommitRepo
+
+	// Check it's tag push or branch.
+	if opts.IsTag() {
+		opType = models.ActionPushTag
+		if opts.IsDelRef() {
+			opType = models.ActionDeleteTag
+		}
+	} else if opts.IsDelRef() {
+		opType = models.ActionDeleteBranch
+	}
+
+	if err = models.NotifyWatchers(&models.Action{
+		ActUserID: pusher.ID,
+		ActUser:   pusher,
+		OpType:    opType,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   opts.RefFullName,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionCommitRepo
+	if refType == "tag" {
+		opType = models.ActionPushTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionDeleteBranch
+	if refType == "tag" {
+		opType = models.ActionDeleteTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)
@@ -222,7 +358,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
+		RefName:   opts.RefFullName,
 		Content:   string(data),
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)
@@ -247,11 +383,30 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncCreate,
+		OpType:    models.ActionMirrorSyncDelete,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyNewRelease(rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("NotifyNewRelease: %v", err)
+		return
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: rel.PublisherID,
+		ActUser:   rel.Publisher,
+		OpType:    models.ActionPublishRelease,
+		RepoID:    rel.RepoID,
+		Repo:      rel.Repo,
+		IsPrivate: rel.Repo.IsPrivate,
+		Content:   rel.Title,
+		RefName:   rel.TagName,
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)
 	}

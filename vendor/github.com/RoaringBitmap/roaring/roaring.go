@@ -345,8 +345,10 @@ func newIntReverseIterator(a *Bitmap) *intReverseIterator {
 
 // ManyIntIterable allows you to iterate over the values in a Bitmap
 type ManyIntIterable interface {
-	// pass in a buffer to fill up with values, returns how many values were returned
-	NextMany([]uint32) int
+	// NextMany fills buf up with values, returns how many values were returned
+	NextMany(buf []uint32) int
+	// NextMany64 fills up buf with 64 bit values, uses hs as a mask (OR), returns how many values were returned
+	NextMany64(hs uint64, buf []uint64) int
 }
 
 type manyIntIterator struct {
@@ -372,6 +374,25 @@ func (ii *manyIntIterator) NextMany(buf []uint32) int {
 			break
 		}
 		moreN := ii.iter.nextMany(ii.hs, buf[n:])
+		n += moreN
+		if moreN == 0 {
+			ii.pos = ii.pos + 1
+			ii.init()
+		}
+	}
+
+	return n
+}
+
+func (ii *manyIntIterator) NextMany64(hs64 uint64, buf []uint64) int {
+	n := 0
+	for n < len(buf) {
+		if ii.iter == nil {
+			break
+		}
+
+		hs := uint64(ii.hs) | hs64
+		moreN := ii.iter.nextMany64(hs, buf[n:])
 		n += moreN
 		if moreN == 0 {
 			ii.pos = ii.pos + 1
@@ -414,6 +435,38 @@ func (rb *Bitmap) String() string {
 	}
 	buffer.WriteString("}")
 	return buffer.String()
+}
+
+// Iterate iterates over the bitmap, calling the given callback with each value in the bitmap.  If the callback returns
+// false, the iteration is halted.
+// The iteration results are undefined if the bitmap is modified (e.g., with Add or Remove).
+// There is no guarantee as to what order the values will be iterated
+func (rb *Bitmap) Iterate(cb func(x uint32) bool) {
+	for i := 0; i < rb.highlowcontainer.size(); i++ {
+		hs := uint32(rb.highlowcontainer.getKeyAtIndex(i)) << 16
+		c := rb.highlowcontainer.getContainerAtIndex(i)
+
+		var shouldContinue bool
+		// This is hacky but it avoids allocations from invoking an interface method with a closure
+		switch t := c.(type) {
+		case *arrayContainer:
+			shouldContinue = t.iterate(func(x uint16) bool {
+				return cb(uint32(x) | hs)
+			})
+		case *runContainer16:
+			shouldContinue = t.iterate(func(x uint16) bool {
+				return cb(uint32(x) | hs)
+			})
+		case *bitmapContainer:
+			shouldContinue = t.iterate(func(x uint16) bool {
+				return cb(uint32(x) | hs)
+			})
+		}
+
+		if !shouldContinue {
+			break
+		}
+	}
 }
 
 // Iterator creates a new IntPeekable to iterate over the integers contained in the bitmap, in sorted order;
@@ -475,41 +528,72 @@ func (rb *Bitmap) Equals(o interface{}) bool {
 
 // AddOffset adds the value 'offset' to each and every value in a bitmap, generating a new bitmap in the process
 func AddOffset(x *Bitmap, offset uint32) (answer *Bitmap) {
-	containerOffset := highbits(offset)
-	inOffset := lowbits(offset)
+	return AddOffset64(x, int64(offset))
+}
+
+// AddOffset64 adds the value 'offset' to each and every value in a bitmap, generating a new bitmap in the process
+// If offset + element is outside of the range [0,2^32), that the element will be dropped
+func AddOffset64(x *Bitmap, offset int64) (answer *Bitmap) {
+	// we need "offset" to be a long because we want to support values
+	// between -0xFFFFFFFF up to +-0xFFFFFFFF
+	var containerOffset64 int64
+
+	if offset < 0 {
+		containerOffset64 = (offset - (1 << 16) + 1) / (1 << 16)
+	} else {
+		containerOffset64 = offset >> 16
+	}
+
+	if containerOffset64 >= (1<<16) || containerOffset64 <= -(1<<16) {
+		return New()
+	}
+
+	containerOffset := int32(containerOffset64)
+	inOffset := (uint16)(offset - containerOffset64*(1<<16))
+
 	if inOffset == 0 {
 		answer = x.Clone()
 		for pos := 0; pos < answer.highlowcontainer.size(); pos++ {
-			key := answer.highlowcontainer.getKeyAtIndex(pos)
+			key := int32(answer.highlowcontainer.getKeyAtIndex(pos))
 			key += containerOffset
-			answer.highlowcontainer.keys[pos] = key
+
+			if key >= 0 && key <= MaxUint16 {
+				answer.highlowcontainer.keys[pos] = uint16(key)
+			}
 		}
 	} else {
 		answer = New()
+
 		for pos := 0; pos < x.highlowcontainer.size(); pos++ {
-			key := x.highlowcontainer.getKeyAtIndex(pos)
+			key := int32(x.highlowcontainer.getKeyAtIndex(pos))
 			key += containerOffset
+
 			c := x.highlowcontainer.getContainerAtIndex(pos)
 			offsetted := c.addOffset(inOffset)
-			if offsetted[0].getCardinality() > 0 {
+
+			if offsetted[0].getCardinality() > 0 && (key >= 0 && key <= MaxUint16) {
 				curSize := answer.highlowcontainer.size()
-				lastkey := uint16(0)
+				lastkey := int32(0)
+
 				if curSize > 0 {
-					lastkey = answer.highlowcontainer.getKeyAtIndex(curSize - 1)
+					lastkey = int32(answer.highlowcontainer.getKeyAtIndex(curSize - 1))
 				}
+
 				if curSize > 0 && lastkey == key {
 					prev := answer.highlowcontainer.getContainerAtIndex(curSize - 1)
 					orrseult := prev.ior(offsetted[0])
 					answer.highlowcontainer.setContainerAtIndex(curSize-1, orrseult)
 				} else {
-					answer.highlowcontainer.appendContainer(key, offsetted[0], false)
+					answer.highlowcontainer.appendContainer(uint16(key), offsetted[0], false)
 				}
 			}
-			if offsetted[1].getCardinality() > 0 {
-				answer.highlowcontainer.appendContainer(key+1, offsetted[1], false)
+
+			if offsetted[1].getCardinality() > 0 && ((key+1) >= 0 && (key+1) <= MaxUint16) {
+				answer.highlowcontainer.appendContainer(uint16(key+1), offsetted[1], false)
 			}
 		}
 	}
+
 	return answer
 }
 
@@ -615,7 +699,10 @@ func (rb *Bitmap) GetCardinality() uint64 {
 	return size
 }
 
-// Rank returns the number of integers that are smaller or equal to x (Rank(infinity) would be GetCardinality())
+// Rank returns the number of integers that are smaller or equal to x (Rank(infinity) would be GetCardinality()).
+// If you pass the smallest value, you get the value 1. If you pass a value that is smaller than the smallest
+// value, you get 0. Note that this function differs in convention from the Select function since it
+// return 1 and not 0 on the smallest value.
 func (rb *Bitmap) Rank(x uint32) uint64 {
 	size := uint64(0)
 	for i := 0; i < rb.highlowcontainer.size(); i++ {
@@ -632,7 +719,9 @@ func (rb *Bitmap) Rank(x uint32) uint64 {
 	return size
 }
 
-// Select returns the xth integer in the bitmap
+// Select returns the xth integer in the bitmap. If you pass 0, you get
+// the smallest element. Note that this function differs in convention from
+// the Rank function which returns 1 on the smallest value.
 func (rb *Bitmap) Select(x uint32) (uint32, error) {
 	if rb.GetCardinality() <= uint64(x) {
 		return 0, fmt.Errorf("can't find %dth integer in a bitmap with only %d items", x, rb.GetCardinality())
@@ -917,7 +1006,7 @@ main:
 				}
 				s2 = x2.highlowcontainer.getKeyAtIndex(pos2)
 			} else {
-				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getWritableContainerAtIndex(pos1).ior(x2.highlowcontainer.getContainerAtIndex(pos2)), false)
+				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getUnionedWritableContainer(pos1, x2.highlowcontainer.getContainerAtIndex(pos2)), false)
 				pos1++
 				pos2++
 				if (pos1 == length1) || (pos2 == length2) {

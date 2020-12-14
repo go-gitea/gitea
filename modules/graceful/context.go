@@ -62,7 +62,7 @@ func (ctx *ChannelContext) Value(key interface{}) interface{} {
 // ShutdownContext returns a context.Context that is Done at shutdown
 // Callers using this context should ensure that they are registered as a running server
 // in order that they are waited for.
-func (g *gracefulManager) ShutdownContext() context.Context {
+func (g *Manager) ShutdownContext() context.Context {
 	return &ChannelContext{
 		done: g.IsShutdown(),
 		err:  ErrShutdown,
@@ -72,7 +72,7 @@ func (g *gracefulManager) ShutdownContext() context.Context {
 // HammerContext returns a context.Context that is Done at hammer
 // Callers using this context should ensure that they are registered as a running server
 // in order that they are waited for.
-func (g *gracefulManager) HammerContext() context.Context {
+func (g *Manager) HammerContext() context.Context {
 	return &ChannelContext{
 		done: g.IsHammer(),
 		err:  ErrHammer,
@@ -82,7 +82,7 @@ func (g *gracefulManager) HammerContext() context.Context {
 // TerminateContext returns a context.Context that is Done at terminate
 // Callers using this context should ensure that they are registered as a terminating server
 // in order that they are waited for.
-func (g *gracefulManager) TerminateContext() context.Context {
+func (g *Manager) TerminateContext() context.Context {
 	return &ChannelContext{
 		done: g.IsTerminate(),
 		err:  ErrTerminate,

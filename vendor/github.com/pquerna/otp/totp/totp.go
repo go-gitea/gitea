@@ -134,13 +134,17 @@ type GenerateOpts struct {
 	AccountName string
 	// Number of seconds a TOTP hash is valid for. Defaults to 30 seconds.
 	Period uint
-	// Size in size of the generated Secret. Defaults to 10 bytes.
+	// Size in size of the generated Secret. Defaults to 20 bytes.
 	SecretSize uint
+	// Secret to store. Defaults to a randomly generated secret of SecretSize.  You should generally leave this empty.
+	Secret []byte
 	// Digits to request. Defaults to 6.
 	Digits otp.Digits
 	// Algorithm to use for HMAC. Defaults to SHA1.
 	Algorithm otp.Algorithm
 }
+
+var b32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 // Generate a new TOTP Key.
 func Generate(opts GenerateOpts) (*otp.Key, error) {
@@ -158,7 +162,7 @@ func Generate(opts GenerateOpts) (*otp.Key, error) {
 	}
 
 	if opts.SecretSize == 0 {
-		opts.SecretSize = 10
+		opts.SecretSize = 20
 	}
 
 	if opts.Digits == 0 {
@@ -168,13 +172,17 @@ func Generate(opts GenerateOpts) (*otp.Key, error) {
 	// otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
 
 	v := url.Values{}
-	secret := make([]byte, opts.SecretSize)
-	_, err := rand.Read(secret)
-	if err != nil {
-		return nil, err
+	if len(opts.Secret) != 0 {
+		v.Set("secret", b32NoPadding.EncodeToString(opts.Secret))
+	} else {
+		secret := make([]byte, opts.SecretSize)
+		_, err := rand.Read(secret)
+		if err != nil {
+			return nil, err
+		}
+		v.Set("secret", b32NoPadding.EncodeToString(secret))
 	}
 
-	v.Set("secret", base32.StdEncoding.EncodeToString(secret))
 	v.Set("issuer", opts.Issuer)
 	v.Set("period", strconv.FormatUint(uint64(opts.Period), 10))
 	v.Set("algorithm", opts.Algorithm.String())

@@ -6,13 +6,22 @@
 package base
 
 import (
+	"context"
+	"io"
 	"time"
 
 	"code.gitea.io/gitea/modules/structs"
 )
 
+// AssetDownloader downloads an asset (attachment) for a release
+type AssetDownloader interface {
+	GetAsset(relTag string, relID, id int64) (io.ReadCloser, error)
+}
+
 // Downloader downloads the site repo informations
 type Downloader interface {
+	AssetDownloader
+	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
 	GetMilestones() ([]*Milestone, error)
@@ -20,30 +29,42 @@ type Downloader interface {
 	GetLabels() ([]*Label, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
-	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
+	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
 type DownloaderFactory interface {
-	Match(opts MigrateOptions) (bool, error)
-	New(opts MigrateOptions) (Downloader, error)
+	New(ctx context.Context, opts MigrateOptions) (Downloader, error)
 	GitServiceType() structs.GitServiceType
 }
+
+var (
+	_ Downloader = &RetryDownloader{}
+)
 
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
 	Downloader
+	ctx        context.Context
 	RetryTimes int // the total execute times
 	RetryDelay int // time to delay seconds
 }
 
 // NewRetryDownloader creates a retry downloader
-func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
+func NewRetryDownloader(ctx context.Context, downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
 	return &RetryDownloader{
 		Downloader: downloader,
+		ctx:        ctx,
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
 	}
+}
+
+// SetContext set context
+func (d *RetryDownloader) SetContext(ctx context.Context) {
+	d.ctx = ctx
+	d.Downloader.SetContext(ctx)
 }
 
 // GetRepoInfo returns a repository information with retry
@@ -57,7 +78,11 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 		if repo, err = d.Downloader.GetRepoInfo(); err == nil {
 			return repo, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -73,7 +98,11 @@ func (d *RetryDownloader) GetTopics() ([]string, error) {
 		if topics, err = d.Downloader.GetTopics(); err == nil {
 			return topics, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -89,7 +118,11 @@ func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 		if milestones, err = d.Downloader.GetMilestones(); err == nil {
 			return milestones, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -105,7 +138,11 @@ func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 		if releases, err = d.Downloader.GetReleases(); err == nil {
 			return releases, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -121,7 +158,11 @@ func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 		if labels, err = d.Downloader.GetLabels(); err == nil {
 			return labels, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
@@ -138,7 +179,11 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 		if issues, isEnd, err = d.Downloader.GetIssues(page, perPage); err == nil {
 			return issues, isEnd, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, false, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, false, err
 }
@@ -154,23 +199,52 @@ func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 		if comments, err = d.Downloader.GetComments(issueNumber); err == nil {
 			return comments, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }
 
 // GetPullRequests returns a repository's pull requests with retry
-func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, error) {
+func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
 	var (
 		times = d.RetryTimes
 		prs   []*PullRequest
 		err   error
+		isEnd bool
 	)
 	for ; times > 0; times-- {
-		if prs, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
-			return prs, nil
+		if prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
+			return prs, isEnd, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		select {
+		case <-d.ctx.Done():
+			return nil, false, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
+	}
+	return nil, false, err
+}
+
+// GetReviews returns pull requests reviews
+func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
+	var (
+		times   = d.RetryTimes
+		reviews []*Review
+		err     error
+	)
+	for ; times > 0; times-- {
+		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
+			return reviews, nil
+		}
+		select {
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
 	}
 	return nil, err
 }

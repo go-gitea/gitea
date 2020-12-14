@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  testfixtures:
+    image: testfixtures
+    depends_on:
+      - postgresql
+      - mysql
+      - sqlserver
+      - cockroachdb
+    environment:
+      PGPASSWORD: postgres
+      PG_CONN_STRING: host=postgresql user=postgres dbname=testfixtures_test port=5432 sslmode=disable
+
+      MYSQL_CONN_STRING: root:mysql@tcp(mysql)/testfixtures_test?multiStatements=true
+
+      SQLITE_CONN_STRING: testfixtures_test.sqlite3
+
+      SQLSERVER_CONN_STRING: server=sqlserver;database=master;user id=sa;password=SQL@1server;encrypt=disable
+
+      CRDB_CONN_STRING: host=cockroachdb user=root dbname=defaultdb port=26257 sslmode=disable
+
+  postgresql:
+    image: postgres:12.1-alpine
+    environment:
+      POSTGRES_DB: testfixtures_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: testfixtures_test
+      MYSQL_ROOT_PASSWORD: mysql
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      ACCEPT_EULA: 'Y'
+      SA_PASSWORD: SQL@1server
+
+  cockroachdb:
+    image: cockroachdb/cockroach:v20.1.3
+    command: start-single-node --store /cockroach-data --insecure --advertise-host cockroachdb

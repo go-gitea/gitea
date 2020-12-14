@@ -45,6 +45,16 @@ func IsStringInSlice(target string, slice []string) bool {
 	return false
 }
 
+// IsInt64InSlice sequential searches if int64 exists in slice.
+func IsInt64InSlice(target int64, slice []int64) bool {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == target {
+			return true
+		}
+	}
+	return false
+}
+
 // IsEqualSlice returns true if slices are equal.
 func IsEqualSlice(target []string, source []string) bool {
 	if len(target) != len(source) {

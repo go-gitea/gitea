@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,7 @@ type PullRequestMeta struct {
 type RepositoryMeta struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
+	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
 
@@ -38,12 +40,14 @@ type RepositoryMeta struct {
 type Issue struct {
 	ID               int64      `json:"id"`
 	URL              string     `json:"url"`
+	HTMLURL          string     `json:"html_url"`
 	Index            int64      `json:"number"`
 	Poster           *User      `json:"user"`
 	OriginalAuthor   string     `json:"original_author"`
 	OriginalAuthorID int64      `json:"original_author_id"`
 	Title            string     `json:"title"`
 	Body             string     `json:"body"`
+	Ref              string     `json:"ref"`
 	Labels           []*Label   `json:"labels"`
 	Milestone        *Milestone `json:"milestone"`
 	Assignee         *User      `json:"assignee"`
@@ -53,6 +57,7 @@ type Issue struct {
 	// type: string
 	// enum: open,closed
 	State    StateType `json:"state"`
+	IsLocked bool      `json:"is_locked"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
@@ -117,8 +122,18 @@ type IssueDeadline struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
-// EditPriorityOption options for updating priority
-type EditPriorityOption struct {
-	// required:true
-	Priority int `json:"priority"`
+// IssueTemplate represents an issue template for a repository
+// swagger:model
+type IssueTemplate struct {
+	Name     string   `json:"name" yaml:"name"`
+	Title    string   `json:"title" yaml:"title"`
+	About    string   `json:"about" yaml:"about"`
+	Labels   []string `json:"labels" yaml:"labels"`
+	Content  string   `json:"content" yaml:"-"`
+	FileName string   `json:"file_name" yaml:"-"`
+}
+
+// Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
+func (it IssueTemplate) Valid() bool {
+	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
 }

@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
@@ -30,7 +31,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 
 	tmpDir, err := ioutil.TempDir("", "key-file")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer util.RemoveAll(tmpDir)
 
 	err = os.Chmod(tmpDir, 0700)
 	assert.NoError(t, err)
@@ -78,15 +79,21 @@ func allowLFSFilters() []string {
 
 func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
 	if len(prepare) == 0 || prepare[0] {
-		prepareTestEnv(t, 1)
+		defer prepareTestEnv(t, 1)()
 	}
 	s := http.Server{
-		Handler: mac,
+		Handler: c,
 	}
 
 	u, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	listener, err := net.Listen("tcp", u.Host)
+	i := 0
+	for err != nil && i <= 10 {
+		time.Sleep(100 * time.Millisecond)
+		listener, err = net.Listen("tcp", u.Host)
+		i++
+	}
 	assert.NoError(t, err)
 	u.Host = listener.Addr().String()
 
@@ -104,15 +111,18 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{}))
+		assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{}))
 		assert.True(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
 	}
 }
 
-func doGitCloneFail(dstLocalPath string, u *url.URL) func(*testing.T) {
+func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.Error(t, git.Clone(u.String(), dstLocalPath, git.CloneRepoOptions{}))
-		assert.False(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
+		tmpDir, err := ioutil.TempDir("", "doGitCloneFail")
+		assert.NoError(t, err)
+		defer util.RemoveAll(tmpDir)
+		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
+		assert.False(t, com.IsExist(filepath.Join(tmpDir, "README.md")))
 	}
 }
 

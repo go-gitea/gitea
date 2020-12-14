@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Upgrade from Gogs"
 slug: "upgrade-from-gogs"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,10 @@ menu:
 ---
 
 # Upgrade from Gogs
+
+**Table of Contents**
+
+{{< toc >}}
 
 Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
@@ -70,13 +74,18 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 
 ## Upgrading to most recent `gitea` version
 
-After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgrade to the recent `gitea` version.
-Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
-and replace the binary.
+After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgrade `gitea` to a modern version
+in a two steps process.
+
+Upgrade to [`gitea 1.6.4`](https://dl.gitea.io/gitea/1.6.4/) first. Download the file matching
+the destination platform from the [downloads page](https://dl.gitea.io/gitea/1.6.4/) and replace the binary.
+Run Gitea at least once and check that everything works as expected.
+
+Then repeat the procedure, but this time using the [lastest release](https://dl.gitea.io/gitea/{{< version >}}/).
 
 ## Upgrading from a more recent version of Gogs
 
-Upgrading from a more recent version of Gogs is also possible, but requires a bit more work. 
+Upgrading from a more recent version of Gogs is also possible, but requires a bit more work.
 See [#4286](https://github.com/go-gitea/gitea/issues/4286).
 
 ## Troubleshooting

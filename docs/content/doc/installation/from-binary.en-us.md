@@ -3,7 +3,7 @@ date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -16,9 +16,15 @@ menu:
 # Installation from binary
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
-the URL and replace the URL within the commands below:
+embedded assets. This can be different for older releases.
+
+**Table of Contents**
+
+{{< toc >}}
+
+## Download
+
+Choose the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy the URL and replace the URL within the commands below:
 
 ```sh
 wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
@@ -26,25 +32,16 @@ chmod +x gitea
 ```
 
 ## Verify GPG signature
-Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vindex&fingerprint=on&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+Gitea signs all binaries with a [GPG key](https://keys.openpgp.org/search?q=teabot%40gitea.io) to prevent against unwanted modification of binaries. To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
 
 ```sh
-gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
+gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-amd64
-```
-
-## Test
-
-After getting a binary, it can be tested with `./gitea web` or moved to a permanent
-location. When launched manually, Gitea can be killed using `Ctrl+C`.
-
-```
-./gitea web
 ```
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
@@ -121,6 +118,18 @@ It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-
 
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
+
+### 1. Restarting gitea with systemd (recommended)
+
+As explained before, we recommend to use systemd as service manager. In this case ```systemctl restart gitea``` should be enough.
+
+### 2. Restarting gitea without systemd
+
+To restart your gitea instance, we recommend to use SIGHUP signal. If you know your gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
+
+To gracefully stop the gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
+
+**NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you may be forcefully stopping some of Gitea internal tasks and it will not gracefully stop (tasks in queues, indexers processes, etc.)
 
 See below for troubleshooting instructions to repair broken repositories after
 an update of your Gitea version.

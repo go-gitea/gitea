@@ -22,6 +22,7 @@ func TestMetas(t *testing.T) {
 
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
+	repo.OwnerName = repo.Owner.Name
 
 	repo.Units = nil
 
@@ -132,19 +133,6 @@ func TestGetUserFork(t *testing.T) {
 	assert.Nil(t, repo)
 }
 
-func TestForkRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	// user 13 has already forked repo10
-	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
-
-	fork, err := ForkRepository(user, user, repo, "test", "test")
-	assert.Nil(t, fork)
-	assert.Error(t, err)
-	assert.True(t, IsErrForkAlreadyExist(err))
-}
-
 func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
@@ -198,4 +186,41 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", repo.Avatar)
+}
+
+func TestDoctorUserStarNum(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	assert.NoError(t, DoctorUserStarNum())
+}
+
+func TestRepoGetReviewers(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// test public repo
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+
+	reviewers, err := repo1.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(reviewers))
+
+	// test private repo
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	reviewers, err = repo2.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(reviewers))
+}
+
+func TestRepoGetReviewerTeams(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	teams, err := repo2.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Empty(t, teams)
+
+	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	teams, err = repo3.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(teams))
 }

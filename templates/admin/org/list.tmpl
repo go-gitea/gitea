@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -16,12 +16,18 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>ID</th>
-						<th>{{.i18n.Tr "admin.orgs.name"}}</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
+							{{.i18n.Tr "admin.orgs.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
+						</th>
 						<th>{{.i18n.Tr "admin.orgs.teams"}}</th>
 						<th>{{.i18n.Tr "admin.orgs.members"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
+						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
+							{{.i18n.Tr "admin.users.created"}}
+							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
@@ -32,14 +38,14 @@
 							<td>
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .Visibility.IsPrivate}}
-									<span class="text gold"><i class="octicon octicon-lock"></i></span>
+									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings"><i class="fa fa-pencil-square-o"></i></a></td>
+							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

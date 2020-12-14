@@ -6,6 +6,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -13,8 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -27,7 +28,7 @@ func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*models.Webhook, 
 		if models.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetWebhookByOrgID", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByOrgID", err)
 		}
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 		if models.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetWebhookByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByID", err)
 		}
 		return nil, err
 	}
@@ -52,18 +53,18 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 // CheckCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
 func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
-	if !models.IsValidHookTaskType(form.Type) {
-		ctx.Error(422, "", "Invalid hook type")
+	if !webhook.IsValidHookTaskType(form.Type) {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Invalid hook type: %s", form.Type))
 		return false
 	}
 	for _, name := range []string{"url", "content_type"} {
 		if _, ok := form.Config[name]; !ok {
-			ctx.Error(422, "", "Missing config option: "+name)
+			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: "+name)
 			return false
 		}
 	}
 	if !models.IsValidHookContentType(form.Config["content_type"]) {
-		ctx.Error(422, "", "Invalid content type")
+		ctx.Error(http.StatusUnprocessableEntity, "", "Invalid content type")
 		return false
 	}
 	return true
@@ -87,6 +88,14 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	}
 }
 
+func issuesHook(events []string, event string) bool {
+	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventIssues))
+}
+
+func pullHook(events []string, event string) bool {
+	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventPullRequest))
+}
+
 // addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
 // an error, write to `ctx` accordingly. Return (webhook, ok)
 func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID int64) (*models.Webhook, bool) {
@@ -103,30 +112,39 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
-				Create:       com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
-				Delete:       com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
-				Fork:         com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
-				Issues:       com.IsSliceContainsStr(form.Events, string(models.HookEventIssues)),
-				IssueComment: com.IsSliceContainsStr(form.Events, string(models.HookEventIssueComment)),
-				Push:         com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
-				PullRequest:  com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest)),
-				Repository:   com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
-				Release:      com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
+				Create:               com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
+				Delete:               com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
+				Fork:                 com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
+				Issues:               issuesHook(form.Events, "issues_only"),
+				IssueAssign:          issuesHook(form.Events, string(models.HookEventIssueAssign)),
+				IssueLabel:           issuesHook(form.Events, string(models.HookEventIssueLabel)),
+				IssueMilestone:       issuesHook(form.Events, string(models.HookEventIssueMilestone)),
+				IssueComment:         issuesHook(form.Events, string(models.HookEventIssueComment)),
+				Push:                 com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
+				PullRequest:          pullHook(form.Events, "pull_request_only"),
+				PullRequestAssign:    pullHook(form.Events, string(models.HookEventPullRequestAssign)),
+				PullRequestLabel:     pullHook(form.Events, string(models.HookEventPullRequestLabel)),
+				PullRequestMilestone: pullHook(form.Events, string(models.HookEventPullRequestMilestone)),
+				PullRequestComment:   pullHook(form.Events, string(models.HookEventPullRequestComment)),
+				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
+				PullRequestSync:      pullHook(form.Events, string(models.HookEventPullRequestSync)),
+				Repository:           com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
+				Release:              com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
 			},
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive:     form.Active,
-		HookTaskType: models.ToHookTaskType(form.Type),
+		IsActive: form.Active,
+		Type:     models.HookTaskType(form.Type),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
-			ctx.Error(422, "", "Missing config option: channel")
+			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
 			return nil, false
 		}
 
 		if !utils.IsValidSlackChannel(channel) {
-			ctx.Error(400, "", "Invalid slack channel name")
+			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
 			return nil, false
 		}
 
@@ -137,17 +155,17 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			Color:    form.Config["color"],
 		})
 		if err != nil {
-			ctx.Error(500, "slack: JSON marshal failed", err)
+			ctx.Error(http.StatusInternalServerError, "slack: JSON marshal failed", err)
 			return nil, false
 		}
 		w.Meta = string(meta)
 	}
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Error(500, "UpdateEvent", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return nil, false
 	} else if err := models.CreateWebhook(w); err != nil {
-		ctx.Error(500, "CreateWebhook", err)
+		ctx.Error(http.StatusInternalServerError, "CreateWebhook", err)
 		return nil, false
 	}
 	return w, true
@@ -167,7 +185,7 @@ func EditOrgHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64
 	if err != nil {
 		return
 	}
-	ctx.JSON(200, convert.ToHook(org.HomeLink(), updated))
+	ctx.JSON(http.StatusOK, convert.ToHook(org.HomeLink(), updated))
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
@@ -184,7 +202,7 @@ func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int6
 	if err != nil {
 		return
 	}
-	ctx.JSON(200, convert.ToHook(repo.RepoLink, updated))
+	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, updated))
 }
 
 // editHook edit the webhook `w` according to `form`. If an error occurs, write
@@ -196,13 +214,13 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 		}
 		if ct, ok := form.Config["content_type"]; ok {
 			if !models.IsValidHookContentType(ct) {
-				ctx.Error(422, "", "Invalid content type")
+				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid content type")
 				return false
 			}
 			w.ContentType = models.ToHookContentType(ct)
 		}
 
-		if w.HookTaskType == models.SLACK {
+		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
@@ -211,7 +229,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 					Color:    form.Config["color"],
 				})
 				if err != nil {
-					ctx.Error(500, "slack: JSON marshal failed", err)
+					ctx.Error(http.StatusInternalServerError, "slack: JSON marshal failed", err)
 					return false
 				}
 				w.Meta = string(meta)
@@ -241,7 +259,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	w.BranchFilter = form.BranchFilter
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Error(500, "UpdateEvent", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return false
 	}
 
@@ -250,7 +268,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	}
 
 	if err := models.UpdateWebhook(w); err != nil {
-		ctx.Error(500, "UpdateWebhook", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateWebhook", err)
 		return false
 	}
 	return true

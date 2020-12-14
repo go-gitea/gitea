@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository settings collaboration">
+<div class="page-content repository settings collaboration">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -13,15 +13,15 @@
 				<div class="item ui grid">
 					<div class="ui five wide column">
 						<a href="{{AppSubUrl}}/{{.Name}}">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							{{avatar .}}
 							{{.DisplayName}}
 						</a>
 					</div>
 					<div class="ui eight wide column">
-						<span class="octicon octicon-shield"></span>
+						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="access-mode menu" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
 							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.i18n.Tr "repo.settings.collaboration.admin"}}</div>
 							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.write"}}" data-value="2">{{$.i18n.Tr "repo.settings.collaboration.write"}}</div>
@@ -54,7 +54,7 @@
 
 		{{if .RepoOwnerIsOrganization}}
 		<h4 class="ui top attached header">
-			Teams
+			{{$.i18n.Tr "repo.settings.teams"}}
 		</h4>
 		{{ $allowedToChangeTeams := ( or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner)) }}
 		{{if .Teams}}
@@ -66,8 +66,8 @@
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column poping up" data-content="Team's permission is set on the team setting page and can't be changed per repository">
-						<span class="octicon octicon-shield"></span>
+					<div class="ui eight wide column poping up" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
+						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .Authorize 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Authorize 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Authorize 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .Authorize 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 						</div>
@@ -79,9 +79,8 @@
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						{{ $globalRepoAccess := (eq .LowerName "owners") }}
-						<div class="ui two wide column {{if $globalRepoAccess}}poping up{{end}}" {{if $globalRepoAccess}}data-content="This team has access to all repositories and can't be removed."{{end}}>
-							<button class="ui red tiny button inline text-thin delete-button {{if $globalRepoAccess}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
+						<div class="ui two wide column {{if .IncludesAllRepositories}}poping up{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.i18n.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "repo.settings.delete_collaborator"}}
 							</button>
 						</div>
@@ -97,15 +96,15 @@
 					<div class="inline field ui left">
 						<div id="search-team-box" class="ui search" data-org="{{.OrgName}}">
 							<div class="ui input">
-								<input class="prompt" name="team" placeholder="Search teams..." autocomplete="off" autofocus required>
+								<input class="prompt" name="team" placeholder="{{$.i18n.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
 							</div>
 						</div>
 					</div>
-					<button class="ui green button">Add Team</button>
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.add_team"}}</button>
 				</form>
 			{{else}}
 				<div class="item">
-					Changing team access for repository has been restricted to organization owner
+					{{$.i18n.Tr "repo.settings.change_team_access_not_allowed"}}
 				</div>
 			{{end}}
 		</div>
@@ -115,7 +114,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "repo.settings.collaborator_deletion"}}
 	</div>
 	<div class="content">

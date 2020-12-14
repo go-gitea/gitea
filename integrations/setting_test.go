@@ -99,5 +99,10 @@ func TestSettingLandingPage(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusFound)
 	assert.Equal(t, "/explore/organizations", resp.Header().Get("Location"))
 
+	setting.LandingPageURL = setting.LandingPageLogin
+	req = NewRequest(t, "GET", "/")
+	resp = MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/user/login", resp.Header().Get("Location"))
+
 	setting.LandingPageURL = landingPage
 }

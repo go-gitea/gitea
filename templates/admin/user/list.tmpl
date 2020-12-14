@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -16,14 +16,22 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>ID</th>
-						<th>{{.i18n.Tr "admin.users.name"}}</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" .SortType false}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
+							{{.i18n.Tr "admin.users.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
+						</th>
 						<th>{{.i18n.Tr "email"}}</th>
 						<th>{{.i18n.Tr "admin.users.activated"}}</th>
 						<th>{{.i18n.Tr "admin.users.admin"}}</th>
+						<th>{{.i18n.Tr "admin.users.restricted"}}</th>
+						<th>{{.i18n.Tr "admin.users.2fa"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th>{{.i18n.Tr "admin.users.last_login"}}</th>
+						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
+							{{.i18n.Tr "admin.users.last_login"}}
+							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
@@ -33,8 +41,10 @@
 							<td>{{.ID}}</td>
 							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
 							<td><span class="text truncate email">{{.Email}}</span></td>
-							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
-							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
+							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if .IsAdmin}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}
@@ -42,7 +52,7 @@
 							{{else}}
 								<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
-							<td><a href="{{$.Link}}/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
+							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

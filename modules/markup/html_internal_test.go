@@ -106,13 +106,13 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, path), "issue", index, marker)
+			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
 		for i, index := range indices {
-			links[i] = numericIssueLink(prefix, "issue", index, marker)
+			links[i] = numericIssueLink(prefix, "ref-issue", index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &postProcessCtx{metas: numericMetas})
@@ -178,7 +178,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test := func(s, expectedFmt string, names ...string) {
 		links := make([]interface{}, len(names))
 		for i, name := range names {
-			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "issue", name)
+			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expected, &postProcessCtx{metas: alphanumericMetas})
@@ -217,7 +217,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid issue URLs
 	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
-		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", 3333, "#"))
+		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "ref-issue", 3333, "#"))
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
@@ -248,11 +248,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
 	test("Look here http://localhost:3000/person/repo/issues/4",
-		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="issue">person/repo#4</a>`)
+		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="issue">person/repo#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4",
-		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="issue">#4</a>`)
+		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a>`)
 }
 
 func TestRegExp_sha1CurrentPattern(t *testing.T) {

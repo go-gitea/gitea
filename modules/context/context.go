@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -122,7 +123,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 		}
 
 		u, err := url.Parse(loc)
-		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
 			continue
 		}
 
@@ -221,6 +222,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 	ctx.Resp.Header().Set("Expires", "0")
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
 	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	http.ServeContent(ctx.Resp, ctx.Req.Request, name, modtime, r)
 }
 
@@ -241,6 +243,7 @@ func Contexter() macaron.Handler {
 		}
 		ctx.Data["Language"] = ctx.Locale.Language()
 		c.Data["Link"] = ctx.Link
+		ctx.Data["CurrentURL"] = setting.AppSubURL + c.Req.URL.RequestURI()
 		ctx.Data["PageStartTime"] = time.Now()
 		// Quick responses appropriate go-get meta with status 200
 		// regardless of if user have access to the repository,
@@ -316,7 +319,7 @@ func Contexter() macaron.Handler {
 
 		// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 		if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-			if err := ctx.Req.ParseMultipartForm(setting.AttachmentMaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
+			if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
 				ctx.ServerError("ParseMultipartForm", err)
 				return
 			}
@@ -334,6 +337,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
 
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
+		ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
 
