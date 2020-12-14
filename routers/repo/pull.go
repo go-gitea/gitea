@@ -304,7 +304,7 @@ func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *service.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
@@ -330,7 +330,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
+func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *service.CompareInfo {
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
@@ -529,7 +529,7 @@ func ViewPullCommits(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var commits *list.List
-	var prInfo *git.CompareInfo
+	var prInfo *service.CompareInfo
 	if pull.HasMerged {
 		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
@@ -581,7 +581,7 @@ func ViewPullFiles(ctx *context.Context) {
 	)
 
 	var headTarget string
-	var prInfo *git.CompareInfo
+	var prInfo *service.CompareInfo
 	if pull.HasMerged {
 		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
@@ -1178,7 +1178,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
+	if err := gitRepo.DeleteBranch(pr.HeadBranch, service.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
 		log.Error("DeleteBranch: %v", err)

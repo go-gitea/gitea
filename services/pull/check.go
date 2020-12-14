@@ -146,10 +146,10 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		return false
 	}
 	if commit != nil {
-		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+		pr.MergedCommitID = commit.ID().String()
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author().When.Unix())
 		pr.Status = models.PullRequestStatusManuallyMerged
-		merger, _ := models.GetUserByEmail(commit.Author.Email)
+		merger, _ := models.GetUserByEmail(commit.Author().Email)
 
 		// When the commit author is unknown set the BaseRepo owner as merger
 		if merger == nil {

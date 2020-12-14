@@ -310,7 +310,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 
 	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name, true))
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name(), true))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
@@ -470,17 +470,17 @@ func syncMirror(repoID string) {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Path(), result.oldCommitID)
+		oldCommitID, err := git.Service.GetFullCommitID(gitRepo.Path(), result.oldCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Path(), result.newCommitID)
+		newCommitID, err := git.Service.GetFullCommitID(gitRepo.Path(), result.newCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
-		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
+		commits, err := git.Service.CommitsBetweenIDs(gitRepo, newCommitID, oldCommitID)
 		if err != nil {
 			log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
 			continue

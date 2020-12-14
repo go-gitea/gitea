@@ -168,7 +168,9 @@ func TestListToPushCommits(t *testing.T) {
 	assert.NoError(t, err)
 
 	l := list.New()
-	l.PushBack(&git.Commit{
+	l.PushBack(native.NewCommit(
+		native.NewObject()
+	)
 		ID:            hash1,
 		Author:        sig,
 		Committer:     sig,

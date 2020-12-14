@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/providers/native"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -46,8 +48,8 @@ func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, err
 	return nonGenesisChanges(repo, revision)
 }
 
-func isIndexable(entry *git.TreeEntry) bool {
-	if !entry.IsRegular() && !entry.IsExecutable() {
+func isIndexable(entry service.TreeEntry) bool {
+	if !entry.Mode().IsRegular() && !entry.Mode().IsExecutable() {
 		return false
 	}
 	name := strings.ToLower(entry.Name())
@@ -66,7 +68,7 @@ func isIndexable(entry *git.TreeEntry) bool {
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
 func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
-	entries, err := git.ParseTreeEntries(stdout)
+	entries, err := native.ParseTreeEntries(stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +78,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 		if isIndexable(entry) {
 			updates[idxCount] = fileUpdate{
 				Filename: entry.Name(),
-				BlobSha:  entry.ID.String(),
+				BlobSha:  entry.ID().String(),
 			}
 			idxCount++
 		}

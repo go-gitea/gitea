@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/providers/native"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/webhook"
@@ -1045,31 +1046,34 @@ func TestWebhook(ctx *context.Context) {
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := models.NewGhostUser()
-		commit = &git.Commit{
-			ID:            git.MustIDFromString(git.EmptySHA),
-			Author:        ghost.NewGitSig(),
-			Committer:     ghost.NewGitSig(),
-			CommitMessage: "This is a fake commit",
-		}
+		commit = native.NewCommit(
+			native.NewObject(git.Service.MustHashFromString(git.EmptySHA), ctx.Repo.GitRepo),
+			git.Service.MustHashFromString(git.EmptyTreeSHA),
+			nil,
+			ghost.NewGitSig(),
+			ghost.NewGitSig(),
+			nil,
+			nil,
+			"This is a fake commit")
 	}
 
 	apiUser := convert.ToUser(ctx.User, true, true)
 	p := &api.PushPayload{
 		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before: commit.ID.String(),
-		After:  commit.ID.String(),
+		Before: commit.ID().String(),
+		After:  commit.ID().String(),
 		Commits: []*api.PayloadCommit{
 			{
-				ID:      commit.ID.String(),
+				ID:      commit.ID().String(),
 				Message: commit.Message(),
-				URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
+				URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID().String(),
 				Author: &api.PayloadUser{
-					Name:  commit.Author.Name,
-					Email: commit.Author.Email,
+					Name:  commit.Author().Name,
+					Email: commit.Author().Email,
 				},
 				Committer: &api.PayloadUser{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
+					Name:  commit.Committer().Name,
+					Email: commit.Committer().Email,
 				},
 			},
 		},

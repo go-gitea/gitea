@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/test"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
@@ -21,13 +22,13 @@ import (
 const wikiTestContent = "Wiki contents for unit tests"
 const wikiTestMessage = "Wiki commit message for unit tests"
 
-func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
+func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) service.TreeEntry {
 	wikiRepo, err := git.Service.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree().ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
 		if entry.Name() == wiki_service.NameToFilename(wikiName) {
@@ -42,7 +43,7 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().Reader()
+	reader, err := entry.Reader()
 	assert.NoError(t, err)
 	defer reader.Close()
 	bytes, err := ioutil.ReadAll(reader)

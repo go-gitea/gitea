@@ -124,7 +124,7 @@ func FindLFSFile(repo service.Repository, hash service.Hash) ([]*LFSResult, erro
 			switch typ {
 			case "tag":
 				// This shouldn't happen but if it does well just get the commit and try again
-				id, err := git.ReadTagObjectID(batchReader, size)
+				id, err := native.ReadTagObjectID(batchReader, size)
 				if err != nil {
 					return nil, err
 				}

@@ -214,6 +214,14 @@ type Repository interface {
 
 	// LineBlame returns the latest commit at the given line
 	LineBlame(revision, path, file string, line uint) (Commit, error)
+
+	//  __
+	// (_   _  ._    o  _  _
+	// 	__) (/_ |  \/ | (_ (/_
+	//
+
+	// Service returns this repositories prefered service
+	Service() GitService
 }
 
 // CommitTreeOpts represents the possible options to CommitTree

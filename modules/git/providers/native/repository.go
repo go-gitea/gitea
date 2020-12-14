@@ -78,3 +78,13 @@ func (repo *Repository) LineBlame(revision, path, file string, line uint) (servi
 	}
 	return repo.GetCommit(res[:40])
 }
+
+//  __
+// (_   _  ._    o  _  _
+// 	__) (/_ |  \/ | (_ (/_
+//
+
+// Service returns this repositories prefered service
+func (repo *Repository) Service() service.GitService {
+	return gitService
+}

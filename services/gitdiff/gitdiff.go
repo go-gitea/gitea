@@ -423,7 +423,7 @@ func (diffFile *DiffFile) GetTailSection(gitRepo service.Repository, leftCommitI
 }
 
 func getCommitFileLineCount(commit service.Commit, filePath string) int {
-	blob, err := commit.GetBlobByPath(filePath)
+	blob, err := commit.Tree().GetBlobByPath(filePath)
 	if err != nil {
 		return 0
 	}
@@ -909,7 +909,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
-			actualBeforeCommitID = parentCommit.ID.String()
+			actualBeforeCommitID = parentCommit.ID().String()
 		}
 		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
 		if len(whitespaceBehavior) != 0 {

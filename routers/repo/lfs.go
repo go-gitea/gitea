@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
-	"code.gitea.io/gitea/modules/git/providers/native"
 	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -379,10 +378,16 @@ func LFSFileFind(ctx *context.Context) {
 	if len(sha) == 0 {
 		meta := models.LFSMetaObject{Oid: oid, Size: size}
 		pointer := meta.Pointer()
-		hash = native.SHA1{}.ComputeBlobHash([]byte(pointer))
+		var err error
+		hash, err = git.Service.ComputeBlobHash(int64(len(pointer)), strings.NewReader(pointer))
+		if err != nil {
+			log.Error("Error whilst computing hash for pointer file oid: %s. Error: %v", oid, err)
+			ctx.ServerError("ComputeBlobHash", err)
+			return
+		}
 		sha = hash.String()
 	} else {
-		hash = git.MustIDFromString(sha)
+		hash = git.Service.MustHashFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid

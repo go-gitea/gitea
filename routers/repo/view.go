@@ -41,7 +41,7 @@ const (
 type namedBlob struct {
 	name      string
 	isSymlink bool
-	blob      *git.Blob
+	blob      service.Blob
 }
 
 func linesBytesCount(s []byte) int {
@@ -55,7 +55,7 @@ func linesBytesCount(s []byte) int {
 
 // FIXME: There has to be a more efficient way of doing this
 func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, error) {
-	tree, err := commit.SubTree(treePath)
+	tree, err := commit.Tree().SubTree(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -68,14 +68,14 @@ func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, 
 	var readmeFiles [4]*namedBlob
 	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
-		if entry.IsDir() {
+		if entry.Mode().IsDir() {
 			continue
 		}
 		for i, ext := range exts {
 			if markup.IsReadmeFile(entry.Name(), ext) {
-				if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
+				if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Name()) {
 					name := entry.Name()
-					isSymlink := entry.IsLink()
+					isSymlink := entry.Mode().IsLink()
 					target := entry
 					if isSymlink {
 						target, err = entry.FollowLinks()
@@ -83,11 +83,11 @@ func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, 
 							return nil, err
 						}
 					}
-					if target != nil && (target.IsExecutable() || target.IsRegular()) {
+					if target != nil && (target.Mode().IsExecutable() || target.Mode().IsRegular()) {
 						readmeFiles[i] = &namedBlob{
 							name,
 							isSymlink,
-							target.Blob(),
+							target,
 						}
 					}
 				}
@@ -95,20 +95,20 @@ func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, 
 		}
 
 		if markup.IsReadmeFile(entry.Name()) {
-			if readmeFiles[3] == nil || base.NaturalSortLess(readmeFiles[3].name, entry.Blob().Name()) {
+			if readmeFiles[3] == nil || base.NaturalSortLess(readmeFiles[3].name, entry.Name()) {
 				name := entry.Name()
-				isSymlink := entry.IsLink()
+				isSymlink := entry.Mode().IsLink()
 				if isSymlink {
 					entry, err = entry.FollowLinks()
 					if err != nil && !git.IsErrBadLink(err) {
 						return nil, err
 					}
 				}
-				if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
+				if entry != nil && (entry.Mode().IsExecutable() || entry.Mode().IsRegular()) {
 					readmeFiles[3] = &namedBlob{
 						name,
 						isSymlink,
-						entry.Blob(),
+						entry,
 					}
 				}
 			}
@@ -125,7 +125,7 @@ func getReadmeFileFromPath(commit service.Commit, treePath string) (*namedBlob, 
 }
 
 func renderDirectory(ctx *context.Context, treeLink string) {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	tree, err := ctx.Repo.Commit.Tree().SubTree(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
 		return
@@ -138,13 +138,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	var c *git.LastCommitCache
+	var c service.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
+		c = git.Service.NewLastCommitCache(ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 	}
 
 	var latestCommit service.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	ctx.Data["Files"], latestCommit, err = git.Service.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, entries, c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -154,10 +154,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	// the last one is for a readme that doesn't
 	// strictly match an extension
 	var readmeFiles [4]*namedBlob
-	var docsEntries [3]*git.TreeEntry
+	var docsEntries [3]service.TreeEntry
 	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
-		if entry.IsDir() {
+		if entry.Mode().IsDir() {
 			lowerName := strings.ToLower(entry.Name())
 			switch lowerName {
 			case "docs":
@@ -180,7 +180,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			if markup.IsReadmeFile(entry.Name(), ext) {
 				log.Debug("%s", entry.Name())
 				name := entry.Name()
-				isSymlink := entry.IsLink()
+				isSymlink := entry.Mode().IsLink()
 				target := entry
 				if isSymlink {
 					target, err = entry.FollowLinks()
@@ -190,11 +190,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 				}
 				log.Debug("%t", target == nil)
-				if target != nil && (target.IsExecutable() || target.IsRegular()) {
+				if target != nil && (target.Mode().IsExecutable() || target.Mode().IsRegular()) {
 					readmeFiles[i] = &namedBlob{
 						name,
 						isSymlink,
-						target.Blob(),
+						target,
 					}
 				}
 			}
@@ -202,7 +202,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		if markup.IsReadmeFile(entry.Name()) {
 			name := entry.Name()
-			isSymlink := entry.IsLink()
+			isSymlink := entry.Mode().IsLink()
 			if isSymlink {
 				entry, err = entry.FollowLinks()
 				if err != nil && !git.IsErrBadLink(err) {
@@ -210,11 +210,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					return
 				}
 			}
-			if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
+			if entry != nil && (entry.Mode().IsExecutable() || entry.Mode().IsRegular()) {
 				readmeFiles[3] = &namedBlob{
 					name,
 					isSymlink,
-					entry.Blob(),
+					entry,
 				}
 			}
 		}
@@ -354,7 +354,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID().String(), 0)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -370,10 +370,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["SSHDomain"] = setting.SSH.Domain
 }
 
-func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
+func renderFile(ctx *context.Context, entry service.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
-	blob := entry.Blob()
-	dataRc, err := blob.Reader()
+	dataRc, err := entry.Reader()
 	if err != nil {
 		ctx.ServerError("Reader", err)
 		return
@@ -382,10 +381,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
-	fileSize := blob.Size()
-	ctx.Data["FileIsSymlink"] = entry.IsLink()
+	fileSize := entry.Size()
+	ctx.Data["FileIsSymlink"] = entry.Mode().IsLink()
 	ctx.Data["FileSize"] = fileSize
-	ctx.Data["FileName"] = blob.Name()
+	ctx.Data["FileName"] = entry.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
 	buf := make([]byte, 1024)
@@ -432,7 +431,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			fileSize = meta.Size
 			ctx.Data["FileSize"] = meta.Size
-			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(entry.Name()))
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
@@ -464,12 +463,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = charset.ToUTF8WithFallback(append(buf, d...))
-		readmeExist := markup.IsReadmeFile(blob.Name())
+		readmeExist := markup.IsReadmeFile(entry.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+		if markupType := markup.Type(entry.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(entry.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
@@ -480,7 +479,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
-			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), buf)
+			ctx.Data["FileContent"] = highlight.File(lineNums, entry.Name(), buf)
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
@@ -512,12 +511,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			break
 		}
 
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+		if markupType := markup.Type(entry.Name()); markupType != "" {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(entry.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		}
 
 	}
@@ -640,7 +639,7 @@ func renderCode(ctx *context.Context) {
 	}
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.Tree().GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
@@ -651,7 +650,7 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
-	if entry.IsDir() {
+	if entry.Mode().IsDir() {
 		renderDirectory(ctx, treeLink)
 	} else {
 		renderFile(ctx, entry, treeLink, rawLink)

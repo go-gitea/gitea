@@ -104,7 +104,7 @@ func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur tim
 func getArchiveRequest(repo service.Repository, commit service.Commit, archiveType gitservice.ArchiveType) *ArchiveRequest {
 	for _, r := range archiveInProgress {
 		// Need to be referring to the same repository.
-		if r.repo.Path() == repo.Path() && r.commit.ID == commit.ID && r.archiveType == archiveType {
+		if r.repo.Path() == repo.Path() && r.commit.ID().String() == commit.ID().String() && r.archiveType == archiveType {
 			return r
 		}
 	}
@@ -181,7 +181,7 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 		return rExisting
 	}
 
-	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID.String())+r.ext)
+	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID().String())+r.ext)
 	r.archiveComplete, err = util.IsFile(r.archivePath)
 	if err != nil {
 		ctx.ServerError("util.IsFile", err)
@@ -231,7 +231,7 @@ func doArchive(r *ArchiveRequest) {
 	repo, _ := git.Service.OpenRepository(r.repo.Path())
 	defer repo.Close()
 
-	if err = git.Service.CreateArchive(graceful.GetManager().ShutdownContext(), repo, r.commit.ID.String(), tmpArchive.Name(), gitservice.CreateArchiveOpts{
+	if err = git.Service.CreateArchive(graceful.GetManager().ShutdownContext(), repo, r.commit.ID().String(), tmpArchive.Name(), gitservice.CreateArchiveOpts{
 		Format: r.archiveType,
 		Prefix: setting.Repository.PrefixArchiveFiles,
 	}); err != nil {

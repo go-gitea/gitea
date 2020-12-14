@@ -20,7 +20,7 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/service"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -289,21 +289,21 @@ func IsAudioFile(data []byte) bool {
 }
 
 // EntryIcon returns the octicon class for displaying files/directories
-func EntryIcon(entry *git.TreeEntry) string {
+func EntryIcon(entry service.TreeEntry) string {
 	switch {
-	case entry.IsLink():
+	case entry.Mode().IsLink():
 		te, err := entry.FollowLink()
 		if err != nil {
 			log.Debug(err.Error())
 			return "file-symlink-file"
 		}
-		if te.IsDir() {
+		if te.Mode().IsDir() {
 			return "file-submodule"
 		}
 		return "file-symlink-file"
-	case entry.IsDir():
+	case entry.Mode().IsDir():
 		return "file-directory"
-	case entry.IsSubModule():
+	case entry.Mode().IsSubModule():
 		return "file-submodule"
 	}
 

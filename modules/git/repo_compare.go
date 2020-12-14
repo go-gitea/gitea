@@ -79,7 +79,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		}
 	} else {
 		compareInfo.Commits = list.New()
-		compareInfo.MergeBase, err = GetFullCommitID(repo.Path(), remoteBranch)
+		compareInfo.MergeBase, err = Service.GetFullCommitID(repo.Path(), remoteBranch)
 		if err != nil {
 			compareInfo.MergeBase = remoteBranch
 		}

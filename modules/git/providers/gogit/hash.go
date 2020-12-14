@@ -96,6 +96,12 @@ func (s SHA1) FromString(idStr string) (service.Hash, error) {
 	return s, nil
 }
 
+// MustIDFromString converts a string to hash
+func MustIDFromString(idStr string) service.Hash {
+	s, _ := SHA1{}.FromString(idStr)
+	return s
+}
+
 // StringHash represents a hash from a string
 type StringHash string
 
