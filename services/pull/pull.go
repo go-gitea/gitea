@@ -654,9 +654,6 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 
 	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
-			return nil, err
-		}
 		return nil, err
 	}
 
