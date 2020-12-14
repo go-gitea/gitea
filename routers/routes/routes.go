@@ -223,10 +223,11 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
+	m.Use(templates.HTMLRenderer())
+
 	m.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	m.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
-	m.Use(templates.HTMLRenderer())
 	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
