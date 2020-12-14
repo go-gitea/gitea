@@ -239,7 +239,7 @@ func (a *Action) getCommentLink(e Engine) string {
 
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
-	return strings.TrimPrefix(git.BranchPrefix, a.RefName)
+	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
 }
 
 // GetContent returns the action's content.
