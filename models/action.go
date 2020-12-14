@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -243,7 +244,7 @@ func (a *Action) getCommentLink(e Engine) string {
 
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
-	return a.RefName
+	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
 }
 
 // GetContent returns the action's content.
