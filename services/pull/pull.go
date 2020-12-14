@@ -650,6 +650,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
