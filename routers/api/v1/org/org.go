@@ -18,18 +18,27 @@ import (
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		All:         all,
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
+
+	listOptions := utils.GetListOptions(ctx)
+	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
+
+	orgs, err := models.GetOrgsByUserID(u.ID, showPrivate)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
+	maxResults := len(orgs)
 
-	apiOrgs := make([]*api.Organization, len(u.Orgs))
-	for i := range u.Orgs {
-		apiOrgs[i] = convert.ToOrganization(u.Orgs[i])
+	orgs = utils.PaginateUserSlice(orgs, listOptions.Page, listOptions.PageSize)
+
+	apiOrgs := make([]*api.Organization, len(orgs))
+	for i := range orgs {
+		apiOrgs[i] = convert.ToOrganization(orgs[i])
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
 
