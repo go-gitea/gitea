@@ -376,5 +376,31 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 		return nil, err
 	}
 
+	repoIDs := []int64{}
+	for _, a := range actions {
+		repoIDs = append(repoIDs, a.RepoID)
+	}
+
+	repos := make(map[int64]*Repository, len(repoIDs))
+	err = x.In("id", repoIDs).Find(&repos)
+	if err != nil {
+		return nil, err
+	}
+
+	owners := make(map[int64]*User)
+	err = x.
+		In("repository.id", repoIDs).
+		Join("LEFT", "repository", "repository.owner_id = user.id").
+		Find(&owners)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range actions {
+		a.Repo = repos[a.RepoID]
+		a.Repo.Owner = owners[a.Repo.OwnerID]
+		a.RefName = strings.Replace(a.RefName, "refs/heads/", "", 1)
+	}
+
 	return
 }
