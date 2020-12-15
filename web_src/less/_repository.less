@@ -3007,31 +3007,41 @@ td.blob-excerpt {
 }
 
 .removed-code {
-  background-color: var(--color-diff-removed-word-bg);
+  background: var(--color-diff-removed-word-bg);
 }
 
 .added-code {
-  background-color: var(--color-diff-added-word-bg);
+  background: var(--color-diff-added-word-bg);
 }
 
-td.del-code,
-.del-code td {
-  background-color: var(--color-diff-removed-row-bg);
+.code-diff-unified .del-code,
+.code-diff-unified .del-code td,
+.code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-type-marker-old,
+.code-diff-split .del-code .lines-code-old {
+  background: var(--color-diff-removed-row-bg);
   border-color: var(--color-diff-removed-row-border);
 }
 
-td.add-code,
-.add-code td {
-  background-color: var(--color-diff-added-row-bg);
+.code-diff-unified .add-code,
+.code-diff-unified .add-code td,
+.code-diff-split .add-code .lines-num-new,
+.code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-code-new,
+.code-diff-split .del-code .add-code.lines-num-new,
+.code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-code-new {
+  background: var(--color-diff-added-row-bg);
   border-color: var(--color-diff-added-row-border);
 }
 
-.code-diff-unified .del-code .lines-num {
-  background-color: var(--color-diff-removed-bg-linenum);
-}
-
-.code-diff-unified .add-code .lines-num {
-  background-color: var(--color-diff-added-bg-linenum);
+.code-diff-split .del-code .lines-num-new,
+.code-diff-split .del-code .lines-type-marker-new,
+.code-diff-split .del-code .lines-code-new,
+.code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-type-marker-old,
+.code-diff-split .add-code .lines-code-old {
+  background: var(--color-diff-inactive);
 }
 
 .code-diff-split tbody tr td:nth-child(4) {
