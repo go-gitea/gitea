@@ -1592,7 +1592,7 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) boo
 		found := false
 		keys := []byte(sshKey)
 	loop:
-		for len(sshKey) > 0 && err == nil {
+		for len(keys) > 0 && err == nil {
 			var out ssh.PublicKey
 			var comment string
 			// We ignore options as they are not relevant to Gitea
