@@ -25,9 +25,27 @@ on a bad authentication from the web or CLI using SSH or HTTP respectively:
 ```log
 2018/04/26 18:15:54 [I] Failed authentication attempt for user from xxx.xxx.xxx.xxx
 ```
+
 ```log
-2020/10/15 16:05:09 modules/ssh/ssh.go:188:publicKeyHandler() [E] SearchPublicKeyByContent: public key does not exist [id: 0] Failed authentication attempt from xxx.xxx.xxx.xxx
+2020/10/15 16:05:09 modules/ssh/ssh.go:143:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
 ```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:155:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:198:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:213:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:227:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
 ```log
 2020/10/15 16:08:44 ...s/context/context.go:204:HandleText() [E] invalid credentials from xxx.xxx.xxx.xxx
 ```
