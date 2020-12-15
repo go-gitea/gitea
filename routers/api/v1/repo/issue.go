@@ -486,6 +486,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		Content:      form.Body,
+		Ref:          form.Ref,
 		DeadlineUnix: deadlineUnix,
 	}
 
@@ -624,6 +625,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if form.Body != nil {
 		issue.Content = *form.Body
+	}
+	if form.Ref != nil {
+		issue.Ref = *form.Ref
 	}
 
 	// Update or remove the deadline, only if set and allowed

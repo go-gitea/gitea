@@ -83,6 +83,7 @@ type CreateIssueOption struct {
 	// required:true
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
+	Ref   string `json:"ref"`
 	// username of assignee
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
@@ -99,6 +100,7 @@ type CreateIssueOption struct {
 type EditIssueOption struct {
 	Title     string   `json:"title"`
 	Body      *string  `json:"body"`
+	Ref       *string  `json:"ref"`
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
