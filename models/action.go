@@ -351,7 +351,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
 func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 
-	limit := time.Now().Unix() - 3600
+	limit := time.Now().Add(-24 * time.Hour).Unix()
 
 	err = x.
 		Join("LEFT", "pull_request", "pull_request.head_branch = replace(action.ref_name, 'refs/heads/', '')").
@@ -359,11 +359,18 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 		Where(builder.And(
 			builder.Eq{"action.op_type": ActionCommitRepo},
 			builder.Eq{"action.act_user_id": user.ID},
-			builder.Eq{"pull_request.has_merged": false},
-			builder.Eq{"issue.is_closed": true},
+			builder.Or(
+				builder.IsNull{"pull_request.id"},
+				builder.And(
+					builder.Eq{"pull_request.has_merged": false},
+					builder.Eq{"issue.is_closed": true},
+					builder.Gt{"action.created_unix": "issue.closed_unix"},
+				),
+			),
 			builder.Gte{"action.created_unix": limit},
 		)).
 		Limit(10).
+		Desc("action.id").
 		Find(&actions)
 	if err != nil {
 		return nil, err
