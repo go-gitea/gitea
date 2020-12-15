@@ -125,9 +125,15 @@ var (
 	}
 
 	microcmdUserDelete = cli.Command{
-		Name:   "delete",
-		Usage:  "Delete specific user",
-		Flags:  []cli.Flag{idFlag},
+		Name:  "delete",
+		Usage: "Delete specific user",
+		Flags: []cli.Flag{cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of user",
+		}, cli.StringFlag{
+			Name:  "username",
+			Usage: "Username",
+		}},
 		Action: runDeleteUser,
 	}
 
@@ -463,15 +469,21 @@ func runListUsers(c *cli.Context) error {
 }
 
 func runDeleteUser(c *cli.Context) error {
-	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+	if !c.IsSet("id") && !c.IsSet("username") {
+		return fmt.Errorf("--id or --username missing")
 	}
 
 	if err := initDB(); err != nil {
 		return err
 	}
 
-	user, err := models.GetUserByID(c.Int64("id"))
+	var err error
+	var user *models.User
+	if c.IsSet("id") {
+		user, err = models.GetUserByID(c.Int64("id"))
+	} else {
+		user, err = models.GetUserByName(c.String("username"))
+	}
 	if err != nil {
 		return err
 	}

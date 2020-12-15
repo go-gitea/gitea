@@ -69,7 +69,9 @@ Admin operations:
         - `gitea admin user list`
     - `delete`:
       - Options:
-        - `--id`: ID of user to be deleted. Required.
+        - `--username`: Username of user to be deleted.
+        - `--id`: ID of user to be deleted.
+        - One of `--id` or `--username` is required.
       - Examples:
         - `gitea admin user delete --id 1`
     - `create`: - Options: - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead. - `--username value`: Username. Required. New in gitea 1.9.0. - `--password value`: Password. Required. - `--email value`: Email. Required. - `--admin`: If provided, this makes the user an admin. Optional. - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false). - `--must-change-password`: If provided, the created user will be required to choose a newer password after
