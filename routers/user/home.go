@@ -161,6 +161,12 @@ func Dashboard(ctx *context.Context) {
 		IncludeDeleted:  false,
 	})
 
+	ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctxUser)
+	if err != nil {
+		ctx.ServerError("GetRecentlyPushedBranches", err)
+		return
+	}
+
 	if ctx.Written() {
 		return
 	}
