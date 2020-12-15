@@ -1,6 +1,6 @@
 # testfixtures
 
-[![GoDoc](https://godoc.org/github.com/go-testfixtures/testfixtures?status.svg)][doc]
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/go-testfixtures/testfixtures/v3?tab=doc)](https://pkg.go.dev/github.com/go-testfixtures/testfixtures/v3?tab=doc)
 
 > ***Warning***: this package will wipe the database data before loading the
 fixtures! It is supposed to be used on a test database. Please, double check
@@ -74,7 +74,7 @@ The file would look like this (it can have as many record you want):
 ```
 
 An YAML object or array will be converted to JSON. It will be stored on a native
-JSON type like JSONB on PostgreSQL or as a TEXT or VARCHAR column on other
+JSON type like JSONB on PostgreSQL & CockroachDB or as a TEXT or VARCHAR column on other
 databases.
 
 ```yml
@@ -249,9 +249,9 @@ testfixtures.New(
 
 ## Compatible databases
 
-### PostgreSQL / TimescaleDB
+### PostgreSQL / TimescaleDB / CockroachDB
 
-This package has two approaches to disable foreign keys while importing fixtures
+This package has three approaches to disable foreign keys while importing fixtures
 for PostgreSQL databases:
 
 #### With `DISABLE TRIGGER`
@@ -288,7 +288,21 @@ testfixtures.New(
 )
 ```
 
-Tested using the [github.com/lib/pq](https://github.com/lib/pq) driver.
+#### With `DROP CONSTRAINT`
+
+This approach is implemented to support databases that do not support above
+methods (namely CockroachDB).
+
+```go
+testfixtures.New(
+        ...
+        testfixtures.Dialect("postgres"),
+        testfixtures.UseDropConstraint(),
+)
+```
+
+Tested using the [github.com/lib/pq](https://github.com/lib/pq) and
+[github.com/jackc/pgx](https://github.com/jackc/pgx) drivers.
 
 ### MySQL / MariaDB
 
@@ -422,8 +436,15 @@ each test run in a transaction.
 ## CLI
 
 We also have a CLI to load fixtures in a given database.
+
 Grab it from the [releases page](https://github.com/go-testfixtures/testfixtures/releases)
-and use it like:
+or install with Homebrew:
+
+```bash
+brew install go-testfixtures/tap/testfixtures
+```
+
+Usage is like this:
 
 ```bash
 testfixtures -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
@@ -431,7 +452,7 @@ testfixtures -d postgres -c "postgres://user:password@localhost/database" -D tes
 
 The connection string changes for each database driver.
 
-Use `--help` for all flags.
+Use `testfixtures --help` for all flags.
 
 ## Contributing
 
@@ -453,6 +474,7 @@ for the database you want to run tests against:
 
 ```bash
 task test:pg # PostgreSQL
+task test:crdb # CockroachDB
 task test:mysql # MySQL
 task test:sqlite # SQLite
 task test:sqlserver # Microsoft SQL Server
@@ -475,7 +497,6 @@ unit test database code without having to connect to a real database
 - [dbcleaner][dbcleaner] - Clean database for testing, inspired by
 database_cleaner for Ruby
 
-[doc]: https://pkg.go.dev/github.com/go-testfixtures/testfixtures/v3?tab=doc
 [railstests]: http://guides.rubyonrails.org/testing.html#the-test-database
 [gotxdb]: https://github.com/DATA-DOG/go-txdb
 [gosqlmock]: https://github.com/DATA-DOG/go-sqlmock

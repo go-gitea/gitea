@@ -14,7 +14,7 @@ var Bash = internal.Register(MustNewLexer(
 	&Config{
 		Name:      "Bash",
 		Aliases:   []string{"bash", "sh", "ksh", "zsh", "shell"},
-		Filenames: []string{"*.sh", "*.ksh", "*.bash", "*.ebuild", "*.eclass", "*.exheres-0", "*.exlib", "*.zsh", "*.zshrc", ".bashrc", "bashrc", ".bash_*", "bash_*", "zshrc", ".zshrc", "PKGBUILD"},
+		Filenames: []string{"*.sh", "*.ksh", "*.bash", "*.ebuild", "*.eclass", ".env", "*.env", "*.exheres-0", "*.exlib", "*.zsh", "*.zshrc", ".bashrc", "bashrc", ".bash_*", "bash_*", "zshrc", ".zshrc", "PKGBUILD"},
 		MimeTypes: []string{"application/x-sh", "application/x-shellscript"},
 	},
 	Rules{
@@ -36,7 +36,7 @@ var Bash = internal.Register(MustNewLexer(
 			{`\b(if|fi|else|while|do|done|for|then|return|function|case|select|continue|until|esac|elif)(\s*)\b`, ByGroups(Keyword, Text), nil},
 			{"\\b(alias|bg|bind|break|builtin|caller|cd|command|compgen|complete|declare|dirs|disown|echo|enable|eval|exec|exit|export|false|fc|fg|getopts|hash|help|history|jobs|kill|let|local|logout|popd|printf|pushd|pwd|read|readonly|set|shift|shopt|source|suspend|test|time|times|trap|true|type|typeset|ulimit|umask|unalias|unset|wait)(?=[\\s)`])", NameBuiltin, nil},
 			{`\A#!.+\n`, CommentPreproc, nil},
-			{`#.*\S`, CommentSingle, nil},
+			{`#.*(\S|$)`, CommentSingle, nil},
 			{`\\[\w\W]`, LiteralStringEscape, nil},
 			{`(\b\w+)(\s*)(\+?=)`, ByGroups(NameVariable, Text, Operator), nil},
 			{`[\[\]{}()=]`, Operator, nil},

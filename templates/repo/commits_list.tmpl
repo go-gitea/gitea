@@ -18,9 +18,10 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+								{{avatar .User 28 "mr-2"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
 							{{else}}
-								<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{$userName}}
+								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
+								{{$userName}}
 							{{end}}
 						</td>
 						<td class="sha">

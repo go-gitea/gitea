@@ -3,7 +3,7 @@ date: "2019-11-21T17:00:00-03:00"
 title: "Usage: Automatically Linked References"
 slug: "automatically-linked-references"
 weight: 15
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,10 @@ menu:
 ---
 
 # Automatically Linked References in Issues, Pull Requests and Commit Messages
+
+**Table of Contents**
+
+{{< toc >}}
 
 When an issue, pull request or comment is posted, the text description is parsed
 in search for references. These references will be shown as links in the Issue View
@@ -42,7 +46,6 @@ Example:
 This is also valid for teams and organizations:
 
 > [@Documenters](#), we need to plan for this.
-
 > [@CoolCompanyInc](#), this issue concerns us all!
 
 Teams will receive mail notifications when appropriate, but whole organizations won't.
@@ -107,10 +110,10 @@ is merged.
 For an actionable reference to be accepted, _at least one_ of the following
 conditions must be met:
 
-* The commenter has permissions to close or reopen the issue at the moment
-of creating the reference.
-* The reference is inside a commit message.
-* The reference is posted as part of the pull request description.
+- The commenter has permissions to close or reopen the issue at the moment
+  of creating the reference.
+- The reference is inside a commit message.
+- The reference is posted as part of the pull request description.
 
 In the last case, the issue will be closed or reopened only if the merger
 of the pull request has permissions to do so.
@@ -120,8 +123,35 @@ and only issues can be closed or reopened this way.
 
 The default _keywords_ are:
 
-* **Closing**: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved
-* **Reopening**: reopen, reopens, reopened
+- **Closing**: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved
+- **Reopening**: reopen, reopens, reopened
+
+## Time tracking in Pull Requests and Commit Messages
+
+When commit or merging of pull request results in automatic closing of issue
+it is possible to also add spent time resolving this issue through commit message.
+
+To specify spent time on resolving issue you need to specify time in format
+`@<number><time-unit>` after issue number. In one commit message you can specify
+multiple fixed issues and spent time for each of them.
+
+Supported time units (`<time-unit>`):
+
+- `m` - minutes
+- `h` - hours
+- `d` - days (equals to 8 hours)
+- `w` - weeks (equals to 5 days)
+- `mo` - months (equals to 4 weeks)
+
+Numbers to specify time (`<number>`) can be also decimal numbers, ex. `@1.5h` would
+result in one and half hours. Multiple time units can be combined, ex. `@1h10m` would
+mean 1 hour and 10 minutes.
+
+Example of commit message:
+
+> Fixed #123 spent @1h, refs #102, fixes #124 @1.5h
+
+This would result in 1 hour added to issue #123 and 1 and half hours added to issue #124.
 
 ## External Trackers
 
@@ -132,7 +162,6 @@ the pull requests hosted in Gitea. To address this, Gitea allows the use of
 the `!` marker to identify pull requests. For example:
 
 > This is issue [#1234](#), and links to the external tracker.
-
 > This is pull request [!1234](#), and links to a pull request in Gitea.
 
 The `!` and `#` can be used interchangeably for issues and pull request _except_
@@ -145,26 +174,26 @@ This table illustrates the different kinds of cross-reference for issues and pul
 In the examples, `User1/Repo1` refers to the repository where the reference is used, while
 `UserZ/RepoZ` indicates a different repository.
 
-| Reference in User1/Repo1  | Repo1 issues are external | RepoZ issues are external | Should render                    |
-|---------------------------|:-------------------------:|:-------------------------:|----------------------------------|
-| `#1234`                   |     no                    |    N/A                    | A link to issue/pull 1234 in `User1/Repo1` |
-| `!1234`                   |     no                    |    N/A                    | A link to issue/pull 1234 in `User1/Repo1` |
-| `#1234`                   |    yes                    |    N/A                    | A link to _external issue_ 1234 for `User1/Repo1` |
-| `!1234`                   |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
-| `User1/Repo1#1234`        |     no                    |    N/A                    | A link to issue/pull 1234 in `User1/Repo1` |
-| `User1/Repo1!1234`        |     no                    |    N/A                    | A link to issue/pull 1234 in `User1/Repo1` |
-| `User1/Repo1#1234`        |    yes                    |    N/A                    | A link to _external issue_ 1234 for `User1/Repo1` |
-| `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
-| `UserZ/RepoZ#1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
-| `UserZ/RepoZ!1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
-| `UserZ/RepoZ#1234`        |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
-| `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 for `UserZ/RepoZ` |
-| **Alphanumeric issue IDs:** | -                       | -                         | - |
-| `AAA-1234`                |    yes                    |    N/A                    | A link to _external issue_ `AAA-1234` for `User1/Repo1` |
-| `!1234`                   |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
-| `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
-| _Not supported_           |    N/A                    |    yes                    | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
-| `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
+| Reference in User1/Repo1    | Repo1 issues are external | RepoZ issues are external | Should render                                           |
+| --------------------------- | :-----------------------: | :-----------------------: | ------------------------------------------------------- |
+| `#1234`                     |            no             |            N/A            | A link to issue/pull 1234 in `User1/Repo1`              |
+| `!1234`                     |            no             |            N/A            | A link to issue/pull 1234 in `User1/Repo1`              |
+| `#1234`                     |            yes            |            N/A            | A link to _external issue_ 1234 for `User1/Repo1`       |
+| `!1234`                     |            yes            |            N/A            | A link to _PR_ 1234 for `User1/Repo1`                   |
+| `User1/Repo1#1234`          |            no             |            N/A            | A link to issue/pull 1234 in `User1/Repo1`              |
+| `User1/Repo1!1234`          |            no             |            N/A            | A link to issue/pull 1234 in `User1/Repo1`              |
+| `User1/Repo1#1234`          |            yes            |            N/A            | A link to _external issue_ 1234 for `User1/Repo1`       |
+| `User1/Repo1!1234`          |            yes            |            N/A            | A link to _PR_ 1234 for `User1/Repo1`                   |
+| `UserZ/RepoZ#1234`          |            N/A            |            no             | A link to issue/pull 1234 in `UserZ/RepoZ`              |
+| `UserZ/RepoZ!1234`          |            N/A            |            no             | A link to issue/pull 1234 in `UserZ/RepoZ`              |
+| `UserZ/RepoZ#1234`          |            N/A            |            yes            | A link to _external issue_ 1234 for `UserZ/RepoZ`       |
+| `UserZ/RepoZ!1234`          |            N/A            |            yes            | A link to _PR_ 1234 for `UserZ/RepoZ`                   |
+| **Alphanumeric issue IDs:** |             -             |             -             | -                                                       |
+| `AAA-1234`                  |            yes            |            N/A            | A link to _external issue_ `AAA-1234` for `User1/Repo1` |
+| `!1234`                     |            yes            |            N/A            | A link to _PR_ 1234 for `User1/Repo1`                   |
+| `User1/Repo1!1234`          |            yes            |            N/A            | A link to _PR_ 1234 for `User1/Repo1`                   |
+| _Not supported_             |            N/A            |            yes            | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
+| `UserZ/RepoZ!1234`          |            N/A            |            yes            | A link to _PR_ 1234 in `UserZ/RepoZ`                    |
 
 _The last section is for repositories with external issue trackers that use alphanumeric format._
 

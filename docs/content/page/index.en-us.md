@@ -4,7 +4,7 @@ title: "Documentation"
 slug: "documentation"
 url: "/en-us/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -128,6 +128,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
     - Environment variables
     - Command line options
 - Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/master/options/locale))
+- [Mermaid](https://mermaidjs.github.io/) Diagram support
 - Mail service
     - Notifications
     - Registration confirmation

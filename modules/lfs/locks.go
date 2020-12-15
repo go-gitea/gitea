@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -60,7 +61,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 		return
 	}
 	ctx.JSON(200, api.LFSLockList{
-		Locks: []*api.LFSLock{lock.APIFormat()},
+		Locks: []*api.LFSLock{convert.ToLFSLock(lock)},
 	})
 }
 
@@ -140,7 +141,7 @@ func GetListLockHandler(ctx *context.Context) {
 	lockListAPI := make([]*api.LFSLock, len(lockList))
 	next := ""
 	for i, l := range lockList {
-		lockListAPI[i] = l.APIFormat()
+		lockListAPI[i] = convert.ToLFSLock(l)
 	}
 	if limit > 0 && len(lockList) == limit {
 		next = strconv.Itoa(cursor + 1)
@@ -198,7 +199,7 @@ func PostLockHandler(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(409, api.LFSLockError{
-				Lock:    lock.APIFormat(),
+				Lock:    convert.ToLFSLock(lock),
 				Message: "already created lock",
 			})
 			return
@@ -216,7 +217,7 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(201, api.LFSLockResponse{Lock: lock.APIFormat()})
+	ctx.JSON(201, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
 }
 
 // VerifyLockHandler list locks for verification
@@ -274,9 +275,9 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
 	for _, l := range lockList {
 		if l.Owner.ID == ctx.User.ID {
-			lockOursListAPI = append(lockOursListAPI, l.APIFormat())
+			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(l))
 		} else {
-			lockTheirsListAPI = append(lockTheirsListAPI, l.APIFormat())
+			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))
 		}
 	}
 	ctx.JSON(200, api.LFSLockListVerify{
@@ -340,5 +341,5 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(200, api.LFSLockResponse{Lock: lock.APIFormat()})
+	ctx.JSON(200, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
 }

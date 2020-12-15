@@ -10,7 +10,7 @@ var Ini = internal.Register(MustNewLexer(
 	&Config{
 		Name:      "INI",
 		Aliases:   []string{"ini", "cfg", "dosini"},
-		Filenames: []string{"*.ini", "*.cfg", "*.inf", ".gitconfig"},
+		Filenames: []string{"*.ini", "*.cfg", "*.inf", ".gitconfig", ".editorconfig"},
 		MimeTypes: []string{"text/x-ini", "text/inf"},
 	},
 	Rules{

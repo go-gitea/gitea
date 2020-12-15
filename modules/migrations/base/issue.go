@@ -15,6 +15,7 @@ type Issue struct {
 	PosterEmail string
 	Title       string
 	Content     string
+	Ref         string
 	Milestone   string
 	State       string // closed, open
 	IsLocked    bool
@@ -23,4 +24,5 @@ type Issue struct {
 	Closed      *time.Time
 	Labels      []*Label
 	Reactions   []*Reaction
+	Assignees   []string
 }

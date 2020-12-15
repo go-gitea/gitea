@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -49,6 +50,7 @@ const (
 	ActionApprovePullRequest                       // 21
 	ActionRejectPullRequest                        // 22
 	ActionCommentPull                              // 23
+	ActionPublishRelease                           // 24
 )
 
 // Action represents user operation type and other information to
@@ -76,7 +78,8 @@ func (a *Action) GetOpType() ActionType {
 	return a.OpType
 }
 
-func (a *Action) loadActUser() {
+// LoadActUser loads a.ActUser
+func (a *Action) LoadActUser() {
 	if a.ActUser != nil {
 		return
 	}
@@ -104,13 +107,13 @@ func (a *Action) loadRepo() {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.loadActUser()
+	a.LoadActUser()
 	return a.ActUser.Name
 }
 
@@ -137,12 +140,6 @@ func (a *Action) GetDisplayNameTitle() string {
 		return a.ShortActUserName()
 	}
 	return a.GetActFullName()
-}
-
-// GetActAvatar the action's user's avatar link
-func (a *Action) GetActAvatar() string {
-	a.loadActUser()
-	return a.ActUser.RelAvatarLink()
 }
 
 // GetRepoUserName returns the name of the action repository owner.
@@ -242,7 +239,7 @@ func (a *Action) getCommentLink(e Engine) string {
 
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
-	return a.RefName
+	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
 }
 
 // GetContent returns the action's content.
@@ -338,9 +335,9 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	actions := make([]*Action, 0, 20)
+	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(20).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 

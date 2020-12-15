@@ -1,16 +1,16 @@
 <div class="ui top attached pull tabular stackable menu">
 	<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.RepoLink}}/pulls/{{.Issue.Index}}">
-		{{svg "octicon-comment-discussion" 16}}
+		{{svg "octicon-comment-discussion"}}
 		{{$.i18n.Tr "repo.pulls.tab_conversation"}}
 		<span class="ui {{if not .Issue.NumComments}}gray{{else}}blue{{end}} small label">{{.Issue.NumComments}}</span>
 	</a>
 	<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/commits"{{end}}>
-		{{svg "octicon-git-commit" 16}}
+		{{svg "octicon-git-commit"}}
 		{{$.i18n.Tr "repo.pulls.tab_commits"}}
 		<span class="ui {{if not .NumCommits}}gray{{else}}blue{{end}} small label">{{if .NumCommits}}{{.NumCommits}}{{else}}N/A{{end}}</span>
 	</a>
 	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/files"{{end}}>
-		{{svg "octicon-diff" 16}}
+		{{svg "octicon-diff"}}
 		{{$.i18n.Tr "repo.pulls.tab_files"}}
 		<span class="ui {{if not .NumFiles}}gray{{else}}blue{{end}} small label">{{if .NumFiles}}{{.NumFiles}}{{else}}N/A{{end}}</span>
 	</a>

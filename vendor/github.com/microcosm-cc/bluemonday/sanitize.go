@@ -133,8 +133,8 @@ func sanitizedUrl(val string) (string, error) {
 	for k, vals := range queryValues {
 		sk := html.EscapeString(k)
 		for _, v := range vals {
-			sv := escapeUrlComponent(v)
-			sanitizedQueryValues.Set(sk, sv)
+			sv := v
+			sanitizedQueryValues.Add(sk, sv)
 		}
 	}
 	u.RawQuery = sanitizedQueryValues.Encode()
@@ -390,10 +390,10 @@ func (p *Policy) sanitizeAttrs(
 		hasStylePolicies = true
 	}
 	// no specific element policy found, look for a pattern match
-	if !hasStylePolicies{
-		for k, v := range p.elsMatchingAndStyles{
+	if !hasStylePolicies {
+		for k, v := range p.elsMatchingAndStyles {
 			if k.MatchString(elementName) {
-				if len(v) > 0{
+				if len(v) > 0 {
 					hasStylePolicies = true
 					break
 				}
@@ -669,14 +669,14 @@ func (p *Policy) sanitizeAttrs(
 
 func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.Attribute {
 	sps := p.elsAndStyles[elementName]
-	if len(sps) == 0{
+	if len(sps) == 0 {
 		sps = map[string]stylePolicy{}
 		// check for any matching elements, if we don't already have a policy found
 		// if multiple matches are found they will be overwritten, it's best
 		// to not have overlapping matchers
-		for regex, policies :=range p.elsMatchingAndStyles{
-			if regex.MatchString(elementName){
-				for k, v := range policies{
+		for regex, policies := range p.elsMatchingAndStyles {
+			if regex.MatchString(elementName) {
+				for k, v := range policies {
 					sps[k] = v
 				}
 			}
@@ -874,7 +874,7 @@ func removeUnicode(value string) string {
 	return substitutedValue
 }
 
-func (p *Policy) matchRegex(elementName string ) (map[string]attrPolicy, bool) {
+func (p *Policy) matchRegex(elementName string) (map[string]attrPolicy, bool) {
 	aps := make(map[string]attrPolicy, 0)
 	matched := false
 	for regex, attrs := range p.elsMatchingAndAttrs {

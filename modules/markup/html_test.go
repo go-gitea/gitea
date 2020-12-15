@@ -35,7 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	var commit = util.URLJoin(AppSubURL, "commit", sha)
 	var subtree = util.URLJoin(commit, "src")
-	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var tree = strings.ReplaceAll(subtree, "/commit/", "/tree/")
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
@@ -235,7 +235,7 @@ func TestRender_emoji(t *testing.T) {
 	setting.StaticURLPrefix = AppURL
 
 	test := func(input, expected string) {
-		expected = strings.Replace(expected, "&", "&amp;", -1)
+		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -255,7 +255,7 @@ func TestRender_emoji(t *testing.T) {
 	//Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
-		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
 
 	test(
 		"Some text with 😄 in the middle",
@@ -266,6 +266,10 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		"Some text with 😄😄 2 emoji next to each other",
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+	test(
+		"😎🤪🔐🤑❓",
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+
 	// should match nothing
 	test(
 		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",

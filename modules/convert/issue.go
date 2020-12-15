@@ -31,9 +31,10 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		URL:      issue.APIURL(),
 		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
-		Poster:   issue.Poster.APIFormat(),
+		Poster:   ToUser(issue.Poster, false, false),
 		Title:    issue.Title,
 		Body:     issue.Content,
+		Ref:      issue.Ref,
 		Labels:   ToLabelList(issue.Labels),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,
@@ -65,9 +66,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, false, false))
 		}
-		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(issue.Assignees[0], false, false) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(); err != nil {
@@ -115,6 +116,46 @@ func ToTrackedTime(t *models.TrackedTime) (apiT *api.TrackedTime) {
 	return
 }
 
+// ToStopWatches convert Stopwatch list to api.StopWatches
+func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
+	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
+
+	issueCache := make(map[int64]*models.Issue)
+	repoCache := make(map[int64]*models.Repository)
+	var (
+		issue *models.Issue
+		repo  *models.Repository
+		ok    bool
+		err   error
+	)
+
+	for _, sw := range sws {
+		issue, ok = issueCache[sw.IssueID]
+		if !ok {
+			issue, err = models.GetIssueByID(sw.IssueID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		repo, ok = repoCache[issue.RepoID]
+		if !ok {
+			repo, err = models.GetRepositoryByID(issue.RepoID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		result = append(result, api.StopWatch{
+			Created:       sw.CreatedUnix.AsTime(),
+			IssueIndex:    issue.Index,
+			IssueTitle:    issue.Title,
+			RepoOwnerName: repo.OwnerName,
+			RepoName:      repo.Name,
+		})
+	}
+	return result, nil
+}
+
 // ToTrackedTimeList converts TrackedTimeList to API format
 func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
@@ -152,6 +193,8 @@ func ToAPIMilestone(m *models.Milestone) *api.Milestone {
 		Description:  m.Content,
 		OpenIssues:   m.NumOpenIssues,
 		ClosedIssues: m.NumClosedIssues,
+		Created:      m.CreatedUnix.AsTime(),
+		Updated:      m.UpdatedUnix.AsTimePtr(),
 	}
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()

@@ -23,3 +23,8 @@ export function isDarkTheme() {
 export function uniq(arr) {
   return Array.from(new Set(arr));
 }
+
+// strip <tags> from a string
+export function stripTags(text) {
+  return text.replace(/<[^>]*>?/gm, '');
+}

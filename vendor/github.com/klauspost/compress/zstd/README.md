@@ -5,11 +5,8 @@ It offers a very wide range of compression / speed trade-off, while being backed
 A high performance compression algorithm is implemented. For now focused on speed. 
 
 This package provides [compression](#Compressor) to and [decompression](#Decompressor) of Zstandard content. 
-Note that custom dictionaries are not supported yet, so if your code relies on that, 
-you cannot use the package as-is.
 
 This package is pure Go and without use of "unsafe". 
-If a significant speedup can be achieved using "unsafe", it may be added as an option later.
 
 The `zstd` package is provided as open source software using a Go standard license.
 
@@ -57,11 +54,11 @@ To create a writer with default options, do like this:
 ```Go
 // Compress input to output.
 func Compress(in io.Reader, out io.Writer) error {
-    w, err := NewWriter(output)
+    enc, err := zstd.NewWriter(out)
     if err != nil {
         return err
     }
-    _, err := io.Copy(w, input)
+    _, err = io.Copy(enc, in)
     if err != nil {
         enc.Close()
         return err
@@ -142,116 +139,97 @@ Using the Encoder for both a stream and individual blocks concurrently is safe.
 I have collected some speed examples to compare speed and compression against other compressors.
 
 * `file` is the input file.
-* `out` is the compressor used. `zskp` is this package. `gzstd` is gzip standard library. `zstd` is the Datadog cgo library.
+* `out` is the compressor used. `zskp` is this package. `zstd` is the Datadog cgo library. `gzstd/gzkp` is gzip standard and this library.
 * `level` is the compression level used. For `zskp` level 1 is "fastest", level 2 is "default".
 * `insize`/`outsize` is the input/output size.
 * `millis` is the number of milliseconds used for compression.
 * `mb/s` is megabytes (2^20 bytes) per second.
 
 ```
-The test data for the Large Text Compression Benchmark is the first
-10^9 bytes of the English Wikipedia dump on Mar. 3, 2006.
-http://mattmahoney.net/dc/textdata.html
+Silesia Corpus:
+http://sun.aei.polsl.pl/~sdeor/corpus/silesia.zip
 
-file    out     level   insize  outsize     millis  mb/s
-enwik9  zskp    1   1000000000  343833033   5840    163.30
-enwik9  zskp    2   1000000000  317822183   8449    112.87
-enwik9  gzstd   1   1000000000  382578136   13627   69.98
-enwik9  gzstd   3   1000000000  349139651   22344   42.68
-enwik9  zstd    1   1000000000  357416379   4838    197.12
-enwik9  zstd    3   1000000000  313734522   7556    126.21
+This package:
+file    out     level   insize      outsize     millis  mb/s
+silesia.tar zskp    1   211947520   73101992    643     313.87
+silesia.tar zskp    2   211947520   67504318    969     208.38
+silesia.tar zskp    3   211947520   65177448    1899    106.44
+
+cgo zstd:
+silesia.tar zstd    1   211947520   73605392    543     371.56
+silesia.tar zstd    3   211947520   66793289    864     233.68
+silesia.tar zstd    6   211947520   62916450    1913    105.66
+
+gzip, stdlib/this package:
+silesia.tar gzstd   1   211947520   80007735    1654    122.21
+silesia.tar gzkp    1   211947520   80369488    1168    173.06
 
 GOB stream of binary data. Highly compressible.
 https://files.klauspost.com/compress/gob-stream.7z
 
-file        out level   insize      outsize     millis  mb/s
-gob-stream  zskp    1   1911399616  234981983   5100    357.42
-gob-stream  zskp    2   1911399616  208674003   6698    272.15
-gob-stream  gzstd   1   1911399616  357382641   14727   123.78
-gob-stream  gzstd   3   1911399616  327835097   17005   107.19
-gob-stream  zstd    1   1911399616  250787165   4075    447.22
-gob-stream  zstd    3   1911399616  208191888   5511    330.77
+file        out     level   insize  outsize     millis  mb/s
+gob-stream  zskp    1   1911399616  235022249   3088    590.30
+gob-stream  zskp    2   1911399616  205669791   3786    481.34
+gob-stream  zskp    3   1911399616  185792019   9324    195.48
+gob-stream  zstd    1   1911399616  249810424   2637    691.26
+gob-stream  zstd    3   1911399616  208192146   3490    522.31
+gob-stream  zstd    6   1911399616  193632038   6687    272.56
+gob-stream  gzstd   1   1911399616  357382641   10251   177.82
+gob-stream  gzkp    1   1911399616  362156523   5695    320.08
 
-Highly compressible JSON file. Similar to logs in a lot of ways.
-https://files.klauspost.com/compress/adresser.001.gz
+The test data for the Large Text Compression Benchmark is the first
+10^9 bytes of the English Wikipedia dump on Mar. 3, 2006.
+http://mattmahoney.net/dc/textdata.html
 
-file            out level   insize      outsize     millis  mb/s
-adresser.001    zskp    1   1073741824  18510122    1477    692.83
-adresser.001    zskp    2   1073741824  19831697    1705    600.59
-adresser.001    gzstd   1   1073741824  47755503    3079    332.47
-adresser.001    gzstd   3   1073741824  40052381    3051    335.63
-adresser.001    zstd    1   1073741824  16135896    994     1030.18
-adresser.001    zstd    3   1073741824  17794465    905     1131.49
+file    out level   insize      outsize     millis  mb/s
+enwik9  zskp    1   1000000000  343848582   3609    264.18
+enwik9  zskp    2   1000000000  317276632   5746    165.97
+enwik9  zskp    3   1000000000  294540704   11725   81.34
+enwik9  zstd    1   1000000000  358072021   3110    306.65
+enwik9  zstd    3   1000000000  313734672   4784    199.35
+enwik9  zstd    6   1000000000  295138875   10290   92.68
+enwik9  gzstd   1   1000000000  382578136   9604    99.30
+enwik9  gzkp    1   1000000000  383825945   6544    145.73
+
+Highly compressible JSON file.
+https://files.klauspost.com/compress/github-june-2days-2019.json.zst
+
+file                        out level   insize      outsize     millis  mb/s
+github-june-2days-2019.json zskp    1   6273951764  699045015   10620   563.40
+github-june-2days-2019.json zskp    2   6273951764  617881763   11687   511.96
+github-june-2days-2019.json zskp    3   6273951764  537511906   29252   204.54
+github-june-2days-2019.json zstd    1   6273951764  766284037   8450    708.00
+github-june-2days-2019.json zstd    3   6273951764  661889476   10927   547.57
+github-june-2days-2019.json zstd    6   6273951764  642756859   22996   260.18
+github-june-2days-2019.json gzstd   1   6273951764  1164400847  29948   199.79
+github-june-2days-2019.json gzkp    1   6273951764  1128755542  19236   311.03
 
 VM Image, Linux mint with a few installed applications:
 https://files.klauspost.com/compress/rawstudio-mint14.7z
 
-file    out level   insize  outsize millis  mb/s
-rawstudio-mint14.tar    zskp    1   8558382592  3648168838  33398   244.38
-rawstudio-mint14.tar    zskp    2   8558382592  3376721436  50962   160.16
-rawstudio-mint14.tar    gzstd   1   8558382592  3926257486  84712   96.35
-rawstudio-mint14.tar    gzstd   3   8558382592  3740711978  176344  46.28
-rawstudio-mint14.tar    zstd    1   8558382592  3607859742  27903   292.51
-rawstudio-mint14.tar    zstd    3   8558382592  3341710879  46700   174.77
+file                    out level   insize      outsize     millis  mb/s
+rawstudio-mint14.tar    zskp    1   8558382592  3667489370  20210   403.84
+rawstudio-mint14.tar    zskp    2   8558382592  3364592300  31873   256.07
+rawstudio-mint14.tar    zskp    3   8558382592  3224594213  71751   113.75
+rawstudio-mint14.tar    zstd    1   8558382592  3609250104  17136   476.27
+rawstudio-mint14.tar    zstd    3   8558382592  3341679997  29262   278.92
+rawstudio-mint14.tar    zstd    6   8558382592  3235846406  77904   104.77
+rawstudio-mint14.tar    gzstd   1   8558382592  3926257486  57722   141.40
+rawstudio-mint14.tar    gzkp    1   8558382592  3970463184  41749   195.49
 
+CSV data:
+https://files.klauspost.com/compress/nyc-taxi-data-10M.csv.zst
 
-The test data is designed to test archivers in realistic backup scenarios.
-http://mattmahoney.net/dc/10gb.html
-
-file    out level   insize  outsize millis  mb/s
-10gb.tar    zskp    1   10065157632 4883149814  45715   209.97
-10gb.tar    zskp    2   10065157632 4638110010  60970   157.44
-10gb.tar    gzstd   1   10065157632 5198296126  97769   98.18
-10gb.tar    gzstd   3   10065157632 4932665487  313427  30.63
-10gb.tar    zstd    1   10065157632 4940796535  40391   237.65
-10gb.tar    zstd    3   10065157632 4638618579  52911   181.42
-
-Silesia Corpus:
-http://sun.aei.polsl.pl/~sdeor/corpus/silesia.zip
-
-file    out level   insize  outsize millis  mb/s
-silesia.tar zskp    1   211947520   73025800    1108    182.26
-silesia.tar zskp    2   211947520   67674684    1599    126.41
-silesia.tar gzstd   1   211947520   80007735    2515    80.37
-silesia.tar gzstd   3   211947520   73133380    4259    47.45
-silesia.tar zstd    1   211947520   73513991    933     216.64
-silesia.tar zstd    3   211947520   66793301    1377    146.79
+file                    out level   insize      outsize     millis  mb/s
+nyc-taxi-data-10M.csv   zskp    1   3325605752  641339945   8925    355.35
+nyc-taxi-data-10M.csv   zskp    2   3325605752  591748091   11268   281.44
+nyc-taxi-data-10M.csv   zskp    3   3325605752  538490114   19880   159.53
+nyc-taxi-data-10M.csv   zstd    1   3325605752  687399637   8233    385.18
+nyc-taxi-data-10M.csv   zstd    3   3325605752  598514411   10065   315.07
+nyc-taxi-data-10M.csv   zstd    6   3325605752  570522953   20038   158.27
+nyc-taxi-data-10M.csv   gzstd   1   3325605752  928656485   23876   132.83
+nyc-taxi-data-10M.csv   gzkp    1   3325605752  924718719   16388   193.53
 ```
-
-### Converters
-
-As part of the development process a *Snappy* -> *Zstandard* converter was also built.
-
-This can convert a *framed* [Snappy Stream](https://godoc.org/github.com/golang/snappy#Writer) to a zstd stream. 
-Note that a single block is not framed.
-
-Conversion is done by converting the stream directly from Snappy without intermediate full decoding.
-Therefore the compression ratio is much less than what can be done by a full decompression
-and compression, and a faulty Snappy stream may lead to a faulty Zstandard stream without
-any errors being generated.
-No CRC value is being generated and not all CRC values of the Snappy stream are checked.
-However, it provides really fast re-compression of Snappy streams.
-
-
-```
-BenchmarkSnappy_ConvertSilesia-8           1  1156001600 ns/op   183.35 MB/s
-Snappy len 103008711 -> zstd len 82687318
-
-BenchmarkSnappy_Enwik9-8           1  6472998400 ns/op   154.49 MB/s
-Snappy len 508028601 -> zstd len 390921079
-```
-
-
-```Go
-    s := zstd.SnappyConverter{}
-    n, err = s.Convert(input, output)
-    if err != nil {
-        fmt.Println("Re-compressed stream to", n, "bytes")
-    }
-```
-
-The converter `s` can be reused to avoid allocations, even after errors.
-
 
 ## Decompressor
 
@@ -273,14 +251,14 @@ For streaming use a simple setup could look like this:
 import "github.com/klauspost/compress/zstd"
 
 func Decompress(in io.Reader, out io.Writer) error {
-    d, err := zstd.NewReader(input)
+    d, err := zstd.NewReader(in)
     if err != nil {
         return err
     }
     defer d.Close()
     
     // Copy content...
-    _, err := io.Copy(out, d)
+    _, err = io.Copy(out, d)
     return err
 }
 ```
@@ -308,6 +286,35 @@ Both of these cases should provide the functionality needed.
 The decoder can be used for *concurrent* decompression of multiple buffers. 
 It will only allow a certain number of concurrent operations to run. 
 To tweak that yourself use the `WithDecoderConcurrency(n)` option when creating the decoder.   
+
+### Dictionaries
+
+Data compressed with [dictionaries](https://github.com/facebook/zstd#the-case-for-small-data-compression) can be decompressed.
+
+Dictionaries are added individually to Decoders.
+Dictionaries are generated by the `zstd --train` command and contains an initial state for the decoder.
+To add a dictionary use the `WithDecoderDicts(dicts ...[]byte)` option with the dictionary data.
+Several dictionaries can be added at once.
+
+The dictionary will be used automatically for the data that specifies them.
+A re-used Decoder will still contain the dictionaries registered.
+
+When registering multiple dictionaries with the same ID, the last one will be used.
+
+It is possible to use dictionaries when compressing data.
+
+To enable a dictionary use `WithEncoderDict(dict []byte)`. Here only one dictionary will be used 
+and it will likely be used even if it doesn't improve compression. 
+
+The used dictionary must be used to decompress the content.
+
+For any real gains, the dictionary should be built with similar data. 
+If an unsuitable dictionary is used the output may be slightly larger than using no dictionary.
+Use the [zstd commandline tool](https://github.com/facebook/zstd/releases) to build a dictionary from sample data.
+For information see [zstd dictionary information](https://github.com/facebook/zstd#the-case-for-small-data-compression). 
+
+For now there is a fixed startup performance penalty for compressing content with dictionaries. 
+This will likely be improved over time. Just be aware to test performance when implementing.  
 
 ### Allocation-less operation
 
@@ -350,36 +357,42 @@ These are some examples of performance compared to [datadog cgo library](https:/
 The first two are streaming decodes and the last are smaller inputs. 
  
 ```
-BenchmarkDecoderSilesia-8             20       642550210 ns/op   329.85 MB/s      3101 B/op        8 allocs/op
-BenchmarkDecoderSilesiaCgo-8         100       384930000 ns/op   550.61 MB/s    451878 B/op     9713 allocs/op
+BenchmarkDecoderSilesia-8                          3     385000067 ns/op     550.51 MB/s        5498 B/op          8 allocs/op
+BenchmarkDecoderSilesiaCgo-8                       6     197666567 ns/op    1072.25 MB/s      270672 B/op          8 allocs/op
 
-BenchmarkDecoderEnwik9-2              10        3146000080 ns/op         317.86 MB/s        2649 B/op          9 allocs/op
-BenchmarkDecoderEnwik9Cgo-2           20        1905900000 ns/op         524.69 MB/s     1125120 B/op      45785 allocs/op
+BenchmarkDecoderEnwik9-8                           1    2027001600 ns/op     493.34 MB/s       10496 B/op         18 allocs/op
+BenchmarkDecoderEnwik9Cgo-8                        2     979499200 ns/op    1020.93 MB/s      270672 B/op          8 allocs/op
 
-BenchmarkDecoder_DecodeAll/z000000.zst-8               200     7049994 ns/op   138.26 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000001.zst-8            100000       19560 ns/op    97.49 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000002.zst-8              5000      297599 ns/op   236.99 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000003.zst-8              2000      725502 ns/op   141.17 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000004.zst-8            200000        9314 ns/op    54.54 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000005.zst-8             10000      137500 ns/op   104.72 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000006.zst-8               500     2316009 ns/op   206.06 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000007.zst-8             20000       64499 ns/op   344.90 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000008.zst-8             50000       24900 ns/op   219.56 MB/s        40 B/op        2 allocs/op
-BenchmarkDecoder_DecodeAll/z000009.zst-8              1000     2348999 ns/op   154.01 MB/s        40 B/op        2 allocs/op
+Concurrent performance:
 
-BenchmarkDecoder_DecodeAllCgo/z000000.zst-8            500     4268005 ns/op   228.38 MB/s   1228849 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000001.zst-8         100000       15250 ns/op   125.05 MB/s      2096 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000002.zst-8          10000      147399 ns/op   478.49 MB/s     73776 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000003.zst-8           5000      320798 ns/op   319.27 MB/s    139312 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000004.zst-8         200000       10004 ns/op    50.77 MB/s       560 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000005.zst-8          20000       73599 ns/op   195.64 MB/s     19120 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000006.zst-8           1000     1119003 ns/op   426.48 MB/s    557104 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000007.zst-8          20000      103450 ns/op   215.04 MB/s     71296 B/op        9 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000008.zst-8         100000       20130 ns/op   271.58 MB/s      6192 B/op        3 allocs/op
-BenchmarkDecoder_DecodeAllCgo/z000009.zst-8           2000     1123500 ns/op   322.00 MB/s    368688 B/op        3 allocs/op
+BenchmarkDecoder_DecodeAllParallel/kppkn.gtb.zst-16                28915         42469 ns/op    4340.07 MB/s         114 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/geo.protodata.zst-16           116505          9965 ns/op    11900.16 MB/s         16 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/plrabn12.txt.zst-16              8952        134272 ns/op    3588.70 MB/s         915 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/lcet10.txt.zst-16               11820        102538 ns/op    4161.90 MB/s         594 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/asyoulik.txt.zst-16             34782         34184 ns/op    3661.88 MB/s          60 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/alice29.txt.zst-16              27712         43447 ns/op    3500.58 MB/s          99 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/html_x_4.zst-16                 62826         18750 ns/op    21845.10 MB/s        104 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/paper-100k.pdf.zst-16          631545          1794 ns/op    57078.74 MB/s          2 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/fireworks.jpeg.zst-16         1690140           712 ns/op    172938.13 MB/s         1 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/urls.10K.zst-16                 10432        113593 ns/op    6180.73 MB/s        1143 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/html.zst-16                    113206         10671 ns/op    9596.27 MB/s          15 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallel/comp-data.bin.zst-16          1530615           779 ns/op    5229.49 MB/s           0 B/op          0 allocs/op
+
+BenchmarkDecoder_DecodeAllParallelCgo/kppkn.gtb.zst-16             65217         16192 ns/op    11383.34 MB/s         46 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/geo.protodata.zst-16        292671          4039 ns/op    29363.19 MB/s          6 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/plrabn12.txt.zst-16          26314         46021 ns/op    10470.43 MB/s        293 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/lcet10.txt.zst-16            33897         34900 ns/op    12227.96 MB/s        205 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/asyoulik.txt.zst-16         104348         11433 ns/op    10949.01 MB/s         20 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/alice29.txt.zst-16           75949         15510 ns/op    9805.60 MB/s          32 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/html_x_4.zst-16             173910          6756 ns/op    60624.29 MB/s         37 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/paper-100k.pdf.zst-16       923076          1339 ns/op    76474.87 MB/s          1 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/fireworks.jpeg.zst-16       922920          1351 ns/op    91102.57 MB/s          2 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/urls.10K.zst-16              27649         43618 ns/op    16096.19 MB/s        407 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/html.zst-16                 279073          4160 ns/op    24614.18 MB/s          6 B/op          0 allocs/op
+BenchmarkDecoder_DecodeAllParallelCgo/comp-data.bin.zst-16        749938          1579 ns/op    2581.71 MB/s           0 B/op          0 allocs/op
 ```
 
-This reflects the performance around May 2019, but this may be out of date.
+This reflects the performance around May 2020, but this may be out of date.
 
 # Contributions
 
