@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
+func listUserOrgs(ctx *context.APIContext, u *models.User) {
 
 	listOptions := utils.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
@@ -62,7 +62,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	listUserOrgs(ctx, ctx.User, true)
+	listUserOrgs(ctx, ctx.User)
 }
 
 // ListUserOrgs list user's orgs
@@ -94,7 +94,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User != nil && (ctx.User.IsAdmin || ctx.User.ID == u.ID))
+	listUserOrgs(ctx, u)
 }
 
 // GetAll return list of all public organizations
