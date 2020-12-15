@@ -18,8 +18,6 @@ import (
 	"github.com/unknwon/com"
 )
 
-const prettyLogFormat = `--pretty=format:%H`
-
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()

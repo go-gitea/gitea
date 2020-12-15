@@ -23,12 +23,6 @@ type Object struct {
 	repo service.Repository
 
 	encodedObject plumbing.EncodedObject
-
-	gotSize bool
-	size    int64
-
-	gotType bool
-	typ     string
 }
 
 // ID returns the hash this object is associated with

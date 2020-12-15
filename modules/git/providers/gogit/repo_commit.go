@@ -216,7 +216,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (service.Commit, error) 
 		nil)
 
 	bufReader := bufio.NewReader(stdoutReader)
-	bufReader.Discard(7)
+	_, _ = bufReader.Discard(7)
 	idStr, err := bufReader.ReadString('\n')
 	if err != nil {
 		return nil, err

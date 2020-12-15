@@ -58,9 +58,9 @@ func (o *Object) ReaderContext(ctx context.Context) (io.ReadCloser, error) {
 		err = git.NewCommandContext(ctx, "cat-file", "--batch").RunInDirFullPipeline(o.repo.Path(), stdoutWriter, stderr, strings.NewReader(o.hash.String()+"\n"))
 		if err != nil {
 			err = git.ConcatenateError(err, stderr.String())
-			stdoutWriter.CloseWithError(err)
+			_ = stdoutWriter.CloseWithError(err)
 		} else {
-			stdoutWriter.Close()
+			_ = stdoutWriter.Close()
 		}
 	}()
 

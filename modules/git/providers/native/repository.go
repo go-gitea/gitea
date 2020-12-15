@@ -84,7 +84,7 @@ func (repo *Repository) LineBlame(revision, path, file string, line uint) (servi
 // 	__) (/_ |  \/ | (_ (/_
 //
 
-// Service returns this repositories prefered service
+// Service returns this repositories preferred service
 func (repo *Repository) Service() service.GitService {
 	return gitService
 }

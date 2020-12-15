@@ -59,7 +59,9 @@ func (repo *Repository) getTree(id service.Hash) (*Tree, error) {
 		stdinReader)
 
 	// Write the initial ID
-	stdinWriter.Write([]byte(id.String() + "\n"))
+	if _, err := stdinWriter.Write([]byte(id.String() + "\n")); err != nil {
+		return nil, err
+	}
 
 	// Create buffered reader from the stdout
 	bufReader := bufio.NewReader(stdoutReader)
@@ -76,7 +78,9 @@ func (repo *Repository) getTree(id service.Hash) (*Tree, error) {
 				return nil, err
 			}
 			// Write the object ID
-			stdinWriter.Write([]byte(objectIDStr + "\n"))
+			if _, err := stdinWriter.Write([]byte(objectIDStr + "\n")); err != nil {
+				return nil, err
+			}
 		case "commit":
 			treeIDStr, err := ReadTreeID(bufReader, size)
 			if err != nil {
@@ -88,7 +92,7 @@ func (repo *Repository) getTree(id service.Hash) (*Tree, error) {
 			treeID = id
 			_ = stdinWriter.Close()
 		default:
-			stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+			_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 			log.Error("ID %s is not a tree object or doesn't contain a tree. underlying type: %s", id.String(), typ)
 			_ = stdinWriter.Close()
 			return nil, git.ErrNotExist{

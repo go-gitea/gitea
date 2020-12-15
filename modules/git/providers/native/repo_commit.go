@@ -168,7 +168,7 @@ func (repo *Repository) getCommit(id service.Hash) (*Commit, error) {
 	case "commit":
 		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
 	default:
-		stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
+		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 		log.Error("Unknown git typ: %s for ID: %s", typ, id.String())
 		return nil, git.ErrNotExist{
 			ID: id.String(),

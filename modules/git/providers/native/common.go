@@ -16,17 +16,6 @@ import (
 // LogHashFormat represents the pretty format that just reports the hash
 const LogHashFormat = "--pretty=format:%H"
 
-func pipeCommand(cmd *git.Command, path string, stdout *io.PipeWriter, stdin io.Reader) {
-	stderr := strings.Builder{}
-	err := cmd.
-		RunInDirFullPipeline(path, stdout, &stderr, stdin)
-	if err != nil {
-		_ = stdout.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
-	} else {
-		_ = stdout.Close()
-	}
-}
-
 func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 	var branchNames []string
 

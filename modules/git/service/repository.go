@@ -220,7 +220,7 @@ type Repository interface {
 	// 	__) (/_ |  \/ | (_ (/_
 	//
 
-	// Service returns this repositories prefered service
+	// Service returns this repositories preferred service
 	Service() GitService
 }
 

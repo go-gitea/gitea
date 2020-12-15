@@ -23,8 +23,10 @@ type Note struct {
 // GetNote retrieves the git-notes data for a given commit.
 func GetNote(repo service.Repository, commitID string) (*Note, error) {
 	reader, commit, err := Service.GetNote(repo, commitID)
-
-	defer reader.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = reader.Close() }()
 	d, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err

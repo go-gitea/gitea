@@ -55,7 +55,7 @@ func (LogService) GetCommitByPathWithID(repo service.Repository, id service.Hash
 	}
 
 	bufReader := bufio.NewReader(stdoutReader)
-	bufReader.Discard(7)
+	_, _ = bufReader.Discard(7)
 	idStr, err := bufReader.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -315,14 +315,14 @@ func (l LogService) GetCommitsFromIDs(repo service.Repository, commitIDs []strin
 		for _, commitID := range commitIDs {
 			_, err := w.WriteString(commitID + "\n")
 			if err != nil {
-				stdoutWriter.CloseWithError(err)
+				_ = stdoutWriter.CloseWithError(err)
 			}
 		}
 		err := w.Flush()
 		if err != nil {
-			stdoutWriter.CloseWithError(err)
+			_ = stdoutWriter.CloseWithError(err)
 		}
-		stdoutWriter.Close()
+		_ = stdoutWriter.Close()
 	}()
 	return BatchReadCommits(repo, stdoutReader)
 }
