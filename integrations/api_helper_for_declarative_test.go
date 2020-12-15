@@ -219,6 +219,17 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 	}
 }
 
+func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
+	return func(t *testing.T) (api.PullRequest, error) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/?token="+ctx.Token, ctx.Username, repo, index)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		decoder := json.NewDecoder(resp.Body)
+		pr := api.PullRequest{}
+		err := decoder.Decode(&pr)
+		return pr, err
+	}
+}
+
 func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
@@ -251,6 +262,24 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, resp)
 		}
+	}
+}
+
+func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			MergeMessageField:      "doAPIMergePullRequest Merge",
+			Do:                     string(models.MergeStyleMerge),
+			MergeWhenChecksSucceed: true,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
 	}
 }
 
