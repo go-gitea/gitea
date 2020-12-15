@@ -283,8 +283,9 @@ func DetectContentType(data []byte) string {
 		data = data[:sniffLen]
 	}
 
-	if (strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
-		strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
+	if !setting.SVGRender.Disabled &&
+		((strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
+			strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data)) {
 
 		// SVG is unsupported.  https://github.com/golang/go/issues/15888
 		return SVGMimeType

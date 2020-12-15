@@ -269,6 +269,13 @@ var (
 		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
+	// SVG settings
+	SVGRender = struct {
+		Disabled bool `ini:"DISABLE_SVG_RENDER"`
+	}{
+		Disabled: false,
+	}
+
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
@@ -876,6 +883,8 @@ func NewContext() {
 		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
 		log.Fatal("Failed to map Markdown settings: %v", err)
+	} else if err = Cfg.Section("svg_render").MapTo(&SVGRender); err != nil {
+		log.Fatal("Failed to map SVGRender settings: %v", err)
 	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
 		log.Fatal("Fail to map Admin settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
