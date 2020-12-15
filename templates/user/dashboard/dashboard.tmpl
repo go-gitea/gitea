@@ -2,10 +2,10 @@
 <div class="page-content dashboard feeds">
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
-		{{template "user/recently_pushed_branches" .}}
 		{{template "base/alert" .}}
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui container ten wide column">
+				{{template "user/recently_pushed_branches" .}}
 				{{template "user/heatmap" .}}
 				{{template "user/dashboard/feeds" .}}
 			</div>

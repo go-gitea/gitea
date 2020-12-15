@@ -1,10 +1,8 @@
 {{range .RecentlyPushedBranches}}
-    <p>
-        You recently pushed to {{.Repo.Owner.Name}}/{{.Repo.LowerName}} on branch {{.RefName}}
-    	<a href="/{{.Repo.Owner.Name}}/{{.Repo.LowerName}}/compare/{{.Repo.DefaultBranch | EscapePound}}...{{if .Repo.IsFork}}{{.Repo.Owner.Name}}:{{end}}{{.RefName | EscapePound}}">
-    		<button id="new-pull-request" class="ui compact basic button">
-                {{$.i18n.Tr "repo.pulls.compare_changes"}}
-            </button>
+    <div class="ui blue message">
+        {{$.i18n.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .RefName | Safe}}
+    	<a class="ui compact blue button" href="/{{.Repo.Owner.Name}}/{{.Repo.LowerName}}/compare/{{.Repo.DefaultBranch | EscapePound}}...{{if .Repo.IsFork}}{{.Repo.Owner.Name}}:{{end}}{{.RefName | EscapePound}}">
+            {{$.i18n.Tr "repo.pulls.compare_changes"}}
     	</a>
-    </p>
+    </div>
 {{end}}
