@@ -627,7 +627,11 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.Content = *form.Body
 	}
 	if form.Ref != nil {
-		issue.Ref = *form.Ref
+		err = issue_service.ChangeIssueRef(issue, ctx.User, *form.Ref)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
+			return
+		}
 	}
 
 	// Update or remove the deadline, only if set and allowed
