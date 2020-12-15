@@ -6,7 +6,6 @@ package user
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -202,43 +201,12 @@ func GetPublicKey(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiKey)
 }
 
-func sshKeysExternallyManaged(user *models.User) (bool, error) {
-	if user.LoginSource == 0 {
-		return false, nil
-	}
-	source, err := models.GetLoginSourceByID(user.LoginSource)
-	if err != nil {
-		return false, err
-	}
-	ldapSource := source.LDAP()
-	if ldapSource != nil &&
-		source.IsSyncEnabled &&
-		(source.Type == models.LoginLDAP || source.Type == models.LoginDLDAP) &&
-		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
-		// Disable setting SSH keys for this user
-		return true, nil
-	}
-	return false, nil
-}
-
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
 		return
-	}
-
-	user, err := models.GetUserByID(uid)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
-	}
-	externallyManaged, err := sshKeysExternallyManaged(user)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "sshKeysExternallyManaged", err)
-	}
-	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Keys are externally managed for this user")
 	}
 
 	key, err := models.AddPublicKey(uid, form.Title, content, 0)
@@ -298,15 +266,17 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	externallyManaged, err := sshKeysExternallyManaged(ctx.User)
+
+	id := ctx.ParamsInt64(":id")
+	externallyManaged, err := models.PublicKeyIsExternallyManaged(id)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "sshKeysExternallyManaged", err)
+		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
 	}
 	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Keys are externally managed for this user")
+		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
 	}
 
-	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+	if err := models.DeletePublicKey(ctx.User, id); err != nil {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
