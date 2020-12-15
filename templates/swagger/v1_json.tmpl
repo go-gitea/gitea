@@ -11937,7 +11937,7 @@
       ],
       "properties": {
         "assignee": {
-          "description": "username of assignee",
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -11975,6 +11975,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "title": {
           "type": "string",
@@ -12778,6 +12782,7 @@
       "type": "object",
       "properties": {
         "assignee": {
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -12801,6 +12806,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "state": {
           "type": "string",
