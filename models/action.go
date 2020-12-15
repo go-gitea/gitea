@@ -354,11 +354,17 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 	limit := time.Now().Add(-24 * time.Hour).Unix()
 
 	err = x.
-		Join("LEFT", "pull_request", "pull_request.head_branch = replace(action.ref_name, 'refs/heads/', '')").
+		Select("action.*, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name").
+		Join("LEFT", "pull_request", "pull_request.head_branch = clean_ref_name").
 		Join("LEFT", "issue", "pull_request.issue_id = issue.id").
+		Join("LEFT", "repository", "action.repo_id = repository.id").
 		Where(builder.And(
 			builder.Eq{"action.op_type": ActionCommitRepo},
 			builder.Eq{"action.act_user_id": user.ID},
+			builder.Or(
+				builder.Expr("repository.default_branch != clean_ref_name"),
+				builder.Eq{"repository.is_fork": true},
+			),
 			builder.Or(
 				builder.IsNull{"pull_request.id"},
 				builder.And(
@@ -370,6 +376,7 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 			builder.Gte{"action.created_unix": limit},
 		)).
 		Limit(10).
+		GroupBy("clean_ref_name").
 		Desc("action.id").
 		Find(&actions)
 	if err != nil {
