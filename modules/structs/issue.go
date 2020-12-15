@@ -47,6 +47,7 @@ type Issue struct {
 	OriginalAuthorID int64      `json:"original_author_id"`
 	Title            string     `json:"title"`
 	Body             string     `json:"body"`
+	Ref              string     `json:"ref"`
 	Labels           []*Label   `json:"labels"`
 	Milestone        *Milestone `json:"milestone"`
 	Assignee         *User      `json:"assignee"`
