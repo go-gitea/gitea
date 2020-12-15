@@ -132,6 +132,7 @@ func ServCommand(ctx *macaron.Context) {
 			for _, verb := range ctx.QueryStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
+					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 					ctx.JSON(http.StatusNotFound, map[string]interface{}{
 						"results": results,
 						"type":    "ErrRepoNotExist",
@@ -317,6 +318,7 @@ func ServCommand(ctx *macaron.Context) {
 			userMode := perm.UnitAccessMode(unitType)
 
 			if userMode < mode {
+				log.Error("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
 				ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
 					"results": results,
 					"type":    "ErrUnauthorized",

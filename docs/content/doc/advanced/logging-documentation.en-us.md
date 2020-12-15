@@ -3,7 +3,7 @@ date: "2019-04-02T17:06:00+01:00"
 title: "Advanced: Logging Configuration"
 slug: "logging-configuration"
 weight: 55
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -17,16 +17,20 @@ menu:
 
 The logging framework has been revamped in Gitea 1.9.0.
 
+**Table of Contents**
+
+{{< toc >}}
+
 ## Log Groups
 
 The fundamental thing to be aware of in Gitea is that there are several
 log groups:
 
-* The "Default" logger
-* The Macaron logger
-* The Router logger
-* The Access logger
-* The XORM logger
+- The "Default" logger
+- The Macaron logger
+- The Router logger
+- The Access logger
+- The XORM logger
 
 There is also the go log logger.
 
@@ -53,11 +57,11 @@ which inherits from the sublogger `[log.sublogger]` section and from the
 generic `[log]` section, but there are certain default values. These will
 not be inherited from the `[log]` section:
 
-* `FLAGS` is `stdflags` (Equal to
-`date,time,medfile,shortfuncname,levelinitial`)
-* `FILE_NAME` will default to `%(ROOT_PATH)/gitea.log`
-* `EXPRESSION` will default to `""`
-* `PREFIX` will default to `""`
+- `FLAGS` is `stdflags` (Equal to
+  `date,time,medfile,shortfuncname,levelinitial`)
+- `FILE_NAME` will default to `%(ROOT_PATH)/gitea.log`
+- `EXPRESSION` will default to `""`
+- `PREFIX` will default to `""`
 
 The provider type of the sublogger can be set using the `MODE` value in
 its subsection, but will default to the name. This allows you to have
@@ -80,11 +84,11 @@ Each output sublogger for this logger is configured in
 which will not be inherited from the `[log]` or relevant
 `[log.sublogger]` sections:
 
-* `FLAGS` is `stdflags` (Equal to
-`date,time,medfile,shortfuncname,levelinitial`)
-* `FILE_NAME` will default to `%(ROOT_PATH)/macaron.log`
-* `EXPRESSION` will default to `""`
-* `PREFIX` will default to `""`
+- `FLAGS` is `stdflags` (Equal to
+  `date,time,medfile,shortfuncname,levelinitial`)
+- `FILE_NAME` will default to `%(ROOT_PATH)/macaron.log`
+- `EXPRESSION` will default to `""`
+- `PREFIX` will default to `""`
 
 NB: You can redirect the macaron logger to send its events to the gitea
 log using the value: `MACARON = ,`
@@ -111,10 +115,10 @@ Each output sublogger for this logger is configured in
 which will not be inherited from the `[log]` or relevant
 `[log.sublogger]` sections:
 
-* `FILE_NAME` will default to `%(ROOT_PATH)/router.log`
-* `FLAGS` defaults to `date,time`
-* `EXPRESSION` will default to `""`
-* `PREFIX` will default to `""`
+- `FILE_NAME` will default to `%(ROOT_PATH)/router.log`
+- `FLAGS` defaults to `date,time`
+- `EXPRESSION` will default to `""`
+- `PREFIX` will default to `""`
 
 NB: You can redirect the router logger to send its events to the Gitea
 log using the value: `ROUTER = ,`
@@ -136,10 +140,10 @@ Each output sublogger for this logger is configured in
 which will not be inherited from the `[log]` or relevant
 `[log.sublogger]` sections:
 
-* `FILE_NAME` will default to `%(ROOT_PATH)/access.log`
-* `FLAGS` defaults to `` or None
-* `EXPRESSION` will default to `""`
-* `PREFIX` will default to `""`
+- `FILE_NAME` will default to `%(ROOT_PATH)/access.log`
+- `FLAGS` defaults to `` or None
+- `EXPRESSION` will default to `""`
+- `PREFIX` will default to `""`
 
 If desired the format of the Access logger can be changed by changing
 the value of the `ACCESS_LOG_TEMPLATE`.
@@ -158,11 +162,11 @@ This value represent a go template. It's default value is:
 
 The template is passed following options:
 
-* `Ctx` is the `macaron.Context`
-* `Identity` is the `SignedUserName` or `"-"` if the user is not logged
-in
-* `Start` is the start time of the request
-* `ResponseWriter` is the `macaron.ResponseWriter`
+- `Ctx` is the `macaron.Context`
+- `Identity` is the `SignedUserName` or `"-"` if the user is not logged
+  in
+- `Start` is the start time of the request
+- `ResponseWriter` is the `macaron.ResponseWriter`
 
 Caution must be taken when changing this template as it runs outside of
 the standard panic recovery trap. The template should also be as simple
@@ -185,31 +189,31 @@ Each output sublogger for this logger is configured in
 which will not be inherited from the `[log]` or relevant
 `[log.sublogger]` sections:
 
-* `FILE_NAME` will default to `%(ROOT_PATH)/xorm.log`
-* `FLAGS` defaults to `date,time`
-* `EXPRESSION` will default to `""`
-* `PREFIX` will default to `""`
+- `FILE_NAME` will default to `%(ROOT_PATH)/xorm.log`
+- `FLAGS` defaults to `date,time`
+- `EXPRESSION` will default to `""`
+- `PREFIX` will default to `""`
 
 ## Log outputs
 
 Gitea provides 4 possible log outputs:
 
-* `console` - Log to `os.Stdout` or `os.Stderr`
-* `file` - Log to a file
-* `conn` - Log to a keep-alive TCP connection
-* `smtp` - Log via email
+- `console` - Log to `os.Stdout` or `os.Stderr`
+- `file` - Log to a file
+- `conn` - Log to a keep-alive TCP connection
+- `smtp` - Log via email
 
 Certain configuration is common to all modes of log output:
 
-* `LEVEL` is the lowest level that this output will log. This value
-is inherited from `[log]` and in the case of the non-default loggers
-from `[log.sublogger]`.
-* `STACKTRACE_LEVEL` is the lowest level that this output will print
-a stacktrace. This value is inherited.
-* `MODE` is the mode of the log output. It will default to the sublogger
-name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will default to `true` for `console` as
-described, otherwise it will default to `false`.
+- `LEVEL` is the lowest level that this output will log. This value
+  is inherited from `[log]` and in the case of the non-default loggers
+  from `[log.sublogger]`.
+- `STACKTRACE_LEVEL` is the lowest level that this output will print
+  a stacktrace. This value is inherited.
+- `MODE` is the mode of the log output. It will default to the sublogger
+  name. Thus `[log.console.macaron]` will default to `MODE = console`.
+- `COLORIZE` will default to `true` for `console` as
+  described, otherwise it will default to `false`.
 
 ### Non-inherited default values
 
@@ -231,23 +235,23 @@ printed before each message. It is a comma-separated string set. The order of va
 
 Possible values are:
 
-* `none` or `,` - No flags.
-* `date` - the date in the local time zone: `2009/01/23`.
-* `time` - the time in the local time zone: `01:23:23`.
-* `microseconds` - microsecond resolution: `01:23:23.123123`. Assumes
-time.
-* `longfile` - full file name and line number: `/a/b/c/d.go:23`.
-* `shortfile` - final file name element and line number: `d.go:23`.
-* `funcname` - function name of the caller: `runtime.Caller()`.
-* `shortfuncname` - last part of the function name. Overrides
-`funcname`.
-* `utc` - if date or time is set, use UTC rather than the local time
-zone.
-* `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
-* `level` - Provided level in brackets `[INFO]`
-* `medfile` - Last 20 characters of the filename - equivalent to
-`shortfile,longfile`.
-* `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
+- `none` or `,` - No flags.
+- `date` - the date in the local time zone: `2009/01/23`.
+- `time` - the time in the local time zone: `01:23:23`.
+- `microseconds` - microsecond resolution: `01:23:23.123123`. Assumes
+  time.
+- `longfile` - full file name and line number: `/a/b/c/d.go:23`.
+- `shortfile` - final file name element and line number: `d.go:23`.
+- `funcname` - function name of the caller: `runtime.Caller()`.
+- `shortfuncname` - last part of the function name. Overrides
+  `funcname`.
+- `utc` - if date or time is set, use UTC rather than the local time
+  zone.
+- `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
+- `level` - Provided level in brackets `[INFO]`
+- `medfile` - Last 20 characters of the filename - equivalent to
+  `shortfile,longfile`.
+- `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
 
 ### Console mode
 
@@ -265,30 +269,30 @@ to the provided `ROOT_PATH` in the master `[log]` section.
 
 Other values:
 
-* `LOG_ROTATE`: **true**: Rotate the log files.
-* `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
-* `DAILY_ROTATE`: **true**: Rotate logs daily.
-* `MAX_DAYS`: **7**: Delete the log file after n days
-* `COMPRESS`: **true**: Compress old log files by default with gzip
-* `COMPRESSION_LEVEL`: **-1**: Compression level
+- `LOG_ROTATE`: **true**: Rotate the log files.
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
+- `DAILY_ROTATE`: **true**: Rotate logs daily.
+- `MAX_DAYS`: **7**: Delete the log file after n days
+- `COMPRESS`: **true**: Compress old log files by default with gzip
+- `COMPRESSION_LEVEL`: **-1**: Compression level
 
 ### Conn mode
 
-* `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
-* `RECONNECT`: **false**: Try to reconnect when connection is lost.
-* `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
-* `ADDR`: **:7020**: Sets the address to connect to.
+- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
+- `RECONNECT`: **false**: Try to reconnect when connection is lost.
+- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+- `ADDR`: **:7020**: Sets the address to connect to.
 
 ### SMTP mode
 
 It is not recommended to use this logger to send general logging
 messages. However, you could perhaps set this logger to work on `FATAL`.
 
-* `USER`: User email address to send from.
-* `PASSWD`: Password for the smtp server.
-* `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
-* `RECEIVERS`: Email addresses to send to.
-* `SUBJECT`: **Diagnostic message from Gitea**
+- `USER`: User email address to send from.
+- `PASSWD`: Password for the smtp server.
+- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
+- `RECEIVERS`: Email addresses to send to.
+- `SUBJECT`: **Diagnostic message from Gitea**
 
 ## Debugging problems
 
@@ -384,7 +388,7 @@ Windows. Terminal sniffing will occur on Windows and if it is
 determined that we are running on a terminal capable of color we will
 colorize.
 
-Further, on *nix it is becoming common to have file logs that are
+Further, on \*nix it is becoming common to have file logs that are
 colored by default. Therefore file logs will be colorised by default
 when not running on Windows.
 
@@ -402,14 +406,14 @@ string of bytes which should represent a color and second set of reset
 bytes. Pointers were chosen to prevent copying of large numbers of
 values. There are several helper methods:
 
-* `log.NewColoredValue` takes a value and 0 or more color attributes
-that represent the color. If 0 are provided it will default to a cached
-bold. Note, it is recommended that color bytes constructed from
-attributes should be cached if this is a commonly used log message.
-* `log.NewColoredValuePointer` takes a pointer to a value, and
-0 or more color attributes that represent the color.
-* `log.NewColoredValueBytes` takes a value and a pointer to an array
-of bytes representing the color.
+- `log.NewColoredValue` takes a value and 0 or more color attributes
+  that represent the color. If 0 are provided it will default to a cached
+  bold. Note, it is recommended that color bytes constructed from
+  attributes should be cached if this is a commonly used log message.
+- `log.NewColoredValuePointer` takes a pointer to a value, and
+  0 or more color attributes that represent the color.
+- `log.NewColoredValueBytes` takes a value and a pointer to an array
+  of bytes representing the color.
 
 These functions will not double wrap a `log.ColoredValue`. They will
 also set the `resetBytes` to the cached `resetBytes`.
@@ -465,9 +469,9 @@ You should then add `newOneLogService` to `NewServices()` in
 
 Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` utility:
 
--  Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
--  Install `logrotate`.
--  Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10`,  or run `gitea manager logging release-and-reopen` (with the appropriate environment).  Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
--  Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
+- Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
+- Install `logrotate`.
+- Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10`, or run `gitea manager logging release-and-reopen` (with the appropriate environment). Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
+- Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
 
 The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.

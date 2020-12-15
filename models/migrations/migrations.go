@@ -134,10 +134,10 @@ var migrations = []Migration{
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 
 	// Gitea 1.10.0 ends at v102
 
-	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
@@ -167,10 +167,10 @@ var migrations = []Migration{
 	// v115 -> v116
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 
 	// Gitea 1.11.0 ends at v117
 
-	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 	// v118 -> v119
@@ -216,10 +216,10 @@ var migrations = []Migration{
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 
 	// Gitea 1.12.0 ends at v140
 
-	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
 	// v141 -> v142
@@ -249,10 +249,10 @@ var migrations = []Migration{
 	// v153 > v154
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 
 	// Gitea 1.13.0 ends at v155
 
-	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 	// v155 -> v156
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
@@ -265,6 +265,10 @@ var migrations = []Migration{
 	NewMigration("update reactions constraint", updateReactionConstraint),
 	// v160 -> v161
 	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	// v161 -> v162
+	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	// v162 -> v163
+	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
 }
 
 // GetCurrentDBVersion returns the current db version

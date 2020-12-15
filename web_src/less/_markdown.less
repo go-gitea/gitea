@@ -343,7 +343,7 @@
     padding: .2em .3em;
     margin: 0;
     font-size: 85%;
-    background-color: var(--color-label);
+    background-color: var(--color-markdown-code-block);
     border-radius: 3px;
   }
 
@@ -360,8 +360,9 @@
     padding: 0;
     margin: 0;
     font-size: 100%;
-    word-break: normal;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: break-word;
     background: transparent;
     border: 0;
   }
@@ -373,7 +374,6 @@
   .highlight pre,
   pre {
     padding: 16px;
-    overflow: auto;
     font-size: 85%;
     line-height: 1.45;
     background-color: var(--color-markdown-code-block);
@@ -416,7 +416,7 @@
     line-height: 10px;
     color: var(--color-text-light);
     vertical-align: middle;
-    background-color: var(--color-label);
+    background-color: var(--color-markdown-code-block);
     border: 1px solid var(--color-secondary);
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 var(--color-secondary);

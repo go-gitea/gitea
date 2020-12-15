@@ -1,7 +1,7 @@
 {{range .Feeds}}
 	<div class="news">
 		<div class="ui left">
-			{{avatar .ActUser}}
+			{{avatarByAction .}}
 		</div>
 		<div class="ui grid">
 			<div class="ui fourteen wide column">
@@ -85,7 +85,7 @@
 									{{range $push.Commits}}
 										{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 										<li>
-											{{avatarByEmail .AuthorEmail .AuthorName 28 "img-8 mr-2"}}
+											{{avatarHTML ($push.AvatarLink .AuthorEmail) 16 "mr-2" .AuthorName}}
 											<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 											<span class="text truncate light grey">
 												{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}

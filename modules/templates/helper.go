@@ -338,9 +338,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":           SVG,
-		"avatar":        Avatar,
-		"avatarByEmail": AvatarByEmail,
+		"svg":            SVG,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -518,7 +521,8 @@ func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 	return size, class
 }
 
-func avatarHTML(src string, size int, class string, name string) template.HTML {
+// AvatarHTML creates the HTML for an avatar
+func AvatarHTML(src string, size int, class string, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
 
 	if name == "" {
@@ -545,33 +549,49 @@ func SVG(icon string, others ...interface{}) template.HTML {
 	return template.HTML("")
 }
 
-// Avatar renders user and repo avatars. args: user/repo, size (int), class (string)
+// Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
 	if user, ok := item.(*models.User); ok {
-		src := user.RealSizedAvatarLink(size * 2) // request double size for finer rendering
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
 		if src != "" {
-			return avatarHTML(src, size, class, user.DisplayName())
+			return AvatarHTML(src, size, class, user.DisplayName())
 		}
 	}
-
-	if repo, ok := item.(*models.Repository); ok {
-		src := repo.RelAvatarLink()
+	if user, ok := item.(*models.Collaborator); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
 		if src != "" {
-			return avatarHTML(src, size, class, repo.FullName())
+			return AvatarHTML(src, size, class, user.DisplayName())
 		}
 	}
+	return template.HTML("")
+}
 
+// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
+func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+	action.LoadActUser()
+	return Avatar(action.ActUser, others...)
+}
+
+// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
+func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
+	src := repo.RelAvatarLink()
+	if src != "" {
+		return AvatarHTML(src, size, class, repo.FullName())
+	}
 	return template.HTML("")
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(28, "ui avatar image", others...)
-	src := models.SizedAvatarLink(email, size*2) // request double size for finer rendering
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	src := models.SizedAvatarLink(email, size*models.AvatarRenderedSizeFactor)
 
 	if src != "" {
-		return avatarHTML(src, size, class, name)
+		return AvatarHTML(src, size, class, name)
 	}
 
 	return template.HTML("")
@@ -767,7 +787,7 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
-		return "repo-clone"
+		return "mirror"
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
