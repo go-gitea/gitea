@@ -548,7 +548,7 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		ID:   commitID,
 	}
 
-	if version.Compare(gitVersion, "2.7", ">=") {
+	if version.Compare(gitVersion.String(), "2.7", ">=") {
 		data, err := NewCommand(
 			"for-each-ref",
 			"--points-at="+commit.ID.String(),
