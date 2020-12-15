@@ -354,7 +354,7 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 	limit := time.Now().Add(-24 * time.Hour).Unix()
 
 	err = x.
-		Select("action.*, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name").
+		Select("action.ref_name, action.repo_id, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name").
 		Join("LEFT", "pull_request", "pull_request.head_branch = clean_ref_name").
 		Join("LEFT", "issue", "pull_request.issue_id = issue.id").
 		Join("LEFT", "repository", "action.repo_id = repository.id").
@@ -376,7 +376,7 @@ func GetRecentlyPushedBranches(user *User) (actions []*Action, err error) {
 			builder.Gte{"action.created_unix": limit},
 		)).
 		Limit(10).
-		GroupBy("clean_ref_name").
+		GroupBy("action.ref_name, action.repo_id, clean_ref_name").
 		Desc("action.id").
 		Find(&actions)
 	if err != nil {
