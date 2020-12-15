@@ -552,7 +552,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
 
-		t.Run("CheckoutProtectted", doGitCheckoutBranch(dstPath, "protected"))
+		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -590,9 +590,11 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
 		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
 		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Check pr status
+		ctx.ExpectedCode = 0
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
 		assert.Equal(t, false, pr.HasMerged)
