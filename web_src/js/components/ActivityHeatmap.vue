@@ -43,6 +43,17 @@ export default {
   }),
   methods: {
     handleDayClick(event) {
+      // Reset filter if same date is clicked
+      const day = window.location.search.match(/\?date=(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (day !== null) {
+        if (day.length === 4) {
+          if ((parseInt(day[1]) === event.date.getFullYear()) && (parseInt(day[2]) === (event.date.getMonth() + 1)) && (parseInt(day[3]) === event.date.getDate())) {
+            window.location.search = '';
+            return;
+          }
+        }
+      }
+
       window.location.search = `?date=${event.date.getFullYear()}-${event.date.getMonth() + 1}-${event.date.getDate()}`;
     }
   },
