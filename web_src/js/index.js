@@ -1120,6 +1120,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1133,6 +1135,7 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
   }
@@ -1199,7 +1202,7 @@ async function initRepository() {
 
 function initPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
-    $('.instruct').toggle();
+    $('.instruct-content').toggle();
   });
 }
 
