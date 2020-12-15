@@ -1117,7 +1117,7 @@ async function initRepository() {
     // Pull Request merge button
     const $mergeButton = $('.merge-button > button');
     const $mergeNowButton = $('.merge-now-button > button');
-    function mergeClickHandler(e) {
+    const mergeClickHandler = function (e) {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
@@ -1125,7 +1125,7 @@ async function initRepository() {
       $('.instruct-content').hide();
       $mergeButton.parent().hide();
       $mergeNowButton.parent().hide();
-    }
+    };
     $mergeButton.on('click', mergeClickHandler);
     $mergeNowButton.on('click', mergeClickHandler);
     $('.merge-button > .dropdown').dropdown({
