@@ -335,14 +335,15 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	if opts.Date != "" {
-		var dateLow time.Time
-		var dateHigh time.Time
+		dateLow, err := time.Parse("2006-1-2", opts.Date)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-		dateLow, _ = time.Parse("2006-1-2", opts.Date)
-		dateHigh = dateLow.Add(86399000000000) // 23h59m59s
-
-		cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
-		cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+		}
 	}
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
