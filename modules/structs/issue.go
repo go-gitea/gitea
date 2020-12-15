@@ -50,8 +50,9 @@ type Issue struct {
 	Ref              string     `json:"ref"`
 	Labels           []*Label   `json:"labels"`
 	Milestone        *Milestone `json:"milestone"`
-	Assignee         *User      `json:"assignee"`
-	Assignees        []*User    `json:"assignees"`
+	// deprecated
+	Assignee  *User   `json:"assignee"`
+	Assignees []*User `json:"assignees"`
 	// Whether the issue is open or closed
 	//
 	// type: string
@@ -84,7 +85,7 @@ type CreateIssueOption struct {
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
 	Ref   string `json:"ref"`
-	// username of assignee
+	// deprecated
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
@@ -98,9 +99,10 @@ type CreateIssueOption struct {
 
 // EditIssueOption options for editing an issue
 type EditIssueOption struct {
-	Title     string   `json:"title"`
-	Body      *string  `json:"body"`
-	Ref       *string  `json:"ref"`
+	Title string  `json:"title"`
+	Body  *string `json:"body"`
+	Ref   *string `json:"ref"`
+	// deprecated
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
