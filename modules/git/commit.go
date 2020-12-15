@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mcuadros/go-version"
+	"github.com/hashicorp/go-version"
 )
 
 // Commit represents a git commit.
@@ -548,7 +548,9 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		ID:   commitID,
 	}
 
-	if version.Compare(gitVersion.String(), "2.7", ">=") {
+	version27, _ := version.NewVersion("2.7")
+
+	if gitVersion.Compare(version27) >= 0 {
 		data, err := NewCommand(
 			"for-each-ref",
 			"--points-at="+commit.ID.String(),
