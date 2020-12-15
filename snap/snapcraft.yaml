@@ -18,7 +18,7 @@ architectures:
 
 environment:
   GITEA_CUSTOM: "$SNAP_COMMON"
-  GITEA_WORK_DIR: "$SNAP_DATA"
+  GITEA_WORK_DIR: "$SNAP_COMMON"
   GIT_TEMPLATE_DIR: "$SNAP/usr/share/git-core/templates"
   GIT_EXEC_PATH: "$SNAP/usr/lib/git-core"
 
