@@ -1594,18 +1594,16 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) boo
 	loop:
 		for len(keys) > 0 && err == nil {
 			var out ssh.PublicKey
-			var comment string
 			// We ignore options as they are not relevant to Gitea
-			out, comment, _, keys, err = ssh.ParseAuthorizedKey(keys)
+			out, _, _, keys, err = ssh.ParseAuthorizedKey(keys)
 			if err != nil {
 				break loop
 			}
 			found = true
-			marshalled := out.Marshal()
+			marshalled := string(ssh.MarshalAuthorizedKey(out))
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, marshalled[0:40])
 
-			marshalled = append(marshalled, []byte(" "+comment)...)
-			if _, err := AddPublicKey(usr.ID, sshKeyName, string(marshalled), s.ID); err != nil {
+			if _, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
 				} else {
