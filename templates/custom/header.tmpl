@@ -1,0 +1,14 @@
+	<script>
+		document.onreadystatechange = () => {
+			var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+			if (isMobile && document.readyState === 'complete') {
+				e = document.querySelector("div.editor-toolbar > a.fa.fa-file");
+				if (e) {
+					console.log("*** Disable WYSIWYG issue editor on mobile device.");
+					e.click();
+				}
+			}
+		};
+	</script>
+
+
