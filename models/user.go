@@ -1601,16 +1601,18 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) boo
 			}
 			found = true
 			marshalled := string(ssh.MarshalAuthorizedKey(out))
-			sshKeyName := fmt.Sprintf("%s-%s", s.Name, marshalled[0:40])
+			marshalled = marshalled[:len(marshalled)-1]
+			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
+			log.Info("%q marshalled", marshalled)
 
 			if _, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
-					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
+					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
-					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", sshKeyName, usr.Name, err)
 				}
 			} else {
-				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
+				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", sshKeyName, usr.Name)
 				sshKeysNeedUpdate = true
 			}
 		}
