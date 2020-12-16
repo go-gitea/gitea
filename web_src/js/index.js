@@ -27,6 +27,7 @@ import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -385,8 +386,14 @@ function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
-
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+
+  // Don't use simpleMDE on mobile due to multiple bug reports which go unfixed
+  // Other sections rely on it being initialized so just set it back to text area here
+  if (isMobile) {
+    autoSimpleMDE.toTextArea();
+  }
+
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
