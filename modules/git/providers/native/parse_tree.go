@@ -50,6 +50,9 @@ func parseTreeEntries(data []byte, ptree service.Tree) ([]service.TreeEntry, err
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
 		entry.hash = StringHash(string(data[pos : pos+40]))
+		if ptree != nil {
+			entry.repo = ptree.Repository()
+		}
 
 		pos += 41 // skip over sha and trailing space
 
