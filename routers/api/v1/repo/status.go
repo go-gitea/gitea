@@ -258,9 +258,12 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   required: true
 	// - name: page
 	//   in: query
-	//   description: page number of results
+	//   description: page number of results to return (1-based)
 	//   type: integer
-	//   required: false
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Status"

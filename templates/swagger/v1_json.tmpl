@@ -2901,8 +2901,14 @@
           },
           {
             "type": "integer",
-            "description": "page number of results",
+            "description": "page number of results to return (1-based)",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -11558,6 +11564,11 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitStatusState": {
+      "description": "CommitStatusState holds the state of a Status\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitUser": {
       "type": "object",
       "title": "CommitUser contains information of a user in the context of a commit.",
@@ -12353,7 +12364,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "$ref": "#/definitions/StatusState"
+          "$ref": "#/definitions/CommitStatusState"
         },
         "target_url": {
           "type": "string",
@@ -15277,7 +15288,7 @@
           "x-go-name": "ID"
         },
         "status": {
-          "$ref": "#/definitions/StatusState"
+          "$ref": "#/definitions/CommitStatusState"
         },
         "target_url": {
           "type": "string",
@@ -15293,11 +15304,6 @@
           "x-go-name": "URL"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "StatusState": {
-      "description": "StatusState holds the state of a Status\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "StopWatch": {
