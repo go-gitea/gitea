@@ -97,7 +97,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			return fmt.Errorf("Old and new revisions are both %s", service.EmptySHA)
 		}
 		var commits = &repo_module.PushCommits{}
-		if opts.IsTag() { // If is tag reference {
+		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
 				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
@@ -106,9 +106,25 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 			tagName := opts.TagName()
 			if opts.IsDelRef() {
+				notification.NotifyPushCommits(
+					pusher, repo,
+					&repo_module.PushUpdateOptions{
+						RefFullName: git.TagPrefix + tagName,
+						OldCommitID: opts.OldCommitID,
+						NewCommitID: git.EmptySHA,
+					}, repo_module.NewPushCommits())
+
 				delTags = append(delTags, tagName)
 				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
+				notification.NotifyPushCommits(
+					pusher, repo,
+					&repo_module.PushUpdateOptions{
+						RefFullName: git.TagPrefix + tagName,
+						OldCommitID: git.EmptySHA,
+						NewCommitID: opts.NewCommitID,
+					}, repo_module.NewPushCommits())
+
 				addTags = append(addTags, tagName)
 				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
 			}
