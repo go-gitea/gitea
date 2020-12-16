@@ -158,7 +158,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 			&repository.PushUpdateOptions{
 				RefFullName: git.TagPrefix + rel.TagName,
 				OldCommitID: rel.Sha1,
-				NewCommitID: git.EmptySHA,
+				NewCommitID: service.EmptySHA,
 			}, repository.NewPushCommits())
 		notification.NotifyDeleteRef(doer, repo, "tag", git.TagPrefix+rel.TagName)
 

@@ -111,7 +111,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: opts.OldCommitID,
-						NewCommitID: git.EmptySHA,
+						NewCommitID: service.EmptySHA,
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
@@ -121,7 +121,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
-						OldCommitID: git.EmptySHA,
+						OldCommitID: service.EmptySHA,
 						NewCommitID: opts.NewCommitID,
 					}, repo_module.NewPushCommits())
 
