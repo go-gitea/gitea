@@ -2,7 +2,7 @@
 
 <!--
     1. Please speak English, this is the language all maintainers can speak and write.
-    2. Please ask questions or configuration/deploy problems on our Discord 
+    2. Please ask questions or configuration/deploy problems on our Discord
        server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
     3. Please take a moment to check that your issue doesn't already exist.
     4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
