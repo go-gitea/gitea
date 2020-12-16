@@ -58,8 +58,3 @@ type CreateStatusOption struct {
 	Description string      `json:"description"`
 	Context     string      `json:"context"`
 }
-
-// ListStatusesOption holds pagination information
-type ListStatusesOption struct {
-	Page int
-}
