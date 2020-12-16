@@ -266,7 +266,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CombinedStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 

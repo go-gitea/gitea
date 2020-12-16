@@ -2914,7 +2914,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Status"
+            "$ref": "#/responses/CombinedStatus"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -11437,6 +11437,43 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CombinedStatus": {
+      "description": "CombinedStatus holds the combined state of several statuses for a single commit",
+      "type": "object",
+      "properties": {
+        "commit_url": {
+          "type": "string",
+          "x-go-name": "CommitURL"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "state": {
+          "$ref": "#/definitions/CommitStatusState"
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Status"
+          },
+          "x-go-name": "Statuses"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Comment": {
       "description": "Comment represents a comment on a commit or issue",
       "type": "object",
@@ -15777,6 +15814,12 @@
         "items": {
           "$ref": "#/definitions/BranchProtection"
         }
+      }
+    },
+    "CombinedStatus": {
+      "description": "CombinedStatus",
+      "schema": {
+        "$ref": "#/definitions/CombinedStatus"
       }
     },
     "Comment": {
