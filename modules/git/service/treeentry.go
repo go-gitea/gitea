@@ -6,7 +6,7 @@ package service
 
 // TreeEntry represents an Entry in a Tree
 type TreeEntry interface {
-	Blob
+	Object
 
 	// Name returns the name of the entry
 	Name() string
