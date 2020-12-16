@@ -394,6 +394,25 @@ a.muted:hover,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
+/* fix up SVG dropdown triangles because fomantic thinks they are icon fonts */
+.ui.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  height: auto !important;
+  margin-left: .5rem !important;
+  margin-top: -1px !important;
+  margin-bottom: -1px !important;
+  margin-right: -.5rem !important;
+}
+.ui.button.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  float: right !important;
+}
+.ui.selection.dropdown > .search.icon,
+.ui.selection.dropdown > .delete.icon,
+.ui.selection.dropdown > .dropdown.icon {
+  top: 0 !important;
+}
+
 .ui.cards > .card,
 .ui.card {
   background: var(--color-card);
