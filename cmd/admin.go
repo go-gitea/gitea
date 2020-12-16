@@ -127,13 +127,16 @@ var (
 	microcmdUserDelete = cli.Command{
 		Name:  "delete",
 		Usage: "Delete specific user",
-		Flags: []cli.Flag{cli.Int64Flag{
-			Name:  "id",
-			Usage: "ID of user",
-		}, cli.StringFlag{
-			Name:  "username",
-			Usage: "Username",
-		}},
+		Flags: []cli.Flag{
+			cli.Int64Flag{
+				Name:  "id",
+				Usage: "ID of user of the user to delete",
+			},
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username of the user to delete",
+			},
+		},
 		Action: runDeleteUser,
 	}
 
