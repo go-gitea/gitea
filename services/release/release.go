@@ -160,7 +160,6 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 				NewCommitID: git.EmptySHA,
 			}, repository.NewPushCommits())
 		notification.NotifyDeleteRef(doer, repo, "tag", git.TagPrefix+rel.TagName)
-		rel.CreatedUnix = timeutil.TimeStampNow()
 
 		if err := models.DeleteReleaseByID(id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %v", err)
