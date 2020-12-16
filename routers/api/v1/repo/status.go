@@ -233,16 +233,6 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	ctx.JSON(http.StatusOK, apiStatuses)
 }
 
-type combinedCommitStatus struct {
-	State      api.CommitStatusState `json:"state"`
-	SHA        string                `json:"sha"`
-	TotalCount int                   `json:"total_count"`
-	Statuses   []*api.Status         `json:"statuses"`
-	Repo       *api.Repository       `json:"repository"`
-	CommitURL  string                `json:"commit_url"`
-	URL        string                `json:"url"`
-}
-
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
 func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoGetCombinedStatusByRef
@@ -297,20 +287,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		return
 	}
 
-	retStatus := &combinedCommitStatus{
-		SHA:        sha,
-		TotalCount: len(statuses),
-		Repo:       convert.ToRepo(repo, ctx.Repo.AccessMode),
-		URL:        "",
-	}
+	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
-	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, convert.ToCommitStatus(status))
-		if status.State.NoBetterThan(retStatus.State) {
-			retStatus.State = status.State
-		}
-	}
-
-	ctx.JSON(http.StatusOK, retStatus)
+	ctx.JSON(http.StatusOK, combiStatus)
 }

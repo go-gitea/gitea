@@ -29,3 +29,28 @@ func ToCommitStatus(status *models.CommitStatus) *api.Status {
 
 	return apiStatus
 }
+
+// ToCombinedStatus converts List of CommitStatus to a CombinedStatus
+func ToCombinedStatus(statuses []*models.CommitStatus, repo *api.Repository) *api.CombinedStatus {
+
+	if len(statuses) == 0 {
+		return nil
+	}
+
+	retStatus := &api.CombinedStatus{
+		SHA:        statuses[0].SHA,
+		TotalCount: len(statuses),
+		Repository: repo,
+		URL:        "",
+	}
+
+	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
+	for _, status := range statuses {
+		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(status))
+		if status.State.NoBetterThan(retStatus.State) {
+			retStatus.State = status.State
+		}
+	}
+
+	return retStatus
+}
