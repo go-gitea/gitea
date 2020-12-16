@@ -25,9 +25,9 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
+import {isMobile} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-const isMobile = /Mobi/.test(navigator.userAgent);
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -390,7 +390,7 @@ function initCommentForm() {
 
   // Don't use simpleMDE on mobile due to multiple bug reports which go unfixed
   // Other sections rely on it being initialized so just set it back to text area here
-  if (isMobile) {
+  if (isMobile()) {
     autoSimpleMDE.toTextArea();
   }
 
@@ -1221,16 +1221,21 @@ function initPullRequestReview() {
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
+    if (!isMobile()) {
+      let $simplemde;
+      if ($textarea.data('simplemde')) {
+        $simplemde = $textarea.data('simplemde');
+      } else {
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        $simplemde = setCommentSimpleMDE($textarea);
+        $textarea.data('simplemde', $simplemde);
+      }
+      $textarea.focus();
+      $simplemde.codemirror.focus();
     } else {
       attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = setCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+      $textarea.focus();
     }
-    $textarea.focus();
-    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
@@ -1297,9 +1302,13 @@ function initPullRequestReview() {
     const $textarea = commentCloud.find('textarea');
     attachTribute($textarea.get(), {mentions: true, emoji: true});
 
-    const $simplemde = setCommentSimpleMDE($textarea);
-    $textarea.focus();
-    $simplemde.codemirror.focus();
+    if (!isMobile()) {
+      const $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.focus();
+      $simplemde.codemirror.focus();
+    } else {
+      $textarea.focus();
+    }
   });
 }
 
