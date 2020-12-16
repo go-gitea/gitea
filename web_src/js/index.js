@@ -27,7 +27,7 @@ import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const isMobile = /Mobi/.test(navigator.userAgent);
 
 let previewFileModes;
 const commentMDEditors = {};
