@@ -195,7 +195,11 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	}
 
 	if log.IsTrace() && stdout.Len() > 0 {
-		log.Trace("stdout:\n%s", stdout.Bytes()[:1024])
+		maxBytes := stdout.Len()
+		if maxBytes > 1024 {
+			maxBytes = 1024
+		}
+		log.Trace("stdout:\n%s", stdout.Bytes()[:maxBytes])
 	}
 
 	return stdout.Bytes(), nil
