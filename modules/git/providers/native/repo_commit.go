@@ -79,7 +79,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (service.Hash, error) {
 			}
 			return StringHash(""), err
 		}
-		commitID = actualCommitID
+		commitID = actualCommitID[:len(actualCommitID)-1]
 	}
 	return StringHash(commitID), nil
 }
