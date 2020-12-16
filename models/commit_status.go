@@ -38,7 +38,7 @@ type CommitStatus struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (status *CommitStatus) loadRepo(e Engine) (err error) {
+func (status *CommitStatus) loadAttributes(e Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)
 		if err != nil {
@@ -56,7 +56,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadRepo(x)
+	_ = status.loadAttributes(x)
 	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
