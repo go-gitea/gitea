@@ -189,7 +189,7 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
-		return nil, concatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 
 	if stdout.Len() > 0 {
