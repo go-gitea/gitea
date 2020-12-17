@@ -8549,7 +8549,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/StatusList"
+            "$ref": "#/responses/CommitStatusList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -11683,7 +11683,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CommitStatus": {
-      "description": "CommitStatus holds a single CommitStatus of a single Commit",
+      "description": "CommitStatus holds a single status of a single Commit",
       "type": "object",
       "properties": {
         "context": {

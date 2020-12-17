@@ -113,7 +113,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
