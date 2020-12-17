@@ -3,7 +3,6 @@
 
 const imageminZopfli = require('imagemin-zopfli');
 const {fabric} = require('fabric');
-const {DOMParser, XMLSerializer} = require('xmldom');
 const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
 const Svgo = require('svgo');
@@ -40,23 +39,7 @@ async function generateSvgFavicon(svg, outputFile) {
   await writeFile(outputFile, data);
 }
 
-async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
-  const parser = new DOMParser();
-  const serializer = new XMLSerializer();
-  const document = parser.parseFromString(svg);
-
-  if (removeDetail) {
-    for (const el of Array.from(document.getElementsByTagName('g') || [])) {
-      for (const attribute of Array.from(el.attributes || [])) {
-        if (attribute.name === 'class' && attribute.value === 'detail-remove') {
-          el.parentNode.removeChild(el);
-        }
-      }
-    }
-  }
-
-  svg = serializer.serializeToString(document);
-
+async function generate(svg, outputFile, {size, bg}) {
   const {objects, options} = await loadSvg(svg);
   const canvas = new fabric.Canvas();
   canvas.setDimensions({width: size, height: size});
@@ -93,7 +76,7 @@ async function main() {
   await generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192});
   await generate(svg, resolve(__dirname, '../public/img/gitea-sm.png'), {size: 120});
   await generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200});
-  await generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180, removeDetail: true});
+  await generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180});
   await generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true});
 }
 
