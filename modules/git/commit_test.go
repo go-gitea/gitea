@@ -6,6 +6,7 @@ package git
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,4 +36,31 @@ func TestGetFullCommitIDError(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
 	}
+}
+
+func TestCommitFromReader(t *testing.T) {
+	gitCatFileBatch := `gpgsig -----BEGIN PGP SIGNATURE-----
+
+ wsBcBAABCAAQBQJf1RMlCRBK7hj4Ov3rIwAAdHIIAGknVUi+8Fww7D+DtHlCVzcs
+ 8t068qrNAifGfNPnvKKDhvEq850UCL01kTNhOnMu7qtFao9BUMAzWvYQEiHjp+BW
+ x2seyGdFqD0a4laRzUSLllpbDpk5oWJvmuIW2aVxojHo4FwrnSGlkIMKM8aXD4f+
+ FWR4c2X2Ik1drEUo0v0k12RrVhI77aXn38sUz3VyDrm48I+IBbBP5+nK5GyvGDIQ
+ CVx6Plz3OziTuUfpc3lixjT6EjypdCTkO0WPZemdfHGWxP0vTqqsmdlBhGMy5+I8
+ vIKQIxeC2yEP6R7x711darildz1Qux7PiH/R8JUH9I7Pkmmm1c0AbsD0Tyg37UM=
+ =v3Ra
+ -----END PGP SIGNATURE-----`
+
+	gitCatFileBatchreader := strings.NewReader(gitCatFileBatch)
+	commit, err := CommitFromReader(nil, SHA1{}, gitCatFileBatchreader)
+	assert.NoError(t, err)
+	assert.NotNil(t, commit)
+	assert.EqualValues(t, `
+ wsBcBAABCAAQBQJf1RMlCRBK7hj4Ov3rIwAAdHIIAGknVUi+8Fww7D+DtHlCVzcs
+ 8t068qrNAifGfNPnvKKDhvEq850UCL01kTNhOnMu7qtFao9BUMAzWvYQEiHjp+BW
+ x2seyGdFqD0a4laRzUSLllpbDpk5oWJvmuIW2aVxojHo4FwrnSGlkIMKM8aXD4f+
+ FWR4c2X2Ik1drEUo0v0k12RrVhI77aXn38sUz3VyDrm48I+IBbBP5+nK5GyvGDIQ
+ CVx6Plz3OziTuUfpc3lixjT6EjypdCTkO0WPZemdfHGWxP0vTqqsmdlBhGMy5+I8
+ vIKQIxeC2yEP6R7x711darildz1Qux7PiH/R8JUH9I7Pkmmm1c0AbsD0Tyg37UM=
+ =v3Ra
+ -----END PGP SIGNATURE-----`, commit.Signature.Payload)
 }
