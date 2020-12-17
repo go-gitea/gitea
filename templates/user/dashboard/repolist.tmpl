@@ -119,7 +119,7 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a class="df ac sb" :href="suburl + '/' + repo.full_name">
+						<a class="repo-list-link df ac sb" :href="suburl + '/' + repo.full_name">
 							<div class="f1">
 								<component v-bind:is="repoIcon(repo)" size="16"></component>
 								<strong class="text truncate item-name">${repo.full_name}</strong>
@@ -129,34 +129,32 @@
 							</div>
 							<div class="text light grey df ac">
 								${repo.stars_count}
-								{{svg "octicon-star" 16 "rear ml-2"}}
+								{{svg "octicon-star" 16 "ml-2"}}
 							</div>
 						</a>
 					</li>
-					<li v-if="showMoreReposLink">
-						<div class="center">
-							<div class="ui borderless pagination menu narrow">
-								<a class="item navigation" :class="{'disabled': page === 1}"
-									@click="changePage(1)" title="{{$.i18n.Tr "admin.first_page"}}">
-									{{svg "gitea-double-chevron-left" 16 "mr-2"}}
-								</a>
-								<a class="item navigation" :class="{'disabled': page === 1}"
-									@click="changePage(page - 1)" title="{{$.i18n.Tr "repo.issues.previous"}}">
-									{{svg "octicon-chevron-left" 16 "mr-2"}}
-								</a>
-								<a class="active item">${page}</a>
-								<a class="item navigation" :class="{'disabled': page === finalPage}"
-									@click="changePage(page + 1)" title="{{$.i18n.Tr "repo.issues.next"}}">
-									{{svg "octicon-chevron-right" 16 "ml-2"}}
-								</a>
-								<a class="item navigation" :class="{'disabled': page === finalPage}"
-									@click="changePage(finalPage)" title="{{$.i18n.Tr "admin.last_page"}}">
-									{{svg "gitea-double-chevron-right" 16 "ml-2"}}
-								</a>
-							</div>
-						</div>
-					</li>
 				</ul>
+				<div v-if="showMoreReposLink" class="center py-3 border-secondary-top">
+					<div class="ui borderless pagination menu narrow">
+						<a class="item navigation py-2" :class="{'disabled': page === 1}"
+							@click="changePage(1)" title="{{$.i18n.Tr "admin.first_page"}}">
+							{{svg "gitea-double-chevron-left" 16 "mr-2"}}
+						</a>
+						<a class="item navigation py-2" :class="{'disabled': page === 1}"
+							@click="changePage(page - 1)" title="{{$.i18n.Tr "repo.issues.previous"}}">
+							{{svg "octicon-chevron-left" 16 "mr-2"}}
+						</a>
+						<a class="active item py-2">${page}</a>
+						<a class="item navigation" :class="{'disabled': page === finalPage}"
+							@click="changePage(page + 1)" title="{{$.i18n.Tr "repo.issues.next"}}">
+							{{svg "octicon-chevron-right" 16 "ml-2"}}
+						</a>
+						<a class="item navigation py-2" :class="{'disabled': page === finalPage}"
+							@click="changePage(finalPage)" title="{{$.i18n.Tr "admin.last_page"}}">
+							{{svg "gitea-double-chevron-right" 16 "ml-2"}}
+						</a>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
@@ -173,14 +171,14 @@
 			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
-						<a class="df ac sb" :href="suburl + '/' + org.name">
+						<a class="repo-list-link df ac sb" :href="suburl + '/' + org.name">
 							<div class="f1">
 								{{svg "octicon-organization" 16 "mr-2"}}
 								<strong class="text truncate item-name">${org.name}</strong>
 							</div>
 							<div class="text light grey df ac">
 								${org.num_repos}
-								{{svg "octicon-repo" 16 "rear ml-2 mt-1"}}
+								{{svg "octicon-repo" 16 "ml-2 mt-1"}}
 							</div>
 						</a>
 					</li>
