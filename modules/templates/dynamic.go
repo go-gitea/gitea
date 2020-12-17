@@ -27,6 +27,7 @@ var (
 	bodyTemplates    = template.New("")
 )
 
+// GetAsset returns asset content via name
 func GetAsset(name string) ([]byte, error) {
 	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
@@ -38,6 +39,7 @@ func GetAsset(name string) ([]byte, error) {
 	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
 }
 
+// GetAssetNames returns assets list
 func GetAssetNames() []string {
 	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
 	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
