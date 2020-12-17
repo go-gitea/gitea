@@ -411,7 +411,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	)
 
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
@@ -589,6 +589,11 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
+		}
+	}
+	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are official review requests",
 		}
 	}
 

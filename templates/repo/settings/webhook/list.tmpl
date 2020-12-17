@@ -6,31 +6,31 @@
 			<div class="ui blue tiny button">{{.i18n.Tr "repo.settings.add_webhook"}}</div>
 			<div class="menu">
 				<a class="item" href="{{.BaseLink}}/gitea/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/gitea-sm.png">Gitea
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/gitea-sm.png">Gitea
 				</a>
 				<a class="item" href="{{.BaseLink}}/gogs/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/gogs.ico">Gogs
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/gogs.ico">Gogs
 				</a>
 				<a class="item" href="{{.BaseLink}}/slack/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/slack.png">Slack
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/slack.png">Slack
 				</a>
 				<a class="item" href="{{.BaseLink}}/discord/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/discord.png">Discord
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/discord.png">Discord
 				</a>
 				<a class="item" href="{{.BaseLink}}/dingtalk/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/dingtalk.ico">Dingtalk
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/dingtalk.ico">Dingtalk
 				</a>
 				<a class="item" href="{{.BaseLink}}/telegram/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/telegram.png">Telegram
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/telegram.png">Telegram
 				</a>
 				<a class="item" href="{{.BaseLink}}/msteams/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/msteams.png">Microsoft Teams
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/msteams.png">Microsoft Teams
 				</a>
 				<a class="item" href="{{.BaseLink}}/feishu/new">
-					<img class="img-10" src="{{StaticUrlPrefix}}/img/feishu.png">Feishu
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/feishu.png">Feishu
 				</a>
 				<a class="item" href="{{.BaseLink}}/matrix/new">
-                	<img class="img-10" src="{{StaticUrlPrefix}}/img/matrix.svg">Matrix
+					<img width="20" height="20" src="{{StaticUrlPrefix}}/img/matrix.svg">Matrix
 				</a>
 			</div>
 		</div>
@@ -44,16 +44,16 @@
 		{{range .Webhooks}}
 			<div class="item">
 				{{if eq .LastStatus 1}}
-					<span class="text green">{{svg "octicon-check"}}</span>
+					<span class="text green mr-3">{{svg "octicon-check"}}</span>
 				{{else if eq .LastStatus 2}}
-					<span class="text red">{{svg "octicon-alert"}}</span>
+					<span class="text red mr-3">{{svg "octicon-alert"}}</span>
 				{{else}}
-					<span class="text grey">{{svg "octicon-dot-fill"}}</span>
+					<span class="text grey mr-3">{{svg "octicon-dot-fill"}}</span>
 				{{end}}
 				<a class="dont-break-out" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
 				<div class="ui right">
-					<span class="text blue"><a href="{{$.BaseLink}}/{{.ID}}"><i class="fa fa-pencil"></i></a></span>
-					<span class="text red"><a class="delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}"><i class="fa fa-times"></i></a></span>
+					<span class="text blue px-2"><a href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
+					<span class="text red px-2"><a class="delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}}</a></span>
 				</div>
 			</div>
 		{{end}}

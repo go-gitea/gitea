@@ -50,7 +50,7 @@ type IndexMappingImpl struct {
 	DefaultField          string                      `json:"default_field"`
 	StoreDynamic          bool                        `json:"store_dynamic"`
 	IndexDynamic          bool                        `json:"index_dynamic"`
-	DocValuesDynamic      bool                        `json:"docvalues_dynamic,omitempty"`
+	DocValuesDynamic      bool                        `json:"docvalues_dynamic"`
 	CustomAnalysis        *customAnalysis             `json:"analysis,omitempty"`
 	cache                 *registry.Cache
 }

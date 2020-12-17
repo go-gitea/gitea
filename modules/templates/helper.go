@@ -88,7 +88,6 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
@@ -154,6 +153,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
@@ -338,7 +338,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": SVG,
+		"svg":            SVG,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -364,13 +369,12 @@ func NewFuncMap() []template.FuncMap {
 			return ""
 		},
 		"RenderLabels": func(labels []*models.Label) template.HTML {
-			html := ""
-
+			html := `<span class="labels-list">`
 			for _, label := range labels {
-				html = fmt.Sprintf("%s<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
-					html, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
+					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
-
+			html += "</span>"
 			return template.HTML(html)
 		},
 	}}
@@ -499,17 +503,38 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
 var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
-// SVG render icons - arguments icon name (string), size (int), class (string)
-func SVG(icon string, others ...interface{}) template.HTML {
-	size := 16
+func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
+	size := defaultSize
 	if len(others) > 0 && others[0].(int) != 0 {
 		size = others[0].(int)
 	}
 
-	class := ""
+	class := defaultClass
 	if len(others) > 1 && others[1].(string) != "" {
-		class = others[1].(string)
+		if defaultClass == "" {
+			class = others[1].(string)
+		} else {
+			class = defaultClass + " " + others[1].(string)
+		}
 	}
+
+	return size, class
+}
+
+// AvatarHTML creates the HTML for an avatar
+func AvatarHTML(src string, size int, class string, name string) template.HTML {
+	sizeStr := fmt.Sprintf(`%d`, size)
+
+	if name == "" {
+		name = "avatar"
+	}
+
+	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+}
+
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	size, class := parseOthers(16, "", others...)
 
 	if svgStr, ok := svg.SVGs[icon]; ok {
 		if size != 16 {
@@ -521,6 +546,54 @@ func SVG(icon string, others ...interface{}) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
+	return template.HTML("")
+}
+
+// Avatar renders user avatars. args: user, size (int), class (string)
+func Avatar(item interface{}, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
+	if user, ok := item.(*models.User); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	if user, ok := item.(*models.Collaborator); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	return template.HTML("")
+}
+
+// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
+func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+	action.LoadActUser()
+	return Avatar(action.ActUser, others...)
+}
+
+// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
+func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
+	src := repo.RelAvatarLink()
+	if src != "" {
+		return AvatarHTML(src, size, class, repo.FullName())
+	}
+	return template.HTML("")
+}
+
+// AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
+func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	src := models.SizedAvatarLink(email, size*models.AvatarRenderedSizeFactor)
+
+	if src != "" {
+		return AvatarHTML(src, size, class, name)
+	}
+
 	return template.HTML("")
 }
 
@@ -631,6 +704,16 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
+// RenderIssueTitle renders issue/pull title with defined post processors
+func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+	renderedText, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(text)), urlPrefix, metas)
+	if err != nil {
+		log.Error("RenderIssueTitle: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
 	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
@@ -704,7 +787,7 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
-		return "repo-clone"
+		return "mirror"
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:

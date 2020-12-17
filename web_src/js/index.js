@@ -1,5 +1,4 @@
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
-/* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
 
@@ -517,20 +516,23 @@ function initCommentForm() {
           $(this).data('id'),
         ).then(reload);
       }
-      switch (input_id) {
-        case '#milestone_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#project_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
-                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEscape($(this).text())}</a>`);
+
+      let icon = '';
+      if (input_id === '#milestone_id') {
+        icon = svg('octicon-milestone', 18, 'mr-3');
+      } else if (input_id === '#project_id') {
+        icon = svg('octicon-project', 18, 'mr-3');
+      } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
+
+      $list.find('.selected').html(`
+        <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
+          ${icon}
+          ${htmlEscape($(this).text())}
+        </a>
+      `);
+
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
@@ -898,25 +900,23 @@ async function initRepository() {
       const target = $(this).data('target');
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
       const content = `> ${quote}\n\n`;
-
-      let $content;
+      let $simplemde = autoSimpleMDE;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').trigger('click');
-        $content = $parent.find('[name="content"]');
-        if ($content.val() !== '') {
-          $content.val(`${$content.val()}\n\n${content}`);
+        $simplemde = $parent.find('[name="content"]').data('simplemde');
+      }
+      if ($simplemde !== null) {
+        if ($simplemde.value() !== '') {
+          $simplemde.value(`${$simplemde.value()}\n\n${content}`);
         } else {
-          $content.val(`${content}`);
-        }
-        $content.focus();
-      } else if (autoSimpleMDE !== null) {
-        if (autoSimpleMDE.value() !== '') {
-          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
-        } else {
-          autoSimpleMDE.value(`${content}`);
+          $simplemde.value(`${content}`);
         }
       }
+      requestAnimationFrame(() => {
+        $simplemde.codemirror.focus();
+        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+      });
       event.preventDefault();
     });
 
@@ -1048,17 +1048,14 @@ async function initRepository() {
               if (data.attachments !== '') {
                 $content.append(`
                   <div class="dropzone-attachments">
-                    <div class="ui clearing divider"></div>
-                    <div class="ui middle aligned padded grid">
-                    </div>
                   </div>
                 `);
-                $content.find('.dropzone-attachments .grid').html(data.attachments);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
               $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.dropzone-attachments .grid').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
             if (dz) {
               dz.emit('submit');
@@ -1079,8 +1076,10 @@ async function initRepository() {
         $textarea.val($rawContent.text());
         $simplemde.value($rawContent.text());
       }
-      $textarea.focus();
-      $simplemde.codemirror.focus();
+      requestAnimationFrame(() => {
+        $textarea.focus();
+        $simplemde.codemirror.focus();
+      });
       event.preventDefault();
     });
 
@@ -1091,7 +1090,11 @@ async function initRepository() {
         $.post($this.data('url'), {
           _csrf: csrf
         }).done(() => {
+          const $conversationHolder = $this.closest('.conversation-holder');
           $(`#${$this.data('comment-id')}`).remove();
+          if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
+            $conversationHolder.remove();
+          }
         });
       }
       return false;
@@ -1117,6 +1120,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1130,6 +1135,7 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
   }
@@ -1194,6 +1200,12 @@ async function initRepository() {
   }
 }
 
+function initPullRequestMergeInstruction() {
+  $('.show-instruction').on('click', () => {
+    $('.instruct-content').toggle();
+  });
+}
+
 function initPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -1255,11 +1267,10 @@ function initPullRequestReview() {
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
-  }).closest('.dropdown').find('.link.close')
-    .on('click', function (e) {
-      e.preventDefault();
-      $(this).closest('.menu').toggle('visible');
-    });
+  }).closest('.dropdown').find('.close').on('click', function (e) {
+    e.preventDefault();
+    $(this).closest('.menu').toggle('visible');
+  });
 
   $('.add-code-comment').on('click', function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
@@ -2115,6 +2126,7 @@ function initCodeView() {
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
@@ -2512,6 +2524,8 @@ $(document).ready(async () => {
   initU2FAuth();
   initU2FRegister();
   initIssueList();
+  initIssueTimetracking();
+  initIssueDue();
   initWipTitle();
   initPullRequestReview();
   initRepoStatusChecker();
@@ -2519,6 +2533,7 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
+  initPullRequestMergeInstruction();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -3091,22 +3106,22 @@ function initVueApp() {
   });
 }
 
-window.timeAddManual = function () {
-  $('.mini.modal')
-    .modal({
+function initIssueTimetracking() {
+  $(document).on('click', '.issue-add-time', () => {
+    $('.mini.modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
-};
-
-window.toggleStopwatch = function () {
-  $('#toggle_stopwatch_form').trigger('submit');
-};
-window.cancelStopwatch = function () {
-  $('#cancel_stopwatch_form').trigger('submit');
-};
+  });
+  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
+    $('#toggle_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', '.issue-cancel-time', () => {
+    $('#cancel_stopwatch_form').trigger('submit');
+  });
+}
 
 function initFilterBranchTagDropdown(selector) {
   $(selector).each(function () {
@@ -3324,7 +3339,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            const link = $('<a class="ui repo-topic small label topic"></a>');
+            const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
@@ -3462,16 +3477,7 @@ function initTopicbar() {
   });
 }
 
-window.toggleDeadlineForm = function () {
-  $('#deadlineForm').fadeToggle(150);
-};
-
-window.setDeadline = function () {
-  const deadline = $('#deadlineDate').val();
-  window.updateDeadline(deadline);
-};
-
-window.updateDeadline = function (deadlineString) {
+function updateDeadline(deadlineString) {
   $('#deadline-err-invalid-date').hide();
   $('#deadline-loader').addClass('loading');
 
@@ -3505,7 +3511,20 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
     }
   });
-};
+}
+
+function initIssueDue() {
+  $(document).on('click', '.issue-due-edit', () => {
+    $('#deadlineForm').fadeToggle(150);
+  });
+  $(document).on('click', '.issue-due-remove', () => {
+    updateDeadline('');
+  });
+  $(document).on('submit', '.issue-due-form', () => {
+    updateDeadline($('#deadlineDate').val());
+    return false;
+  });
+}
 
 window.deleteDependencyModal = function (id, type) {
   $('.remove-dependency')

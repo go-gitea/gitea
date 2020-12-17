@@ -23,10 +23,17 @@
 			<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 		</div>
 		<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
-			<h4 class="ui top attached header">
-				{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
+			<h4 class="ui top attached header df ac">
+				<div class="f1 df ac">
+					{{.i18n.Tr "home.my_repos"}}
+					<span class="ui grey label ml-3">${reposTotalCount}</span>
+				</div>
+				<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+					{{svg "octicon-plus"}}
+					<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
+				</a>
 			</h4>
-			<div class="ui attached secondary segment repos-search">
+			<div class="ui attached segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
 					<input @input="searchRepos(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
 					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
@@ -37,15 +44,24 @@
 								<a @click="toggleArchivedFilter()">
 									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.i18n.Tr "home.show_both_archived_unarchived"}}" v-if="archivedFilter === 'both'">
 										<input type="checkbox">
-										<label><i class="archive icon archived-icon"></i>{{.i18n.Tr "home.show_archived"}}</label>
+										<label>
+											{{svg "octicon-archive" 16 "mr-2"}}
+											{{.i18n.Tr "home.show_archived"}}
+										</label>
 									</div>
 									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.i18n.Tr "home.show_only_unarchived"}}" v-if="archivedFilter === 'unarchived'">
 										<input type="checkbox">
-										<label><i class="archive icon archived-icon"></i>{{.i18n.Tr "home.show_archived"}}</label>
+										<label>
+											{{svg "octicon-archive" 16 "mr-2"}}
+											{{.i18n.Tr "home.show_archived"}}
+										</label>
 									</div>
 									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.i18n.Tr "home.show_only_archived"}}" v-if="archivedFilter === 'archived'">
 										<input type="checkbox">
-										<label><i class="archive icon archived-icon"></i>{{.i18n.Tr "home.show_archived"}}</label>
+										<label>
+											{{svg "octicon-archive" 16 "mr-2"}}
+											{{.i18n.Tr "home.show_archived"}}
+										</label>
 									</div>
 								</a>
 							</div>
@@ -53,15 +69,24 @@
 								<a @click="togglePrivateFilter()">
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock"}}{{.i18n.Tr "home.show_private"}}</label>
+										<label>
+											{{svg "octicon-lock" 16 "mr-2"}}
+											{{.i18n.Tr "home.show_private"}}
+										</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_public"}}" v-if="privateFilter === 'public'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock"}}</svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>
+											{{svg "octicon-lock" 16 "mr-2"}}
+											{{.i18n.Tr "home.show_private"}}
+										</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
 										<input type="checkbox">
-										<label>{{svg "octicon-lock"}}</svg>{{.i18n.Tr "home.show_private"}}</label>
+											<label>
+												{{svg "octicon-lock" 16 "mr-2"}}
+												{{.i18n.Tr "home.show_private"}}
+											</label>
 									</div>
 								</a>
 							</div>
@@ -94,13 +119,18 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a :href="suburl + '/' + repo.full_name">
-							<component v-bind:is="repoIcon(repo)" size="16"></component>
-							<strong class="text truncate item-name">${repo.full_name}</strong>
-							<i v-if="repo.archived" class="archive icon archived-icon"></i>
-							<span class="ui right text light grey">
-								${repo.stars_count} <span class="rear">{{svg "octicon-star"}}</span>
-							</span>
+						<a class="df ac sb" :href="suburl + '/' + repo.full_name">
+							<div class="f1">
+								<component v-bind:is="repoIcon(repo)" size="16"></component>
+								<strong class="text truncate item-name">${repo.full_name}</strong>
+								<span v-if="repo.archived">
+									{{svg "octicon-archive" 16 "ml-2"}}
+								</span>
+							</div>
+							<div class="text light grey df ac">
+								${repo.stars_count}
+								{{svg "octicon-star" 16 "rear ml-2"}}
+							</div>
 						</a>
 					</li>
 					<li v-if="showMoreReposLink">
@@ -108,20 +138,20 @@
 							<div class="ui borderless pagination menu narrow">
 								<a class="item navigation" :class="{'disabled': page === 1}"
 									@click="changePage(1)" title="{{$.i18n.Tr "admin.first_page"}}">
-									<i class="angle double left icon"></i>
+									{{svg "gitea-double-chevron-left" 16 "mr-2"}}
 								</a>
 								<a class="item navigation" :class="{'disabled': page === 1}"
 									@click="changePage(page - 1)" title="{{$.i18n.Tr "repo.issues.previous"}}">
-									<i class="left arrow icon"></i>
+									{{svg "octicon-chevron-left" 16 "mr-2"}}
 								</a>
 								<a class="active item">${page}</a>
 								<a class="item navigation" :class="{'disabled': page === finalPage}"
 									@click="changePage(page + 1)" title="{{$.i18n.Tr "repo.issues.next"}}">
-									<i class="icon right arrow"></i>
+									{{svg "octicon-chevron-right" 16 "ml-2"}}
 								</a>
 								<a class="item navigation" :class="{'disabled': page === finalPage}"
 									@click="changePage(finalPage)" title="{{$.i18n.Tr "admin.last_page"}}">
-									<i class="angle double right icon"></i>
+									{{svg "gitea-double-chevron-right" 16 "ml-2"}}
 								</a>
 							</div>
 						</div>
@@ -129,25 +159,29 @@
 				</ul>
 			</div>
 		</div>
-		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
-			<h4 class="ui top attached header">
-				{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${organizationsTotalCount}</span>
-				<div v-if="canCreateOrganization" class="ui right">
-					<a class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
-						<i class="plus icon"></i>
-						<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
-					</a>
+		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
+			<h4 class="ui top attached header df ac">
+				<div class="f1 df ac">
+					{{.i18n.Tr "home.my_orgs"}}
+					<span class="ui grey label ml-3">${organizationsTotalCount}</span>
 				</div>
+				<a v-if="canCreateOrganization" class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+					{{svg "octicon-plus"}}
+					<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
+				</a>
 			</h4>
 			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
-						<a :href="suburl + '/' + org.name">
-							{{svg "octicon-organization"}}
-							<strong class="text truncate item-name">${org.name}</strong>
-							<span class="ui right text light grey">
-								${org.num_repos} <span class="rear">{{svg "octicon-repo"}}</span>
-							</span>
+						<a class="df ac sb" :href="suburl + '/' + org.name">
+							<div class="f1">
+								{{svg "octicon-organization" 16 "mr-2"}}
+								<strong class="text truncate item-name">${org.name}</strong>
+							</div>
+							<div class="text light grey df ac">
+								${org.num_repos}
+								{{svg "octicon-repo" 16 "rear ml-2 mt-1"}}
+							</div>
 						</a>
 					</li>
 				</ul>

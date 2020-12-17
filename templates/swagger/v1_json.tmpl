@@ -11326,6 +11326,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -11660,6 +11664,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -11929,7 +11937,7 @@
       ],
       "properties": {
         "assignee": {
-          "description": "username of assignee",
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -11967,6 +11975,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "title": {
           "type": "string",
@@ -12605,6 +12617,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -12766,6 +12782,7 @@
       "type": "object",
       "properties": {
         "assignee": {
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -12789,6 +12806,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "state": {
           "type": "string",
@@ -13511,6 +13532,10 @@
             "type": "string"
           },
           "x-go-name": "AllowedReactions"
+        },
+        "default_theme": {
+          "type": "string",
+          "x-go-name": "DefaultTheme"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13814,6 +13839,10 @@
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"

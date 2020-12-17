@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/unknwon/com"
 )
 
 // enumerates all the policy repository creating
@@ -249,19 +247,14 @@ var (
 )
 
 func newRepository() {
-	homeDir, err := com.HomeDir()
-	if err != nil {
-		log.Fatal("Failed to get home directory: %v", err)
-	}
-	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
-
+	var err error
 	// Determine and create root git repository path.
 	sec := Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
-	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
+	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)

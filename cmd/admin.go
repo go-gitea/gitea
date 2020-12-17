@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
@@ -125,9 +126,22 @@ var (
 	}
 
 	microcmdUserDelete = cli.Command{
-		Name:   "delete",
-		Usage:  "Delete specific user",
-		Flags:  []cli.Flag{idFlag},
+		Name:  "delete",
+		Usage: "Delete specific user by id, name or email",
+		Flags: []cli.Flag{
+			cli.Int64Flag{
+				Name:  "id",
+				Usage: "ID of user of the user to delete",
+			},
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username of the user to delete",
+			},
+			cli.StringFlag{
+				Name:  "email,e",
+				Usage: "Email of the user to delete",
+			},
+		},
 		Action: runDeleteUser,
 	}
 
@@ -335,7 +349,7 @@ func runChangePassword(c *cli.Context) error {
 	}
 	user.HashPassword(c.String("password"))
 
-	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
+	if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -463,17 +477,32 @@ func runListUsers(c *cli.Context) error {
 }
 
 func runDeleteUser(c *cli.Context) error {
-	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
+		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
 	if err := initDB(); err != nil {
 		return err
 	}
 
-	user, err := models.GetUserByID(c.Int64("id"))
+	var err error
+	var user *models.User
+	if c.IsSet("email") {
+		user, err = models.GetUserByEmail(c.String("email"))
+	} else if c.IsSet("username") {
+		user, err = models.GetUserByName(c.String("username"))
+	} else {
+		user, err = models.GetUserByID(c.Int64("id"))
+	}
 	if err != nil {
 		return err
+	}
+	if c.IsSet("username") && user.LowerName != strings.ToLower(strings.TrimSpace(c.String("username"))) {
+		return fmt.Errorf("The user %s who has email %s does not match the provided username %s", user.Name, c.String("email"), c.String("username"))
+	}
+
+	if c.IsSet("id") && user.ID != c.Int64("id") {
+		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
 	return models.DeleteUser(user)

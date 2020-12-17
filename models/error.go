@@ -1019,6 +1019,29 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
+// ErrMigrationNotAllowed explains why a migration from an url is not allowed
+type ErrMigrationNotAllowed struct {
+	Host          string
+	NotResolvedIP bool
+	PrivateNet    string
+}
+
+func (e *ErrMigrationNotAllowed) Error() string {
+	if e.NotResolvedIP {
+		return fmt.Sprintf("migrate from '%s' is not allowed: unknown hostname", e.Host)
+	}
+	if len(e.PrivateNet) != 0 {
+		return fmt.Sprintf("migrate from '%s' is not allowed: the host resolve to a private ip address '%s'", e.Host, e.PrivateNet)
+	}
+	return fmt.Sprintf("migrate from '%s is not allowed'", e.Host)
+}
+
+// IsErrMigrationNotAllowed checks if an error is a ErrMigrationNotAllowed
+func IsErrMigrationNotAllowed(err error) bool {
+	_, ok := err.(*ErrMigrationNotAllowed)
+	return ok
+}
+
 // __________                             .__
 // \______   \____________    ____   ____ |  |__
 //  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \

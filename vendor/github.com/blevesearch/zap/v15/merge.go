@@ -341,11 +341,16 @@ func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 
 			postItr = postings.iterator(true, true, true, postItr)
 
-			// can no longer optimize by copying, since chunk factor could have changed
-			lastDocNum, lastFreq, lastNorm, bufLoc, err = mergeTermFreqNormLocs(
-				fieldsMap, term, postItr, newDocNums[itrI], newRoaring,
-				tfEncoder, locEncoder, bufLoc)
-
+			if fieldsSame {
+				// can optimize by copying freq/norm/loc bytes directly
+				lastDocNum, lastFreq, lastNorm, err = mergeTermFreqNormLocsByCopying(
+					term, postItr, newDocNums[itrI], newRoaring,
+					tfEncoder, locEncoder)
+			} else {
+				lastDocNum, lastFreq, lastNorm, bufLoc, err = mergeTermFreqNormLocs(
+					fieldsMap, term, postItr, newDocNums[itrI], newRoaring,
+					tfEncoder, locEncoder, bufLoc)
+			}
 			if err != nil {
 				return nil, 0, err
 			}
@@ -471,6 +476,42 @@ func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 	}
 
 	return rv, fieldDvLocsOffset, nil
+}
+
+func mergeTermFreqNormLocsByCopying(term []byte, postItr *PostingsIterator,
+	newDocNums []uint64, newRoaring *roaring.Bitmap,
+	tfEncoder *chunkedIntCoder, locEncoder *chunkedIntCoder) (
+	lastDocNum uint64, lastFreq uint64, lastNorm uint64, err error) {
+	nextDocNum, nextFreq, nextNorm, nextFreqNormBytes, nextLocBytes, err :=
+		postItr.nextBytes()
+	for err == nil && len(nextFreqNormBytes) > 0 {
+		hitNewDocNum := newDocNums[nextDocNum]
+		if hitNewDocNum == docDropped {
+			return 0, 0, 0, fmt.Errorf("see hit with dropped doc num")
+		}
+
+		newRoaring.Add(uint32(hitNewDocNum))
+		err = tfEncoder.AddBytes(hitNewDocNum, nextFreqNormBytes)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		if len(nextLocBytes) > 0 {
+			err = locEncoder.AddBytes(hitNewDocNum, nextLocBytes)
+			if err != nil {
+				return 0, 0, 0, err
+			}
+		}
+
+		lastDocNum = hitNewDocNum
+		lastFreq = nextFreq
+		lastNorm = nextNorm
+
+		nextDocNum, nextFreq, nextNorm, nextFreqNormBytes, nextLocBytes, err =
+			postItr.nextBytes()
+	}
+
+	return lastDocNum, lastFreq, lastNorm, err
 }
 
 func mergeTermFreqNormLocs(fieldsMap map[string]uint16, term []byte, postItr *PostingsIterator,

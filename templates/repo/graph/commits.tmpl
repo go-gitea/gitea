@@ -67,9 +67,11 @@
 							{{if $commit.User.FullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							<img class="ui avatar image" src="{{$commit.User.RelAvatarLink}}" alt=""/><a href="{{AppSubUrl}}/{{$commit.User.Name}}">{{$userName}}</a>
+							{{avatar $commit.User}}
+							<a href="{{AppSubUrl}}/{{$commit.User}}">{{$userName}}</a>
 						{{else}}
-							<img class="ui avatar image" src="{{AvatarLink $commit.Commit.Author.Email}}" alt=""/>{{$userName}}
+							{{avatarByEmail $commit.Commit.Author.Email $userName}}
+							{{$userName}}
 						{{end}}
 					</span>
 					<span class="time df ac">{{$commit.Date}}</span>

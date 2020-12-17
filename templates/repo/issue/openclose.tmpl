@@ -1,0 +1,10 @@
+<div class="ui compact tiny menu">
+	<a class="{{if not .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+		{{svg "octicon-issue-opened" 16 "mr-3"}}
+		{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+	</a>
+	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+		{{svg "octicon-issue-closed" 16 "mr-3"}}
+		{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+	</a>
+</div>

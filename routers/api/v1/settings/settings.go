@@ -23,6 +23,7 @@ func GetGeneralUISettings(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GeneralUISettings"
 	ctx.JSON(http.StatusOK, api.GeneralUISettings{
+		DefaultTheme:     setting.UI.DefaultTheme,
 		AllowedReactions: setting.UI.Reactions,
 	})
 }
