@@ -19,6 +19,11 @@ export function isDarkTheme() {
   return document.documentElement.classList.contains('theme-arc-green');
 }
 
+// returns if mobile device
+export function isMobile() {
+  return /Mobi/.test(navigator.userAgent);
+}
+
 // removes duplicate elements in an array
 export function uniq(arr) {
   return Array.from(new Set(arr));

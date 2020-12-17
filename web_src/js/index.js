@@ -25,6 +25,7 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
+import {isMobile} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -385,8 +386,14 @@ function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
-
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+
+  // Don't use simpleMDE on mobile due to multiple bug reports which go unfixed
+  // Other sections rely on it being initialized so just set it back to text area here
+  if (isMobile()) {
+    autoSimpleMDE.toTextArea();
+  }
+
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -1214,16 +1221,21 @@ function initPullRequestReview() {
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
+    if (!isMobile()) {
+      let $simplemde;
+      if ($textarea.data('simplemde')) {
+        $simplemde = $textarea.data('simplemde');
+      } else {
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        $simplemde = setCommentSimpleMDE($textarea);
+        $textarea.data('simplemde', $simplemde);
+      }
+      $textarea.focus();
+      $simplemde.codemirror.focus();
     } else {
       attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = setCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+      $textarea.focus();
     }
-    $textarea.focus();
-    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
@@ -1290,9 +1302,13 @@ function initPullRequestReview() {
     const $textarea = commentCloud.find('textarea');
     attachTribute($textarea.get(), {mentions: true, emoji: true});
 
-    const $simplemde = setCommentSimpleMDE($textarea);
-    $textarea.focus();
-    $simplemde.codemirror.focus();
+    if (!isMobile()) {
+      const $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.focus();
+      $simplemde.codemirror.focus();
+    } else {
+      $textarea.focus();
+    }
   });
 }
 
@@ -1338,6 +1354,10 @@ function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
+  if ($editArea.length > 0 && isMobile) {
+    $editArea.css('display', 'inline-block');
+    return;
+  }
   if ($editArea.length > 0) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
@@ -1433,6 +1453,7 @@ function initWikiForm() {
           name: 'revert-to-textarea',
           action(e) {
             e.toTextArea();
+            $editArea.css('display', 'inline-block');
           },
           className: 'fa fa-file',
           title: 'Revert to simple textarea',
