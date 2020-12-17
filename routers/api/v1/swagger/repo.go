@@ -169,18 +169,18 @@ type swaggerResponsePullReviewCommentList struct {
 	Body []api.PullReviewComment `json:"body"`
 }
 
-// Status
-// swagger:response Status
+// CommitStatus
+// swagger:response CommitStatus
 type swaggerResponseStatus struct {
 	// in:body
-	Body api.Status `json:"body"`
+	Body api.CommitStatus `json:"body"`
 }
 
-// StatusList
-// swagger:response StatusList
-type swaggerResponseStatusList struct {
+// CommitStatusList
+// swagger:response CommitStatusList
+type swaggerResponseCommitStatusList struct {
 	// in:body
-	Body []api.Status `json:"body"`
+	Body []api.CommitStatus `json:"body"`
 }
 
 // WatchInfo

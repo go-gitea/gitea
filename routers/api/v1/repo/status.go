@@ -45,7 +45,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//     "$ref": "#/definitions/CreateStatusOption"
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CommitStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -221,7 +221,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		return
 	}
 
-	apiStatuses := make([]*api.Status, 0, len(statuses))
+	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
 		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}

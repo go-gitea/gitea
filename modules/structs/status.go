@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Status holds a single Status of a single Commit
-type Status struct {
+// CommitStatus holds a single status of a single Commit
+type CommitStatus struct {
 	ID          int64             `json:"id"`
 	State       CommitStatusState `json:"status"`
 	TargetURL   string            `json:"target_url"`
@@ -28,13 +28,13 @@ type CombinedStatus struct {
 	State      CommitStatusState `json:"state"`
 	SHA        string            `json:"sha"`
 	TotalCount int               `json:"total_count"`
-	Statuses   []*Status         `json:"statuses"`
+	Statuses   []*CommitStatus   `json:"statuses"`
 	Repository *Repository       `json:"repository"`
 	CommitURL  string            `json:"commit_url"`
 	URL        string            `json:"url"`
 }
 
-// CreateStatusOption holds the information needed to create a new Status for a Commit
+// CreateStatusOption holds the information needed to create a new CommitStatus for a Commit
 type CreateStatusOption struct {
 	State       CommitStatusState `json:"state"`
 	TargetURL   string            `json:"target_url"`

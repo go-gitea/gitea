@@ -8597,7 +8597,7 @@
         ],
         "responses": {
           "201": {
-            "$ref": "#/responses/Status"
+            "$ref": "#/responses/CommitStatus"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -11539,7 +11539,7 @@
         "statuses": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Status"
+            "$ref": "#/definitions/CommitStatus"
           },
           "x-go-name": "Statuses"
         },
@@ -11682,8 +11682,52 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitStatus": {
+      "description": "CommitStatus holds a single CommitStatus of a single Commit",
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "string",
+          "x-go-name": "Context"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "status": {
+          "$ref": "#/definitions/CommitStatusState"
+        },
+        "target_url": {
+          "type": "string",
+          "x-go-name": "TargetURL"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitStatusState": {
-      "description": "CommitStatusState holds the state of a Status\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
+      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
@@ -12470,7 +12514,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateStatusOption": {
-      "description": "CreateStatusOption holds the information needed to create a new Status for a Commit",
+      "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
       "type": "object",
       "properties": {
         "context": {
@@ -15380,50 +15424,6 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "Status": {
-      "description": "Status holds a single Status of a single Commit",
-      "type": "object",
-      "properties": {
-        "context": {
-          "type": "string",
-          "x-go-name": "Context"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Created"
-        },
-        "creator": {
-          "$ref": "#/definitions/User"
-        },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "status": {
-          "$ref": "#/definitions/CommitStatusState"
-        },
-        "target_url": {
-          "type": "string",
-          "x-go-name": "TargetURL"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Updated"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "StopWatch": {
       "description": "StopWatch represent a running stopwatch",
       "type": "object",
@@ -15959,6 +15959,21 @@
         }
       }
     },
+    "CommitStatus": {
+      "description": "CommitStatus",
+      "schema": {
+        "$ref": "#/definitions/CommitStatus"
+      }
+    },
+    "CommitStatusList": {
+      "description": "CommitStatusList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CommitStatus"
+        }
+      }
+    },
     "ContentsListResponse": {
       "description": "ContentsListResponse",
       "schema": {
@@ -16363,21 +16378,6 @@
       "description": "ServerVersion",
       "schema": {
         "$ref": "#/definitions/ServerVersion"
-      }
-    },
-    "Status": {
-      "description": "Status",
-      "schema": {
-        "$ref": "#/definitions/Status"
-      }
-    },
-    "StatusList": {
-      "description": "StatusList",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/Status"
-        }
       }
     },
     "StopWatch": {

@@ -83,7 +83,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 func testRepoCommitsWithStatus(t *testing.T, resp *httptest.ResponseRecorder, state string) {
 	decoder := json.NewDecoder(resp.Body)
-	statuses := []*api.Status{}
+	statuses := []*api.CommitStatus{}
 	assert.NoError(t, decoder.Decode(&statuses))
 	assert.Len(t, statuses, 1)
 	for _, s := range statuses {

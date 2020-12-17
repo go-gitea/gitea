@@ -9,9 +9,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToCommitStatus converts models.CommitStatus to api.Status
-func ToCommitStatus(status *models.CommitStatus) *api.Status {
-	apiStatus := &api.Status{
+// ToCommitStatus converts models.CommitStatus to api.CommitStatus
+func ToCommitStatus(status *models.CommitStatus) *api.CommitStatus {
+	apiStatus := &api.CommitStatus{
 		Created:     status.CreatedUnix.AsTime(),
 		Updated:     status.CreatedUnix.AsTime(),
 		State:       status.State,
@@ -44,7 +44,7 @@ func ToCombinedStatus(statuses []*models.CommitStatus, repo *api.Repository) *ap
 		URL:        "",
 	}
 
-	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
+	retStatus.Statuses = make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
 		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(status))
 		if status.State.NoBetterThan(retStatus.State) {
