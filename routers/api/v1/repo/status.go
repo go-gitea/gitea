@@ -284,7 +284,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	}
 
 	if len(statuses) == 0 {
-		ctx.Status(http.StatusOK)
+		ctx.JSON(http.StatusOK, nil)
 		return
 	}
 
