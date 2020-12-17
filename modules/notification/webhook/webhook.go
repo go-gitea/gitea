@@ -122,7 +122,6 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models
 	}
 }
 
-// NotifyMigrateRepository places a place holder function
 func (m *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
