@@ -68,8 +68,7 @@ empty commit`
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 
-	commitStringReader := strings.NewReader(commitString)
-	commitFromReader, err := CommitFromReader(gitRepo, sha, commitStringReader)
+	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
 	if !assert.NotNil(t, commitFromReader) {
 		return
@@ -99,4 +98,10 @@ committer silverwind <me@silverwind.io> 1563741793 +0200
 
 empty commit`, commitFromReader.Signature.Payload)
 	assert.EqualValues(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
+
+	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	assert.NoError(t, err)
+	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.Signature.Payload += "\n\n"
+	assert.EqualValues(t, commitFromReader, commitFromReader2)
 }
