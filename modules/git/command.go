@@ -156,6 +156,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		err := fn(ctx, cancel)
 		if err != nil {
 			cancel()
+			_ = cmd.Wait()
 			return err
 		}
 	}
