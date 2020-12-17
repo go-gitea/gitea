@@ -66,3 +66,22 @@ func GetListOptions(ctx *context.APIContext) models.ListOptions {
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
 }
+
+// PaginateUserSlice cut a slice of Users as per pagination options
+// TODO: make it generic
+func PaginateUserSlice(items []*models.User, page, pageSize int) []*models.User {
+	if page != 0 {
+		page--
+	}
+
+	if page*pageSize >= len(items) {
+		return items[len(items):]
+	}
+
+	items = items[page*pageSize:]
+
+	if len(items) > pageSize {
+		return items[:pageSize]
+	}
+	return items
+}
