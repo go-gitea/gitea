@@ -33,6 +33,16 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: lint-backend-gogit
+    pull: always
+    image: golang:1.15
+    commands:
+      - make lint-backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+
   - name: checks-frontend
     image: node:14
     commands:
@@ -69,7 +79,7 @@ steps:
       GOPROXY: off
       GOOS: linux
       GOARCH: arm64
-      TAGS: bindata
+      TAGS: bindata gogit
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
@@ -170,6 +180,17 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
+
+  - name: unit-test-gogit
+    pull: always
+    image: golang:1.15
+    commands:
+      - make unit-test-coverage test-check
+    environment:
+      GOPROXY: off
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
@@ -305,7 +326,8 @@ steps:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
-      TAGS: bindata
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
@@ -318,7 +340,8 @@ steps:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
-      TAGS: bindata
+      TAGS: bindata gogit
+      TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
