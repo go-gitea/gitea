@@ -1,0 +1,12 @@
+<a class="ui link commit-statuses-trigger" data-variation="very wide fixed">{{template "repo/commit_status" .Status}}</a>
+<div class="ui popup commit-statuses">
+	{{range .Statuses}}
+		<div class="ui attached segment singular-status">
+			<span>{{template "repo/commit_status" .}}</span>
+			<span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+			<div class="ui right">
+				<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">Details</a>{{end}}</span>
+			</div>
+		</div>
+	{{end}}
+</div>

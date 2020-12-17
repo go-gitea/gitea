@@ -16,20 +16,7 @@
 
 		<span class="ui float right shabox">
 			{{if eq (CommitType .) "SignCommitWithStatuses"}}
-				<div class="ui dropdown">
-					<span class="commit-status">{{template "repo/commit_status" .Status}}</span>
-					<div class="menu commit-statuses">
-    				{{range .Statuses}}
-        			<div class="ui item">
-            		<span>{{template "repo/commit_status" .}}</span>
-            		<span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
-            		<div class="ui right">
-									<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">Details</a>{{end}}</span>
-            		</div>
-        			</div>
-    				{{end}}
-    			</div>
-    		</div>
+				{{template "repo/commit_statuses" .}}
 			{{end}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
