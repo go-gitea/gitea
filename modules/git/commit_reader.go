@@ -36,6 +36,10 @@ readLoop:
 		line, err := bufReader.ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
+				if message {
+					_, _ = messageSB.Write(line)
+				}
+				_, _ = payloadSB.Write(line)
 				break readLoop
 			}
 			return nil, err
@@ -86,10 +90,10 @@ readLoop:
 			}
 		} else {
 			_, _ = messageSB.Write(line)
+			_, _ = payloadSB.Write(line)
 		}
 	}
 	commit.CommitMessage = messageSB.String()
-	_, _ = payloadSB.WriteString(commit.CommitMessage)
 	commit.Signature = &CommitGPGSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
