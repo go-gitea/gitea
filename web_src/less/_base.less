@@ -1734,6 +1734,26 @@ table th[data-sortt-desc] {
   }
 }
 
+/* fix up SVG dropdown triangles because fomantic thinks they are icon fonts */
+/* see https://github.com/go-gitea/gitea/issues/14014 */
+.ui.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  height: auto !important;
+  margin-left: .5rem !important;
+  margin-top: -1px !important;
+  margin-bottom: -1px !important;
+  margin-right: -.5rem !important;
+}
+.ui.button.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  float: right !important;
+}
+.ui.selection.dropdown > .search.icon,
+.ui.selection.dropdown > .delete.icon,
+.ui.selection.dropdown > .dropdown.icon {
+  top: 0 !important;
+}
+
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
 .dropdown:not(.selection) > .menu:not(.review-box) > *:not(.header) {
