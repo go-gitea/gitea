@@ -711,7 +711,7 @@ golangci-lint:
 		export BINARY="golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
 	fi
-	golangci-lint run --timeout 5m
+	golangci-lint run --timeout 10m
 
 .PHONY: docker
 docker:
