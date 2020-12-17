@@ -1354,6 +1354,10 @@ function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
+  if ($editArea.length > 0 && isMobile) {
+    $editArea.css('display', 'inline-block');
+    return;
+  }
   if ($editArea.length > 0) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
@@ -1449,6 +1453,7 @@ function initWikiForm() {
           name: 'revert-to-textarea',
           action(e) {
             e.toTextArea();
+            $editArea.css('display', 'inline-block');
           },
           className: 'fa fa-file',
           title: 'Revert to simple textarea',
