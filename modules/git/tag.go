@@ -10,15 +10,19 @@ import (
 	"strings"
 )
 
+const beginpgp = "\n-----BEGIN PGP SIGNATURE-----\n"
+const endpgp = "\n-----END PGP SIGNATURE-----"
+
 // Tag represents a Git tag.
 type Tag struct {
-	Name    string
-	ID      SHA1
-	repo    *Repository
-	Object  SHA1 // The id of this commit object
-	Type    string
-	Tagger  *Signature
-	Message string
+	Name      string
+	ID        SHA1
+	repo      *Repository
+	Object    SHA1 // The id of this commit object
+	Type      string
+	Tagger    *Signature
+	Message   string
+	Signature *CommitGPGSignature
 }
 
 // Commit return the commit of the tag reference
@@ -60,10 +64,21 @@ l:
 			}
 			nextline += eol + 1
 		case eol == 0:
-			tag.Message = strings.TrimRight(string(data[nextline+1:]), "\n")
+			tag.Message = string(data[nextline+1 : len(data)-1])
 			break l
 		default:
 			break l
+		}
+	}
+	idx := strings.LastIndex(tag.Message, beginpgp)
+	if idx > 0 {
+		endSigIdx := strings.Index(tag.Message[idx:], endpgp)
+		if endSigIdx > 0 {
+			tag.Signature = &CommitGPGSignature{
+				Signature: tag.Message[idx+1 : idx+endSigIdx+len(endpgp)],
+				Payload:   string(data[:bytes.LastIndex(data, []byte(beginpgp))+1]),
+			}
+			tag.Message = tag.Message[:idx+1]
 		}
 	}
 	return tag, nil
