@@ -835,7 +835,7 @@
           float: left;
           margin-left: -33px;
           margin-right: 8px;
-          color: var(--color-text-light-2);
+          color: var(--color-text);
           align-items: center;
           justify-content: center;
 
@@ -1016,7 +1016,7 @@
           }
 
           .no-content {
-            color: #767676;
+            color: var(--color-text-light-2);
             font-style: italic;
           }
 
@@ -1054,54 +1054,21 @@
 
       .code-comment {
         border: 1px solid transparent;
-        padding: 6px 6px 3px;
+        padding: .5rem 0;
+        margin: 0;
 
         .content {
           border: none !important;
+        }
+
+        .avatar.image {
+          width: 28px;
+          height: 28px;
         }
       }
 
       .event {
         padding-left: 15px;
-
-        & > .svg:not(.issue-symbol) {
-          text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
-        }
-
-        & > .svg.issue-symbol {
-          font-size: 20px;
-          margin-left: -35px;
-          margin-right: -1px;
-          margin-top: 0 !important;
-          height: 28px;
-          width: 28px;
-          border-radius: 50%;
-          text-align: center;
-          line-height: 28px;
-          background: #eee;
-
-          &::before {
-            width: 15px;
-            display: inline-block;
-          }
-
-          &.octicon-key::before {
-            width: 18px;
-          }
-
-          &.octicon-circle-slash::before {
-            width: 17px;
-          }
-
-          &.octicon-comment {
-            font-size: 21px;
-            line-height: 33px;
-
-            &::before {
-              width: 20px;
-            }
-          }
-        }
 
         .detail {
           font-size: .9rem;
@@ -1533,7 +1500,6 @@
     }
 
     .button {
-      margin: -5px 0 -5px 12px;
       padding: 8px 10px;
       flex: 0 0 auto;
     }
@@ -1545,9 +1511,11 @@
     }
 
     .file-body.file-code {
+      background: var(--color-code-bg);
+
       .lines-num {
         text-align: right;
-        color: #a6a6a6;
+        color: var(--color-text-light);
         width: 1%;
         min-width: 50px;
         user-select: none;
@@ -1607,73 +1575,10 @@
       }
     }
 
-    .code-diff-unified tbody tr {
-      &.del-code td {
-        background-color: #ffeef0;
-        border-color: #f1c0c0;
-      }
-
-      &.add-code td {
-        background-color: #e6ffed;
-        border-color: #bef5cb;
-      }
-
-      &.del-code td.lines-num {
-        background-color: #ffe5e4;
-      }
-
-      &.add-code td.lines-num {
-        background-color: #cdffd8;
-      }
-
-    }
-
     .code-diff-split {
-
       table,
       tbody {
         width: 100%;
-      }
-
-      tbody tr {
-
-        // light gray for empty lines before / after commit
-        &.add-code td:nth-child(1),
-        &.add-code td:nth-child(2),
-        &.add-code td:nth-child(3),
-        &.del-code td:nth-child(4),
-        &.del-code td:nth-child(5),
-        &.del-code td:nth-child(6) {
-          background-color: #fafbfc;
-          border-right-color: #eaecef;
-        }
-
-        &.del-code {
-          background-color: #ffeef0;
-        }
-
-        &.del-code td.add-code {
-          background-color: #e6ffed;
-        }
-        &.del-code td.lines-num-new.add-code {
-          background-color: #cdffd8;
-          border-color: #bef5cb;
-        }
-
-        &.add-code {
-          background-color: #e6ffed;
-          border-color: #bef5cb;
-        }
-
-        &.add-code td.lines-num-new {
-          background-color: #cdffd8;
-        }
-
-        td:nth-child(4) {
-          border-left-width: 1px;
-          border-left-style: solid;
-          border-left-color: #f6f8fa;
-        }
       }
     }
 
@@ -1708,7 +1613,7 @@
       list-style: none;
       padding-bottom: 4px;
       margin-bottom: 4px;
-      border-bottom: 1px dashed #dddddd;
+      border-bottom: 1px dashed var(--color-secondary);
       padding-left: 6px;
     }
   }
@@ -2563,12 +2468,13 @@
 .comment-header {
   #avatar-arrow;
   border: none !important;
+  background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
   padding: .5rem 1rem !important;
   margin: 0 !important;
   position: relative;
-  color: #767676;
+  color: var(--color-text-light-2);
   min-height: 41px;
   background-color: var(--color-box-header);
   display: flex;
@@ -2589,20 +2495,19 @@
     top: -8px;
     left: 7px;
   }
+
+  a {
+    color: var(--color-text);
+  }
+
+  a:hover {
+    color: var(--color-primary);
+  }
 }
 
 .comment-header .actions a {
   margin-right: 0 !important;
   padding: .5rem !important;
-}
-
-.comment-header a {
-  color: rgba(0, 0, 0, .4) !important;
-}
-
-.comment-header .actions a:hover,
-.comment-header .actions a.active {
-  color: rgba(0, 0, 0, .8) !important;
 }
 
 .comment-header-left > * + *,
@@ -2611,6 +2516,7 @@
 }
 
 .comment-body {
+  background: var(--color-box-body);
   border: none !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -3105,11 +3011,45 @@ td.blob-excerpt {
 }
 
 .removed-code {
-  background-color: #fdb8c0;
+  background: var(--color-diff-removed-word-bg);
 }
 
 .added-code {
-  background-color: #acf2bd;
+  background: var(--color-diff-added-word-bg);
+}
+
+.code-diff-unified .del-code,
+.code-diff-unified .del-code td,
+.code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-type-marker-old,
+.code-diff-split .del-code .lines-code-old {
+  background: var(--color-diff-removed-row-bg);
+  border-color: var(--color-diff-removed-row-border);
+}
+
+.code-diff-unified .add-code,
+.code-diff-unified .add-code td,
+.code-diff-split .add-code .lines-num-new,
+.code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-code-new,
+.code-diff-split .del-code .add-code.lines-num-new,
+.code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-code-new {
+  background: var(--color-diff-added-row-bg);
+  border-color: var(--color-diff-added-row-border);
+}
+
+.code-diff-split .del-code .lines-num-new,
+.code-diff-split .del-code .lines-type-marker-new,
+.code-diff-split .del-code .lines-code-new,
+.code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-type-marker-old,
+.code-diff-split .add-code .lines-code-old {
+  background: var(--color-diff-inactive);
+}
+
+.code-diff-split tbody tr td:nth-child(4) {
+  border-left: 1px solid var(--color-secondary);
 }
 
 .repository .ui.menu.new-menu {

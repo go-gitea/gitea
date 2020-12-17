@@ -12,11 +12,9 @@ import (
 	"io"
 	"io/ioutil"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -29,9 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
-	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/unknwon/com"
 )
 
@@ -363,22 +358,6 @@ func LFSDelete(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")
 }
 
-type lfsResult struct {
-	Name           string
-	SHA            string
-	Summary        string
-	When           time.Time
-	ParentHashes   []plumbing.Hash
-	BranchName     string
-	FullCommitName string
-}
-
-type lfsResultSlice []*lfsResult
-
-func (a lfsResultSlice) Len() int           { return len(a) }
-func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
-
 // LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
 func LFSFileFind(ctx *context.Context) {
 	if !setting.LFS.StartServer {
@@ -394,138 +373,25 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.Query("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	var hash plumbing.Hash
+	var hash git.SHA1
 	if len(sha) == 0 {
 		meta := models.LFSMetaObject{Oid: oid, Size: size}
 		pointer := meta.Pointer()
-		hash = plumbing.ComputeHash(plumbing.BlobObject, []byte(pointer))
+		hash = git.ComputeBlobHash([]byte(pointer))
 		sha = hash.String()
 	} else {
-		hash = plumbing.NewHash(sha)
+		hash = git.MustIDFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	resultsMap := map[string]*lfsResult{}
-	results := make([]*lfsResult, 0)
-
-	basePath := ctx.Repo.Repository.RepoPath()
-	gogitRepo := ctx.Repo.GitRepo.GoGitRepo()
-
-	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
-		Order: gogit.LogOrderCommitterTime,
-		All:   true,
-	})
-	if err != nil {
-		log.Error("Failed to get GoGit CommitsIter: %v", err)
-		ctx.ServerError("LFSFind: Iterate Commits", err)
-		return
-	}
-
-	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
-		tree, err := gitCommit.Tree()
-		if err != nil {
-			return err
-		}
-		treeWalker := object.NewTreeWalker(tree, true, nil)
-		defer treeWalker.Close()
-		for {
-			name, entry, err := treeWalker.Next()
-			if err == io.EOF {
-				break
-			}
-			if entry.Hash == hash {
-				result := lfsResult{
-					Name:         name,
-					SHA:          gitCommit.Hash.String(),
-					Summary:      strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
-					When:         gitCommit.Author.When,
-					ParentHashes: gitCommit.ParentHashes,
-				}
-				resultsMap[gitCommit.Hash.String()+":"+name] = &result
-			}
-		}
-		return nil
-	})
+	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, hash)
 	if err != nil && err != io.EOF {
-		log.Error("Failure in CommitIter.ForEach: %v", err)
-		ctx.ServerError("LFSFind: IterateCommits ForEach", err)
+		log.Error("Failure in FindLFSFile: %v", err)
+		ctx.ServerError("LFSFind: FindLFSFile.", err)
 		return
-	}
-
-	for _, result := range resultsMap {
-		hasParent := false
-		for _, parentHash := range result.ParentHashes {
-			if _, hasParent = resultsMap[parentHash.String()+":"+result.Name]; hasParent {
-				break
-			}
-		}
-		if !hasParent {
-			results = append(results, result)
-		}
-	}
-
-	sort.Sort(lfsResultSlice(results))
-
-	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
-	shasToNameReader, shasToNameWriter := io.Pipe()
-	nameRevStdinReader, nameRevStdinWriter := io.Pipe()
-	errChan := make(chan error, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(nameRevStdinReader)
-		i := 0
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(line) == 0 {
-				continue
-			}
-			result := results[i]
-			result.FullCommitName = line
-			result.BranchName = strings.Split(line, "~")[0]
-			i++
-		}
-	}()
-	go pipeline.NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
-	go func() {
-		defer wg.Done()
-		defer shasToNameWriter.Close()
-		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
-			}
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
-			}
-
-		}
-	}()
-
-	wg.Wait()
-
-	select {
-	case err, has := <-errChan:
-		if has {
-			ctx.ServerError("LFSPointerFiles", err)
-		}
-	default:
 	}
 
 	ctx.Data["Results"] = results

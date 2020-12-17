@@ -73,8 +73,16 @@
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-removed-word-bg: #fdb8c0;
+  --color-diff-added-word-bg: #acf2bd;
+  --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-added-row-bg: #e6ffed;
+  --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-added-row-border: #e6ffed;
+  --color-diff-inactive: #f2f2f2;
   /* target-based colors */
   --color-body: #ffffff;
+  --color-text-dark: #080808;
   --color-text: #212121;
   --color-text-light: #555555;
   --color-text-light-2: #888888;
@@ -267,6 +275,10 @@ a.muted:hover,
   color: var(--color-text);
 }
 
+.ui.menu .item > .label {
+  background: var(--color-grey);
+}
+
 .ui.link.menu .item:hover,
 .ui.menu .dropdown.item:hover,
 .ui.menu .link.item:hover,
@@ -434,6 +446,28 @@ a.ui.card:hover,
 .ui.link.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
+}
+
+.ui.comments .comment .text,
+.ui.comments .comment .author {
+  color: var(--color-text);
+}
+
+.ui.comments .comment a.author:hover {
+  color: var(--color-primary);
+}
+
+.ui.comments .comment .metadata {
+  color: var(--color-text-light-2);
+}
+
+.ui.comments .comment .actions a {
+  color: var(--color-text-light);
+}
+
+.ui.comments .comment .actions a.active,
+.ui.comments .comment .actions a:hover {
+  color: var(--color-primary);
 }
 
 .ui.progress[data-percent="0"] .bar .progress {
@@ -714,7 +748,7 @@ a.ui.card:hover,
       color: var(--color-text);
 
       &:hover {
-        color: #000000;
+        color: var(--color-text-dark);
       }
     }
 
@@ -722,7 +756,7 @@ a.ui.card:hover,
       color: var(--color-text-light) !important;
 
       a {
-        color: inherit !important;
+        color: var(--color-text) !important;
 
         &:hover {
           color: var(--color-primary) !important;
@@ -731,7 +765,7 @@ a.ui.card:hover,
     }
 
     &.light.grey {
-      color: var(--color-grey) !important;
+      color: var(--color-text-light-2) !important;
     }
 
     &.green {
@@ -1691,6 +1725,10 @@ a.ui.basic.label:hover {
   border-color: var(--color-secondary);
 }
 
+.ui.segments > .segment {
+  border-color: var(--color-secondary);
+}
+
 .ui.secondary.segment {
   background: var(--color-secondary-bg);
   color: var(--color-text-light);
@@ -1732,6 +1770,26 @@ table th[data-sortt-desc] {
   .svg {
     margin-left: .25rem;
   }
+}
+
+/* fix up SVG dropdown triangles because fomantic thinks they are icon fonts */
+/* see https://github.com/go-gitea/gitea/issues/14014 */
+.ui.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  height: auto !important;
+  margin-left: .5rem !important;
+  margin-top: -1px !important;
+  margin-bottom: -1px !important;
+  margin-right: -.5rem !important;
+}
+.ui.button.dropdown > .dropdown.icon,
+.btn-review > .dropdown.icon {
+  float: right !important;
+}
+.ui.selection.dropdown > .search.icon,
+.ui.selection.dropdown > .delete.icon,
+.ui.selection.dropdown > .dropdown.icon {
+  top: 0 !important;
 }
 
 /* limit width of all direct dropdown menu children */
@@ -1843,7 +1901,7 @@ table th[data-sortt-desc] {
 
 .ui.tabular.menu .item {
   padding: 11px 12px;
-  color: var(--color-secondary-dark-6);
+  color: var(--color-text-light-2);
 }
 
 .ui.tabular.menu .item:hover {
@@ -1858,12 +1916,17 @@ table th[data-sortt-desc] {
   margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
+.ui.segment .ui.tabular.menu .active.item,
+.ui.segment .ui.tabular.menu .active.item:hover {
+  background: var(--color-box-body);
+}
+
 .ui.secondary.pointing.menu {
   border-color: var(--color-secondary);
 }
 
 .ui.secondary.pointing.menu .item {
-  color: var(--color-secondary-dark-6);
+  color: var(--color-text-light-2);
 }
 
 .ui.secondary.pointing.menu .active.item,
