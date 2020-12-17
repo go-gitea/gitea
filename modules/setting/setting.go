@@ -68,7 +68,6 @@ var (
 	// AppVer settings
 	AppVer         string
 	AppBuiltWith   string
-	AppStartTime   time.Time
 	AppName        string
 	AppURL         string
 	AppSubURL      string

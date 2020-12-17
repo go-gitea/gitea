@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
-	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
+	<link rel="manifest" href='data:application/json,{"short_name":"{{QueryEscape AppName}}","name":"{{QueryEscape AppName}}","icons":[{"src":"{{QueryEscape StaticUrlPrefix}}/img/logo-lg.png","type":"image/png","sizes":"880x880"},{"src":"{{QueryEscape StaticUrlPrefix}}/img/logo-sm.png","type":"image/png","sizes":"120x120"},{"src":"{{QueryEscape StaticUrlPrefix}}/img/logo-512.png","type":"image/png","sizes":"512x512"},{"src":"{{QueryEscape StaticUrlPrefix}}/img/logo-192.png","type":"image/png","sizes":"192x192"}],"start_url":"{{QueryEscape AppSubUrl}}/","scope":"{{QueryEscape AppSubUrl}}/","background_color":"%23FAFAFA","display":"standalone"}'/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="default-theme" content="{{DefaultTheme}}" />
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
