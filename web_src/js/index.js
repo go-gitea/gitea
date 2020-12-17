@@ -764,7 +764,7 @@ async function initRepository() {
     $(this)
       .popup({
         on: 'click',
-        position: 'top right',
+        position: 'left center',
       });
   });
 
