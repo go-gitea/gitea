@@ -235,7 +235,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
 func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoGetCombinedStatusByRef
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/status repository repoGetCombinedStatusByRef
 	// ---
 	// summary: Get a commit's combined status, by branch/tag/commit reference
 	// produces:
