@@ -662,7 +662,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 	}
 
 	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

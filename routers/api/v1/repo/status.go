@@ -45,7 +45,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//     "$ref": "#/definitions/CreateStatusOption"
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CommitStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -113,7 +113,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -165,7 +165,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -221,7 +221,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		return
 	}
 
-	apiStatuses := make([]*api.Status, 0, len(statuses))
+	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
 		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}
@@ -233,19 +233,9 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	ctx.JSON(http.StatusOK, apiStatuses)
 }
 
-type combinedCommitStatus struct {
-	State      api.CommitStatusState `json:"state"`
-	SHA        string                `json:"sha"`
-	TotalCount int                   `json:"total_count"`
-	Statuses   []*api.Status         `json:"statuses"`
-	Repo       *api.Repository       `json:"repository"`
-	CommitURL  string                `json:"commit_url"`
-	URL        string                `json:"url"`
-}
-
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
 func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoGetCombinedStatusByRef
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/status repository repoGetCombinedStatusByRef
 	// ---
 	// summary: Get a commit's combined status, by branch/tag/commit reference
 	// produces:
@@ -268,12 +258,15 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   required: true
 	// - name: page
 	//   in: query
-	//   description: page number of results
+	//   description: page number of results to return (1-based)
 	//   type: integer
-	//   required: false
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CombinedStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -284,33 +277,18 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	}
 	repo := ctx.Repo.Repository
 
-	page := ctx.QueryInt("page")
-
-	statuses, err := models.GetLatestCommitStatus(repo, sha, page)
+	statuses, err := models.GetLatestCommitStatus(repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %v", repo.FullName(), sha, err))
 		return
 	}
 
 	if len(statuses) == 0 {
-		ctx.Status(http.StatusOK)
+		ctx.JSON(http.StatusOK, &api.CombinedStatus{})
 		return
 	}
 
-	retStatus := &combinedCommitStatus{
-		SHA:        sha,
-		TotalCount: len(statuses),
-		Repo:       convert.ToRepo(repo, ctx.Repo.AccessMode),
-		URL:        "",
-	}
+	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
-	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, convert.ToCommitStatus(status))
-		if status.State.NoBetterThan(retStatus.State) {
-			retStatus.State = status.State
-		}
-	}
-
-	ctx.JSON(http.StatusOK, retStatus)
+	ctx.JSON(http.StatusOK, combiStatus)
 }
