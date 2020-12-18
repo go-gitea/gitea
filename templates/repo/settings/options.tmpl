@@ -348,7 +348,7 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="signing">
 				<div class="field">
-					<label>{{.i18n.Tr "repo.settings.trust_model"}}</label>
+					<label>{{.i18n.Tr "repo.settings.trust_model"}}</label><br>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
