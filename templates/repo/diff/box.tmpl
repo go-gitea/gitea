@@ -59,17 +59,19 @@
 							{{end}}
 						</div>
 						<span class="file">{{$file.Name}}</span>
-						<div class="mr-4 text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
-						{{if $file.IsProtected}}
-							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
-						{{end}}
-						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-							{{if $file.IsDeleted}}
-								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{else}}
-								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						<div class="diff-file-header-actions df ac">
+							<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+							{{if $file.IsProtected}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
-						{{end}}
+							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+								{{if $file.IsDeleted}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{else}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{end}}
+							{{end}}
+						</div>
 					</h4>
 				</div>
 			{{else}}
@@ -96,7 +98,7 @@
 							</div>
 							<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 						</div>
-						<div class="df ac">
+						<div class="diff-file-header-actions df ac">
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}

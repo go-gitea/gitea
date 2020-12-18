@@ -28,7 +28,7 @@
 			<div class="repository search">
 				{{range $result := .SearchResults}}
 					<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-						<h4 class="ui top attached normal header py-2">
+						<h4 class="ui top attached normal header">
 							<span class="file">{{.Filename}}</span>
 							<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 						</h4>

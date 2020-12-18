@@ -1427,7 +1427,7 @@
 
   .diff-detail-box {
     padding: 7px 0;
-    background: #ffffff;
+    background: var(--color-body);
     line-height: 30px;
 
     @media @mediaMdAndDown {
@@ -1456,8 +1456,12 @@
       margin-right: .25rem;
     }
 
-    .diff-detail-actions .btn-review {
-      margin-right: 0 !important;
+    .diff-detail-actions > * {
+      margin-right: 0;
+    }
+
+    .diff-detail-actions > * + * {
+      margin-left: .25rem;
     }
 
     span.status {
@@ -1500,8 +1504,11 @@
     }
 
     .button {
-      padding: 8px 10px;
+      padding: 8px 12px;
       flex: 0 0 auto;
+      margin-top: -8px;
+      margin-bottom: -8px;
+      margin-right: 0;
     }
   }
 
@@ -2978,6 +2985,10 @@ td.blob-excerpt {
 
 .diff-file-box[data-folded="true"] .diff-file-header {
   border-radius: var(--border-radius) !important;
+}
+
+.diff-file-header-actions > * + * {
+  margin-left: .5rem !important;
 }
 
 .diff-stats-bar {
