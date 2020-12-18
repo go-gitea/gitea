@@ -3,7 +3,7 @@
 
 const imageminZopfli = require('imagemin-zopfli');
 const {fabric} = require('fabric');
-const {readFile, writeFile, copyFile} = require('fs').promises;
+const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
 const Svgo = require('svgo');
 
@@ -37,6 +37,12 @@ async function generateSvgFavicon(svg, outputFile) {
     ],
   });
 
+  const {data} = await svgo.optimize(svg);
+  await writeFile(outputFile, data);
+}
+
+async function generateSvg(svg, outputFile) {
+  const svgo = new Svgo();
   const {data} = await svgo.optimize(svg);
   await writeFile(outputFile, data);
 }
@@ -75,8 +81,8 @@ async function main() {
 
   const svg = await readFile(logoFile, 'utf8');
   await Promise.all([
-    copyFile(logoFile, resolve(__dirname, '../public/img/logo.svg')),
     generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg')),
+    generateSvg(svg, resolve(__dirname, '../public/img/logo.svg')),
     generate(svg, resolve(__dirname, '../public/img/logo-lg.png'), {size: 880}),
     generate(svg, resolve(__dirname, '../public/img/logo-512.png'), {size: 512}),
     generate(svg, resolve(__dirname, '../public/img/logo-192.png'), {size: 192}),
@@ -87,7 +93,7 @@ async function main() {
   ]);
   if (gitea) {
     await Promise.all([
-      copyFile(logoFile, resolve(__dirname, '../public/img/gitea.svg')),
+      generateSvg(svg, resolve(__dirname, '../public/img/gitea.svg')),
       generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192}),
     ]);
   }
