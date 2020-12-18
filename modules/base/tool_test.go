@@ -43,6 +43,12 @@ func TestBasicAuthDecode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", user)
 	assert.Equal(t, "bar", pass)
+
+	_, _, err = BasicAuthDecode("aW52YWxpZA==")
+	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("invalid")
+	assert.Error(t, err)
 }
 
 func TestBasicAuthEncode(t *testing.T) {
