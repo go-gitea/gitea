@@ -87,7 +87,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}

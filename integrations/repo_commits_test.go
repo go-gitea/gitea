@@ -51,7 +51,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	// Call API to add status for commit
 	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL)+"?token="+token,
 		api.CreateStatusOption{
-			State:       api.StatusState(state),
+			State:       api.CommitStatusState(state),
 			TargetURL:   "http://test.ci/",
 			Description: "",
 			Context:     "testci",
@@ -83,11 +83,11 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 func testRepoCommitsWithStatus(t *testing.T, resp *httptest.ResponseRecorder, state string) {
 	decoder := json.NewDecoder(resp.Body)
-	statuses := []*api.Status{}
+	statuses := []*api.CommitStatus{}
 	assert.NoError(t, decoder.Decode(&statuses))
 	assert.Len(t, statuses, 1)
 	for _, s := range statuses {
-		assert.Equal(t, api.StatusState(state), s.State)
+		assert.Equal(t, api.CommitStatusState(state), s.State)
 		assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", s.URL)
 		assert.Equal(t, "http://test.ci/", s.TargetURL)
 		assert.Equal(t, "", s.Description)
