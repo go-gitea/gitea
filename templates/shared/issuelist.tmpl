@@ -32,7 +32,7 @@
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row df ac fw">
 					<a class="title mr-3" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-					{{RenderEmoji .Title}}
+						{{RenderEmoji .Title}}
 						{{if .IsPull }}
 							{{if (index $.CommitStatus .PullRequest.ID)}}
 								{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
