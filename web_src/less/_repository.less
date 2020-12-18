@@ -273,24 +273,6 @@
         .ui.avatar {
           margin-bottom: 5px;
         }
-
-        .commit-summary a {
-          text-decoration: underline;
-          text-decoration-style: dashed;
-
-          &:hover {
-            text-decoration-style: solid;
-          }
-
-          &.default-link {
-            text-decoration: none;
-
-            &:hover {
-              text-decoration: underline;
-              text-decoration-style: solid;
-            }
-          }
-        }
       }
 
       tbody {
@@ -2694,20 +2676,16 @@ tbody.commit-list {
   }
 }
 
-.commit-list .commit-summary a {
-  text-decoration: underline;
-  text-decoration-style: dashed;
-
+.commit-summary a {
   &:hover {
-    text-decoration-style: solid;
+    text-decoration: underline solid;
   }
 
   &.default-link {
     text-decoration: none;
 
     &:hover {
-      text-decoration: underline;
-      text-decoration-style: solid;
+      text-decoration: underline solid;
     }
   }
 }
@@ -2719,16 +2697,11 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
+  margin: 0;
 }
 
-.git-notes {
-  &.top {
-    text-align: left;
-  }
-
-  .commit-body {
-    margin: 0;
-  }
+.git-notes.top {
+  text-align: left;
 }
 
 @media @mediaSm {
@@ -2924,9 +2897,13 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword {
-  border-bottom: 1px dotted #959da5;
-  display: inline-block;
+.issue-keyword,
+.commit-body .issue-keyword:hover {
+  border-bottom: 1px dotted var(--color-text-light-2);
+}
+
+.issue-keyword:hover {
+  border-bottom: none;
 }
 
 .file-header {
