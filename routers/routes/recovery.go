@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package middlewares
+package routes
 
 import (
 	"fmt"
@@ -11,9 +11,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/auth/sso"
+	"code.gitea.io/gitea/modules/middlewares"
 
 	"github.com/unrolled/render"
+	"gitea.com/go-chi/session"
 )
+
+type dataStore struct {
+	Data map[string]interface{}
+}
+
+func (d *dataStore) GetData() map[string]interface{} {
+	return d.Data
+}
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // Although similar to macaron.Recovery() the main difference is that this error will be created
@@ -35,19 +46,34 @@ func Recovery() func(next http.Handler) http.Handler {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 
-					lc := Locale(w, req)
+					lc := middlewares.Locale(w, req)
+					sess := session.GetSession(req)
 
-					var (
-						data = templates.Vars{
+					var store = dataStore{
+						Data: templates.Vars{
 							"Language":   lc.Language(),
 							"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
 							"i18n":       lc,
-						}
-					)
-					if setting.RunMode != "prod" {
-						data["ErrMsg"] = combinedErr
+						},
 					}
-					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(data))
+
+					// Get user from session if logged in.
+					user, _ := sso.SignedInUser(req, &store, sess)
+					if user != nil {
+						store.Data["IsSigned"] = true
+						store.Data["SignedUser"] = user
+						store.Data["SignedUserID"] = user.ID
+						store.Data["SignedUserName"] = user.Name
+						store.Data["IsAdmin"] = user.IsAdmin
+					} else {
+						store.Data["SignedUserID"] = int64(0)
+						store.Data["SignedUserName"] = ""
+					}
+
+					if setting.RunMode != "prod" {
+						store.Data["ErrMsg"] = combinedErr
+					}
+					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
 					if err != nil {
 						log.Error("%v", err)
 					}

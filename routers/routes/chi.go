@@ -19,12 +19,12 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers"
 
+	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
@@ -38,7 +38,7 @@ type routerLoggerOptions struct {
 }
 
 // SignedUserName returns signed user's name via context
-// FIXME currently no any data stored on gin.Context but macaron.Context, so this will
+// FIXME currently no any data stored on chi.Context but macaron.Context, so this will
 // return "" before we remove macaron totally
 func SignedUserName(req *http.Request) string {
 	if v, ok := req.Context().Value("SignedUserName").(string); ok {
@@ -185,8 +185,18 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	c.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
 
-	c.Use(middlewares.Recovery())
+	c.Use(Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
 	}

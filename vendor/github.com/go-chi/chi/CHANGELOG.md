@@ -1,5 +1,66 @@
 # Changelog
 
+## v1.5.1 (2020-12-06)
+
+- Performance improvement: removing 1 allocation by foregoing context.WithValue, thank you @bouk for
+  your contribution (https://github.com/go-chi/chi/pull/555). Note: new benchmarks posted in README.
+- `middleware.CleanPath`: new middleware that clean's request path of double slashes
+- deprecate & remove `chi.ServerBaseContext` in favour of stdlib `http.Server#BaseContext`
+- plus other tiny improvements, see full commit history below
+- History of changes: see https://github.com/go-chi/chi/compare/v4.1.2...v1.5.1
+
+
+## v1.5.0 (2020-11-12) - now with go.mod support
+
+`chi` dates back to 2016 with it's original implementation as one of the first routers to adopt the newly introduced
+context.Context api to the stdlib -- set out to design a router that is faster, more modular and simpler than anything
+else out there -- while not introducing any custom handler types or dependencies. Today, `chi` still has zero dependencies,
+and in many ways is future proofed from changes, given it's minimal nature. Between versions, chi's iterations have been very
+incremental, with the architecture and api being the same today as it was originally designed in 2016. For this reason it 
+makes chi a pretty easy project to maintain, as well thanks to the many amazing community contributions over the years
+to who all help make chi better (total of 86 contributors to date -- thanks all!).
+
+Chi has been an labour of love, art and engineering, with the goals to offer beautiful ergonomics, flexibility, performance
+and simplicity when building HTTP services with Go. I've strived to keep the router very minimal in surface area / code size,
+and always improving the code wherever possible -- and as of today the `chi` package is just 1082 lines of code (not counting
+middlewares, which are all optional). As well, I don't have the exact metrics, but from my analysis and email exchanges from
+companies and developers, chi is used by thousands of projects around the world -- thank you all as there is no better form of
+joy for me than to have art I had started be helpful and enjoyed by others. And of course I use chi in all of my own projects too :)
+
+For me, the asthetics of chi's code and usage are very important. With the introduction of Go's module support 
+(which I'm a big fan of), chi's past versioning scheme choice to v2, v3 and v4 would mean I'd require the import path
+of "github.com/go-chi/chi/v4", leading to the lengthy discussion at https://github.com/go-chi/chi/issues/462.
+Haha, to some, you may be scratching your head why I've spent > 1 year stalling to adopt "/vXX" convention in the import
+path -- which isn't horrible in general -- but for chi, I'm unable to accept it as I strive for perfection in it's API design,
+aesthetics and simplicity. It just doesn't feel good to me given chi's simple nature -- I do not foresee a "v5" or "v6",
+and upgrading between versions in the future will also be just incremental.
+
+I do understand versioning is a part of the API design as well, which is why the solution for a while has been to "do nothing",
+as Go supports both old and new import paths with/out go.mod. However, now that Go module support has had time to iron out kinks and
+is adopted everywhere, it's time for chi to get with the times. Luckily, I've discovered a path forward that will make me happy,
+while also not breaking anyone's app who adopted a prior versioning from tags in v2/v3/v4. I've made an experimental release of
+v1.5.0 with go.mod silently, and tested it with new and old projects, to ensure the developer experience is preserved, and it's
+largely unnoticed. Fortunately, Go's toolchain will check the tags of a repo and consider the "latest" tag the one with go.mod.
+However, you can still request a specific older tag such as v4.1.2, and everything will "just work". But new users can just
+`go get github.com/go-chi/chi` or `go get github.com/go-chi/chi@latest` and they will get the latest version which contains
+go.mod support, which is v1.5.0+. `chi` will not change very much over the years, just like it hasn't changed much from 4 years ago.
+Therefore, we will stay on v1.x from here on, starting from v1.5.0. Any breaking changes will bump a "minor" release and
+backwards-compatible improvements/fixes will bump a "tiny" release.
+
+For existing projects who want to upgrade to the latest go.mod version, run: `go get -u github.com/go-chi/chi@v1.5.0`,
+which will get you on the go.mod version line (as Go's mod cache may still remember v4.x). Brand new systems can run
+`go get -u github.com/go-chi/chi` or `go get -u github.com/go-chi/chi@latest` to install chi, which will install v1.5.0+
+built with go.mod support.
+
+My apologies to the developers who will disagree with the decisions above, but, hope you'll try it and see it's a very
+minor request which is backwards compatible and won't break your existing installations.
+
+Cheers all, happy coding!
+
+
+---
+
+
 ## v4.1.2 (2020-06-02)
 
 - fix that handles MethodNotAllowed with path variables, thank you @caseyhadden for your contribution
@@ -22,7 +83,6 @@
 - middleware.WrapResponseWriter: minor fix
 - middleware.Recoverer: a bit prettier
 - History of changes: see https://github.com/go-chi/chi/compare/v4.0.4...v4.1.0
-
 
 ## v4.0.4 (2020-03-24)
 
