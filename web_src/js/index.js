@@ -764,7 +764,7 @@ async function initRepository() {
     $(this)
       .popup({
         on: 'click',
-        position: 'left center',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
       });
   });
 
