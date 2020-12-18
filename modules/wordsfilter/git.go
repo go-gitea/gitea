@@ -42,6 +42,7 @@ func CheckPatchWords(reader io.Reader) ([]string, error) {
 			if err != io.EOF {
 				return nil, err
 			}
+			break
 		}
 		if strings.HasPrefix(line, "+ ") {
 			inSection = true

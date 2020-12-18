@@ -204,7 +204,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				diffArgs = append(diffArgs, newCommitID)
 				cmd = exec.CommandContext(cmdCtx, git.GitExecutable, diffArgs...)
 			}
-			repoPath:= repo.RepoPath()
+			repoPath := repo.RepoPath()
 			cmd.Dir = repoPath
 			cmd.Stderr = os.Stderr
 
@@ -232,7 +232,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				}
 				process.GetManager().Remove(pid)
 			}()
-	
+
 			matches, err := wordsfilter.CheckPatchWords(stdout)
 			if err != nil {
 				log.Error("CheckPatchWords: %v", err)

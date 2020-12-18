@@ -160,7 +160,7 @@ var (
 	PasswordCheckPwn                   bool
 
 	WordsFilter = struct {
-		Enabled bool
+		Enabled  bool
 		Filepath string
 	}{}
 

@@ -32,12 +32,12 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/modules/wordsfilter"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
-	"code.gitea.io/gitea/modules/wordsfilter"
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
