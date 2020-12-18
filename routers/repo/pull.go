@@ -325,6 +325,20 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	}
 	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
+
+	if compareInfo.Commits.Len() != 0 {
+		sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+		commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, models.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLatestCommitStatus", err)
+			return nil
+		}
+		if len(commitStatuses) != 0 {
+			ctx.Data["LatestCommitStatuses"] = commitStatuses
+			ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+		}
+	}
+
 	return compareInfo
 }
 
