@@ -185,7 +185,9 @@ SVG icons are built using the `make svg` target which compiles the icon sources 
 
 ### Building the Logo
 
-The PNG versions of the logo are built from a single SVG source file `assets/logo.svg` using the `make generate-images` target. To run it, Node.js and npm must be available. The same process can also be used to generate a custom logo PNGs from a SVG source file. It's possible to remove parts of the SVG logo for the favicon build by adding a `detail-remove` class to the SVG nodes to be removed.
+The PNG and SVG versions of the gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
+
+The same process can also be used to generate custom logo PNGs from a SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag will update only the user-designated logo files.
 
 ### Updating the API
 
