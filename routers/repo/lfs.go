@@ -325,6 +325,9 @@ func LFSFileGet(ctx *context.Context) {
 		ctx.Data["IsVideoFile"] = true
 	case base.IsAudioFile(buf):
 		ctx.Data["IsAudioFile"] = true
+	case base.IsSVGImageFile(buf):
+		ctx.Data["IsImageFile"] = true
+		ctx.Data["IsSvgImageFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}

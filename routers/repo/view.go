@@ -504,6 +504,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsVideoFile"] = true
 	case base.IsAudioFile(buf):
 		ctx.Data["IsAudioFile"] = true
+	case base.IsSVGImageFile(buf):
+		ctx.Data["IsImageFile"] = true
+		ctx.Data["IsSVGImageFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	default:
