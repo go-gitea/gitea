@@ -1,4 +1,3 @@
-
 ifeq ($(USE_REPO_TEST_DIR),1)
 
 # This rule replaces the whole Makefile when we're trying to use /tmp repository temporary files
@@ -697,10 +696,9 @@ generate-license:
 generate-gitignore:
 	GO111MODULE=on $(GO) run build/generate-gitignores.go
 
-
 .PHONY: generate-images
 generate-images:
-	npm install --no-save --no-package-lock xmldom fabric imagemin-zopfli
+	npm install --no-save --no-package-lock fabric imagemin-zopfli
 	node build/generate-images.js
 
 .PHONY: pr\#%
@@ -713,7 +711,7 @@ golangci-lint:
 		export BINARY="golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
 	fi
-	golangci-lint run --timeout 5m
+	golangci-lint run --timeout 10m
 
 .PHONY: docker
 docker:
