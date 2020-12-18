@@ -38,7 +38,7 @@ type CommitStatus struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (status *CommitStatus) loadRepo(e Engine) (err error) {
+func (status *CommitStatus) loadAttributes(e Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)
 		if err != nil {
@@ -56,7 +56,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadRepo(x)
+	_ = status.loadAttributes(x)
 	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -139,13 +139,20 @@ func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
+func GetLatestCommitStatus(repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
+	return getLatestCommitStatus(x, repoID, sha, listOptions)
+}
+
+func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
 	ids := make([]int64, 0, 10)
-	err := x.Limit(10, page*10).
-		Table(&CommitStatus{}).
-		Where("repo_id = ?", repo.ID).And("sha = ?", sha).
+	sess := e.Table(&CommitStatus{}).
+		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc").Find(&ids)
+		GroupBy("context_hash").OrderBy("max( id ) desc")
+
+	sess = listOptions.setSessionPagination(sess)
+
+	err := sess.Find(&ids)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +268,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
 		}
-		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

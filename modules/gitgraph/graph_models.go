@@ -113,7 +113,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 
 		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository, c.Commit.ID.String(), 0)
+		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), models.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
