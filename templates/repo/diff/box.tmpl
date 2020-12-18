@@ -36,7 +36,7 @@
 		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
-					<div class="diff-counter pull-right">
+					<div class="bold df ac pull-right">
 						{{if not .IsBin}}
 							{{template "repo/diff/stats" dict "file" . "root" $}}
 						{{else}}
@@ -53,21 +53,21 @@
 			{{if $file.IsIncomplete}}
 				<div class="diff-file-box diff-box file-content">
 					<h4 class="ui top attached normal header rounded">
-						<div class="diff-counter ui left">
+						<div class="bold ui left df ac">
 							{{if not $file.IsRenamed}}
 								{{template "repo/diff/stats" dict "file" . "root" $}}
 							{{end}}
 						</div>
 						<span class="file">{{$file.Name}}</span>
-						<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+						<div class="mr-4 text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
 						{{if $file.IsProtected}}
 							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 						{{end}}
 						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 							{{if $file.IsDeleted}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 							{{else}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 							{{end}}
 						{{end}}
 					</h4>
@@ -87,7 +87,7 @@
 								{{svg "octicon-chevron-down" 18}}
 							</a>
 							{{end}}
-							<div class="diff-counter">
+							<div class="bold df ac">
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
 								{{else if not $file.IsRenamed}}
