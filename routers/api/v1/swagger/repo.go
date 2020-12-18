@@ -309,3 +309,10 @@ type swaggerLanguageStatistics struct {
 	// in: body
 	Body map[string]int64 `json:"body"`
 }
+
+// CombinedStatus
+// swagger:response CombinedStatus
+type swaggerCombinedStatus struct {
+	// in: body
+	Body api.CombinedStatus `json:"body"`
+}
