@@ -152,17 +152,40 @@ func addGPGSubKey(e Engine, key *GPGKey) (err error) {
 }
 
 // AddGPGKey adds new public key to database.
-func AddGPGKey(ownerID int64, content string) ([]*GPGKey, error) {
+func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, error) {
 	ekeys, err := checkArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
 	keys := make([]*GPGKey, 0, len(ekeys))
+
+	signed := false
+	// Handle provided signature
+	if signature != "" {
+		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
+		if err != nil {
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature))
+		}
+		if err != nil {
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
+		}
+		if err != nil {
+			log.Error("Unable to validate token signature. Error: %v", err)
+			return nil, ErrGPGInvalidTokenSignature{
+				ID:      ekeys[0].PrimaryKey.KeyIdString(),
+				Wrapped: err,
+			}
+		}
+		ekeys = []*openpgp.Entity{signer}
+		signed = true
+	}
+
 	for _, ekey := range ekeys {
 		// Key ID cannot be duplicated.
 		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
@@ -175,7 +198,7 @@ func AddGPGKey(ownerID int64, content string) ([]*GPGKey, error) {
 
 		//Get DB session
 
-		key, err := parseGPGKey(ownerID, ekey)
+		key, err := parseGPGKey(ownerID, ekey, !signed)
 		if err != nil {
 			return nil, err
 		}
@@ -270,7 +293,7 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 }
 
 //parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
-func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
+func parseGPGKey(ownerID int64, e *openpgp.Entity, checkEmail bool) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
 	expiry := getExpiryTime(e)
 
@@ -304,13 +327,15 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 		}
 	}
 
-	//In the case no email as been found
-	if len(emails) == 0 {
-		failedEmails := make([]string, 0, len(e.Identities))
-		for _, ident := range e.Identities {
-			failedEmails = append(failedEmails, ident.UserId.Email)
+	if checkEmail {
+		//In the case no email as been found
+		if len(emails) == 0 {
+			failedEmails := make([]string, 0, len(e.Identities))
+			for _, ident := range e.Identities {
+				failedEmails = append(failedEmails, ident.UserId.Email)
+			}
+			return nil, ErrGPGNoEmailFound{failedEmails, e.PrimaryKey.KeyIdString()}
 		}
-		return nil, ErrGPGNoEmailFound{failedEmails}
 	}
 
 	content, err := base64EncPubKey(pubkey)

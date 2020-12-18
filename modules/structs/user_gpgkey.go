@@ -40,4 +40,5 @@ type CreateGPGKeyOption struct {
 	// required: true
 	// unique: true
 	ArmoredKey string `json:"armored_public_key" binding:"Required"`
+	Signature  string `json:"armored_signature,omitempty"`
 }

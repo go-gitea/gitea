@@ -6,6 +6,9 @@
 package setting
 
 import (
+	"strconv"
+	"time"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -72,7 +75,9 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		keys, err := models.AddGPGKey(ctx.User.ID, form.Content)
+		token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+
+		keys, err := models.AddGPGKey(ctx.User.ID, form.Content, token, form.Signature)
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
 			switch {
@@ -84,10 +89,18 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
+			case models.IsErrGPGInvalidTokenSignature(err):
+				loadKeysData(ctx)
+				ctx.Data["Err_Content"] = true
+				ctx.Data["Err_Signature"] = true
+				ctx.Data["KeyID"] = err.(models.ErrGPGInvalidTokenSignature).ID
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			case models.IsErrGPGNoEmailFound(err):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
+				ctx.Data["Err_Signature"] = true
+				ctx.Data["KeyID"] = err.(models.ErrGPGNoEmailFound).ID
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("AddPublicKey", err)
@@ -194,6 +207,10 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
+	tokenToSign := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+
+	// generate a new aes cipher using the csrfToken
+	ctx.Data["TokenToSign"] = tokenToSign
 
 	principals, err := models.ListPrincipalKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {

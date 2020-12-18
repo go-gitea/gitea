@@ -5,9 +5,13 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -118,9 +122,11 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
-	keys, err := models.AddGPGKey(uid, form.ArmoredKey)
+	token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+
+	keys, err := models.AddGPGKey(uid, form.ArmoredKey, token, form.Signature)
 	if err != nil {
-		HandleAddGPGKeyError(ctx, err)
+		HandleAddGPGKeyError(ctx, err, token)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToGPGKey(keys[0]))
@@ -187,7 +193,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 }
 
 // HandleAddGPGKeyError handle add GPGKey error
-func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
+func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	switch {
 	case models.IsErrGPGKeyAccessDenied(err):
 		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyAccessDenied", "You do not have access to this GPG key")
@@ -196,7 +202,9 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
 	case models.IsErrGPGKeyParsing(err):
 		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyParsing", err)
 	case models.IsErrGPGNoEmailFound(err):
-		ctx.Error(http.StatusNotFound, "GPGNoEmailFound", err)
+		ctx.Error(http.StatusNotFound, "GPGNoEmailFound", fmt.Sprintf("None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: %s", token))
+	case models.IsErrGPGInvalidTokenSignature(err):
+		ctx.Error(http.StatusUnprocessableEntity, "GPGInvalidSignature", fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
 	default:
 		ctx.Error(http.StatusInternalServerError, "AddGPGKey", err)
 	}
