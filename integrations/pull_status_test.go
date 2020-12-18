@@ -70,7 +70,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			token := getTokenForLoggedInUser(t, session)
 			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user1/repo1/statuses/%s?token=%s", commitID, token),
 				api.CreateStatusOption{
-					State:       api.StatusState(status),
+					State:       status,
 					TargetURL:   "http://test.ci/",
 					Description: "",
 					Context:     "testci",

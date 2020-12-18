@@ -665,7 +665,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 		return nil, err
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, lastCommitID, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
