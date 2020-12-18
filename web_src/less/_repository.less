@@ -1439,7 +1439,6 @@
       position: sticky;
       top: 0;
       z-index: 8;
-      margin-bottom: 10px;
       border-bottom: 1px solid var(--color-secondary);
       padding-left: 2px;
       padding-right: 2px;
@@ -1472,25 +1471,20 @@
       vertical-align: middle;
 
       &.modify {
-        background-color: #f0db88;
+        background-color: var(--color-yellow);
       }
 
       &.add {
-        background-color: #b4e2b4;
+        background-color: var(--color-green);
       }
 
       &.del {
-        background-color: #e9aeae;
+        background-color: var(--color-red);
       }
 
       &.rename {
-        background-color: #dad8ff;
+        background-color: var(--color-teal);
       }
-    }
-
-    .detail-files {
-      background: #ffffff;
-      margin: 0;
     }
   }
 
@@ -1513,6 +1507,9 @@
   }
 
   .diff-file-box {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+
     .header {
       background-color: var(--color-box-header);
     }
@@ -1609,7 +1606,6 @@
   }
 
   .diff-stats {
-
     clear: both;
     margin-bottom: 5px;
     max-height: 400px;
@@ -1620,8 +1616,11 @@
       list-style: none;
       padding-bottom: 4px;
       margin-bottom: 4px;
-      border-bottom: 1px dashed var(--color-secondary);
       padding-left: 6px;
+    }
+
+    li + li {
+      border-top: 1px solid var(--color-secondary);
     }
   }
 
