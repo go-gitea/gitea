@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/wordsfilter"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -941,7 +942,6 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 }
 
 func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
-
 	if models.StopwatchExists(user.ID, issue.ID) {
 		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
 			return err
@@ -1007,12 +1007,12 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
-		Title:       form.Title,
+		Title:       wordsfilter.Replace(form.Title),
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
 		IsPull:      true,
-		Content:     form.Content,
+		Content:     wordsfilter.Replace(form.Content),
 	}
 	pullRequest := &models.PullRequest{
 		HeadRepoID: headRepo.ID,

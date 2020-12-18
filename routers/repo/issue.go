@@ -2017,6 +2017,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	form.Content = wordsfilter.Replace(form.Content)
+
 	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
@@ -2062,6 +2064,9 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
+
+	comment.Content = wordsfilter.Replace(comment.Content)
+
 	if err = comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
