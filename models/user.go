@@ -538,6 +538,7 @@ func (u *User) GetOwnedOrganizations() (err error) {
 }
 
 // GetOrganizations returns paginated organizations that user belongs to.
+// TODO: does not respect All and show orgs you privately participate
 func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	sess := x.NewSession()
 	defer sess.Close()

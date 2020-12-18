@@ -347,27 +347,6 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 	}
 }
 
-// ToCommitStatus converts models.CommitStatus to api.Status
-func ToCommitStatus(status *models.CommitStatus) *api.Status {
-	apiStatus := &api.Status{
-		Created:     status.CreatedUnix.AsTime(),
-		Updated:     status.CreatedUnix.AsTime(),
-		State:       api.StatusState(status.State),
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-		ID:          status.Index,
-		URL:         status.APIURL(),
-		Context:     status.Context,
-	}
-
-	if status.CreatorID != 0 {
-		creator, _ := models.GetUserByID(status.CreatorID)
-		apiStatus.Creator = ToUser(creator, false, false)
-	}
-
-	return apiStatus
-}
-
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(l *models.LFSLock) *api.LFSLock {
 	return &api.LFSLock{

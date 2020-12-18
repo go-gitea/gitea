@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -641,31 +642,27 @@ func GetCommitMessages(pr *models.PullRequest) string {
 
 // GetLastCommitStatus returns the last commit status for this pull request.
 func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
-	if pr.HeadRepo == nil {
-		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
-	defer headGitRepo.Close()
+	defer gitRepo.Close()
 
-	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
 
-	err = pr.LoadBaseRepo()
-	if err != nil {
-		return nil, err
+	if compareInfo.Commits.Len() == 0 {
+		return nil, errors.New("pull request has no commits")
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
