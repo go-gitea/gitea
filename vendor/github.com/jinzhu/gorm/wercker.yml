@@ -1,0 +1,154 @@
+# use the default golang container from Docker Hub
+box: golang
+
+services:
+    - name: mariadb
+      id: mariadb:latest
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - name: mysql
+      id: mysql:latest
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - name: mysql57
+      id: mysql:5.7
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - name: mysql56
+      id: mysql:5.6
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - name: postgres
+      id: postgres:latest
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+    - name: postgres96
+      id: postgres:9.6
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+    - name: postgres95
+      id: postgres:9.5
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+    - name: postgres94
+      id: postgres:9.4
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+    - name: postgres93
+      id: postgres:9.3
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+    - name: mssql
+      id: mcmoe/mssqldocker:latest
+      env:
+        ACCEPT_EULA: Y
+        SA_PASSWORD: LoremIpsum86
+        MSSQL_DB: gorm
+        MSSQL_USER: gorm
+        MSSQL_PASSWORD: LoremIpsum86
+
+# The steps that will be executed in the build pipeline
+build:
+    # The steps that will be executed on build
+    steps:
+        # Sets the go workspace and places you package
+        # at the right place in the workspace tree
+        - setup-go-workspace
+
+        # Gets the dependencies
+        - script:
+                name: go get
+                code: |
+                    cd $WERCKER_SOURCE_DIR
+                    go version
+                    go get -t -v ./...
+
+        # Build the project
+        - script:
+                name: go build
+                code: |
+                    go build ./...
+
+        # Test the project
+        - script:
+                name: test sqlite
+                code: |
+                    go test -race -v ./...
+
+        - script:
+                name: test mariadb
+                code: |
+                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mariadb:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
+
+        - script:
+                name: test mysql
+                code: |
+                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
+
+        - script:
+                name: test mysql5.7
+                code: |
+                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql57:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
+
+        - script:
+                name: test mysql5.6
+                code: |
+                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql56:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
+
+        - script:
+                name: test postgres
+                code: |
+                    GORM_DIALECT=postgres GORM_DSN="host=postgres user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" go test -race ./...
+
+        - script:
+                name: test postgres96
+                code: |
+                    GORM_DIALECT=postgres GORM_DSN="host=postgres96 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" go test -race ./...
+
+        - script:
+                name: test postgres95
+                code: |
+                    GORM_DIALECT=postgres GORM_DSN="host=postgres95 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" go test -race ./...
+
+        - script:
+                name: test postgres94
+                code: |
+                    GORM_DIALECT=postgres GORM_DSN="host=postgres94 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" go test -race ./...
+
+        - script:
+                name: test postgres93
+                code: |
+                    GORM_DIALECT=postgres GORM_DSN="host=postgres93 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" go test -race ./...
+
+        - script:
+                name: test mssql
+                code: |
+                    GORM_DIALECT=mssql GORM_DSN="sqlserver://gorm:LoremIpsum86@mssql:1433?database=gorm" go test -race ./...
+
+        - script:
+                name: codecov
+                code: |
+                    go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+                    bash <(curl -s https://codecov.io/bash)

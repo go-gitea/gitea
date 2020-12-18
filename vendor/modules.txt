@@ -473,6 +473,11 @@ github.com/jaytaylor/html2text
 github.com/jbenet/go-context/io
 # github.com/jessevdk/go-flags v1.4.0
 github.com/jessevdk/go-flags
+# github.com/jinzhu/gorm v1.9.11
+github.com/jinzhu/gorm
+github.com/jinzhu/gorm/dialects/mysql
+# github.com/jinzhu/inflection v1.0.0
+github.com/jinzhu/inflection
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
@@ -497,6 +502,10 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
+# github.com/killtw/lemonade v0.0.0-20191217091436-b29e16e75587
+## explicit
+github.com/killtw/lemonade/lemonade
+github.com/killtw/lemonade/trie
 # github.com/klauspost/compress v1.11.3
 ## explicit
 github.com/klauspost/compress/flate

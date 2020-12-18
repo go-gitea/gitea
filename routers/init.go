@@ -37,6 +37,7 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
+	"code.gitea.io/gitea/modules/wordsfilter"
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
@@ -68,6 +69,9 @@ func NewServices() {
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
+	if err := wordsfilter.Init(); err != nil {
+		log.Fatal("words filter init failed: %v", err)
+	}
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology

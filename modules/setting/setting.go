@@ -159,6 +159,11 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 
+	WordsFilter = struct {
+		Enabled bool
+		Filepath string
+	}{}
+
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
@@ -873,6 +878,8 @@ func NewContext() {
 		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
+	} else if err = Cfg.Section("words_filter").MapTo(&WordsFilter); err != nil {
+		log.Fatal("Failed to map WordsFilter settings: %v", err)
 	}
 
 	u := *appURL

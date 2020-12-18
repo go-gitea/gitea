@@ -32,6 +32,7 @@ import (
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/modules/wordsfilter"
 
 	"github.com/unknwon/com"
 )
@@ -943,6 +944,9 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
+	form.Title = wordsfilter.Replace(form.Title)
+	form.Content = wordsfilter.Replace(form.Content)
+
 	issue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -1590,6 +1594,8 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	title = wordsfilter.Replace(title)
+
 	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
@@ -1637,6 +1643,9 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
+
+	content = wordsfilter.Replace(content)
+
 	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return

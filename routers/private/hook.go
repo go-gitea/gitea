@@ -12,15 +12,18 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/wordsfilter"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -169,6 +172,84 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			return
 		}
 
+		// Words Filter
+		if setting.WordsFilter.Enabled {
+			commit, err := gitRepo.GetCommit(newCommitID)
+			if err != nil {
+				log.Error("GetCommit: %v", err)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Get commit %s failed", newCommitID),
+				})
+				return
+			}
+
+			// FIXME: graceful: These commands should likely have a timeout
+			cmdCtx, cancel := context.WithCancel(git.DefaultContext)
+			defer cancel()
+			var cmd *exec.Cmd
+			if (len(oldCommitID) == 0 || oldCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
+				diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+				// append empty tree ref
+				diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+				diffArgs = append(diffArgs, newCommitID)
+				cmd = exec.CommandContext(cmdCtx, git.GitExecutable, diffArgs...)
+			} else {
+				actualBeforeCommitID := oldCommitID
+				if len(actualBeforeCommitID) == 0 {
+					parentCommit, _ := commit.Parent(0)
+					actualBeforeCommitID = parentCommit.ID.String()
+				}
+				diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+				diffArgs = append(diffArgs, actualBeforeCommitID)
+				diffArgs = append(diffArgs, newCommitID)
+				cmd = exec.CommandContext(cmdCtx, git.GitExecutable, diffArgs...)
+			}
+			repoPath:= repo.RepoPath()
+			cmd.Dir = repoPath
+			cmd.Stderr = os.Stderr
+
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				log.Error("StdoutPipe: %v", err)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Check commit change between %s and %s failed", oldCommitID, newCommitID),
+				})
+				return
+			}
+
+			if err = cmd.Start(); err != nil {
+				log.Error("Start: %v", err)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Check commit change between %s and %s failed", oldCommitID, newCommitID),
+				})
+				return
+			}
+
+			pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
+			defer func() {
+				if err = cmd.Wait(); err != nil {
+					log.Error("Wait: %v", err)
+				}
+				process.GetManager().Remove(pid)
+			}()
+	
+			matches, err := wordsfilter.CheckPatchWords(stdout)
+			if err != nil {
+				log.Error("CheckPatchWords: %v", err)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Check patch words between %s and %s failed", oldCommitID, newCommitID),
+				})
+				return
+			}
+			if len(matches) > 0 {
+				log.Warn("Check patch words between %s and %s matched: %v", oldCommitID, newCommitID, matches)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Patch contains unallowed words between %s and %s", oldCommitID, newCommitID),
+				})
+				return
+			}
+		}
+
 		protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 		if err != nil {
 			log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
@@ -211,7 +292,6 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					"err": fmt.Sprintf("branch %s is protected from force push", branchName),
 				})
 				return
-
 			}
 		}
 
