@@ -65,7 +65,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column
-	sel := doc.doc.Find("#commits-table tbody tr td.message i.commit-status")
+	sel := doc.doc.Find("#commits-table tbody tr td.message a.commit-statuses-trigger i.commit-status")
 	assert.Equal(t, sel.Length(), 1)
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
