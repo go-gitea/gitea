@@ -65,7 +65,7 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 
 	auth := strings.SplitN(string(s), ":", 2)
 
-	if len(auth) < 2 {
+	if len(auth) != 2 {
 		return "", "", errors.New("invalid basic authentication")
 	}
 
