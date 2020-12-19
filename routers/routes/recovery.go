@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/auth/sso"
-	"code.gitea.io/gitea/modules/middlewares"
 
-	"github.com/unrolled/render"
 	"gitea.com/go-chi/session"
+	"github.com/unrolled/render"
 )
 
 type dataStore struct {
@@ -42,6 +42,18 @@ func Recovery() func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
+				// Why we need this? The first recover will try to render a beautiful
+				// error page for user, but the process can still panic again, then
+				// we have to just recover twice and send a simple error page that
+				// should not panic any more.
+				defer func() {
+					if err := recover(); err != nil {
+						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
+						log.Error(combinedErr)
+						http.Error(w, http.StatusText(500), 500)
+					}
+				}()
+
 				if err := recover(); err != nil {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
@@ -69,6 +81,8 @@ func Recovery() func(next http.Handler) http.Handler {
 						store.Data["SignedUserID"] = int64(0)
 						store.Data["SignedUserName"] = ""
 					}
+
+					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 					if setting.RunMode != "prod" {
 						store.Data["ErrMsg"] = combinedErr

@@ -56,11 +56,16 @@ func GetAsset(name string) ([]byte, error) {
 	} else if err == nil {
 		return bs, nil
 	}
-	return Asset(name)
+	return Asset(strings.TrimPrefix(name, "templates/"))
 }
 
+// GetAssetNames only for chi
 func GetAssetNames() []string {
-	var tmpls = AssetNames()
+	realFS := Assets.(vfsgen۰FS)
+	var tmpls = make([]string, 0, len(realFS))
+	for k := range realFS {
+		tmpls = append(tmpls, "templates/"+k[1:])
+	}
 
 	customDir := path.Join(setting.CustomPath, "templates")
 	customTmpls := getDirAssetNames(customDir)

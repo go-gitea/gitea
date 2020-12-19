@@ -133,7 +133,7 @@ func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	var results = make([]string, 0, len(realFS))
 	for k := range realFS {
-		results = append(results, k[1:])
+		results = append(results, "templates/"+k[1:])
 	}
 	return results
 }

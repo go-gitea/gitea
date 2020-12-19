@@ -1,3 +1,4 @@
+
 # cloud.google.com/go v0.67.0
 cloud.google.com/go/compute/metadata
 # code.gitea.io/gitea-vet v0.2.1
@@ -10,6 +11,10 @@ code.gitea.io/sdk/gitea
 # gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
 ## explicit
 gitea.com/go-chi/session
+gitea.com/go-chi/session/couchbase
+gitea.com/go-chi/session/memcache
+gitea.com/go-chi/session/mysql
+gitea.com/go-chi/session/postgres
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue

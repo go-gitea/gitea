@@ -5,12 +5,12 @@
 package templates
 
 import (
+	"os"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"github.com/unknwon/com"
 )
 
@@ -49,12 +49,15 @@ func BaseVars() Vars {
 
 func getDirAssetNames(dir string) []string {
 	var tmpls []string
-	isDir, err := util.IsDir(dir)
+	f, err := os.Stat(dir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return tmpls
+		}
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", dir, err)
 		return tmpls
 	}
-	if !isDir {
+	if !f.IsDir() {
 		log.Warn("Templates dir %s is a not directory.", dir)
 		return tmpls
 	}
