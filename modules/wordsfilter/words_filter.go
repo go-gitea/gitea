@@ -14,11 +14,12 @@ import (
 	"github.com/killtw/lemonade/lemonade"
 )
 
+// Search search words on src and return matches
 func Search(src string) []string {
 	return lemonade.Trie.Search(src)
 }
 
-// Replace replace the words
+// Replace replace the matched words
 func Replace(src string) string {
 	if !setting.WordsFilter.Enabled {
 		return src
