@@ -116,7 +116,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v1.0.13
+# github.com/blevesearch/bleve v1.0.14
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -166,15 +166,15 @@ github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.13
+# github.com/blevesearch/zap/v11 v11.0.14
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.13
+# github.com/blevesearch/zap/v12 v12.0.14
 github.com/blevesearch/zap/v12
-# github.com/blevesearch/zap/v13 v13.0.5
+# github.com/blevesearch/zap/v13 v13.0.6
 github.com/blevesearch/zap/v13
-# github.com/blevesearch/zap/v14 v14.0.4
+# github.com/blevesearch/zap/v14 v14.0.5
 github.com/blevesearch/zap/v14
-# github.com/blevesearch/zap/v15 v15.0.2
+# github.com/blevesearch/zap/v15 v15.0.3
 github.com/blevesearch/zap/v15
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
@@ -202,12 +202,6 @@ github.com/couchbase/vellum/utf8
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 ## explicit
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d
-## explicit
-# github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
-## explicit
-# github.com/cznic/strutil v0.0.0-20181122101858-275e90344537
-## explicit
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 github.com/danwakefield/fnmatch
 # github.com/davecgh/go-spew v1.1.1
@@ -249,12 +243,6 @@ github.com/emirpasic/gods/utils
 # github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 ## explicit
 github.com/ethantkoenig/rupture
-# github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51
-## explicit
-# github.com/facebookgo/stack v0.0.0-20160209184415-751773369052
-## explicit
-# github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870
-## explicit
 # github.com/fatih/color v1.9.0
 github.com/fatih/color
 # github.com/fatih/structtag v1.2.0
@@ -485,8 +473,6 @@ github.com/jaytaylor/html2text
 github.com/jbenet/go-context/io
 # github.com/jessevdk/go-flags v1.4.0
 github.com/jessevdk/go-flags
-# github.com/jmhodges/levigo v1.0.0
-## explicit
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
@@ -649,8 +635,7 @@ github.com/olivere/elastic/v7/uritemplates
 # github.com/pelletier/go-toml v1.8.1
 ## explicit
 github.com/pelletier/go-toml
-# github.com/philhofer/fwd v1.1.0
-## explicit
+# github.com/philhofer/fwd v1.1.1
 github.com/philhofer/fwd
 # github.com/pierrec/lz4/v4 v4.1.1
 ## explicit
@@ -688,8 +673,6 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
-# github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001
-## explicit
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/russross/blackfriday/v2 v2.0.1
@@ -744,9 +727,7 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
-# github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
-## explicit
-# github.com/tinylib/msgp v1.1.2
+# github.com/tinylib/msgp v1.1.5
 ## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/webbrowser v1.2.0
@@ -868,7 +849,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20201106081118-db71ae66460a
+# golang.org/x/sys v0.0.0-20201211090839-8ad439b19e0f
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -902,7 +883,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200929161345-d7fc70abf50f
+# golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis

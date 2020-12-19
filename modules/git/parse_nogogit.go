@@ -2,15 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// +build !gogit
+
 package git
 
 import (
 	"bytes"
 	"fmt"
 	"strconv"
-
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree` command.
@@ -23,26 +22,25 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	for pos := 0; pos < len(data); {
 		// expect line to be of the form "<mode> <type> <sha>\t<filename>"
 		entry := new(TreeEntry)
-		entry.gogitTreeEntry = &object.TreeEntry{}
 		entry.ptree = ptree
 		if pos+6 > len(data) {
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
 		switch string(data[pos : pos+6]) {
 		case "100644":
-			entry.gogitTreeEntry.Mode = filemode.Regular
+			entry.entryMode = EntryModeBlob
 			pos += 12 // skip over "100644 blob "
 		case "100755":
-			entry.gogitTreeEntry.Mode = filemode.Executable
+			entry.entryMode = EntryModeExec
 			pos += 12 // skip over "100755 blob "
 		case "120000":
-			entry.gogitTreeEntry.Mode = filemode.Symlink
+			entry.entryMode = EntryModeSymlink
 			pos += 12 // skip over "120000 blob "
 		case "160000":
-			entry.gogitTreeEntry.Mode = filemode.Submodule
+			entry.entryMode = EntryModeCommit
 			pos += 14 // skip over "160000 object "
 		case "040000":
-			entry.gogitTreeEntry.Mode = filemode.Dir
+			entry.entryMode = EntryModeTree
 			pos += 12 // skip over "040000 tree "
 		default:
 			return nil, fmt.Errorf("unknown type: %v", string(data[pos:pos+6]))
@@ -56,7 +54,6 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
 		}
 		entry.ID = id
-		entry.gogitTreeEntry.Hash = id
 		pos += 41 // skip over sha and trailing space
 
 		end := pos + bytes.IndexByte(data[pos:], '\n')
@@ -66,12 +63,12 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 
 		// In case entry name is surrounded by double quotes(it happens only in git-shell).
 		if data[pos] == '"' {
-			entry.gogitTreeEntry.Name, err = strconv.Unquote(string(data[pos:end]))
+			entry.name, err = strconv.Unquote(string(data[pos:end]))
 			if err != nil {
 				return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
 			}
 		} else {
-			entry.gogitTreeEntry.Name = string(data[pos:end])
+			entry.name = string(data[pos:end])
 		}
 
 		pos = end + 1
