@@ -29,10 +29,10 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/wordsfilter"
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/modules/wordsfilter"
 
 	"github.com/unknwon/com"
 )
