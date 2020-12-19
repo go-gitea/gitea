@@ -61,8 +61,8 @@ func (repo *Repository) getCommit(ctx context.Context, id SHA1) (*Commit, error)
 
 	go func() {
 		stderr := strings.Builder{}
-		envVal := ctx.Value("envs")
-		var env []string = nil
+		envVal := GetEnvs(ctx)
+		var env []string
 		if envVal != nil {
 			env = envVal.([]string)
 		}

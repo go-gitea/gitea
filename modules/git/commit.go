@@ -8,8 +8,8 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"container/list"
+	"context"
 	"fmt"
 	"image"
 	"image/color"

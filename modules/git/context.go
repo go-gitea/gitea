@@ -8,7 +8,14 @@ import (
 	"context"
 )
 
+type envType string
+
 // WithEnvs with envs on context
 func WithEnvs(ctx context.Context, envs []string) context.Context {
-	return context.WithValue(ctx, interface{}("envs"), envs)
+	return context.WithValue(ctx, envType("envs"), envs)
+}
+
+// GetEnvs returns the envs
+func GetEnvs(ctx context.Context) interface{} {
+	return ctx.Value(envType("envs"))
 }
