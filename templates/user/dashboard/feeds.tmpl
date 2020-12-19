@@ -28,7 +28,7 @@
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{ $branchLink := .GetTag | EscapePound | Escape}}
 							{{$.i18n.Tr "action.push_tag" .GetRepoLink $branchLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
