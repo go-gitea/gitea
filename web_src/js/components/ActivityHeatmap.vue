@@ -42,19 +42,21 @@ export default {
     },
   }),
   methods: {
-    handleDayClick(event) {
+    handleDayClick(e) {
       // Reset filter if same date is clicked
-      const day = window.location.search.match(/\?date=(\d{4})-(\d{1,2})-(\d{1,2})/);
-      if (day !== null) {
-        if (day.length === 4) {
-          if ((parseInt(day[1]) === event.date.getFullYear()) && (parseInt(day[2]) === (event.date.getMonth() + 1)) && (parseInt(day[3]) === event.date.getDate())) {
-            window.location.search = '';
-            return;
-          }
-        }
+      const params = new URLSearchParams(document.location.search);
+      const queryDate = params.get('date');
+      // Timezone has to be stripped because toISOString() converts to UTC
+      const clickedDate = new Date(e.date - (e.date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10);
+
+      if (queryDate && queryDate === clickedDate) {
+        params.delete('date');
+      } else {
+        params.set('date', clickedDate);
       }
 
-      window.location.search = `?date=${event.date.getFullYear()}-${event.date.getMonth() + 1}-${event.date.getDate()}`;
+      const newSearch = params.toString();
+      window.location.search = newSearch.length ? `?${newSearch}` : '';
     }
   },
 };
