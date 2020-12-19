@@ -49,8 +49,7 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 }
 
 func GetAsset(name string) ([]byte, error) {
-	customDir := filepath.Join(setting.CustomPath, "templates")
-	bs, err := ioutil.ReadFile(filepath.Join(customDir, name))
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	} else if err == nil {

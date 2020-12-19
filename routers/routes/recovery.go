@@ -30,6 +30,7 @@ func (d *dataStore) GetData() map[string]interface{} {
 // Although similar to macaron.Recovery() the main difference is that this error will be created
 // with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
+	var isDevelopment = setting.RunMode != "prod"
 	return func(next http.Handler) http.Handler {
 		rnd := render.New(render.Options{
 			Extensions:    []string{".tmpl"},
@@ -37,7 +38,7 @@ func Recovery() func(next http.Handler) http.Handler {
 			Funcs:         templates.NewFuncMap(),
 			Asset:         templates.GetAsset,
 			AssetNames:    templates.GetAssetNames,
-			IsDevelopment: setting.RunMode != "prod",
+			IsDevelopment: isDevelopment,
 		})
 
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -50,7 +51,11 @@ func Recovery() func(next http.Handler) http.Handler {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 						log.Error(combinedErr)
-						http.Error(w, http.StatusText(500), 500)
+						if isDevelopment {
+							http.Error(w, combinedErr, 500)
+						} else {
+							http.Error(w, http.StatusText(500), 500)
+						}
 					}
 				}()
 
