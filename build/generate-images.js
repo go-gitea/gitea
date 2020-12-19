@@ -7,6 +7,8 @@ const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
 const Svgo = require('svgo');
 
+const logoFile = resolve(__dirname, '../assets/logo.svg');
+
 function exit(err) {
   if (err) console.error(err);
   process.exit(err ? 1 : 0);
@@ -35,6 +37,12 @@ async function generateSvgFavicon(svg, outputFile) {
     ],
   });
 
+  const {data} = await svgo.optimize(svg);
+  await writeFile(outputFile, data);
+}
+
+async function generateSvg(svg, outputFile) {
+  const svgo = new Svgo();
   const {data} = await svgo.optimize(svg);
   await writeFile(outputFile, data);
 }
@@ -69,15 +77,26 @@ async function generate(svg, outputFile, {size, bg}) {
 }
 
 async function main() {
-  const svg = await readFile(resolve(__dirname, '../assets/logo.svg'), 'utf8');
-  await generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg'));
-  await generate(svg, resolve(__dirname, '../public/img/gitea-lg.png'), {size: 880});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-512.png'), {size: 512});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-sm.png'), {size: 120});
-  await generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200});
-  await generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180});
-  await generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true});
+  const gitea = process.argv.slice(2).includes('gitea');
+
+  const svg = await readFile(logoFile, 'utf8');
+  await Promise.all([
+    generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg')),
+    generateSvg(svg, resolve(__dirname, '../public/img/logo.svg')),
+    generate(svg, resolve(__dirname, '../public/img/logo-lg.png'), {size: 880}),
+    generate(svg, resolve(__dirname, '../public/img/logo-512.png'), {size: 512}),
+    generate(svg, resolve(__dirname, '../public/img/logo-192.png'), {size: 192}),
+    generate(svg, resolve(__dirname, '../public/img/logo-sm.png'), {size: 120}),
+    generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
+    generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
+    generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
+  ]);
+  if (gitea) {
+    await Promise.all([
+      generateSvg(svg, resolve(__dirname, '../public/img/gitea.svg')),
+      generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192}),
+    ]);
+  }
 }
 
 main().then(exit).catch(exit);
