@@ -13,12 +13,12 @@ workspace:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:15
     commands:
       - make node_modules
 
   - name: lint-frontend
-    image: node:14
+    image: node:15
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -44,7 +44,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    image: node:14
+    image: node:15
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -57,7 +57,7 @@ steps:
     depends_on: [lint-backend]
 
   - name: build-frontend
-    image: node:14
+    image: node:15
     commands:
       - make frontend
     depends_on: [lint-frontend]
@@ -443,7 +443,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.15.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -539,7 +539,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.15.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
