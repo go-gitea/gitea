@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"path"
 )
 
@@ -46,7 +47,7 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := c.repo.getCommit(id)
+		commit, err := c.repo.getCommit(context.Background(), id)
 		if err != nil {
 			return nil, err
 		}

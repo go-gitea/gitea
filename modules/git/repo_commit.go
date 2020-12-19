@@ -8,6 +8,7 @@ package git
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"strconv"
 	"strings"
 )
@@ -53,7 +54,17 @@ func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.getCommit(context.Background(), id)
+}
+
+// GetCommitContext returns commit object of by ID string with context
+func (repo *Repository) GetCommitContext(ctx context.Context, commitID string) (*Commit, error) {
+	id, err := repo.ConvertToSHA1(commitID)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.getCommit(ctx, id)
 }
 
 // GetBranchCommit returns the last commit of given branch.
@@ -90,7 +101,7 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.getCommit(context.Background(), id)
 }
 
 // GetCommitByPath returns the last commit of relative path.

@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"sort"
 	"strings"
 )
@@ -27,7 +28,7 @@ type Tag struct {
 
 // Commit return the commit of the tag reference
 func (tag *Tag) Commit() (*Commit, error) {
-	return tag.repo.getCommit(tag.Object)
+	return tag.repo.getCommit(context.Background(), tag.Object)
 }
 
 // Parse commit information from the (uncompressed) raw

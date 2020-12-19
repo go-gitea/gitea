@@ -4,7 +4,10 @@
 
 package git
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 // Reference represents a Git ref.
 type Reference struct {
@@ -16,7 +19,7 @@ type Reference struct {
 
 // Commit return the commit of the reference
 func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
+	return ref.repo.getCommit(context.Background(), ref.Object)
 }
 
 // ShortName returns the short name of the reference

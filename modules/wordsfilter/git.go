@@ -34,6 +34,10 @@ func CheckPatchWords(reader io.Reader) ([]string, error) {
 		return nil, nil
 	}
 
+	if matches := Search(line[len(cmdDiffHead):]); len(matches) > 0 {
+		return matches, nil
+	}
+
 	var inSection bool
 	var sb bytes.Buffer
 	for {
@@ -44,29 +48,46 @@ func CheckPatchWords(reader io.Reader) ([]string, error) {
 			}
 			break
 		}
-		if strings.HasPrefix(line, "+ ") {
+
+		if strings.HasPrefix(line, "+") {
 			inSection = true
-			sb.WriteString(line[1:])
+			sb.WriteString(line[1:] + "\n")
 			continue
+		} else {
+			if strings.HasPrefix(line, "rename to") {
+				if matches := Search(line[len("rename to"):]); len(matches) > 0 {
+					return matches, nil
+				}
+			} else if strings.HasPrefix(line, cmdDiffHead) {
+				if matches := Search(line[len(cmdDiffHead):]); len(matches) > 0 {
+					return matches, nil
+				}
+			}
+			inSection = false
 		}
 
-		if inSection {
+		if (!inSection && sb.Len() > 0) || sb.Len() >= 4096 {
+			var content string
 			charsetLabel, err := charset.DetectEncoding(sb.Bytes())
 			if charsetLabel != "UTF-8" && err == nil {
 				encoding, _ := stdcharset.Lookup(charsetLabel)
 				if encoding != nil {
 					d := encoding.NewDecoder()
-					c, _, err := transform.String(d, sb.String())
+					content, _, err = transform.String(d, sb.String())
 					if err != nil {
 						return nil, err
 					}
-					matches := Search(c)
-					if len(matches) > 0 {
-						return matches, nil
-					}
 				}
 			}
-			inSection = false
+			if content == "" {
+				content = sb.String()
+			}
+
+			sb.Reset()
+			matches := Search(content)
+			if len(matches) > 0 {
+				return matches, nil
+			}
 		}
 	}
 

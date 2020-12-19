@@ -8,10 +8,12 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 // ResolveReference resolves a name to a reference
@@ -50,7 +52,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 	return err == nil
 }
 
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+func (repo *Repository) getCommit(ctx context.Context, id SHA1) (*Commit, error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -59,7 +61,19 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, &stderr, strings.NewReader(id.String()+"\n"))
+		envVal := ctx.Value("envs")
+		var env []string = nil
+		if envVal != nil {
+			env = envVal.([]string)
+		}
+		err := NewCommand("cat-file", "--batch").RunInDirTimeoutEnvFullPipeline(
+			env,
+			time.Duration(-1),
+			repo.Path,
+			stdoutWriter,
+			&stderr,
+			strings.NewReader(id.String()+"\n"),
+		)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {

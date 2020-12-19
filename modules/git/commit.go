@@ -8,6 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"container/list"
 	"fmt"
 	"image"
@@ -66,7 +67,7 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	parent, err := c.repo.getCommit(id)
+	parent, err := c.repo.getCommit(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}

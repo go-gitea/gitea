@@ -174,11 +174,22 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 		// Words Filter
 		if setting.WordsFilter.Enabled {
-			commit, err := gitRepo.GetCommit(newCommitID)
+			commit, err := gitRepo.GetCommitContext(
+				git.WithEnvs(context.Background(), env),
+				newCommitID,
+			)
 			if err != nil {
 				log.Error("GetCommit: %v", err)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": fmt.Sprintf("Get commit %s failed", newCommitID),
+				})
+				return
+			}
+
+			if matches := wordsfilter.Search(commit.Message()); len(matches) > 0 {
+				log.Warn("Check patch words between %s and %s matched: %v", oldCommitID, newCommitID, matches)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("Commit message contains unallowed words between %s and %s", oldCommitID, newCommitID),
 				})
 				return
 			}
@@ -207,6 +218,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			repoPath := repo.RepoPath()
 			cmd.Dir = repoPath
 			cmd.Stderr = os.Stderr
+			cmd.Env = env
 
 			stdout, err := cmd.StdoutPipe()
 			if err != nil {
