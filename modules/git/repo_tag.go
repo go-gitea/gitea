@@ -35,6 +35,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 	if ok {
 		log("Hit cache: %s", tagID)
 		tagClone := *t.(*Tag)
+		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}
 
