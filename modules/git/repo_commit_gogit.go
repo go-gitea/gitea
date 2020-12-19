@@ -8,6 +8,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -69,7 +70,7 @@ func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
 	}
 }
 
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+func (repo *Repository) getCommit(ctx context.Context, id SHA1) (*Commit, error) {
 	var tagObject *object.Tag
 
 	gogitCommit, err := repo.gogitRepo.CommitObject(id)
