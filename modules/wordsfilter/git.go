@@ -49,21 +49,26 @@ func CheckPatchWords(reader io.Reader) ([]string, error) {
 			break
 		}
 
-		if strings.HasPrefix(line, "+") {
+		var isNewFile bool
+
+		if strings.HasPrefix(line, "rename to") {
+			if matches := Search(line[len("rename to"):]); len(matches) > 0 {
+				return matches, nil
+			}
+			inSection = false
+		} else if strings.HasPrefix(line, "---") {
+			isNewFile = line[4:] == "a/dev/null"
+			inSection = false
+		} else if isNewFile && strings.HasPrefix(line, "+++") {
+			if matches := Search(line[len("+++"):]); len(matches) > 0 {
+				return matches, nil
+			}
+			isNewFile = false
+			inSection = false
+		} else if strings.HasPrefix(line, "+") {
 			inSection = true
 			sb.WriteString(line[1:] + "\n")
 			continue
-		} else {
-			if strings.HasPrefix(line, "rename to") {
-				if matches := Search(line[len("rename to"):]); len(matches) > 0 {
-					return matches, nil
-				}
-			} else if strings.HasPrefix(line, cmdDiffHead) {
-				if matches := Search(line[len(cmdDiffHead):]); len(matches) > 0 {
-					return matches, nil
-				}
-			}
-			inSection = false
 		}
 
 		if (!inSection && sb.Len() > 0) || sb.Len() >= 4096 {
