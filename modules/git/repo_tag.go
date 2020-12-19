@@ -30,21 +30,16 @@ func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error
 	return err
 }
 
-func (repo *Repository) getTag(id SHA1) (*Tag, error) {
-	t, ok := repo.tagCache.Get(id.String())
+func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
+	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
-		log("Hit cache: %s", id)
+		log("Hit cache: %s", tagID)
 		tagClone := *t.(*Tag)
+		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}
 
-	// Get tag name
-	name, err := repo.GetTagNameBySHA(id.String())
-	if err != nil {
-		return nil, err
-	}
-
-	tp, err := repo.GetTagType(id)
+	tp, err := repo.GetTagType(tagID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,24 +55,9 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return nil, err
 	}
 
-	// tagID defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
-	tagID := commitID
-	if tagIDStr, err := repo.GetTagID(name); err != nil {
-		// if the err is NotExist then we can ignore and just keep tagID as ID (is lightweight tag)
-		// all other errors we return
-		if !IsErrNotExist(err) {
-			return nil, err
-		}
-	} else {
-		tagID, err = NewIDFromString(tagIDStr)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(id.String())
+		commit, err := repo.GetCommit(commitIDStr)
 		if err != nil {
 			return nil, err
 		}
@@ -85,18 +65,18 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 			Name:    name,
 			ID:      tagID,
 			Object:  commitID,
-			Type:    string(ObjectCommit),
+			Type:    tp,
 			Tagger:  commit.Committer,
 			Message: commit.Message(),
 			repo:    repo,
 		}
 
-		repo.tagCache.Set(id.String(), tag)
+		repo.tagCache.Set(tagID.String(), tag)
 		return tag, nil
 	}
 
 	// The tag is an annotated tag with a message.
-	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
+	data, err := NewCommand("cat-file", "-p", tagID.String()).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +87,11 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	}
 
 	tag.Name = name
-	tag.ID = id
+	tag.ID = tagID
 	tag.repo = repo
 	tag.Type = tp
 
-	repo.tagCache.Set(id.String(), tag)
+	repo.tagCache.Set(tagID.String(), tag)
 	return tag, nil
 }
 
@@ -170,7 +150,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := repo.getTag(id)
+	tag, err := repo.getTag(id, name)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +224,13 @@ func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
 		return nil, ErrNotExist{ID: id.String()}
 	}
 
-	tag, err := repo.getTag(id)
+	// Get tag name
+	name, err := repo.GetTagNameBySHA(id.String())
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err := repo.getTag(id, name)
 	if err != nil {
 		return nil, err
 	}
