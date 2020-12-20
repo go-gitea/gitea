@@ -360,15 +360,15 @@ func Diff(ctx *context.Context) {
 		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
 	}
 
-	ctx.Data["BranchName"], err = commit.GetBranchName()
+	ctx.Data["Branches"], err = commit.GetBranches()
 	if err != nil {
-		ctx.ServerError("commit.GetBranchName", err)
+		ctx.ServerError("commit.GetBranches", err)
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
+	ctx.Data["Tags"], err = commit.GetTags()
 	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
+		ctx.ServerError("commit.GetTags", err)
 		return
 	}
 	ctx.HTML(200, tplCommitPage)

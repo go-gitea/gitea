@@ -27,11 +27,11 @@
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
-			{{if .BranchName}}
-				<span class="text grey">{{svg "octicon-git-branch"}}{{.BranchName}}</span>
+			{{range $key, $value := .Branches}}
+				<span class="text grey">{{svg "octicon-git-branch"}}&nbsp;{{$value}}</span>
 			{{end}}
-			{{if .TagName}}
-				<span class="text grey">{{svg "octicon-tag"}}{{.TagName}}</span>
+			{{range $key, $value := .Tags}}
+				<span class="text grey">{{svg "octicon-tag"}}&nbsp;{{$value}}</span>
 			{{end}}
 		</div>
 		<div class="ui attached info segment {{$class}}">

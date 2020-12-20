@@ -422,18 +422,39 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
-func (c *Commit) GetBranchName() (string, error) {
-	err := LoadGitVersion()
+// GetBranches gets the list of branches that commit exists in
+func (c *Commit) GetBranches() ([]string, error) {
+	args := []string{
+		"branch",
+	}
+	args = append(args, "--contains", c.ID.String())
+
+	data, err := NewCommand(args...).RunInDir(c.repo.Path)
 	if err != nil {
-		return "", fmt.Errorf("Git version missing: %v", err)
+		if strings.Contains(err.Error(), "no such") {
+			return []string{}, nil
+		}
+
+		return []string{}, err
 	}
 
+	if data == "" {
+		return []string{}, nil
+	}
+
+	branches := strings.Split(strings.TrimSpace(data), "\n")
+	for i, branch := range branches {
+		// we can't use --format %(refname) for compatibility reasons
+		branches[i] = strings.TrimPrefix(strings.TrimSpace(branch), "* ")
+	}
+
+	return branches, nil
+}
+
+// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
+func (c *Commit) GetBranchName() (string, error) {
 	args := []string{
 		"name-rev",
-	}
-	if CheckGitVersionAtLeast("2.13.0") == nil {
-		args = append(args, "--exclude", "refs/tags/*")
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
@@ -461,19 +482,27 @@ func (c *Commit) LoadBranchName() (err error) {
 	return
 }
 
-// GetTagName gets the current tag name for given commit
-func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+// GetTags gets the list of tags that commit exists in
+func (c *Commit) GetTags() ([]string, error) {
+	args := []string{
+		"tag",
+	}
+	args = append(args, "--contains", c.ID.String())
+
+	data, err := NewCommand(args...).RunInDir(c.repo.Path)
 	if err != nil {
-		// handle special case where there is no tag for this commit
-		if strings.Contains(err.Error(), "no tag exactly matches") {
-			return "", nil
+		if strings.Contains(err.Error(), "no such") {
+			return []string{}, nil
 		}
 
-		return "", err
+		return []string{}, err
 	}
 
-	return strings.TrimSpace(data), nil
+	if data == "" {
+		return []string{}, nil
+	}
+
+	return strings.Split(strings.TrimSpace(data), "\n"), nil
 }
 
 // CommitFileStatus represents status of files in a commit.
