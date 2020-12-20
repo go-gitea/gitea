@@ -363,21 +363,17 @@ func Issues(ctx *context.Context) {
 		filterMode = models.FilterModeAll
 	)
 
-	if ctxUser.IsOrganization() {
+	viewType = ctx.Query("type")
+	switch viewType {
+	case "assigned":
+		filterMode = models.FilterModeAssign
+	case "created_by":
+		filterMode = models.FilterModeCreate
+	case "mentioned":
+		filterMode = models.FilterModeMention
+	case "your_repositories": // filterMode already set to All
+	default:
 		viewType = "your_repositories"
-	} else {
-		viewType = ctx.Query("type")
-		switch viewType {
-		case "assigned":
-			filterMode = models.FilterModeAssign
-		case "created_by":
-			filterMode = models.FilterModeCreate
-		case "mentioned":
-			filterMode = models.FilterModeMention
-		case "your_repositories": // filterMode already set to All
-		default:
-			viewType = "your_repositories"
-		}
 	}
 
 	page := ctx.QueryInt("page")
@@ -447,11 +443,15 @@ func Issues(ctx *context.Context) {
 	case models.FilterModeAll:
 		opts.RepoIDs = userRepoIDs
 	case models.FilterModeAssign:
-		opts.AssigneeID = ctxUser.ID
+		opts.AssigneeID = ctx.User.ID
 	case models.FilterModeCreate:
-		opts.PosterID = ctxUser.ID
+		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
+	}
+
+	if ctxUser.IsOrganization() {
+		opts.RepoIDs = userRepoIDs
 	}
 
 	var forceEmpty bool
@@ -569,7 +569,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
+		UserID:      ctx.User.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
@@ -577,6 +577,9 @@ func Issues(ctx *context.Context) {
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
+	}
+	if ctxUser.IsOrganization() {
+		userIssueStatsOpts.RepoIDs = userRepoIDs
 	}
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
@@ -587,7 +590,7 @@ func Issues(ctx *context.Context) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
@@ -596,6 +599,8 @@ func Issues(ctx *context.Context) {
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
+		} else if ctxUser.IsOrganization() {
+			statsOpts.RepoIDs = userRepoIDs
 		}
 		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
@@ -608,14 +613,18 @@ func Issues(ctx *context.Context) {
 
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
-		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+		allIssueStatsOpts := models.UserIssueStatsOptions{
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
-		})
+		}
+		if ctxUser.IsOrganization() {
+			allIssueStatsOpts.RepoIDs = userRepoIDs
+		}
+		allIssueStats, err = models.GetUserIssueStats(allIssueStatsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)
 			return
