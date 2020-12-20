@@ -75,8 +75,7 @@ func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{
 
 // SetSession sets session key value
 func (ctx *DefaultContext) SetSession(key string, val interface{}) error {
-	ctx.Session.Set(key, val)
-	return nil
+	return ctx.Session.Set(key, val)
 }
 
 // GetSession gets session via key
