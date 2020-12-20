@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -63,6 +64,11 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 	}
 
 	auth := strings.SplitN(string(s), ":", 2)
+
+	if len(auth) != 2 {
+		return "", "", errors.New("invalid basic authentication")
+	}
+
 	return auth[0], auth[1], nil
 }
 

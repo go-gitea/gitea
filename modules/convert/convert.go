@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -227,7 +227,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		s := webhook.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
@@ -237,7 +237,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.Type),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,
@@ -345,27 +345,6 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 		RedirectURIs: app.RedirectURIs,
 		Created:      app.CreatedUnix.AsTime(),
 	}
-}
-
-// ToCommitStatus converts models.CommitStatus to api.Status
-func ToCommitStatus(status *models.CommitStatus) *api.Status {
-	apiStatus := &api.Status{
-		Created:     status.CreatedUnix.AsTime(),
-		Updated:     status.CreatedUnix.AsTime(),
-		State:       api.StatusState(status.State),
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-		ID:          status.Index,
-		URL:         status.APIURL(),
-		Context:     status.Context,
-	}
-
-	if status.CreatorID != 0 {
-		creator, _ := models.GetUserByID(status.CreatorID)
-		apiStatus.Creator = ToUser(creator, false, false)
-	}
-
-	return apiStatus
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock

@@ -162,9 +162,60 @@
     list-style-type: none;
   }
 
-  li.task-list-item {
+  .task-list-item {
     list-style-type: none;
-    margin-left: calc(-2em + 2px);
+
+    input[type="checkbox"] {
+      margin: 0 6px .25em -1.6em;
+    }
+  }
+
+  .task-list-item + .task-list-item {
+    margin-top: 3px;
+  }
+
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    border: 1px solid var(--color-secondary);
+    border-radius: 2px;
+    background: var(--color-input-background);
+    height: 14px;
+    width: 14px;
+    opacity: 1 !important; // override fomantic on edit preview
+    pointer-events: auto !important; // override fomantic on edit preview
+    vertical-align: middle !important; // override fomantic on edit preview
+  }
+
+  input[type="checkbox"]:not([disabled]):hover,
+  input[type="checkbox"]:not([disabled]):active {
+    border-color: var(--color-primary);
+  }
+
+  input[type="checkbox"]::after {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    background: var(--color-text);
+    mask-size: cover;
+    -webkit-mask-size: cover;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "";
+    mask-image: var(--checkbox-mask-checked);
+    -webkit-mask-image: var(--checkbox-mask-checked);
+  }
+
+  input[type="checkbox"]:indeterminate::after {
+    content: "";
+    mask-image: var(--checkbox-mask-indeterminate);
+    -webkit-mask-image: var(--checkbox-mask-indeterminate);
   }
 
   ul ul,
@@ -343,7 +394,7 @@
     padding: .2em .3em;
     margin: 0;
     font-size: 85%;
-    background-color: var(--color-label);
+    background-color: var(--color-markdown-code-block);
     border-radius: 3px;
   }
 
@@ -360,8 +411,9 @@
     padding: 0;
     margin: 0;
     font-size: 100%;
-    word-break: normal;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: break-word;
     background: transparent;
     border: 0;
   }
@@ -373,7 +425,6 @@
   .highlight pre,
   pre {
     padding: 16px;
-    overflow: auto;
     font-size: 85%;
     line-height: 1.45;
     background-color: var(--color-markdown-code-block);
@@ -416,14 +467,10 @@
     line-height: 10px;
     color: var(--color-text-light);
     vertical-align: middle;
-    background-color: var(--color-label);
+    background-color: var(--color-markdown-code-block);
     border: 1px solid var(--color-secondary);
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 var(--color-secondary);
-  }
-
-  input[type="checkbox"] {
-    vertical-align: middle !important;
   }
 
   .csv-data td,

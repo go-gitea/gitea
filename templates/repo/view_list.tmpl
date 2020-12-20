@@ -3,7 +3,7 @@
 		<tr class="commit-list">
 			<th colspan="2">
 				{{if .LatestCommitUser}}
-					{{avatar .LatestCommitUser 28 "img-12"}}
+					{{avatar .LatestCommitUser 24}}
 					{{if .LatestCommitUser.FullName}}
 						<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 					{{else}}
@@ -11,7 +11,7 @@
 					{{end}}
 				{{else}}
 					{{if .LatestCommit.Author}}
-						{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 28 "img-12"}}
+						{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}
@@ -40,18 +40,19 @@
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
-			{{$entry := index $item 0}}
-			{{$commit := index $item 1}}
+			{{$entry := $item.Entry}}
+			{{$commit := $item.Commit}}
+			{{$subModuleFile := $item.SubModuleFile}}
 			<tr>
 				<td class="name four wide">
 					<span class="truncate">
 						{{if $entry.IsSubModule}}
 							{{svg "octicon-file-submodule"}}
-							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
+							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
 							{{if $refURL}}
-								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
+								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
 							{{else}}
-								{{$entry.Name}}<span class="at">@</span>{{ShortSha $commit.RefID}}
+								{{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
 							{{end}}
 						{{else}}
 							{{if $entry.IsDir}}

@@ -26,12 +26,12 @@
 					<div class="two column row">
 						<a class="reference column" href="#" @click="mode = 'branches'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'branches'}">
-								{{svg "octicon-git-branch"}} {{.i18n.Tr "repo.branches"}}
+								{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
 							</span>
 						</a>
 						<a class="reference column" href="#" @click="mode = 'tags'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'tags'}">
-								<i class="reference tags icon"></i> {{.i18n.Tr "repo.tags"}}
+								{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
 							</span>
 						</a>
 					</div>

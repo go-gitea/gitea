@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Installation avec Docker"
 slug: "install-with-docker"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -16,6 +16,8 @@ menu:
 # Installation avec Docker
 
 Nous fournissons des images Docker mises à jour automatiquement via le Docker Hub de notre organisation. C'est à vous, lors devotre déploiement, de vous assurez d'utiliser toujours la dernière version stable ou d'utiliser un autre service qui met à jour l'image Docker pour vous.
+
+{{< toc >}}
 
 ## Données stockées sur l'hôte
 

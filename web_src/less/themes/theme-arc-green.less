@@ -1,4 +1,4 @@
-@import "../variables.less";
+@import "../chroma/dark.less";
 
 :root {
   --color-primary: #87ab63;
@@ -68,15 +68,23 @@
   --color-black: #1e222e;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-removed-word-bg: #6f3333;
+  --color-diff-added-word-bg: #3c653c;
+  --color-diff-removed-row-bg: #3c2626;
+  --color-diff-added-row-bg: #283e2d;
+  --color-diff-removed-row-border: #634343;
+  --color-diff-added-row-border: #314a37;
+  --color-diff-inactive: #353846;
   /* target-based colors */
   --color-body: #383c4a;
-  --color-box-header: #454a57;
-  --color-box-body: #353945;
+  --color-box-header: #404652;
+  --color-box-body: #303440;
+  --color-text-dark: #dbe0ea;
   --color-text: #bbc0ca;
   --color-text-light: #a6aab5;
   --color-text-light-2: #868a95;
   --color-footer: #2e323e;
-  --color-timeline: #4a505c;
+  --color-timeline: #4c525e;
   --color-input-text: #d5dbe6;
   --color-input-background: #2e323e;
   --color-input-border: #454a57;
@@ -95,379 +103,7 @@
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
   --color-shadow: #00000060;
-}
-
-/* LineTableTD */
-
-.chroma .lntd {
-  vertical-align: top;
-  padding: 0;
-  margin: 0;
-  border: 0;
-}
-/* LineTable */
-
-.chroma .lntable {
-  border-spacing: 0;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  width: auto;
-  overflow: auto;
-  display: block;
-}
-/* LineHighlight */
-
-.chroma .hl {
-  display: block;
-  width: 100%;
-  background-color: #3f424d;
-}
-/* LineNumbersTable */
-
-.chroma .lnt {
-  margin-right: .4em;
-  padding: 0 .4em;
-  color: #7f7f7f;
-}
-/* LineNumbers */
-
-.chroma .ln {
-  margin-right: .4em;
-  padding: 0 .4em;
-  color: #7f7f7f;
-}
-/* Keyword */
-
-.chroma .k {
-  color: #f63;
-}
-/* KeywordConstant */
-
-.chroma .kc {
-  color: #fa1;
-}
-/* KeywordDeclaration */
-
-.chroma .kd {
-  color: #9daccc;
-}
-/* KeywordNamespace */
-
-.chroma .kn {
-  color: #fa1;
-}
-/* KeywordPseudo */
-
-.chroma .kp {
-  color: #5f8700;
-}
-/* KeywordReserved */
-
-.chroma .kr {
-  color: #f63;
-}
-/* KeywordType */
-
-.chroma .kt {
-  color: #9daccc;
-}
-/* NameAttribute */
-
-.chroma .na {
-  color: #8a8a8a;
-}
-/* NameBuiltin */
-
-.chroma .nb {
-  color: #9daccc;
-}
-/* NameBuiltinPseudo */
-
-.chroma .bp {
-  color: #9daccc;
-}
-/* NameClass */
-
-.chroma .nc {
-  color: #fa1;
-}
-/* NameConstant */
-
-.chroma .no {
-  color: #fa1;
-}
-/* NameDecorator */
-
-.chroma .nd {
-  color: #9daccc;
-}
-/* NameEntity */
-
-.chroma .ni {
-  color: #fa1;
-}
-/* NameException */
-
-.chroma .ne {
-  color: #af8700;
-}
-/* NameFunction */
-
-.chroma .nf {
-  color: #9daccc;
-}
-/* NameLabel */
-
-.chroma .nl {
-  color: #fa1;
-}
-/* NameNamespace */
-
-.chroma .nn {
-  color: #fa1;
-}
-/* NameOther */
-
-.chroma .nx {
-  color: #9daccc;
-}
-/* NameTag */
-
-.chroma .nt {
-  color: #9daccc;
-}
-/* NameVariable */
-
-.chroma .nv {
-  color: #9daccc;
-}
-/* NameVariableClass */
-
-.chroma .vc {
-  color: #f81;
-}
-/* NameVariableGlobal */
-
-.chroma .vg {
-  color: #fa1;
-}
-/* NameVariableInstance */
-
-.chroma .vi {
-  color: #fa1;
-}
-/* LiteralString */
-
-.chroma .s {
-  color: #1af;
-}
-/* LiteralStringAffix */
-
-.chroma .sa {
-  color: #1af;
-}
-/* LiteralStringBacktick */
-
-.chroma .sb {
-  color: #a0cc75;
-}
-/* LiteralStringChar */
-
-.chroma .sc {
-  color: #1af;
-}
-/* LiteralStringDelimiter */
-
-.chroma .dl {
-  color: #1af;
-}
-/* LiteralStringDoc */
-
-.chroma .sd {
-  color: #6a737d;
-}
-/* LiteralStringDouble */
-
-.chroma .s2 {
-  color: #a0cc75;
-}
-/* LiteralStringEscape */
-
-.chroma .se {
-  color: #f63;
-}
-/* LiteralStringHeredoc */
-
-.chroma .sh {
-  color: #1af;
-}
-/* LiteralStringInterpol */
-
-.chroma .si {
-  color: #fa1;
-}
-/* LiteralStringOther */
-
-.chroma .sx {
-  color: #fa1;
-}
-/* LiteralStringRegex */
-
-.chroma .sr {
-  color: #97c;
-}
-/* LiteralStringSingle */
-
-.chroma .s1 {
-  color: #a0cc75;
-}
-/* LiteralStringSymbol */
-
-.chroma .ss {
-  color: #fa1;
-}
-/* LiteralNumber */
-
-.chroma .m {
-  color: #1af;
-}
-/* LiteralNumberBin */
-
-.chroma .mb {
-  color: #1af;
-}
-/* LiteralNumberFloat */
-
-.chroma .mf {
-  color: #1af;
-}
-/* LiteralNumberHex */
-
-.chroma .mh {
-  color: #1af;
-}
-/* LiteralNumberInteger */
-
-.chroma .mi {
-  color: #1af;
-}
-/* LiteralNumberIntegerLong */
-
-.chroma .il {
-  color: #1af;
-}
-/* LiteralNumberOct */
-
-.chroma .mo {
-  color: #1af;
-}
-/* Operator */
-
-.chroma .o {
-  color: #f63;
-}
-/* OperatorWord */
-
-.chroma .ow {
-  color: #5f8700;
-}
-/* Comment */
-
-.chroma .c {
-  color: #6a737d;
-}
-/* CommentHashbang */
-
-.chroma .ch {
-  color: #6a737d;
-}
-/* CommentMultiline */
-
-.chroma .cm {
-  color: #6a737d;
-}
-/* CommentSingle */
-
-.chroma .c1 {
-  color: #6a737d;
-}
-/* CommentSpecial */
-
-.chroma .cs {
-  color: #637d;
-}
-/* CommentPreproc */
-
-.chroma .cp {
-  color: #fc6;
-}
-/* CommentPreprocFile */
-
-.chroma .cpf {
-  color: #fc6;
-}
-/* GenericDeleted */
-
-.chroma .gd {
-  color: #fff;
-  background-color: #5f3737;
-}
-/* GenericEmph */
-
-.chroma .ge {
-  color: #ef5;
-}
-/* GenericError */
-
-.chroma .gr {
-  color: #f33;
-}
-/* GenericHeading */
-
-.chroma .gh {
-  color: #fa1;
-}
-/* GenericInserted */
-
-.chroma .gi {
-  color: #fff;
-  background-color: #3a523a;
-}
-/* GenericOutput */
-
-.chroma .go {
-  color: #888888;
-}
-/* GenericPrompt */
-
-.chroma .gp {
-  color: #555555;
-}
-/* GenericStrong */
-
-.chroma .gs {
-  font-weight: 600;
-}
-/* GenericSubheading */
-
-.chroma .gu {
-  color: #9daccc;
-}
-/* GenericTraceback */
-
-.chroma .gt {
-  color: #f63;
-}
-/* GenericUnderline */
-
-.chroma .gl {
-  text-decoration: underline;
-}
-/* TextWhitespace */
-
-.chroma .w {
-  color: #bbbbbb;
+  --color-secondary-bg: #2a2e3a;
 }
 
 .repository.branches .commit-divergence .bar {
@@ -690,10 +326,6 @@ a.ui.basic.green.label:hover {
   background-color: #393d4a !important;
 }
 
-.ui .text.grey {
-  color: var(--color-secondary-dark-6) !important;
-}
-
 .repository.file.editor.edit,
 .repository.wiki.new .CodeMirror {
   .editor-preview,
@@ -732,32 +364,6 @@ a.ui.basic.green.label:hover {
   color: #dbdbdb;
 }
 
-.repository.view.issue .comment-list .event > .svg.issue-symbol {
-  background: #3b4954;
-}
-
-.repository.view.issue .comment-list .event > .svg:not(.issue-symbol) {
-  text-shadow: -2px 0 #383c4a, 0 2px #383c4a, 2px 0 #383c4a, 0 -2px #383c4a;
-}
-
-.repository.view.issue .comment-list .comment .content .header {
-  color: #dbdbdb;
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
-}
-
-.repository.view.issue .comment-list .timeline-item .badge {
-  color: #ccc;
-}
-
-.comment-header-right a {
-  color: var(--color-secondary-dark-6);
-}
-
-.comment-header-right a:hover {
-  color: #dedede;
-}
-
 .repository .navbar .active.item,
 .repository .navbar .active.item:hover {
   border-color: transparent !important;
@@ -767,34 +373,8 @@ a.ui.basic.green.label:hover {
   background-color: var(--color-secondary) !important;
 }
 
-.repository .diff-file-box .code-diff-unified tbody tr.del-code td {
-  background-color: #3c2626 !important;
-  border-color: #634343 !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.del-code td.lines-num {
-  background-color: #4e2c2c !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.add-code td {
-  background-color: #283e2d !important;
-  border-color: #314a37 !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
-  background-color: #2c4632 !important;
-}
-
 .repository .diff-stats li {
   border-color: var(--color-secondary);
-}
-
-.removed-code {
-  background-color: #5f3737;
-}
-
-.added-code {
-  background-color: #3a523a;
 }
 
 .tag-code,
@@ -809,26 +389,6 @@ a.ui.basic.green.label:hover {
 .tag-code td.lines-type-marker,
 td.blob-hunk {
   color: #dbdbdb !important;
-}
-
-.lines-type-marker {
-  background: #2a2e3a;
-}
-
-.code-diff-split .same-code .lines-type-marker {
-  background: #353945;
-}
-
-.ui .text.black {
-  color: var(--color-secondary-dark-6);
-}
-
-.ui .text.black:hover {
-  color: #dbdbdb;
-}
-
-.ui.secondary.segment {
-  background: #353945;
 }
 
 .ui.attached.info.message,
@@ -1042,36 +602,6 @@ a.blob-excerpt:hover {
   }
 }
 
-.repository .label.list .item {
-  border-bottom: 1px dashed var(--color-secondary);
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6) {
-  background-color: #2a2e3a;
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
-.repository .diff-file-box .code-diff-split tbody tr td.add-code,
-.repository .diff-file-box .code-diff-split tbody tr td.lines-num-new.add-code {
-  background-color: #283e2d !important;
-  border-color: #314a37 !important;
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),
-.repository .diff-file-box .code-diff-split tbody tr td.del-code {
-  background-color: #3c2626 !important;
-  border-color: #634343 !important;
-}
-
 .ui.header .sub.header {
   color: var(--color-secondary-dark-6);
 }
@@ -1138,46 +668,6 @@ a.blob-excerpt:hover {
   &.sticky {
     border-bottom-color: var(--color-secondary);
   }
-}
-
-.comment-code-cloud {
-  border-color: transparent;
-
-  .ui.attached.top.header {
-    background: none transparent;
-    border: 0;
-  }
-
-  .footer .markdown-info {
-    color: inherit;
-  }
-}
-
-.file-comment {
-  color: var(--color-secondary-dark-6);
-}
-
-.ui.comments .comment {
-  .author {
-    color: #dbdbdb;
-  }
-
-  .metadata {
-    color: #808084;
-  }
-
-  .text {
-    color: var(--color-secondary-dark-6);
-  }
-}
-
-.comment-header a {
-  color: var(--color-secondary-dark-6) !important;
-}
-
-.comment-header .actions a:hover,
-.comment-header .actions a.active {
-  color: #dedede !important;
 }
 
 /* code mirror dark theme */

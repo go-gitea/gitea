@@ -30,7 +30,7 @@
 							<td>{{$.i18n.Tr .TrStr}}</td>
 							<td class="view-detail"><span class="notice-description text truncate">{{.Description}}</span></td>
 							<td><span class="notice-created-time poping up" data-content="{{.CreatedUnix.AsTime}}" data-variation="inverted tiny">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="#"><i class="browser icon view-detail"></i></a></td>
+							<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -74,7 +74,7 @@
 </div>
 
 <div class="ui modal admin" id="detail-modal">
-	<i class="close icon inside"></i>
+	{{svg "octicon-x" 16 "close inside"}}
 	<div class="header">{{$.i18n.Tr "admin.notices.view_detail_header"}}</div>
 	<div class="content">
 		<div class="sub header"></div>

@@ -290,18 +290,16 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui participants">
+		{{if .Participants}}
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
-			<div>
+			<div class="ui list df fw">
 				{{range .Participants}}
-					<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}}>
-						<div class="ui poping up" data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
-							{{avatar .}}
-						</div>
+					<a class="ui poping up" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
+						{{avatar . 28 "my-1 mr-2"}}
 					</a>
 				{{end}}
 			</div>
-		</div>
+		{{end}}
 
 		{{if and $.IssueWatch (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
@@ -330,7 +328,7 @@
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
-					<div>
+					<div class="mt-3">
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 							{{$.CsrfTokenHtml}}
 						</form>
@@ -338,9 +336,9 @@
 							{{$.CsrfTokenHtml}}
 						</form>
 						{{if  $.IsStopwatchRunning}}
-							<div class="ui buttons fluid stop-cancel">
-								<button onclick="this.disabled=true;window.toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
-								<button onclick="this.disabled=true;window.cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+							<div class="ui buttons fluid">
+								<button class="ui button issue-stop-time">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<button class="ui negative button issue-cancel-time">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
 						{{else}}
 							{{if .HasUserStopwatch}}
@@ -348,8 +346,8 @@
 									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
 								</div>
 							{{end}}
-							<div class="ui buttons two fluid start-add">
-								<button onclick="this.disabled=true;window.toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+							<div class="ui buttons two fluid">
+								<button class="ui button poping up issue-start-time" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
@@ -364,7 +362,7 @@
 										<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
 									</div>
 								</div>
-								<button onclick="window.timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
+								<button class="ui button green poping up issue-add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 							</div>
 						{{end}}
 					</div>
@@ -372,11 +370,11 @@
 			{{end}}
 			{{if gt (len .WorkingUsers) 0}}
 				<div class="ui divider"></div>
-				<div class="ui participants comments">
+				<div class="ui comments">
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 					<div>
 						{{range $user, $trackedtime := .WorkingUsers}}
-							<div class="comment">
+							<div class="comment mt-3">
 								<a class="avatar">
 									{{avatar $user}}
 								</a>
@@ -409,8 +407,8 @@
 					{{end}}
 					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 						<br/>
-						<a style="cursor:pointer;" onclick="window.toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
-						<a style="cursor:pointer;" onclick="window.updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
+						<a class="issue-due-edit"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
+						<a class="issue-due-remove"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
 					{{end}}
 				</p>
 			{{else}}
@@ -419,7 +417,7 @@
 
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
-					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="window.setDeadline();return false;">
+					<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form">
 						{{$.CsrfTokenHtml}}
 						<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 						<button class="ui green icon button">

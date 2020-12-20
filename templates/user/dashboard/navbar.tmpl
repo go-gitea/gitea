@@ -20,6 +20,7 @@
 					<div class="scrolling menu items">
 						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
 							{{avatar .SignedUser}}
+							{{.SignedUser.ShortName 20}}
 						</a>
 						{{range .Orgs}}
 							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
@@ -46,20 +47,24 @@
 				<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard">
 					{{svg "octicon-rss"}}&nbsp;{{.i18n.Tr "activities"}}
 				</a>
+				{{if not .UnitIssuesGlobalDisabled}}
 				<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues">
 					{{svg "octicon-issue-opened"}}&nbsp;{{.i18n.Tr "issues"}}
 				</a>
+				{{end}}
+				{{if not .UnitPullsGlobalDisabled}}
 				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls">
 					{{svg "octicon-git-pull-request"}}&nbsp;{{.i18n.Tr "pull_requests"}}
 				</a>
-				{{if .ShowMilestonesDashboardPage}}
-					<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
-						{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
-					</a>
+				{{end}}
+				{{if and .ShowMilestonesDashboardPage (not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled))}}
+				<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
+					{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
+				</a>
 				{{end}}
 				<div class="item">
 					<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
-						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 10)}}
+						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 20)}}
 					</a>
 				</div>
 			</div>
