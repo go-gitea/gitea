@@ -11,8 +11,8 @@ import (
 func restrictUserAndReactionColumnSize(x *xorm.Engine) error {
 	type Reaction struct {
 		ID             int64  `xorm:"pk autoincr"`
-		Type           string `xorm:"VARCHAR(32) INDEX UNIQUE(s) NOT NULL"`
-		OriginalAuthor string `xorm:"VARCHAR(64) INDEX UNIQUE(s)"`
+		Type           string `xorm:"VARCHAR(32) INDEX NOT NULL"`
+		OriginalAuthor string `xorm:"VARCHAR(64) INDEX"`
 	}
 	if err := x.Sync2(new(Reaction)); err != nil {
 		return err
