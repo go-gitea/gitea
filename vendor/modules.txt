@@ -402,9 +402,6 @@ github.com/gobwas/glob/util/strings
 # github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 ## explicit
 github.com/gogs/chardet
-# github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-## explicit
-github.com/gogs/cron
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
 # github.com/golang/protobuf v1.4.3
@@ -673,6 +670,9 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
+# github.com/robfig/cron/v3 v3.0.1
+## explicit
+github.com/robfig/cron/v3
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/russross/blackfriday/v2 v2.0.1

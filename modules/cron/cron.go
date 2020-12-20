@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/sync"
 
-	"github.com/gogs/cron"
+	"github.com/robfig/cron/v3"
 )
 
 var c = cron.New()
