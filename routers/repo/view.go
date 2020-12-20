@@ -359,6 +359,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
