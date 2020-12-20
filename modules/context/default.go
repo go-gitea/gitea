@@ -6,17 +6,13 @@ package context
 
 import (
 	"net/http"
-	"time"
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/middlewares/binding"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
-	"github.com/alexedwards/scs/v2"
-	"github.com/unknwon/i18n"
+	"gitea.com/go-chi/session"
 	"github.com/unrolled/render"
-	"golang.org/x/text/language"
 )
 
 // flashes enumerates all the flash types
@@ -33,11 +29,11 @@ type Flash map[string]string
 // DefaultContext represents a context for basic routes, all other context should
 // be derived from the context but not add more fields on this context
 type DefaultContext struct {
-	Resp     http.ResponseWriter
-	Req      *http.Request
-	Data     map[string]interface{}
-	Render   *render.Render
-	Sessions *scs.SessionManager
+	Resp    http.ResponseWriter
+	Req     *http.Request
+	Data    map[string]interface{}
+	Render  *render.Render
+	Session session.Store
 	translation.Locale
 	flash Flash
 }
@@ -78,19 +74,19 @@ func (ctx *DefaultContext) RenderWithErr(msg string, tpl string, form interface{
 
 // SetSession sets session key value
 func (ctx *DefaultContext) SetSession(key string, val interface{}) error {
-	ctx.Sessions.Put(ctx.Req.Context(), key, val)
+	ctx.Session.Set(key, val)
 	return nil
 }
 
 // GetSession gets session via key
 func (ctx *DefaultContext) GetSession(key string) (interface{}, error) {
-	v := ctx.Sessions.Get(ctx.Req.Context(), key)
+	v := ctx.Session.Get(key)
 	return v, nil
 }
 
 // DestroySession deletes all the data of the session
 func (ctx *DefaultContext) DestroySession() error {
-	return ctx.Sessions.Destroy(ctx.Req.Context())
+	return ctx.Session.Release()
 }
 
 // Flash set message to flash
@@ -101,67 +97,4 @@ func (ctx *DefaultContext) Flash(tp, v string) {
 	ctx.flash[tp] = v
 	ctx.Data[tp] = v
 	ctx.Data["Flash"] = ctx.flash
-}
-
-// NewSessions creates a session manager
-func NewSessions() *scs.SessionManager {
-	sessionManager := scs.New()
-	sessionManager.Lifetime = time.Duration(setting.SessionConfig.Maxlifetime)
-	sessionManager.Cookie = scs.SessionCookie{
-		Name:     setting.SessionConfig.CookieName,
-		Domain:   setting.SessionConfig.Domain,
-		HttpOnly: true,
-		Path:     setting.SessionConfig.CookiePath,
-		Persist:  true,
-		Secure:   setting.SessionConfig.Secure,
-	}
-	return sessionManager
-}
-
-// Locale handle locale
-func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	hasCookie := false
-
-	// 1. Check URL arguments.
-	lang := req.URL.Query().Get("lang")
-
-	// 2. Get language information from cookies.
-	if len(lang) == 0 {
-		ck, _ := req.Cookie("lang")
-		lang = ck.Value
-		hasCookie = true
-	}
-
-	// Check again in case someone modify by purpose.
-	if !i18n.IsExist(lang) {
-		lang = ""
-		hasCookie = false
-	}
-
-	// 3. Get language information from 'Accept-Language'.
-	// The first element in the list is chosen to be the default language automatically.
-	if len(lang) == 0 {
-		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
-		tag, _, _ := translation.Match(tags...)
-		lang = tag.String()
-	}
-
-	if !hasCookie {
-		req.AddCookie(NewCookie("lang", lang, 1<<31-1))
-	}
-
-	return translation.NewLocale(lang)
-}
-
-// NewCookie creates a cookie
-func NewCookie(name, value string, maxAge int) *http.Cookie {
-	return &http.Cookie{
-		Name:     name,
-		Value:    value,
-		HttpOnly: true,
-		Path:     setting.SessionConfig.CookiePath,
-		Domain:   setting.SessionConfig.Domain,
-		MaxAge:   maxAge,
-		Secure:   setting.SessionConfig.Secure,
-	}
 }

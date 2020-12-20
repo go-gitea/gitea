@@ -750,17 +750,10 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
-<<<<<<< HEAD
-# github.com/thedevsaddam/renderer v1.2.0
-## explicit
-github.com/thedevsaddam/renderer
-# github.com/tinylib/msgp v1.1.5
-=======
 # github.com/tinylib/msgp v1.1.5
 # github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
 ## explicit
 # github.com/tinylib/msgp v1.1.2
->>>>>>> 2af2659f2... Use github.com/unrolled/render as render
 ## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/webbrowser v1.2.0

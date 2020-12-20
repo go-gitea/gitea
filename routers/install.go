@@ -20,10 +20,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	gitea_templates "code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
+	"gitea.com/go-chi/session"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi"
@@ -41,11 +43,16 @@ const (
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
-	sessionManager := context.NewSessions()
-	r.Use(sessionManager.LoadAndSave)
-	r.Use(func(next http.Handler) http.Handler {
-		return InstallInit(next, sessionManager)
-	})
+	r.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
 	r.Get("/", WrapInstall(Install))
 	r.Post("/", WrapInstall(InstallPost))
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
@@ -69,7 +76,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			return
 		}
 
-		var locale = context.Locale(resp, req)
+		var locale = middlewares.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = context.InstallContext{
 			Resp:   resp,
@@ -87,8 +94,8 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 					return time.Since(startTime).String()
 				},
 			},
-			Render:   rnd,
-			Sessions: sessionManager,
+			Render:  rnd,
+			Session: session.GetSession(req),
 		}
 
 		req = context.WithInstallContext(req, &ctx)
@@ -453,7 +460,7 @@ func InstallPost(ctx *context.InstallContext) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.Req.AddCookie(context.NewCookie(setting.CookieUserName, u.Name, days))
+		ctx.Req.AddCookie(middlewares.NewCookie(setting.CookieUserName, u.Name, days))
 		//ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 		//	setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
