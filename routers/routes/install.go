@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package routers
+package routes
 
 import (
 	"fmt"
@@ -25,9 +25,9 @@ import (
 	gitea_templates "code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers"
 	"gitea.com/go-chi/session"
 
-	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
 	"github.com/unrolled/render"
@@ -43,18 +43,9 @@ const (
 // InstallRoutes represents the install routes
 func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
-	r.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		Domain:         setting.SessionConfig.Domain,
-	}))
-	r.Get("/", WrapInstall(Install))
-	r.Post("/", WrapInstall(InstallPost))
+	r.Use(InstallInit)
+	r.Get("/", Wrap(Install))
+	r.Post("/", Bind(&forms.InstallForm{}, Wrap(InstallPost)))
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, setting.AppURL, 302)
 	})
@@ -62,7 +53,7 @@ func InstallRoutes() http.Handler {
 }
 
 // InstallInit prepare for rendering installation page
-func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Handler {
+func InstallInit(next http.Handler) http.Handler {
 	rnd := render.New(render.Options{
 		Directory:  "templates",
 		Extensions: []string{".tmpl"},
@@ -78,7 +69,7 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 
 		var locale = middlewares.Locale(resp, req)
 		var startTime = time.Now()
-		var ctx = context.InstallContext{
+		var ctx = context.DefaultContext{
 			Resp:   resp,
 			Req:    req,
 			Locale: locale,
@@ -98,22 +89,14 @@ func InstallInit(next http.Handler, sessionManager *scs.SessionManager) http.Han
 			Session: session.GetSession(req),
 		}
 
-		req = context.WithInstallContext(req, &ctx)
+		req = context.WithDefaultContext(req, &ctx)
 		ctx.Req = req
 		next.ServeHTTP(resp, req)
 	})
 }
 
-// WrapInstall converts an install route to a chi route
-func WrapInstall(f func(ctx *context.InstallContext)) http.HandlerFunc {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx := context.GetInstallContext(req)
-		f(ctx)
-	})
-}
-
 // Install render installation page
-func Install(ctx *context.InstallContext) {
+func Install(ctx *context.DefaultContext) {
 	form := forms.InstallForm{}
 
 	// Database settings
@@ -187,7 +170,7 @@ func Install(ctx *context.InstallContext) {
 }
 
 // InstallPost response for submit install items
-func InstallPost(ctx *context.InstallContext) {
+func InstallPost(ctx *context.DefaultContext) {
 	var form forms.InstallForm
 	_ = ctx.Bind(&form)
 
@@ -436,7 +419,7 @@ func InstallPost(ctx *context.InstallContext) {
 	}
 
 	// Re-read settings
-	PostInstallInit(ctx.Req.Context())
+	routers.PostInstallInit(ctx.Req.Context())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {

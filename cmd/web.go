@@ -134,7 +134,7 @@ func runWeb(ctx *cli.Context) error {
 			}
 		}
 		c := routes.NewChi()
-		c.Mount("/", routers.InstallRoutes())
+		c.Mount("/", routes.InstallRoutes())
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():

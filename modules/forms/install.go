@@ -9,7 +9,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares/binding"
+
+	"gitea.com/go-chi/binding"
 )
 
 // InstallForm form for installation page
@@ -63,6 +64,6 @@ type InstallForm struct {
 
 // Validate validates the fields
 func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetInstallContext(req)
+	ctx := context.GetDefaultContext(req)
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

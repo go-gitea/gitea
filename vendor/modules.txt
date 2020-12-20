@@ -7,6 +7,9 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.1
 ## explicit
 code.gitea.io/sdk/gitea
+# gitea.com/go-chi/binding v0.0.0-20201220025549-f1056649c959
+## explicit
+gitea.com/go-chi/binding
 # gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
 ## explicit
 gitea.com/go-chi/session
@@ -109,10 +112,6 @@ github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/lexers/z
 github.com/alecthomas/chroma/styles
-# github.com/alexedwards/scs/v2 v2.4.0
-## explicit
-github.com/alexedwards/scs/v2
-github.com/alexedwards/scs/v2/memstore
 # github.com/andybalholm/brotli v1.0.1
 ## explicit
 github.com/andybalholm/brotli
@@ -434,8 +433,6 @@ github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.2
 ## explicit
 github.com/google/uuid
-# github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99
-github.com/gopherjs/gopherjs/js
 # github.com/gorilla/context v1.1.1
 ## explicit
 github.com/gorilla/context
@@ -490,8 +487,6 @@ github.com/jessevdk/go-flags
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/jtolds/gls v4.20.0+incompatible
-github.com/jtolds/gls
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
@@ -703,16 +698,6 @@ github.com/shurcooL/sanitized_anchor_name
 github.com/shurcooL/vfsgen
 # github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d
 github.com/siddontang/go-snappy/snappy
-# github.com/smartystreets/assertions v1.1.1
-github.com/smartystreets/assertions
-github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch
-github.com/smartystreets/assertions/internal/go-render/render
-github.com/smartystreets/assertions/internal/oglematchers
-# github.com/smartystreets/goconvey v1.6.4
-## explicit
-github.com/smartystreets/goconvey/convey
-github.com/smartystreets/goconvey/convey/gotest
-github.com/smartystreets/goconvey/convey/reporting
 # github.com/spf13/afero v1.3.2
 github.com/spf13/afero
 github.com/spf13/afero/mem

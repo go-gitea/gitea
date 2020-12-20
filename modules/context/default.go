@@ -5,12 +5,13 @@
 package context
 
 import (
+	"context"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/middlewares/binding"
 	"code.gitea.io/gitea/modules/translation"
 
+	"gitea.com/go-chi/binding"
 	"gitea.com/go-chi/session"
 	"github.com/unrolled/render"
 )
@@ -97,4 +98,18 @@ func (ctx *DefaultContext) Flash(tp, v string) {
 	ctx.flash[tp] = v
 	ctx.Data[tp] = v
 	ctx.Data["Flash"] = ctx.flash
+}
+
+var (
+	defaultContextKey interface{} = "default_context"
+)
+
+// WithDefaultContext set up install context in request
+func WithDefaultContext(req *http.Request, ctx *DefaultContext) *http.Request {
+	return req.WithContext(context.WithValue(req.Context(), defaultContextKey, ctx))
+}
+
+// GetDefaultContext retrieves install context from request
+func GetDefaultContext(req *http.Request) *DefaultContext {
+	return req.Context().Value(defaultContextKey).(*DefaultContext)
 }

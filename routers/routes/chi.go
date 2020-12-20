@@ -16,6 +16,8 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/auth"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -24,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers"
 
+	"gitea.com/go-chi/binding"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -176,7 +179,31 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
-// NewChi creates a chi Router
+// Wrap converts an install route to a chi route
+func Wrap(f func(ctx *gitea_context.DefaultContext)) http.HandlerFunc {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		ctx := gitea_context.GetDefaultContext(req)
+		f(ctx)
+	})
+}
+
+// Bind binding an obj to a handler
+func Bind(obj interface{}, handler http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		errs := binding.Bind(req, obj)
+		if errs.Len() > 0 {
+			ctx := gitea_context.GetDefaultContext(req)
+			ctx.Data["HasError"] = true
+			auth.AssignForm(obj, ctx.Data)
+			// FIXME:
+			//ctx.Flash(ErrorFlash, msg)
+		}
+
+		handler(resp, req)
+	})
+}
+
+// NewChi creates a basic chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
 	c.Use(middleware.RealIP)
@@ -213,15 +240,14 @@ func NewChi() chi.Router {
 		},
 	))
 
-	c.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	c.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
-
 	return c
 }
 
 // NormalRoutes represents non install routes
 func NormalRoutes() http.Handler {
 	r := chi.NewRouter()
+	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
