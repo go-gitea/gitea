@@ -759,6 +759,15 @@ async function initRepository() {
     });
   }
 
+  // Commit statuses
+  $('.commit-statuses-trigger').each(function () {
+    $(this)
+      .popup({
+        on: 'click',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+      });
+  });
+
   // File list and commits
   if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
