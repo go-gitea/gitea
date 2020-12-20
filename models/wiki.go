@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // WikiCloneLink returns clone URLs of repository wiki.
@@ -29,5 +30,9 @@ func (repo *Repository) WikiPath() string {
 
 // HasWiki returns true if repository has wiki.
 func (repo *Repository) HasWiki() bool {
-	return com.IsDir(repo.WikiPath())
+	isDir, err := util.IsDir(repo.WikiPath())
+	if err != nil {
+		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
+	}
+	return isDir
 }

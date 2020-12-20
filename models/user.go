@@ -190,9 +190,6 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
@@ -541,6 +538,7 @@ func (u *User) GetOwnedOrganizations() (err error) {
 }
 
 // GetOrganizations returns paginated organizations that user belongs to.
+// TODO: does not respect All and show orgs you privately participate
 func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -811,6 +809,10 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
+	}
+
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
@@ -822,7 +824,6 @@ func CreateUser(u *User) (err error) {
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
-	u.Avatar = base.HashEmail(u.AvatarEmail)
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
@@ -954,8 +955,12 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) error {
-	_, err := e.ID(u.ID).AllCols().Update(u)
+func updateUser(e Engine, u *User) (err error) {
+	u.Email = strings.ToLower(u.Email)
+	if err = ValidateEmail(u.Email); err != nil {
+		return err
+	}
+	_, err = e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -975,13 +980,21 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) error {
+func UpdateUserSetting(u *User) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
 	if !u.IsOrganization() {
-		if err := checkDupEmail(x, u); err != nil {
+		if err = checkDupEmail(sess, u); err != nil {
 			return err
 		}
 	}
-	return updateUser(x, u)
+	if err = updateUser(sess, u); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
@@ -1576,20 +1589,34 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
-		if err == nil {
-			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
-			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
+		var err error
+		found := false
+		keys := []byte(sshKey)
+	loop:
+		for len(keys) > 0 && err == nil {
+			var out ssh.PublicKey
+			// We ignore options as they are not relevant to Gitea
+			out, _, _, keys, err = ssh.ParseAuthorizedKey(keys)
+			if err != nil {
+				break loop
+			}
+			found = true
+			marshalled := string(ssh.MarshalAuthorizedKey(out))
+			marshalled = marshalled[:len(marshalled)-1]
+			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
+
+			if _, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
-					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
+					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
-					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", sshKeyName, usr.Name, err)
 				}
 			} else {
-				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
+				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", sshKeyName, usr.Name)
 				sshKeysNeedUpdate = true
 			}
-		} else {
+		}
+		if !found && err != nil {
 			log.Warn("addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, sshKey)
 		}
 	}

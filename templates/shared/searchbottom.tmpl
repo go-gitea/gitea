@@ -1,0 +1,12 @@
+<div class="ui bottom attached table segment df ac sb">
+		<div class="ml-3">
+			{{if .result.Language}}
+					<i class="color-icon" style="background-color: {{.result.Color}}"></i>{{.result.Language}}
+			{{end}}
+		</div>
+		<div class="mr-3">
+			{{if not .result.UpdatedUnix.IsZero}}
+					<span class="ui grey text">{{.root.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix .root.i18n.Lang) | Safe}}</span>
+			{{end}}
+		</div>
+</div>

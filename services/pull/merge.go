@@ -155,7 +155,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	}
 
 	var gitConfigCommand func() *git.Command
-	if git.CheckGitVersionConstraint(">= 1.8.0") == nil {
+	if git.CheckGitVersionAtLeast("1.8.0") == nil {
 		gitConfigCommand = func() *git.Command {
 			return git.NewCommand("config", "--local")
 		}
@@ -214,14 +214,14 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 
 	// Determine if we should sign
 	signArg := ""
-	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
 		sign, keyID, signer, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 			if pr.BaseRepo.GetTrustModel() == models.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
 				committer = signer
 			}
-		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			signArg = "--no-gpg-sign"
 		}
 	}
@@ -411,7 +411,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	)
 
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
@@ -589,6 +589,11 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
+		}
+	}
+	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are official review requests",
 		}
 	}
 

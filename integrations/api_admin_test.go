@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -143,4 +144,52 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
 	session.MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAPICreateUserInvalidEmail(t *testing.T) {
+	defer prepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		"email":                "invalid_email@domain.com\r\n",
+		"full_name":            "invalid user",
+		"login_name":           "invalidUser",
+		"must_change_password": "true",
+		"password":             "password",
+		"send_notify":          "true",
+		"source_id":            "0",
+		"username":             "invalidUser",
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+}
+
+func TestAPIEditUser(t *testing.T) {
+	defer prepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/admin/users/%s?token=%s", "user2", token)
+
+	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
+		// required
+		"login_name": "user2",
+		"source_id":  "0",
+		// to change
+		"full_name": "Full Name User 2",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	empty := ""
+	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
+		LoginName: "user2",
+		SourceID:  0,
+		Email:     &empty,
+	})
+	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	errMap := make(map[string]interface{})
+	json.Unmarshal(resp.Body.Bytes(), &errMap)
+	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 }

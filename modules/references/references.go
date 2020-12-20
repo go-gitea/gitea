@@ -235,40 +235,78 @@ func findAllIssueReferencesMarkdown(content string) []*rawReference {
 	return findAllIssueReferencesBytes(bcontent, links)
 }
 
+func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byte) {
+	// We will iterate through the content, rewrite and simplify full references.
+	//
+	// We want to transform something like:
+	//
+	// this is a https://ourgitea.com/git/owner/repo/issues/123456789, foo
+	// https://ourgitea.com/git/owner/repo/pulls/123456789
+	//
+	// Into something like:
+	//
+	// this is a #123456789, foo
+	// !123456789
+
+	pos := 0
+	for {
+		// re looks for something like: (\s|^|\(|\[)https://ourgitea.com/git/(owner/repo)/(issues)/(123456789)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)
+		match := re.FindSubmatchIndex((*contentBytes)[pos:])
+		if match == nil {
+			break
+		}
+		// match is a bunch of indices into the content from pos onwards so
+		// to simplify things let's just add pos to all of the indices in match
+		for i := range match {
+			match[i] += pos
+		}
+
+		// match[0]-match[1] is whole string
+		// match[2]-match[3] is preamble
+
+		// move the position to the end of the preamble
+		pos = match[3]
+
+		// match[4]-match[5] is owner/repo
+		// now copy the owner/repo to end of the preamble
+		endPos := pos + match[5] - match[4]
+		copy((*contentBytes)[pos:endPos], (*contentBytes)[match[4]:match[5]])
+
+		// move the current position to the end of the newly copied owner/repo
+		pos = endPos
+
+		// Now set the issue/pull marker:
+		//
+		// match[6]-match[7] == 'issues'
+		(*contentBytes)[pos] = '#'
+		if string((*contentBytes)[match[6]:match[7]]) == "pulls" {
+			(*contentBytes)[pos] = '!'
+		}
+		pos++
+
+		// Then add the issue/pull number
+		//
+		// match[8]-match[9] is the number
+		endPos = pos + match[9] - match[8]
+		copy((*contentBytes)[pos:endPos], (*contentBytes)[match[8]:match[9]])
+
+		// Now copy what's left at the end of the string to the new end position
+		copy((*contentBytes)[endPos:], (*contentBytes)[match[9]:])
+		// now we reset the length
+
+		// our new section has length endPos - match[3]
+		// our old section has length match[9] - match[3]
+		(*contentBytes) = (*contentBytes)[:len((*contentBytes))-match[9]+endPos]
+		pos = endPos
+	}
+}
+
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
 func FindAllIssueReferences(content string) []IssueReference {
 	// Need to convert fully qualified html references to local system to #/! short codes
 	contentBytes := []byte(content)
 	if re := getGiteaIssuePullPattern(); re != nil {
-		pos := 0
-		for {
-			match := re.FindSubmatchIndex(contentBytes[pos:])
-			if match == nil {
-				break
-			}
-			// match[0]-match[1] is whole string
-			// match[2]-match[3] is preamble
-			pos += match[3]
-			// match[4]-match[5] is owner/repo
-			endPos := pos + match[5] - match[4]
-			copy(contentBytes[pos:endPos], contentBytes[match[4]:match[5]])
-			pos = endPos
-			// match[6]-match[7] == 'issues'
-			contentBytes[pos] = '#'
-			if string(contentBytes[match[6]:match[7]]) == "pulls" {
-				contentBytes[pos] = '!'
-			}
-			pos++
-			// match[8]-match[9] is the number
-			endPos = pos + match[9] - match[8]
-			copy(contentBytes[pos:endPos], contentBytes[match[8]:match[9]])
-			copy(contentBytes[endPos:], contentBytes[match[9]:])
-			// now we reset the length
-			// our new section has length endPos - match[3]
-			// our old section has length match[9] - match[3]
-			contentBytes = contentBytes[:len(contentBytes)-match[9]+endPos]
-			pos = endPos
-		}
+		convertFullHTMLReferencesToShortRefs(re, &contentBytes)
 	} else {
 		log.Debug("No GiteaIssuePullPattern pattern")
 	}
