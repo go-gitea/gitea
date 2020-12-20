@@ -302,6 +302,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["CommitStatuses"] = statuses
 
 	diff, err := gitdiff.GetDiffCommit(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,

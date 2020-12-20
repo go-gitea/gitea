@@ -1,4 +1,8 @@
 .repository {
+  .commit-statuses .list > .item {
+    line-height: 2;
+  }
+
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -1409,7 +1413,7 @@
 
   .diff-detail-box {
     padding: 7px 0;
-    background: #ffffff;
+    background: var(--color-body);
     line-height: 30px;
 
     @media @mediaMdAndDown {
@@ -1421,7 +1425,6 @@
       position: sticky;
       top: 0;
       z-index: 8;
-      margin-bottom: 10px;
       border-bottom: 1px solid var(--color-secondary);
       padding-left: 2px;
       padding-right: 2px;
@@ -1438,8 +1441,12 @@
       margin-right: .25rem;
     }
 
-    .diff-detail-actions .btn-review {
-      margin-right: 0 !important;
+    .diff-detail-actions > * {
+      margin-right: 0;
+    }
+
+    .diff-detail-actions > * + * {
+      margin-left: .25rem;
     }
 
     span.status {
@@ -1450,25 +1457,20 @@
       vertical-align: middle;
 
       &.modify {
-        background-color: #f0db88;
+        background-color: var(--color-yellow);
       }
 
       &.add {
-        background-color: #b4e2b4;
+        background-color: var(--color-green);
       }
 
       &.del {
-        background-color: #e9aeae;
+        background-color: var(--color-red);
       }
 
       &.rename {
-        background-color: #dad8ff;
+        background-color: var(--color-teal);
       }
-    }
-
-    .detail-files {
-      background: #ffffff;
-      margin: 0;
     }
   }
 
@@ -1482,12 +1484,18 @@
     }
 
     .button {
-      padding: 8px 10px;
+      padding: 8px 12px;
       flex: 0 0 auto;
+      margin-top: -8px;
+      margin-bottom: -8px;
+      margin-right: 0;
     }
   }
 
   .diff-file-box {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+
     .header {
       background-color: var(--color-box-header);
     }
@@ -1584,7 +1592,6 @@
   }
 
   .diff-stats {
-
     clear: both;
     margin-bottom: 5px;
     max-height: 400px;
@@ -1595,8 +1602,11 @@
       list-style: none;
       padding-bottom: 4px;
       margin-bottom: 4px;
-      border-bottom: 1px dashed var(--color-secondary);
       padding-left: 6px;
+    }
+
+    li + li {
+      border-top: 1px solid var(--color-secondary);
     }
   }
 
@@ -2957,9 +2967,8 @@ td.blob-excerpt {
   border-radius: var(--border-radius) !important;
 }
 
-.diff-counter {
-  font-weight: 600;
-  margin-right: 8px;
+.diff-file-header-actions > * + * {
+  margin-left: .5rem !important;
 }
 
 .diff-stats-bar {
@@ -2967,8 +2976,6 @@ td.blob-excerpt {
   background-color: var(--color-red);
   height: 12px;
   width: 40px;
-  position: relative;
-  top: 2px;
 
   .diff-stats-add-bar {
     background-color: var(--color-green);

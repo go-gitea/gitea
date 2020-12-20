@@ -563,7 +563,8 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			var statuses, _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			commitStatus[issue.PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
 	}
 

@@ -102,6 +102,7 @@ func RefBlame(ctx *context.Context) {
 	blob := entry.Blob()
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
 
 	ctx.Data["Paths"] = paths
 	ctx.Data["TreeLink"] = treeLink
