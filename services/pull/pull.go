@@ -640,8 +640,8 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	return stringBuilder.String()
 }
 
-// GetLastCommitStatus returns the last commit status for this pull request.
-func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
+// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
+func GetLastCommitStatus(pr *models.PullRequest) (status []*models.CommitStatus, err error) {
 	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
@@ -666,7 +666,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 	if err != nil {
 		return nil, err
 	}
-	return models.CalcCommitStatus(statusList), nil
+	return statusList, nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

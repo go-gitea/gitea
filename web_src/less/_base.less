@@ -530,6 +530,10 @@ a.ui.card:hover,
   border-radius: var(--border-radius);
 }
 
+.ui.divided.list > .item {
+  border-color: var(--color-secondary);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1164,7 +1168,7 @@ footer {
   }
 }
 
-.center {
+.center:not(.popup) {
   text-align: center;
 }
 
