@@ -23,6 +23,7 @@ func GetGeneralUISettings(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GeneralUISettings"
 	ctx.JSON(http.StatusOK, api.GeneralUISettings{
+		DefaultTheme:     setting.UI.DefaultTheme,
 		AllowedReactions: setting.UI.Reactions,
 	})
 }
@@ -64,7 +65,7 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 
 // GetGeneralAttachmentSettings returns instance's global settings for Attachment
 func GetGeneralAttachmentSettings(ctx *context.APIContext) {
-	// swagger:operation GET /settings/Attachment settings getGeneralAttachmentSettings
+	// swagger:operation GET /settings/attachment settings getGeneralAttachmentSettings
 	// ---
 	// summary: Get instance's global settings for Attachment
 	// produces:

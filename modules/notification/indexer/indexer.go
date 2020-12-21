@@ -123,8 +123,8 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 	}
 }
 
-func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
+func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
@@ -132,8 +132,8 @@ func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
-func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {

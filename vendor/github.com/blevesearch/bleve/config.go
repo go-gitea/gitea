@@ -43,7 +43,14 @@ type configuration struct {
 }
 
 func (c *configuration) SetAnalysisQueueSize(n int) {
+	if c.analysisQueue != nil {
+		c.analysisQueue.Close()
+	}
 	c.analysisQueue = index.NewAnalysisQueue(n)
+}
+
+func (c *configuration) Shutdown() {
+	c.SetAnalysisQueueSize(0)
 }
 
 func newConfiguration() *configuration {

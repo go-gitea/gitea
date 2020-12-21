@@ -3,7 +3,7 @@ date: "2017-07-21T12:00:00+02:00"
 title: "在 Linux 中以 service 方式运行"
 slug: "linux-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

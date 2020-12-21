@@ -238,7 +238,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		FromTreePath: ctx.Repo.TreePath,
 		TreePath:     form.TreePath,
 		Message:      message,
-		Content:      strings.Replace(form.Content, "\r", "", -1),
+		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 		IsNewFile:    isNewFile,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
@@ -293,10 +293,28 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplEditFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("editFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, utils.SanitizeFlashErrorString(err.Error())), tplEditFile, &form)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
+				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
+				"Details": utils.SanitizeFlashErrorString(err.Error()),
+			})
+			if err != nil {
+				ctx.ServerError("editFilePost.HTMLString", err)
+				return
+			}
+			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
 	}
 
@@ -464,7 +482,16 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplDeleteFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("DeleteFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplDeleteFile, &form)
 			}
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
@@ -494,18 +521,12 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}
 }
 
-func renderUploadSettings(ctx *context.Context) {
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireSimpleMDE"] = true
-	ctx.Data["UploadAllowedTypes"] = strings.Join(setting.Repository.Upload.AllowedTypes, ",")
-	ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
-	ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
-}
-
 // UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if treePath != ctx.Repo.TreePath {
@@ -538,7 +559,9 @@ func UploadFile(ctx *context.Context) {
 // UploadFilePost response for uploading file
 func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
@@ -660,7 +683,16 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplUploadFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("UploadFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplUploadFile, &form)
 			}
 		} else {
 			// os.ErrNotExist - upload file missing in the intervening time?!
@@ -704,12 +736,10 @@ func UploadFileToServer(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	if len(setting.Repository.Upload.AllowedTypes) > 0 {
-		err = upload.VerifyAllowedContentType(buf, setting.Repository.Upload.AllowedTypes)
-		if err != nil {
-			ctx.Error(400, err.Error())
-			return
-		}
+	err = upload.Verify(buf, header.Filename, setting.Repository.Upload.AllowedTypes)
+	if err != nil {
+		ctx.Error(400, err.Error())
+		return
 	}
 
 	name := cleanUploadFileName(header.Filename)

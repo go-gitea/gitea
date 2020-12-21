@@ -549,6 +549,11 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -1095,6 +1100,8 @@ type IssuesOptions struct {
 	ExcludedLabelNames []string
 	SortType           string
 	IssueIDs           []int64
+	UpdatedAfterUnix   int64
+	UpdatedBeforeUnix  int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
@@ -1171,6 +1178,13 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if len(opts.MilestoneIDs) > 0 {
 		sess.In("issue.milestone_id", opts.MilestoneIDs)
+	}
+
+	if opts.UpdatedAfterUnix != 0 {
+		sess.And(builder.Gte{"issue.updated_unix": opts.UpdatedAfterUnix})
+	}
+	if opts.UpdatedBeforeUnix != 0 {
+		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
 	}
 
 	if opts.ProjectID > 0 {

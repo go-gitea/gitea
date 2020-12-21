@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -173,7 +174,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
@@ -556,7 +557,8 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
-	element := list.Front()
+	// commits list is in reverse chronological order
+	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
 
@@ -581,7 +583,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 			authors = append(authors, authorString)
 			authorsMap[authorString] = true
 		}
-		element = element.Next()
+		element = element.Prev()
 	}
 
 	// Consider collecting the remaining authors
@@ -609,7 +611,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 				}
 				element = element.Next()
 			}
-
+			skip += limit
 		}
 	}
 
@@ -638,37 +640,33 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	return stringBuilder.String()
 }
 
-// GetLastCommitStatus returns the last commit status for this pull request.
-func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
+func GetLastCommitStatus(pr *models.PullRequest) (status []*models.CommitStatus, err error) {
+	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
-	if pr.HeadRepo == nil {
-		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
-	defer headGitRepo.Close()
+	defer gitRepo.Close()
 
-	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
 
-	err = pr.LoadBaseRepo()
-	if err != nil {
-		return nil, err
+	if compareInfo.Commits.Len() == 0 {
+		return nil, errors.New("pull request has no commits")
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return models.CalcCommitStatus(statusList), nil
+	return statusList, nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

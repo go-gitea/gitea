@@ -68,7 +68,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 			return
 		}
 		ctx.User.HashPassword(form.Password)
-		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
+		if err := models.UpdateUserCols(ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -178,6 +178,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
+			return
+		} else if models.IsErrEmailInvalid(err) {
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
 			return
 		}
 		ctx.ServerError("AddEmailAddress", err)

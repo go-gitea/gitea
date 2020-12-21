@@ -44,12 +44,12 @@
 						<div class="ui bottom attached tab segment active" data-tab="request-{{.ID}}">
 							{{if .RequestInfo}}
 								<h5>{{$.i18n.Tr "repo.settings.webhook.headers"}}</h5>
-								<pre class="raw"><strong>Request URL:</strong> {{.URL}}
+								<pre class="webhook-info"><strong>Request URL:</strong> {{.URL}}
 <strong>Request method:</strong> {{if .HTTPMethod}}{{.HTTPMethod}}{{else}}POST{{end}}
 {{ range $key, $val := .RequestInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.i18n.Tr "repo.settings.webhook.payload"}}</h5>
-								<pre class="raw"><code class="json">{{.PayloadContent}}</code></pre>
+								<pre class="webhook-info"><code class="json">{{.PayloadContent}}</code></pre>
 							{{else}}
 								N/A
 							{{end}}
@@ -57,10 +57,10 @@
 						<div class="ui bottom attached tab segment" data-tab="response-{{.ID}}">
 							{{if .ResponseInfo}}
 								<h5>{{$.i18n.Tr "repo.settings.webhook.headers"}}</h5>
-								<pre class="raw">{{ range $key, $val := .ResponseInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
+								<pre class="webhook-info">{{ range $key, $val := .ResponseInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.i18n.Tr "repo.settings.webhook.body"}}</h5>
-								<pre class="raw"><code>{{.ResponseInfo.Body}}</code></pre>
+								<pre class="webhook-info"><code>{{.ResponseInfo.Body}}</code></pre>
 							{{else}}
 								N/A
 							{{end}}

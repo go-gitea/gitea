@@ -271,7 +271,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, comments[:2])
 
 	// downloader.GetPullRequests()
-	prs, err := downloader.GetPullRequests(1, 2)
+	prs, _, err := downloader.GetPullRequests(1, 2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(prs))
 

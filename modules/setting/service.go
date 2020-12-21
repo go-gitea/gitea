@@ -17,6 +17,7 @@ var Service struct {
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
+	RegisterManualConfirm                   bool
 	EmailDomainWhitelist                    []string
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
@@ -35,6 +36,8 @@ var Service struct {
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	RecaptchaURL                            string
+	HcaptchaSecret                          string
+	HcaptchaSitekey                         string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	EnableTimetracking                      bool
@@ -61,6 +64,11 @@ func newService() {
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
+		Service.RegisterManualConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(false)
+	} else {
+		Service.RegisterManualConfirm = false
+	}
 	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
@@ -76,6 +84,8 @@ func newService() {
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
+	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
+	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)

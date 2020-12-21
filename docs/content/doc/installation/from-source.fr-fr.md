@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Installation depuis le code source"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -38,7 +38,7 @@ git branch -a
 git checkout v{{< version >}}
 ```
 
-Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activer cette branche en premier : 
+Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activer cette branche en premier :
 
 ```
 git fetch origin pull/xyz/head:pr-xyz  # xyz is PR value
@@ -68,7 +68,7 @@ TAGS="bindata" make build
 
 ## Test
 
-Après avoir suivi toutes les étapes, vous devriez avoir le binaire `gitea` dans votre répertoire courant. Dans un premier temps, vous pouvez tester qu'il fonctionne puis, dans un second temps, vous pouvez le copier dans la destination de votre choix. Lorsque vous lancez Gitea manuellement à partir de votre CLI, vous pouvez toujours le tuer en appuyant sur `Ctrl + C`. 
+Après avoir suivi toutes les étapes, vous devriez avoir le binaire `gitea` dans votre répertoire courant. Dans un premier temps, vous pouvez tester qu'il fonctionne puis, dans un second temps, vous pouvez le copier dans la destination de votre choix. Lorsque vous lancez Gitea manuellement à partir de votre CLI, vous pouvez toujours le tuer en appuyant sur `Ctrl + C`.
 
 ```
 ./gitea web

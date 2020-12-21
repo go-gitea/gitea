@@ -45,7 +45,7 @@ type streamIdNonResumeScopeMeta struct {
 }
 
 func (c *CollectionsFilter) IsValid() error {
-	if c.UseManifestUid {
+	if c.UseManifestUid && c.UseStreamId {
 		return fmt.Errorf("Not implemented yet")
 	}
 
@@ -99,8 +99,10 @@ func (c *CollectionsFilter) ToStreamReqBody() ([]byte, error) {
 	case false:
 		switch c.UseManifestUid {
 		case true:
-			// TODO
-			return nil, fmt.Errorf("NotImplemented1")
+			filter := &nonStreamIdResumeScopeMeta{
+				ManifestId: fmt.Sprintf("%x", c.ManifestUid),
+			}
+			output = *filter
 		case false:
 			switch len(c.CollectionsList) > 0 {
 			case true:

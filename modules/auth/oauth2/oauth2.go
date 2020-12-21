@@ -23,6 +23,7 @@ import (
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/mastodon"
 	"github.com/markbates/goth/providers/nextcloud"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
@@ -213,6 +214,12 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "yandex":
 		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
 		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
+	case "mastodon":
+		instanceURL := mastodon.InstanceURL
+		if customURLMapping != nil && len(customURLMapping.AuthURL) > 0 {
+			instanceURL = customURLMapping.AuthURL
+		}
+		provider = mastodon.NewCustomisedURL(clientID, clientSecret, callbackURL, instanceURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
@@ -249,6 +256,8 @@ func GetDefaultAuthURL(provider string) string {
 		return gitea.AuthURL
 	case "nextcloud":
 		return nextcloud.AuthURL
+	case "mastodon":
+		return mastodon.InstanceURL
 	}
 	return ""
 }

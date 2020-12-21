@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	cfg "code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -63,13 +64,11 @@ func DeleteRepository(doer *models.User, repo *models.Repository) error {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-		return err
-	}
-
+	// If the repo itself has webhooks, we need to trigger them before deleting it...
 	notification.NotifyDeleteRepository(doer, repo)
 
-	return nil
+	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
+	return err
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -88,7 +87,7 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 
 	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
-		IsPrivate: true,
+		IsPrivate: cfg.Repository.DefaultPushCreatePrivate,
 	})
 	if err != nil {
 		return nil, err
