@@ -92,7 +92,9 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	qUser := strings.Trim(ctx.Query("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
-		if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "User does not exist", err)
+		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			return
 		}
@@ -500,7 +502,9 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	qUser := strings.Trim(ctx.Query("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
-		if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "User does not exist", err)
+		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			return
 		}
