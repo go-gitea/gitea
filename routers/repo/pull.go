@@ -440,7 +440,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
-		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
+		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(pull)
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -682,6 +682,10 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+	handleTeamMentions(ctx)
+	if ctx.Written() {
 		return
 	}
 	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
