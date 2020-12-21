@@ -46,3 +46,45 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 
 	c.Redirect(url, http.StatusSeeOther)
 }
+
+// DeleteTime deletes tracked time
+func DeleteTime(c *context.Context) {
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+	if !c.Repo.CanUseTimetracker(issue, c.User) {
+		c.NotFound("CanUseTimetracker", nil)
+		return
+	}
+	url := issue.HTMLURL()
+
+	if c.HasError() {
+		c.Flash.Error(c.GetErrMsg())
+		c.Redirect(url)
+		return
+	}
+
+	t, err := models.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
+	if err != nil {
+		if models.IsErrNotExist(err) {
+			c.NotFound("time not found", err)
+			return
+		}
+		c.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err.Error())
+		return
+	}
+
+	// only OP or admin may delete
+	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.User.ID != t.UserID) {
+		c.Error(http.StatusForbidden, "not allowed")
+		return
+	}
+
+	if err = models.DeleteTime(t); err != nil {
+		c.ServerError("DeleteTime", err)
+		return
+	}
+
+	c.Redirect(url, http.StatusSeeOther)
+}
