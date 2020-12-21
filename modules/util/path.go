@@ -145,7 +145,7 @@ func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
 	}
 
 	isIncludeDir := false
-	if len(includeDir) >= 1 {
+	if len(includeDir) != 0 {
 		isIncludeDir = includeDir[0]
 	}
 	return statDir(rootPath, "", isIncludeDir, false, false)
