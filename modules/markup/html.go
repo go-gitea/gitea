@@ -602,9 +602,9 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 		if mentionOrgAndTeam[0][1:] == ctx.metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
 			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
 		}
-	} else {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+		return
 	}
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
