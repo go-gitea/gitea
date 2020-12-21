@@ -33,10 +33,10 @@
 				{{end}}
 			</div>
 		</div>
-		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
+		<ol class="diff-detail-box diff-stats m-0 hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
-					<div class="diff-counter pull-right">
+					<div class="bold df ac pull-right">
 						{{if not .IsBin}}
 							{{template "repo/diff/stats" dict "file" . "root" $}}
 						{{else}}
@@ -45,7 +45,7 @@
 					</div>
 					<!-- todo finish all file status, now modify, add, delete and rename -->
 					<span class="status {{DiffTypeToStr .GetType}} poping up" data-content="{{DiffTypeToStr .GetType}}" data-variation="inverted tiny" data-position="right center">&nbsp;</span>
-					<a class="file" href="#diff-{{.Index}}">{{.Name}}</a>
+					<a class="file mono" href="#diff-{{.Index}}">{{.Name}}</a>
 				</li>
 			{{end}}
 		</ol>
@@ -53,23 +53,28 @@
 			{{if $file.IsIncomplete}}
 				<div class="diff-file-box diff-box file-content">
 					<h4 class="ui top attached normal header rounded">
-						<div class="diff-counter ui left">
+						<a role="button" class="fold-file muted mr-2">
+							{{svg "octicon-chevron-down" 18}}
+						</a>
+						<div class="bold ui left df ac">
 							{{if not $file.IsRenamed}}
 								{{template "repo/diff/stats" dict "file" . "root" $}}
 							{{end}}
 						</div>
-						<span class="file">{{$file.Name}}</span>
-						<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
-						{{if $file.IsProtected}}
-							<span class="ui right basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
-						{{end}}
-						{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-							{{if $file.IsDeleted}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{else}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						<span class="file mono">{{$file.Name}}</span>
+						<div class="diff-file-header-actions df ac">
+							<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+							{{if $file.IsProtected}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
-						{{end}}
+							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+								{{if $file.IsDeleted}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{else}}
+									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								{{end}}
+							{{end}}
+						</div>
 					</h4>
 				</div>
 			{{else}}
@@ -82,21 +87,19 @@
 							{{else}}
 								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
 							{{end}}
-							{{if or (not $file.IsBin) $isImage}}
-							<a role="button" class="fold-file">
+							<a role="button" class="fold-file muted mr-2">
 								{{svg "octicon-chevron-down" 18}}
 							</a>
-							{{end}}
-							<div class="diff-counter">
+							<div class="bold df ac">
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
 								{{else if not $file.IsRenamed}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
-							<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+							<span class="file mono">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 						</div>
-						<div class="df ac">
+						<div class="diff-file-header-actions df ac">
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
@@ -111,8 +114,8 @@
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
 						{{if ne $file.Type 4}}
-							<div class="file-body file-code has-context-menu code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
-								<table class="chroma">
+							<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
+								<table class="chroma{{if $isImage}} w-100{{end}}">
 									<tbody>
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" . "root" $}}
@@ -130,7 +133,6 @@
 					</div>
 				</div>
 			{{end}}
-		<br>
 		{{end}}
 
 		{{if .Diff.IsIncomplete}}
