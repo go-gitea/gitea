@@ -8,6 +8,7 @@ package setting
 import (
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"math"
@@ -291,6 +292,8 @@ var (
 
 	CSRFCookieName     = "_csrf"
 	CSRFCookieHTTPOnly = true
+
+	ManifestData template.URL
 
 	// Mirror settings
 	Mirror struct {
@@ -640,6 +643,8 @@ func NewContext() {
 	default:
 		LandingPageURL = LandingPageHome
 	}
+
+	ManifestData = makeManifestData()
 
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain
@@ -1037,6 +1042,14 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 		}
 	}
 	return token
+}
+
+func makeManifestData() template.URL {
+	name := url.QueryEscape(AppName)
+	prefix := url.QueryEscape(StaticURLPrefix)
+	subUrl := url.QueryEscape(AppSubURL) + "/"
+
+	return template.URL(`data:application/json,{"short_name":"` + name + `","name":"` + name + `","icons":[{"src":"` + prefix + `/img/logo-lg.png","type":"image/png","sizes":"880x880"},{"src":"` + prefix + `/img/logo-sm.png","type":"image/png","sizes":"120x120"},{"src":"` + prefix + `/img/logo-512.png","type":"image/png","sizes":"512x512"},{"src":"` + prefix + `/img/logo-192.png","type":"image/png","sizes":"192x192"}],"start_url":"` + subUrl + `","scope":"` + subUrl + `","background_color":"%23FAFAFA","display":"standalone"}`)
 }
 
 // NewServices initializes the services
