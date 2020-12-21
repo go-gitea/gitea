@@ -43,6 +43,9 @@ import (
 // Used from static.go && dynamic.go
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
+// Generate manfest.json data uri once
+var manifestData = makeManifestData()
+
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
@@ -87,6 +90,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
+		},
+		"ManifestData": func() template.URL {
+			return manifestData
 		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
@@ -144,7 +150,6 @@ func NewFuncMap() []template.FuncMap {
 		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
-		"QueryEscape":           url.QueryEscape,
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
@@ -920,4 +925,12 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		Parse(string(bodyContent)); err != nil {
 		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
+}
+
+func makeManifestData() template.URL {
+	name := url.QueryEscape(setting.AppName)
+	prefix := url.QueryEscape(setting.StaticURLPrefix)
+	subUrl := url.QueryEscape(setting.AppSubURL) + "/"
+
+	return template.URL(`data:application/json,{"short_name":"` + name + `","name":"` + name + `","icons":[{"src":"` + prefix + `/img/logo-lg.png","type":"image/png","sizes":"880x880"},{"src":"` + prefix + `/img/logo-sm.png","type":"image/png","sizes":"120x120"},{"src":"` + prefix + `/img/logo-512.png","type":"image/png","sizes":"512x512"},{"src":"` + prefix + `/img/logo-192.png","type":"image/png","sizes":"192x192"}],"start_url":"` + subUrl + `","scope":"` + subUrl + `","background_color":"%23FAFAFA","display":"standalone"}`)
 }
