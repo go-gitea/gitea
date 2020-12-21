@@ -11,8 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Vars represents variables to be render in golang templates
@@ -63,7 +62,7 @@ func getDirAssetNames(dir string) []string {
 		return tmpls
 	}
 
-	files, err := com.StatDir(dir)
+	files, err := util.StatDir(dir)
 	if err != nil {
 		log.Warn("Failed to read %s templates dir. %v", dir, err)
 		return tmpls
