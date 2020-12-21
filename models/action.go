@@ -242,6 +242,11 @@ func (a *Action) GetBranch() string {
 	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
 }
 
+// GetTag returns the action's repository tag.
+func (a *Action) GetTag() string {
+	return strings.TrimPrefix(a.RefName, git.TagPrefix)
+}
+
 // GetContent returns the action's content.
 func (a *Action) GetContent() string {
 	return a.Content
