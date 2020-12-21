@@ -17,6 +17,7 @@ import (
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
+// TODO: copied from modules/session/redis.go and should remove that one until macaron removed.
 type VirtualSessionProvider struct {
 	lock     sync.RWMutex
 	provider session.Provider

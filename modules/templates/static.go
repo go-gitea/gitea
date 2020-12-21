@@ -48,6 +48,7 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 	return nil, fmt.Errorf("file '%s' not found", name)
 }
 
+// GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
 	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
