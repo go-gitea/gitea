@@ -21,6 +21,9 @@
   - [ ] MySQL
   - [ ] MSSQL
   - [ ] SQLite
+- Are you using Gitea behind CloudFlare?
+  - [ ] Yes
+  - [ ] No
 - Can you reproduce the bug at https://try.gitea.io:
   - [ ] Yes (provide example URL)
   - [ ] No
