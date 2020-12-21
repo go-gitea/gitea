@@ -611,7 +611,7 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	}
 
 	for _, author := range authors {
-		if _, err := stringBuilder.Write([]byte("Co-authored-by: ")); err != nil {
+		if _, err := stringBuilder.Write([]byte("Co-Authored-By: ")); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}
