@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 var (
@@ -65,7 +64,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", staticDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(staticDir)
+		files, err := util.StatDir(staticDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", staticDir, err)
@@ -94,7 +93,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir)
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)
