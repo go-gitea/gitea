@@ -43,7 +43,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: query
-	//   description: optional filter by user
+	//   description: optional filter by user (available for issue managers)
 	//   type: string
 	// - name: since
 	//   in: query
@@ -458,7 +458,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: query
-	//   description: optional filter by user
+	//   description: optional filter by user (available for issue managers)
 	//   type: string
 	// - name: since
 	//   in: query
