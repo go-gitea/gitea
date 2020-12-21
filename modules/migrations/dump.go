@@ -320,7 +320,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, fmt.Sprintf("%d", asset.ID))
+				attachLocalPath := filepath.Join(attachDir, fmt.Sprintf("%s", asset.Name))
 				// download attachment
 
 				err := func(attachLocalPath string) error {
