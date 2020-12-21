@@ -1908,7 +1908,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 				}
 			}
-			if len(checked) > 0 {
+			if len(checked) != 0 {
 				teamusers := make([]*User, 0, 20)
 				if err := ctx.e.
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
