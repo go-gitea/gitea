@@ -135,6 +135,8 @@ type Comment struct {
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
 	Milestone        *Milestone `xorm:"-"`
+	TimeID           int64
+	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
@@ -540,6 +542,16 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
+// LoadTime loads the associated time for a CommentTypeAddTimeManual
+func (c *Comment) LoadTime() error {
+	if c.Time != nil || c.TimeID == 0 {
+		return nil
+	}
+	var err error
+	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	return err
+}
+
 func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
@@ -691,6 +703,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		MilestoneID:      opts.MilestoneID,
 		OldProjectID:     opts.OldProjectID,
 		ProjectID:        opts.ProjectID,
+		TimeID:           opts.TimeID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
@@ -858,6 +871,7 @@ type CreateCommentOptions struct {
 	MilestoneID      int64
 	OldProjectID     int64
 	ProjectID        int64
+	TimeID           int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
 	RemovedAssignee  bool

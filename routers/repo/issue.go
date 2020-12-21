@@ -1383,6 +1383,12 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadPushCommits", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeAddTimeManual ||
+			comment.Type == models.CommentTypeStopTracking {
+			if err = comment.LoadTime(); err != nil {
+				ctx.ServerError("LoadTime", err)
+				return
+			}
 		}
 	}
 
