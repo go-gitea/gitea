@@ -104,7 +104,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+	cantSetUser := !ctx.User.IsAdmin &&
+		opts.UserID != ctx.User.ID &&
+		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+
+	if cantSetUser {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.User.ID
 		} else {
@@ -509,7 +513,11 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+	cantSetUser := !ctx.User.IsAdmin &&
+		opts.UserID != ctx.User.ID &&
+		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+
+	if cantSetUser {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.User.ID
 		} else {
