@@ -43,20 +43,36 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 
-	nameSec := Cfg.Section(sectionName + "." + name)
-	typeSec := Cfg.Section(sectionName + "." + typ)
-	for _, override := range []*ini.Section{nameSec, typeSec, sec} {
+	var storage Storage
+	storage.Section = targetSec
+	storage.Type = typ
+
+	overrides := make([]*ini.Section, 0, 3)
+	nameSec, err := Cfg.GetSection(sectionName + "." + name)
+	if err == nil {
+		overrides = append(overrides, nameSec)
+	}
+
+	typeSec, err := Cfg.GetSection(sectionName + "." + typ)
+	if err == nil {
+		overrides = append(overrides, typeSec)
+		nextType := typeSec.Key("STORAGE_TYPE").String()
+		if len(nextType) > 0 {
+			storage.Type = nextType // Support custom STORAGE_TYPE
+		}
+	}
+	overrides = append(overrides, sec)
+
+	for _, override := range overrides {
 		for _, key := range override.Keys() {
 			if !targetSec.HasKey(key.Name()) {
 				_, _ = targetSec.NewKey(key.Name(), key.Value())
 			}
 		}
+		if len(storage.Type) == 0 {
+			storage.Type = override.Key("STORAGE_TYPE").String()
+		}
 	}
-
-	var storage Storage
-	storage.Section = targetSec
-
-	storage.Type = typeSec.Key("STORAGE_TYPE").MustString(typ)
 	storage.ServeDirect = storage.Section.Key("SERVE_DIRECT").MustBool(false)
 
 	// Specific defaults
