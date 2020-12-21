@@ -275,6 +275,7 @@
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
 			</span>
+			{{ template "repo/issue/view_content/delete_time" Dict "ctx" $ "comment" . }}
 			<div class="detail">
 				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
@@ -290,6 +291,7 @@
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
 			</span>
+			{{ template "repo/issue/view_content/delete_time" Dict "ctx" $ "comment" . }}
 			<div class="detail">
 				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>

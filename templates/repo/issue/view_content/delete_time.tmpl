@@ -1,0 +1,14 @@
+{{ if .comment.TimeID }} <!-- compatibility with pre v1.14 -->
+	{{ if (not .comment.Time.Deleted) }}
+		{{ if (or .ctx.IsAdmin (and .ctx.IsSigned (eq .ctx.SignedUserID .comment.PosterID))) }}
+			<span class="ui float right">
+				<form method="POST" action="{{.ctx.RepoLink}}/issues/{{.ctx.Issue.Index}}/times/{{.comment.TimeID}}/delete">
+					{{.ctx.CsrfTokenHtml}}
+					<button type="submit" class="ui icon button circular small">
+						<i class="icon delete"></i>
+					</button>
+				</form>
+			</span>
+		{{end}}
+	{{end}}
+{{end}}
