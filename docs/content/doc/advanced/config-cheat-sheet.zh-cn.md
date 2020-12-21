@@ -53,7 +53,7 @@ menu:
 ### UI - Expore (`ui.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
-- `ONLY_SHOW_USERS_WITH_PUBLIC_REPOS`: **false**:在浏览用户页面上仅显示拥有公共仓库的用户。
+- `DISABLE_USERS_PAGE`: **false**: 。
 
 ## Markdown (`markdown`)
 

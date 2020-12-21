@@ -33,7 +33,6 @@
   avatar: avatar2
   avatar_email: user2@example.com
   num_repos: 9
-  num_public_repos: 5
   num_stars: 2
   num_followers: 2
   num_following: 1
@@ -54,7 +53,6 @@
   avatar: avatar3
   avatar_email: user3@example.com
   num_repos: 3
-  num_public_repos: 1
   num_members: 3
   num_teams: 4
 
@@ -91,7 +89,6 @@
   avatar: avatar5
   avatar_email: user5@example.com
   num_repos: 1
-  num_public_repos: 1
   allow_create_organization: false
   is_active: true
   num_following: 0
@@ -182,7 +179,6 @@
   avatar: avatar10
   avatar_email: user10@example.com
   num_repos: 3
-  num_public_repos: 1
   is_active: true
 
 -
@@ -199,7 +195,6 @@
   avatar: avatar11
   avatar_email: user11@example.com
   num_repos: 1
-  num_public_repos: 1
   is_active: true
 
 -
@@ -216,7 +211,6 @@
   avatar: avatar12
   avatar_email: user12@example.com
   num_repos: 1
-  num_public_repos: 1
   is_active: true
 
 -
@@ -233,7 +227,6 @@
   avatar: avatar13
   avatar_email: user13@example.com
   num_repos: 1
-  num_public_repos: 1
   is_active: true
 
 -
@@ -250,7 +243,6 @@
   avatar: avatar14
   avatar_email: user13@example.com
   num_repos: 3
-  num_public_repos: 2
   is_active: true
 
 -
@@ -267,7 +259,6 @@
   avatar: avatar15
   avatar_email: user15@example.com
   num_repos: 4
-  num_public_repos: 2
   is_active: true
 
 -
@@ -284,7 +275,6 @@
   avatar: avatar16
   avatar_email: user16@example.com
   num_repos: 2
-  num_public_repos: 1
   is_active: true
 
 -
@@ -301,7 +291,6 @@
   avatar: avatar17
   avatar_email: user17@example.com
   num_repos: 2
-  num_public_repos: 1
   is_active: true
   num_members: 3
   num_teams: 3
@@ -336,7 +325,6 @@
   avatar: avatar19
   avatar_email: user19@example.com
   num_repos: 2
-  num_public_repos: 1
   is_active: true
   num_members: 1
   num_teams: 1
@@ -355,7 +343,6 @@
   avatar: avatar20
   avatar_email: user20@example.com
   num_repos: 4
-  num_public_repos: 2
   is_active: true
 
 -
@@ -372,7 +359,6 @@
   avatar: avatar21
   avatar_email: user21@example.com
   num_repos: 2
-  num_public_repos: 2
   is_active: true
 
 -
@@ -389,7 +375,6 @@
   avatar: avatar22
   avatar_email: limited_org@example.com
   num_repos: 2
-  num_public_repos: 1
   is_active: true
   num_members: 0
   num_teams: 0
@@ -409,7 +394,6 @@
   avatar: avatar23
   avatar_email: privated_org@example.com
   num_repos: 2
-  num_public_repos: 1
   is_active: true
   num_members: 0
   num_teams: 0
@@ -467,7 +451,6 @@
   avatar: avatar26
   avatar_email: org26@example.com
   num_repos: 4
-  num_public_repos: 3
   num_members: 0
   num_teams: 1
   repo_admin_change_team_access: true
@@ -487,7 +470,6 @@
   avatar: avatar27
   avatar_email: user27@example.com
   num_repos: 3
-  num_public_repos: 3
 
 -
   id: 28

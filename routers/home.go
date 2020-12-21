@@ -170,6 +170,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 // ExploreRepos render explore repositories page
 func ExploreRepos(ctx *context.Context) {
+	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
@@ -246,23 +247,27 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 
 // ExploreUsers render explore users page
 func ExploreUsers(ctx *context.Context) {
+	if setting.UI.Explore.DisableUsersPage {
+		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Actor:                    ctx.User,
-		Type:                     models.UserTypeIndividual,
-		ListOptions:              models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive:                 util.OptionalBoolTrue,
-		Visible:                  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
-		OnlyUsersWithPublicRepos: setting.UI.Explore.OnlyShowUsersWithPublicRepos,
+		Actor:       ctx.User,
+		Type:        models.UserTypeIndividual,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		IsActive:    util.OptionalBoolTrue,
+		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
 // ExploreOrganizations render explore organizations page
 func ExploreOrganizations(ctx *context.Context) {
+	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
@@ -288,6 +293,7 @@ func ExploreCode(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true

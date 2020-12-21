@@ -69,18 +69,8 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-// assertCount test the count of database entries matching bean
-func assertPublicReposCount(t *testing.T, user *User) {
-	count, err := x.Where("is_private = ?", false).Count(&Repository{OwnerID: user.ID})
-	assert.NoError(t, err)
-
-	assert.EqualValues(t, user.NumPublicRepos, count,
-		"Failed consistency test, NumPublicRepos of User[%d]", user.ID)
-}
-
 func (user *User) checkForConsistency(t *testing.T) {
 	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
-	assertPublicReposCount(t, user)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
 	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)

@@ -204,8 +204,8 @@ var (
 		} `ini:"ui.meta"`
 		// Explore page settings
 		Explore struct {
-			RequireSigninView            bool `ini:"REQUIRE_SIGNIN_VIEW"`
-			OnlyShowUsersWithPublicRepos bool `ini:"ONLY_SHOW_USERS_WITH_PUBLIC_REPOS"`
+			RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+			DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
 		} `ini:"ui.explore"`
 	}{
 		ExplorePagingNum:    20,
@@ -259,8 +259,8 @@ var (
 			Keywords:    "go,git,self-hosted,gitea",
 		},
 		Explore: struct {
-			RequireSigninView            bool `ini:"REQUIRE_SIGNIN_VIEW"`
-			OnlyShowUsersWithPublicRepos bool `ini:"ONLY_SHOW_USERS_WITH_PUBLIC_REPOS"`
+			RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+			DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
 		}{},
 	}
 

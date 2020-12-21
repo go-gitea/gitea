@@ -184,7 +184,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### UI - Expore (`ui.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
-- `ONLY_SHOW_USERS_WITH_PUBLIC_REPOS`: **false**: Only show users with public repos on the explore users page.
+- `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
 
 ### UI - Metadata (`ui.meta`)
 
