@@ -21,9 +21,6 @@
   - [ ] MySQL
   - [ ] MSSQL
   - [ ] SQLite
-- Are you using Gitea behind CloudFlare?
-  - [ ] Yes
-  - [ ] No
 - Can you reproduce the bug at https://try.gitea.io:
   - [ ] Yes (provide example URL)
   - [ ] No
@@ -33,6 +30,7 @@
 <!-- In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini -->
 
 ## Description
+<!-- When using a CDN like CloudFlare, please remember that they can modify page responses. Please disable CDN fully and confirm your issue still persists. -->
 
 ...
 
