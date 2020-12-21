@@ -89,9 +89,11 @@
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						<span class="fitted">{{svg "octicon-plus"}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
-					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
-					</a>
+					{{if not .DisableMigrations}}
+						<a class="item" href="{{AppSubUrl}}/repo/migrate">
+							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
+						</a>
+					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						<span class="fitted">{{svg "octicon-organization"}}</span> {{.i18n.Tr "new_org"}}

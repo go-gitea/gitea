@@ -684,6 +684,10 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetAssignees", err)
 		return
 	}
+	handleTeamMentions(ctx)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
