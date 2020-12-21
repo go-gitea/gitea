@@ -1,7 +1,7 @@
 {{range .Feeds}}
 	<div class="news">
 		<div class="ui left">
-			<img class="ui avatar image" src="{{.GetActAvatar}}" alt="">
+			{{avatarByAction .}}
 		</div>
 		<div class="ui grid">
 			<div class="ui fourteen wide column">
@@ -28,8 +28,8 @@
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{ $branchLink := .GetBranch | EscapePound | Escape}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink $branchLink .ShortRepoPath | Str2html}}
+							{{ $tagLink := .GetTag | EscapePound | Escape}}
+							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
@@ -50,7 +50,7 @@
 							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 16}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetTag|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 17}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.delete_branch" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
@@ -84,7 +84,13 @@
 								{{if $push.Commits}}
 									{{range $push.Commits}}
 										{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}</span></li>
+										<li>
+											{{avatarHTML ($push.AvatarLink .AuthorEmail) 16 "mr-2" .AuthorName}}
+											<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+											<span class="text truncate light grey">
+												{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}
+											</span>
+										</li>
 									{{end}}
 								{{end}}
 								{{if and (gt $push.Len 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" $push.Len}} »</a></li>{{end}}

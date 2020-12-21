@@ -211,7 +211,7 @@ func (f *Formatter) writeHTML(w io.Writer, style *chroma.Style, tokens []chroma.
 				fmt.Fprintf(w, "<span%s>", f.styleAttr(css, chroma.LineHighlight))
 			}
 
-			fmt.Fprintf(w, "<span%s%s>%*d\n</span>", f.styleAttr(css, chroma.LineNumbersTable), f.lineIDAttribute(line), lineDigits, line)
+			fmt.Fprintf(w, "<span%s%s>%s\n</span>", f.styleAttr(css, chroma.LineNumbersTable), f.lineIDAttribute(line), f.lineTitleWithLinkIfNeeded(lineDigits, line))
 
 			if highlight {
 				fmt.Fprintf(w, "</span>")
@@ -237,7 +237,7 @@ func (f *Formatter) writeHTML(w io.Writer, style *chroma.Style, tokens []chroma.
 		}
 
 		if f.lineNumbers && !wrapInTable {
-			fmt.Fprintf(w, "<span%s%s>%*d</span>", f.styleAttr(css, chroma.LineNumbers), f.lineIDAttribute(line), lineDigits, line)
+			fmt.Fprintf(w, "<span%s%s>%s</span>", f.styleAttr(css, chroma.LineNumbers), f.lineIDAttribute(line), f.lineTitleWithLinkIfNeeded(lineDigits, line))
 		}
 
 		for _, token := range tokens {
@@ -272,7 +272,19 @@ func (f *Formatter) lineIDAttribute(line int) string {
 	if !f.linkableLineNumbers {
 		return ""
 	}
-	return fmt.Sprintf(" id=\"%s%d\"", f.lineNumbersIDPrefix, line)
+	return fmt.Sprintf(" id=\"%s\"", f.lineID(line))
+}
+
+func (f *Formatter) lineTitleWithLinkIfNeeded(lineDigits, line int) string {
+	title := fmt.Sprintf("%*d", lineDigits, line)
+	if !f.linkableLineNumbers {
+		return title
+	}
+	return fmt.Sprintf("<a style=\"outline: none; text-decoration:none; color:inherit\" href=\"#%s\">%s</a>", f.lineID(line), title)
+}
+
+func (f *Formatter) lineID(line int) string {
+	return fmt.Sprintf("%s%d", f.lineNumbersIDPrefix, line)
 }
 
 func (f *Formatter) shouldHighlight(highlightIndex, line int) (bool, bool) {

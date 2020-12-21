@@ -49,6 +49,7 @@ var JavascriptRules = Rules{
 		{"`", LiteralStringBacktick, Pop(1)},
 		{`\\\\`, LiteralStringBacktick, nil},
 		{"\\\\`", LiteralStringBacktick, nil},
+		{"\\\\[^`\\\\]", LiteralStringBacktick, nil},
 		{`\$\{`, LiteralStringInterpol, Push("interp-inside")},
 		{`\$`, LiteralStringBacktick, nil},
 		{"[^`\\\\$]+", LiteralStringBacktick, nil},

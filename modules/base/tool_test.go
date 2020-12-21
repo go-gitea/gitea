@@ -5,10 +5,7 @@
 package base
 
 import (
-	"net/url"
 	"testing"
-
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,6 +43,12 @@ func TestBasicAuthDecode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", user)
 	assert.Equal(t, "bar", pass)
+
+	_, _, err = BasicAuthDecode("aW52YWxpZA==")
+	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("invalid")
+	assert.Error(t, err)
 }
 
 func TestBasicAuthEncode(t *testing.T) {
@@ -55,44 +58,6 @@ func TestBasicAuthEncode(t *testing.T) {
 // TODO: Test PBKDF2()
 // TODO: Test VerifyTimeLimitCode()
 // TODO: Test CreateTimeLimitCode()
-
-func TestHashEmail(t *testing.T) {
-	assert.Equal(t,
-		"d41d8cd98f00b204e9800998ecf8427e",
-		HashEmail(""),
-	)
-	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
-		HashEmail("gitea@example.com"),
-	)
-}
-
-const gravatarSource = "https://secure.gravatar.com/avatar/"
-
-func disableGravatar() {
-	setting.EnableFederatedAvatar = false
-	setting.LibravatarService = nil
-	setting.DisableGravatar = true
-}
-
-func enableGravatar(t *testing.T) {
-	setting.DisableGravatar = false
-	var err error
-	setting.GravatarSourceURL, err = url.Parse(gravatarSource)
-	assert.NoError(t, err)
-}
-
-func TestSizedAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png",
-		SizedAvatarLink("gitea@example.com", 100))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		SizedAvatarLink("gitea@example.com", 100),
-	)
-}
 
 func TestFileSize(t *testing.T) {
 	var size int64 = 512

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository">
+<div class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui three column stackable grid">
@@ -78,7 +78,6 @@
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
 						<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
 							<span class="ui text">
-								<img class="ui tiny avatar image" width="24" height="24">
 								<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
 							</span>
 							<div class="menu user-menu" tabindex="-1">
@@ -161,7 +160,7 @@
 						</div>
 						<div class="extra content">
 							{{ range .Labels }}
-							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a>
+							<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 							{{ end }}
 						</div>
 					</div>

@@ -106,28 +106,31 @@ func (dm *DocumentMapping) fieldDescribedByPath(path string) *FieldMapping {
 				return subDocMapping.fieldDescribedByPath(encodePath(pathElements[1:]))
 			}
 		}
-	} else {
-		// just 1 path elememnt
-		// first look for property name with empty field
-		for propName, subDocMapping := range dm.Properties {
-			if propName == pathElements[0] {
-				// found property name match, now look at its fields
-				for _, field := range subDocMapping.Fields {
-					if field.Name == "" || field.Name == pathElements[0] {
-						// match
-						return field
-					}
+	}
+
+	// either the path just had one element
+	// or it had multiple, but no match for the first element at this level
+	// look for match with full path
+
+	// first look for property name with empty field
+	for propName, subDocMapping := range dm.Properties {
+		if propName == path {
+			// found property name match, now look at its fields
+			for _, field := range subDocMapping.Fields {
+				if field.Name == "" || field.Name == path {
+					// match
+					return field
 				}
 			}
 		}
-		// next, walk the properties again, looking for field overriding the name
-		for propName, subDocMapping := range dm.Properties {
-			if propName != pathElements[0] {
-				// property name isn't a match, but field name could override it
-				for _, field := range subDocMapping.Fields {
-					if field.Name == pathElements[0] {
-						return field
-					}
+	}
+	// next, walk the properties again, looking for field overriding the name
+	for propName, subDocMapping := range dm.Properties {
+		if propName != path {
+			// property name isn't a match, but field name could override it
+			for _, field := range subDocMapping.Fields {
+				if field.Name == path {
+					return field
 				}
 			}
 		}

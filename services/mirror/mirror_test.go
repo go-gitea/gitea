@@ -5,6 +5,7 @@
 package mirror
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := repository.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
+	mirror, err := repository.MigrateRepositoryGitData(context.Background(), user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)

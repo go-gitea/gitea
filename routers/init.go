@@ -32,24 +32,26 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
-	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 )
 
 func checkRunMode() {
-	switch setting.Cfg.Section("").Key("RUN_MODE").String() {
-	case "prod":
+	switch setting.RunMode {
+	case "dev":
+		git.Debug = true
+	case "test":
+		git.Debug = true
+	default:
 		macaron.Env = macaron.PROD
 		macaron.ColorLog = false
 		setting.ProdMode = true
-	default:
-		git.Debug = true
 	}
 	log.Info("Run Mode: %s", strings.Title(macaron.Env))
 }

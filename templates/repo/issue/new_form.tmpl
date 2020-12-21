@@ -9,11 +9,11 @@
 		<div class="ui comments">
 			<div class="comment">
 				<a class="avatar" href="{{.SignedUser.HomeLink}}">
-					<img src="{{.SignedUser.RelAvatarLink}}">
+					{{avatar .SignedUser}}
 				</a>
 				<div class="ui segment content">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255">
+						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{Json .PullRequestWorkInProgressPrefixes}}">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
@@ -219,7 +219,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+									{{avatar . 28 "mr-3"}}{{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -231,7 +231,7 @@
 					</span>
 					{{range .Assignees}}
 						<a class="hide item p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.GetDisplayName}}
+							{{avatar . 28 "mr-3 vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>

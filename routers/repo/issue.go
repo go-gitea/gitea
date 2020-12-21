@@ -259,7 +259,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				return
 			}
 
-			commitStatus[issues[i].PullRequest.ID], _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
+			var statuses, _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
+			commitStatus[issues[i].PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
 	}
 
@@ -1649,7 +1650,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachmentsHTML(ctx, issue.Attachments),
+		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }
 
@@ -2065,7 +2066,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachmentsHTML(ctx, comment.Attachments),
+		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
 
@@ -2399,10 +2400,11 @@ func updateAttachments(item interface{}, files []string) error {
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) string {
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, content string) string {
 	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
 		"ctx":         ctx.Data,
 		"Attachments": attachments,
+		"Content":     content,
 	})
 	if err != nil {
 		ctx.ServerError("attachmentsHTML.HTMLString", err)

@@ -275,6 +275,75 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	}
 }
 
+func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("Marshal: %v", err)
+		return
+	}
+
+	opType := models.ActionCommitRepo
+
+	// Check it's tag push or branch.
+	if opts.IsTag() {
+		opType = models.ActionPushTag
+		if opts.IsDelRef() {
+			opType = models.ActionDeleteTag
+		}
+	} else if opts.IsDelRef() {
+		opType = models.ActionDeleteBranch
+	}
+
+	if err = models.NotifyWatchers(&models.Action{
+		ActUserID: pusher.ID,
+		ActUser:   pusher,
+		OpType:    opType,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   opts.RefFullName,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionCommitRepo
+	if refType == "tag" {
+		opType = models.ActionPushTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	opType := models.ActionDeleteBranch
+	if refType == "tag" {
+		opType = models.ActionDeleteTag
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    opType,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
 func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {

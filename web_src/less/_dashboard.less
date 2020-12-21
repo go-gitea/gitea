@@ -63,7 +63,8 @@
     }
   }
 
-  .dashboard-repos {
+  .dashboard-repos,
+  .dashboard-orgs {
     margin: 0 1px; /* Accomodate for Semantic's 1px hacks on .attached elements */
   }
 
@@ -71,7 +72,6 @@
     width: 100vw;
     padding-left: .5rem;
     padding-right: .5rem;
-    padding-top: 15px;
     .org-visibility .label {
       margin-left: 5px;
     }
@@ -101,7 +101,7 @@
       margin-right: auto;
     }
 
-    .ui.avatar {
+    .left .ui.avatar {
       margin-top: 13px;
     }
 
@@ -156,16 +156,12 @@
           background-color: #fcf8e9;
         }
 
-        a {
-          padding: 6px 1.2em;
+        .repo-list-link {
+          padding: 6px 1em;
           display: block;
 
           .svg {
-            color: var(--color-secondary-dark-6);
-
-            &.rear {
-              font-size: 15px;
-            }
+            color: var(--color-text-light-2);
           }
 
           .star-num {

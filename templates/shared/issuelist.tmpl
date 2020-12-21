@@ -22,21 +22,23 @@
 						{{end}}
 					{{else}}
 						{{if .IsClosed}}
-							{{svg "octicon-issue-opened" 16 "text red"}}
+							{{svg "octicon-issue-closed" 16 "text red"}}
 						{{else}}
-							{{svg "octicon-issue-closed" 16 "text green"}}
+							{{svg "octicon-issue-opened" 16 "text green"}}
 						{{end}}
 					{{end}}
 				</div>
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row df ac fw">
-					<a class="title mr-3" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
-					{{if .IsPull }}
-						{{if (index $.CommitStatus .PullRequest.ID)}}
-							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+					<a class="title mr-3" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{RenderEmoji .Title}}
+						{{if .IsPull }}
+							{{if (index $.CommitStatus .PullRequest.ID)}}
+								{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+							{{end}}
 						{{end}}
-					{{end}}
+					</a>
 					<span class="labels-list">
 						{{range .Labels}}
 							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
@@ -45,7 +47,11 @@
 				</div>
 				<div class="desc issue-item-bottom-row df ac fw my-1">
 					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-						#{{.Index}}
+						{{if eq $.listType "dashboard"}}
+          		{{.Repo.FullName}}#{{.Index}}
+          	{{else}}
+							#{{.Index}}
+						{{end}}
 					</a>
 					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
 					{{if .OriginalAuthor }}
@@ -74,7 +80,10 @@
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
 						<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-							{{svg "octicon-calendar" 14 "mr-2"}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>
+								{{svg "octicon-calendar" 14 "mr-2"}}
+								{{.DeadlineUnix.FormatShort}}
+							</span>
 						</span>
 					{{end}}
 					{{if .IsPull}}
@@ -118,7 +127,7 @@
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
 						<a class="ui assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							{{avatar .}}
 						</a>
 					{{end}}
 				</div>

@@ -174,12 +174,12 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrUserProhibitLogin(err) {
-			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(200, "user/auth/prohibit_login")
 		} else if models.IsErrUserInactive(err) {
@@ -187,7 +187,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(200, TplActivate)
 			} else {
-				log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+				log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(200, "user/auth/prohibit_login")
 			}
@@ -949,7 +949,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		Name:        form.UserName,
 		Email:       form.Email,
 		Passwd:      form.Password,
-		IsActive:    !setting.Service.RegisterEmailConfirm,
+		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   models.LoginOAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.(goth.User).UserID,
@@ -1144,7 +1144,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   form.Password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
@@ -1514,7 +1514,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 	u.HashPassword(passwd)
 	u.MustChangePassword = false
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -1590,7 +1590,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	u.HashPassword(form.Password)
 	u.MustChangePassword = false
 
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "salt"); err != nil {
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
