@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/unknwon/com"
@@ -59,7 +60,11 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 
 	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
 
-	if com.IsDir(staticDir) {
+	isDir, err := util.IsDir(staticDir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", staticDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(staticDir)
 
 		if err != nil {
@@ -84,7 +89,11 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 
 	customDir := path.Join(setting.CustomPath, "templates", "mail")
 
-	if com.IsDir(customDir) {
+	isDir, err = util.IsDir(customDir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
+	}
+	if isDir {
 		files, err := com.StatDir(customDir)
 
 		if err != nil {

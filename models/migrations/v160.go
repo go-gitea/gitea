@@ -5,69 +5,13 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/xorm"
 )
 
-func updateNumPublicRepos(x *xorm.Engine) error {
-	// User represents a user
-	type User struct {
-		ID             int64
-		NumPublicRepos int `xorm:"INDEX NOT NULL DEFAULT 0"`
+func addBlockOnOfficialReviewRequests(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		BlockOnOfficialReviewRequests bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	// Repository represents a Repo
-	type Repository struct {
-		ID        int64
-		OwnerID   int64
-		IsPrivate bool
-	}
-
-	if err := x.Sync2(&User{}, &Repository{}); err != nil {
-		return err
-	}
-	var batchSize = 100
-
-	users := make([]*User, 0, batchSize)
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	sess.SetExpr("num_public_repos", 0).Update(&User{})
-
-	for start := 0; ; start += batchSize {
-		users = users[:0]
-
-		if err := sess.Begin(); err != nil {
-			return err
-		}
-		switch {
-		case setting.Database.UseMSSQL:
-			if _, err := sess.Exec("SELECT owner_id AS id, COUNT(id) AS num_public_repos INTO #temp_user FROM repository WHERE repository.is_private = 0 GROUP BY owner_id"); err != nil {
-				return err
-			}
-			if err := sess.Table("#temp_user").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
-				return err
-			}
-		default:
-			if err := sess.Select("owner_id AS id, count(id) AS num_public_repos").Table("repository").Where("repository.is_private = ?", false).GroupBy("repository.owner_id").Limit(batchSize, start).Asc("id").Find(&users); err != nil {
-				return err
-			}
-		}
-
-		if len(users) == 0 {
-			break
-		}
-
-		for _, user := range users {
-			if _, err := sess.ID(user.ID).Cols("num_public_repos").Update(user); err != nil {
-				return err
-			}
-		}
-
-		if err := sess.Commit(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return x.Sync2(new(ProtectedBranch))
 }

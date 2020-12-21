@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Installation from package"
 slug: "install-from-package"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,10 @@ menu:
 ---
 
 # Installation from package
+
+**Table of Contents**
+
+{{< toc >}}
 
 ## Alpine Linux
 
@@ -48,6 +52,7 @@ choco install gitea
 ```
 
 Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
+
 ## macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
@@ -84,10 +89,10 @@ To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it w
 
 ## Cloudron
 
-Gitea is available as a 1-click install on [Cloudron](https://cloudron.io). 
+Gitea is available as a 1-click install on [Cloudron](https://cloudron.io).
 Cloudron makes it easy to run apps like Gitea on your server and keep them up-to-date and secure.
 
-[![Install](https://cloudron.io/img/button.svg)](https://cloudron.io/button.html?app=io.gitea.cloudronapp)
+[![Install](/cloudron.svg)](https://cloudron.io/button.html?app=io.gitea.cloudronapp)
 
 The Gitea package is maintained [here](https://git.cloudron.io/cloudron/gitea-app).
 
@@ -96,7 +101,7 @@ you can experiment with running Gitea.
 
 ## Third-party
 
-Various other third-party packages of Gitea exist. 
+Various other third-party packages of Gitea exist.
 To see a curated list, head over to [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages).
 
 Do you know of an existing package that isn't on the list? Send in a PR to get it added!

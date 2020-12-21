@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/">
-			<img class="ui mini image" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
+			<img class="ui mini image" src="{{StaticUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
@@ -47,7 +47,7 @@
 		<div class="right stackable menu">
 			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
 				<span class="text">
-					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
+					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
@@ -89,9 +89,11 @@
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						<span class="fitted">{{svg "octicon-plus"}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
-					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
-					</a>
+					{{if not .DisableMigrations}}
+						<a class="item" href="{{AppSubUrl}}/repo/migrate">
+							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
+						</a>
+					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						<span class="fitted">{{svg "octicon-organization"}}</span> {{.i18n.Tr "new_org"}}
@@ -102,7 +104,7 @@
 
 			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
 				<span class="text">
-					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
+					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>

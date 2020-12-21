@@ -6,6 +6,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -13,8 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -52,8 +53,8 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 // CheckCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
 func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
-	if !models.IsValidHookTaskType(form.Type) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Invalid hook type")
+	if !webhook.IsValidHookTaskType(form.Type) {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Invalid hook type: %s", form.Type))
 		return false
 	}
 	for _, name := range []string{"url", "content_type"} {
@@ -132,10 +133,10 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			},
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive:     form.Active,
-		HookTaskType: models.ToHookTaskType(form.Type),
+		IsActive: form.Active,
+		Type:     models.HookTaskType(form.Type),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
@@ -219,7 +220,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 			w.ContentType = models.ToHookContentType(ct)
 		}
 
-		if w.HookTaskType == models.SLACK {
+		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,

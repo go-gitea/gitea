@@ -125,7 +125,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 	r.DefaultBranch = repo.DefaultBranch
 
-	r, err = repository.MigrateRepositoryGitData(g.doer, owner, r, base.MigrateOptions{
+	r, err = repository.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -333,6 +333,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Index:       issue.Number,
 			Title:       issue.Title,
 			Content:     issue.Content,
+			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
 			IsLocked:    issue.IsLocked,
 			MilestoneID: milestoneID,

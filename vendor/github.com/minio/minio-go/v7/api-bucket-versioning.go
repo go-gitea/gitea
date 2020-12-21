@@ -83,6 +83,23 @@ type BucketVersioningConfiguration struct {
 	MFADelete string   `xml:"MfaDelete,omitempty"`
 }
 
+// Various supported states
+const (
+	Enabled = "Enabled"
+	// Disabled  State = "Disabled" only used by MFA Delete not supported yet.
+	Suspended = "Suspended"
+)
+
+// Enabled returns true if bucket versioning is enabled
+func (b BucketVersioningConfiguration) Enabled() bool {
+	return b.Status == Enabled
+}
+
+// Suspended returns true if bucket versioning is suspended
+func (b BucketVersioningConfiguration) Suspended() bool {
+	return b.Status == Suspended
+}
+
 // GetBucketVersioning gets the versioning configuration on
 // an existing bucket with a context to control cancellations and timeouts.
 func (c Client) GetBucketVersioning(ctx context.Context, bucketName string) (BucketVersioningConfiguration, error) {

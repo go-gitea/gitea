@@ -149,6 +149,11 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 
 		switch {
 		case strings.HasPrefix(lines[i], " * "): // New reference
+			if strings.HasPrefix(lines[i], " * [new tag]") {
+				refName = git.TagPrefix + refName
+			} else if strings.HasPrefix(lines[i], " * [new branch]") {
+				refName = git.BranchPrefix + refName
+			}
 			results = append(results, &mirrorSyncResult{
 				refName:     refName,
 				oldCommitID: gitShortEmptySha,
@@ -438,6 +443,21 @@ func syncMirror(repoID string) {
 
 		// Create reference
 		if result.oldCommitID == gitShortEmptySha {
+			if tp == git.TagPrefix {
+				tp = "tag"
+			} else if tp == git.BranchPrefix {
+				tp = "branch"
+			}
+			commitID, err := gitRepo.GetRefCommitID(result.refName)
+			if err != nil {
+				log.Error("gitRepo.GetRefCommitID [repo_id: %s, ref_name: %s]: %v", m.RepoID, result.refName, err)
+				continue
+			}
+			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+				RefFullName: result.refName,
+				OldCommitID: git.EmptySHA,
+				NewCommitID: commitID,
+			}, repo_module.NewPushCommits())
 			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
