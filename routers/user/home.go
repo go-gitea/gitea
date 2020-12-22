@@ -115,7 +115,7 @@ func Dashboard(ctx *context.Context) {
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
 	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser)
+		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -563,7 +563,8 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			var statuses, _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			commitStatus[issue.PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
 	}
 

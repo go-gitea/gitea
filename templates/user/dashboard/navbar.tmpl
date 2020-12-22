@@ -20,6 +20,7 @@
 					<div class="scrolling menu items">
 						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
 							{{avatar .SignedUser}}
+							{{.SignedUser.ShortName 20}}
 						</a>
 						{{range .Orgs}}
 							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">

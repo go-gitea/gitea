@@ -60,12 +60,15 @@ var (
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {
-	webhooks[models.HookTaskType(name)] = webhook
+	webhooks[models.HookTaskType(strings.TrimSpace(name))] = webhook
 }
 
 // IsValidHookTaskType returns true if a webhook registered
 func IsValidHookTaskType(name string) bool {
-	_, ok := webhooks[models.HookTaskType(name)]
+	if name == models.GITEA || name == models.GOGS {
+		return true
+	}
+	_, ok := webhooks[models.HookTaskType(strings.TrimSpace(name))]
 	return ok
 }
 
@@ -144,7 +147,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	var payloader api.Payloader
 	var err error
-	webhook, ok := webhooks[w.Type]
+	webhook, ok := webhooks[strings.TrimSpace(w.Type)] // NOTICE: w.Type maynot be trimmed before store into database
 	if ok {
 		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {

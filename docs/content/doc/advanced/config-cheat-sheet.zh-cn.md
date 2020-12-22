@@ -124,6 +124,7 @@ menu:
 - `ACTIVE_CODE_LIVE_MINUTES`: 登录验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
 - `REGISTER_EMAIL_CONFIRM`: 启用注册邮件激活，前提是 `Mailer` 已经启用。
+- `REGISTER_MANUAL_CONFIRM`: **false**: 新注册用户必须由管理员手动激活,启用此选项需取消`REGISTER_EMAIL_CONFIRM`.
 - `DISABLE_REGISTRATION`: 禁用注册，启用后只能用管理员添加用户。
 - `SHOW_REGISTRATION_BUTTON`: 是否显示注册按钮。
 - `REQUIRE_SIGNIN_VIEW`: 是否所有页面都必须登录后才可访问。

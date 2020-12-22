@@ -237,6 +237,6 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
 		}
 
-		assert.ElementsMatch(t, u.SSHKeys, syncedKeys)
+		assert.ElementsMatch(t, u.SSHKeys, syncedKeys, "Unequal number of keys synchronized for user: %s", u.UserName)
 	}
 }

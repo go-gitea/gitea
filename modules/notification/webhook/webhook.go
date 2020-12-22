@@ -122,6 +122,18 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models
 	}
 }
 
+func (m *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	// Add to hook queue for created repo after session commit.
+	if err := webhook_services.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+		Organization: convert.ToUser(u, false, false),
+		Sender:       convert.ToUser(doer, false, false),
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
 func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	if issue.IsPull {
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, models.UnitTypePullRequests)

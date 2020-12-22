@@ -759,6 +759,15 @@ async function initRepository() {
     });
   }
 
+  // Commit statuses
+  $('.commit-statuses-trigger').each(function () {
+    $(this)
+      .popup({
+        on: 'click',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+      });
+  });
+
   // File list and commits
   if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
@@ -1048,17 +1057,14 @@ async function initRepository() {
               if (data.attachments !== '') {
                 $content.append(`
                   <div class="dropzone-attachments">
-                    <div class="ui clearing divider"></div>
-                    <div class="ui middle aligned padded grid">
-                    </div>
                   </div>
                 `);
-                $content.find('.dropzone-attachments .grid').html(data.attachments);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
               $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.dropzone-attachments .grid').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
             if (dz) {
               dz.emit('submit');
@@ -1123,6 +1129,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1136,6 +1144,7 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
   }
@@ -1202,7 +1211,7 @@ async function initRepository() {
 
 function initPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
-    $('.instruct').toggle();
+    $('.instruct-content').toggle();
   });
 }
 

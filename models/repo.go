@@ -79,7 +79,7 @@ func loadRepoConfig() {
 			log.Fatal("Failed to get custom %s files: %v", t, err)
 		}
 		if isDir {
-			customFiles, err := com.StatDir(customPath)
+			customFiles, err := util.StatDir(customPath)
 			if err != nil {
 				log.Fatal("Failed to get custom %s files: %v", t, err)
 			}

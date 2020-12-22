@@ -43,8 +43,9 @@ func TestAPIExposedSettings(t *testing.T) {
 
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, &api.GeneralRepoSettings{
-		MirrorsDisabled: setting.Repository.DisableMirrors,
-		HTTPGitDisabled: setting.Repository.DisableHTTPGit,
+		MirrorsDisabled:    setting.Repository.DisableMirrors,
+		HTTPGitDisabled:    setting.Repository.DisableHTTPGit,
+		MigrationsDisabled: setting.Repository.DisableMigrations,
 	}, repo)
 
 	attachment := new(api.GeneralAttachmentSettings)
