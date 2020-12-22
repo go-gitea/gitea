@@ -88,9 +88,6 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"ManifestData": func() template.URL {
-			return setting.ManifestData
-		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
