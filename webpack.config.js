@@ -2,7 +2,6 @@ const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
 const AddAssetPlugin = require('add-asset-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -30,8 +29,8 @@ const filterCssImport = (url, ...args) => {
     if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
 
-  if (cssFile.includes('font-awesome')) {
-    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
+    return false;
   }
 
   return true;
@@ -71,13 +70,15 @@ module.exports = {
       // we have to put it in / instead of /js/
       return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
     },
-    chunkFilename: 'js/[name].js',
+    chunkFilename: ({chunk}) => {
+      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
+      return language ? `js/monaco-language-${language.toLowerCase()}.js` : `js/[name].js`;
+    },
   },
   optimization: {
     minimize: isProduction,
     minimizer: [
       new TerserPlugin({
-        sourceMap: true,
         extractComments: false,
         terserOptions: {
           output: {
@@ -103,6 +104,8 @@ module.exports = {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
     },
+    moduleIds: 'named',
+    chunkIds: 'named',
   },
   module: {
     rules: [
@@ -240,11 +243,6 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    // avoid generating useless js output files for css--only chunks
-    new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css'],
-      silent: true,
-    }),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].css',
@@ -302,11 +300,26 @@ module.exports = {
     ],
   },
   stats: {
+    assetsSort: 'name',
+    assetsSpace: Infinity,
+    cached: false,
+    cachedModules: false,
     children: false,
+    chunkModules: false,
+    chunkOrigins: false,
+    chunksSort: 'name',
+    colors: true,
+    entrypoints: false,
     excludeAssets: [
-      // exclude monaco's language chunks in stats output for brevity
-      // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
-      /^js\/[0-9]+\.js$/,
-    ],
+      /^js\/monaco-language-.+\.js$/,
+      !isProduction && /^js\/licenses.txt$/,
+    ].filter((item) => !!item),
+    groupAssetsByChunk: false,
+    groupAssetsByEmitStatus: false,
+    groupAssetsByInfo: false,
+    groupModulesByAttributes: false,
+    modules: false,
+    reasons: false,
+    runtimeModules: false,
   },
 };
