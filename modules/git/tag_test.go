@@ -36,14 +36,17 @@ type commit
 tag 1.22.1
 tagger Lucas Michot <lucas@semalead.com> 1484553735 +0100
 
-`), tag: Tag{
+test message
+o
+
+ono`), tag: Tag{
 			Name:      "",
 			ID:        SHA1{},
 			repo:      nil,
 			Object:    SHA1{0x7c, 0xdf, 0x42, 0xc0, 0xb1, 0xcc, 0x76, 0x3a, 0xb7, 0xe4, 0xc3, 0x3c, 0x47, 0xa2, 0x4e, 0x27, 0xc6, 0x6b, 0xfc, 0xcc},
 			Type:      "commit",
 			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0)},
-			Message:   "",
+			Message:   "test message\no\n\nono",
 			Signature: nil,
 		}},
 	}
