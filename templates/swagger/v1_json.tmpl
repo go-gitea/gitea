@@ -5842,6 +5842,12 @@
           },
           {
             "type": "string",
+            "description": "optional filter by user (available for issue managers)",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
@@ -8811,7 +8817,7 @@
           },
           {
             "type": "string",
-            "description": "optional filter by user",
+            "description": "optional filter by user (available for issue managers)",
             "name": "user",
             "in": "query"
           },
