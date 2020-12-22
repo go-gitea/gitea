@@ -84,14 +84,14 @@ func TestMatrixPullRequestPayload(t *testing.T) {
 func TestMatrixHookRequest(t *testing.T) {
 	h := &models.HookTask{
 		PayloadContent: `{
-  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
   "msgtype": "m.notice",
   "format": "org.matrix.custom.html",
-  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
   "io.gitea.commits": [
     {
       "id": "5175ef26201c58b035a3404b3fe02b4e8d436eee",
-      "message": "Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n",
+      "message": "Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n",
       "url": "http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee",
       "author": {
         "name": "user1",
@@ -115,14 +115,14 @@ func TestMatrixHookRequest(t *testing.T) {
 	}
 
 	wantPayloadContent := `{
-  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
   "msgtype": "m.notice",
   "format": "org.matrix.custom.html",
-  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
   "io.gitea.commits": [
     {
       "id": "5175ef26201c58b035a3404b3fe02b4e8d436eee",
-      "message": "Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-On: http://localhost:3000/user1/test/pulls/2\n",
+      "message": "Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n",
       "url": "http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee",
       "author": {
         "name": "user1",

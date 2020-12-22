@@ -286,7 +286,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		} else if review.Reviewer == nil {
 			continue
 		}
-		if _, err := writer.Write([]byte("Reviewed-By: ")); err != nil {
+		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
 			return err
 		}
 		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
