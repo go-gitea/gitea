@@ -114,7 +114,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
-	if !com.IsSliceContainsStr(types, viewType) {
+	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
 
