@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/urfave/cli"
 )
@@ -60,6 +61,10 @@ func runRestoreRepository(ctx *cli.Context) error {
 	setting.InitDBConfig()
 
 	if err := storage.Init(); err != nil {
+		return err
+	}
+
+	if err := pull_service.Init(); err != nil {
 		return err
 	}
 
