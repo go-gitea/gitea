@@ -28,7 +28,7 @@ tagger Lucas Michot <lucas@semalead.com> 1484491741 +0100
 			Object:    SHA1{0x3b, 0x11, 0x4a, 0xb8, 0x0, 0xc6, 0x43, 0x2a, 0xd4, 0x23, 0x87, 0xcc, 0xf6, 0xbc, 0x8d, 0x43, 0x88, 0xa2, 0x88, 0x5a},
 			Type:      "commit",
 			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484491741, 0)},
-			Message:   "",
+			Message:   "a",
 			Signature: nil,
 		}},
 		{data: []byte(`object 7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc
