@@ -6,6 +6,7 @@
   /* other variables */
   --fonts-regular: var(--fonts-proportional), var(--fonts-emoji);
   --border-radius: .28571429rem;
+  --opacity-disabled: .55;
   --color-primary: #4183c4;
   --color-primary-dark-1: #3876b3;
   --color-primary-dark-2: #31699f;
@@ -1576,6 +1577,29 @@ a.ui.label:hover {
 
 .ui.buttons .button + .button {
   border-left: none;
+}
+
+.ui.basic.buttons .button,
+.ui.basic.button {
+  color: var(--color-text-light);
+}
+
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.basic.buttons .button:focus,
+.ui.basic.button:focus,
+.ui.basic.buttons .button:active,
+.ui.basic.button:active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.labeled.button > .label {
+  border-color: var(--color-secondary);
 }
 
 .ui.blue.button,

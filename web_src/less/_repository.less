@@ -2780,24 +2780,15 @@ tbody.commit-list {
   word-break: break-all;
 }
 
-.repo-header .repo-buttons {
+.repo-buttons {
   display: flex;
   align-items: center;
 }
 
-.repo-buttons .disabled-repo-button .label {
-  opacity: .5;
-}
-
-.repo-buttons .disabled-repo-button a.button {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.repo-buttons .disabled-repo-button a.button:hover {
-  background: none !important;
-  color: rgba(0, 0, 0, .6) !important;
-  box-shadow: 0 0 0 1px var(--color-secondary) inset !important;
+.repo-buttons button[disabled],
+.repo-buttons button[disabled] ~ .label {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
 }
 
 .repo-buttons .ui.labeled.button > .label {
