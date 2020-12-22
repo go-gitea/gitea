@@ -1,30 +1,30 @@
 /* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicpath.js';
-
-import Vue from 'vue';
-import {htmlEscape} from 'escape-goat';
+import { htmlEscape } from 'escape-goat';
 import 'jquery.are-you-sure';
-import './vendor/semanticdropdown.js';
-
-import initMigration from './features/migration.js';
-import initContextPopups from './features/contextpopup.js';
-import initGitGraph from './features/gitgraph.js';
+import Vue from 'vue';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import initClipboard from './features/clipboard.js';
+import { createCodeEditor, createMonaco } from './features/codeeditor.js';
+import createColorPicker from './features/colorpicker.js';
+import initContextPopups from './features/contextpopup.js';
+import createDropzone from './features/dropzone.js';
+import initGitGraph from './features/gitgraph.js';
 import initHeatmap from './features/heatmap.js';
+import initMigration from './features/migration.js';
+import { initNotificationCount, initNotificationsTable } from './features/notification.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
+import initTableSort from './features/tablesort.js';
+import attachTribute from './features/tribute.js';
 import initMarkdownAnchors from './markdown/anchors.js';
 import renderMarkdownContent from './markdown/content.js';
-import attachTribute from './features/tribute.js';
-import createColorPicker from './features/colorpicker.js';
-import createDropzone from './features/dropzone.js';
-import initTableSort from './features/tablesort.js';
-import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
-import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createCodeEditor, createMonaco} from './features/codeeditor.js';
-import {svg, svgs} from './svg.js';
-import {stripTags} from './utils.js';
+import './publicpath.js';
+import { svg, svgs } from './svg.js';
+import { stripTags } from './utils.js';
+import './vendor/semanticdropdown.js';
+
+
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -3117,7 +3117,7 @@ function initVueApp() {
 
 function initIssueTimetracking() {
   $(document).on('click', '.issue-add-time', () => {
-    $('.mini.modal').modal({
+    $('.issue-start-time-modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
@@ -3129,6 +3129,15 @@ function initIssueTimetracking() {
   });
   $(document).on('click', '.issue-cancel-time', () => {
     $('#cancel_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', 'button.issue-delete-time', function () {
+    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`
+    $(sel).modal({
+      duration: 200,
+      onApprove() {
+        $(`${sel} form`).trigger('submit');
+      }
+    }).modal('show');
   });
 }
 
