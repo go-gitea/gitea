@@ -86,8 +86,8 @@ func VerifyTimeLimitCode(data string, minutes int, code string) bool {
 	// split code
 	start := code[:12]
 	lives := code[12:18]
-	if d, err := com.StrTo(lives).Int(); err == nil {
-		minutes = d
+	if d, err := strconv.ParseInt(lives, 10, 0); err == nil {
+		minutes = int(d)
 	}
 
 	// right active code
@@ -223,7 +223,7 @@ func TruncateString(str string, limit int) string {
 func StringsToInt64s(strs []string) ([]int64, error) {
 	ints := make([]int64, len(strs))
 	for i := range strs {
-		n, err := com.StrTo(strs[i]).Int64()
+		n, err := strconv.ParseInt(strs[i], 10, 64)
 		if err != nil {
 			return ints, err
 		}

@@ -8,6 +8,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -15,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-
-	"github.com/unknwon/com"
 )
 
 // Search search users
@@ -59,9 +58,14 @@ func Search(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
+	uid, err := strconv.ParseInt(ctx.Query("uid"), 10, 64)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "uid", err)
+	}
+
 	opts := &models.SearchUserOptions{
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         com.StrTo(ctx.Query("uid")).MustInt64(),
+		UID:         uid,
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
 	}

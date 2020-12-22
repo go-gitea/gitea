@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -92,8 +93,9 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
-			u.LoginType = models.LoginType(com.StrTo(fields[0]).MustInt())
-			u.LoginSource = com.StrTo(fields[1]).MustInt64()
+			lType, _ := strconv.ParseInt(fields[0], 10, 0)
+			u.LoginType = models.LoginType(lType)
+			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
@@ -220,12 +222,12 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
-		loginType := models.LoginType(com.StrTo(fields[0]).MustInt())
-		loginSource := com.StrTo(fields[1]).MustInt64()
+		loginType, _ := strconv.ParseInt(fields[0], 10, 0)
+		loginSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		if u.LoginSource != loginSource {
 			u.LoginSource = loginSource
-			u.LoginType = loginType
+			u.LoginType = models.LoginType(loginType)
 		}
 	}
 
