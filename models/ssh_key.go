@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -252,7 +252,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	}
 
 	keyType := strings.Trim(fields[len(fields)-1], "()\r\n")
-	return strings.ToLower(keyType), com.StrTo(fields[0]).MustInt(), nil
+	length, err := strconv.ParseInt(fields[0], 10, 32)
+	if err != nil {
+		return "", 0, err
+	}
+	return strings.ToLower(keyType), int(length), nil
 }
 
 // SSHNativeParsePublicKey extracts the key type and length using the golang SSH library.
@@ -744,7 +748,7 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 		if isExist {
 			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-			if err = com.Copy(fPath, bakPath); err != nil {
+			if err = util.CopyFile(fPath, bakPath); err != nil {
 				return err
 			}
 		}
@@ -1226,7 +1230,7 @@ func rewriteAllPrincipalKeys(e Engine) error {
 		}
 		if isExist {
 			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-			if err = com.Copy(fPath, bakPath); err != nil {
+			if err = util.CopyFile(fPath, bakPath); err != nil {
 				return err
 			}
 		}

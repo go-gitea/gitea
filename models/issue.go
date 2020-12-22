@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -386,7 +385,7 @@ func (issue *Issue) State() api.StateType {
 
 // HashTag returns unique hash tag for issue.
 func (issue *Issue) HashTag() string {
-	return "issue-" + com.ToStr(issue.ID)
+	return fmt.Sprintf("issue-%d", issue.ID)
 }
 
 // IsPoster returns true if given user by ID is the poster.
@@ -1374,7 +1373,8 @@ func parseCountResult(results []map[string][]byte) int64 {
 		return 0
 	}
 	for _, result := range results[0] {
-		return com.StrTo(string(result)).MustInt64()
+		c, _ := strconv.ParseInt(string(result), 10, 64)
+		return c
 	}
 	return 0
 }
