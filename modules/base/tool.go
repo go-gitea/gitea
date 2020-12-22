@@ -283,7 +283,7 @@ func DetectContentType(data []byte) string {
 		data = data[:sniffLen]
 	}
 
-	if !setting.SVGRender.Disabled &&
+	if setting.UI.SVG.Enabled &&
 		((strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
 			strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data)) {
 
