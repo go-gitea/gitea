@@ -1386,7 +1386,7 @@ func ViewIssue(ctx *context.Context) {
 		} else if comment.Type == models.CommentTypeAddTimeManual ||
 			comment.Type == models.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
-			comment.LoadTime()
+			_ = comment.LoadTime()
 		}
 	}
 
