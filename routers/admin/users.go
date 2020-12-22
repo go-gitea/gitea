@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/services/mailer"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -156,7 +155,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + com.ToStr(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
 }
 
 func prepareUserInfo(ctx *context.Context) *models.User {

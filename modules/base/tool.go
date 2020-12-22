@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
-	"github.com/unknwon/com"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -131,7 +130,7 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + fmt.Sprint(minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
