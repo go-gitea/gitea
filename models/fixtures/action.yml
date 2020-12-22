@@ -23,3 +23,12 @@
   act_user_id: 11
   repo_id: 9
   is_private: false
+
+-
+  id: 4
+  user_id: 16
+  op_type: 12 # close issue
+  act_user_id: 16
+  repo_id: 22
+  is_private: true
+  created_unix: 1603267920
