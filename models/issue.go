@@ -1181,7 +1181,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 			And("r.reviewer_id = ?", opts.ReviewRequestedID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)")
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
+				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1484,7 +1485,8 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 				And("r.reviewer_id = ?", opts.ReviewRequestedID).
 				And("r.type = ?", ReviewTypeRequest).
-				And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)")
+				And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
+					ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
 		}
 
 		switch opts.IsPull {
@@ -1597,7 +1599,8 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 			And("r.reviewer_id = ?", opts.UserID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
+				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1606,7 +1609,8 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 			And("r.reviewer_id = ?", opts.UserID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
+			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
+				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1648,7 +1652,8 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 		And("r.reviewer_id = ?", opts.UserID).
 		And("r.type = ?", ReviewTypeRequest).
-		And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id)").
+		And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
+			ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
