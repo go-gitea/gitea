@@ -79,5 +79,5 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	c.Redirect(url, http.StatusSeeOther)
+	c.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 }
