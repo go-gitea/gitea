@@ -57,13 +57,6 @@ func DeleteTime(c *context.Context) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
-	url := issue.HTMLURL()
-
-	if c.HasError() {
-		c.Flash.Error(c.GetErrMsg())
-		c.Redirect(url)
-		return
-	}
 
 	t, err := models.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
 	if err != nil {
