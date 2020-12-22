@@ -52,10 +52,7 @@ func (b *Basic) IsEnabled() bool {
 func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
 	baHead := ctx.Req.Header.Get("Authorization")
 	if len(baHead) == 0 {
-		baHead = ctx.Req.Header.Get("authorization")
-		if len(baHead) == 0 {
-			return nil
-		}
+		return nil
 	}
 
 	auths := strings.Fields(baHead)
