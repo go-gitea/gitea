@@ -1,30 +1,30 @@
 /* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import { htmlEscape } from 'escape-goat';
-import 'jquery.are-you-sure';
-import Vue from 'vue';
-import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
-import initClipboard from './features/clipboard.js';
-import { createCodeEditor, createMonaco } from './features/codeeditor.js';
-import createColorPicker from './features/colorpicker.js';
-import initContextPopups from './features/contextpopup.js';
-import createDropzone from './features/dropzone.js';
-import initGitGraph from './features/gitgraph.js';
-import initHeatmap from './features/heatmap.js';
-import initMigration from './features/migration.js';
-import { initNotificationCount, initNotificationsTable } from './features/notification.js';
-import initProject from './features/projects.js';
-import initServiceWorker from './features/serviceworker.js';
-import initTableSort from './features/tablesort.js';
-import attachTribute from './features/tribute.js';
-import initMarkdownAnchors from './markdown/anchors.js';
-import renderMarkdownContent from './markdown/content.js';
 import './publicpath.js';
-import { svg, svgs } from './svg.js';
-import { stripTags } from './utils.js';
+
+import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
+import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
 
-
+import initMigration from './features/migration.js';
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initClipboard from './features/clipboard.js';
+import initHeatmap from './features/heatmap.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
+import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
+import createDropzone from './features/dropzone.js';
+import initTableSort from './features/tablesort.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
+import {stripTags} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
