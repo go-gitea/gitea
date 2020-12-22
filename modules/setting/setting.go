@@ -7,8 +7,8 @@ package setting
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"math"
@@ -294,7 +294,7 @@ var (
 	CSRFCookieName     = "_csrf"
 	CSRFCookieHTTPOnly = true
 
-	ManifestData template.URL
+	ManifestData string
 
 	// Mirror settings
 	Mirror struct {
@@ -1045,12 +1045,64 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
-func makeManifestData() template.URL {
-	name := url.QueryEscape(AppName)
-	prefix := url.QueryEscape(StaticURLPrefix)
-	subURL := url.QueryEscape(AppSubURL) + "/"
+func makeManifestData() string {
+	type manifestIcon struct {
+		Src   string `json:"src"`
+		Type  string `json:"type"`
+		Sizes string `json:"sizes"`
+	}
 
-	return template.URL(`data:application/json,{"short_name":"` + name + `","name":"` + name + `","icons":[{"src":"` + prefix + `/img/logo-lg.png","type":"image/png","sizes":"880x880"},{"src":"` + prefix + `/img/logo-sm.png","type":"image/png","sizes":"120x120"},{"src":"` + prefix + `/img/logo-512.png","type":"image/png","sizes":"512x512"},{"src":"` + prefix + `/img/logo-192.png","type":"image/png","sizes":"192x192"}],"start_url":"` + subURL + `","scope":"` + subURL + `","background_color":"%23FAFAFA","display":"standalone"}`)
+	type manifestJSON struct {
+		ShortName       string         `json:"short_name"`
+		Name            string         `json:"name"`
+		Icons           []manifestIcon `json:"icons"`
+		StartURL        string         `json:"start_url"`
+		Scope           string         `json:"scope"`
+		BackgroundColor string         `json:"background_color"`
+		Display         string         `json:"display"`
+	}
+
+	assetBaseURL := StaticURLPrefix
+	if assetBaseURL == "" {
+		assetBaseURL = strings.TrimSuffix(AppURL, "/")
+	}
+
+	bs, err := json.Marshal(&manifestJSON{
+		ShortName: AppName,
+		Name:      AppName,
+		Icons: []manifestIcon{
+			{
+				Src:   assetBaseURL + "/img/logo-lg.png",
+				Type:  "image/png",
+				Sizes: "880x880",
+			},
+			{
+				Src:   assetBaseURL + "/img/logo-512.png",
+				Type:  "image/png",
+				Sizes: "512x512",
+			},
+			{
+				Src:   assetBaseURL + "/img/logo-192.png",
+				Type:  "image/png",
+				Sizes: "192x192",
+			},
+			{
+				Src:   assetBaseURL + "/img/logo-sm.png",
+				Type:  "image/png",
+				Sizes: "120x120",
+			},
+		},
+		StartURL:        AppURL,
+		Scope:           AppURL,
+		BackgroundColor: "#FAFAFA",
+		Display:         "standalone",
+	})
+
+	if err != nil {
+		log.Error("unable to marshal manifest JSON. Error: %v", err)
+	}
+
+	return `application/json;base64,` + base64.StdEncoding.EncodeToString(bs)
 }
 
 // NewServices initializes the services
