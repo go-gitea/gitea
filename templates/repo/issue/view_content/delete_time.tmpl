@@ -1,4 +1,4 @@
-{{ if .comment.TimeID }} <!-- compatibility with pre v1.14 -->
+{{ if .comment.Time }} <!-- compatibility with pre v1.14 -->
 	{{ if (not .comment.Time.Deleted) }}
 		{{ if (or .ctx.IsAdmin (and .ctx.IsSigned (eq .ctx.SignedUserID .comment.PosterID))) }}
 			<span class="ui float right">
