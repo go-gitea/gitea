@@ -104,6 +104,7 @@ var (
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
 	StaticURLPrefix      string
+	AbsoluteAssetURL     string
 
 	SSH = struct {
 		Disabled                       bool              `ini:"DISABLE_SSH"`
@@ -600,6 +601,11 @@ func NewContext() {
 		Domain = urlHostname
 	}
 
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+
+	manifestBytes := MakeManifestData(AppName, AbsoluteAssetURL)
+	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
+
 	var defaultLocalURL string
 	switch Protocol {
 	case UnixSocket:
@@ -644,8 +650,6 @@ func NewContext() {
 	default:
 		LandingPageURL = LandingPageHome
 	}
-
-	ManifestData = makeManifestData()
 
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain
@@ -1045,7 +1049,28 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
-func makeManifestData() string {
+// makeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
+func MakeAbsoluteAssetURL(AppURL string, StaticURLPrefix string) string {
+	ret := strings.TrimSuffix(StaticURLPrefix, "/")
+
+	parsedPrefix, err := url.Parse(strings.TrimSuffix(StaticURLPrefix, "/"))
+	if err != nil {
+		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+	}
+
+	if parsedPrefix.Hostname() == "" {
+		if (StaticURLPrefix == "") {
+			ret = strings.TrimSuffix(AppURL, "/")
+		} else {
+			// handle the case if StaticURLPrefix is just a path
+			ret = strings.TrimSuffix(AppURL, "/") + strings.TrimSuffix(StaticURLPrefix, "/")
+		}
+	}
+
+	return ret
+}
+
+func MakeManifestData(AppName string, AbsoluteAssetURL string) []byte {
 	type manifestIcon struct {
 		Src   string `json:"src"`
 		Type  string `json:"type"`
@@ -1062,32 +1087,27 @@ func makeManifestData() string {
 		Display         string         `json:"display"`
 	}
 
-	assetBaseURL := StaticURLPrefix
-	if assetBaseURL == "" {
-		assetBaseURL = strings.TrimSuffix(AppURL, "/")
-	}
-
 	bs, err := json.Marshal(&manifestJSON{
 		ShortName: AppName,
 		Name:      AppName,
 		Icons: []manifestIcon{
 			{
-				Src:   assetBaseURL + "/img/logo-lg.png",
+				Src:   AbsoluteAssetURL + "/img/logo-lg.png",
 				Type:  "image/png",
 				Sizes: "880x880",
 			},
 			{
-				Src:   assetBaseURL + "/img/logo-512.png",
+				Src:   AbsoluteAssetURL + "/img/logo-512.png",
 				Type:  "image/png",
 				Sizes: "512x512",
 			},
 			{
-				Src:   assetBaseURL + "/img/logo-192.png",
+				Src:   AbsoluteAssetURL + "/img/logo-192.png",
 				Type:  "image/png",
 				Sizes: "192x192",
 			},
 			{
-				Src:   assetBaseURL + "/img/logo-sm.png",
+				Src:   AbsoluteAssetURL + "/img/logo-sm.png",
 				Type:  "image/png",
 				Sizes: "120x120",
 			},
@@ -1102,7 +1122,7 @@ func makeManifestData() string {
 		log.Error("unable to marshal manifest JSON. Error: %v", err)
 	}
 
-	return `application/json;base64,` + base64.StdEncoding.EncodeToString(bs)
+	return bs
 }
 
 // NewServices initializes the services
