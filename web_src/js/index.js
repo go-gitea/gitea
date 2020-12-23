@@ -2507,6 +2507,16 @@ $(document).ready(async () => {
     }).then(reload);
   });
 
+  // on /user/settings/applications, /user/settings/security (2FA)
+  const tokenGeneratedModal = $('#token-generated');
+  if (tokenGeneratedModal) {
+    tokenGeneratedModal.modal().modal('show');
+    $('#copy-token').on('click', (_) => {
+      navigator.clipboard.writeText($('#copy-token').data('token'));
+      return false;
+    });
+  }
+
   buttonsClickOnEnter();
   searchUsers();
   searchTeams();

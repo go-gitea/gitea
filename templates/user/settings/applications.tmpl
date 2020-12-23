@@ -54,6 +54,8 @@
 	</div>
 </div>
 
+{{template "user/settings/token_modal" Dict "Title" "settings.generate_token_success_short" "Info" "settings.generate_token_success" "Token" .Token "i18n" .i18n}}
+
 <div class="ui small basic delete modal" id="delete-token">
 	<div class="ui icon header">
 		{{svg "octicon-trashcan"}}

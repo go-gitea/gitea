@@ -60,10 +60,13 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Token)
+	// show alert in addition to modal for no-JS fallback
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"), true)
+	ctx.Flash.Info(t.Token, true)
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
+	loadApplicationsData(ctx)
+	ctx.Data["Token"] = t.Token
+	ctx.HTML(200, tplSettingsApplications)
 }
 
 // DeleteApplication response for delete user access token

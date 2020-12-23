@@ -1,0 +1,23 @@
+{{if .Token}}
+	<div class="ui small basic success modal" id="token-generated">
+		<div class="ui icon header">
+			{{svg "octicon-shield-lock"}}
+			{{.i18n.Tr .Title}}
+		</div>
+		<div class="content">
+			<p>{{.i18n.Tr .Info}}</p>
+			<p><code class="ui label basic big blue">{{.Token}}</code></p>
+		</div>
+		
+		<div class="actions">
+			<button id="copy-token" data-token="{{.Token}}" class="ui button basic inverted">
+				{{svg "octicon-clippy"}}
+				{{.i18n.Tr "copy_to_clipboard"}}
+			</button>
+			<button class="ui button basic inverted ok">
+				{{svg "octicon-check"}}
+				OK
+			</button>
+		</div>
+	</div>
+{{end}}
