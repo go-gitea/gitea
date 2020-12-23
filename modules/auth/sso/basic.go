@@ -56,7 +56,7 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 	}
 
 	auths := strings.Fields(baHead)
-	if len(auths) != 2 || auths[0] != "Basic" {
+	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
 		return nil
 	}
 
