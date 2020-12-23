@@ -1050,27 +1050,27 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 }
 
 // makeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(AppURL string, StaticURLPrefix string) string {
-	ret := strings.TrimSuffix(StaticURLPrefix, "/")
+func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
+	ret := strings.TrimSuffix(staticURLPrefix, "/")
 
-	parsedPrefix, err := url.Parse(strings.TrimSuffix(StaticURLPrefix, "/"))
+	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
 	}
 
 	if parsedPrefix.Hostname() == "" {
-		if (StaticURLPrefix == "") {
-			ret = strings.TrimSuffix(AppURL, "/")
+		if (staticURLPrefix == "") {
+			ret = strings.TrimSuffix(appURL, "/")
 		} else {
 			// handle the case if StaticURLPrefix is just a path
-			ret = strings.TrimSuffix(AppURL, "/") + strings.TrimSuffix(StaticURLPrefix, "/")
+			ret = strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
 		}
 	}
 
 	return ret
 }
 
-func MakeManifestData(AppName string, AbsoluteAssetURL string) []byte {
+func MakeManifestData(appName string, absoluteAssetURL string) []byte {
 	type manifestIcon struct {
 		Src   string `json:"src"`
 		Type  string `json:"type"`
@@ -1088,32 +1088,32 @@ func MakeManifestData(AppName string, AbsoluteAssetURL string) []byte {
 	}
 
 	bs, err := json.Marshal(&manifestJSON{
-		ShortName: AppName,
-		Name:      AppName,
+		ShortName: appName,
+		Name:      appName,
 		Icons: []manifestIcon{
 			{
-				Src:   AbsoluteAssetURL + "/img/logo-lg.png",
+				Src:   absoluteAssetURL + "/img/logo-lg.png",
 				Type:  "image/png",
 				Sizes: "880x880",
 			},
 			{
-				Src:   AbsoluteAssetURL + "/img/logo-512.png",
+				Src:   absoluteAssetURL + "/img/logo-512.png",
 				Type:  "image/png",
 				Sizes: "512x512",
 			},
 			{
-				Src:   AbsoluteAssetURL + "/img/logo-192.png",
+				Src:   absoluteAssetURL + "/img/logo-192.png",
 				Type:  "image/png",
 				Sizes: "192x192",
 			},
 			{
-				Src:   AbsoluteAssetURL + "/img/logo-sm.png",
+				Src:   absoluteAssetURL + "/img/logo-sm.png",
 				Type:  "image/png",
 				Sizes: "120x120",
 			},
 		},
-		StartURL:        AppURL,
-		Scope:           AppURL,
+		StartURL:        appURL,
+		Scope:           appURL,
 		BackgroundColor: "#FAFAFA",
 		Display:         "standalone",
 	})
