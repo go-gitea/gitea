@@ -7,11 +7,13 @@
 package public
 
 import (
+	"bytes"
 	"compress/gzip"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -58,12 +60,13 @@ func AssetIsDir(name string) (bool, error) {
 }
 
 // ServeContent serve http content
-func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+func ServeContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
 	if encodings["gzip"] {
-		if rd, ok := content.(*vfsgen۰CompressedFile); ok {
+		if cf, ok := fi.(*vfsgen۰CompressedFileInfo); ok {
+			rd := bytes.NewReader(cf.GzipBytes())
 			w.Header().Set("Content-Encoding", "gzip")
-			ctype := mime.TypeByExtension(filepath.Ext(name))
+			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
 			if ctype == "" {
 				// read a chunk to decide between utf-8 text and binary
 				var buf [512]byte
@@ -78,11 +81,11 @@ func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime
 				}
 			}
 			w.Header().Set("Content-Type", ctype)
-			http.ServeContent(w, req, name, modtime, rd)
+			http.ServeContent(w, req, fi.Name(), modtime, rd)
 			return
 		}
 	}
 
-	http.ServeContent(w, req, name, modtime, content)
+	http.ServeContent(w, req, fi.Name(), modtime, content)
 	return
 }

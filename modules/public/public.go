@@ -167,6 +167,6 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		return true
 	}
 
-	ServeContent(w, req, file, fi.ModTime(), f)
+	ServeContent(w, req, fi, fi.ModTime(), f)
 	return true
 }
