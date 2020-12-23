@@ -574,10 +574,12 @@ func SignInOAuth(ctx *context.Context) {
 		if strings.Contains(err.Error(), "no provider for ") {
 			if err = models.ResetOAuth2(); err != nil {
 				ctx.ServerError("SignIn", err)
+				return
 			}
 			if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
+			return
 		}
 		ctx.ServerError("SignIn", err)
 	}
