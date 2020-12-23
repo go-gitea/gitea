@@ -50,7 +50,8 @@ func (d *postgresSchemaDriver) Open(name string) (driver.Conn, error) {
 	// driver.String.ConvertValue will never return err for string
 	schemaValue, _ := driver.String.ConvertValue(setting.Database.Schema)
 
-	_, err = stmt.Exec([]driver.Value{schemaValue})
+	// golangci lint is incorrect here - there is no benefit to using stmt.ExecWithContext here
+	_, err = stmt.Exec([]driver.Value{schemaValue}) //nolint
 	if err != nil {
 		_ = conn.Close()
 		return nil, err
