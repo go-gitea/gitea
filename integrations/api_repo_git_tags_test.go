@@ -50,7 +50,7 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, aTagName, tag.Tag)
 	assert.Equal(t, aTag.ID.String(), tag.SHA)
 	assert.Equal(t, commit.ID.String(), tag.Object.SHA)
-	assert.Equal(t, aTagMessage, tag.Message)
+	assert.Equal(t, aTagMessage+"\n", tag.Message)
 	assert.Equal(t, user.Name, tag.Tagger.Name)
 	assert.Equal(t, user.Email, tag.Tagger.Email)
 	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)
