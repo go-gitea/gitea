@@ -603,7 +603,7 @@ func NewContext() {
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
 
-	manifestBytes := MakeManifestData(AppName, AbsoluteAssetURL)
+	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
 
 	var defaultLocalURL string
@@ -1070,7 +1070,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 	return ret
 }
 
-func MakeManifestData(appName string, absoluteAssetURL string) []byte {
+func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
 	type manifestIcon struct {
 		Src   string `json:"src"`
 		Type  string `json:"type"`
