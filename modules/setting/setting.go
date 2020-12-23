@@ -1059,7 +1059,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 	}
 
 	if parsedPrefix.Hostname() == "" {
-		if (staticURLPrefix == "") {
+		if staticURLPrefix == "" {
 			ret = strings.TrimSuffix(appURL, "/")
 		} else {
 			// handle the case if StaticURLPrefix is just a path
@@ -1078,18 +1078,16 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 	}
 
 	type manifestJSON struct {
-		ShortName       string         `json:"short_name"`
-		Name            string         `json:"name"`
-		Icons           []manifestIcon `json:"icons"`
-		StartURL        string         `json:"start_url"`
-		Scope           string         `json:"scope"`
-		BackgroundColor string         `json:"background_color"`
-		Display         string         `json:"display"`
+		Name      string         `json:"name"`
+		ShortName string         `json:"short_name"`
+		StartURL  string         `json:"start_url"`
+		Icons     []manifestIcon `json:"icons"`
 	}
 
 	bs, err := json.Marshal(&manifestJSON{
-		ShortName: appName,
 		Name:      appName,
+		ShortName: appName,
+		StartURL:  appURL,
 		Icons: []manifestIcon{
 			{
 				Src:   absoluteAssetURL + "/img/logo-lg.png",
@@ -1112,10 +1110,6 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 				Sizes: "120x120",
 			},
 		},
-		StartURL:        appURL,
-		Scope:           appURL,
-		BackgroundColor: "#FAFAFA",
-		Display:         "standalone",
 	})
 
 	if err != nil {
