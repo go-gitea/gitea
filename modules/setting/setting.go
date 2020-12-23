@@ -1051,8 +1051,6 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 // makeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
 func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
-	ret := strings.TrimSuffix(staticURLPrefix, "/")
-
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
@@ -1060,14 +1058,14 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 
 	if parsedPrefix.Hostname() == "" {
 		if staticURLPrefix == "" {
-			ret = strings.TrimSuffix(appURL, "/")
+			return strings.TrimSuffix(appURL, "/")
 		} else {
 			// handle the case if StaticURLPrefix is just a path
-			ret = strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
+			return strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
 		}
 	}
 
-	return ret
+	return strings.TrimSuffix(staticURLPrefix, "/")
 }
 
 func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
