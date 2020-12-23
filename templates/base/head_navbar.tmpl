@@ -67,6 +67,22 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
+			<a
+				class="active-stopwatch item poping up ui label {{if not .ActiveStopwatch}}hidden{{end}}"
+				href="{{AppSubUrl}}/{{.ActiveStopwatch.RepoSlug}}/issues/{{.ActiveStopwatch.IssueIndex}}"
+				data-content='{{.i18n.Tr "active_stopwatch"}}{{if .ActiveStopwatch}} in {{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}{{end}}'
+				data-variation="tiny inverted"
+				data-position="bottom right"
+			>
+				<span class="text">
+					<span class="fitted">{{svg "octicon-clock"}}</span>
+					<span class="sr-mobile-only">{{.i18n.Tr "active_stopwatch"}}</span>
+					{{if .ActiveStopwatch}}
+						<span class="ui label red stopwatch-time">{{Sec2Time .ActiveStopwatch.Seconds}}</span>
+					{{end}}
+				</span>
+			</a>
+
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
