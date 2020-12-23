@@ -32,7 +32,7 @@ func TestDownloadByIDForSVGUsesSecureHeaders(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo2/raw/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	assert.Equal(t, "default-src 'none'; sandbox", resp.HeaderMap.Get("Content-Security-Policy"))
+	assert.Equal(t, "default-src 'none'; style-src 'unsafe-inline'; sandbox", resp.HeaderMap.Get("Content-Security-Policy"))
 	assert.Equal(t, "image/svg+xml", resp.HeaderMap.Get("Content-Type"))
 	assert.Equal(t, "nosniff", resp.HeaderMap.Get("X-Content-Type-Options"))
 }
@@ -58,7 +58,7 @@ func TestDownloadByIDMediaForSVGUsesSecureHeaders(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo2/media/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	assert.Equal(t, "default-src 'none'; sandbox", resp.HeaderMap.Get("Content-Security-Policy"))
+	assert.Equal(t, "default-src 'none'; style-src 'unsafe-inline'; sandbox", resp.HeaderMap.Get("Content-Security-Policy"))
 	assert.Equal(t, "image/svg+xml", resp.HeaderMap.Get("Content-Type"))
 	assert.Equal(t, "nosniff", resp.HeaderMap.Get("X-Content-Type-Options"))
 }
