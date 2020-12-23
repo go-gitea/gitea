@@ -33,9 +33,7 @@
 		{{if not .ReadmeInList}}
 		<div class="file-header-right file-actions df ac">
 			<div class="ui buttons mr-2">
-				{{if not .IsSVGImageFile}}
-					<a class="ui mini basic button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
-				{{end}}
+				<a class="ui mini basic button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
 				{{end}}
