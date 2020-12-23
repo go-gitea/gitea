@@ -1255,6 +1255,18 @@ function initPullRequestMergeInstruction() {
   });
 }
 
+function initRelease() {
+  $('.remove-rel-attach').on('click', () => {
+    const $this = $(this);
+    $.post($this.data('url'), {
+      _csrf: csrf,
+      file: $this.data('file')
+    }).done(() => {
+      $this.remove();
+    });
+  });
+}
+
 function initPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -2748,6 +2760,7 @@ $(document).ready(async () => {
   initNotificationsTable();
   initPullRequestMergeInstruction();
   initReleaseEditor();
+  initRelease();
 
   const routes = {
     'div.user.settings': initUserSettings,
