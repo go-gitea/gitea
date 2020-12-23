@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
-	<link rel="manifest" href="{{.ManifestData}}"/>
+	<link rel="manifest" href="data:{{.ManifestData}}"/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="default-theme" content="{{DefaultTheme}}" />
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
