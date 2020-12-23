@@ -42,8 +42,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Repository (`repository`)
 
-- `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
-   an absolute path.
+- `ROOT`: **data/gitea-repositories/**: Root path for storing all repository data. It must be
+   an absolute path. By default it is stored in a sub-directory of `APP_DATA_PATH`.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
@@ -74,6 +74,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects**: Comma separated list of default repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
+- `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
@@ -422,6 +423,8 @@ relation to port exhaustion.
    process.
 - `REGISTER_EMAIL_CONFIRM`: **false**: Enable this to ask for mail confirmation of registration.
    Requires `Mailer` to be enabled.
+- `REGISTER_MANUAL_CONFIRM`: **false**: Enable this to manually confirm new registrations.
+   Requires `REGISTER_EMAIL_CONFIRM` to be disabled.
 - `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create
    accounts for users.
 - `REQUIRE_EXTERNAL_REGISTRATION_PASSWORD`: **false**: Enable this to force externally created

@@ -8,8 +8,6 @@ package git
 import (
 	"fmt"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -18,12 +16,6 @@ const TagPrefix = "refs/tags/"
 // IsTagExist returns true if given tag exists in the repository.
 func IsTagExist(repoPath, name string) bool {
 	return IsReferenceExist(repoPath, TagPrefix+name)
-}
-
-// IsTagExist returns true if given tag exists in the repository.
-func (repo *Repository) IsTagExist(name string) bool {
-	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(TagPrefix+name), true)
-	return err == nil
 }
 
 // CreateTag create one tag in the repository
@@ -38,21 +30,16 @@ func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error
 	return err
 }
 
-func (repo *Repository) getTag(id SHA1) (*Tag, error) {
-	t, ok := repo.tagCache.Get(id.String())
+func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
+	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
-		log("Hit cache: %s", id)
+		log("Hit cache: %s", tagID)
 		tagClone := *t.(*Tag)
+		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}
 
-	// Get tag name
-	name, err := repo.GetTagNameBySHA(id.String())
-	if err != nil {
-		return nil, err
-	}
-
-	tp, err := repo.GetTagType(id)
+	tp, err := repo.GetTagType(tagID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,24 +55,9 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return nil, err
 	}
 
-	// tagID defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
-	tagID := commitID
-	if tagIDStr, err := repo.GetTagID(name); err != nil {
-		// if the err is NotExist then we can ignore and just keep tagID as ID (is lightweight tag)
-		// all other errors we return
-		if !IsErrNotExist(err) {
-			return nil, err
-		}
-	} else {
-		tagID, err = NewIDFromString(tagIDStr)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(id.String())
+		commit, err := repo.GetCommit(commitIDStr)
 		if err != nil {
 			return nil, err
 		}
@@ -93,18 +65,18 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 			Name:    name,
 			ID:      tagID,
 			Object:  commitID,
-			Type:    string(ObjectCommit),
+			Type:    tp,
 			Tagger:  commit.Committer,
 			Message: commit.Message(),
 			repo:    repo,
 		}
 
-		repo.tagCache.Set(id.String(), tag)
+		repo.tagCache.Set(tagID.String(), tag)
 		return tag, nil
 	}
 
 	// The tag is an annotated tag with a message.
-	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
+	data, err := NewCommand("cat-file", "-p", tagID.String()).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -115,11 +87,11 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	}
 
 	tag.Name = name
-	tag.ID = id
+	tag.ID = tagID
 	tag.repo = repo
 	tag.Type = tp
 
-	repo.tagCache.Set(id.String(), tag)
+	repo.tagCache.Set(tagID.String(), tag)
 	return tag, nil
 }
 
@@ -178,7 +150,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := repo.getTag(id)
+	tag, err := repo.getTag(id, name)
 	if err != nil {
 		return nil, err
 	}
@@ -224,29 +196,6 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 	return tags, nil
 }
 
-// GetTags returns all tags of the repository.
-func (repo *Repository) GetTags() ([]string, error) {
-	var tagNames []string
-
-	tags, err := repo.gogitRepo.Tags()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = tags.ForEach(func(tag *plumbing.Reference) error {
-		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
-		return nil
-	})
-
-	// Reverse order
-	for i := 0; i < len(tagNames)/2; i++ {
-		j := len(tagNames) - i - 1
-		tagNames[i], tagNames[j] = tagNames[j], tagNames[i]
-	}
-
-	return tagNames, nil
-}
-
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	// Get tag type
@@ -275,7 +224,13 @@ func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
 		return nil, ErrNotExist{ID: id.String()}
 	}
 
-	tag, err := repo.getTag(id)
+	// Get tag name
+	name, err := repo.GetTagNameBySHA(id.String())
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err := repo.getTag(id, name)
 	if err != nil {
 		return nil, err
 	}

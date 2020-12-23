@@ -57,6 +57,10 @@ To make Gitea serve custom public files (like pages and images), use the folder
 For example, a file `image.png` stored in `custom/public/`, can be accessed with
 the url `http://gitea.domain.tld/image.png`.
 
+## Changing the default logo
+
+To automatically update custom logo png and svg files replace `assets/logo.svg` and run `make generate-images`. This will update the user-designated logo files served in `public/img`. Alternatively, you can manually update each `logo-X.png` and `logo.svg` file in `public/img`.
+
 ## Changing the default avatar
 
 Place the png image at the following path: `custom/public/img/avatar_default.png`

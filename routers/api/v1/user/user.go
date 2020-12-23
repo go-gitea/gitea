@@ -166,7 +166,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		return
 	}
 
-	heatmap, err := models.GetUserHeatmapDataByUser(user)
+	heatmap, err := models.GetUserHeatmapDataByUser(user, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return
