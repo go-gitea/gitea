@@ -1056,7 +1056,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
 	}
 
-	if parsedPrefix.Hostname() == "" {
+	if err == nil && parsedPrefix.Hostname() == "" {
 		if staticURLPrefix == "" {
 			return strings.TrimSuffix(appURL, "/")
 		} else {
@@ -1082,7 +1082,7 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
-	bs, err := json.Marshal(&manifestJSON{
+	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,
 		StartURL:  appURL,
@@ -1112,9 +1112,10 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 
 	if err != nil {
 		log.Error("unable to marshal manifest JSON. Error: %v", err)
+		return make([]byte, 0)
 	}
 
-	return bs
+	return bytes
 }
 
 // NewServices initializes the services
