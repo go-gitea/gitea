@@ -235,6 +235,10 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled_info"), true)
+	ctx.Flash.Info(token, true)
+
+	loadSecurityData(ctx)
+	ctx.Data["ScratchToken"] = token
+	ctx.HTML(200, tplSettingsSecurity)
 }
