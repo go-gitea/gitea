@@ -642,8 +642,8 @@ type HookTask struct {
 	HookID          int64
 	UUID            string
 	Typ             HookTaskType `xorm:"char(16) 'type'"`
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
