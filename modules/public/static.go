@@ -7,8 +7,14 @@
 package public
 
 import (
+	"compress/gzip"
+	"io"
 	"io/ioutil"
+	"log"
+	"mime"
 	"net/http"
+	"path/filepath"
+	"time"
 )
 
 // Static implements the macaron static handler for serving assets.
@@ -48,4 +54,33 @@ func AssetIsDir(name string) (bool, error) {
 			return fi.IsDir(), nil
 		}
 	}
+}
+
+// ServeContent serve http content
+func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
+	if encodings["gzip"] {
+		if rd, ok := f.(*vfsgen۰CompressedFile); ok {
+			w.Header().Set("Content-Encoding", "gzip")
+			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
+			if ctype == "" {
+				// read a chunk to decide between utf-8 text and binary
+				var buf [512]byte
+				grd, _ := gzip.NewReader(rd)
+				n, _ := io.ReadFull(grd, buf[:])
+				ctype = http.DetectContentType(buf[:n])
+				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
+				if err != nil {
+					log.Printf("rd.Seek error: %v\n", err)
+					return false
+				}
+			}
+			w.Header().Set("Content-Type", ctype)
+			http.ServeContent(w, req, file, fi.ModTime(), rd)
+			return true
+		}
+	}
+
+	http.ServeContent(w, req, file, fi.ModTime(), f)
+	return true
 }

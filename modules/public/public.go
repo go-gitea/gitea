@@ -5,11 +5,7 @@
 package public
 
 import (
-	"bytes"
-	"compress/gzip"
-	"io"
 	"log"
-	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -17,8 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/shurcooL/httpgzip"
 )
 
 // Options represents the available options to configure the macaron handler.
@@ -93,6 +87,16 @@ func (opts *Options) staticHandler(dir string) func(next http.Handler) http.Hand
 	}
 }
 
+// parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
+func parseAcceptEncoding(val string) map[string]bool {
+	parts := strings.Split(val, ";")
+	var types = make(map[string]bool)
+	for _, v := range strings.Split(parts[0], ",") {
+		types[v] = true
+	}
+	return types
+}
+
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
 	if req.Method != "GET" && req.Method != "HEAD" {
 		return false
@@ -163,29 +167,6 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		return true
 	}
 
-	if _, ok := f.(httpgzip.NotWorthGzipCompressing); !ok {
-		if g, ok := f.(httpgzip.GzipByter); ok {
-			w.Header().Set("Content-Encoding", "gzip")
-			rd := bytes.NewReader(g.GzipBytes())
-			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
-			if ctype == "" {
-				// read a chunk to decide between utf-8 text and binary
-				var buf [512]byte
-				grd, _ := gzip.NewReader(rd)
-				n, _ := io.ReadFull(grd, buf[:])
-				ctype = http.DetectContentType(buf[:n])
-				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
-				if err != nil {
-					log.Printf("rd.Seek error: %v\n", err)
-					return false
-				}
-			}
-			w.Header().Set("Content-Type", ctype)
-			http.ServeContent(w, req, file, fi.ModTime(), rd)
-			return true
-		}
-	}
-
-	http.ServeContent(w, req, file, fi.ModTime(), f)
+	ServeContent(w, req, file, fi.ModTime(), f)
 	return true
 }
