@@ -31,10 +31,10 @@ async function updateStopwatch() {
   const data = await $.ajax({
     type: 'GET',
     url: `${AppSubUrl}/api/v1/user/stopwatches`,
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
   });
 
-  const watch = data[0]
+  const watch = data[0];
   const btnEl = $('.active-stopwatch');
   if (!watch) {
     btnEl.addClass('hidden');
@@ -44,5 +44,5 @@ async function updateStopwatch() {
     btnEl.removeClass('hidden');
   }
 
-  return !!data.length
+  return !!data.length;
 }
