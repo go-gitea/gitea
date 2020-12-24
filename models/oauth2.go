@@ -134,7 +134,7 @@ func ResetOAuth2() error {
 	return initOAuth2LoginSources()
 }
 
-// initOuath2LoginSources is used to load and register all active OAuth2 providers
+// initOAuth2LoginSources is used to load and register all active OAuth2 providers
 func initOAuth2LoginSources() error {
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
