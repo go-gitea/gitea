@@ -1,0 +1,47 @@
+<div class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}">
+	<div class="ui container">
+		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
+        <div class="ui top attached tabular menu">
+            {{ $notificationUnreadCount := call .NotificationUnreadCount}}
+            <a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
+                {{.i18n.Tr "notification.unread"}}
+                <div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
+            </a>
+            <a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
+                {{.i18n.Tr "notification.read"}}
+            </a>
+            {{if and (eq .Status 1)}}
+                <form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
+                    {{$.CsrfTokenHtml}}
+                    <div class="{{if not $notificationUnreadCount}}hide{{end}}">
+                        <button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
+                            {{svg "octicon-checklist"}}
+                        </button>
+                    </div>
+                </form>
+            {{end}}
+        </div>
+        <div class="ui bottom attached active tab segment">
+            {{if eq (len .Notifications) 0}}
+                {{if eq .Status 1}}
+                    {{.i18n.Tr "notification.no_unread"}}
+                {{else}}
+                    {{.i18n.Tr "notification.no_read"}}
+                {{end}}
+            {{else}}
+                <table class="ui unstackable striped very compact small selectable table" id="notification_table">
+                    <tbody>
+                        {{range $notification := .Notifications}}
+                            {{if gt .IssueID 0}}
+                            {{template "user/notification/issue" dict "notification" $notification "root" $}}
+                            {{else if gt .ReleaseID 0}}
+                            {{template "user/notification/release" dict "notification" $notification "root" $}}
+                            {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+            {{end}}
+        </div>
+        {{template "base/paginate" .}}
+    </div>
+</div>

@@ -1,0 +1,87 @@
+{{$issue := .notification.Issue}}
+{{$repo := .notification.Repository}}
+{{$repoOwner := $repo.MustOwner}}
+
+<tr id="notification_{{.ID}}">
+    <td class="collapsing" data-href="{{.notification.HTMLURL}}">
+        {{if eq .notification.Status 3}}
+            <span class="blue">{{svg "octicon-pin"}}</span>
+        {{else if $issue.IsPull}}
+            {{if $issue.IsClosed}}
+                {{if $issue.GetPullRequest.HasMerged}}
+                    <span class="purple">{{svg "octicon-git-merge"}}</span>
+                {{else}}
+                    <span class="red">{{svg "octicon-git-pull-request"}}</span>
+                {{end}}
+            {{else}}
+                <span class="green">{{svg "octicon-git-pull-request"}}</span>
+            {{end}}
+        {{else}}
+            {{if $issue.IsClosed}}
+                <span class="red">{{svg "octicon-issue-closed"}}</span>
+            {{else}}
+                <span class="green">{{svg "octicon-issue-opened"}}</span>
+            {{end}}
+        {{end}}
+    </td>
+    <td class="eleven wide" data-href="{{.notification.HTMLURL}}">
+        <a class="item" href="{{.notification.HTMLURL}}">
+            #{{$issue.Index}} - {{$issue.Title}}
+        </a>
+    </td>
+    <td data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
+        <a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
+            {{$repoOwner.Name}}/{{$repo.Name}}
+        </a>
+    </td>
+    <td class="collapsing">
+        {{if ne .notification.Status 3}}
+            <form action="{{AppSubUrl}}/notifications/status" method="POST">
+                {{$.CsrfTokenHtml}}
+                <input type="hidden" name="notification_id" value="{{.ID}}" />
+                <input type="hidden" name="status" value="pinned" />
+                <button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'
+                    data-url="{{AppSubUrl}}/notifications/status"
+                    data-status="pinned"
+                    data-page="{{$.Page.Paginater.Current}}"
+                    data-notification-id="{{.ID}}"
+                    data-q="{{$.Keyword}}">
+                    {{svg "octicon-pin"}}
+                </button>
+            </form>
+        {{end}}
+    </td>
+    <td class="collapsing">
+        {{if or (eq .notification.Status 1) (eq .notification.Status 3)}}
+            <form action="{{AppSubUrl}}/notifications/status" method="POST">
+                {{$.CsrfTokenHtml}}
+                <input type="hidden" name="notification_id" value="{{.notification.ID}}" />
+                <input type="hidden" name="status" value="read" />
+                <input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+                <button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'
+                    data-url="{{AppSubUrl}}/notifications/status"
+                    data-status="read"
+                    data-page="{{$.Page.Paginater.Current}}"
+                    data-notification-id="{{.ID}}"
+                    data-q="{{$.Keyword}}">
+                    {{svg "octicon-check"}}
+                </button>
+            </form>
+        {{else if eq .Status 2}}
+            <form action="{{AppSubUrl}}/notifications/status" method="POST">
+                {{$.CsrfTokenHtml}}
+                <input type="hidden" name="notification_id" value="{{.ID}}" />
+                <input type="hidden" name="status" value="unread" />
+                <input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+                <button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'
+                    data-url="{{AppSubUrl}}/notifications/status"
+                    data-status="unread"
+                    data-page="{{$.Page.Paginater.Current}}"
+                    data-notification-id="{{.ID}}"
+                    data-q="{{$.Keyword}}">
+                    {{svg "octicon-bell"}}
+                </button>
+            </form>
+        {{end}}
+    </td>
+</tr>

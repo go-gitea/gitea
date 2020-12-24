@@ -80,6 +80,7 @@ type Notification struct {
 	Repository *Repository `xorm:"-"`
 	Comment    *Comment    `xorm:"-"`
 	User       *User       `xorm:"-"`
+	Release    *Release    `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
@@ -264,10 +265,9 @@ func createOrUpdateIssueNotifications(e Engine, opts *NotificationOpts) error {
 	return nil
 }
 
-// TODO:
 func createOrUpdateReleaseNotifications(e Engine, opts *NotificationOpts) error {
 	// init
-	var toNotify map[int64]NotificationBy
+	var toNotify = make(map[int64]NotificationBy, 32)
 	notifications, err := getNotificationsByReleaseID(e, opts.ReleaseID)
 	if err != nil {
 		return err
@@ -495,6 +495,9 @@ func (n *Notification) loadAttributes(e Engine) (err error) {
 	if err = n.loadComment(e); err != nil {
 		return
 	}
+	if err = n.loadRelease(e); err != nil {
+		return
+	}
 	return
 }
 
@@ -509,7 +512,7 @@ func (n *Notification) loadRepo(e Engine) (err error) {
 }
 
 func (n *Notification) loadIssue(e Engine) (err error) {
-	if n.Issue == nil {
+	if n.Issue == nil && n.IssueID > 0 {
 		n.Issue, err = getIssueByID(e, n.IssueID)
 		if err != nil {
 			return fmt.Errorf("getIssueByID [%d]: %v", n.IssueID, err)
@@ -539,6 +542,17 @@ func (n *Notification) loadUser(e Engine) (err error) {
 	return nil
 }
 
+func (n *Notification) loadRelease(e Engine) (err error) {
+	if n.Release == nil && n.ReleaseID > 0 {
+		n.Release, err = getReleaseByID(e, n.ReleaseID)
+		if err != nil {
+			return fmt.Errorf("getReleaseByID [%d]: %v", n.ReleaseID, err)
+		}
+		return n.Release.loadAttributes(e)
+	}
+	return nil
+}
+
 // GetRepo returns the repo of the notification
 func (n *Notification) GetRepo() (*Repository, error) {
 	return n.Repository, n.loadRepo(x)
@@ -553,8 +567,12 @@ func (n *Notification) GetIssue() (*Issue, error) {
 func (n *Notification) HTMLURL() string {
 	if n.Comment != nil {
 		return n.Comment.HTMLURL()
+	} else if n.Issue != nil {
+		return n.Issue.HTMLURL()
+	} else if n.Release != nil {
+		return n.Release.HTMLURL()
 	}
-	return n.Issue.HTMLURL()
+	return ""
 }
 
 // APIURL formats a URL-string to the notification
@@ -655,11 +673,24 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 func (nl NotificationList) getPendingIssueIDs() []int64 {
 	var ids = make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
-		if notification.Issue != nil {
+		if notification.Issue != nil || notification.IssueID == 0 {
 			continue
 		}
 		if _, ok := ids[notification.IssueID]; !ok {
 			ids[notification.IssueID] = struct{}{}
+		}
+	}
+	return keysInt64(ids)
+}
+
+func (nl NotificationList) getPendingReleaseIDs() []int64 {
+	var ids = make(map[int64]struct{}, len(nl))
+	for _, notification := range nl {
+		if notification.Release != nil || notification.ReleaseID == 0 {
+			continue
+		}
+		if _, ok := ids[notification.ReleaseID]; !ok {
+			ids[notification.ReleaseID] = struct{}{}
 		}
 	}
 	return keysInt64(ids)
@@ -671,9 +702,11 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		return []int{}, nil
 	}
 
-	var issueIDs = nl.getPendingIssueIDs()
-	var issues = make(map[int64]*Issue, len(issueIDs))
-	var left = len(issueIDs)
+	var (
+		issueIDs = nl.getPendingIssueIDs()
+		issues   = make(map[int64]*Issue, len(issueIDs))
+		left     = len(issueIDs)
+	)
 	for left > 0 {
 		var limit = defaultMaxInSize
 		if left < limit {
@@ -702,10 +735,43 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		issueIDs = issueIDs[limit:]
 	}
 
+	var (
+		releaseIDs   = nl.getPendingReleaseIDs()
+		releases     = make(map[int64]*Release, len(releaseIDs))
+		releasesLeft = len(releaseIDs)
+	)
+	for releasesLeft > 0 {
+		var limit = defaultMaxInSize
+		if releasesLeft < limit {
+			limit = releasesLeft
+		}
+		rows, err := x.
+			In("id", releaseIDs[:limit]).
+			Rows(new(Release))
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var release Release
+			err = rows.Scan(&release)
+			if err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			releases[release.ID] = &release
+		}
+		_ = rows.Close()
+
+		releasesLeft -= limit
+		releaseIDs = releaseIDs[limit:]
+	}
+
 	failures := []int{}
 
 	for i, notification := range nl {
-		if notification.Issue == nil {
+		if notification.Issue == nil && notification.IssueID > 0 {
 			notification.Issue = issues[notification.IssueID]
 			if notification.Issue == nil {
 				log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
@@ -713,6 +779,15 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 				continue
 			}
 			notification.Issue.Repo = notification.Repository
+		}
+		if notification.Release == nil && notification.ReleaseID > 0 {
+			notification.Release = releases[notification.ReleaseID]
+			if notification.Release == nil {
+				log.Error("Notification[%d]: ReleaseID: %d Not Found", notification.ID, notification.ReleaseID)
+				failures = append(failures, i)
+				continue
+			}
+			notification.Release.Repo = notification.Repository
 		}
 	}
 	return failures, nil
