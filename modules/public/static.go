@@ -7,8 +7,17 @@
 package public
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Static implements the macaron static handler for serving assets.
@@ -48,4 +57,35 @@ func AssetIsDir(name string) (bool, error) {
 			return fi.IsDir(), nil
 		}
 	}
+}
+
+// ServeContent serve http content
+func ServeContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
+	if encodings["gzip"] {
+		if cf, ok := fi.(*vfsgen۰CompressedFileInfo); ok {
+			rd := bytes.NewReader(cf.GzipBytes())
+			w.Header().Set("Content-Encoding", "gzip")
+			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
+			if ctype == "" {
+				// read a chunk to decide between utf-8 text and binary
+				var buf [512]byte
+				grd, _ := gzip.NewReader(rd)
+				n, _ := io.ReadFull(grd, buf[:])
+				ctype = http.DetectContentType(buf[:n])
+				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
+				if err != nil {
+					log.Error("rd.Seek error: %v", err)
+					http.Error(w, http.StatusText(500), 500)
+					return
+				}
+			}
+			w.Header().Set("Content-Type", ctype)
+			http.ServeContent(w, req, fi.Name(), modtime, rd)
+			return
+		}
+	}
+
+	http.ServeContent(w, req, fi.Name(), modtime, content)
+	return
 }

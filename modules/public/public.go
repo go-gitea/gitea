@@ -87,6 +87,16 @@ func (opts *Options) staticHandler(dir string) func(next http.Handler) http.Hand
 	}
 }
 
+// parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
+func parseAcceptEncoding(val string) map[string]bool {
+	parts := strings.Split(val, ";")
+	var types = make(map[string]bool)
+	for _, v := range strings.Split(parts[0], ",") {
+		types[strings.TrimSpace(v)] = true
+	}
+	return types
+}
+
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
 	if req.Method != "GET" && req.Method != "HEAD" {
 		return false
@@ -157,6 +167,6 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		return true
 	}
 
-	http.ServeContent(w, req, file, fi.ModTime(), f)
+	ServeContent(w, req, fi, fi.ModTime(), f)
 	return true
 }
