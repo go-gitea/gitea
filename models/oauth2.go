@@ -125,17 +125,17 @@ func InitOAuth2() error {
 	if err := oauth2.Init(x); err != nil {
 		return err
 	}
-	return initOuath2LoginSources()
+	return initOAuth2LoginSources()
 }
 
 // ResetOAuth2 clears existing OAuth2 providers and loads them from the DB
 func ResetOAuth2() error {
 	oauth2.ClearProviders()
-	return initOuath2LoginSources()
+	return initOAuth2LoginSources()
 }
 
 // initOuath2LoginSources is used to load and register all active OAuth2 providers
-func initOuath2LoginSources() error {
+func initOAuth2LoginSources() error {
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
