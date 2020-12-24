@@ -114,9 +114,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		n, _ := dataRc.Read(buf)
 		buf = buf[:n]
 
-		// Only text file are editable online.
-		if !base.IsTextFile(buf) {
-			ctx.NotFound("base.IsTextFile", nil)
+		// Only some file types are editable online as text.
+		if !base.IsRepresentableAsText(buf) {
+			ctx.NotFound("base.IsRepresentableAsText", nil)
 			return
 		}
 

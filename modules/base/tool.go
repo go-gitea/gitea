@@ -293,6 +293,12 @@ func DetectContentType(data []byte) string {
 	return ct
 }
 
+// IsRepresentableAsText returns true if file content can be represented as
+// plain text or is empty.
+func IsRepresentableAsText(data []byte) bool {
+	return IsTextFile(data) || IsSVGImageFile(data)
+}
+
 // IsTextFile returns true if file content format is plain text or empty.
 func IsTextFile(data []byte) bool {
 	if len(data) == 0 {

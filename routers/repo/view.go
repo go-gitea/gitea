@@ -396,6 +396,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
+
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
 		meta := lfs.IsPointerFile(&buf)
@@ -451,12 +453,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	// Assume file is not editable first.
 	if isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isTextFile {
+	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
@@ -504,9 +511,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsVideoFile"] = true
 	case base.IsAudioFile(buf):
 		ctx.Data["IsAudioFile"] = true
-	case base.IsSVGImageFile(buf):
-		ctx.Data["IsImageFile"] = true
-		ctx.Data["IsSVGImageFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	default:
