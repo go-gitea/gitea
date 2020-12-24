@@ -128,7 +128,7 @@ func InitOAuth2() error {
 	return initOAuth2LoginSources()
 }
 
-// ResetOAuth2 clears existing OAuth2 providers and loads them from the DB
+// ResetOAuth2 clears existing OAuth2 providers and loads them from DB
 func ResetOAuth2() error {
 	oauth2.ClearProviders()
 	return initOAuth2LoginSources()
