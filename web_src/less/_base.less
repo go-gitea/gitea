@@ -97,13 +97,10 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
-  --color-label: #00000010;
-  --color-label-hover: #00000015;
-  --color-label-basic: #00000008;
-  --color-label-basic-hover: #00000015;
-  --color-label-border: #00000018;
-  --color-hover: #0000000a;
-  --color-active: #00000010;
+  --color-light: #00000004;
+  --color-light-border: #0000001d;
+  --color-hover: #0000000d;
+  --color-active: #00000012;
   --color-menu: #ffffff;
   --color-card: #ffffff;
   --color-markdown-table-row: #00000008;
@@ -1383,13 +1380,13 @@ i.icon.centerlock {
 
 .ui.label {
   padding: .3em .5em;
-  background: var(--color-label);
+  background: var(--color-light);
   color: var(--color-text-light);
 }
 
 .ui.labels a.label:hover,
 a.ui.label:hover {
-  background: var(--color-label-hover);
+  background: var(--color-hover);
   color: var(--color-text);
 }
 
@@ -1557,7 +1554,7 @@ a.ui.label:hover {
 
 .ui.button {
   background: var(--color-button);
-  border: 1px solid var(--color-secondary);
+  border: 1px solid var(--color-light-border);
   box-shadow: none !important;
   color: var(--color-text);
 }
@@ -1582,7 +1579,7 @@ a.ui.label:hover {
 .ui.basic.buttons .button,
 .ui.basic.button {
   color: var(--color-text-light);
-  background: var(--color-label-basic);
+  background: var(--color-light);
 }
 
 .ui.basic.buttons .button:hover,
@@ -1600,7 +1597,7 @@ a.ui.label:hover {
 }
 
 .ui.labeled.button > .label {
-  border-color: var(--color-secondary);
+  border-color: var(--color-light-border);
 }
 
 .ui.blue.button,
@@ -1665,16 +1662,16 @@ a.ui.label:hover {
 
 .ui.basic.labels .label,
 .ui.basic.label {
-  background: var(--color-label-basic);
-  border-color: var(--color-label-border);
-  color: var(--color-text);
+  background: var(--color-light);
+  border-color: var(--color-light-border);
+  color: var(--color-text-light);
 }
 
 .ui.basic.labels a.label:hover,
 a.ui.basic.label:hover {
   color: var(--color-text);
-  border-color: var(--color-label-border);
-  background: var(--color-label-basic-hover);
+  border-color: var(--color-light-border);
+  background: var(--color-hover);
 }
 
 .ui.label > img {
