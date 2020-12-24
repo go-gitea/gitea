@@ -264,7 +264,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
-- `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
+- `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content, static resources excluded.
 - `ENABLE_PPROF`: **false**: Application profiling (memory and cpu). For "web" command it listens on localhost:6060. For "serv" command it dumps to disk at `PPROF_DATA_PATH` as `(cpuprofile|memprofile)_<username>_<temporary id>`
 - `PPROF_DATA_PATH`: **data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start gitea as service
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
