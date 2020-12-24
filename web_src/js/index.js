@@ -1841,7 +1841,8 @@ function initAdmin() {
       case 'gitea':
       case 'nextcloud':
       case 'mastodon':
-        $('#oauth2_use_custom_url').attr("checked", "checked")
+        $('#oauth2_use_custom_url').attr('checked', 'checked');
+        // fallthrough intentional
       case 'github':
       case 'gitlab':
         $('.oauth2_use_custom_url').show();
