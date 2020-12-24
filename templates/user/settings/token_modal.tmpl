@@ -1,5 +1,5 @@
 {{if .Token}}
-	<div class="ui small basic success modal" id="token-generated">
+	<div class="ui small success modal" id="token-generated">
 		<div class="ui icon header">
 			{{svg "octicon-shield-lock"}}
 			{{.i18n.Tr .Title}}
@@ -10,11 +10,11 @@
 		</div>
 		
 		<div class="actions">
-			<button id="copy-token" data-token="{{.Token}}" class="ui button basic inverted">
+			<button id="copy-token" data-token="{{.Token}}" class="ui button ok">
 				{{svg "octicon-clippy"}}
 				{{.i18n.Tr "copy_to_clipboard"}}
 			</button>
-			<button class="ui button basic inverted ok">
+			<button class="ui button ok">
 				{{svg "octicon-check"}}
 				OK
 			</button>
