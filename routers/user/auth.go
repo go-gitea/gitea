@@ -570,8 +570,17 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp)
-	if err != nil {
+	if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+		if strings.Contains(err.Error(), "no provider for ") {
+			if err = models.ResetOAuth2(); err != nil {
+				ctx.ServerError("SignIn", err)
+				return
+			}
+			if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+				ctx.ServerError("SignIn", err)
+			}
+			return
+		}
 		ctx.ServerError("SignIn", err)
 	}
 	// redirect is done in oauth2.Auth
