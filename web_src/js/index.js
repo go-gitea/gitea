@@ -3123,6 +3123,11 @@ function initIssueTimetracking() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
+    $('.issue-start-time-modal input').on('keydown', (e) => {
+      if ((e.keyCode || e.key) === 13) {
+        $('#add_time_manual_form').trigger('submit');
+      }
+    });
   });
   $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
     $('#toggle_stopwatch_form').trigger('submit');
