@@ -10,11 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateOrUpdateIssueNotifications(t *testing.T) {
+func TestCreateOrUpdateNotifications(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
-	assert.NoError(t, CreateOrUpdateIssueNotifications(issue.ID, 0, 2, 0))
+	assert.NoError(t, CreateOrUpdateNotifications(&NotificationOpts{
+		IssueID:              issue.ID,
+		NotificationAuthorID: 2,
+	}))
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := AssertExistsAndLoadBean(t, &Notification{UserID: 1, IssueID: issue.ID}).(*Notification)
