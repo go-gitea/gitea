@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -266,7 +265,7 @@ func (a *Action) GetIssueInfos() []string {
 // GetIssueTitle returns the title of first issue associated
 // with the action.
 func (a *Action) GetIssueTitle() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
@@ -278,7 +277,7 @@ func (a *Action) GetIssueTitle() string {
 // GetIssueContent returns the content of first issue associated with
 // this action.
 func (a *Action) GetIssueContent() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
