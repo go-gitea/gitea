@@ -7,8 +7,8 @@ package setting
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"math"
@@ -104,6 +104,7 @@ var (
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
 	StaticURLPrefix      string
+	AbsoluteAssetURL     string
 
 	SSH = struct {
 		Disabled                       bool              `ini:"DISABLE_SSH"`
@@ -294,7 +295,7 @@ var (
 	CSRFCookieName     = "_csrf"
 	CSRFCookieHTTPOnly = true
 
-	ManifestData template.URL
+	ManifestData string
 
 	// Mirror settings
 	Mirror struct {
@@ -600,6 +601,11 @@ func NewContext() {
 		Domain = urlHostname
 	}
 
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+
+	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
+	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
+
 	var defaultLocalURL string
 	switch Protocol {
 	case UnixSocket:
@@ -644,8 +650,6 @@ func NewContext() {
 	default:
 		LandingPageURL = LandingPageHome
 	}
-
-	ManifestData = makeManifestData()
 
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain
@@ -1045,12 +1049,74 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
-func makeManifestData() template.URL {
-	name := url.QueryEscape(AppName)
-	prefix := url.QueryEscape(StaticURLPrefix)
-	subURL := url.QueryEscape(AppSubURL) + "/"
+// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
+func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
+	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
+	if err != nil {
+		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+	}
 
-	return template.URL(`data:application/json,{"short_name":"` + name + `","name":"` + name + `","icons":[{"src":"` + prefix + `/img/logo-lg.png","type":"image/png","sizes":"880x880"},{"src":"` + prefix + `/img/logo-sm.png","type":"image/png","sizes":"120x120"},{"src":"` + prefix + `/img/logo-512.png","type":"image/png","sizes":"512x512"},{"src":"` + prefix + `/img/logo-192.png","type":"image/png","sizes":"192x192"}],"start_url":"` + subURL + `","scope":"` + subURL + `","background_color":"%23FAFAFA","display":"standalone"}`)
+	if err == nil && parsedPrefix.Hostname() == "" {
+		if staticURLPrefix == "" {
+			return strings.TrimSuffix(appURL, "/")
+		}
+
+		// StaticURLPrefix is just a path
+		return strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
+	}
+
+	return strings.TrimSuffix(staticURLPrefix, "/")
+}
+
+// MakeManifestData generates web app manifest JSON
+func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
+	type manifestIcon struct {
+		Src   string `json:"src"`
+		Type  string `json:"type"`
+		Sizes string `json:"sizes"`
+	}
+
+	type manifestJSON struct {
+		Name      string         `json:"name"`
+		ShortName string         `json:"short_name"`
+		StartURL  string         `json:"start_url"`
+		Icons     []manifestIcon `json:"icons"`
+	}
+
+	bytes, err := json.Marshal(&manifestJSON{
+		Name:      appName,
+		ShortName: appName,
+		StartURL:  appURL,
+		Icons: []manifestIcon{
+			{
+				Src:   absoluteAssetURL + "/img/logo-lg.png",
+				Type:  "image/png",
+				Sizes: "880x880",
+			},
+			{
+				Src:   absoluteAssetURL + "/img/logo-512.png",
+				Type:  "image/png",
+				Sizes: "512x512",
+			},
+			{
+				Src:   absoluteAssetURL + "/img/logo-192.png",
+				Type:  "image/png",
+				Sizes: "192x192",
+			},
+			{
+				Src:   absoluteAssetURL + "/img/logo-sm.png",
+				Type:  "image/png",
+				Sizes: "120x120",
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error("unable to marshal manifest JSON. Error: %v", err)
+		return make([]byte, 0)
+	}
+
+	return bytes
 }
 
 // NewServices initializes the services
