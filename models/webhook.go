@@ -8,7 +8,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -113,7 +112,7 @@ type Webhook struct {
 	*HookEvent      `xorm:"-"`
 	IsSSL           bool         `xorm:"is_ssl"`
 	IsActive        bool         `xorm:"INDEX"`
-	Type            HookTaskType `xorm:"char(16) 'type'"`
+	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
 	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus   // Last delivery status
 
@@ -311,7 +310,6 @@ func CreateWebhook(w *Webhook) error {
 }
 
 func createWebhook(e Engine, w *Webhook) error {
-	w.Type = strings.TrimSpace(w.Type)
 	_, err := e.Insert(w)
 	return err
 }
@@ -641,7 +639,7 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Typ             HookTaskType
+	Typ             string `xorm:"VARCHAR(16)"`
 	URL             string `xorm:"TEXT"`
 	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`

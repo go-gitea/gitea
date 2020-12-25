@@ -273,6 +273,8 @@ var migrations = []Migration{
 	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
 	// v164 -> v165
 	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
+	// v165 -> v166
+	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
 }
 
 // GetCurrentDBVersion returns the current db version
