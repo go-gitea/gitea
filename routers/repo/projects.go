@@ -291,6 +291,8 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	project.RenderedContent = string(markdown.Render([]byte(project.Description), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = allBoards

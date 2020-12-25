@@ -14,10 +14,10 @@ import (
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dgrijalva/jwt-go"
 	uuid "github.com/google/uuid"
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
 )
@@ -62,7 +62,7 @@ func (app *OAuth2Application) LoadUser() (err error) {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
-	return com.IsSliceContainsStr(app.RedirectURIs, redirectURI)
+	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database

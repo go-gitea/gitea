@@ -19,8 +19,8 @@ import (
 )
 
 type ClientIface interface {
-	Add(vb uint16, key string, flags int, exp int, body []byte) (*gomemcached.MCResponse, error)
-	Append(vb uint16, key string, data []byte) (*gomemcached.MCResponse, error)
+	Add(vb uint16, key string, flags int, exp int, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error)
+	Append(vb uint16, key string, data []byte, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	Auth(user, pass string) (*gomemcached.MCResponse, error)
 	AuthList() (*gomemcached.MCResponse, error)
 	AuthPlain(user, pass string) (*gomemcached.MCResponse, error)
@@ -30,44 +30,87 @@ type ClientIface interface {
 	CollectionsGetCID(scope string, collection string) (*gomemcached.MCResponse, error)
 	CollectionEnabled() bool
 	Close() error
-	Decr(vb uint16, key string, amt, def uint64, exp int) (uint64, error)
-	Del(vb uint16, key string) (*gomemcached.MCResponse, error)
+	Decr(vb uint16, key string, amt, def uint64, exp int, context ...*ClientContext) (uint64, error)
+	Del(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	EnableMutationToken() (*gomemcached.MCResponse, error)
 	EnableFeatures(features Features) (*gomemcached.MCResponse, error)
-	Get(vb uint16, key string) (*gomemcached.MCResponse, error)
+	Get(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error)
+	GetAllVbSeqnos(vbSeqnoMap map[uint16]uint64, context ...*ClientContext) (map[uint16]uint64, error)
+	GetAndTouch(vb uint16, key string, exp int, context ...*ClientContext) (*gomemcached.MCResponse, error)
+	GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MCResponse, subPaths []string, context ...*ClientContext) error
 	GetCollectionsManifest() (*gomemcached.MCResponse, error)
-	GetFromCollection(vb uint16, cid uint32, key string) (*gomemcached.MCResponse, error)
-	GetSubdoc(vb uint16, key string, subPaths []string) (*gomemcached.MCResponse, error)
-	GetAndTouch(vb uint16, key string, exp int) (*gomemcached.MCResponse, error)
-	GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MCResponse, subPaths []string) error
-	GetMeta(vb uint16, key string) (*gomemcached.MCResponse, error)
-	GetRandomDoc() (*gomemcached.MCResponse, error)
+	GetMeta(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error)
+	GetRandomDoc(context ...*ClientContext) (*gomemcached.MCResponse, error)
+	GetSubdoc(vb uint16, key string, subPaths []string, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	Hijack() io.ReadWriteCloser
-	Incr(vb uint16, key string, amt, def uint64, exp int) (uint64, error)
+	Incr(vb uint16, key string, amt, def uint64, exp int, context ...*ClientContext) (uint64, error)
 	Observe(vb uint16, key string) (result ObserveResult, err error)
 	ObserveSeq(vb uint16, vbuuid uint64) (result *ObserveSeqResult, err error)
 	Receive() (*gomemcached.MCResponse, error)
 	ReceiveWithDeadline(deadline time.Time) (*gomemcached.MCResponse, error)
 	Send(req *gomemcached.MCRequest) (rv *gomemcached.MCResponse, err error)
-	Set(vb uint16, key string, flags int, exp int, body []byte) (*gomemcached.MCResponse, error)
+	Set(vb uint16, key string, flags int, exp int, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	SetKeepAliveOptions(interval time.Duration)
 	SetReadDeadline(t time.Time)
 	SetDeadline(t time.Time)
 	SelectBucket(bucket string) (*gomemcached.MCResponse, error)
-	SetCas(vb uint16, key string, flags int, exp int, cas uint64, body []byte) (*gomemcached.MCResponse, error)
+	SetCas(vb uint16, key string, flags int, exp int, cas uint64, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	Stats(key string) ([]StatValue, error)
 	StatsMap(key string) (map[string]string, error)
 	StatsMapForSpecifiedStats(key string, statsMap map[string]string) error
 	Transmit(req *gomemcached.MCRequest) error
 	TransmitWithDeadline(req *gomemcached.MCRequest, deadline time.Time) error
 	TransmitResponse(res *gomemcached.MCResponse) error
+	UprGetFailoverLog(vb []uint16) (map[uint16]*FailoverLog, error)
 
 	// UprFeed Related
 	NewUprFeed() (*UprFeed, error)
 	NewUprFeedIface() (UprFeedIface, error)
 	NewUprFeedWithConfig(ackByClient bool) (*UprFeed, error)
 	NewUprFeedWithConfigIface(ackByClient bool) (UprFeedIface, error)
-	UprGetFailoverLog(vb []uint16) (map[uint16]*FailoverLog, error)
+}
+
+type ClientContext struct {
+	// Collection-based context
+	CollId uint32
+
+	// VB-state related context
+	// nil means not used in this context
+	VbState *VbStateType
+}
+
+type VbStateType uint8
+
+const (
+	VbAlive   VbStateType = 0x00
+	VbActive  VbStateType = 0x01
+	VbReplica VbStateType = 0x02
+	VbPending VbStateType = 0x03
+	VbDead    VbStateType = 0x04
+)
+
+func (context *ClientContext) InitExtras(req *gomemcached.MCRequest, client *Client) {
+	if req == nil || client == nil {
+		return
+	}
+
+	var bytesToAllocate int
+	switch req.Opcode {
+	case gomemcached.GET_ALL_VB_SEQNOS:
+		if context.VbState != nil {
+			bytesToAllocate += 4
+		}
+		if client.CollectionEnabled() {
+			if context.VbState == nil {
+				bytesToAllocate += 8
+			} else {
+				bytesToAllocate += 4
+			}
+		}
+	}
+	if bytesToAllocate > 0 {
+		req.Extras = make([]byte, bytesToAllocate)
+	}
 }
 
 const bufsize = 1024
@@ -102,8 +145,8 @@ type Client struct {
 
 	hdrBuf []byte
 
-	featureMtx       sync.RWMutex
-	sentHeloFeatures Features
+	collectionsEnabled uint32
+	deadline           time.Time
 }
 
 var (
@@ -156,7 +199,11 @@ func (c *Client) SetReadDeadline(t time.Time) {
 }
 
 func (c *Client) SetDeadline(t time.Time) {
+	if t.Equal(c.deadline) {
+		return
+	}
 	c.conn.SetDeadline(t)
+	c.deadline = t
 }
 
 // Wrap an existing transport.
@@ -287,60 +334,103 @@ func (c *Client) EnableMutationToken() (*gomemcached.MCResponse, error) {
 //Send a hello command to enable specific features
 func (c *Client) EnableFeatures(features Features) (*gomemcached.MCResponse, error) {
 	var payload []byte
+	collectionsEnabled := 0
 
 	for _, feature := range features {
+		if feature == FeatureCollections {
+			collectionsEnabled = 1
+		}
 		payload = append(payload, 0, 0)
 		binary.BigEndian.PutUint16(payload[len(payload)-2:], uint16(feature))
 	}
 
-	c.featureMtx.Lock()
-	c.sentHeloFeatures = features
-	c.featureMtx.Unlock()
-
-	return c.Send(&gomemcached.MCRequest{
+	rv, err := c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.HELLO,
 		Key:    []byte("GoMemcached"),
 		Body:   payload,
 	})
 
+	if err == nil && collectionsEnabled != 0 {
+		atomic.StoreUint32(&c.collectionsEnabled, uint32(collectionsEnabled))
+	}
+	return rv, err
+}
+
+// Sets collection info for a request
+func (c *Client) setCollection(req *gomemcached.MCRequest, context ...*ClientContext) error {
+	req.CollIdLen = 0
+	collectionId := uint32(0)
+	if len(context) > 0 {
+		collectionId = context[0].CollId
+	}
+
+	// if the optional collection is specified, it must be default for clients that haven't turned on collections
+	if atomic.LoadUint32(&c.collectionsEnabled) == 0 {
+		if collectionId != 0 {
+			return fmt.Errorf("Client does not use collections but a collection was specified")
+		}
+	} else {
+		req.CollIdLen = binary.PutUvarint(req.CollId[:], uint64(collectionId))
+	}
+	return nil
+}
+
+func (c *Client) setVbSeqnoContext(req *gomemcached.MCRequest, context ...*ClientContext) error {
+	if len(context) == 0 || req == nil {
+		return nil
+	}
+
+	switch req.Opcode {
+	case gomemcached.GET_ALL_VB_SEQNOS:
+		if len(context) == 0 {
+			return nil
+		}
+
+		if len(req.Extras) == 0 {
+			context[0].InitExtras(req, c)
+		}
+		if context[0].VbState != nil {
+			binary.BigEndian.PutUint32(req.Extras, uint32(*(context[0].VbState)))
+		}
+		if c.CollectionEnabled() {
+			binary.BigEndian.PutUint32(req.Extras[4:8], context[0].CollId)
+		}
+		return nil
+	default:
+		return fmt.Errorf("setVbState Not supported for opcode: %v", req.Opcode.String())
+	}
 }
 
 // Get the value for a key.
-func (c *Client) Get(vb uint16, key string) (*gomemcached.MCResponse, error) {
-	return c.Send(&gomemcached.MCRequest{
+func (c *Client) Get(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.GET,
 		VBucket: vb,
 		Key:     []byte(key),
-	})
-}
-
-// Get the value for a key from a collection, identified by collection id.
-func (c *Client) GetFromCollection(vb uint16, cid uint32, key string) (*gomemcached.MCResponse, error) {
-	keyBytes := []byte(key)
-	encodedCid := make([]byte, binary.MaxVarintLen32)
-	lenEncodedCid := binary.PutUvarint(encodedCid, uint64(cid))
-	encodedKey := make([]byte, 0, lenEncodedCid+len(keyBytes))
-	encodedKey = append(encodedKey, encodedCid[0:lenEncodedCid]...)
-	encodedKey = append(encodedKey, keyBytes...)
-
-	return c.Send(&gomemcached.MCRequest{
-		Opcode:  gomemcached.GET,
-		VBucket: vb,
-		Key:     encodedKey,
-	})
+	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+	return c.Send(req)
 }
 
 // Get the xattrs, doc value for the input key
-func (c *Client) GetSubdoc(vb uint16, key string, subPaths []string) (*gomemcached.MCResponse, error) {
-
+func (c *Client) GetSubdoc(vb uint16, key string, subPaths []string, context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	extraBuf, valueBuf := GetSubDocVal(subPaths)
-	res, err := c.Send(&gomemcached.MCRequest{
+	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.SUBDOC_MULTI_LOOKUP,
 		VBucket: vb,
 		Key:     []byte(key),
 		Extras:  extraBuf,
 		Body:    valueBuf,
-	})
+	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Send(req)
 
 	if err != nil && IfResStatusError(res) {
 		return res, err
@@ -376,48 +466,56 @@ func (c *Client) CollectionsGetCID(scope string, collection string) (*gomemcache
 }
 
 func (c *Client) CollectionEnabled() bool {
-	c.featureMtx.RLock()
-	defer c.featureMtx.RUnlock()
-
-	for _, feature := range c.sentHeloFeatures {
-		if feature == FeatureCollections {
-			return true
-		}
-	}
-	return false
+	return atomic.LoadUint32(&c.collectionsEnabled) > 0
 }
 
 // Get the value for a key, and update expiry
-func (c *Client) GetAndTouch(vb uint16, key string, exp int) (*gomemcached.MCResponse, error) {
+func (c *Client) GetAndTouch(vb uint16, key string, exp int, context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	extraBuf := make([]byte, 4)
 	binary.BigEndian.PutUint32(extraBuf[0:], uint32(exp))
-	return c.Send(&gomemcached.MCRequest{
+	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.GAT,
 		VBucket: vb,
 		Key:     []byte(key),
 		Extras:  extraBuf,
-	})
+	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+	return c.Send(req)
 }
 
 // Get metadata for a key
-func (c *Client) GetMeta(vb uint16, key string) (*gomemcached.MCResponse, error) {
-	return c.Send(&gomemcached.MCRequest{
+func (c *Client) GetMeta(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.GET_META,
 		VBucket: vb,
 		Key:     []byte(key),
-	})
+	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+	return c.Send(req)
 }
 
 // Del deletes a key.
-func (c *Client) Del(vb uint16, key string) (*gomemcached.MCResponse, error) {
-	return c.Send(&gomemcached.MCRequest{
+func (c *Client) Del(vb uint16, key string, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.DELETE,
 		VBucket: vb,
-		Key:     []byte(key)})
+		Key:     []byte(key),
+	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+	return c.Send(req)
 }
 
 // Get a random document
-func (c *Client) GetRandomDoc() (*gomemcached.MCResponse, error) {
+func (c *Client) GetRandomDoc(context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	return c.Send(&gomemcached.MCRequest{
 		Opcode: 0xB6,
 	})
@@ -522,8 +620,7 @@ func (c *Client) SelectBucket(bucket string) (*gomemcached.MCResponse, error) {
 }
 
 func (c *Client) store(opcode gomemcached.CommandCode, vb uint16,
-	key string, flags int, exp int, body []byte) (*gomemcached.MCResponse, error) {
-
+	key string, flags int, exp int, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	req := &gomemcached.MCRequest{
 		Opcode:  opcode,
 		VBucket: vb,
@@ -533,13 +630,16 @@ func (c *Client) store(opcode gomemcached.CommandCode, vb uint16,
 		Extras:  []byte{0, 0, 0, 0, 0, 0, 0, 0},
 		Body:    body}
 
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
 	binary.BigEndian.PutUint64(req.Extras, uint64(flags)<<32|uint64(exp))
 	return c.Send(req)
 }
 
 func (c *Client) storeCas(opcode gomemcached.CommandCode, vb uint16,
-	key string, flags int, exp int, cas uint64, body []byte) (*gomemcached.MCResponse, error) {
-
+	key string, flags int, exp int, cas uint64, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	req := &gomemcached.MCRequest{
 		Opcode:  opcode,
 		VBucket: vb,
@@ -549,20 +649,29 @@ func (c *Client) storeCas(opcode gomemcached.CommandCode, vb uint16,
 		Extras:  []byte{0, 0, 0, 0, 0, 0, 0, 0},
 		Body:    body}
 
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+
 	binary.BigEndian.PutUint64(req.Extras, uint64(flags)<<32|uint64(exp))
 	return c.Send(req)
 }
 
 // Incr increments the value at the given key.
 func (c *Client) Incr(vb uint16, key string,
-	amt, def uint64, exp int) (uint64, error) {
-
+	amt, def uint64, exp int, context ...*ClientContext) (uint64, error) {
 	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.INCREMENT,
 		VBucket: vb,
 		Key:     []byte(key),
 		Extras:  make([]byte, 8+8+4),
 	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return 0, err
+	}
+
 	binary.BigEndian.PutUint64(req.Extras[:8], amt)
 	binary.BigEndian.PutUint64(req.Extras[8:16], def)
 	binary.BigEndian.PutUint32(req.Extras[16:20], uint32(exp))
@@ -577,14 +686,18 @@ func (c *Client) Incr(vb uint16, key string,
 
 // Decr decrements the value at the given key.
 func (c *Client) Decr(vb uint16, key string,
-	amt, def uint64, exp int) (uint64, error) {
-
+	amt, def uint64, exp int, context ...*ClientContext) (uint64, error) {
 	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.DECREMENT,
 		VBucket: vb,
 		Key:     []byte(key),
 		Extras:  make([]byte, 8+8+4),
 	}
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return 0, err
+	}
+
 	binary.BigEndian.PutUint64(req.Extras[:8], amt)
 	binary.BigEndian.PutUint64(req.Extras[8:16], def)
 	binary.BigEndian.PutUint32(req.Extras[16:20], uint32(exp))
@@ -599,24 +712,24 @@ func (c *Client) Decr(vb uint16, key string,
 
 // Add a value for a key (store if not exists).
 func (c *Client) Add(vb uint16, key string, flags int, exp int,
-	body []byte) (*gomemcached.MCResponse, error) {
-	return c.store(gomemcached.ADD, vb, key, flags, exp, body)
+	body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	return c.store(gomemcached.ADD, vb, key, flags, exp, body, context...)
 }
 
 // Set the value for a key.
 func (c *Client) Set(vb uint16, key string, flags int, exp int,
-	body []byte) (*gomemcached.MCResponse, error) {
-	return c.store(gomemcached.SET, vb, key, flags, exp, body)
+	body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	return c.store(gomemcached.SET, vb, key, flags, exp, body, context...)
 }
 
 // SetCas set the value for a key with cas
 func (c *Client) SetCas(vb uint16, key string, flags int, exp int, cas uint64,
-	body []byte) (*gomemcached.MCResponse, error) {
-	return c.storeCas(gomemcached.SET, vb, key, flags, exp, cas, body)
+	body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
+	return c.storeCas(gomemcached.SET, vb, key, flags, exp, cas, body, context...)
 }
 
 // Append data to the value of a key.
-func (c *Client) Append(vb uint16, key string, data []byte) (*gomemcached.MCResponse, error) {
+func (c *Client) Append(vb uint16, key string, data []byte, context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	req := &gomemcached.MCRequest{
 		Opcode:  gomemcached.APPEND,
 		VBucket: vb,
@@ -625,11 +738,15 @@ func (c *Client) Append(vb uint16, key string, data []byte) (*gomemcached.MCResp
 		Opaque:  0,
 		Body:    data}
 
+	err := c.setCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
 	return c.Send(req)
 }
 
 // GetBulk gets keys in bulk
-func (c *Client) GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MCResponse, subPaths []string) error {
+func (c *Client) GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MCResponse, subPaths []string, context ...*ClientContext) error {
 	stopch := make(chan bool)
 	var wg sync.WaitGroup
 
@@ -698,6 +815,10 @@ func (c *Client) GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MC
 		Opcode:  gomemcached.GET,
 		VBucket: vb,
 	}
+	err := c.setCollection(memcachedReqPkt, context...)
+	if err != nil {
+		return err
+	}
 
 	if len(subPaths) > 0 {
 		extraBuf, valueBuf := GetSubDocVal(subPaths)
@@ -719,7 +840,7 @@ func (c *Client) GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MC
 	} // End of Get request
 
 	// finally transmit a NOOP
-	err := c.Transmit(&gomemcached.MCRequest{
+	err = c.Transmit(&gomemcached.MCRequest{
 		Opcode:  gomemcached.NOOP,
 		VBucket: vb,
 		Opaque:  c.opaque,
@@ -747,7 +868,10 @@ func GetSubDocVal(subPaths []string) (extraBuf, valueBuf []byte) {
 	}
 
 	// Xattr retrieval - subdoc multi get
-	extraBuf = append(extraBuf, uint8(0x04))
+	// Set deleted true only if it is not expiration
+	if len(subPaths) != 1 || subPaths[0] != "$document.exptime" {
+		extraBuf = append(extraBuf, uint8(0x04))
+	}
 
 	valueBuf = make([]byte, num*4+totalBytesLen)
 
@@ -1138,6 +1262,38 @@ func (c *Client) StatsMapForSpecifiedStats(key string, statsMap map[string]strin
 	return nil
 }
 
+// UprGetFailoverLog for given list of vbuckets.
+func (mc *Client) UprGetFailoverLog(vb []uint16) (map[uint16]*FailoverLog, error) {
+
+	rq := &gomemcached.MCRequest{
+		Opcode: gomemcached.UPR_FAILOVERLOG,
+		Opaque: opaqueFailover,
+	}
+
+	failoverLogs := make(map[uint16]*FailoverLog)
+	for _, vBucket := range vb {
+		rq.VBucket = vBucket
+		if err := mc.Transmit(rq); err != nil {
+			return nil, err
+		}
+		res, err := mc.Receive()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to receive %s", err.Error())
+		} else if res.Opcode != gomemcached.UPR_FAILOVERLOG || res.Status != gomemcached.SUCCESS {
+			return nil, fmt.Errorf("unexpected #opcode %v", res.Opcode)
+		}
+
+		flog, err := parseFailoverLog(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse failover logs for vb %d", vb)
+		}
+		failoverLogs[vBucket] = flog
+	}
+
+	return failoverLogs, nil
+}
+
 // Hijack exposes the underlying connection from this client.
 //
 // It also marks the connection as unhealthy since the client will
@@ -1165,4 +1321,99 @@ func IfResStatusError(response *gomemcached.MCResponse) bool {
 
 func (c *Client) Conn() io.ReadWriteCloser {
 	return c.conn
+}
+
+// Since the binary request supports only a single collection at a time, it is possible
+// that this may be called multiple times in succession by callers to get vbSeqnos for
+// multiple collections. Thus, caller could pass in a non-nil map so the gomemcached
+// client won't need to allocate new map for each call to prevent too much GC
+// NOTE: If collection is enabled and context is not given, KV will still return stats for default collection
+func (c *Client) GetAllVbSeqnos(vbSeqnoMap map[uint16]uint64, context ...*ClientContext) (map[uint16]uint64, error) {
+	rq := &gomemcached.MCRequest{
+		Opcode: gomemcached.GET_ALL_VB_SEQNOS,
+		Opaque: opaqueGetSeqno,
+	}
+
+	err := c.setVbSeqnoContext(rq, context...)
+	if err != nil {
+		return vbSeqnoMap, err
+	}
+
+	err = c.Transmit(rq)
+	if err != nil {
+		return vbSeqnoMap, err
+	}
+
+	res, err := c.Receive()
+	if err != nil {
+		return vbSeqnoMap, fmt.Errorf("failed to receive: %v", err)
+	}
+
+	vbSeqnosList, err := parseGetSeqnoResp(res.Body)
+	if err != nil {
+		logging.Errorf("Unable to parse : err: %v\n", err)
+		return vbSeqnoMap, err
+	}
+
+	if vbSeqnoMap == nil {
+		vbSeqnoMap = make(map[uint16]uint64)
+	}
+
+	combineMapWithReturnedList(vbSeqnoMap, vbSeqnosList)
+	return vbSeqnoMap, nil
+}
+
+func combineMapWithReturnedList(vbSeqnoMap map[uint16]uint64, list *VBSeqnos) {
+	if list == nil {
+		return
+	}
+
+	// If the map contains exactly the existing vbs in the list, no need to modify
+	needToCleanupMap := true
+	if len(vbSeqnoMap) == 0 {
+		needToCleanupMap = false
+	} else if len(vbSeqnoMap) == len(*list) {
+		needToCleanupMap = false
+		for _, pair := range *list {
+			_, vbExists := vbSeqnoMap[uint16(pair[0])]
+			if !vbExists {
+				needToCleanupMap = true
+				break
+			}
+		}
+	}
+
+	if needToCleanupMap {
+		var vbsToDelete []uint16
+		for vbInSeqnoMap, _ := range vbSeqnoMap {
+			// If a vb in the seqno map doesn't exist in the returned list, need to clean up
+			// to ensure returning an accurate result
+			found := false
+			var vbno uint16
+			for _, pair := range *list {
+				vbno = uint16(pair[0])
+				if vbno == vbInSeqnoMap {
+					found = true
+					break
+				} else if vbno > vbInSeqnoMap {
+					// definitely not in the list
+					break
+				}
+			}
+			if !found {
+				vbsToDelete = append(vbsToDelete, vbInSeqnoMap)
+			}
+		}
+
+		for _, vbno := range vbsToDelete {
+			delete(vbSeqnoMap, vbno)
+		}
+	}
+
+	// Set the map with data from the list
+	for _, pair := range *list {
+		vbno := uint16(pair[0])
+		seqno := pair[1]
+		vbSeqnoMap[vbno] = seqno
+	}
 }

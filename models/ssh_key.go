@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -252,7 +252,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	}
 
 	keyType := strings.Trim(fields[len(fields)-1], "()\r\n")
-	return strings.ToLower(keyType), com.StrTo(fields[0]).MustInt(), nil
+	length, err := strconv.ParseInt(fields[0], 10, 32)
+	if err != nil {
+		return "", 0, err
+	}
+	return strings.ToLower(keyType), int(length), nil
 }
 
 // SSHNativeParsePublicKey extracts the key type and length using the golang SSH library.
@@ -362,7 +366,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
 func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -736,10 +740,17 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 	}()
 
-	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedKeysBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -765,7 +776,12 @@ func regeneratePublicKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err
@@ -1206,10 +1222,17 @@ func rewriteAllPrincipalKeys(e Engine) error {
 		os.Remove(tmpPath)
 	}()
 
-	if setting.SSH.AuthorizedPrincipalsBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedPrincipalsBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1249,7 +1272,12 @@ func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err

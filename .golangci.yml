@@ -70,7 +70,7 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/routes.go
+    - path: routers/routes/macaron.go
       linters:
         - dupl
     - path: routers/api/v1/repo/issue_subscription.go
@@ -101,6 +101,9 @@ issues:
     - path: cmd/dump.go
       linters:
         - dupl
+    - path: services/webhook/webhook.go
+      linters:
+        - structcheck
     - text: "commentFormatting: put a space between `//` and comment text"
       linters:
         - gocritic

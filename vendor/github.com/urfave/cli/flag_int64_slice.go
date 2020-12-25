@@ -171,7 +171,9 @@ func lookupInt64Slice(name string, set *flag.FlagSet) []int64 {
 func removeFromInt64Slice(slice []int64, val int64) []int64 {
 	for i, v := range slice {
 		if v == val {
-			return append(slice[:i], slice[i+1:]...)
+			ret := append([]int64{}, slice[:i]...)
+			ret = append(ret, slice[i+1:]...)
+			return ret
 		}
 	}
 	return slice

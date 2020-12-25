@@ -102,7 +102,12 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
+		log.Error("Attempted access of unknown user from %s", ctx.RemoteAddr())
 		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		return
+	}
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -242,6 +247,11 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 			}
+		}
+
+		if !authUser.IsActive || authUser.ProhibitLogin {
+			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
+			return
 		}
 
 		if repoExist {

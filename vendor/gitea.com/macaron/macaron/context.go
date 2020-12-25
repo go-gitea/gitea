@@ -1,4 +1,5 @@
 // Copyright 2014 The Macaron Authors
+// Copyright 2020 The Gitea Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -68,6 +69,7 @@ type Request struct {
 	*http.Request
 }
 
+// Body returns a RequestBody for the request
 func (r *Request) Body() *RequestBody {
 	return &RequestBody{r.Request.Body}
 }
@@ -75,6 +77,7 @@ func (r *Request) Body() *RequestBody {
 // ContextInvoker is an inject.FastInvoker wrapper of func(ctx *Context).
 type ContextInvoker func(ctx *Context)
 
+// Invoke implements inject.FastInvoker - in the context of a func(ctx *Context) this simply calls the function
 func (invoke ContextInvoker) Invoke(params []interface{}) ([]reflect.Value, error) {
 	invoke(params[0].(*Context))
 	return nil, nil
@@ -97,41 +100,43 @@ type Context struct {
 	Data map[string]interface{}
 }
 
-func (c *Context) handler() Handler {
-	if c.index < len(c.handlers) {
-		return c.handlers[c.index]
+func (ctx *Context) handler() Handler {
+	if ctx.index < len(ctx.handlers) {
+		return ctx.handlers[ctx.index]
 	}
-	if c.index == len(c.handlers) {
-		return c.action
+	if ctx.index == len(ctx.handlers) {
+		return ctx.action
 	}
 	panic("invalid index for context handler")
 }
 
-func (c *Context) Next() {
-	c.index += 1
-	c.run()
+// Next runs the next handler in the context chain
+func (ctx *Context) Next() {
+	ctx.index++
+	ctx.run()
 }
 
-func (c *Context) Written() bool {
-	return c.Resp.Written()
+// Written returns whether the context response has been written to
+func (ctx *Context) Written() bool {
+	return ctx.Resp.Written()
 }
 
-func (c *Context) run() {
-	for c.index <= len(c.handlers) {
-		vals, err := c.Invoke(c.handler())
+func (ctx *Context) run() {
+	for ctx.index <= len(ctx.handlers) {
+		vals, err := ctx.Invoke(ctx.handler())
 		if err != nil {
 			panic(err)
 		}
-		c.index += 1
+		ctx.index++
 
 		// if the handler returned something, write it to the http response
 		if len(vals) > 0 {
-			ev := c.GetVal(reflect.TypeOf(ReturnHandler(nil)))
+			ev := ctx.GetVal(reflect.TypeOf(ReturnHandler(nil)))
 			handleReturn := ev.Interface().(ReturnHandler)
-			handleReturn(c, vals)
+			handleReturn(ctx, vals)
 		}
 
-		if c.Written() {
+		if ctx.Written() {
 			return
 		}
 	}
@@ -172,6 +177,7 @@ func (ctx *Context) HTMLSet(status int, setName, tplName string, data ...interfa
 	ctx.renderHTML(status, setName, tplName, data...)
 }
 
+// Redirect sends a redirect response
 func (ctx *Context) Redirect(location string, status ...int) {
 	code := http.StatusFound
 	if len(status) == 1 {
@@ -181,7 +187,7 @@ func (ctx *Context) Redirect(location string, status ...int) {
 	http.Redirect(ctx.Resp, ctx.Req.Request, location, code)
 }
 
-// Maximum amount of memory to use when parsing a multipart form.
+// MaxMemory is the maximum amount of memory to use when parsing a multipart form.
 // Set this to whatever value you prefer; default is 10 MB.
 var MaxMemory = int64(1024 * 1024 * 10)
 
@@ -341,6 +347,8 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 			cookie.MaxAge = int(v)
 		case int32:
 			cookie.MaxAge = int(v)
+		case func(*http.Cookie):
+			v(&cookie)
 		}
 	}
 
@@ -348,12 +356,16 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 	if len(others) > 1 {
 		if v, ok := others[1].(string); ok && len(v) > 0 {
 			cookie.Path = v
+		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+			v(&cookie)
 		}
 	}
 
 	if len(others) > 2 {
 		if v, ok := others[2].(string); ok && len(v) > 0 {
 			cookie.Domain = v
+		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+			v(&cookie)
 		}
 	}
 
@@ -361,6 +373,8 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 		switch v := others[3].(type) {
 		case bool:
 			cookie.Secure = v
+		case func(*http.Cookie):
+			v(&cookie)
 		default:
 			if others[3] != nil {
 				cookie.Secure = true
@@ -371,6 +385,8 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 	if len(others) > 4 {
 		if v, ok := others[4].(bool); ok && v {
 			cookie.HttpOnly = true
+		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+			v(&cookie)
 		}
 	}
 
@@ -378,6 +394,16 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 		if v, ok := others[5].(time.Time); ok {
 			cookie.Expires = v
 			cookie.RawExpires = v.Format(time.UnixDate)
+		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+			v(&cookie)
+		}
+	}
+
+	if len(others) > 6 {
+		for _, other := range others[6:] {
+			if v, ok := other.(func(*http.Cookie)); ok {
+				v(&cookie)
+			}
 		}
 	}
 

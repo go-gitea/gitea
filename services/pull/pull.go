@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/unknwon/com"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -325,7 +324,7 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 	defer headGitRepo.Close()
 
 	// Add a temporary remote.
-	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
+	tmpRemote := "checkIfPRContentChanged-" + fmt.Sprint(time.Now().UnixNano())
 	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
 		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
@@ -501,8 +500,8 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	return nil
 }
 
-// GetCommitMessages returns the commit messages between head and merge base (if there is one)
-func GetCommitMessages(pr *models.PullRequest) string {
+// GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
+func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
@@ -549,39 +548,28 @@ func GetCommitMessages(pr *models.PullRequest) string {
 		return ""
 	}
 
-	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
-	element := list.Front()
+
+	stringBuilder.WriteString(pr.Issue.Content)
+	if stringBuilder.Len() > 0 {
+		stringBuilder.WriteRune('\n')
+		stringBuilder.WriteRune('\n')
+	}
+
+	// commits list is in reverse chronological order
+	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
-
-		if maxSize < 0 || stringBuilder.Len() < maxSize {
-			toWrite := []byte(commit.CommitMessage)
-			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
-				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
-			}
-			if _, err := stringBuilder.Write(toWrite); err != nil {
-				log.Error("Unable to write commit message Error: %v", err)
-				return ""
-			}
-
-			if _, err := stringBuilder.WriteRune('\n'); err != nil {
-				log.Error("Unable to write commit message Error: %v", err)
-				return ""
-			}
-		}
-
 		authorString := commit.Author.String()
 		if !authorsMap[authorString] && authorString != posterSig {
 			authors = append(authors, authorString)
 			authorsMap[authorString] = true
 		}
-		element = element.Next()
+		element = element.Prev()
 	}
 
 	// Consider collecting the remaining authors
@@ -609,7 +597,7 @@ func GetCommitMessages(pr *models.PullRequest) string {
 				}
 				element = element.Next()
 			}
-
+			skip += limit
 		}
 	}
 
@@ -638,37 +626,33 @@ func GetCommitMessages(pr *models.PullRequest) string {
 	return stringBuilder.String()
 }
 
-// GetLastCommitStatus returns the last commit status for this pull request.
-func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
+func GetLastCommitStatus(pr *models.PullRequest) (status []*models.CommitStatus, err error) {
+	if err = pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
 
-	if pr.HeadRepo == nil {
-		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
-	defer headGitRepo.Close()
+	defer gitRepo.Close()
 
-	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
 
-	err = pr.LoadBaseRepo()
-	if err != nil {
-		return nil, err
+	if compareInfo.Commits.Len() == 0 {
+		return nil, errors.New("pull request has no commits")
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return models.CalcCommitStatus(statusList), nil
+	return statusList, nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

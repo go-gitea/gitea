@@ -1,6 +1,8 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
 	{{if $.hidden}}
-		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> {{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
+		<button class="comment-form-reply ui green labeled icon tiny button">
+			{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.root.i18n.Tr "repo.diff.comment.reply"}}
+		</button>
 	{{end}}
 	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
