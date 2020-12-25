@@ -67,7 +67,8 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
-			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}">
+			{{$issueURL := Printf "%s/%s/issues/%d" AppSubUrl .ActiveStopwatch.RepoSlug .ActiveStopwatch.IssueIndex}}
+			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{$issueURL}}">
 				<span class="text">
 					<span class="fitted item">
 						{{svg "octicon-stopwatch"}}
@@ -78,7 +79,6 @@
 			</a>
 			<div class="ui popup very wide">
 				<div class="df ac">
-					{{$issueURL := Printf "%s/%s/issues/%d" AppSubUrl .ActiveStopwatch.RepoSlug .ActiveStopwatch.IssueIndex}}
 					<a class="stopwatch-link df ac" href="{{$issueURL}}">
 						{{svg "octicon-issue-opened"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>

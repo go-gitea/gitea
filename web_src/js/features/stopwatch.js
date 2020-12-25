@@ -3,6 +3,7 @@ const {AppSubUrl, csrf, NotificationSettings} = window.config;
 export async function initStopwatch() {
   const stopwatchEl = $('.active-stopwatch-trigger');
 
+  stopwatchEl.removeAttr('href'); // intended for noscript mode only
   stopwatchEl.popup({
     position: 'bottom right',
     hoverable: true,
