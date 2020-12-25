@@ -639,9 +639,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Typ             string `xorm:"VARCHAR(16) index"`
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
