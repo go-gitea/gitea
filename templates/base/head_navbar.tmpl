@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/">
-			<img class="ui mini image" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
+			<img class="ui mini image" src="{{StaticUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
@@ -89,9 +89,11 @@
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						<span class="fitted">{{svg "octicon-plus"}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
-					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
-					</a>
+					{{if not .DisableMigrations}}
+						<a class="item" href="{{AppSubUrl}}/repo/migrate">
+							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
+						</a>
+					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						<span class="fitted">{{svg "octicon-organization"}}</span> {{.i18n.Tr "new_org"}}

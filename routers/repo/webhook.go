@@ -20,9 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/webhook"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -100,7 +99,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.Params(":type"))
-	if !com.IsSliceContainsStr(setting.Webhook.Types, hookType) {
+	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
 	}
@@ -208,7 +207,7 @@ func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		Secret:          form.Secret,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.GITEA,
+		Type:            models.GITEA,
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
@@ -261,7 +260,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 		Secret:          form.Secret,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    kind,
+		Type:            kind,
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
@@ -311,7 +310,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.DISCORD,
+		Type:            models.DISCORD,
 		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -353,7 +352,7 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.DINGTALK,
+		Type:            models.DINGTALK,
 		Meta:            "",
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -404,7 +403,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.TELEGRAM,
+		Type:            models.TELEGRAM,
 		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -458,7 +457,7 @@ func MatrixHooksNewPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 		HTTPMethod:      "PUT",
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.MATRIX,
+		Type:            models.MATRIX,
 		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -500,7 +499,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.MSTEAMS,
+		Type:            models.MSTEAMS,
 		Meta:            "",
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -559,7 +558,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.SLACK,
+		Type:            models.SLACK,
 		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -601,7 +600,7 @@ func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
-		HookTaskType:    models.FEISHU,
+		Type:            models.FEISHU,
 		Meta:            "",
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -647,8 +646,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		return nil, nil
 	}
 
-	ctx.Data["HookType"] = w.HookTaskType
-	switch w.HookTaskType {
+	ctx.Data["HookType"] = w.Type
+	switch w.Type {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = webhook.GetSlackHook(w)
 	case models.DISCORD:
