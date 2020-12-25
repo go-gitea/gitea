@@ -45,7 +45,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">View the English version of this document</a>
+  <a href="README.md">View the english version of this document</a>
 </p>
 
 ## 目标
