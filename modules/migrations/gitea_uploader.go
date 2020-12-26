@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -299,11 +298,10 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 						return err
 					}
 				} else {
-					resp, err := http.Get(*asset.DownloadURL)
+					rc, err = uri.Open(*asset.DownloadURL)
 					if err != nil {
 						return err
 					}
-					rc = resp.Body
 				}
 				defer rc.Close()
 				_, err = storage.Attachments.Save(attach.RelativePath(), rc)

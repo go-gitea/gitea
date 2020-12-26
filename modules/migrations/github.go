@@ -291,7 +291,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            *asset.ID,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,

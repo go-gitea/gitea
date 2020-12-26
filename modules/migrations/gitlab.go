@@ -295,7 +295,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	}
 
 	for k, asset := range rel.Assets.Links {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
 			ContentType:   &rel.Assets.Sources[k].Format,

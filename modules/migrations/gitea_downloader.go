@@ -268,7 +268,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 	for _, asset := range rel.Attachments {
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.ID,
 			Name:          asset.Name,
 			Size:          &size,

@@ -18,7 +18,7 @@ type ReleaseAsset struct {
 	DownloadCount *int `yaml:"download_count"`
 	Created       time.Time
 	Updated       time.Time
-	DownloadURL   *string
+	DownloadURL   *string `yaml:"download_url"`
 	// if DownloadURL is nil, the function should be invoked
 	DownloadFunc func() (io.ReadCloser, error) `yaml:"-"`
 }
@@ -34,7 +34,7 @@ type Release struct {
 	PublisherID     int64  `yaml:"publisher_id"`
 	PublisherName   string `yaml:"publisher_name"`
 	PublisherEmail  string `yaml:"publisher_email"`
-	Assets          []ReleaseAsset
+	Assets          []*ReleaseAsset
 	Created         time.Time
 	Published       time.Time
 }

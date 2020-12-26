@@ -7,7 +7,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -166,13 +165,6 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 		return nil, err
 	}
 	return releases, nil
-}
-
-// GetAsset returns an asset
-func (r *RepositoryRestorer) GetAsset(tagName string, relID, assetID int64) (io.ReadCloser, error) {
-	attachDir := filepath.Join(r.releaseDir(), "release_assets", tagName)
-	attachLocalPath := filepath.Join(attachDir, fmt.Sprintf("%d", assetID))
-	return os.Open(attachLocalPath)
 }
 
 // GetLabels returns labels
