@@ -30,19 +30,18 @@ var (
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
-	ctx                  context.Context
-	baseDir              string
-	repoOwner            string
-	repoName             string
-	opts                 base.MigrateOptions
-	milestoneFile        *os.File
-	labelFile            *os.File
-	releaseFile          *os.File
-	issueFile            *os.File
-	commentFiles         map[int64]*os.File
-	pullrequestFile      *os.File
-	reviewFiles          map[int64]*os.File
-	migrateReleaseAssets bool
+	ctx             context.Context
+	baseDir         string
+	repoOwner       string
+	repoName        string
+	opts            base.MigrateOptions
+	milestoneFile   *os.File
+	labelFile       *os.File
+	releaseFile     *os.File
+	issueFile       *os.File
+	commentFiles    map[int64]*os.File
+	pullrequestFile *os.File
+	reviewFiles     map[int64]*os.File
 
 	gitRepo     *git.Repository
 	prHeadCache map[string]struct{}
@@ -313,7 +312,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 
 // CreateReleases creates releases
 func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
-	if g.migrateReleaseAssets {
+	if g.opts.ReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.TagName)
 			if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
@@ -342,6 +341,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 				if err != nil {
 					return err
 				}
+				asset.DownloadURL = &attachLocalPath
 			}
 		}
 	}

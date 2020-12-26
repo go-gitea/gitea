@@ -288,19 +288,21 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 			}
 
-			// download attachment
-			err = func() error {
-				// asset.DownloadURL maybe a local file
-				rc, err := uri.Open(*asset.DownloadURL)
+			if asset.DownloadURL != nil {
+				// download attachment
+				err = func() error {
+					// asset.DownloadURL maybe a local file
+					rc, err := uri.Open(*asset.DownloadURL)
+					if err != nil {
+						return err
+					}
+					defer rc.Close()
+					_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+					return err
+				}()
 				if err != nil {
 					return err
 				}
-				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
-				return err
-			}()
-			if err != nil {
-				return err
 			}
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
