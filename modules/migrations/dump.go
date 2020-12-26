@@ -47,8 +47,11 @@ type RepositoryDumper struct {
 }
 
 // NewRepositoryDumper creates an gitea Uploader
-func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) *RepositoryDumper {
+func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) (*RepositoryDumper, error) {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
+	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
+		return nil, err
+	}
 	return &RepositoryDumper{
 		ctx:          ctx,
 		opts:         opts,
@@ -58,7 +61,7 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		prHeadCache:  make(map[string]struct{}),
 		commentFiles: make(map[int64]*os.File),
 		reviewFiles:  make(map[int64]*os.File),
-	}
+	}, nil
 }
 
 // MaxBatchInsertSize returns the table's max batch insert size
@@ -74,32 +77,8 @@ func (g *RepositoryDumper) wikiPath() string {
 	return filepath.Join(g.baseDir, "wiki")
 }
 
-func (g *RepositoryDumper) topicDir() string {
-	return filepath.Join(g.baseDir)
-}
-
-func (g *RepositoryDumper) milestoneDir() string {
-	return filepath.Join(g.baseDir)
-}
-
-func (g *RepositoryDumper) labelDir() string {
-	return filepath.Join(g.baseDir)
-}
-
-func (g *RepositoryDumper) releaseDir() string {
-	return filepath.Join(g.baseDir)
-}
-
-func (g *RepositoryDumper) issueDir() string {
-	return filepath.Join(g.baseDir)
-}
-
 func (g *RepositoryDumper) commentDir() string {
 	return filepath.Join(g.baseDir, "comments")
-}
-
-func (g *RepositoryDumper) pullrequestDir() string {
-	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) reviewDir() string {
@@ -124,10 +103,6 @@ func (g *RepositoryDumper) setURLToken(remoteAddr string) (string, error) {
 
 // CreateRepo creates a repository
 func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
-	if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
-		return err
-	}
-
 	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
 	if err != nil {
 		return err
@@ -236,10 +211,7 @@ func (g *RepositoryDumper) Close() {
 
 // CreateTopics creates topics
 func (g *RepositoryDumper) CreateTopics(topics ...string) error {
-	if err := os.MkdirAll(g.topicDir(), os.ModePerm); err != nil {
-		return err
-	}
-	f, err := os.Create(filepath.Join(g.topicDir(), "topic.yml"))
+	f, err := os.Create(filepath.Join(g.baseDir, "topic.yml"))
 	if err != nil {
 		return err
 	}
@@ -263,10 +235,7 @@ func (g *RepositoryDumper) CreateTopics(topics ...string) error {
 func (g *RepositoryDumper) CreateMilestones(milestones ...*base.Milestone) error {
 	var err error
 	if g.milestoneFile == nil {
-		if err := os.MkdirAll(g.milestoneDir(), os.ModePerm); err != nil {
-			return err
-		}
-		g.milestoneFile, err = os.Create(filepath.Join(g.milestoneDir(), "milestone.yml"))
+		g.milestoneFile, err = os.Create(filepath.Join(g.baseDir, "milestone.yml"))
 		if err != nil {
 			return err
 		}
@@ -288,10 +257,7 @@ func (g *RepositoryDumper) CreateMilestones(milestones ...*base.Milestone) error
 func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 	var err error
 	if g.labelFile == nil {
-		if err := os.MkdirAll(g.labelDir(), os.ModePerm); err != nil {
-			return err
-		}
-		g.labelFile, err = os.Create(filepath.Join(g.labelDir(), "label.yml"))
+		g.labelFile, err = os.Create(filepath.Join(g.baseDir, "label.yml"))
 		if err != nil {
 			return err
 		}
@@ -313,15 +279,15 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.TagName)
-			if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
+			attachDir := filepath.Join("release_assets", release.TagName)
+			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
 			for _, asset := range release.Assets {
 				attachLocalPath := filepath.Join(attachDir, asset.Name)
 				// download attachment
 
-				err := func(attachLocalPath string) error {
+				err := func(attachPath string) error {
 					var rc io.ReadCloser
 					var err error
 					if asset.DownloadURL == nil {
@@ -338,7 +304,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 					}
 					defer rc.Close()
 
-					fw, err := os.Create(attachLocalPath)
+					fw, err := os.Create(attachPath)
 					if err != nil {
 						return fmt.Errorf("Create: %v", err)
 					}
@@ -346,11 +312,10 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 
 					_, err = io.Copy(fw, rc)
 					return err
-				}(attachLocalPath)
+				}(filepath.Join(g.baseDir, attachLocalPath))
 				if err != nil {
 					return err
 				}
-				attachLocalPath = "file://" + attachLocalPath
 				asset.DownloadURL = &attachLocalPath // to save the filepath on the yml file, change the source
 			}
 		}
@@ -358,10 +323,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 
 	var err error
 	if g.releaseFile == nil {
-		if err := os.MkdirAll(g.releaseDir(), os.ModePerm); err != nil {
-			return err
-		}
-		g.releaseFile, err = os.Create(filepath.Join(g.releaseDir(), "release.yml"))
+		g.releaseFile, err = os.Create(filepath.Join(g.baseDir, "release.yml"))
 		if err != nil {
 			return err
 		}
@@ -388,10 +350,7 @@ func (g *RepositoryDumper) SyncTags() error {
 func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
 	var err error
 	if g.issueFile == nil {
-		if err := os.MkdirAll(g.issueDir(), os.ModePerm); err != nil {
-			return err
-		}
-		g.issueFile, err = os.Create(filepath.Join(g.issueDir(), "issue.yml"))
+		g.issueFile, err = os.Create(filepath.Join(g.baseDir, "issue.yml"))
 		if err != nil {
 			return err
 		}
@@ -475,8 +434,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 			if _, err = io.Copy(f, resp.Body); err != nil {
 				return err
 			}
-			fAbsPath, _ := filepath.Abs(fPath)
-			pr.PatchURL = "file://" + fAbsPath
+			pr.PatchURL = "./git/pulls/" + fmt.Sprintf("%d.patch", pr.Number)
 
 			return nil
 		}()
@@ -541,10 +499,10 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 	var err error
 	if g.pullrequestFile == nil {
-		if err := os.MkdirAll(g.pullrequestDir(), os.ModePerm); err != nil {
+		if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
 			return err
 		}
-		g.pullrequestFile, err = os.Create(filepath.Join(g.pullrequestDir(), "pull_request.yml"))
+		g.pullrequestFile, err = os.Create(filepath.Join(g.baseDir, "pull_request.yml"))
 		if err != nil {
 			return err
 		}
@@ -589,7 +547,10 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	if err != nil {
 		return err
 	}
-	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts)
+	uploader, err := NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts)
+	if err != nil {
+		return err
+	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {

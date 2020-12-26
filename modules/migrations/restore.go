@@ -164,6 +164,11 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, rel := range releases {
+		for _, asset := range rel.Assets {
+			*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+		}
+	}
 	return releases, nil
 }
 
@@ -259,6 +264,9 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	err = yaml.Unmarshal(bs, &pulls)
 	if err != nil {
 		return nil, false, err
+	}
+	for _, pr := range pulls {
+		pr.PatchURL = filepath.Join(r.baseDir, pr.PatchURL)
 	}
 	return pulls, true, nil
 }
