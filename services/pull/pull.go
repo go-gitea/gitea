@@ -21,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/unknwon/com"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -326,7 +324,7 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 	defer headGitRepo.Close()
 
 	// Add a temporary remote.
-	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
+	tmpRemote := "checkIfPRContentChanged-" + fmt.Sprint(time.Now().UnixNano())
 	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
 		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
