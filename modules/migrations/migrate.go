@@ -291,7 +291,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				// plain comments
 				var allComments = make([]*base.Comment, 0, commentBatchSize)
 				for _, pr := range prs {
-					log.Trace("migrating issue %d's comments", pr.Number)
+					log.Trace("migrating pull request %d's comments", pr.Number)
 					comments, err := downloader.GetComments(pr.Number)
 					if err != nil {
 						return err
