@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -288,22 +289,30 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 			}
 
-			if asset.DownloadURL != nil {
-				// download attachment
-				err = func() error {
-					// asset.DownloadURL maybe a local file
-					rc, err := uri.Open(*asset.DownloadURL)
+			// download attachment
+			err = func() error {
+				// asset.DownloadURL maybe a local file
+				var rc io.ReadCloser
+				if asset.DownloadURL == nil {
+					rc, err = asset.DownloadFunc()
 					if err != nil {
 						return err
 					}
-					defer rc.Close()
-					_, err = storage.Attachments.Save(attach.RelativePath(), rc)
-					return err
-				}()
-				if err != nil {
-					return err
+				} else {
+					resp, err := http.Get(*asset.DownloadURL)
+					if err != nil {
+						return err
+					}
+					rc = resp.Body
 				}
+				defer rc.Close()
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				return err
+			}()
+			if err != nil {
+				return err
 			}
+
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
 

@@ -4,7 +4,10 @@
 
 package base
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // ReleaseAsset represents a release asset
 type ReleaseAsset struct {
@@ -16,6 +19,8 @@ type ReleaseAsset struct {
 	Created       time.Time
 	Updated       time.Time
 	DownloadURL   *string
+	// if DownloadURL is nil, the function should be invoked
+	DownloadFunc func() (io.ReadCloser, error)
 }
 
 // Release represents a release

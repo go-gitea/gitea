@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/uri"
 
 	"gopkg.in/yaml.v2"
 )
@@ -323,9 +322,19 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 				// download attachment
 
 				err := func(attachLocalPath string) error {
-					rc, err := uri.Open(*asset.DownloadURL)
-					if err != nil {
-						return err
+					var rc io.ReadCloser
+					var err error
+					if asset.DownloadURL == nil {
+						rc, err = asset.DownloadFunc()
+						if err != nil {
+							return err
+						}
+					} else {
+						resp, err := http.Get(*asset.DownloadURL)
+						if err != nil {
+							return err
+						}
+						rc = resp.Body
 					}
 					defer rc.Close()
 
@@ -341,7 +350,8 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 				if err != nil {
 					return err
 				}
-				asset.DownloadURL = &attachLocalPath
+				attachLocalPath = "file://" + attachLocalPath
+				asset.DownloadURL = &attachLocalPath // to save the filepath on the yml file, change the source
 			}
 		}
 	}
