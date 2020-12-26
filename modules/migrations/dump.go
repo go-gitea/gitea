@@ -434,7 +434,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 			if _, err = io.Copy(f, resp.Body); err != nil {
 				return err
 			}
-			pr.PatchURL = "./git/pulls/" + fmt.Sprintf("%d.patch", pr.Number)
+			pr.PatchURL = "git/pulls/" + fmt.Sprintf("%d.patch", pr.Number)
 
 			return nil
 		}()
