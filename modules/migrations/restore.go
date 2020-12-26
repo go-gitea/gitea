@@ -26,41 +26,21 @@ type RepositoryRestorer struct {
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
-func NewRepositoryRestorer(ctx context.Context, baseDir string, owner, repoName string) *RepositoryRestorer {
+func NewRepositoryRestorer(ctx context.Context, baseDir string, owner, repoName string) (*RepositoryRestorer, error) {
+	baseDir, err := filepath.Abs(baseDir)
+	if err != nil {
+		return nil, err
+	}
 	return &RepositoryRestorer{
 		ctx:       ctx,
 		baseDir:   baseDir,
 		repoOwner: owner,
 		repoName:  repoName,
-	}
-}
-
-func (r *RepositoryRestorer) topicDir() string {
-	return filepath.Join(r.baseDir)
-}
-
-func (r *RepositoryRestorer) milestoneDir() string {
-	return filepath.Join(r.baseDir)
-}
-
-func (r *RepositoryRestorer) labelDir() string {
-	return filepath.Join(r.baseDir)
-}
-
-func (r *RepositoryRestorer) releaseDir() string {
-	return filepath.Join(r.baseDir)
-}
-
-func (r *RepositoryRestorer) issueDir() string {
-	return filepath.Join(r.baseDir)
+	}, nil
 }
 
 func (r *RepositoryRestorer) commentDir() string {
 	return filepath.Join(r.baseDir, "comments")
-}
-
-func (r *RepositoryRestorer) pullrequestDir() string {
-	return filepath.Join(r.baseDir)
 }
 
 func (r *RepositoryRestorer) reviewDir() string {
@@ -101,7 +81,7 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return github topics
 func (r *RepositoryRestorer) GetTopics() ([]string, error) {
-	p := filepath.Join(r.topicDir(), "topic.yml")
+	p := filepath.Join(r.baseDir, "topic.yml")
 
 	var topics = struct {
 		Topics []string `yaml:"topics"`
@@ -122,7 +102,7 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 // GetMilestones returns milestones
 func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 	var milestones = make([]*base.Milestone, 0, 10)
-	p := filepath.Join(r.milestoneDir(), "milestone.yml")
+	p := filepath.Join(r.baseDir, "milestone.yml")
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -146,7 +126,7 @@ func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 // GetReleases returns releases
 func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	var releases = make([]*base.Release, 0, 10)
-	p := filepath.Join(r.releaseDir(), "release.yml")
+	p := filepath.Join(r.baseDir, "release.yml")
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -175,7 +155,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 // GetLabels returns labels
 func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 	var labels = make([]*base.Label, 0, 10)
-	p := filepath.Join(r.labelDir(), "label.yml")
+	p := filepath.Join(r.baseDir, "label.yml")
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -199,7 +179,7 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 // GetIssues returns issues according start and limit
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	var issues = make([]*base.Issue, 0, 10)
-	p := filepath.Join(r.issueDir(), "issue.yml")
+	p := filepath.Join(r.baseDir, "issue.yml")
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -247,7 +227,7 @@ func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, er
 // GetPullRequests returns pull requests according page and perPage
 func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	var pulls = make([]*base.PullRequest, 0, 10)
-	p := filepath.Join(r.pullrequestDir(), "pull_request.yml")
+	p := filepath.Join(r.baseDir, "pull_request.yml")
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -266,7 +246,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 		return nil, false, err
 	}
 	for _, pr := range pulls {
-		pr.PatchURL = filepath.Join(r.baseDir, pr.PatchURL)
+		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
 	}
 	return pulls, true, nil
 }

@@ -568,7 +568,10 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 		return err
 	}
 	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	var downloader = NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	if err != nil {
+		return err
+	}
 	if err = migrateRepository(downloader, uploader, base.MigrateOptions{
 		Wiki:          true,
 		Issues:        true,
