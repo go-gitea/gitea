@@ -20,7 +20,7 @@ type ReleaseAsset struct {
 	Updated       time.Time
 	DownloadURL   *string
 	// if DownloadURL is nil, the function should be invoked
-	DownloadFunc func() (io.ReadCloser, error)
+	DownloadFunc func() (io.ReadCloser, error) `yaml:"-"`
 }
 
 // Release represents a release
