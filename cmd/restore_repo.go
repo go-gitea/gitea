@@ -28,22 +28,22 @@ var CmdRestoreRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "repo_dir, r",
 			Value: "./data",
-			Usage: "Repository dir path",
+			Usage: "Repository dir path to restore from",
 		},
 		cli.StringFlag{
 			Name:  "owner_name",
 			Value: "",
-			Usage: "The data will be stored on a directory with owner name if not empty",
+			Usage: "Restore destination owner name",
 		},
 		cli.StringFlag{
 			Name:  "repo_name",
 			Value: "",
-			Usage: "The data will be stored on a directory with repository name if not empty",
+			Usage: "Restore destination repository name",
 		},
 		cli.StringFlag{
 			Name:  "units",
 			Value: "",
-			Usage: `Which items will be migrated, one or more units should be separated as comma. 
+			Usage: `Which items will be restored, one or more units should be separated as comma. 
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
 	},

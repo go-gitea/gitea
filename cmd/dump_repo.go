@@ -20,7 +20,7 @@ import (
 // CmdDumpRepository represents the available dump repository sub-command.
 var CmdDumpRepository = cli.Command{
 	Name:        "dump-repo",
-	Usage:       "Dump the repository from github/gitlab",
+	Usage:       "Dump the repository from git/github/gitea/gitlab",
 	Description: "This is a command for dumping the repository data.",
 	Action:      runDumpRepository,
 	Flags: []cli.Flag{
@@ -32,12 +32,12 @@ var CmdDumpRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "repo_dir, r",
 			Value: "./data",
-			Usage: "Repository dir path",
+			Usage: "Repository dir path to store the data",
 		},
 		cli.StringFlag{
 			Name:  "clone_addr",
 			Value: "",
-			Usage: "The URL will be clone, currently could be a github or gitlab http/https URL",
+			Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
 		},
 		cli.StringFlag{
 			Name:  "auth_username",
