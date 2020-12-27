@@ -157,7 +157,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 	// ignore topics to long for the db
 	c := 0
 	for i := range topics {
-		if len(topics[i]) <= 50 {
+		if len(topics[i]) <= 25 {
 			topics[c] = topics[i]
 			c++
 		}
