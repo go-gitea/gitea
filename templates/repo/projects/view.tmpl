@@ -124,12 +124,10 @@
 											{{$.i18n.Tr "repo.projects.board.set_default_desc"}}
 										</label>
 									</div>
-									<form class="ui form" method="post">
-										<div class="text right actions">
-											<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-											<button class="ui red button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.i18n.Tr "repo.projects.board.set_default"}}</button>
-										</div>
-									</form>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.i18n.Tr "repo.projects.board.set_default"}}</button>
+									</div>
 								</div>
 
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
@@ -141,12 +139,10 @@
 											{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
 										</label>
 									</div>
-									<form class="ui form" method="post">
-										<div class="text right actions">
-											<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-											<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
-										</div>
-									</form>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
+									</div>
 								</div>
 							</div>
 						</div>
