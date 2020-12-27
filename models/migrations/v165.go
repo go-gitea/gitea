@@ -11,17 +11,16 @@ import (
 
 func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 	type HookTask struct {
-		Typ string `xorm:"VARCHAR(16) index notnull"`
+		Typ string `xorm:"VARCHAR(16) index"`
 	}
 
 	alterSQL := x.Dialect().ModifyColumnSQL("hook_task", &schemas.Column{
 		Name:      "typ",
 		TableName: "hook_task",
 		SQLType: schemas.SQLType{
-			Name:          "VARCHAR",
-			DefaultLength: 16,
+			Name: "VARCHAR",
 		},
-		Nullable: false,
+		Length: 16,
 	})
 	if _, err := x.Exec(alterSQL); err != nil {
 		return err
@@ -34,6 +33,22 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		hookTaskTrimSQL = "UPDATE hook_task SET typ = TRIM(typ)"
 	}
 	if _, err := x.Exec(hookTaskTrimSQL); err != nil {
+		return err
+	}
+
+	type Webhook struct {
+		Type string `xorm:"VARCHAR(16) index"`
+	}
+
+	alterSQL = x.Dialect().ModifyColumnSQL("webhook", &schemas.Column{
+		Name:      "type",
+		TableName: "webhook",
+		SQLType: schemas.SQLType{
+			Name: "VARCHAR",
+		},
+		Length: 16,
+	})
+	if _, err := x.Exec(alterSQL); err != nil {
 		return err
 	}
 
