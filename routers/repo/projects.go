@@ -270,23 +270,17 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	uncategorizedBoard, err := models.GetUncategorizedBoard(project.ID)
-	uncategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
-	if err != nil {
-		ctx.ServerError("GetUncategorizedBoard", err)
-		return
-	}
-
 	boards, err := models.GetProjectBoards(project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
 	}
 
-	allBoards := models.ProjectBoardList{uncategorizedBoard}
-	allBoards = append(allBoards, boards...)
+	if boards[0].ID == 0 {
+		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+	}
 
-	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {
+	if ctx.Data["Issues"], err = boards.LoadIssues(); err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
@@ -295,7 +289,7 @@ func ViewProject(ctx *context.Context) {
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
-	ctx.Data["Boards"] = allBoards
+	ctx.Data["Boards"] = boards
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
 
@@ -466,7 +460,7 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 		board.Title = form.Title
 	}
 
-	if err := models.UpdateProjectBoard(board); err != nil {
+	if err = models.UpdateProjectBoard(board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
 		return
 	}
