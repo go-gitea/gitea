@@ -861,7 +861,7 @@
             .shabox {
               .sha.label {
                 margin: 0;
-                border: 1px solid #bbbbbb;
+                border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
                   border: 1px solid #db2828;
@@ -1301,7 +1301,7 @@
   #repo-files-table .sha.label,
   #rev-list .sha.label,
   .timeline-item.commits-list .singular-commit .sha.label {
-    border: 1px solid #bbbbbb;
+    border: 1px solid var(--color-light-border);
 
     .ui.signature.avatar {
       height: 16px;
@@ -1310,10 +1310,10 @@
     }
 
     .detail.icon {
-      background: #fafafa;
+      background: var(--color-light);
       margin: -6px -10px -4px 0;
       padding: 5px 4px 5px 6px;
-      border-left: 1px solid #bbbbbb;
+      border-left: 1px solid var(--color-light-border);
       border-top: 0;
       border-right: 0;
       border-bottom: 0;
@@ -2780,24 +2780,14 @@ tbody.commit-list {
   word-break: break-all;
 }
 
-.repo-header .repo-buttons {
+.repo-buttons {
   display: flex;
   align-items: center;
 }
 
-.repo-buttons .disabled-repo-button .label {
-  opacity: .5;
-}
-
-.repo-buttons .disabled-repo-button a.button {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.repo-buttons .disabled-repo-button a.button:hover {
-  background: none !important;
-  color: rgba(0, 0, 0, .6) !important;
-  box-shadow: 0 0 0 1px var(--color-secondary) inset !important;
+.repo-buttons button[disabled],
+.repo-buttons button[disabled] ~ .label {
+  opacity: var(--opacity-disabled);
 }
 
 .repo-buttons .ui.labeled.button > .label {
