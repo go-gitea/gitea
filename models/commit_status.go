@@ -129,9 +129,9 @@ func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 	case "leastupdate":
 		sess.Asc("updated_unix")
 	case "leastindex":
-		sess.Desc("index")
+		sess.Desc("id")
 	case "highestindex":
-		sess.Asc("index")
+		sess.Asc("id")
 	default:
 		sess.Desc("created_unix")
 	}
