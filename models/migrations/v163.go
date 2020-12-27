@@ -21,10 +21,6 @@ func convertTopicNameFrom25To50(x *xorm.Engine) error {
 		return err
 	}
 
-	type HookTask struct {
-		Typ string `xorm:"VARCHAR(16) index"`
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
