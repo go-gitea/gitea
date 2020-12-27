@@ -132,3 +132,16 @@ func DeleteNoticesByIDs(ids []int64) error {
 		Delete(new(Notice))
 	return err
 }
+
+// GetAdminUser returns the first administrator
+func GetAdminUser() (*User, error) {
+	var admin User
+	has, err := x.Where("is_admin=?", true).Get(&admin)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{}
+	}
+
+	return &admin, nil
+}

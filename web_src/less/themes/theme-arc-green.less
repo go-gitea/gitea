@@ -91,13 +91,10 @@
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
-  --color-label: #ffffff0d;
-  --color-label-hover: #ffffff20;
-  --color-label-basic: #00000030;
-  --color-label-basic-hover: #40404030;
-  --color-label-border: #ffffff28;
-  --color-hover: #ffffff0d;
-  --color-active: #ffffff14;
+  --color-light: #00000028;
+  --color-light-border: #ffffff28;
+  --color-hover: #60606020;
+  --color-active: #60606040;
   --color-menu: #2e323e;
   --color-card: #2e323e;
   --color-markdown-table-row: #ffffff06;
@@ -269,34 +266,6 @@ a.ui.basic.green.label:hover {
 .ui.green.button:hover,
 .ui.green.buttons .button:hover {
   background-color: #a0cc75;
-}
-
-.ui.basic.button,
-.ui.basic.buttons .button {
-  color: var(--color-secondary-dark-6);
-  background: rgba(0, 0, 0, .1);
-  box-shadow: none;
-}
-
-.ui.basic.button:focus,
-.ui.basic.button:hover,
-.ui.basic.buttons .button:focus,
-.ui.basic.buttons .button:hover {
-  color: #dbdbdb;
-  background: rgba(255, 255, 255, .08);
-  box-shadow: none;
-}
-
-.ui.labeled.button:not([class*="left labeled"]) > .label,
-.ui[class*="left labeled"].button > .button {
-  background: var(--color-secondary);
-  border: 1px solid var(--color-secondary);
-  color: #87ab63;
-}
-
-.ui.button:hover {
-  background-color: var(--color-secondary);
-  color: #dbdbdb;
 }
 
 .ui.search > .results {
@@ -519,25 +488,6 @@ td.blob-excerpt {
   background: #393d4a;
   border-color: #393d4a;
   color: #dbdbdb;
-}
-
-.sha.label,
-.repository #repo-files-table .sha.label,
-.repository #commits-table td.sha .sha.label,
-#rev-list .sha.label,
-.repository .timeline-item.commits-list .singular-commit .sha.label,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
-  border-color: #505667;
-}
-
-.sha.label.isSigned .detail.icon,
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon,
-#rev-list .sha.label.isSigned .detail.icon,
-.repository #repo-files-table .sha.label.isSigned .detail.icon,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned .detail.icon {
-  background: none;
-  border-left-color: #888;
 }
 
 .repository .ui.attached.message.isSigned.isVerified {
