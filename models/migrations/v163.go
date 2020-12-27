@@ -34,9 +34,5 @@ func convertTopicNameFrom25To50(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := recreateTable(sess, new(HookTask)); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }

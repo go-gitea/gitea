@@ -8,6 +8,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -310,6 +311,7 @@ func CreateWebhook(w *Webhook) error {
 }
 
 func createWebhook(e Engine, w *Webhook) error {
+	w.Type = strings.TrimSpace(w.Type)
 	_, err := e.Insert(w)
 	return err
 }
