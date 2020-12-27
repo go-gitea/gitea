@@ -1880,9 +1880,47 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) assigned to you, default is false",
+            "name": "assigned",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) created by you, default is false",
+            "name": "created",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (issues / pulls) mentioning you, default is false",
+            "name": "mentioned",
+            "in": "query"
+          },
+          {
             "type": "integer",
-            "description": "page number of requested issues",
+            "description": "page number of results to return (1-based)",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -2829,7 +2867,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/commits/{ref}/statuses": {
+    "/repos/{owner}/{repo}/commits/{ref}/status": {
       "get": {
         "produces": [
           "application/json"
@@ -2863,14 +2901,101 @@
           },
           {
             "type": "integer",
-            "description": "page number of results",
+            "description": "page number of results to return (1-based)",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
             "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Status"
+            "$ref": "#/responses/CombinedStatus"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{ref}/statuses": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a commit's statuses, by branch/tag/commit reference",
+        "operationId": "repoListStatusesByRef",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of branch/tag/commit",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "leastindex",
+              "highestindex"
+            ],
+            "type": "string",
+            "description": "type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "pending",
+              "success",
+              "error",
+              "failure",
+              "warning"
+            ],
+            "type": "string",
+            "description": "type of state",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CommitStatusList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5717,6 +5842,12 @@
           },
           {
             "type": "string",
+            "description": "optional filter by user (available for issue managers)",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
@@ -8424,7 +8555,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/StatusList"
+            "$ref": "#/responses/CommitStatusList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -8472,7 +8603,7 @@
         ],
         "responses": {
           "201": {
-            "$ref": "#/responses/Status"
+            "$ref": "#/responses/CommitStatus"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -8686,7 +8817,7 @@
           },
           {
             "type": "string",
-            "description": "optional filter by user",
+            "description": "optional filter by user (available for issue managers)",
             "name": "user",
             "in": "query"
           },
@@ -10997,7 +11128,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "$ref": "#/responses/AccessToken"
           }
         }
@@ -11288,6 +11419,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -11385,6 +11520,43 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CombinedStatus": {
+      "description": "CombinedStatus holds the combined state of several statuses for a single commit",
+      "type": "object",
+      "properties": {
+        "commit_url": {
+          "type": "string",
+          "x-go-name": "CommitURL"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "state": {
+          "$ref": "#/definitions/CommitStatusState"
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitStatus"
+          },
+          "x-go-name": "Statuses"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11516,6 +11688,55 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitStatus": {
+      "description": "CommitStatus holds a single status of a single Commit",
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "string",
+          "x-go-name": "Context"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "status": {
+          "$ref": "#/definitions/CommitStatusState"
+        },
+        "target_url": {
+          "type": "string",
+          "x-go-name": "TargetURL"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CommitStatusState": {
+      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitUser": {
       "type": "object",
       "title": "CommitUser contains information of a user in the context of a commit.",
@@ -11621,6 +11842,10 @@
             "type": "string"
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
         },
         "block_on_outdated_branch": {
           "type": "boolean",
@@ -11891,7 +12116,7 @@
       ],
       "properties": {
         "assignee": {
-          "description": "username of assignee",
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -11929,6 +12154,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "title": {
           "type": "string",
@@ -12291,7 +12520,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateStatusOption": {
-      "description": "CreateStatusOption holds the information needed to create a new Status for a Commit",
+      "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
       "type": "object",
       "properties": {
         "context": {
@@ -12303,7 +12532,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "$ref": "#/definitions/StatusState"
+          "$ref": "#/definitions/CommitStatusState"
         },
         "target_url": {
           "type": "string",
@@ -12567,6 +12796,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_official_review_requests": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOfficialReviewRequests"
+        },
         "block_on_outdated_branch": {
           "type": "boolean",
           "x-go-name": "BlockOnOutdatedBranch"
@@ -12728,6 +12961,7 @@
       "type": "object",
       "properties": {
         "assignee": {
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "Assignee"
         },
@@ -12751,6 +12985,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "state": {
           "type": "string",
@@ -13097,7 +13335,8 @@
       "description": "EditUserOption edit user options",
       "type": "object",
       "required": [
-        "email"
+        "source_id",
+        "login_name"
       ],
       "properties": {
         "active": {
@@ -13455,6 +13694,10 @@
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
         },
+        "migrations_disabled": {
+          "type": "boolean",
+          "x-go-name": "MigrationsDisabled"
+        },
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
@@ -13472,6 +13715,10 @@
             "type": "string"
           },
           "x-go-name": "AllowedReactions"
+        },
+        "default_theme": {
+          "type": "string",
+          "x-go-name": "DefaultTheme"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13775,6 +14022,10 @@
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         },
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"
@@ -15183,55 +15434,6 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "Status": {
-      "description": "Status holds a single Status of a single Commit",
-      "type": "object",
-      "properties": {
-        "context": {
-          "type": "string",
-          "x-go-name": "Context"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Created"
-        },
-        "creator": {
-          "$ref": "#/definitions/User"
-        },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "status": {
-          "$ref": "#/definitions/StatusState"
-        },
-        "target_url": {
-          "type": "string",
-          "x-go-name": "TargetURL"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Updated"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "StatusState": {
-      "description": "StatusState holds the state of a Status\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
-      "type": "string",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "StopWatch": {
       "description": "StopWatch represent a running stopwatch",
       "type": "object",
@@ -15705,6 +15907,12 @@
         }
       }
     },
+    "CombinedStatus": {
+      "description": "CombinedStatus",
+      "schema": {
+        "$ref": "#/definitions/CombinedStatus"
+      }
+    },
     "Comment": {
       "description": "Comment",
       "schema": {
@@ -15758,6 +15966,21 @@
           "type": "integer",
           "format": "int64",
           "description": "Total commit count"
+        }
+      }
+    },
+    "CommitStatus": {
+      "description": "CommitStatus",
+      "schema": {
+        "$ref": "#/definitions/CommitStatus"
+      }
+    },
+    "CommitStatusList": {
+      "description": "CommitStatusList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CommitStatus"
         }
       }
     },
@@ -16165,21 +16388,6 @@
       "description": "ServerVersion",
       "schema": {
         "$ref": "#/definitions/ServerVersion"
-      }
-    },
-    "Status": {
-      "description": "Status",
-      "schema": {
-        "$ref": "#/definitions/Status"
-      }
-    },
-    "StatusList": {
-      "description": "StatusList",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/Status"
-        }
       }
     },
     "StopWatch": {

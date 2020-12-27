@@ -34,7 +34,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -74,14 +73,18 @@ func loadRepoConfig() {
 			log.Fatal("Failed to get %s files: %v", t, err)
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
-		if com.IsDir(customPath) {
-			customFiles, err := com.StatDir(customPath)
+		isDir, err := util.IsDir(customPath)
+		if err != nil {
+			log.Fatal("Failed to get custom %s files: %v", t, err)
+		}
+		if isDir {
+			customFiles, err := util.StatDir(customPath)
 			if err != nil {
 				log.Fatal("Failed to get custom %s files: %v", t, err)
 			}
 
 			for _, f := range customFiles {
-				if !com.IsSliceContainsStr(files, f) {
+				if !util.IsStringInSlice(f, files, true) {
 					files = append(files, f)
 				}
 			}
@@ -111,12 +114,12 @@ func loadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if com.IsSliceContainsStr(Licenses, name) {
+		if util.IsStringInSlice(name, Licenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !com.IsSliceContainsStr(setting.Repository.PreferredLicenses, name) {
+		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
@@ -318,11 +321,6 @@ func (repo *Repository) APIURL() string {
 	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
 }
 
-// APIFormat converts a Repository to api.Repository
-func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
-	return repo.innerAPIFormat(x, mode, false)
-}
-
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
 func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
 	var prefix string
@@ -332,135 +330,6 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 		prefix = "commit"
 	}
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
-}
-
-func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
-	var parent *api.Repository
-
-	cloneLink := repo.cloneLink(false)
-	permission := &api.Permission{
-		Admin: mode >= AccessModeAdmin,
-		Push:  mode >= AccessModeWrite,
-		Pull:  mode >= AccessModeRead,
-	}
-	if !isParent {
-		err := repo.getBaseRepo(e)
-		if err != nil {
-			log.Error("APIFormat: %v", err)
-		}
-		if repo.BaseRepo != nil {
-			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
-		}
-	}
-
-	//check enabled/disabled units
-	hasIssues := false
-	var externalTracker *api.ExternalTracker
-	var internalTracker *api.InternalTracker
-	if unit, err := repo.getUnit(e, UnitTypeIssues); err == nil {
-		config := unit.IssuesConfig()
-		hasIssues = true
-		internalTracker = &api.InternalTracker{
-			EnableTimeTracker:                config.EnableTimetracker,
-			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
-			EnableIssueDependencies:          config.EnableDependencies,
-		}
-	} else if unit, err := repo.getUnit(e, UnitTypeExternalTracker); err == nil {
-		config := unit.ExternalTrackerConfig()
-		hasIssues = true
-		externalTracker = &api.ExternalTracker{
-			ExternalTrackerURL:    config.ExternalTrackerURL,
-			ExternalTrackerFormat: config.ExternalTrackerFormat,
-			ExternalTrackerStyle:  config.ExternalTrackerStyle,
-		}
-	}
-	hasWiki := false
-	var externalWiki *api.ExternalWiki
-	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
-		hasWiki = true
-	} else if unit, err := repo.getUnit(e, UnitTypeExternalWiki); err == nil {
-		hasWiki = true
-		config := unit.ExternalWikiConfig()
-		externalWiki = &api.ExternalWiki{
-			ExternalWikiURL: config.ExternalWikiURL,
-		}
-	}
-	hasPullRequests := false
-	ignoreWhitespaceConflicts := false
-	allowMerge := false
-	allowRebase := false
-	allowRebaseMerge := false
-	allowSquash := false
-	if unit, err := repo.getUnit(e, UnitTypePullRequests); err == nil {
-		config := unit.PullRequestsConfig()
-		hasPullRequests = true
-		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
-		allowMerge = config.AllowMerge
-		allowRebase = config.AllowRebase
-		allowRebaseMerge = config.AllowRebaseMerge
-		allowSquash = config.AllowSquash
-	}
-	hasProjects := false
-	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
-		hasProjects = true
-	}
-
-	repo.mustOwner(e)
-
-	numReleases, _ := GetReleaseCountByRepoID(repo.ID, FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
-
-	return &api.Repository{
-		ID: repo.ID,
-		// TODO use convert.ToUser(repo.Owner)
-		Owner: &api.User{
-			ID:        repo.Owner.ID,
-			UserName:  repo.Owner.Name,
-			FullName:  repo.Owner.FullName,
-			Email:     repo.Owner.GetEmail(),
-			AvatarURL: repo.Owner.AvatarLink(),
-			LastLogin: repo.Owner.LastLoginUnix.AsTime(),
-			Created:   repo.Owner.CreatedUnix.AsTime(),
-		},
-		Name:                      repo.Name,
-		FullName:                  repo.FullName(),
-		Description:               repo.Description,
-		Private:                   repo.IsPrivate,
-		Template:                  repo.IsTemplate,
-		Empty:                     repo.IsEmpty,
-		Archived:                  repo.IsArchived,
-		Size:                      int(repo.Size / 1024),
-		Fork:                      repo.IsFork,
-		Parent:                    parent,
-		Mirror:                    repo.IsMirror,
-		HTMLURL:                   repo.HTMLURL(),
-		SSHURL:                    cloneLink.SSH,
-		CloneURL:                  cloneLink.HTTPS,
-		Website:                   repo.Website,
-		Stars:                     repo.NumStars,
-		Forks:                     repo.NumForks,
-		Watchers:                  repo.NumWatches,
-		OpenIssues:                repo.NumOpenIssues,
-		OpenPulls:                 repo.NumOpenPulls,
-		Releases:                  int(numReleases),
-		DefaultBranch:             repo.DefaultBranch,
-		Created:                   repo.CreatedUnix.AsTime(),
-		Updated:                   repo.UpdatedUnix.AsTime(),
-		Permissions:               permission,
-		HasIssues:                 hasIssues,
-		ExternalTracker:           externalTracker,
-		InternalTracker:           internalTracker,
-		HasWiki:                   hasWiki,
-		HasProjects:               hasProjects,
-		ExternalWiki:              externalWiki,
-		HasPullRequests:           hasPullRequests,
-		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
-		AllowMerge:                allowMerge,
-		AllowRebase:               allowRebase,
-		AllowRebaseMerge:          allowRebaseMerge,
-		AllowSquash:               allowSquash,
-		AvatarURL:                 repo.avatarLink(e),
-		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-	}
 }
 
 func (repo *Repository) getUnits(e Engine) (err error) {
@@ -1004,7 +873,11 @@ func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
 	})
-	return has && com.IsDir(RepoPath(u.Name, repoName)), err
+	if err != nil {
+		return false, err
+	}
+	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
+	return has && isDir, err
 }
 
 // IsRepositoryExist returns true if the repository with given name under user has already existed.
@@ -1078,7 +951,12 @@ func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) er
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
 
-	if !overwriteOrAdopt && com.IsExist(RepoPath(u.Name, name)) {
+	isExist, err := util.IsExist(RepoPath(u.Name, name))
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", RepoPath(u.Name, name), err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
 		return ErrRepoFilesAlreadyExist{u.Name, name}
 	}
 	return nil
@@ -1110,7 +988,11 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 
 	// Use custom file when available.
 	customPath := path.Join(setting.CustomPath, relPath)
-	if com.IsFile(customPath) {
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
 		return ioutil.ReadFile(customPath)
 	}
 
@@ -1156,7 +1038,12 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	}
 
 	repoPath := RepoPath(u.Name, repo.Name)
-	if !overwriteOrAdopt && com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
 		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
 		return ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
@@ -1408,7 +1295,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(oldOwner.Name, repo.Name)
-	if com.IsExist(wikiPath) {
+	isExist, err := util.IsExist(wikiPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		return err
+	}
+	if isExist {
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -1451,7 +1343,12 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	wikiPath := repo.WikiPath()
-	if com.IsExist(wikiPath) {
+	isExist, err := util.IsExist(wikiPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		return err
+	}
+	if isExist {
 		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -1528,11 +1425,16 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		if repo.IsPrivate && com.IsExist(daemonExportFile) {
+		isExist, err := util.IsExist(daemonExportFile)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			return err
+		}
+		if repo.IsPrivate && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
-		} else if !repo.IsPrivate && !com.IsExist(daemonExportFile) {
+		} else if !repo.IsPrivate && !isExist {
 			if f, err := os.Create(daemonExportFile); err != nil {
 				log.Error("Failed to create %s: %v", daemonExportFile, err)
 			} else {
@@ -2030,7 +1932,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
-		id := com.StrTo(result["id"]).MustInt64()
+		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
@@ -2098,7 +2000,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
@@ -2121,7 +2023,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
@@ -2144,7 +2046,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")

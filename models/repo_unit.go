@@ -6,10 +6,10 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -113,6 +113,24 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 
+// AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
+func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
+	count := 0
+	if cfg.AllowMerge {
+		count++
+	}
+	if cfg.AllowRebase {
+		count++
+	}
+	if cfg.AllowRebaseMerge {
+		count++
+	}
+	if cfg.AllowSquash {
+		count++
+	}
+	return count
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
@@ -129,7 +147,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 		case UnitTypeIssues:
 			r.Config = new(IssuesConfig)
 		default:
-			panic("unrecognized repo unit type: " + com.ToStr(*val))
+			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
 		}
 	}
 }

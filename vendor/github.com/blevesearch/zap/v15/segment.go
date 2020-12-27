@@ -194,7 +194,7 @@ func (s *Segment) loadConfig() error {
 	verOffset := crcOffset - 4
 	s.version = binary.BigEndian.Uint32(s.mm[verOffset : verOffset+4])
 	if s.version != Version {
-		return fmt.Errorf("unsupported version %d", s.version)
+		return fmt.Errorf("unsupported version %d != %d", s.version, Version)
 	}
 
 	chunkOffset := verOffset - 4

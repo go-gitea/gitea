@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -107,8 +108,15 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models
 		}
 	} else if !user.CanImportLocal() {
 		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
-	} else if !com.IsDir(remoteAddr) {
-		return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+	} else {
+		isDir, err := util.IsDir(remoteAddr)
+		if err != nil {
+			log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
+			return "", err
+		}
+		if !isDir {
+			return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
+		}
 	}
 
 	return remoteAddr, nil
@@ -170,25 +178,26 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected                bool
-	EnablePush               string
-	WhitelistUsers           string
-	WhitelistTeams           string
-	WhitelistDeployKeys      bool
-	EnableMergeWhitelist     bool
-	MergeWhitelistUsers      string
-	MergeWhitelistTeams      string
-	EnableStatusCheck        bool `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts      []string
-	RequiredApprovals        int64
-	EnableApprovalsWhitelist bool
-	ApprovalsWhitelistUsers  string
-	ApprovalsWhitelistTeams  string
-	BlockOnRejectedReviews   bool
-	BlockOnOutdatedBranch    bool
-	DismissStaleApprovals    bool
-	RequireSignedCommits     bool
-	ProtectedFilePatterns    string
+	Protected                     bool
+	EnablePush                    string
+	WhitelistUsers                string
+	WhitelistTeams                string
+	WhitelistDeployKeys           bool
+	EnableMergeWhitelist          bool
+	MergeWhitelistUsers           string
+	MergeWhitelistTeams           string
+	EnableStatusCheck             bool
+	StatusCheckContexts           []string
+	RequiredApprovals             int64
+	EnableApprovalsWhitelist      bool
+	ApprovalsWhitelistUsers       string
+	ApprovalsWhitelistTeams       string
+	BlockOnRejectedReviews        bool
+	BlockOnOfficialReviewRequests bool
+	BlockOnOutdatedBranch         bool
+	DismissStaleApprovals         bool
+	RequireSignedCommits          bool
+	ProtectedFilePatterns         string
 }
 
 // Validate validates the fields
