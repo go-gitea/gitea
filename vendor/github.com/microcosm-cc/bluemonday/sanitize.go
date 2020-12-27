@@ -168,9 +168,9 @@ func parseQuery(query string) (values []Query, err error) {
 func encodeQueries(queries []Query) string {
 	var b strings.Builder
 	for i, query := range queries {
-		b.WriteString(query.Key)
+		b.WriteString(url.QueryEscape(query.Key))
 		b.WriteString("=")
-		b.WriteString(query.Value)
+		b.WriteString(url.QueryEscape(query.Value))
 		if i < len(queries)-1 {
 			b.WriteString("&")
 		}
@@ -183,22 +183,18 @@ func sanitizedURL(val string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// sanitize the url query params
-	sanitizedQueries := make([]Query, 0)
+
 	// we use parseQuery but not u.Query to keep the order not change because
 	// url.Values is a map which has a random order.
 	queryValues, err := parseQuery(u.RawQuery)
 	if err != nil {
 		return "", err
 	}
-	for _, query := range queryValues {
-		sk := html.EscapeString(query.Key)
-		sanitizedQueries = append(sanitizedQueries, Query{
-			Key:   sk,
-			Value: query.Value,
-		})
+	// sanitize the url query params
+	for i, query := range queryValues {
+		queryValues[i].Key = html.EscapeString(query.Key)
 	}
-	u.RawQuery = encodeQueries(sanitizedQueries)
+	u.RawQuery = encodeQueries(queryValues)
 	// u.String() will also sanitize host/scheme/user/pass
 	return u.String(), nil
 }
