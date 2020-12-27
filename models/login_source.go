@@ -130,6 +130,7 @@ type OAuth2Config struct {
 	ClientSecret                  string
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *oauth2.CustomURLMapping
+	IconURL                       string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
