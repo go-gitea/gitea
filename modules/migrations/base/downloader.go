@@ -7,20 +7,13 @@ package base
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"code.gitea.io/gitea/modules/structs"
 )
 
-// AssetDownloader downloads an asset (attachment) for a release
-type AssetDownloader interface {
-	GetAsset(tag string, id int64) (io.ReadCloser, error)
-}
-
 // Downloader downloads the site repo informations
 type Downloader interface {
-	AssetDownloader
 	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
@@ -29,7 +22,7 @@ type Downloader interface {
 	GetLabels() ([]*Label, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
-	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 
@@ -209,23 +202,24 @@ func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 }
 
 // GetPullRequests returns a repository's pull requests with retry
-func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, error) {
+func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
 	var (
 		times = d.RetryTimes
 		prs   []*PullRequest
 		err   error
+		isEnd bool
 	)
 	for ; times > 0; times-- {
-		if prs, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
-			return prs, nil
+		if prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
+			return prs, isEnd, nil
 		}
 		select {
 		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
+			return nil, false, d.ctx.Err()
 		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
 		}
 	}
-	return nil, err
+	return nil, false, err
 }
 
 // GetReviews returns pull requests reviews

@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "套件安裝"
 slug: "install-from-package"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

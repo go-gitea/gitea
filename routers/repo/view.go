@@ -137,9 +137,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	var c git.LastCommitCache
+	var c *git.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = cache.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 	}
 
 	var latestCommit *git.Commit
@@ -332,8 +332,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					ctx.Data["FileContent"] = strings.Replace(
-						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+					ctx.Data["FileContent"] = strings.ReplaceAll(
+						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 					)
 				}
 			}
@@ -353,12 +353,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
@@ -471,8 +472,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
-			ctx.Data["FileContent"] = strings.Replace(
-				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+			ctx.Data["FileContent"] = strings.ReplaceAll(
+				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
 			buf = charset.ToUTF8WithFallback(buf)

@@ -26,7 +26,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kballard/go-shellquote"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -54,6 +53,8 @@ func setup(logPath string, debug bool) {
 	_ = log.DelLogger("console")
 	if debug {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
+	} else {
+		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
 	setting.NewContext()
 	if debug {
@@ -103,7 +104,10 @@ func runServ(c *cli.Context) error {
 	if len(keys) != 2 || keys[0] != "key" {
 		fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
 	}
-	keyID := com.StrTo(keys[1]).MustInt64()
+	keyID, err := strconv.ParseInt(keys[1], 10, 64)
+	if err != nil {
+		fail("Key ID format error", "Invalid key argument: %s", c.Args()[1])
+	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
@@ -111,9 +115,12 @@ func runServ(c *cli.Context) error {
 		if err != nil {
 			fail("Internal error", "Failed to check provided key: %v", err)
 		}
-		if key.Type == models.KeyTypeDeploy {
+		switch key.Type {
+		case models.KeyTypeDeploy:
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
-		} else {
+		case models.KeyTypePrincipal:
+			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
+		default:
 			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
 		}
 		println("If this is unexpected, please log in with password and setup Gitea under another user.")

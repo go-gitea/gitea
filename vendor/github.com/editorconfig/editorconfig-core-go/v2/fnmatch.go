@@ -3,6 +3,7 @@ package editorconfig
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -18,10 +19,7 @@ var (
 
 // FnmatchCase tests whether the name matches the given pattern case included.
 func FnmatchCase(pattern, name string) (bool, error) {
-	p, err := translate(pattern)
-	if err != nil {
-		return false, err
-	}
+	p := translate(pattern)
 
 	r, err := regexp.Compile(fmt.Sprintf("^%s$", p))
 	if err != nil {
@@ -31,7 +29,7 @@ func FnmatchCase(pattern, name string) (bool, error) {
 	return r.MatchString(name), nil
 }
 
-func translate(pattern string) (string, error) {
+func translate(pattern string) string { // nolint: gocyclo
 	index := 0
 	pat := []rune(pattern)
 	length := len(pat)
@@ -44,29 +42,36 @@ func translate(pattern string) (string, error) {
 
 	matchesBraces := len(findLeftBrackets.FindAllString(pattern, -1)) == len(findRightBrackets.FindAllString(pattern, -1))
 
+	pathSeparator := "/"
+	if runtime.GOOS == "windows" {
+		pathSeparator = regexp.QuoteMeta("\\")
+	}
+
 	for index < length {
 		r := pat[index]
 		index++
 
-		if r == '*' {
+		switch r {
+		case '*':
 			p := index
 			if p < length && pat[p] == '*' {
 				result.WriteString(".*")
 				index++
 			} else {
-				result.WriteString("[^/]*")
+				result.WriteString(fmt.Sprintf("[^%s]*", pathSeparator))
 			}
-		} else if r == '/' {
+		case '/':
 			p := index
 			if p+2 < length && pat[p] == '*' && pat[p+1] == '*' && pat[p+2] == '/' {
-				result.WriteString("(?:/|/.*/)")
+				result.WriteString(fmt.Sprintf("(?:%s|%s.*%s)", pathSeparator, pathSeparator, pathSeparator))
+
 				index += 3
 			} else {
 				result.WriteRune(r)
 			}
-		} else if r == '?' {
-			result.WriteString("[^/]")
-		} else if r == '[' {
+		case '?':
+			result.WriteString(fmt.Sprintf("[^%s]", pathSeparator))
+		case '[':
 			if inBrackets {
 				result.WriteString("\\[")
 			} else {
@@ -98,14 +103,14 @@ func translate(pattern string) (string, error) {
 					}
 				}
 			}
-		} else if r == ']' {
+		case ']':
 			if inBrackets && pat[index-2] == '\\' {
 				result.WriteString("\\]")
 			} else {
 				result.WriteRune(r)
 				inBrackets = false
 			}
-		} else if r == '{' {
+		case '{':
 			hasComma := false
 			p := index
 			res := strings.Builder{}
@@ -114,7 +119,9 @@ func translate(pattern string) (string, error) {
 				if pat[p] == '}' && pat[p-1] != '\\' {
 					break
 				}
+
 				res.WriteRune(pat[p])
+
 				if pat[p] == ',' && pat[p-1] != '\\' {
 					hasComma = true
 					break
@@ -122,56 +129,68 @@ func translate(pattern string) (string, error) {
 				p++
 			}
 
-			if !hasComma && p < length {
+			switch {
+			case !hasComma && p < length:
 				inner := res.String()
+
 				sub := findNumericRange.FindStringSubmatch(inner)
 				if len(sub) == 3 {
 					from, _ := strconv.Atoi(sub[1])
 					to, _ := strconv.Atoi(sub[2])
+
 					result.WriteString("(?:")
+
 					// XXX does not scale well
 					for i := from; i < to; i++ {
 						result.WriteString(strconv.Itoa(i))
 						result.WriteRune('|')
 					}
+
 					result.WriteString(strconv.Itoa(to))
 					result.WriteRune(')')
 				} else {
-					r, _ := translate(inner)
+					r := translate(inner)
+
 					result.WriteString(fmt.Sprintf("\\{%s\\}", r))
 				}
+
 				index = p + 1
-			} else if matchesBraces {
+			case matchesBraces:
 				result.WriteString("(?:")
 				braceLevel++
-			} else {
+			default:
 				result.WriteString("\\{")
 			}
-		} else if r == '}' {
+		case '}':
 			if braceLevel > 0 {
 				if isEscaped {
 					result.WriteRune('}')
+
 					isEscaped = false
 				} else {
 					result.WriteRune(')')
+
 					braceLevel--
 				}
 			} else {
 				result.WriteString("\\}")
 			}
-		} else if r == ',' {
+		case ',':
 			if braceLevel == 0 || isEscaped {
 				result.WriteRune(r)
 			} else {
 				result.WriteRune('|')
 			}
-		} else if r != '\\' || isEscaped {
-			result.WriteString(regexp.QuoteMeta(string(r)))
-			isEscaped = false
-		} else {
-			isEscaped = true
+		default:
+			if r != '\\' || isEscaped {
+				result.WriteString(regexp.QuoteMeta(string(r)))
+
+				isEscaped = false
+			} else {
+				isEscaped = true
+			}
 		}
 	}
 
-	return result.String(), nil
+	return result.String()
 }

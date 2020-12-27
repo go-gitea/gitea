@@ -9,12 +9,10 @@ package base
 type Repository struct {
 	Name          string
 	Owner         string
-	IsPrivate     bool
-	IsMirror      bool
+	IsPrivate     bool `yaml:"is_private"`
+	IsMirror      bool `yaml:"is_mirror"`
 	Description   string
-	AuthUsername  string
-	AuthPassword  string
-	CloneURL      string
-	OriginalURL   string
+	CloneURL      string `yaml:"clone_url"`
+	OriginalURL   string `yaml:"original_url"`
 	DefaultBranch string
 }

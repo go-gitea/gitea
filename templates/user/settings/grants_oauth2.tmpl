@@ -15,7 +15,7 @@
 						{{$.i18n.Tr "settings.revoke_key"}}
 					</button>
 				</div>
-				<i class="big key icon"></i>
+				{{svg "octicon-key"}}
 				<div class="content">
 					<strong>{{$grant.Application.Name}}</strong>
 					<div class="activity meta">
@@ -29,7 +29,7 @@
 
 <div class="ui small basic delete modal" id="revoke-gitea-oauth2-grant">
 	<div class="ui icon header">
-		<i class="shield alternate icon"></i>
+		{{svg "octicon-shield" 16 "mr-2"}}
 		{{.i18n.Tr "settings.revoke_oauth2_grant"}}
 	</div>
 	<div class="content">

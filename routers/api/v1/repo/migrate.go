@@ -119,6 +119,11 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		return
 	}
 
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrationsGlobalDisabled", fmt.Errorf("the site administrator has disabled migrations"))
+		return
+	}
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -171,11 +176,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		}
 
 		if err == nil {
-			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
-				return
-			}
+			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
+			return
 		}
 
 		if repo != nil {
@@ -191,7 +193,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
@@ -212,6 +214,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(models.ErrNameCharsNotAllowed).Name))
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+	case models.IsErrMigrationNotAllowed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
