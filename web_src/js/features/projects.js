@@ -59,24 +59,21 @@ export default async function initProject() {
       });
   });
 
-  $('.set-default-project-board').each(function () {
-    $(this).click(function (e) {
-      e.preventDefault();
+  $(document).on('click', '.set-default-project-board', async function(e) {
+    e.preventDefault();
 
-      $.ajax({
-        url: $(this).data('url'),
-        headers: {
-          'X-Csrf-Token': csrf,
-          'X-Remote': true,
-        },
-        contentType: 'application/json',
-        method: 'POST',
-      }).done(() => {
-        setTimeout(window.location.reload(true), 2000);
-      });
+    await $.ajax({
+      method: 'POST',
+      url: $(this).data('url'),
+      headers: {
+        'X-Csrf-Token': csrf,
+        'X-Remote': true,
+      },
+      contentType: 'application/json',
     });
-  });
 
+    setTimeout(reload, 2000);
+  });
   $('.delete-project-board').each(function () {
     $(this).click(function (e) {
       e.preventDefault();
