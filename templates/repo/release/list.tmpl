@@ -157,9 +157,6 @@
 														<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 															{{svg "octicon-info"}}
 														</span>
-														<a class="ui mini compact red button delete-button remove-rel-attach" data-url="{{$.RepoLink}}/releases/attachments/remove" data-file="{{.UUID}}">
-															{{$.i18n.Tr "remove"}}
-														</a>
 													</span>
 													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
 														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>

@@ -206,7 +206,7 @@ func LatestRelease(ctx *context.Context) {
 	ctx.Redirect(release.HTMLURL())
 }
 
-// NewRelease render creating release page
+// NewRelease render creating or edit release page
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
@@ -221,10 +221,17 @@ func NewRelease(ctx *context.Context) {
 		}
 
 		if rel != nil {
+			rel.Repo = ctx.Repo.Repository
+			if err := rel.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", err)
+				return
+			}
+
 			ctx.Data["tag_name"] = rel.TagName
 			ctx.Data["tag_target"] = rel.Target
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
+			ctx.Data["attachments"] = rel.Attachments
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
@@ -362,6 +369,13 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
 	ctx.Data["IsDraft"] = rel.IsDraft
+
+	rel.Repo = ctx.Repo.Repository
+	if err := rel.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+	ctx.Data["attachments"] = rel.Attachments
 
 	ctx.HTML(200, tplReleaseNew)
 }

@@ -57,6 +57,21 @@
 						{{$.i18n.Tr "loading"}}
 					</div>
 				</div>
+				{{range .attachments}}
+					<div class="field middle aligned">
+						<span class="ui text middle aligned right">
+							<a class="ui mini compact red button delete-button remove-rel-attach" data-url="{{$.RepoLink}}/releases/attachments/remove" data-file="{{.UUID}}">
+								{{$.i18n.Tr "remove"}}
+							</a>
+						</span>
+						<input name="attachment-{{.ID}}" style="width:450px" required value="{{.Name}}"/>
+						<input name="attachment-{{.ID}}-del" type="hidden" value="false"/>
+						<span class="ui text grey">{{.Size | FileSize}}</span>
+						<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+							{{svg "octicon-info"}}
+						</span>
+					</div>
+				{{end}}
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
 						<div class="files"></div>
