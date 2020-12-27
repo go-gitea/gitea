@@ -114,6 +114,8 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 		prov := OAuth2Providers[source.OAuth2().Provider]
 		if source.OAuth2().IconURL != "" {
 			prov.Image = source.OAuth2().IconURL
+		} else {
+			source.OAuth2().IconURL = prov.Image
 		}
 		providers[source.Name] = prov
 		orderedKeys = append(orderedKeys, source.Name)
