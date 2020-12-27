@@ -447,7 +447,7 @@ Manage running server operations:
 Dump-repo dumps repository data from git/github/gitea/gitlab:
 
 - Options:
-  - `--git_service service` : Git service, 1 plain git, 2 github, 3 gitea, 4 gitlab
+  - `--git_service service` : Git service, it could be `git`, `github`, `gitea`, `gitlab`
   - `--repo_dir dir`, `-r dir`: Repository dir path to store the data 
   - `--clone_addr addr`: The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL. i.e. https://github.com/lunny/tango.git
   - `--auth_username lunny`: The username to visit the clone_addr
