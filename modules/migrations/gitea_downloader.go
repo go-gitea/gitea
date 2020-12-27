@@ -268,13 +268,27 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 	for _, asset := range rel.Attachments {
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.ID,
 			Name:          asset.Name,
 			Size:          &size,
 			DownloadCount: &dlCount,
 			Created:       asset.Created,
 			DownloadURL:   &asset.DownloadURL,
+			DownloadFunc: func() (io.ReadCloser, error) {
+				asset, _, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, rel.ID, asset.ID)
+				if err != nil {
+					return nil, err
+				}
+				// FIXME: for a private download?
+				resp, err := http.Get(asset.DownloadURL)
+				if err != nil {
+					return nil, err
+				}
+
+				// resp.Body is closed by the uploader
+				return resp.Body, nil
+			},
 		})
 	}
 	return r
@@ -308,21 +322,6 @@ func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
-}
-
-// GetAsset returns an asset
-func (g *GiteaDownloader) GetAsset(_ string, relID, id int64) (io.ReadCloser, error) {
-	asset, _, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, relID, id)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.Get(asset.DownloadURL)
-	if err != nil {
-		return nil, err
-	}
-
-	// resp.Body is closed by the uploader
-	return resp.Body, nil
 }
 
 func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
