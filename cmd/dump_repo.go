@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"code.gitea.io/gitea/modules/convert"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/urfave/cli"
 )
@@ -27,7 +29,7 @@ var CmdDumpRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "git_service",
 			Value: "",
-			Usage: "Git service, git, github, gitea, gitlab",
+			Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
 		},
 		cli.StringFlag{
 			Name:  "repo_dir, r",
@@ -84,9 +86,27 @@ func runDumpRepository(ctx *cli.Context) error {
 	log.Trace("Log path: %s", setting.LogRootPath)
 	setting.InitDBConfig()
 
+	var (
+		serviceType structs.GitServiceType
+		cloneAddr   = ctx.String("clone_addr")
+		serviceStr  = ctx.String("git_service")
+	)
+
+	if strings.HasPrefix(strings.ToLower(cloneAddr), "https://github.com/") {
+		serviceStr = "github"
+	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitlab.com/") {
+		serviceStr = "gitlab"
+	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") {
+		serviceStr = "gitea"
+	}
+	if serviceStr == "" {
+		return errors.New("git_service missed or clone_addr cannot be recognized")
+	}
+	serviceType = convert.ToGitServiceType(serviceStr)
+
 	var opts = base.MigrateOptions{
-		GitServiceType: convert.ToGitServiceType(ctx.String("git_service")),
-		CloneAddr:      ctx.String("clone_addr"),
+		GitServiceType: serviceType,
+		CloneAddr:      cloneAddr,
 		AuthUsername:   ctx.String("auth_username"),
 		AuthPassword:   ctx.String("auth_password"),
 		AuthToken:      ctx.String("auth_token"),
