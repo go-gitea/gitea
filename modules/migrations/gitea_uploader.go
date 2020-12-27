@@ -154,6 +154,15 @@ func (g *GiteaLocalUploader) Close() {
 
 // CreateTopics creates topics
 func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	// ignore topics to long for the db
+	c := 0
+	for i := range topics {
+		if len(topics[i]) <= 25 {
+			topics[c] = topics[i]
+			c++
+		}
+	}
+	topics = topics[:c]
 	return models.SaveTopics(g.repo.ID, topics...)
 }
 
