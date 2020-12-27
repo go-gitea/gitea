@@ -444,13 +444,15 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
+			m.Get("/dashboard/:team", user.Dashboard)
 			m.Get("/^:type(issues|pulls)$", user.Issues)
+			m.Get("/^:type(issues|pulls)$/:team", user.Issues)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
+			m.Get("/milestones/:team", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
 			m.Post("/members/action/:action", org.MembersAction)
-
 			m.Get("/teams", org.Teams)
-		}, context.OrgAssignment(true))
+		}, context.OrgAssignment(true, false, true))
 
 		m.Group("/:org", func() {
 			m.Get("/teams/:team", org.TeamMembers)

@@ -289,6 +289,7 @@ func (a *Action) GetIssueContent() string {
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	RequestedUser   *User // the user we want activity for
+	RequestedTeam   *Team // the team we want activity for
 	Actor           *User // the user viewing the activity
 	IncludePrivate  bool  // include private actions
 	OnlyPerformedBy bool  // only actions performed by requested user
@@ -355,6 +356,15 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 		}
+	}
+
+	if opts.RequestedTeam != nil {
+		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
+		}
+		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
