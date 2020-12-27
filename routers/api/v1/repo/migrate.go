@@ -124,6 +124,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		return
 	}
 
+	log.Info("Mirror Interval Party:", form.MirrorInterval)
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -141,6 +143,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,
+		MirrorInterval: form.MirrorInterval,
 	}
 	if opts.Mirror {
 		opts.Issues = false

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -242,17 +243,18 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		opt.Readme = "Default"
 	}
 	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:          opt.Name,
-		Description:   opt.Description,
-		IssueLabels:   opt.IssueLabels,
-		Gitignores:    opt.Gitignores,
-		License:       opt.License,
-		Readme:        opt.Readme,
-		IsPrivate:     opt.Private,
-		AutoInit:      opt.AutoInit,
-		DefaultBranch: opt.DefaultBranch,
-		TrustModel:    models.ToTrustModel(opt.TrustModel),
-		IsTemplate:    opt.Template,
+		Name:           opt.Name,
+		Description:    opt.Description,
+		IssueLabels:    opt.IssueLabels,
+		Gitignores:     opt.Gitignores,
+		License:        opt.License,
+		Readme:         opt.Readme,
+		IsPrivate:      opt.Private,
+		AutoInit:       opt.AutoInit,
+		DefaultBranch:  opt.DefaultBranch,
+		TrustModel:     models.ToTrustModel(opt.TrustModel),
+		IsTemplate:     opt.Template,
+		MirrorInterval: opt.MirrorInterval,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -497,6 +499,12 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 
 	if opts.Archived != nil {
 		if err := updateRepoArchivedState(ctx, opts); err != nil {
+			return
+		}
+	}
+
+	if opts.MirrorInterval != nil {
+		if err := updateMirrorInterval(ctx, opts); err != nil {
 			return
 		}
 	}
@@ -778,6 +786,29 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				return err
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		}
+	}
+	return nil
+}
+
+// updateMirrorInterval updates the repo's mirror Interval
+func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) error {
+	repo := ctx.Repo.Repository
+
+	if opts.MirrorInterval != nil {
+		if err := repo.GetMirror(); err != nil {
+			return err
+		}
+		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
+			repo.Mirror.Interval = interval
+			if err := repo.UpdateMirror(repo.Mirror); err != nil {
+				log.Error("Failed to Set Mirror Interval: %s", err)
+				ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+				return err
+			}
+		} else {
+			log.Error("Wrong format for MirrorInternal Sent: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
 		}
 	}
 	return nil
