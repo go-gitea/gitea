@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
 var queueMutex sync.Mutex
@@ -144,7 +144,9 @@ func TestArchive_Basic(t *testing.T) {
 
 	for _, req := range inFlight {
 		assert.True(t, req.IsComplete())
-		assert.True(t, com.IsExist(req.GetArchivePath()))
+		exist, err := util.IsExist(req.GetArchivePath())
+		assert.NoError(t, err)
+		assert.True(t, exist)
 	}
 
 	arbitraryReq := inFlight[0]

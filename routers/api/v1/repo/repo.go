@@ -70,6 +70,11 @@ func Search(ctx *context.APIContext) {
 	//   description: repo owner to prioritize in the results
 	//   type: integer
 	//   format: int64
+	// - name: team_id
+	//   in: query
+	//   description: search only for repos that belong to the given team id
+	//   type: integer
+	//   format: int64
 	// - name: starredBy
 	//   in: query
 	//   description: search only for repos that the user with the given id has starred
@@ -131,6 +136,7 @@ func Search(ctx *context.APIContext) {
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
+		TeamID:             ctx.QueryInt64("team_id"),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),

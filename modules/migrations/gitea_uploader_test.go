@@ -52,6 +52,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
 	assert.True(t, repo.HasWiki())
+	assert.EqualValues(t, models.RepositoryReady, repo.Status)
 
 	milestones, err := models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
