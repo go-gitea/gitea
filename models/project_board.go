@@ -214,13 +214,17 @@ func getDefaultBoard(e Engine, projectID int64) (*ProjectBoard, error) {
 func SetDefaultBoard(projectID, boardID int64) error {
 	sess := x
 
-	_, err := sess.Where(builder.Eq{"project_id": projectID}.And(builder.Eq{"`default`": true})).Cols("`default`").Update(&ProjectBoard{Default: false})
+	_, err := sess.Where(builder.Eq{
+		"project_id": projectID,
+		"`default`":  true,
+	}).Cols("`default`").Update(&ProjectBoard{Default: false})
 	if err != nil {
 		return err
 	}
 
 	if boardID > 0 {
-		_, err = sess.ID(boardID).Where(builder.Eq{"project_id": projectID}).Cols("`default`").Update(&ProjectBoard{Default: true})
+		_, err = sess.ID(boardID).Where(builder.Eq{"project_id": projectID}).
+			Cols("`default`").Update(&ProjectBoard{Default: true})
 	}
 
 	return err
