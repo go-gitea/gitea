@@ -216,30 +216,12 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 
-	// Get the next Status Index
-	var nextIndex int64
-	lastCommitStatus := &CommitStatus{
-		SHA:    opts.SHA,
-		RepoID: opts.Repo.ID,
-	}
-	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
-	if err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("NewCommitStatus: sess.Rollback: %v", err)
-		}
-		return fmt.Errorf("NewCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
-	}
-	if has {
-		log.Debug("NewCommitStatus[%s, %s]: found", repoPath, opts.SHA)
-		nextIndex = lastCommitStatus.Index
-	}
-	opts.CommitStatus.Index = nextIndex + 1
-	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
+	log.Debug("NewCommitStatus[%s, %s]", repoPath, opts.SHA)
 
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
-	if _, err = sess.Insert(opts.CommitStatus); err != nil {
+	if _, err := sess.Insert(opts.CommitStatus); err != nil {
 		if err := sess.Rollback(); err != nil {
 			log.Error("Insert CommitStatus: sess.Rollback: %v", err)
 		}
