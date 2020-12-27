@@ -27,14 +27,14 @@ export default async function initProject() {
             },
           });
         },
-      }
+      },
     );
   }
 
   $('.edit-project-board').each(function () {
     const projectTitleLabel = $(this).closest('.board-column-header').find('.board-label');
     const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title'
+      '.content > .form > .field > .project-board-title',
     );
 
     $(this)
@@ -59,7 +59,7 @@ export default async function initProject() {
       });
   });
 
-  $(document).on('click', '.set-default-project-board', async function(e) {
+  $(document).on('click', '.set-default-project-board', async function (e) {
     e.preventDefault();
 
     await $.ajax({
@@ -72,7 +72,7 @@ export default async function initProject() {
       contentType: 'application/json',
     });
 
-    setTimeout(reload, 2000);
+    setTimeout(window.location.reload(true), 2000);
   });
   $('.delete-project-board').each(function () {
     $(this).click(function (e) {
