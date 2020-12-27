@@ -189,7 +189,7 @@ func Milestones(ctx *context.Context) {
 		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 	}
 
-	if ctx.Org.Team != nil {
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
 		repoOpts.TeamID = ctx.Org.Team.ID
 	}
 
