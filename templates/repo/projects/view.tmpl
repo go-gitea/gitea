@@ -86,10 +86,10 @@
 									{{$.i18n.Tr "repo.projects.board.edit"}}
 								</a>
 								{{if not .Default}}
-								<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
-									{{svg "octicon-pin"}}
-									{{$.i18n.Tr "repo.projects.board.set_default"}}
-								</a>
+									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+										{{svg "octicon-pin"}}
+										{{$.i18n.Tr "repo.projects.board.set_default"}}
+									</a>
 								{{end}}
 								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
 									{{svg "octicon-trashcan"}}
