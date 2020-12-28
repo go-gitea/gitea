@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Hide private participation in Orgs (#13994) (#14031)
   * Fix escaping issue in diff (#14153) (#14154)
 * BUGFIXES
+  * Fix bug of link query order on markdown render (#14156) (#14171)
   * Drop long repo topics during migration (#14152) (#14155)
   * Ensure that search term and page are not lost on adoption page-turn (#14133) (#14143)
   * Fix storage config implementation (#14091) (#14095)
