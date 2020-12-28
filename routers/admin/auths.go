@@ -177,6 +177,7 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 		ClientSecret:                  form.Oauth2Secret,
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
+		IconURL:                       form.Oauth2IconURL,
 	}
 }
 

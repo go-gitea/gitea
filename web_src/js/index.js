@@ -204,24 +204,22 @@ function initRepoStatusChecker() {
         _csrf: csrf,
       },
       complete(xhr) {
-        if (xhr.status === 200) {
-          if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 4) {
-              window.location.reload();
-              return;
-            } else if (xhr.responseJSON.status === 3) {
-              $('#repo_migrating_progress').hide();
-              $('#repo_migrating').hide();
-              $('#repo_migrating_failed').show();
-              $('#repo_migrating_failed_image').show();
-              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
-              return;
-            }
-            setTimeout(() => {
-              initRepoStatusChecker();
-            }, 2000);
+        if (xhr.status === 200 && xhr.responseJSON) {
+          if (xhr.responseJSON.status === 4) {
+            window.location.reload();
+            return;
+          } else if (xhr.responseJSON.status === 3) {
+            $('#repo_migrating_progress').hide();
+            $('#repo_migrating').hide();
+            $('#repo_migrating_failed').show();
+            $('#repo_migrating_failed_image').show();
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
             return;
           }
+          setTimeout(() => {
+            initRepoStatusChecker();
+          }, 2000);
+          return;
         }
         $('#repo_migrating_progress').hide();
         $('#repo_migrating').hide();
@@ -1625,16 +1623,12 @@ async function initEditor() {
     let value;
     let parts;
 
-    if (e.keyCode === 8) {
-      if ($(this).getCursorPosition() === 0) {
-        if ($section.length > 0) {
-          value = $section.last().find('a').text();
-          $(this).val(value + $(this).val());
-          $(this)[0].setSelectionRange(value.length, value.length);
-          $section.last().remove();
-          $divider.last().remove();
-        }
-      }
+    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length > 0) {
+      value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      $(this)[0].setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
     }
     if (e.keyCode === 191) {
       parts = $(this).val().split('/');
@@ -2761,6 +2755,11 @@ function initVueComponents() {
         type: Number,
         required: true
       },
+      teamId: {
+        type: Number,
+        required: false,
+        default: 0
+      },
       organizations: {
         type: Array,
         default: () => [],
@@ -2859,7 +2858,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
+        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -3040,7 +3039,7 @@ function initVueComponents() {
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
             self.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
