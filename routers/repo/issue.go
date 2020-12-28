@@ -114,7 +114,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
-	if !com.IsSliceContainsStr(types, viewType) {
+	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
 
@@ -274,6 +274,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
+	handleTeamMentions(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
@@ -408,6 +413,11 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
+	handleTeamMentions(ctx)
+	if ctx.Written() {
 		return
 	}
 }
@@ -971,7 +981,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
+	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
 }
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
@@ -1051,10 +1061,10 @@ func ViewIssue(ctx *context.Context) {
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	} else if ctx.Params(":type") == "pulls" && !issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
 		return
 	}
 
@@ -1401,7 +1411,7 @@ func ViewIssue(ctx *context.Context) {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true
-						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index) + "/cleanup"
 					}
 				}
 			}
@@ -2444,4 +2454,41 @@ func combineLabelComments(issue *models.Issue) {
 		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 		i--
 	}
+}
+
+// get all teams that current user can mention
+func handleTeamMentions(ctx *context.Context) {
+	if ctx.User == nil || !ctx.Repo.Owner.IsOrganization() {
+		return
+	}
+
+	isAdmin := false
+	var err error
+	// Admin has super access.
+	if ctx.User.IsAdmin {
+		isAdmin = true
+	} else {
+		isAdmin, err = ctx.Repo.Owner.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		}
+	}
+
+	if isAdmin {
+		if err := ctx.Repo.Owner.GetTeams(&models.SearchTeamOptions{}); err != nil {
+			ctx.ServerError("GetTeams", err)
+			return
+		}
+	} else {
+		ctx.Repo.Owner.Teams, err = ctx.Repo.Owner.GetUserTeams(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetUserTeams", err)
+			return
+		}
+	}
+
+	ctx.Data["MentionableTeams"] = ctx.Repo.Owner.Teams
+	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.RelAvatarLink()
 }

@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -58,13 +57,13 @@ func getExitStatusFromError(err error) int {
 }
 
 func sessionHandler(session ssh.Session) {
-	keyID := session.Context().Value(giteaKeyID).(int64)
+	keyID := fmt.Sprintf("%d", session.Context().Value(giteaKeyID).(int64))
 
 	command := session.RawCommand()
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + com.ToStr(keyID), "--config=" + setting.CustomConf}
+	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
 	cmd := exec.Command(setting.AppPath, args...)
 	cmd.Env = append(

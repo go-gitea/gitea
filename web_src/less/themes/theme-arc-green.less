@@ -82,7 +82,8 @@
   --color-text-dark: #dbe0ea;
   --color-text: #bbc0ca;
   --color-text-light: #a6aab5;
-  --color-text-light-2: #868a95;
+  --color-text-light-2: #8a8e99;
+  --color-text-light-3: #707687;
   --color-footer: #2e323e;
   --color-timeline: #4c525e;
   --color-input-text: #d5dbe6;
@@ -90,12 +91,10 @@
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
-  --color-label: #ffffff0d;
-  --color-label-hover: #ffffff20;
-  --color-label-basic: #00000016;
-  --color-label-border: #ffffff28;
-  --color-hover: #ffffff0d;
-  --color-active: #ffffff14;
+  --color-light: #00000028;
+  --color-light-border: #ffffff28;
+  --color-hover: #60606020;
+  --color-active: #60606040;
   --color-menu: #2e323e;
   --color-card: #2e323e;
   --color-markdown-table-row: #ffffff06;
@@ -104,6 +103,8 @@
   --color-code-bg: #2a2e3a;
   --color-shadow: #00000060;
   --color-secondary-bg: #2a2e3a;
+  --color-text-focus: #fff;
+  --color-expand-button: #3c404d;
 }
 
 .repository.branches .commit-divergence .bar {
@@ -116,10 +117,6 @@
 
 .repository .segment.reactions .ui.label.basic.blue {
   background: var(--color-primary-alpha-20) !important;
-}
-
-body {
-  color: var(--color-secondary-dark-6);
 }
 
 ::placeholder,
@@ -269,34 +266,6 @@ a.ui.basic.green.label:hover {
 .ui.green.button:hover,
 .ui.green.buttons .button:hover {
   background-color: #a0cc75;
-}
-
-.ui.basic.button,
-.ui.basic.buttons .button {
-  color: var(--color-secondary-dark-6);
-  background: rgba(0, 0, 0, .1);
-  box-shadow: none;
-}
-
-.ui.basic.button:focus,
-.ui.basic.button:hover,
-.ui.basic.buttons .button:focus,
-.ui.basic.buttons .button:hover {
-  color: #dbdbdb;
-  background: rgba(255, 255, 255, .08);
-  box-shadow: none;
-}
-
-.ui.labeled.button:not([class*="left labeled"]) > .label,
-.ui[class*="left labeled"].button > .button {
-  background: var(--color-secondary);
-  border: 1px solid var(--color-secondary);
-  color: #87ab63;
-}
-
-.ui.button:hover {
-  background-color: var(--color-secondary);
-  color: #dbdbdb;
 }
 
 .ui.search > .results {
@@ -505,15 +474,6 @@ td.blob-excerpt {
   background-color: rgba(0, 0, 0, .15);
 }
 
-a.blob-excerpt {
-  color: #ccc;
-  background: #393d4a;
-}
-
-a.blob-excerpt:hover {
-  background: #87ab63;
-}
-
 .lines-code.active,
 .lines-code .active {
   background: #534d1b !important;
@@ -528,25 +488,6 @@ a.blob-excerpt:hover {
   background: #393d4a;
   border-color: #393d4a;
   color: #dbdbdb;
-}
-
-.sha.label,
-.repository #repo-files-table .sha.label,
-.repository #commits-table td.sha .sha.label,
-#rev-list .sha.label,
-.repository .timeline-item.commits-list .singular-commit .sha.label,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
-  border-color: #505667;
-}
-
-.sha.label.isSigned .detail.icon,
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon,
-#rev-list .sha.label.isSigned .detail.icon,
-.repository #repo-files-table .sha.label.isSigned .detail.icon,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned .detail.icon {
-  background: none;
-  border-left-color: #888;
 }
 
 .repository .ui.attached.message.isSigned.isVerified {
@@ -656,18 +597,6 @@ a.blob-excerpt:hover {
 .edit-diff > div > .ui.table {
   border-left-color: var(--color-secondary) !important;
   border-right-color: var(--color-secondary) !important;
-}
-
-.repository .diff-detail-box {
-  background-color: #383c4a;
-
-  .detail-files {
-    background-color: inherit;
-  }
-
-  &.sticky {
-    border-bottom-color: var(--color-secondary);
-  }
 }
 
 /* code mirror dark theme */

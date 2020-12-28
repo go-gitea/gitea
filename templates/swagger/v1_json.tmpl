@@ -2012,6 +2012,13 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "search only for repos that belong to the given team id",
+            "name": "team_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
             "name": "starredBy",
             "in": "query"
@@ -5842,6 +5849,12 @@
           },
           {
             "type": "string",
+            "description": "optional filter by user (available for issue managers)",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
@@ -8811,7 +8824,7 @@
           },
           {
             "type": "string",
-            "description": "optional filter by user",
+            "description": "optional filter by user (available for issue managers)",
             "name": "user",
             "in": "query"
           },
@@ -11122,7 +11135,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "$ref": "#/responses/AccessToken"
           }
         }
@@ -13687,6 +13700,10 @@
         "http_git_disabled": {
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
+        },
+        "migrations_disabled": {
+          "type": "boolean",
+          "x-go-name": "MigrationsDisabled"
         },
         "mirrors_disabled": {
           "type": "boolean",

@@ -282,6 +282,11 @@ var (
 			Value: "",
 			Usage: "Use a custom Email URL (option for GitHub)",
 		},
+		cli.StringFlag{
+			Name:  "icon-url",
+			Value: "",
+			Usage: "Custom icon URL for OAuth2 login source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -606,6 +611,7 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 		ClientSecret:                  c.String("secret"),
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
+		IconURL:                       c.String("icon-url"),
 	}
 }
 
@@ -656,6 +662,10 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("auto-discover-url") {
 		oAuth2Config.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
+	}
+
+	if c.IsSet("icon-url") {
+		oAuth2Config.IconURL = c.String("icon-url")
 	}
 
 	// update custom URL mapping

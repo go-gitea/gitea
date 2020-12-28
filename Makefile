@@ -317,8 +317,8 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
-	npx stylelint --max-warnings=0 web_src/less
+	npx eslint --color --max-warnings=0 web_src/js build templates webpack.config.js
+	npx stylelint --color --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -330,7 +330,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: go-check
@@ -660,7 +660,7 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack --hide-modules --display-entrypoints=false
+	npx webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg

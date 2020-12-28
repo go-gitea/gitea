@@ -343,6 +343,9 @@ func Contexter() macaron.Handler {
 
 		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+		ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+
+		ctx.Data["ManifestData"] = setting.ManifestData
 
 		c.Map(ctx)
 	}
