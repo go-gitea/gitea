@@ -1,4 +1,8 @@
 .repository {
+  .commit-statuses .list > .item {
+    line-height: 2;
+  }
+
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -273,24 +277,6 @@
         .ui.avatar {
           margin-bottom: 5px;
         }
-
-        .commit-summary a {
-          text-decoration: underline;
-          text-decoration-style: dashed;
-
-          &:hover {
-            text-decoration-style: solid;
-          }
-
-          &.default-link {
-            text-decoration: none;
-
-            &:hover {
-              text-decoration: underline;
-              text-decoration-style: solid;
-            }
-          }
-        }
       }
 
       tbody {
@@ -498,7 +484,7 @@
         border: 1px solid var(--color-secondary);
         background: var(--color-box-body);
         border-radius: 3px;
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -569,7 +555,7 @@
 
       .content {
         margin-left: 4em;
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -835,7 +821,7 @@
           float: left;
           margin-left: -33px;
           margin-right: 8px;
-          color: var(--color-text-light-2);
+          color: var(--color-text);
           align-items: center;
           justify-content: center;
 
@@ -875,7 +861,7 @@
             .shabox {
               .sha.label {
                 margin: 0;
-                border: 1px solid #bbbbbb;
+                border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
                   border: 1px solid #db2828;
@@ -993,7 +979,7 @@
             }
 
             &.no-header {
-              #avatar-arrow;
+              #avatar-arrow();
 
               &::after {
                 border-right-color: var(--color-box-body);
@@ -1016,7 +1002,7 @@
           }
 
           .no-content {
-            color: #767676;
+            color: var(--color-text-light-2);
             font-style: italic;
           }
 
@@ -1054,54 +1040,21 @@
 
       .code-comment {
         border: 1px solid transparent;
-        padding: 6px 6px 3px;
+        padding: .5rem 0;
+        margin: 0;
 
         .content {
           border: none !important;
+        }
+
+        .avatar.image {
+          width: 28px;
+          height: 28px;
         }
       }
 
       .event {
         padding-left: 15px;
-
-        & > .svg:not(.issue-symbol) {
-          text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
-        }
-
-        & > .svg.issue-symbol {
-          font-size: 20px;
-          margin-left: -35px;
-          margin-right: -1px;
-          margin-top: 0 !important;
-          height: 28px;
-          width: 28px;
-          border-radius: 50%;
-          text-align: center;
-          line-height: 28px;
-          background: #eee;
-
-          &::before {
-            width: 15px;
-            display: inline-block;
-          }
-
-          &.octicon-key::before {
-            width: 18px;
-          }
-
-          &.octicon-circle-slash::before {
-            width: 17px;
-          }
-
-          &.octicon-comment {
-            font-size: 21px;
-            line-height: 33px;
-
-            &::before {
-              width: 20px;
-            }
-          }
-        }
 
         .detail {
           font-size: .9rem;
@@ -1145,7 +1098,7 @@
       }
 
       .form {
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -1242,7 +1195,7 @@
 
     .comment.form {
       .content {
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -1348,7 +1301,7 @@
   #repo-files-table .sha.label,
   #rev-list .sha.label,
   .timeline-item.commits-list .singular-commit .sha.label {
-    border: 1px solid #bbbbbb;
+    border: 1px solid var(--color-light-border);
 
     .ui.signature.avatar {
       height: 16px;
@@ -1357,10 +1310,10 @@
     }
 
     .detail.icon {
-      background: #fafafa;
+      background: var(--color-light);
       margin: -6px -10px -4px 0;
       padding: 5px 4px 5px 6px;
-      border-left: 1px solid #bbbbbb;
+      border-left: 1px solid var(--color-light-border);
       border-top: 0;
       border-right: 0;
       border-bottom: 0;
@@ -1460,7 +1413,7 @@
 
   .diff-detail-box {
     padding: 7px 0;
-    background: #ffffff;
+    background: var(--color-body);
     line-height: 30px;
 
     @media @mediaMdAndDown {
@@ -1472,7 +1425,6 @@
       position: sticky;
       top: 0;
       z-index: 8;
-      margin-bottom: 10px;
       border-bottom: 1px solid var(--color-secondary);
       padding-left: 2px;
       padding-right: 2px;
@@ -1489,8 +1441,12 @@
       margin-right: .25rem;
     }
 
-    .diff-detail-actions .btn-review {
-      margin-right: 0 !important;
+    .diff-detail-actions > * {
+      margin-right: 0;
+    }
+
+    .diff-detail-actions > * + * {
+      margin-left: .25rem;
     }
 
     span.status {
@@ -1501,25 +1457,20 @@
       vertical-align: middle;
 
       &.modify {
-        background-color: #f0db88;
+        background-color: var(--color-yellow);
       }
 
       &.add {
-        background-color: #b4e2b4;
+        background-color: var(--color-green);
       }
 
       &.del {
-        background-color: #e9aeae;
+        background-color: var(--color-red);
       }
 
       &.rename {
-        background-color: #dad8ff;
+        background-color: var(--color-teal);
       }
-    }
-
-    .detail-files {
-      background: #ffffff;
-      margin: 0;
     }
   }
 
@@ -1533,21 +1484,28 @@
     }
 
     .button {
-      margin: -5px 0 -5px 12px;
-      padding: 8px 10px;
+      padding: 8px 12px;
       flex: 0 0 auto;
+      margin-top: -8px;
+      margin-bottom: -8px;
+      margin-right: 0;
     }
   }
 
   .diff-file-box {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+
     .header {
       background-color: var(--color-box-header);
     }
 
     .file-body.file-code {
+      background: var(--color-code-bg);
+
       .lines-num {
         text-align: right;
-        color: #a6a6a6;
+        color: var(--color-text-light);
         width: 1%;
         min-width: 50px;
         user-select: none;
@@ -1607,73 +1565,10 @@
       }
     }
 
-    .code-diff-unified tbody tr {
-      &.del-code td {
-        background-color: #ffeef0;
-        border-color: #f1c0c0;
-      }
-
-      &.add-code td {
-        background-color: #e6ffed;
-        border-color: #bef5cb;
-      }
-
-      &.del-code td.lines-num {
-        background-color: #ffe5e4;
-      }
-
-      &.add-code td.lines-num {
-        background-color: #cdffd8;
-      }
-
-    }
-
     .code-diff-split {
-
       table,
       tbody {
         width: 100%;
-      }
-
-      tbody tr {
-
-        // light gray for empty lines before / after commit
-        &.add-code td:nth-child(1),
-        &.add-code td:nth-child(2),
-        &.add-code td:nth-child(3),
-        &.del-code td:nth-child(4),
-        &.del-code td:nth-child(5),
-        &.del-code td:nth-child(6) {
-          background-color: #fafbfc;
-          border-right-color: #eaecef;
-        }
-
-        &.del-code {
-          background-color: #ffeef0;
-        }
-
-        &.del-code td.add-code {
-          background-color: #e6ffed;
-        }
-        &.del-code td.lines-num-new.add-code {
-          background-color: #cdffd8;
-          border-color: #bef5cb;
-        }
-
-        &.add-code {
-          background-color: #e6ffed;
-          border-color: #bef5cb;
-        }
-
-        &.add-code td.lines-num-new {
-          background-color: #cdffd8;
-        }
-
-        td:nth-child(4) {
-          border-left-width: 1px;
-          border-left-style: solid;
-          border-left-color: #f6f8fa;
-        }
       }
     }
 
@@ -1697,7 +1592,6 @@
   }
 
   .diff-stats {
-
     clear: both;
     margin-bottom: 5px;
     max-height: 400px;
@@ -1708,8 +1602,11 @@
       list-style: none;
       padding-bottom: 4px;
       margin-bottom: 4px;
-      border-bottom: 1px dashed #dddddd;
       padding-left: 6px;
+    }
+
+    li + li {
+      border-top: 1px solid var(--color-secondary);
     }
   }
 
@@ -2561,14 +2458,15 @@
 }
 
 .comment-header {
-  #avatar-arrow;
+  #avatar-arrow();
   border: none !important;
+  background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
   padding: .5rem 1rem !important;
   margin: 0 !important;
   position: relative;
-  color: #767676;
+  color: var(--color-text-light-2);
   min-height: 41px;
   background-color: var(--color-box-header);
   display: flex;
@@ -2589,20 +2487,19 @@
     top: -8px;
     left: 7px;
   }
+
+  a {
+    color: var(--color-text);
+  }
+
+  a:hover {
+    color: var(--color-primary);
+  }
 }
 
 .comment-header .actions a {
   margin-right: 0 !important;
   padding: .5rem !important;
-}
-
-.comment-header a {
-  color: rgba(0, 0, 0, .4) !important;
-}
-
-.comment-header .actions a:hover,
-.comment-header .actions a.active {
-  color: rgba(0, 0, 0, .8) !important;
 }
 
 .comment-header-left > * + *,
@@ -2611,6 +2508,7 @@
 }
 
 .comment-body {
+  background: var(--color-box-body);
   border: none !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -2788,20 +2686,16 @@ tbody.commit-list {
   }
 }
 
-.commit-list .commit-summary a {
-  text-decoration: underline;
-  text-decoration-style: dashed;
-
+.commit-summary a {
   &:hover {
-    text-decoration-style: solid;
+    text-decoration: underline solid;
   }
 
   &.default-link {
     text-decoration: none;
 
     &:hover {
-      text-decoration: underline;
-      text-decoration-style: solid;
+      text-decoration: underline solid;
     }
   }
 }
@@ -2813,16 +2707,11 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
+  margin: 0;
 }
 
-.git-notes {
-  &.top {
-    text-align: left;
-  }
-
-  .commit-body {
-    margin: 0;
-  }
+.git-notes.top {
+  text-align: left;
 }
 
 @media @mediaSm {
@@ -2891,24 +2780,14 @@ tbody.commit-list {
   word-break: break-all;
 }
 
-.repo-header .repo-buttons {
+.repo-buttons {
   display: flex;
   align-items: center;
 }
 
-.repo-buttons .disabled-repo-button .label {
-  opacity: .5;
-}
-
-.repo-buttons .disabled-repo-button a.button {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.repo-buttons .disabled-repo-button a.button:hover {
-  background: none !important;
-  color: rgba(0, 0, 0, .6) !important;
-  box-shadow: 0 0 0 1px var(--color-secondary) inset !important;
+.repo-buttons button[disabled],
+.repo-buttons button[disabled] ~ .label {
+  opacity: var(--opacity-disabled);
 }
 
 .repo-buttons .ui.labeled.button > .label {
@@ -3018,9 +2897,13 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword {
-  border-bottom: 1px dotted #959da5;
-  display: inline-block;
+.issue-keyword,
+.commit-body .issue-keyword:hover {
+  border-bottom: 1px dotted var(--color-text-light-2);
+}
+
+.issue-keyword:hover {
+  border-bottom: none;
 }
 
 .file-header {
@@ -3074,9 +2957,8 @@ td.blob-excerpt {
   border-radius: var(--border-radius) !important;
 }
 
-.diff-counter {
-  font-weight: 600;
-  margin-right: 8px;
+.diff-file-header-actions > * + * {
+  margin-left: .5rem !important;
 }
 
 .diff-stats-bar {
@@ -3084,8 +2966,6 @@ td.blob-excerpt {
   background-color: var(--color-red);
   height: 12px;
   width: 40px;
-  position: relative;
-  top: 2px;
 
   .diff-stats-add-bar {
     background-color: var(--color-green);
@@ -3105,11 +2985,45 @@ td.blob-excerpt {
 }
 
 .removed-code {
-  background-color: #fdb8c0;
+  background: var(--color-diff-removed-word-bg);
 }
 
 .added-code {
-  background-color: #acf2bd;
+  background: var(--color-diff-added-word-bg);
+}
+
+.code-diff-unified .del-code,
+.code-diff-unified .del-code td,
+.code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-type-marker-old,
+.code-diff-split .del-code .lines-code-old {
+  background: var(--color-diff-removed-row-bg);
+  border-color: var(--color-diff-removed-row-border);
+}
+
+.code-diff-unified .add-code,
+.code-diff-unified .add-code td,
+.code-diff-split .add-code .lines-num-new,
+.code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-code-new,
+.code-diff-split .del-code .add-code.lines-num-new,
+.code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-code-new {
+  background: var(--color-diff-added-row-bg);
+  border-color: var(--color-diff-added-row-border);
+}
+
+.code-diff-split .del-code .lines-num-new,
+.code-diff-split .del-code .lines-type-marker-new,
+.code-diff-split .del-code .lines-code-new,
+.code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-type-marker-old,
+.code-diff-split .add-code .lines-code-old {
+  background: var(--color-diff-inactive);
+}
+
+.code-diff-split tbody tr td:nth-child(4) {
+  border-left: 1px solid var(--color-secondary);
 }
 
 .repository .ui.menu.new-menu {

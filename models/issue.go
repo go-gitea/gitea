@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -386,7 +385,7 @@ func (issue *Issue) State() api.StateType {
 
 // HashTag returns unique hash tag for issue.
 func (issue *Issue) HashTag() string {
-	return "issue-" + com.ToStr(issue.ID)
+	return fmt.Sprintf("issue-%d", issue.ID)
 }
 
 // IsPoster returns true if given user by ID is the poster.
@@ -1374,7 +1373,8 @@ func parseCountResult(results []map[string][]byte) int64 {
 		return 0
 	}
 	for _, result := range results[0] {
-		return com.StrTo(string(result)).MustInt64()
+		c, _ := strconv.ParseInt(string(result), 10, 64)
+		return c
 	}
 	return 0
 }
@@ -1847,30 +1847,43 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	if err = issue.loadRepo(ctx.e); err != nil {
 		return
 	}
-	resolved := make(map[string]bool, 20)
-	names := make([]string, 0, 20)
+
+	resolved := make(map[string]bool, 10)
+	var mentionTeams []string
+
+	if err := issue.Repo.getOwner(ctx.e); err != nil {
+		return nil, err
+	}
+
+	repoOwnerIsOrg := issue.Repo.Owner.IsOrganization()
+	if repoOwnerIsOrg {
+		mentionTeams = make([]string, 0, 5)
+	}
+
 	resolved[doer.LowerName] = true
 	for _, name := range mentions {
 		name := strings.ToLower(name)
 		if _, ok := resolved[name]; ok {
 			continue
 		}
-		resolved[name] = false
-		names = append(names, name)
+		if repoOwnerIsOrg && strings.Contains(name, "/") {
+			names := strings.Split(name, "/")
+			if len(names) < 2 || names[0] != issue.Repo.Owner.LowerName {
+				continue
+			}
+			mentionTeams = append(mentionTeams, names[1])
+			resolved[name] = true
+		} else {
+			resolved[name] = false
+		}
 	}
 
-	if err := issue.Repo.getOwner(ctx.e); err != nil {
-		return nil, err
-	}
-
-	if issue.Repo.Owner.IsOrganization() {
-		// Since there can be users with names that match the name of a team,
-		// if the team exists and can read the issue, the team takes precedence.
-		teams := make([]*Team, 0, len(names))
+	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
+		teams := make([]*Team, 0, len(mentionTeams))
 		if err := ctx.e.
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Where("team_repo.repo_id=?", issue.Repo.ID).
-			In("team.lower_name", names).
+			In("team.lower_name", mentionTeams).
 			Find(&teams); err != nil {
 			return nil, fmt.Errorf("find mentioned teams: %v", err)
 		}
@@ -1883,7 +1896,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			for _, team := range teams {
 				if team.Authorize >= AccessModeOwner {
 					checked = append(checked, team.ID)
-					resolved[team.LowerName] = true
+					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
 				}
 				has, err := ctx.e.Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
@@ -1892,7 +1905,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				}
 				if has {
 					checked = append(checked, team.ID)
-					resolved[team.LowerName] = true
+					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 				}
 			}
 			if len(checked) != 0 {
@@ -1916,24 +1929,28 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				}
 			}
 		}
-
-		// Remove names already in the list to avoid querying the database if pending names remain
-		names = make([]string, 0, len(resolved))
-		for name, already := range resolved {
-			if !already {
-				names = append(names, name)
-			}
-		}
-		if len(names) == 0 {
-			return
-		}
 	}
 
-	unchecked := make([]*User, 0, len(names))
+	// Remove names already in the list to avoid querying the database if pending names remain
+	mentionUsers := make([]string, 0, len(resolved))
+	for name, already := range resolved {
+		if !already {
+			mentionUsers = append(mentionUsers, name)
+		}
+	}
+	if len(mentionUsers) == 0 {
+		return
+	}
+
+	if users == nil {
+		users = make([]*User, 0, len(mentionUsers))
+	}
+
+	unchecked := make([]*User, 0, len(mentionUsers))
 	if err := ctx.e.
 		Where("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		In("`user`.lower_name", names).
+		In("`user`.lower_name", mentionUsers).
 		Find(&unchecked); err != nil {
 		return nil, fmt.Errorf("find mentioned users: %v", err)
 	}

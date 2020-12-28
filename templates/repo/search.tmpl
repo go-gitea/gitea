@@ -16,10 +16,10 @@
 			<h3>
 				{{.i18n.Tr "repo.search.results" (.Keyword|Escape) .RepoLink .RepoName | Str2html }}
 			</h3>
-			<div>
+			<div class="df ac fw">
 				{{range $term := .SearchResultLanguages}}
-				<a class="ui text-label {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{EscapePound $.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
-					<i class="color-icon" style="background-color: {{$term.Color}}"></i>
+				<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{EscapePound $.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
+					<i class="color-icon mr-3" style="background-color: {{$term.Color}}"></i>
 					{{$term.Language}}
 					<div class="detail">{{$term.Count}}</div>
 				</a>
@@ -30,7 +30,7 @@
 					<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
 						<h4 class="ui top attached normal header">
 							<span class="file">{{.Filename}}</span>
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 						</h4>
 						<div class="ui attached table segment">
 							<div class="file-body file-code code-view">
