@@ -36,8 +36,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Send webhook when tag is removed via Web UI (#14015) (#14019)
   * Migrations: Use Process Manager to create own Context (#13792) (#13793)
 * API
-  * [API] GetCombinedCommitStatusByRef always return json & swagger doc fixes (#14047)
-  * [API] return original URL of Repositories (#13885) (#13886)
+  * GetCombinedCommitStatusByRef always return json & swagger doc fixes (#14047)
+  * Return original URL of Repositories (#13885) (#13886)
 
 ## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-12-01
 * SECURITY
