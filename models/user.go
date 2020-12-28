@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
@@ -315,7 +314,7 @@ func (u *User) HTMLURL() string {
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
-		com.ToStr(u.ID)+email+u.LowerName+u.Passwd+u.Rands,
+		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
 		setting.Service.ActiveCodeLives, nil)
 
 	// Add tail hex username
@@ -880,7 +879,7 @@ func VerifyUserActiveCode(code string) (user *User) {
 	if user = getVerifyUser(code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := com.ToStr(user.ID) + user.Email + user.LowerName + user.Passwd + user.Rands
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			return user
@@ -896,7 +895,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 	if user := getVerifyUser(code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := com.ToStr(user.ID) + email + user.LowerName + user.Passwd + user.Rands
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}

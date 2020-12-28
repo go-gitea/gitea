@@ -267,7 +267,16 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+	id := ctx.ParamsInt64(":id")
+	externallyManaged, err := models.PublicKeyIsExternallyManaged(id)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+	}
+	if externallyManaged {
+		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+	}
+
+	if err := models.DeletePublicKey(ctx.User, id); err != nil {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {

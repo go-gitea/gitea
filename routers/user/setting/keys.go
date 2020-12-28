@@ -160,7 +160,18 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		keyID := ctx.QueryInt64("id")
+		external, err := models.PublicKeyIsExternallyManaged(keyID)
+		if err != nil {
+			ctx.ServerError("sshKeysExternalManaged", err)
+			return
+		}
+		if external {
+			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
+		if err := models.DeletePublicKey(ctx.User, keyID); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
@@ -187,6 +198,13 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Keys"] = keys
+
+	externalKeys, err := models.PublicKeysAreExternallyManaged(keys)
+	if err != nil {
+		ctx.ServerError("ListPublicKeys", err)
+		return
+	}
+	ctx.Data["ExternalKeys"] = externalKeys
 
 	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {

@@ -269,6 +269,8 @@ var migrations = []Migration{
 	NewMigration("Convert task type from int to string", convertTaskTypeToString),
 	// v162 -> v163
 	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
+	// v163 -> v164
+	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
 }
 
 // GetCurrentDBVersion returns the current db version
