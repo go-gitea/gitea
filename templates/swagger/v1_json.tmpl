@@ -2018,6 +2018,13 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "search only for repos that belong to the given team id",
+            "name": "team_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
             "name": "starredBy",
             "in": "query"
@@ -11134,7 +11141,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "$ref": "#/responses/AccessToken"
           }
         }

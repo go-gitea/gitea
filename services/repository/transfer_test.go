@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/action"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
 var notifySync sync.Once
@@ -37,8 +37,12 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
 
-	assert.False(t, com.IsExist(models.RepoPath("user3", "repo3")))
-	assert.True(t, com.IsExist(models.RepoPath("user2", "repo3")))
+	exist, err := util.IsExist(models.RepoPath("user3", "repo3"))
+	assert.NoError(t, err)
+	assert.False(t, exist)
+	exist, err = util.IsExist(models.RepoPath("user2", "repo3"))
+	assert.NoError(t, err)
+	assert.True(t, exist)
 	models.AssertExistsAndLoadBean(t, &models.Action{
 		OpType:    models.ActionTransferRepo,
 		ActUserID: 2,
