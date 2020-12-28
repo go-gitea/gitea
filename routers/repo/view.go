@@ -396,7 +396,18 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
+	isDisplayingSource := ctx.Query("display") == "source"
+	ctx.Data["IsDisplayingSource"] = isDisplayingSource
+	isDisplayingRendered := !isDisplayingSource
+	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	if !isRepresentableAsText {
+		// If we can't show plain text, always try to render.
+		isDisplayingSource = false
+		isDisplayingRendered = true
+	}
+
+	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
@@ -462,6 +473,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		// This will be true for SVGs.
 		if base.IsImageFile(buf) {
 			ctx.Data["IsImageFile"] = true
+			ctx.Data["HasSourceRenderedToggle"] = true
 		}
 
 		if fileSize >= setting.UI.MaxDisplayFileSize {
