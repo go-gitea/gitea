@@ -122,22 +122,79 @@ func escapeUrlComponent(val string) string {
 	return w.String()
 }
 
-func sanitizedUrl(val string) (string, error) {
+// Query represents a query
+type Query struct {
+	Key   string
+	Value string
+}
+
+func parseQuery(query string) (values []Query, err error) {
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		values = append(values, Query{
+			Key:   key,
+			Value: value,
+		})
+	}
+	return values, err
+}
+
+func encodeQueries(queries []Query) string {
+	var b strings.Builder
+	for i, query := range queries {
+		b.WriteString(url.QueryEscape(query.Key))
+		b.WriteString("=")
+		b.WriteString(url.QueryEscape(query.Value))
+		if i < len(queries)-1 {
+			b.WriteString("&")
+		}
+	}
+	return b.String()
+}
+
+func sanitizedURL(val string) (string, error) {
 	u, err := url.Parse(val)
 	if err != nil {
 		return "", err
 	}
-	// sanitize the url query params
-	sanitizedQueryValues := make(url.Values, 0)
-	queryValues := u.Query()
-	for k, vals := range queryValues {
-		sk := html.EscapeString(k)
-		for _, v := range vals {
-			sv := v
-			sanitizedQueryValues.Add(sk, sv)
-		}
+
+	// we use parseQuery but not u.Query to keep the order not change because
+	// url.Values is a map which has a random order.
+	queryValues, err := parseQuery(u.RawQuery)
+	if err != nil {
+		return "", err
 	}
-	u.RawQuery = sanitizedQueryValues.Encode()
+	// sanitize the url query params
+	for i, query := range queryValues {
+		queryValues[i].Key = html.EscapeString(query.Key)
+	}
+	u.RawQuery = encodeQueries(queryValues)
 	// u.String() will also sanitize host/scheme/user/pass
 	return u.String(), nil
 }
@@ -158,7 +215,7 @@ func (p *Policy) writeLinkableBuf(buff *bytes.Buffer, token *html.Token) {
 				tokenBuff.WriteString(html.EscapeString(attr.Val))
 				continue
 			}
-			u, err := sanitizedUrl(u)
+			u, err := sanitizedURL(u)
 			if err == nil {
 				tokenBuff.WriteString(u)
 			} else {

@@ -743,6 +743,8 @@ github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc h1:ERSU1OvZ6MdWhHieo2oT7x
 github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
 github.com/lightstep/lightstep-tracer-go v0.18.1/go.mod h1:jlF1pusYV4pidLvZ+XD0UBX0ZE6WURAspgAczcDHrL4=
+github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8 h1:1omo92DLtxQu6VwVPSZAmduHaK5zssed6cvkHyl1XOg=
+github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8/go.mod h1:8iwZnFn2CDDNZ0r6UXhF4xawGvzaqzCRa1n3/lO3W2w=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:uNwtsDp7ci48vBTTxDuwcoTXz4lwtDTe7TjCQ0noaWY=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:mmIfjCSQlGYXmJ95jFN84AkQFnVABtKuJL8IrzwvUKQ=
 github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de h1:nyxwRdWHAVxpFcDThedEgQ07DbcRc5xgNObtbTp76fk=
@@ -801,8 +803,6 @@ github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7 h1:ydVkpU/M4/c45y
 github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7/go.mod h1:no/hfevHbndpXR5CaJahkYCfM/FFpmM/dSOwFGU7Z1o=
 github.com/mholt/archiver/v3 v3.5.0 h1:nE8gZIrw66cu4osS/U7UW7YDuGMHssxKutU8IfWxwWE=
 github.com/mholt/archiver/v3 v3.5.0/go.mod h1:qqTTPUK/HZPFgFQ/TJ3BzvTpF/dPtFVJXdQbCmeMxwc=
-github.com/microcosm-cc/bluemonday v1.0.4 h1:p0L+CTpo/PLFdkoPcJemLXG+fpMD7pYOoDEq1axMbGg=
-github.com/microcosm-cc/bluemonday v1.0.4/go.mod h1:8iwZnFn2CDDNZ0r6UXhF4xawGvzaqzCRa1n3/lO3W2w=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/minio/md5-simd v1.1.0 h1:QPfiOqlZH+Cj9teu0t9b1nTBfPbyTl16Of5MeuShdK4=
 github.com/minio/md5-simd v1.1.0/go.mod h1:XpBqgZULrMYD3R+M28PcmP0CkI7PEMzB3U77ZrKZ0Gw=
