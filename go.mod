@@ -126,3 +126,5 @@ require (
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
+
+replace github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
