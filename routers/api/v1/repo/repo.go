@@ -795,19 +795,28 @@ func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) erro
 	repo := ctx.Repo.Repository
 
 	if opts.MirrorInterval != nil {
+		if !repo.IsMirror {
+			err := fmt.Errorf("repo is a mirror, cannot archive/un-archive")
+			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			return err
+		}
 		if err := repo.GetMirror(); err != nil {
+			log.Error("Failed to get mirror: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
 			return err
 		}
 		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
 			repo.Mirror.Interval = interval
 			if err := models.UpdateMirror(repo.Mirror); err != nil {
 				log.Error("Failed to Set Mirror Interval: %s", err)
-				ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
 				return err
 			}
+			log.Trace("Repository %s/%s Mirror Interval was Updated to %s", ctx.Repo.Owner.Name, repo.Name, interval)
 		} else {
 			log.Error("Wrong format for MirrorInternal Sent: %s", err)
-			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+			ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+			return err
 		}
 	}
 	return nil
