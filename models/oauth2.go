@@ -111,7 +111,11 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 	var orderedKeys []string
 	providers := make(map[string]OAuth2Provider)
 	for _, source := range loginSources {
-		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
+		prov := OAuth2Providers[source.OAuth2().Provider]
+		if source.OAuth2().IconURL != "" {
+			prov.Image = source.OAuth2().IconURL
+		}
+		providers[source.Name] = prov
 		orderedKeys = append(orderedKeys, source.Name)
 	}
 
