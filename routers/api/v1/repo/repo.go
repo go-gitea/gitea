@@ -243,17 +243,17 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		opt.Readme = "Default"
 	}
 	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:           opt.Name,
-		Description:    opt.Description,
-		IssueLabels:    opt.IssueLabels,
-		Gitignores:     opt.Gitignores,
-		License:        opt.License,
-		Readme:         opt.Readme,
-		IsPrivate:      opt.Private,
-		AutoInit:       opt.AutoInit,
-		DefaultBranch:  opt.DefaultBranch,
-		TrustModel:     models.ToTrustModel(opt.TrustModel),
-		IsTemplate:     opt.Template,
+		Name:          opt.Name,
+		Description:   opt.Description,
+		IssueLabels:   opt.IssueLabels,
+		Gitignores:    opt.Gitignores,
+		License:       opt.License,
+		Readme:        opt.Readme,
+		IsPrivate:     opt.Private,
+		AutoInit:      opt.AutoInit,
+		DefaultBranch: opt.DefaultBranch,
+		TrustModel:    models.ToTrustModel(opt.TrustModel),
+		IsTemplate:    opt.Template,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -800,7 +800,7 @@ func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) erro
 		}
 		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
 			repo.Mirror.Interval = interval
-			if err := repo.UpdateMirror(repo.Mirror); err != nil {
+			if err := models.UpdateMirror(repo.Mirror); err != nil {
 				log.Error("Failed to Set Mirror Interval: %s", err)
 				ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
 				return err

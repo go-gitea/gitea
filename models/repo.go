@@ -651,12 +651,6 @@ func (repo *Repository) GetMirror() (err error) {
 	return err
 }
 
-// UpdateMirror updates the repository mirror, returns an error upon failure
-func (repo *Repository) UpdateMirror(m *Mirror) (err error) {
-	err = UpdateMirror(m)
-	return err
-}
-
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
