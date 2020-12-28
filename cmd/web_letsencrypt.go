@@ -17,10 +17,19 @@ import (
 
 func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
 
+	// if HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443
+	// due to docker port mapping this can't be checked programatically
+	// TODO: these are placeholders until we add options for each in settings with appropriate warning
+	enableHTTPChallenge := true
+	enableTLSALPNChallenge := false // set to false as this is default prior to using certmagic
+
 	magic := certmagic.NewDefault()
 	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
-		Email:  email,
-		Agreed: true,
+		Email:                   email,
+		Agreed:                  true,
+		DisableHTTPChallenge:    !enableHTTPChallenge,
+		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
+		Storage:                 &certmagic.FileStorage{Path: directory},
 	})
 
 	magic.Issuer = myACME
@@ -33,14 +42,17 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 
 	tlsConfig := magic.TLSConfig()
 
-	go func() {
-		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
-		if err != nil {
-			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
-		}
-	}()
+	if enableHTTPChallenge {
+		go func() {
+			log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
+			// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+			var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
+			if err != nil {
+				log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
+			}
+		}()
+	}
+
 	return runHTTPSWithTLSConfig("tcp", listenAddr, tlsConfig, context2.ClearHandler(m))
 }
 
