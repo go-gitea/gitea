@@ -114,6 +114,7 @@ Admin operations:
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+        - `--icon-url`: Custom icon URL for OAuth2 login source.
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -129,6 +130,7 @@ Admin operations:
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+        - `--icon-url`: Custom icon URL for OAuth2 login source.
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
