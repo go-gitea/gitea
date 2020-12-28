@@ -123,8 +123,6 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
-	// MirrorInterval time when creating a mirror (used with mirrors)
-	MirrorInterval string `json:"mirror_interval"`
 }
 
 // EditRepoOption options when editing a repository's properties

@@ -254,7 +254,6 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		DefaultBranch:  opt.DefaultBranch,
 		TrustModel:     models.ToTrustModel(opt.TrustModel),
 		IsTemplate:     opt.Template,
-		MirrorInterval: opt.MirrorInterval,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
