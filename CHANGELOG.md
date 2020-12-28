@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.13.1](https://github.com/go-gitea/gitea/releases/tag/v1.13.1) - 2020-12-29
 
 * SECURITY
-  * Hide private partisipation in Orgs (#13994) (#14031)
+  * Hide private participation in Orgs (#13994) (#14031)
   * Fix escaping issue in diff (#14153) (#14154)
 * BUGFIXES
   * Migration: drop too long repo topics (#14152) (#14155)
