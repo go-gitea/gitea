@@ -34,7 +34,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Add emoji in label to project boards (#13978) (#14021)
   * Send webhook when tag is removed via Web UI (#14015) (#14019)
-  * Migrations: Use Process Manager to create own Context (#13792) (#13793)
+  * Use Process Manager to create own Context (#13792) (#13793)
 * API
   * GetCombinedCommitStatusByRef always return json & swagger doc fixes (#14047)
   * Return original URL of Repositories (#13885) (#13886)
