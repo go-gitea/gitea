@@ -287,17 +287,24 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["Issues"] = issueList
 
-	linkedPrs := make(map[int64][]*models.Issue)
+	linkedPrsMap := make(map[int64][]*models.Issue)
 	for _, issue := range issueList {
+		var referencedIds []int64
 		for _, comment := range issue.Comments {
 			if comment.RefIssueID != 0 && comment.RefIsPull {
-				if pr, err := models.GetIssueWithAttrsByID(comment.RefIssueID); err == nil {
-					linkedPrs[issue.ID] = append(linkedPrs[issue.ID], pr)
+				referencedIds = append(referencedIds, comment.RefIssueID)
+			}
+		}
+
+		if len(referencedIds) > 0 {
+			if linkedPrs, err := models.GetIssuesByIDs(referencedIds); err == nil {
+				if models.IssueList(linkedPrs).LoadAttributes() == nil {
+					linkedPrsMap[issue.ID] = linkedPrs
 				}
 			}
 		}
 	}
-	ctx.Data["LinkedPRs"] = linkedPrs
+	ctx.Data["LinkedPRs"] = linkedPrsMap
 
 	project.RenderedContent = string(markdown.Render([]byte(project.Description), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 
