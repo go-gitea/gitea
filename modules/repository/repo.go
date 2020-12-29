@@ -129,10 +129,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	if opts.Mirror {
 		var interval = setting.Mirror.DefaultInterval
 		if opts.MirrorInterval != "" {
-			if interval, err = time.ParseDuration(opts.MirrorInterval); err != nil {
-				// Reset to Default or Raise Error...
-				// interval = setting.Mirror.DefaultInterval
+			interval, err = time.ParseDuration(opts.MirrorInterval)
+			if err != nil {
 				log.Error("Failed to set Interval: %v", err)
+				return repo, err
+			}
+			if interval != 0 && interval < setting.Mirror.MinInterval {
+				log.Error("Interval is too frequent. %v", err)
 				return repo, err
 			}
 		}
