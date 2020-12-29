@@ -124,8 +124,6 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		return
 	}
 
-	log.Info("Mirror Interval Party:", form.MirrorInterval)
-
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
