@@ -570,8 +570,17 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp)
-	if err != nil {
+	if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+		if strings.Contains(err.Error(), "no provider for ") {
+			if err = models.ResetOAuth2(); err != nil {
+				ctx.ServerError("SignIn", err)
+				return
+			}
+			if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+				ctx.ServerError("SignIn", err)
+			}
+			return
+		}
 		ctx.ServerError("SignIn", err)
 	}
 	// redirect is done in oauth2.Auth
@@ -949,7 +958,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		Name:        form.UserName,
 		Email:       form.Email,
 		Passwd:      form.Password,
-		IsActive:    !setting.Service.RegisterEmailConfirm,
+		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   models.LoginOAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.(goth.User).UserID,
@@ -1144,7 +1153,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   form.Password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	if err := models.CreateUser(u); err != nil {
 		switch {

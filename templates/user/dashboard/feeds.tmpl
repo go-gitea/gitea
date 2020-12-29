@@ -28,8 +28,8 @@
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{ $branchLink := .GetBranch | EscapePound | Escape}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink $branchLink .ShortRepoPath | Str2html}}
+							{{ $tagLink := .GetTag | EscapePound | Escape}}
+							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
@@ -50,7 +50,7 @@
 							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 16}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetTag|Escape) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 17}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.delete_branch" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}

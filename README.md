@@ -73,7 +73,7 @@ For more information and instructions about how to install Gitea, please look at
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).  
-The hugo-based documentationt theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
+The hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
 ## Authors

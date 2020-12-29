@@ -211,10 +211,6 @@ func FinishMigrateTask(task *Task) error {
 	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
 		return err
 	}
-	task.Repo.Status = RepositoryReady
-	if _, err := sess.ID(task.RepoID).Cols("status").Update(task.Repo); err != nil {
-		return err
-	}
 
 	return sess.Commit()
 }

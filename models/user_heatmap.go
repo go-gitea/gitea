@@ -16,10 +16,19 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUser(user *User, doer *User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, nil, doer)
+}
+
+// GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
+func GetUserHeatmapDataByUserTeam(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, team, doer)
+}
+
+func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if user.KeepActivityPrivate {
+	if !activityReadable(user, doer) {
 		return hdata, nil
 	}
 
@@ -37,22 +46,27 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 		groupByName = groupBy
 	}
 
-	sess := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
-		Table("action").
-		Where("user_id = ?", user.ID).
-		And("created_unix > ?", (timeutil.TimeStampNow() - 31536000))
-
-	// * Heatmaps for individual users only include actions that the user themself
-	//   did.
-	// * For organizations actions by all users that were made in owned
-	//   repositories are counted.
-	if user.Type == UserTypeIndividual {
-		sess = sess.And("act_user_id = ?", user.ID)
+	cond, err := activityQueryCondition(GetFeedsOptions{
+		RequestedUser:  user,
+		RequestedTeam:  team,
+		Actor:          doer,
+		IncludePrivate: true, // don't filter by private, as we already filter by repo access
+		IncludeDeleted: true,
+		// * Heatmaps for individual users only include actions that the user themself did.
+		// * For organizations actions by all users that were made in owned
+		//   repositories are counted.
+		OnlyPerformedBy: !user.IsOrganization(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	err := sess.GroupBy(groupByName).
+	return hdata, x.
+		Select(groupBy+" AS timestamp, count(user_id) as contributions").
+		Table("action").
+		Where(cond).
+		And("created_unix > ?", (timeutil.TimeStampNow() - 31536000)).
+		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
-
-	return hdata, err
 }

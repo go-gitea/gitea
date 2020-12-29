@@ -119,6 +119,11 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		return
 	}
 
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrationsGlobalDisabled", fmt.Errorf("the site administrator has disabled migrations"))
+		return
+	}
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -171,11 +176,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		}
 
 		if err == nil {
-			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
-				return
-			}
+			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
+			return
 		}
 
 		if repo != nil {
