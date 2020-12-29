@@ -297,10 +297,8 @@ func ViewProject(ctx *context.Context) {
 		}
 
 		if len(referencedIds) > 0 {
-			if linkedPrs, err := models.GetIssuesByIDs(referencedIds); err == nil {
-				if models.IssueList(linkedPrs).LoadAttributes() == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
+			if linkedPrs, err := models.Issues(&models.IssuesOptions{IssueIDs: referencedIds}); err == nil {
+				linkedPrsMap[issue.ID] = linkedPrs
 			}
 		}
 	}
