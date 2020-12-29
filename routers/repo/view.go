@@ -401,6 +401,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isDisplayingRendered := !isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	if !isRepresentableAsText {
 		// If we can't show plain text, always try to render.
 		isDisplayingSource = false

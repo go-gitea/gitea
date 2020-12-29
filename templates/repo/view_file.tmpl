@@ -43,7 +43,7 @@
 				{{if not .IsViewCommit}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				{{if .IsTextFile}}
+				{{if .IsRepresentableAsText}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
 				{{end}}
 				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
