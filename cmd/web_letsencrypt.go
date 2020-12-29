@@ -21,15 +21,15 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	// Due to docker port mapping this can't be checked programatically
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
-	enableTLSALPNChallenge := false // set to false as this is default prior to using certmagic
+	enableTLSALPNChallenge := true
 
 	magic := certmagic.NewDefault()
+	magic.Storage = &certmagic.FileStorage{Path: directory}
 	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
 		Email:                   email,
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
-		Storage:                 &certmagic.FileStorage{Path: directory},
 	})
 
 	magic.Issuer = myACME
