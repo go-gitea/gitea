@@ -173,14 +173,13 @@
 								</a>
 							</div>
 							{{- end }}
-							{{- range .Comments }}
-							{{- if and (ne .RefIssueID 0) (.RefIsPull) }}
+							{{- range index $.LinkedPRs .ID }}
 							<div class="meta">
-								<a href="{{$.RepoLink}}/pulls/{{ .RefIssueID }}">
-									{{svg "octicon-git-merge"}}</span> Referenced in #{{ .RefIssueID }}
+								<a href="{{$.RepoLink}}/pulls/{{ .ID }}">
+									<span class="{{if .IsClosed}}red{{else if .PullRequest.HasMerged}}purple{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
+									{{ .Title}} (#{{ .ID }})
 								</a>
 							</div>
-							{{- end }}
 							{{- end }}
 						</div>
 						<div class="extra content">
