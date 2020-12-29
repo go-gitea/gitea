@@ -26,8 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -579,7 +577,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
-		metas[i].Size, err = com.StrTo(oid[idx+1:]).Int64()
+		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
 			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
 			return

@@ -20,9 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/webhook"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -100,7 +99,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.Params(":type"))
-	if !com.IsSliceContainsStr(setting.Webhook.Types, hookType) {
+	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
 	}
