@@ -371,7 +371,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderLabels": func(labels []*models.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
-				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
+				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
 					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
 			html += "</span>"
