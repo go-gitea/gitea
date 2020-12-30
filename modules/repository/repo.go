@@ -136,7 +136,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			}
 			if interval != 0 && interval < setting.Mirror.MinInterval {
 				err := fmt.Errorf("Interval is set below Minimum Interval")
-				log.Error("Interval is too frequent")
+				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
 				return repo, err
 			}
 		}
