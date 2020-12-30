@@ -91,12 +91,11 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
 
-	var mirrorInterval = ""
+	mirrorInterval := ""
 	if repo.IsMirror {
-		if err := repo.GetMirror(); err != nil {
-			return nil
+		if err := repo.GetMirror(); err == nil {
+			mirrorInterval = repo.Mirror.Interval.String()
 		}
-		mirrorInterval = repo.Mirror.Interval.String()
 	}
 
 	return &api.Repository{
