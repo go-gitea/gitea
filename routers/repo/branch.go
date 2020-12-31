@@ -193,6 +193,11 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 
 func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.ServerError("GetDefaultBranch", err)
+		return nil, 0
+	}
+
 	rawBranches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
