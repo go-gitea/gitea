@@ -23,10 +23,10 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	return callShowRef(repo.Path, BranchPrefix, "--heads")
+	return callBranch(repo.Path, "--list")
 }
 
-func callShowRef(repoPath, prefix, arg string) ([]string, error) {
+func callBranch(repoPath, arg string) ([]string, error) {
 	var branchNames []string
 
 	stdoutReader, stdoutWriter := io.Pipe()
@@ -37,7 +37,7 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand("show-ref", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		err := NewCommand("branch", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
 				_ = stdoutWriter.Close()
@@ -51,32 +51,19 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 
 	bufReader := bufio.NewReader(stdoutReader)
 	for {
-		// The output of show-ref is simply a list:
-		// <sha> SP <ref> LF
-		_, err := bufReader.ReadSlice(' ')
-		for err == bufio.ErrBufferFull {
-			// This shouldn't happen but we'll tolerate it for the sake of peace
-			_, err = bufReader.ReadSlice(' ')
-		}
-		if err == io.EOF {
-			return branchNames, nil
-		}
-		if err != nil {
-			return nil, err
-		}
-
+		// The output of branch is simply a list:
+		// LF
 		branchName, err := bufReader.ReadString('\n')
 		if err == io.EOF {
-			// This shouldn't happen... but we'll tolerate it for the sake of peace
 			return branchNames, nil
 		}
 		if err != nil {
+			// This shouldn't happen... but we'll tolerate it for the sake of peace
 			return nil, err
 		}
-		branchName = strings.TrimPrefix(branchName, prefix)
-		if len(branchName) > 0 {
-			branchName = branchName[:len(branchName)-1]
-		}
+		// Current branch will have '*' as prefix.
+		branchName = strings.TrimPrefix(branchName, "*")
+		branchName = strings.TrimSpace(branchName)
 		branchNames = append(branchNames, branchName)
 	}
 }
