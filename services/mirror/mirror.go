@@ -521,6 +521,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 	hasDefault := false
 	hasMaster := false
+	hasMain := false
 	defaultBranchName := m.Repo.DefaultBranch
 	if len(defaultBranchName) == 0 {
 		defaultBranchName = setting.Repository.DefaultBranch
@@ -540,6 +541,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 		hasDefault = hasDefault || name == defaultBranchName
 		hasMaster = hasMaster || name == "master"
+		hasMain = hasMain || name == "main"
 	}
 
 	if len(firstName) > 0 {
@@ -547,6 +549,8 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 			m.Repo.DefaultBranch = defaultBranchName
 		} else if hasMaster {
 			m.Repo.DefaultBranch = "master"
+		} else if hasMain {
+			m.Repo.DefaultBranch = "main"
 		} else {
 			m.Repo.DefaultBranch = firstName
 		}
