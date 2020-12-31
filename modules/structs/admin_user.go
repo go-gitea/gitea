@@ -23,21 +23,22 @@ type CreateUserOption struct {
 
 // EditUserOption edit user options
 type EditUserOption struct {
-	SourceID  int64  `json:"source_id"`
-	LoginName string `json:"login_name"`
-	FullName  string `json:"full_name" binding:"MaxSize(100)"`
 	// required: true
+	SourceID int64 `json:"source_id"`
+	// required: true
+	LoginName string `json:"login_name" binding:"Required"`
 	// swagger:strfmt email
-	Email                   string `json:"email" binding:"Required;Email;MaxSize(254)"`
-	Password                string `json:"password" binding:"MaxSize(255)"`
-	MustChangePassword      *bool  `json:"must_change_password"`
-	Website                 string `json:"website" binding:"MaxSize(50)"`
-	Location                string `json:"location" binding:"MaxSize(50)"`
-	Active                  *bool  `json:"active"`
-	Admin                   *bool  `json:"admin"`
-	AllowGitHook            *bool  `json:"allow_git_hook"`
-	AllowImportLocal        *bool  `json:"allow_import_local"`
-	MaxRepoCreation         *int   `json:"max_repo_creation"`
-	ProhibitLogin           *bool  `json:"prohibit_login"`
-	AllowCreateOrganization *bool  `json:"allow_create_organization"`
+	Email                   *string `json:"email" binding:"MaxSize(254)"`
+	FullName                *string `json:"full_name" binding:"MaxSize(100)"`
+	Password                string  `json:"password" binding:"MaxSize(255)"`
+	MustChangePassword      *bool   `json:"must_change_password"`
+	Website                 *string `json:"website" binding:"MaxSize(50)"`
+	Location                *string `json:"location" binding:"MaxSize(50)"`
+	Active                  *bool   `json:"active"`
+	Admin                   *bool   `json:"admin"`
+	AllowGitHook            *bool   `json:"allow_git_hook"`
+	AllowImportLocal        *bool   `json:"allow_import_local"`
+	MaxRepoCreation         *int    `json:"max_repo_creation"`
+	ProhibitLogin           *bool   `json:"prohibit_login"`
+	AllowCreateOrganization *bool   `json:"allow_create_organization"`
 }

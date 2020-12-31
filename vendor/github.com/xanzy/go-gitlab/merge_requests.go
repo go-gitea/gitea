@@ -81,6 +81,9 @@ type MergeRequest struct {
 		RenamedFile bool   `json:"renamed_file"`
 		DeletedFile bool   `json:"deleted_file"`
 	} `json:"changes"`
+	User struct {
+		CanMerge bool `json:"can_merge"`
+	} `json:"user"`
 	TimeStats    *TimeStats    `json:"time_stats"`
 	Squash       bool          `json:"squash"`
 	Pipeline     *PipelineInfo `json:"pipeline"`
@@ -573,6 +576,8 @@ type UpdateMergeRequestOptions struct {
 	AssigneeID         *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeIDs        []int   `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
 	Labels             Labels  `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	AddLabels          Labels  `url:"add_labels,comma,omitempty" json:"add_labels,omitempty"`
+	RemoveLabels       Labels  `url:"remove_labels,comma,omitempty" json:"remove_labels,omitempty"`
 	MilestoneID        *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
 	StateEvent         *string `url:"state_event,omitempty" json:"state_event,omitempty"`
 	RemoveSourceBranch *bool   `url:"remove_source_branch,omitempty" json:"remove_source_branch,omitempty"`

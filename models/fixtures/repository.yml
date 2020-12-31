@@ -41,7 +41,7 @@
   is_private: true
   num_issues: 1
   num_closed_issues: 0
-  num_pulls: 0
+  num_pulls: 1
   num_closed_pulls: 0
   num_watches: 0
   num_projects: 1
@@ -678,5 +678,18 @@
   num_forks: 0
   num_issues: 0
   num_pulls: 1
+  is_mirror: false
+  status: 0
+
+-
+  id: 49
+  owner_id: 27
+  owner_name: user27
+  lower_name: repo49
+  name: repo49
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
   is_mirror: false
   status: 0

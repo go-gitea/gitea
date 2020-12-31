@@ -10,11 +10,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -27,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
-	"github.com/unknwon/com"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -65,6 +63,11 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 	}
 
 	auth := strings.SplitN(string(s), ":", 2)
+
+	if len(auth) != 2 {
+		return "", "", errors.New("invalid basic authentication")
+	}
+
 	return auth[0], auth[1], nil
 }
 
@@ -82,8 +85,8 @@ func VerifyTimeLimitCode(data string, minutes int, code string) bool {
 	// split code
 	start := code[:12]
 	lives := code[12:18]
-	if d, err := com.StrTo(lives).Int(); err == nil {
-		minutes = d
+	if d, err := strconv.ParseInt(lives, 10, 0); err == nil {
+		minutes = int(d)
 	}
 
 	// right active code
@@ -127,98 +130,11 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(fmt.Sprintf("%s%s%s%s%d", data, setting.SecretKey, startStr, endStr, minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
 	return code
-}
-
-// HashEmail hashes email address to MD5 string.
-// https://en.gravatar.com/site/implement/hash/
-func HashEmail(email string) string {
-	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
-}
-
-// DefaultAvatarLink the default avatar link
-func DefaultAvatarLink() string {
-	return setting.AppSubURL + "/img/avatar_default.png"
-}
-
-// DefaultAvatarSize is a sentinel value for the default avatar size, as
-// determined by the avatar-hosting service.
-const DefaultAvatarSize = -1
-
-// libravatarURL returns the URL for the given email. This function should only
-// be called if a federated avatar service is enabled.
-func libravatarURL(email string) (*url.URL, error) {
-	urlStr, err := setting.LibravatarService.FromEmail(email)
-	if err != nil {
-		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
-		return nil, err
-	}
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
-		return nil, err
-	}
-	return u, nil
-}
-
-// SizedAvatarLink returns a sized link to the avatar for the given email
-// address.
-func SizedAvatarLink(email string, size int) string {
-	var avatarURL *url.URL
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		var err error
-		avatarURL, err = libravatarURL(email)
-		if err != nil {
-			return DefaultAvatarLink()
-		}
-	} else if !setting.DisableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		copyOfGravatarSourceURL := *setting.GravatarSourceURL
-		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
-	} else {
-		return DefaultAvatarLink()
-	}
-
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	return avatarURL.String()
-}
-
-// SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
-// address.
-func SizedAvatarLinkWithDomain(email string, size int) string {
-	var avatarURL *url.URL
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		var err error
-		avatarURL, err = libravatarURL(email)
-		if err != nil {
-			return DefaultAvatarLink()
-		}
-	} else if !setting.DisableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		copyOfGravatarSourceURL := *setting.GravatarSourceURL
-		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
-	} else {
-		return DefaultAvatarLink()
-	}
-
-	vals := avatarURL.Query()
-	vals.Set("d", "identicon")
-	if size != DefaultAvatarSize {
-		vals.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = vals.Encode()
-	return avatarURL.String()
 }
 
 // FileSize calculates the file size and generate user-friendly string.
@@ -306,7 +222,7 @@ func TruncateString(str string, limit int) string {
 func StringsToInt64s(strs []string) ([]int64, error) {
 	ints := make([]int64, len(strs))
 	for i := range strs {
-		n, err := com.StrTo(strs[i]).Int64()
+		n, err := strconv.ParseInt(strs[i], 10, 64)
 		if err != nil {
 			return ints, err
 		}

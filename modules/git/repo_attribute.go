@@ -40,7 +40,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if opts.CachedOnly && CheckGitVersionConstraint(">= 1.7.8") == nil {
+	if opts.CachedOnly && CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 

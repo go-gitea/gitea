@@ -31,9 +31,10 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		URL:      issue.APIURL(),
 		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
-		Poster:   issue.Poster.APIFormat(),
+		Poster:   ToUser(issue.Poster, false, false),
 		Title:    issue.Title,
 		Body:     issue.Content,
+		Ref:      issue.Ref,
 		Labels:   ToLabelList(issue.Labels),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,
@@ -65,9 +66,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, false, false))
 		}
-		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(issue.Assignees[0], false, false) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(); err != nil {

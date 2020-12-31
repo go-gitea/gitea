@@ -9,10 +9,10 @@ import "time"
 
 // Comment is a standard comment information
 type Comment struct {
-	IssueIndex  int64
-	PosterID    int64
-	PosterName  string
-	PosterEmail string
+	IssueIndex  int64  `yaml:"issue_index"`
+	PosterID    int64  `yaml:"poster_id"`
+	PosterName  string `yaml:"poster_name"`
+	PosterEmail string `yaml:"poster_email"`
 	Created     time.Time
 	Updated     time.Time
 	Content     string

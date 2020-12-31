@@ -5,7 +5,8 @@
 package routers
 
 import (
-	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,20 +21,22 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
 )
 
 const (
 	// tplInstall template for installation page
-	tplInstall base.TplName = "install"
+	tplInstall     base.TplName = "install"
+	tplPostInstall base.TplName = "post-install"
 )
 
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.NotFound("Install", errors.New("Installation is prohibited"))
+		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+		ctx.HTML(200, tplPostInstall)
 		return
 	}
 
@@ -56,17 +59,19 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	ctx.Data["CurDbOption"] = "MySQL"
+	var curDBOption = "MySQL"
 	switch setting.Database.Type {
 	case "postgres":
-		ctx.Data["CurDbOption"] = "PostgreSQL"
+		curDBOption = "PostgreSQL"
 	case "mssql":
-		ctx.Data["CurDbOption"] = "MSSQL"
+		curDBOption = "MSSQL"
 	case "sqlite3":
 		if setting.EnableSQLite3 {
-			ctx.Data["CurDbOption"] = "SQLite3"
+			curDBOption = "SQLite3"
 		}
 	}
+
+	ctx.Data["CurDbOption"] = curDBOption
 
 	// Application general settings
 	form.AppName = setting.AppName
@@ -256,7 +261,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Save settings.
 	cfg := ini.Empty()
-	if com.IsFile(setting.CustomConf) {
+	isFile, err := util.IsFile(setting.CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+	}
+	if isFile {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
 			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
@@ -285,7 +294,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
-		cfg.Section("server").Key("SSH_PORT").SetValue(com.ToStr(form.SSHPort))
+		cfg.Section("server").Key("SSH_PORT").SetValue(fmt.Sprint(form.SSHPort))
 	}
 
 	if form.LFSRootPath != "" {
@@ -310,22 +319,22 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	} else {
 		cfg.Section("mailer").Key("ENABLED").SetValue("false")
 	}
-	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(com.ToStr(form.RegisterConfirm))
-	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(com.ToStr(form.MailNotify))
+	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(fmt.Sprint(form.RegisterConfirm))
+	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
-	cfg.Section("server").Key("OFFLINE_MODE").SetValue(com.ToStr(form.OfflineMode))
-	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(com.ToStr(form.DisableGravatar))
-	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(com.ToStr(form.EnableFederatedAvatar))
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(com.ToStr(form.EnableOpenIDSignIn))
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(form.EnableOpenIDSignUp))
-	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(com.ToStr(form.DisableRegistration))
-	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(com.ToStr(form.AllowOnlyExternalRegistration))
-	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(com.ToStr(form.EnableCaptcha))
-	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(com.ToStr(form.RequireSignInView))
-	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(com.ToStr(form.DefaultKeepEmailPrivate))
-	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(com.ToStr(form.DefaultAllowCreateOrganization))
-	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(com.ToStr(form.DefaultEnableTimetracking))
-	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(com.ToStr(form.NoReplyAddress))
+	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
+	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(fmt.Sprint(form.DisableGravatar))
+	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
+	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
+	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(fmt.Sprint(form.AllowOnlyExternalRegistration))
+	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(fmt.Sprint(form.EnableCaptcha))
+	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(fmt.Sprint(form.RequireSignInView))
+	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(fmt.Sprint(form.DefaultKeepEmailPrivate))
+	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
+	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
+	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
@@ -357,7 +366,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	GlobalInit(graceful.GetManager().HammerContext())
+	// Re-read settings
+	PostInstallInit(ctx.Req.Context())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -380,6 +390,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			u, _ = models.GetUserByName(u.Name)
 		}
 
+		days := 86400 * setting.LogInRememberDays
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
@@ -397,12 +412,18 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	log.Info("First-time run install finished!")
-	// FIXME: This isn't really enough to completely take account of new configuration
-	// We should really be restarting:
-	// - On windows this is probably just a simple restart
-	// - On linux we can't just use graceful.RestartProcess() everything that was passed in on LISTEN_FDS
-	//   (active or not) needs to be passed out and everything new passed out too.
-	//   This means we need to prevent the cleanup goroutine from running prior to the second GlobalInit
+
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
-	ctx.Redirect(form.AppURL + "user/login")
+
+	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+	ctx.HTML(200, tplPostInstall)
+
+	// Now get the http.Server from this request and shut it down
+	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
+	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	go func() {
+		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
+			log.Error("Unable to shutdown the install server! Error: %v", err)
+		}
+	}()
 }

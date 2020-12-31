@@ -8,35 +8,9 @@ package git
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
-
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
-	if err != nil {
-		if err == plumbing.ErrReferenceNotFound {
-			return "", ErrNotExist{
-				ID: name,
-			}
-		}
-		return "", err
-	}
-
-	return ref.Hash().String(), nil
-}
-
-// IsCommitExist returns true if given commit exists in current repository.
-func (repo *Repository) IsCommitExist(name string) bool {
-	hash := plumbing.NewHash(name)
-	_, err := repo.gogitRepo.CommitObject(hash)
-	return err == nil
-}
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
@@ -53,78 +27,6 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(stdout), nil
-}
-
-func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
-	if t.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w,
-		"object %s\ntype %s\ntag %s\ntagger ",
-		t.Target.String(), t.TargetType.Bytes(), t.Name); err != nil {
-		return nil
-	}
-
-	if err = t.Tagger.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n"); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, t.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: t.PGPSignature,
-		Payload:   strings.TrimSpace(w.String()) + "\n",
-	}
-}
-
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	var tagObject *object.Tag
-
-	gogitCommit, err := repo.gogitRepo.CommitObject(id)
-	if err == plumbing.ErrObjectNotFound {
-		tagObject, err = repo.gogitRepo.TagObject(id)
-		if err == plumbing.ErrObjectNotFound {
-			return nil, ErrNotExist{
-				ID: id.String(),
-			}
-		}
-		if err == nil {
-			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
-		}
-		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	commit := convertCommit(gogitCommit)
-	commit.repo = repo
-
-	if tagObject != nil {
-		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
-		commit.Author = &tagObject.Tagger
-		commit.Signature = convertPGPSignatureForTag(tagObject)
-	}
-
-	tree, err := gogitCommit.Tree()
-	if err != nil {
-		return nil, err
-	}
-
-	commit.Tree.ID = tree.Hash
-	commit.Tree.gogitTree = tree
-
-	return commit, nil
 }
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
@@ -318,7 +220,7 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 
 // FileCommitsCount return the number of files at a revison
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
-	return commitsCount(repo.Path, []string{revision}, []string{file})
+	return CommitsCountFiles(repo.Path, []string{revision}, []string{file})
 }
 
 // CommitsByFileAndRange return the commits according revison file and the page
@@ -413,11 +315,11 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := commitsCount(repo.Path, []string{start + "..." + end}, []string{})
+	count, err := CommitsCountFiles(repo.Path, []string{start + "..." + end}, []string{})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
-		return commitsCount(repo.Path, []string{start, end}, []string{})
+		return CommitsCountFiles(repo.Path, []string{start, end}, []string{})
 	}
 
 	return count, err
@@ -469,7 +371,7 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, err
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if CheckGitVersionConstraint(">= 2.7.0") == nil {
+	if CheckGitVersionAtLeast("2.7.0") == nil {
 		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err

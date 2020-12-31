@@ -27,7 +27,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 		Ref:        "refs/pull/2/head",
 		Sha:        "4a357436d925b5c974181ff12a994538ddc5a269",
 		RepoID:     1,
-		Repository: headRepo.APIFormat(models.AccessModeNone),
+		Repository: ToRepo(headRepo, models.AccessModeNone),
 	}, apiPullRequest.Head)
 
 	//withOut HeadRepo

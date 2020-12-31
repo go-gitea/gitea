@@ -56,6 +56,7 @@ type AuthenticationForm struct {
 	Oauth2AuthURL                 string
 	Oauth2ProfileURL              string
 	Oauth2EmailURL                string
+	Oauth2IconURL                 string
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

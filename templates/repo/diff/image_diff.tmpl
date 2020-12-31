@@ -2,22 +2,22 @@
 {{ $imagePathNew := printf "%s/%s" .root.RawPath (EscapePound .file.Name)  }}
 
 <tr>
- 	<th class="halfwidth center">
+ 	<th class="halfwidth center pl-3 pr-2">
  		{{.root.i18n.Tr "repo.diff.file_before"}}
  	</th>
- 	<th class="halfwidth center">
+ 	<th class="halfwidth center pl-2 pr-3">
  		{{.root.i18n.Tr "repo.diff.file_after"}}
  	</th>
 </tr>
 <tr>
- 	<td class="halfwidth center">
+ 	<td class="halfwidth center pl-3 pr-2">
  	    {{if or .file.IsDeleted (not .file.IsCreated)}}
             <a href="{{$imagePathOld}}" target="_blank">
                 <img src="{{$imagePathOld}}" class="border red" />
             </a>
  	    {{end}}
  	</td>
- 	<td class="halfwidth center">
+ 	<td class="halfwidth center pl-2 pr-3">
  	    {{if or .file.IsCreated (not .file.IsDeleted)}}
 			<a href="{{$imagePathNew}}" target="_blank">
 				<img src="{{$imagePathNew}}" class="border green" />
@@ -29,7 +29,7 @@
 {{ $imageInfoHead := (call .root.ImageInfo .file.Name) }}
 {{if or $imageInfoBase $imageInfoHead }}
 <tr>
- 	<td class="halfwidth center">
+ 	<td class="halfwidth center pl-3 pr-2">
  	{{if $imageInfoBase }}
  		{{ $classWidth := "" }}
  		{{ $classHeight := "" }}
@@ -52,7 +52,7 @@
  	    {{.root.i18n.Tr "repo.diff.file_byte_size"}}: <span class="text {{$classByteSize}}">{{FileSize $imageInfoBase.ByteSize}}</span>
  	{{end}}
  	</td>
- 	<td class="halfwidth center">
+ 	<td class="halfwidth center pl-2 pr-3">
  	{{if $imageInfoHead }}
  		{{ $classWidth := "" }}
  		{{ $classHeight := "" }}

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
@@ -152,16 +153,26 @@ func TestAPISearchIssues(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10)
 
-	assert.Len(t, apiIssues, 9)
-
-	query := url.Values{}
-	query.Add("token", token)
+	query := url.Values{"token": {token}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 9)
+	assert.Len(t, apiIssues, 10)
+
+	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
+	before := time.Unix(999307200, 0).Format(time.RFC3339)
+	query.Add("since", since)
+	query.Add("before", before)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 8)
+	query.Del("since")
+	query.Del("before")
 
 	query.Add("state", "closed")
 	link.RawQuery = query.Encode()
@@ -175,9 +186,17 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
+	assert.EqualValues(t, "12", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10) //there are more but 10 is page item limit
 
-	query.Add("page", "2")
+	query.Add("limit", "20")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 12)
+
+	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -197,7 +216,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 
-	assert.Len(t, apiIssues, 9)
+	assert.Len(t, apiIssues, 10)
 
 	query := url.Values{}
 	query.Add("token", token)
@@ -205,7 +224,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 9)
+	assert.Len(t, apiIssues, 10)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()

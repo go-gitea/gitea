@@ -32,19 +32,20 @@ type ScrollService struct {
 	filterPath []string    // list of filters used to reduce the response
 	headers    http.Header // custom request-level HTTP headers
 
-	indices           []string
-	types             []string
-	keepAlive         string
-	body              interface{}
-	ss                *SearchSource
-	size              *int
-	routing           string
-	preference        string
-	ignoreUnavailable *bool
-	ignoreThrottled   *bool
-	allowNoIndices    *bool
-	expandWildcards   string
-	maxResponseSize   int64
+	indices            []string
+	types              []string
+	keepAlive          string
+	body               interface{}
+	ss                 *SearchSource
+	size               *int
+	routing            string
+	preference         string
+	ignoreUnavailable  *bool
+	ignoreThrottled    *bool
+	allowNoIndices     *bool
+	expandWildcards    string
+	maxResponseSize    int64
+	restTotalHitsAsInt *bool
 
 	mu       sync.RWMutex
 	scrollId string
@@ -246,6 +247,13 @@ func (s *ScrollService) SortBy(sorter ...Sorter) *ScrollService {
 // for details.
 func (s *ScrollService) TrackTotalHits(trackTotalHits interface{}) *ScrollService {
 	s.ss = s.ss.TrackTotalHits(trackTotalHits)
+	return s
+}
+
+// RestTotalHitsAsInt indicates whether hits.total should be rendered as an
+// integer or an object in the rest search response.
+func (s *ScrollService) RestTotalHitsAsInt(enabled bool) *ScrollService {
+	s.restTotalHitsAsInt = &enabled
 	return s
 }
 
@@ -507,6 +515,9 @@ func (s *ScrollService) buildFirstURL() (string, url.Values, error) {
 	if s.ignoreThrottled != nil {
 		params.Set("ignore_throttled", fmt.Sprintf("%v", *s.ignoreThrottled))
 	}
+	if v := s.restTotalHitsAsInt; v != nil {
+		params.Set("rest_total_hits_as_int", fmt.Sprint(*v))
+	}
 
 	return path, params, nil
 }
@@ -606,6 +617,9 @@ func (s *ScrollService) buildNextURL() (string, url.Values, error) {
 			s.filterPath = append(s.filterPath, "_scroll_id")
 		}
 		params.Set("filter_path", strings.Join(s.filterPath, ","))
+	}
+	if v := s.restTotalHitsAsInt; v != nil {
+		params.Set("rest_total_hits_as_int", fmt.Sprint(*v))
 	}
 
 	return path, params, nil

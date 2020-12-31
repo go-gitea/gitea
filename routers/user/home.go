@@ -42,17 +42,8 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
-		// Organization.
-		org, err := models.GetUserByName(orgName)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("GetUserByName", err)
-			}
-			return nil
-		}
-		ctxUser = org
+		ctxUser = ctx.Org.Organization
+		ctx.Data["Teams"] = ctx.Org.Organization.Teams
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
@@ -112,20 +103,31 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
-	ctx.Data["HeatmapUser"] = ctxUser.Name
+	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
+			return
+		}
+		ctx.Data["HeatmapData"] = data
+	}
 
 	var err error
 	var mirrors []*models.Repository
 	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
+		var env models.AccessibleReposEnvironment
+		if ctx.Org.Team != nil {
+			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+		} else {
+			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("AccessibleReposEnv", err)
+				return
+			}
 		}
-
 		mirrors, err = env.MirrorRepos()
 		if err != nil {
 			ctx.ServerError("env.MirrorRepos", err)
@@ -149,6 +151,7 @@ func Dashboard(ctx *context.Context) {
 
 	retrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
+		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
@@ -177,16 +180,20 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	var (
-		repoOpts = models.SearchRepoOptions{
-			Actor:         ctxUser,
-			OwnerID:       ctxUser.ID,
-			Private:       true,
-			AllPublic:     false,                 // Include also all public repositories of users and public organisations
-			AllLimited:    false,                 // Include also all public repositories of limited organisations
-			HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
-		}
+	repoOpts := models.SearchRepoOptions{
+		Actor:         ctxUser,
+		OwnerID:       ctxUser.ID,
+		Private:       true,
+		AllPublic:     false,                 // Include also all public repositories of users and public organisations
+		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
+	}
 
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+		repoOpts.TeamID = ctx.Org.Team.ID
+	}
+
+	var (
 		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
@@ -406,10 +413,15 @@ func Issues(ctx *context.Context) {
 	var err error
 	var userRepoIDs []int64
 	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
+		var env models.AccessibleReposEnvironment
+		if ctx.Org.Team != nil {
+			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+		} else {
+			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("AccessibleReposEnv", err)
+				return
+			}
 		}
 		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
 		if err != nil {
@@ -557,7 +569,8 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			var statuses, _ = pull_service.GetLastCommitStatus(issue.PullRequest)
+			commitStatus[issue.PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
 	}
 
