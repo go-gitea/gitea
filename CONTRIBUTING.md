@@ -293,6 +293,11 @@ and lead the development of Gitea.
 To honor the past owners, here's the history of the owners and the time
 they served:
 
+* 2021-01-01 ~ 2021-12-31 - https://github.com/go-gitea/gitea/issues/13801
+  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+
 * 2020-01-01 ~ 2020-12-31 - https://github.com/go-gitea/gitea/issues/9230
   * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
   * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
