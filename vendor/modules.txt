@@ -576,7 +576,7 @@ github.com/mgechev/revive/rule
 # github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.4
+# github.com/microcosm-cc/bluemonday v1.0.4 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/minio/md5-simd v1.1.0
@@ -998,3 +998,4 @@ xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
+# github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
