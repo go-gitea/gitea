@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/secret"
@@ -103,14 +104,15 @@ func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *O
 }
 
 // CreateGrant generates a grant for an user
-func (app *OAuth2Application) CreateGrant(userID int64) (*OAuth2Grant, error) {
-	return app.createGrant(x, userID)
+func (app *OAuth2Application) CreateGrant(userID int64, scope string) (*OAuth2Grant, error) {
+	return app.createGrant(x, userID, scope)
 }
 
-func (app *OAuth2Application) createGrant(e Engine, userID int64) (*OAuth2Grant, error) {
+func (app *OAuth2Application) createGrant(e Engine, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        userID,
+		Scope:         scope,
 	}
 	_, err := e.Insert(grant)
 	if err != nil {
@@ -380,6 +382,8 @@ type OAuth2Grant struct {
 	Application   *OAuth2Application `xorm:"-"`
 	ApplicationID int64              `xorm:"INDEX unique(user_application)"`
 	Counter       int64              `xorm:"NOT NULL DEFAULT 1"`
+	Scope         string             `xorm:"TEXT"`
+	Nonce         string             `xorm:"TEXT"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
@@ -428,6 +432,30 @@ func (grant *OAuth2Grant) increaseCount(e Engine) error {
 		return err
 	}
 	grant.Counter = updatedGrant.Counter
+	return nil
+}
+
+// ScopeContains returns true if the grant scope contains the specified scope
+func (grant *OAuth2Grant) ScopeContains(scope string) bool {
+	for _, currentScope := range strings.Split(grant.Scope, " ") {
+		if scope == currentScope {
+			return true
+		}
+	}
+	return false
+}
+
+// SetNonce updates the current nonce value of a grant
+func (grant *OAuth2Grant) SetNonce(nonce string) error {
+	return grant.setNonce(x, nonce)
+}
+
+func (grant *OAuth2Grant) setNonce(e Engine, nonce string) error {
+	grant.Nonce = nonce
+	_, err := e.ID(grant.ID).Cols("nonce").Update(grant)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -532,4 +560,17 @@ func (token *OAuth2Token) SignToken() (string, error) {
 	token.IssuedAt = time.Now().Unix()
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
 	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
+}
+
+// OIDCToken represents an OpenID Connect id_token
+type OIDCToken struct {
+	jwt.StandardClaims
+	Nonce string `json:"nonce,omitempty"`
+}
+
+// SignToken signs an id_token with the (symmetric) client secret key
+func (token *OIDCToken) SignToken(clientSecret string) (string, error) {
+	token.IssuedAt = time.Now().Unix()
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, token)
+	return jwtToken.SignedString([]byte(clientSecret))
 }
