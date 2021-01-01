@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-
-	"github.com/unknwon/com"
 )
 
 // Search search users
@@ -61,7 +59,7 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchUserOptions{
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         com.StrTo(ctx.Query("uid")).MustInt64(),
+		UID:         ctx.QueryInt64("uid"),
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
 	}

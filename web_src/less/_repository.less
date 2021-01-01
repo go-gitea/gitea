@@ -484,7 +484,7 @@
         border: 1px solid var(--color-secondary);
         background: var(--color-box-body);
         border-radius: 3px;
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -555,7 +555,7 @@
 
       .content {
         margin-left: 4em;
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -861,7 +861,7 @@
             .shabox {
               .sha.label {
                 margin: 0;
-                border: 1px solid #bbbbbb;
+                border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
                   border: 1px solid #db2828;
@@ -979,7 +979,7 @@
             }
 
             &.no-header {
-              #avatar-arrow;
+              #avatar-arrow();
 
               &::after {
                 border-right-color: var(--color-box-body);
@@ -1098,7 +1098,7 @@
       }
 
       .form {
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -1195,7 +1195,7 @@
 
     .comment.form {
       .content {
-        #avatar-arrow;
+        #avatar-arrow();
 
         &::after {
           border-right-color: var(--color-box-body);
@@ -1301,7 +1301,7 @@
   #repo-files-table .sha.label,
   #rev-list .sha.label,
   .timeline-item.commits-list .singular-commit .sha.label {
-    border: 1px solid #bbbbbb;
+    border: 1px solid var(--color-light-border);
 
     .ui.signature.avatar {
       height: 16px;
@@ -1310,10 +1310,10 @@
     }
 
     .detail.icon {
-      background: #fafafa;
+      background: var(--color-light);
       margin: -6px -10px -4px 0;
       padding: 5px 4px 5px 6px;
-      border-left: 1px solid #bbbbbb;
+      border-left: 1px solid var(--color-light-border);
       border-top: 0;
       border-right: 0;
       border-bottom: 0;
@@ -2458,7 +2458,7 @@
 }
 
 .comment-header {
-  #avatar-arrow;
+  #avatar-arrow();
   border: none !important;
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
@@ -2620,21 +2620,9 @@
   }
 }
 
-.labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-}
-
 .labels-list .label {
-  margin-top: 1.5px;
-  margin-bottom: 1.5px;
-  margin-right: 3px;
-  margin-left: 0;
+  margin: 2px 0;
   display: inline-block !important;
-}
-
-.labels-list .label:last-of-type {
-  margin-right: 0;
 }
 
 tbody.commit-list {
@@ -2777,27 +2765,17 @@ tbody.commit-list {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  word-break: break-all;
+  word-break: break-word;
 }
 
-.repo-header .repo-buttons {
+.repo-buttons {
   display: flex;
   align-items: center;
 }
 
-.repo-buttons .disabled-repo-button .label {
-  opacity: .5;
-}
-
-.repo-buttons .disabled-repo-button a.button {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.repo-buttons .disabled-repo-button a.button:hover {
-  background: none !important;
-  color: rgba(0, 0, 0, .6) !important;
-  box-shadow: 0 0 0 1px var(--color-secondary) inset !important;
+.repo-buttons button[disabled],
+.repo-buttons button[disabled] ~ .label {
+  opacity: var(--opacity-disabled);
 }
 
 .repo-buttons .ui.labeled.button > .label {
