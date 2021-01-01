@@ -1,11 +1,11 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
-<input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}">
+<input id="editing_mode" name="edit_mode" type="hidden" value="{{.HasIssuesOrPullsWritePermission}}">
 <form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
 	{{$.CsrfTokenHtml}}
 </form>
 
-<div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+<div class="ui {{if and .Issue (not $.IsIssuePoster) (not .HasIssuesOrPullsWritePermission)}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
