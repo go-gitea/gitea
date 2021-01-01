@@ -10,10 +10,14 @@ import (
 )
 
 func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
+	}
+
 	type HookTask struct {
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
-
 	alterSQL := x.Dialect().ModifyColumnSQL("hook_task", &schemas.Column{
 		Name:      "typ",
 		TableName: "hook_task",
@@ -28,7 +32,7 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 	}
 
 	var hookTaskTrimSQL string
-	if x.Dialect().URI().DBType == schemas.MSSQL {
+	if dbType == schemas.MSSQL {
 		hookTaskTrimSQL = "UPDATE hook_task SET typ = RTRIM(LTRIM(typ))"
 	} else {
 		hookTaskTrimSQL = "UPDATE hook_task SET typ = TRIM(typ)"
@@ -55,7 +59,7 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 	}
 
 	var webhookTrimSQL string
-	if x.Dialect().URI().DBType == schemas.MSSQL {
+	if dbType == schemas.MSSQL {
 		webhookTrimSQL = "UPDATE webhook SET type = RTRIM(LTRIM(type))"
 	} else {
 		webhookTrimSQL = "UPDATE webhook SET type = TRIM(type)"
