@@ -106,43 +106,10 @@
 				{{end}}
 			</div>
 			<div class="fitted item">
-
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
-						{{if not $.DisableHTTP}}
-							<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
-								{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
-							</button>
-						{{end}}
-						{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-							<button class="ui basic clone button no-transition" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
-								SSH
-							</button>
-						{{end}}
-						{{if not $.DisableHTTP}}
-							<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
-						{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
-						{{end}}
-						<script defer>
-							const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
-							const sshButton = document.getElementById('repo-clone-ssh');
-							const httpsButton = document.getElementById('repo-clone-https');
-							const input = document.getElementById('repo-clone-url');
-							if (input) input.value = (isSSH ? sshButton : httpsButton).dataset.link;
-							if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
-							if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
-							setTimeout(() => {
-								if (sshButton) sshButton.classList.remove('no-transition');
-								if (httpsButton) httpsButton.classList.remove('no-transition');
-							}, 100);
-						</script>
-						{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
-							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-								{{svg "octicon-clippy"}}
-							</button>
-						{{end}}
+						{{template "repo/clone_buttons" .}}
 						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 							{{svg "octicon-download"}}
 							<div class="menu">
