@@ -79,6 +79,12 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Avoid mailing the doer
 	visited[ctx.Doer.ID] = true
+
+	// =========== Mentions ===========
+	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
+	}
+
 	// Avoid mailing explicit unwatched
 	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
 	if err != nil {
@@ -90,11 +96,6 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
-	}
-
-	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
 	}
 
 	return nil
