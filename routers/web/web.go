@@ -790,6 +790,8 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
 					Get(repo.UploadFile).
 					Post(bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePost)
+				// Same as `/_upload/*` but returns JSON
+				m.Post("/upload/*", repo.MustBeAbleToUpload, bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePostJson)
 			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
