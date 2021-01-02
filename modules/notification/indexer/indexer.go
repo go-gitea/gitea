@@ -30,7 +30,7 @@ func NewNotifier() base.Notifier {
 }
 
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment) {
+	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {
@@ -45,11 +45,11 @@ func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	}
 }
 
-func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue) {
+func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
+func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User) {
 	issue_indexer.UpdateIssueIndexer(pr.Issue)
 }
 
