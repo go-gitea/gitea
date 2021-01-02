@@ -236,7 +236,7 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 		}
 
 		if branch.Name == ctx.Repo.Repository.DefaultBranch {
-			// Skip defult branch
+			// Skip default branch
 			continue
 		}
 
