@@ -271,6 +271,8 @@ var migrations = []Migration{
 	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
 	// v163 -> v164
 	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
+	// v164 -> v165
+	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
 }
 
 // GetCurrentDBVersion returns the current db version

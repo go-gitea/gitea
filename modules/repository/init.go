@@ -243,6 +243,7 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 	found := false
 	hasDefault := false
 	hasMaster := false
+	hasMain := false
 	for _, branch := range branches {
 		if branch == repo.DefaultBranch {
 			found = true
@@ -251,6 +252,8 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 			hasDefault = true
 		} else if branch == "master" {
 			hasMaster = true
+		} else if branch == "main" {
+			hasMain = true
 		}
 	}
 	if !found {
@@ -258,6 +261,8 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		} else if hasMaster {
 			repo.DefaultBranch = "master"
+		} else if hasMain {
+			repo.DefaultBranch = "main"
 		} else if len(branches) > 0 {
 			repo.DefaultBranch = branches[0]
 		} else {
