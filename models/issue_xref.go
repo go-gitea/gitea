@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 )
 
@@ -324,7 +323,7 @@ func (comment *Comment) RefIssueIdent() string {
 		return ""
 	}
 	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
-	return "#" + com.ToStr(comment.RefIssue.Index)
+	return fmt.Sprintf("#%d", comment.RefIssue.Index)
 }
 
 // __________      .__  .__ __________                                     __
