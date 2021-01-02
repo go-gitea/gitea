@@ -191,6 +191,8 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	return nil
 }
 
+// loadBranches loads branches from the repository limited by page & pageSize.
+// NOTE: May write to context on error. page & pageSize must be > 0
 func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
