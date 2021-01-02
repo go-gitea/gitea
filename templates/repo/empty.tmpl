@@ -18,26 +18,7 @@
 						<div class="item">
 							<h3>{{.i18n.Tr "repo.clone_this_repo"}} <small>{{.i18n.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository" | Str2html}}</small></h3>
 							<div class="ui action small input">
-								{{if not $.DisableHTTP}}
-									<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
-										{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
-									</button>
-								{{end}}
-								{{if not $.DisableSSH}}
-									<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
-										SSH
-									</button>
-								{{end}}
-								{{if not $.DisableHTTP}}
-									<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
-								{{else}}
-									<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
-								{{end}}
-								{{if not (and $.DisableHTTP $.DisableSSH)}}
-									<button class="ui basic button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-										{{svg "octicon-clippy"}}
-									</button>
-								{{end}}
+								{{template "repo/clone_buttons" .}}
 							</div>
 						</div>
 
