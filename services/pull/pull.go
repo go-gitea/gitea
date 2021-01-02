@@ -53,7 +53,12 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		return err
 	}
 
-	notification.NotifyNewPullRequest(pr)
+	mentions, err := pull.FindAndUpdateIssueMentions(models.DefaultDBContext(), pull.Poster, pull.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewPullRequest(pr, mentions)
 
 	// add first push codes comment
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
