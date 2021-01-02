@@ -94,6 +94,12 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 	}
 }
 
+func (m *mailNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User) {
+	if err := mailer.MailMentionsComment(pr, comment, mentions); err != nil {
+		log.Error("MailMentionsComment: %v", err)
+	}
+}
+
 func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {

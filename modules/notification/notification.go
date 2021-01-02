@@ -87,6 +87,13 @@ func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comm
 	}
 }
 
+// NotifyPullRequestCodeComment notifies new pull request code comment
+func NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestCodeComment(pr, comment, mentions)
+	}
+}
+
 // NotifyPullRequestChangeTargetBranch notifies when a pull request's target branch was changed
 func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	for _, notifier := range notifiers {

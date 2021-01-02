@@ -42,6 +42,10 @@ func (*NullNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*mo
 func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, comment *models.Comment, mentions []*models.User) {
 }
 
+// NotifyPullRequestCodeComment places a place holder function
+func (*NullNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User) {
+}
+
 // NotifyMergePullRequest places a place holder function
 func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 }

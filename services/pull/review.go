@@ -231,12 +231,25 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comm.Content)
+	ctx := models.DefaultDBContext()
+	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, codeComment := range comments {
+				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				if err != nil {
+					return nil, nil, err
+				}
+				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+			}
+		}
+	}
 
 	return review, comm, nil
 }
