@@ -57,7 +57,12 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment)
+		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -226,7 +231,12 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm)
+	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comm.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notification.NotifyPullRequestReview(pr, review, comm, mentions)
 
 	return review, comm, nil
 }
