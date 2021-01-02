@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -1500,6 +1501,7 @@ type UserIssueStatsOptions struct {
 	IsPull      bool
 	IsClosed    bool
 	IssueIDs    []int64
+	LabelIDs    []int64
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1516,29 +1518,38 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
+	sess := func(cond builder.Cond) *xorm.Session {
+		s := x.Where(cond)
+		if len(opts.LabelIDs) > 0 {
+			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
+				In("issue_label.label_id", opts.LabelIDs)
+		}
+		return s
+	}
+
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+		stats.OpenCount, err = sess(cond).And("issue.is_closed = ?", false).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+		stats.ClosedCount, err = sess(cond).And("issue.is_closed = ?", true).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	case FilterModeAssign:
-		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+		stats.OpenCount, err = sess(cond).And("issue.is_closed = ?", false).
 			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+		stats.ClosedCount, err = sess(cond).And("issue.is_closed = ?", true).
 			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
@@ -1546,27 +1557,27 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+		stats.OpenCount, err = sess(cond).And("issue.is_closed = ?", false).
 			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+		stats.ClosedCount, err = sess(cond).And("issue.is_closed = ?", true).
 			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	case FilterModeMention:
-		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+		stats.OpenCount, err = sess(cond).And("issue.is_closed = ?", false).
 			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
 			And("issue_user.uid = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+		stats.ClosedCount, err = sess(cond).And("issue.is_closed = ?", true).
 			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
 			And("issue_user.uid = ?", opts.UserID).
 			Count(new(Issue))
@@ -1576,7 +1587,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
-	stats.AssignCount, err = x.Where(cond).
+	stats.AssignCount, err = sess(cond).
 		Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 		And("issue_assignees.assignee_id = ?", opts.UserID).
 		Count(new(Issue))
@@ -1584,14 +1595,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		return nil, err
 	}
 
-	stats.CreateCount, err = x.Where(cond).
+	stats.CreateCount, err = sess(cond).
 		And("poster_id = ?", opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
 
-	stats.MentionCount, err = x.Where(cond).
+	stats.MentionCount, err = sess(cond).
 		Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
 		And("issue_user.uid = ?", opts.UserID).
 		Count(new(Issue))
@@ -1599,7 +1610,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		return nil, err
 	}
 
-	stats.YourRepositoriesCount, err = x.Where(cond).
+	stats.YourRepositoriesCount, err = sess(cond).
 		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 		Count(new(Issue))
 	if err != nil {
@@ -1834,6 +1845,19 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 			true,
 			issue.RepoID,
 		)
+	}
+	return
+}
+
+// FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
+func (issue *Issue) FindAndUpdateIssueMentions(ctx DBContext, doer *User, content string) (mentions []*User, err error) {
+	rawMentions := references.FindAllMentionsMarkdown(content)
+	mentions, err = issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
+	}
+	if err = UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
+		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 	return
 }
