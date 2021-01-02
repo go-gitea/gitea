@@ -91,10 +91,10 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
--      - "3000:3000"
--      - "222:22"
-+      - "8080:3000"
-+      - "2221:22"
+-     - "3000:3000"
+-     - "222:22"
++     - "8080:3000"
++     - "2221:22"
 ```
 
 ## Databases
@@ -118,11 +118,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+      - DB_TYPE=mysql
-+      - DB_HOST=db:3306
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++     - DB_TYPE=mysql
++     - DB_HOST=db:3306
++     - DB_NAME=gitea
++     - DB_USER=gitea
++     - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -169,11 +169,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+      - DB_TYPE=postgres
-+      - DB_HOST=db:5432
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++     - DB_TYPE=postgres
++     - DB_HOST=db:5432
++     - DB_NAME=gitea
++     - DB_USER=gitea
++     - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -226,8 +226,8 @@ services:
     networks:
       - gitea
     volumes:
--      - ./gitea:/data
-+      - gitea:/data
+-     - ./gitea:/data
++     - gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:

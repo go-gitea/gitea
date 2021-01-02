@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -367,7 +366,7 @@ func (c *Comment) HashTag() string {
 
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
-	return "event-" + com.ToStr(c.ID)
+	return fmt.Sprintf("event-%d", c.ID)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label

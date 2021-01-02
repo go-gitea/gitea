@@ -98,7 +98,7 @@ func Profile(ctx *context.Context) {
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
 	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser)
+		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return

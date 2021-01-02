@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // Deliver deliver hook task
@@ -201,7 +201,7 @@ func DeliverHooks(ctx context.Context) {
 			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
 			hookQueue.Remove(repoIDStr)
 
-			repoID, err := com.StrTo(repoIDStr).Int64()
+			repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
 			if err != nil {
 				log.Error("Invalid repo ID: %s", repoIDStr)
 				continue

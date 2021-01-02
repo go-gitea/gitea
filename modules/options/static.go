@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -38,7 +36,7 @@ func Dir(name string) ([]string, error) {
 		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir, true)
+		files, err := util.StatDir(customDir, true)
 
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)

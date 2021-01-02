@@ -57,7 +57,12 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment)
+		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -167,16 +172,16 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
-		if len(commitID) == 0 {
-			commitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
-			if err != nil {
-				return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
-			}
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
-
+		if len(commitID) == 0 {
+			commitID = headCommitID
+		}
 		patchBuf := new(bytes.Buffer)
-		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, commitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, commitID, treePath, err)
+		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
+			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err)
 		}
 		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
@@ -226,7 +231,25 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm)
+	ctx := models.DefaultDBContext()
+	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, codeComment := range comments {
+				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				if err != nil {
+					return nil, nil, err
+				}
+				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+			}
+		}
+	}
 
 	return review, comm, nil
 }

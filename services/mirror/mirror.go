@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,8 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 // mirrorQueue holds an UniqueQueue object of the mirror
@@ -396,11 +395,11 @@ func syncMirror(repoID string) {
 	}()
 	mirrorQueue.Remove(repoID)
 
-	m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
+	id, _ := strconv.ParseInt(repoID, 10, 64)
+	m, err := models.GetMirrorByRepoID(id)
 	if err != nil {
 		log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
 		return
-
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
@@ -522,6 +521,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 	hasDefault := false
 	hasMaster := false
+	hasMain := false
 	defaultBranchName := m.Repo.DefaultBranch
 	if len(defaultBranchName) == 0 {
 		defaultBranchName = setting.Repository.DefaultBranch
@@ -541,6 +541,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 		hasDefault = hasDefault || name == defaultBranchName
 		hasMaster = hasMaster || name == "master"
+		hasMain = hasMain || name == "main"
 	}
 
 	if len(firstName) > 0 {
@@ -548,6 +549,8 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 			m.Repo.DefaultBranch = defaultBranchName
 		} else if hasMaster {
 			m.Repo.DefaultBranch = "master"
+		} else if hasMain {
+			m.Repo.DefaultBranch = "main"
 		} else {
 			m.Repo.DefaultBranch = firstName
 		}

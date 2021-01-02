@@ -31,5 +31,6 @@ type MigrateOptions struct {
 	Releases        bool
 	Comments        bool
 	PullRequests    bool
+	ReleaseAssets   bool
 	MigrateToRepoID int64
 }
