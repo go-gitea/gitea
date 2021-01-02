@@ -58,7 +58,7 @@ func Branches(ctx *context.Context) {
 	}
 
 	pageSize := ctx.QueryInt("limit")
-	if pageSize <= 0 {
+	if pageSize <= 0 || pageSize > git.BranchesRangeSize {
 		pageSize = git.BranchesRangeSize
 	}
 
