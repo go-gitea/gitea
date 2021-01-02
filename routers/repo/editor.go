@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
@@ -707,6 +708,156 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
+}
+
+// UploadFilePostJson JSON response for uploading file
+func UploadFilePostJson(ctx *context.Context, form auth.UploadRepoFileForm) {
+	// `renderCommitRights` is a poorly named; it's not responsible directly for rendering anything,
+	// it returns a boolean
+	canCommit := renderCommitRights(ctx)
+	oldBranchName := ctx.Repo.BranchName
+	branchName := oldBranchName
+
+	if form.CommitChoice == frmCommitChoiceNewBranch {
+		branchName = form.NewBranchName
+	}
+
+	form.TreePath = cleanUploadFileName(form.TreePath)
+
+	treeNames, _ := getParentTreeFields(form.TreePath)
+	if len(treeNames) == 0 {
+		// We must at least have one element for user to input.
+		treeNames = []string{""}
+	}
+	response := make(map[string]string)
+
+	if ctx.HasError() {
+		response["message"] = "Failed to commit the files"
+		ctx.JSON(http.StatusUnprocessableEntity, response)
+		log.Error("failed to commit files")
+		return
+	}
+
+	if oldBranchName != branchName {
+		if _, err := repo_module.GetBranch(ctx.Repo.Repository, branchName); err == nil {
+			response["message"] = "Branch already exists"
+			ctx.JSON(http.StatusConflict, response)
+			return
+		}
+	} else if !canCommit {
+		response["message"] = "Can't commit to protected branch"
+		ctx.JSON(http.StatusUnauthorized, response)
+		return
+	}
+
+	var newTreePath string
+	for _, part := range treeNames {
+		newTreePath = path.Join(newTreePath, part)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				// Means there is no item with that name, so we're good
+				break
+			}
+			response["message"] = "Something went wrong!"
+			ctx.JSON(http.StatusInternalServerError, response)
+			return
+		}
+
+		// User can only upload files to a directory.
+		if !entry.IsDir() {
+			ctx.Data["Err_TreePath"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
+			response["message"] = "A file with the same name of the new directory already exists."
+			ctx.JSON(http.StatusConflict, response)
+			return
+		}
+	}
+
+	message := strings.TrimSpace(form.CommitSummary)
+	if len(message) == 0 {
+		message = ctx.Tr("repo.editor.upload_files_to_dir", form.TreePath)
+	}
+
+	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
+	if len(form.CommitMessage) > 0 {
+		message += "\n\n" + form.CommitMessage
+	}
+
+	if err := repofiles.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &repofiles.UploadRepoFileOptions{
+		LastCommitID: ctx.Repo.CommitID,
+		OldBranch:    oldBranchName,
+		NewBranch:    branchName,
+		TreePath:     form.TreePath,
+		Message:      message,
+		Files:        form.Files,
+	}); err != nil {
+		if models.IsErrLFSFileLocked(err) {
+			response["message"] = ctx.Tr("repo.editor.upload_file_is_locked")
+			ctx.JSON(http.StatusUnauthorized, response)
+		} else if models.IsErrFilenameInvalid(err) {
+			response["message"] = ctx.Tr("repo.editor.filename_is_invalid")
+			ctx.JSON(http.StatusUnprocessableEntity, response)
+		} else if models.IsErrFilePathInvalid(err) {
+			fileErr := err.(models.ErrFilePathInvalid)
+			switch fileErr.Type {
+			case git.EntryModeSymlink:
+				response["message"] = ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path)
+				ctx.JSON(http.StatusConflict, response)
+			case git.EntryModeTree:
+				response["message"] = ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path)
+				ctx.JSON(http.StatusConflict, response)
+			case git.EntryModeBlob:
+				response["message"] = ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path)
+				ctx.JSON(http.StatusConflict, response)
+			default:
+				response["message"] = "Something went wrong"
+				ctx.JSON(http.StatusInternalServerError, response)
+			}
+		} else if models.IsErrRepoFileAlreadyExists(err) {
+			response["message"] = ctx.Tr("repo.editor.file_already_exists", form.TreePath)
+			ctx.JSON(http.StatusConflict, response)
+		} else if git.IsErrBranchNotExist(err) {
+			branchErr := err.(git.ErrBranchNotExist)
+			response["message"] = ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name)
+			ctx.JSON(http.StatusNotFound, response)
+		} else if models.IsErrBranchAlreadyExists(err) {
+			// For when a user specifies a new branch that already exists
+			branchErr := err.(models.ErrBranchAlreadyExists)
+			response["message"] = ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName)
+			ctx.JSON(http.StatusConflict, response)
+		} else if git.IsErrPushOutOfDate(err) {
+			response["message"] = ctx.Tr(
+				"repo.editor.file_changed_while_editing",
+				ctx.Repo.RepoLink+"/compare/"+ctx.Repo.CommitID+"..."+form.NewBranchName,
+			)
+			ctx.JSON(http.StatusConflict, response)
+		} else if git.IsErrPushRejected(err) {
+			errPushRej := err.(*git.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				response["message"] = ctx.Tr("repo.editor.push_rejected_no_message")
+				ctx.JSON(http.StatusConflict, response)
+			} else {
+				response["response"] = ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message))
+				ctx.JSON(http.StatusConflict, response)
+			}
+		} else {
+			// os.ErrNotExist - upload file missing in the intervening time?!
+			log.Error(
+				"Error during upload to repo: %-v to filepath: %s on %s from %s: %v",
+				ctx.Repo.Repository,
+				form.TreePath,
+				oldBranchName,
+				form.NewBranchName,
+				err,
+			)
+			response["message"] = ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err)
+			ctx.JSON(http.StatusInternalServerError, response)
+		}
+		return
+	}
+	response["message"] = "Committed files successfully."
+	ctx.JSON(http.StatusCreated, response)
 }
 
 func cleanUploadFileName(name string) string {
