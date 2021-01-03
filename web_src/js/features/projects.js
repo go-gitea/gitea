@@ -72,7 +72,7 @@ export default async function initProject() {
       contentType: 'application/json',
     });
 
-    reload();
+    window.location.reload();
   });
   $('.delete-project-board').each(function () {
     $(this).click(function (e) {
