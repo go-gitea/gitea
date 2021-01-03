@@ -38,15 +38,16 @@ func Profile(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsProfile)
 }
 
-func handleUsernameChange(ctx *context.Context, newName string) {
+// HandleUsernameChange handle username changes from user settings and admin interface
+func HandleUsernameChange(ctx *context.Context, user *models.User, newName string) {
 	// Non-local users are not allowed to change their username.
-	if len(newName) == 0 || !ctx.User.IsLocal() {
+	if len(newName) == 0 || !user.IsLocal() {
 		return
 	}
 
 	// Check if user name has been changed
-	if ctx.User.LowerName != strings.ToLower(newName) {
-		if err := models.ChangeUserName(ctx.User, newName); err != nil {
+	if user.LowerName != strings.ToLower(newName) {
+		if err := models.ChangeUserName(user, newName); err != nil {
 			switch {
 			case models.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
@@ -68,12 +69,8 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 			}
 			return
 		}
-		log.Trace("User name changed: %s -> %s", ctx.User.Name, newName)
+		log.Trace("User name changed: %s -> %s", user.Name, newName)
 	}
-
-	// In case it's just a case change
-	ctx.User.Name = newName
-	ctx.User.LowerName = strings.ToLower(newName)
 }
 
 // ProfilePost response for change user's profile
@@ -86,9 +83,13 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 		return
 	}
 
-	handleUsernameChange(ctx, form.Name)
-	if ctx.Written() {
-		return
+	if len(form.Name) != 0 && ctx.User.Name != form.Name {
+		HandleUsernameChange(ctx, ctx.User, form.Name)
+		if ctx.Written() {
+			return
+		}
+		ctx.User.Name = form.Name
+		ctx.User.LowerName = strings.ToLower(form.Name)
 	}
 
 	ctx.User.FullName = form.FullName
