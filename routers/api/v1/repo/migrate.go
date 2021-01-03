@@ -141,6 +141,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,
+		MirrorInterval: form.MirrorInterval,
 	}
 	if opts.Mirror {
 		opts.Issues = false
