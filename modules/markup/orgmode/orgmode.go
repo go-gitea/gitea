@@ -10,10 +10,12 @@ import (
 	"html"
 	"strings"
 
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/alecthomas/chroma/lexers"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -38,6 +40,28 @@ func (Parser) Extensions() []string {
 // Render renders orgmode rawbytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	htmlWriter := org.NewHTMLWriter()
+	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool) string {
+		var w strings.Builder
+		if _, err := w.WriteString(`<pre>`); err != nil {
+			return ""
+		}
+
+		// include language-x class as part of commonmark spec
+		if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
+			return ""
+		}
+
+		lexer := lexers.Get(lang)
+		if _, err := w.WriteString(highlight.Code(lexer.Config().Filenames[0], source)); err != nil {
+			return ""
+		}
+
+		if _, err := w.WriteString("</code></pre>"); err != nil {
+			return ""
+		}
+
+		return w.String()
+	}
 
 	renderer := &Renderer{
 		HTMLWriter: htmlWriter,
