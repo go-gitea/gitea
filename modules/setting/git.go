@@ -19,6 +19,8 @@ var (
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
 		MaxGitDiffFiles           int
+		CommitsRangeSize          int
+		BranchesRangeSize         int
 		VerbosePush               bool
 		VerbosePushDelay          time.Duration
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
@@ -37,6 +39,8 @@ var (
 		MaxGitDiffLines:           1000,
 		MaxGitDiffLineCharacters:  5000,
 		MaxGitDiffFiles:           100,
+		CommitsRangeSize:          50,
+		BranchesRangeSize:         20,
 		VerbosePush:               true,
 		VerbosePushDelay:          5 * time.Second,
 		GCArgs:                    []string{},
@@ -90,6 +94,9 @@ func newGit() {
 		format += ", Wire Protocol %s Enabled"
 		args = append(args, "Version 2") // for focus color
 	}
+
+	git.CommitsRangeSize = Git.CommitsRangeSize
+	git.BranchesRangeSize = Git.BranchesRangeSize
 
 	log.Info(format, args...)
 }
