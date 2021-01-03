@@ -7,6 +7,7 @@ package timeutil
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"strings"
 	"time"
 
@@ -21,9 +22,13 @@ const (
 	Hour   = 60 * Minute
 	Day    = 24 * Hour
 	Week   = 7 * Day
-	Month  = 30 * Day
-	Year   = 12 * Month
+	Year   = 365*Day + 5*Hour + 48*Minute + 46 // 365d5h48m46s ref. https://pumas.nasa.gov/files/04_21_97_1.pdf
+	Month  = Year / 12
 )
+
+func round(s float64) int64 {
+	return int64(math.Round(s))
+}
 
 func computeTimeDiff(diff int64, lang string) (int64, string) {
 	diffStr := ""
@@ -38,46 +43,76 @@ func computeTimeDiff(diff int64, lang string) (int64, string) {
 		diffStr = i18n.Tr(lang, "tool.seconds", diff)
 		diff = 0
 
-	case diff < 2*Minute:
+	case diff < Minute+Minute/2:
 		diff -= 1 * Minute
 		diffStr = i18n.Tr(lang, "tool.1m")
 	case diff < 1*Hour:
-		diffStr = i18n.Tr(lang, "tool.minutes", diff/Minute)
+		minutes := round(float64(diff) / Minute)
+		if minutes > 1 {
+			diffStr = i18n.Tr(lang, "tool.minutes", minutes)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1m")
+		}
 		diff -= diff / Minute * Minute
 
-	case diff < 2*Hour:
+	case diff < Hour+Hour/2:
 		diff -= 1 * Hour
 		diffStr = i18n.Tr(lang, "tool.1h")
 	case diff < 1*Day:
-		diffStr = i18n.Tr(lang, "tool.hours", diff/Hour)
+		hours := round(float64(diff) / Hour)
+		if hours > 1 {
+			diffStr = i18n.Tr(lang, "tool.hours", hours)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1h")
+		}
 		diff -= diff / Hour * Hour
 
-	case diff < 2*Day:
+	case diff < Day+Day/2:
 		diff -= 1 * Day
 		diffStr = i18n.Tr(lang, "tool.1d")
 	case diff < 1*Week:
-		diffStr = i18n.Tr(lang, "tool.days", diff/Day)
+		days := round(float64(diff) / Day)
+		if days > 1 {
+			diffStr = i18n.Tr(lang, "tool.days", days)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1d")
+		}
 		diff -= diff / Day * Day
 
-	case diff < 2*Week:
+	case diff < Week+Week/2:
 		diff -= 1 * Week
 		diffStr = i18n.Tr(lang, "tool.1w")
 	case diff < 1*Month:
-		diffStr = i18n.Tr(lang, "tool.weeks", diff/Week)
+		weeks := round(float64(diff) / Week)
+		if weeks > 1 {
+			diffStr = i18n.Tr(lang, "tool.weeks", weeks)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1w")
+		}
 		diff -= diff / Week * Week
 
-	case diff < 2*Month:
+	case diff < 1*Month+Month/2:
 		diff -= 1 * Month
 		diffStr = i18n.Tr(lang, "tool.1mon")
 	case diff < 1*Year:
-		diffStr = i18n.Tr(lang, "tool.months", diff/Month)
+		months := round(float64(diff) / Month)
+		if months > 1 {
+			diffStr = i18n.Tr(lang, "tool.months", months)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1mon")
+		}
 		diff -= diff / Month * Month
 
-	case diff < 2*Year:
+	case diff < Year+Year/2:
 		diff -= 1 * Year
 		diffStr = i18n.Tr(lang, "tool.1y")
 	default:
-		diffStr = i18n.Tr(lang, "tool.years", diff/Year)
+		years := round(float64(diff) / Year)
+		if years > 1 {
+			diffStr = i18n.Tr(lang, "tool.years", years)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1y")
+		}
 		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
