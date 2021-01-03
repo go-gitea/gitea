@@ -87,7 +87,7 @@ export default async function initProject() {
         contentType: 'application/json',
         method: 'DELETE',
       }).done(() => {
-        setTimeout(window.location.reload(true), 2000);
+        window.location.reload();
       });
     });
   });
@@ -108,7 +108,7 @@ export default async function initProject() {
       method: 'POST',
     }).done(() => {
       boardTitle.closest('form').removeClass('dirty');
-      setTimeout(window.location.reload(true), 2000);
+      window.location.reload();
     });
   });
 }
