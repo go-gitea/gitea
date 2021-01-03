@@ -1179,10 +1179,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.ReviewRequestedID > 0 {
 		sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-			And("r.reviewer_id = ?", opts.ReviewRequestedID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
-				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
+			And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+				" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+				opts.ReviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, opts.ReviewRequestedID)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1484,10 +1484,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.ReviewRequestedID > 0 {
 			sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-				And("r.reviewer_id = ?", opts.ReviewRequestedID).
 				And("r.type = ?", ReviewTypeRequest).
-				And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
-					ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
+				And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+					" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+					opts.ReviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, opts.ReviewRequestedID)
 		}
 
 		switch opts.IsPull {
@@ -1608,20 +1608,20 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	case FilterModeReviewRequested:
 		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-			And("r.reviewer_id = ?", opts.UserID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
-				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+			And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+				" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+				opts.UserID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-			And("r.reviewer_id = ?", opts.UserID).
 			And("r.type = ?", ReviewTypeRequest).
-			And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
-				ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+			And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+				" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+				opts.UserID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1661,10 +1661,10 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	stats.ReviewRequestedCount, err = x.Where(cond).
 		Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-		And("r.reviewer_id = ?", opts.UserID).
 		And("r.type = ?", ReviewTypeRequest).
-		And("r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))",
-			ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+			opts.UserID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
