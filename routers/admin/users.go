@@ -261,7 +261,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if u.IsLocal() && len(form.UserName) > 0 && u.Name != form.UserName {
 		if err := models.ChangeUserName(u, form.UserName); err != nil {
-			ctx.Handle(500, "ChangeUserName", err)
+			ctx.InternalServerError(err)
 			return
 		}
 		u.Name = form.UserName
