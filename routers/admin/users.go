@@ -260,9 +260,9 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		u.HashPassword(form.Password)
 	}
 
-	if len(form.UserName) > 0 && u.Name != form.UserName {
-		router_user_setting.HandleUsernameChange(ctx, u, form.UserName)
-		if ctx.Written() {
+	if len(form.UserName) != 0 && u.Name != form.UserName {
+		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+			ctx.Redirect(setting.AppSubURL + "/admin/users")
 			return
 		}
 		u.Name = form.UserName

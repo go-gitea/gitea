@@ -39,10 +39,11 @@ func Profile(ctx *context.Context) {
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
-func HandleUsernameChange(ctx *context.Context, user *models.User, newName string) {
+func HandleUsernameChange(ctx *context.Context, user *models.User, newName string) error {
 	// Non-local users are not allowed to change their username.
-	if len(newName) == 0 || !user.IsLocal() {
-		return
+	if !user.IsLocal() {
+		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
 	}
 
 	// Check if user name has been changed
@@ -51,26 +52,22 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			switch {
 			case models.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNameReserved(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
-				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
-				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNameCharsNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
-				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
 			}
-			return
+			return err
 		}
 		log.Trace("User name changed: %s -> %s", user.Name, newName)
 	}
+	return nil
 }
 
 // ProfilePost response for change user's profile
@@ -84,8 +81,8 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	if len(form.Name) != 0 && ctx.User.Name != form.Name {
-		HandleUsernameChange(ctx, ctx.User, form.Name)
-		if ctx.Written() {
+		if err := HandleUsernameChange(ctx, ctx.User, form.Name); err != nil {
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
 		ctx.User.Name = form.Name
