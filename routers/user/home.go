@@ -580,6 +580,7 @@ func Issues(ctx *context.Context) {
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
+		LabelIDs:    opts.LabelIDs,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
@@ -599,6 +600,7 @@ func Issues(ctx *context.Context) {
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
+			LabelIDs:    opts.LabelIDs,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
@@ -621,6 +623,7 @@ func Issues(ctx *context.Context) {
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
+			LabelIDs:    opts.LabelIDs,
 		})
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)
@@ -672,6 +675,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["TotalIssueCount"] = totalIssues
+	ctx.Data["SelectLabels"] = selectLabels
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
