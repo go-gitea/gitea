@@ -13269,6 +13269,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "mirror_interval": {
+          "description": "set to a string like `8h30m0s` to set the mirror interval time",
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
         "name": {
           "description": "name of the repository",
           "type": "string",
@@ -14254,6 +14259,10 @@
           "type": "boolean",
           "x-go-name": "Mirror"
         },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
@@ -14328,6 +14337,10 @@
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
+        },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
         },
         "private": {
           "type": "boolean",
@@ -15312,6 +15325,10 @@
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
+        },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
         },
         "name": {
           "type": "string",

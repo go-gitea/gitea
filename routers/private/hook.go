@@ -412,8 +412,8 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, &option)
-			if repo.IsEmpty && option.IsBranch() && option.BranchName() == "master" {
-				// put the master branch first
+			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
+				// put the master/main branch first
 				copy(updates[1:], updates)
 				updates[0] = &option
 			}
