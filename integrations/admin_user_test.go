@@ -66,7 +66,7 @@ func makeRequest(t *testing.T, formData models.User, headerCode int) {
 }
 
 func TestAdminDeleteUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 
@@ -76,6 +76,6 @@ func TestAdminDeleteUser(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	models.AssertNotExistsBean(t, &models.User{ID: 8})
+	assertUserDeleted(t, 8)
 	models.CheckConsistencyFor(t, &models.User{})
 }
