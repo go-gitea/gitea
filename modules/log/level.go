@@ -73,6 +73,16 @@ func (l Level) String() string {
 	return "info"
 }
 
+// Color returns the color string for this Level
+func (l Level) Color() *[]byte {
+	color, ok := levelToColor[l]
+	if ok {
+		return &(color)
+	}
+	none := levelToColor[NONE]
+	return &none
+}
+
 // MarshalJSON takes a Level and turns it into text
 func (l Level) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
@@ -101,7 +111,7 @@ func (l *Level) UnmarshalJSON(b []byte) error {
 
 	switch v := tmp.(type) {
 	case string:
-		*l = FromString(string(v))
+		*l = FromString(v)
 	case int:
 		*l = FromString(Level(v).String())
 	default:

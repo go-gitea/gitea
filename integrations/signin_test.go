@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 
-	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 func testLoginFailed(t *testing.T, username, password, message string) {
@@ -31,7 +31,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 }
 
 func TestSignin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 

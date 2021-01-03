@@ -6,22 +6,17 @@
 package models
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
-)
-
-var (
-	// ErrTeamNotExist team does not exist
-	ErrTeamNotExist = errors.New("Team does not exist")
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -32,6 +27,11 @@ func (org *User) IsOwnedBy(uid int64) (bool, error) {
 // IsOrgMember returns true if given user is member of organization.
 func (org *User) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(org.ID, uid)
+}
+
+// CanCreateOrgRepo returns true if given user can create repo in organization
+func (org *User) CanCreateOrgRepo(uid int64) (bool, error) {
+	return CanCreateOrgRepo(org.ID, uid)
 }
 
 func (org *User) getTeam(e Engine, name string) (*Team, error) {
@@ -53,30 +53,67 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
+	if org.Teams != nil {
+		return nil
+	}
 	return e.
 		Where("org_id=?", org.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
 		Find(&org.Teams)
 }
 
-// GetTeams returns all teams that belong to organization.
-func (org *User) GetTeams() error {
+// GetTeams returns paginated teams that belong to organization.
+func (org *User) GetTeams(opts *SearchTeamOptions) error {
+	if opts.Page != 0 {
+		return org.getTeams(opts.getPaginatedSession())
+	}
+
 	return org.getTeams(x)
 }
 
 // GetMembers returns all members of organization.
-func (org *User) GetMembers() error {
-	ous, err := GetOrgUsersByOrgID(org.ID)
+func (org *User) GetMembers() (err error) {
+	org.Members, org.MembersIsPublic, err = FindOrgMembers(&FindOrgMembersOpts{
+		OrgID: org.ID,
+	})
+	return
+}
+
+// FindOrgMembersOpts represensts find org members condtions
+type FindOrgMembersOpts struct {
+	ListOptions
+	OrgID      int64
+	PublicOnly bool
+}
+
+// CountOrgMembers counts the organization's members
+func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
+	sess := x.Where("org_id=?", opts.OrgID)
+	if opts.PublicOnly {
+		sess.And("is_public = ?", true)
+	}
+	return sess.Count(new(OrgUser))
+}
+
+// FindOrgMembers loads organization members according conditions
+func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) {
+	ous, err := GetOrgUsersByOrgID(opts)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	var ids = make([]int64, len(ous))
+	var idsIsPublic = make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
+		idsIsPublic[ou.UID] = ou.IsPublic
 	}
-	org.Members, err = GetUsersByIDs(ids)
-	return err
+
+	users, err := GetUsersByIDs(ids)
+	if err != nil {
+		return nil, nil, err
+	}
+	return users, idsIsPublic, nil
 }
 
 // AddMember adds new member to organization.
@@ -151,11 +188,13 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Create default owner team.
 	t := &Team{
-		OrgID:      org.ID,
-		LowerName:  strings.ToLower(ownerTeamName),
-		Name:       ownerTeamName,
-		Authorize:  AccessModeOwner,
-		NumMembers: 1,
+		OrgID:                   org.ID,
+		LowerName:               strings.ToLower(ownerTeamName),
+		Name:                    ownerTeamName,
+		Authorize:               AccessModeOwner,
+		NumMembers:              1,
+		IncludesAllRepositories: true,
+		CanCreateOrgRepo:        true,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
@@ -217,6 +256,10 @@ func CountOrganizations() int64 {
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
+	if !org.IsOrganization() {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -236,10 +279,6 @@ func DeleteOrganization(org *User) (err error) {
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
-	if !u.IsOrganization() {
-		return fmt.Errorf("You can't delete none organization user: %s", u.Name)
-	}
-
 	// Check ownership of repository.
 	count, err := getRepositoryCount(e, u)
 	if err != nil {
@@ -266,16 +305,14 @@ func deleteOrg(e *xorm.Session, u *User) error {
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		avatarPath := u.CustomAvatarRelativePath()
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
@@ -298,15 +335,13 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam := &Team{
-		OrgID: orgID,
-		Name:  ownerTeamName,
-	}
-	if has, err := e.Get(ownerTeam); err != nil {
+	ownerTeam, err := getOwnerTeam(e, orgID)
+	if err != nil {
+		if IsErrTeamNotExist(err) {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return false, nil
+		}
 		return false, err
-	} else if !has {
-		log.Error("Organization does not have owner team: %d", orgID)
-		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
@@ -337,6 +372,19 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 		And("is_public=?", true).
 		Table("org_user").
 		Exist()
+}
+
+// CanCreateOrgRepo returns true if user can create repo in organization
+func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
+	if owner, err := IsOrganizationOwner(orgID, uid); owner || err != nil {
+		return owner, err
+	}
+	return x.
+		Where(builder.Eq{"team.can_create_org_repo": true}).
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		And("team_user.uid = ?", uid).
+		And("team_user.org_id = ?", orgID).
+		Exist(new(Team))
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
@@ -385,7 +433,7 @@ func hasOrgVisible(e Engine, org *User, user *User) bool {
 		return true
 	}
 
-	if org.Visibility == structs.VisibleTypePrivate && !org.isUserPartOfOrg(e, user.ID) {
+	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.hasMemberWithUserID(e, user.ID) {
 		return false
 	}
 	return true
@@ -418,16 +466,35 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 	return getOwnedOrgsByUserID(x.Desc(desc), userID)
 }
 
+// GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
+// are allowed to create repos.
+func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
+	orgs := make([]*User, 0, 10)
+
+	return orgs, x.Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
+		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID}).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
+		Asc("`user`.name").
+		Find(&orgs)
+}
+
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
+func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
 		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
 		Where("`org_user`.uid=?", uid)
-	if !all {
+	if !opts.All {
 		// Only show public organizations
 		sess.And("is_public=?", true)
 	}
+
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
 	err := sess.
 		Asc("`user`.name").
 		Find(&ous)
@@ -435,16 +502,24 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 }
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(orgID int64) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(x, orgID)
+func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, opts)
 }
 
-func getOrgUsersByOrgID(e Engine, orgID int64) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
-	err := e.
-		Where("org_id=?", orgID).
-		Find(&ous)
-	return ous, err
+func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	sess := e.Where("org_id=?", opts.OrgID)
+	if opts.PublicOnly {
+		sess.And("is_public = ?", true)
+	}
+	if opts.ListOptions.PageSize > 0 {
+		sess = opts.setSessionPagination(sess)
+
+		ous := make([]*OrgUser, 0, opts.PageSize)
+		return ous, sess.Find(&ous)
+	}
+
+	var ous []*OrgUser
+	return ous, sess.Find(&ous)
 }
 
 // ChangeOrgUserStatus changes public or private membership status.
@@ -479,8 +554,9 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	ou := &OrgUser{
-		UID:   uid,
-		OrgID: orgID,
+		UID:      uid,
+		OrgID:    orgID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
@@ -640,7 +716,7 @@ func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 		Find(&teamIDs)
 }
 
-// TeamsWithAccessToRepo returns all teamsthat have given access level to the repository.
+// TeamsWithAccessToRepo returns all teams that have given access level to the repository.
 func (org *User) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
 	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
 }
@@ -669,7 +745,8 @@ type AccessibleReposEnvironment interface {
 
 type accessibleReposEnv struct {
 	org     *User
-	userID  int64
+	user    *User
+	team    *Team
 	teamIDs []int64
 	e       Engine
 	keyword string
@@ -683,26 +760,54 @@ func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, e
 }
 
 func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvironment, error) {
+	var user *User
+
+	if userID > 0 {
+		u, err := getUserByID(e, userID)
+		if err != nil {
+			return nil, err
+		}
+		user = u
+	}
+
 	teamIDs, err := org.getUserTeamIDs(e, userID)
 	if err != nil {
 		return nil, err
 	}
 	return &accessibleReposEnv{
 		org:     org,
-		userID:  userID,
+		user:    user,
 		teamIDs: teamIDs,
 		e:       e,
 		orderBy: SearchOrderByRecentUpdated,
 	}, nil
 }
 
-func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond builder.Cond = builder.Eq{
-		"`repository`.owner_id":   env.org.ID,
-		"`repository`.is_private": false,
+// AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// that are accessible to the specified team.
+func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+	return &accessibleReposEnv{
+		org:     org,
+		team:    team,
+		e:       x,
+		orderBy: SearchOrderByRecentUpdated,
 	}
-	if len(env.teamIDs) > 0 {
-		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+}
+
+func (env *accessibleReposEnv) cond() builder.Cond {
+	var cond = builder.NewCond()
+	if env.team != nil {
+		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
+	} else {
+		if env.user == nil || !env.user.IsRestricted {
+			cond = cond.Or(builder.Eq{
+				"`repository`.owner_id":   env.org.ID,
+				"`repository`.is_private": false,
+			})
+		}
+		if len(env.teamIDs) > 0 {
+			cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+		}
 	}
 	if env.keyword != "" {
 		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})

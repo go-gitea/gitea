@@ -5,8 +5,8 @@
 package auth
 
 import (
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // NewBranchForm form for creating a new branch

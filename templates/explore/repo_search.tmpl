@@ -3,7 +3,7 @@
     <div class="ui right dropdown type jump item">
 		<span class="text">
 			{{.i18n.Tr "repo.issues.filter_sort"}}
-                <i class="dropdown icon"></i>
+                {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</span>
         <div class="menu">
             <a class="{{if eq .SortType "newest"}}active{{end}} item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
@@ -20,10 +20,10 @@
     </div>
 </div>
 <form class="ui form ignore-dirty" style="max-width: 90%">
+    <input type="hidden" name="tab" value="{{$.TabName}}">
+    <input type="hidden" name="sort" value="{{$.SortType}}">
     <div class="ui fluid action input">
         <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-        <input type="hidden" name="tab" value="{{$.TabName}}">
-        <input type="hidden" name="sort" value="{{$.SortType}}">
         <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
     </div>
 </form>

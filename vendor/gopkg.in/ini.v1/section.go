@@ -66,7 +66,7 @@ func (s *Section) SetBody(body string) {
 func (s *Section) NewKey(name, val string) (*Key, error) {
 	if len(name) == 0 {
 		return nil, errors.New("error creating new key: empty key name")
-	} else if s.f.options.Insensitive {
+	} else if s.f.options.Insensitive || s.f.options.InsensitiveKeys {
 		name = strings.ToLower(name)
 	}
 
@@ -106,11 +106,10 @@ func (s *Section) NewBooleanKey(name string) (*Key, error) {
 
 // GetKey returns key in section by given name.
 func (s *Section) GetKey(name string) (*Key, error) {
-	// FIXME: change to section level lock?
 	if s.f.BlockMode {
 		s.f.lock.RLock()
 	}
-	if s.f.options.Insensitive {
+	if s.f.options.Insensitive || s.f.options.InsensitiveKeys {
 		name = strings.ToLower(name)
 	}
 	key := s.keys[name]
@@ -122,18 +121,17 @@ func (s *Section) GetKey(name string) (*Key, error) {
 		// Check if it is a child-section.
 		sname := s.name
 		for {
-			if i := strings.LastIndex(sname, "."); i > -1 {
+			if i := strings.LastIndex(sname, s.f.options.ChildSectionDelimiter); i > -1 {
 				sname = sname[:i]
 				sec, err := s.f.GetSection(sname)
 				if err != nil {
 					continue
 				}
 				return sec.GetKey(name)
-			} else {
-				break
 			}
+			break
 		}
-		return nil, fmt.Errorf("error when getting key of section '%s': key '%s' not exists", s.name, name)
+		return nil, fmt.Errorf("error when getting key of section %q: key %q not exists", s.name, name)
 	}
 	return key, nil
 }
@@ -144,8 +142,7 @@ func (s *Section) HasKey(name string) bool {
 	return key != nil
 }
 
-// Haskey is a backwards-compatible name for HasKey.
-// TODO: delete me in v2
+// Deprecated: Use "HasKey" instead.
 func (s *Section) Haskey(name string) bool {
 	return s.HasKey(name)
 }
@@ -191,7 +188,7 @@ func (s *Section) ParentKeys() []*Key {
 	var parentKeys []*Key
 	sname := s.name
 	for {
-		if i := strings.LastIndex(sname, "."); i > -1 {
+		if i := strings.LastIndex(sname, s.f.options.ChildSectionDelimiter); i > -1 {
 			sname = sname[:i]
 			sec, err := s.f.GetSection(sname)
 			if err != nil {
@@ -248,11 +245,11 @@ func (s *Section) DeleteKey(name string) {
 // For example, "[parent.child1]" and "[parent.child12]" are child sections
 // of section "[parent]".
 func (s *Section) ChildSections() []*Section {
-	prefix := s.name + "."
+	prefix := s.name + s.f.options.ChildSectionDelimiter
 	children := make([]*Section, 0, 3)
 	for _, name := range s.f.sectionList {
 		if strings.HasPrefix(name, prefix) {
-			children = append(children, s.f.sections[name])
+			children = append(children, s.f.sections[name]...)
 		}
 	}
 	return children

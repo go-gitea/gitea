@@ -12,10 +12,11 @@ import (
 	"os"
 	"path"
 
-	"github.com/Unknwon/com"
-	gouuid "github.com/satori/go.uuid"
-
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
+	gouuid "github.com/google/uuid"
 )
 
 //  ____ ___        .__                    .___ ___________.___.__
@@ -46,7 +47,7 @@ func (upload *Upload) LocalPath() string {
 // NewUpload creates a new upload object.
 func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err error) {
 	upload := &Upload{
-		UUID: gouuid.NewV4().String(),
+		UUID: gouuid.New().String(),
 		Name: name,
 	}
 
@@ -76,8 +77,8 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 
 // GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
-	upload := &Upload{UUID: uuid}
-	has, err := x.Get(upload)
+	upload := &Upload{}
+	has, err := x.Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -125,11 +126,15 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
-		if !com.IsFile(localPath) {
+		isFile, err := util.IsFile(localPath)
+		if err != nil {
+			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
+		}
+		if !isFile {
 			continue
 		}
 
-		if err := os.Remove(localPath); err != nil {
+		if err := util.Remove(localPath); err != nil {
 			return fmt.Errorf("remove upload: %v", err)
 		}
 	}

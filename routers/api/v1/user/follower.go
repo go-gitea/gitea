@@ -1,28 +1,32 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package user
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = users[i].APIFormat()
+		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
-	ctx.JSON(200, &apiUsers)
+	ctx.JSON(http.StatusOK, &apiUsers)
 }
 
 func listUserFollowers(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowers(ctx.QueryInt("page"))
+	users, err := u.GetFollowers(utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "GetUserFollowers", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
 	}
 	responseAPIUsers(ctx, users)
@@ -33,11 +37,21 @@ func ListMyFollowers(ctx *context.APIContext) {
 	// swagger:operation GET /user/followers user userCurrentListFollowers
 	// ---
 	// summary: List the authenticated user's followers
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listUserFollowers(ctx, ctx.User)
 }
 
@@ -54,9 +68,18 @@ func ListFollowers(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -65,9 +88,9 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowing(ctx.QueryInt("page"))
+	users, err := u.GetFollowing(utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "GetFollowing", err)
+		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return
 	}
 	responseAPIUsers(ctx, users)
@@ -78,11 +101,21 @@ func ListMyFollowing(ctx *context.APIContext) {
 	// swagger:operation GET /user/following user userCurrentListFollowing
 	// ---
 	// summary: List the users that the authenticated user is following
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listUserFollowing(ctx, ctx.User)
 }
 
@@ -99,9 +132,18 @@ func ListFollowing(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -111,7 +153,7 @@ func ListFollowing(ctx *context.APIContext) {
 
 func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64) {
 	if u.IsFollowing(followID) {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
 	}
@@ -133,6 +175,7 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -161,6 +204,7 @@ func CheckFollowing(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -186,15 +230,16 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if err := models.FollowUser(ctx.User.ID, target.ID); err != nil {
-		ctx.Error(500, "FollowUser", err)
+		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // Unfollow unfollow a user
@@ -211,13 +256,14 @@ func Unfollow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if err := models.UnfollowUser(ctx.User.ID, target.ID); err != nil {
-		ctx.Error(500, "UnfollowUser", err)
+		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

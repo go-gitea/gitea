@@ -6,7 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/tstranex/u2f"
 )
@@ -17,9 +17,9 @@ type U2FRegistration struct {
 	Name        string
 	UserID      int64 `xorm:"INDEX"`
 	Raw         []byte
-	Counter     uint32         `xorm:"BIGINT"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	Counter     uint32             `xorm:"BIGINT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // TableName returns a better table name for U2FRegistration

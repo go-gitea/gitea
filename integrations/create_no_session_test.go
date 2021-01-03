@@ -14,9 +14,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,13 +53,14 @@ func sessionFileExist(t *testing.T, tmpDir, sessionID string) bool {
 }
 
 func TestSessionFileCreation(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		mac = routes.NewMacaron()
-		routes.RegisterRoutes(mac)
+		c = routes.NewChi()
+		c.Mount("/", routes.NormalRoutes())
+		routes.DelegateToMacaron(c)
 	}()
 
 	var config session.Options
@@ -72,7 +74,7 @@ func TestSessionFileCreation(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = os.RemoveAll(tmpDir)
+			_ = util.RemoveAll(tmpDir)
 		}
 	}()
 	config.ProviderConfig = tmpDir
@@ -82,11 +84,12 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -96,7 +99,7 @@ func TestSessionFileCreation(t *testing.T) {
 		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
 	})
 	t.Run("CreateSessionOnLogin", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)

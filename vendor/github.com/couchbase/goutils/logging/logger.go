@@ -36,6 +36,7 @@ const (
 	TEXTFORMATTER = LogEntryFormatter(iota)
 	JSONFORMATTER
 	KVFORMATTER
+	UNIFORMFORMATTER
 )
 
 func (level Level) String() string {
@@ -476,6 +477,6 @@ func Stackf(level Level, fmt string, args ...interface{}) {
 }
 
 func init() {
-	logger = NewLogger(os.Stderr, INFO, TEXTFORMATTER)
+	logger := NewLogger(os.Stderr, INFO, TEXTFORMATTER)
 	SetLogger(logger)
 }

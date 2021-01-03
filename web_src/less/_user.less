@@ -1,0 +1,181 @@
+@import "variables.less";
+
+.user {
+  &.profile {
+    .ui.card {
+      .header,
+      .username {
+        display: block;
+      }
+
+      .header {
+        font-weight: 600;
+        font-size: 1.3rem;
+        margin-top: -.2rem;
+        line-height: 1.3rem;
+      }
+
+      .profile-avatar-name {
+        border-top: none;
+      }
+
+      .extra.content {
+        padding: 0;
+
+        ul {
+          margin: 0;
+          padding: 0;
+
+          li {
+            padding: 10px;
+            list-style: none;
+
+            &:not(:last-child) {
+              border-bottom: 1px solid var(--color-secondary);
+            }
+
+            .svg,
+            .fa {
+              margin-left: 1px;
+              margin-right: 5px;
+            }
+
+            &.follow {
+              .ui.button {
+                width: 100%;
+              }
+            }
+          }
+        }
+      }
+
+      #profile-avatar {
+        background: none;
+        padding: 1rem 1rem .25rem;
+
+        img {
+          width: 100%;
+          height: auto;
+          object-fit: contain;
+          margin: 0;
+        }
+
+        @media @mediaSm {
+          height: 250px;
+          overflow: hidden;
+
+          img {
+            max-height: 767px;
+            max-width: 767px;
+          }
+        }
+      }
+
+      @media @mediaSm {
+        width: 100%;
+      }
+    }
+
+    .ui.repository.list {
+      margin-top: 25px;
+    }
+
+    #loading-heatmap {
+      margin-bottom: 1em;
+    }
+    .ui.secondary.stackable.pointing.menu {
+      flex-wrap: wrap;
+    }
+  }
+
+  &.followers {
+    .header.name {
+      font-size: 20px;
+      line-height: 24px;
+      vertical-align: middle;
+    }
+
+    .follow {
+      .ui.button {
+        padding: 8px 15px;
+      }
+    }
+  }
+
+  &.notification {
+    .svg {
+      float: left;
+      font-size: 2em;
+
+      &.green {
+        color: var(--color-green);
+      }
+
+      &.red {
+        color: var(--color-red);
+      }
+
+      &.purple {
+        color: var(--color-purple);
+      }
+
+      &.blue {
+        color: var(--color-blue);
+      }
+    }
+
+    .content {
+      float: left;
+      margin-left: 7px;
+    }
+
+    table {
+      form {
+        display: inline-block;
+      }
+
+      button {
+        padding: 3px 3px 3px 5px;
+      }
+
+      tr {
+        cursor: pointer;
+      }
+    }
+  }
+
+  .button.adopt,
+  .button.delete {
+    margin-top: -15px;
+    margin-bottom: -15px;
+    .label {
+      vertical-align: middle;
+    }
+  }
+
+  &.link-account:not(.icon) {
+    padding-top: 15px;
+    padding-bottom: 5px;
+  }
+
+  &.settings {
+    .iconFloat {
+      float: left;
+    }
+  }
+}
+
+.user-orgs {
+  display: flex;
+  flex-flow: row wrap;
+  padding: 0;
+  margin: -3px !important;
+
+  li {
+    display: flex;
+    border-bottom: 0 !important;
+    padding: 3px !important;
+    width: 20%;
+    max-width: 60px;
+  }
+}

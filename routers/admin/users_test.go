@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 		LoginName:          "local",
 		UserName:           username,
 		Email:              email,
-		Password:           "xxxxxxxx",
+		Password:           "abc123ABC!=$",
 		SendNotify:         false,
 		MustChangePassword: true,
 	}
@@ -70,7 +71,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 		LoginName:          "local",
 		UserName:           username,
 		Email:              email,
-		Password:           "xxxxxxxx",
+		Password:           "abc123ABC!=$",
 		SendNotify:         false,
 		MustChangePassword: false,
 	}
@@ -85,4 +86,34 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
 	assert.False(t, u.MustChangePassword)
+}
+
+func TestNewUserPost_InvalidEmail(t *testing.T) {
+
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "admin/users/new")
+
+	u := models.AssertExistsAndLoadBean(t, &models.User{
+		IsAdmin: true,
+		ID:      2,
+	}).(*models.User)
+
+	ctx.User = u
+
+	username := "gitea"
+	email := "gitea@gitea.io\r\n"
+
+	form := auth.AdminCreateUserForm{
+		LoginType:          "local",
+		LoginName:          "local",
+		UserName:           username,
+		Email:              email,
+		Password:           "abc123ABC!=$",
+		SendNotify:         false,
+		MustChangePassword: false,
+	}
+
+	NewUserPost(ctx, form)
+
+	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }

@@ -20,5 +20,5 @@ func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Comm
 	if len(res) < 40 {
 		return nil, fmt.Errorf("invalid result of blame: %s", res)
 	}
-	return repo.GetCommit(string(res[:40]))
+	return repo.GetCommit(res[:40])
 }

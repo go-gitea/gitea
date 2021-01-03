@@ -21,6 +21,7 @@ type PullRequest struct {
 	Assignee  *User      `json:"assignee"`
 	Assignees []*User    `json:"assignees"`
 	State     StateType  `json:"state"`
+	IsLocked  bool       `json:"is_locked"`
 	Comments  int        `json:"comments"`
 
 	HTMLURL  string `json:"html_url"`
@@ -82,11 +83,13 @@ type CreatePullRequestOption struct {
 type EditPullRequestOption struct {
 	Title     string   `json:"title"`
 	Body      string   `json:"body"`
+	Base      string   `json:"base"`
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone int64    `json:"milestone"`
 	Labels    []int64  `json:"labels"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline       *time.Time `json:"due_date"`
+	RemoveDeadline *bool      `json:"unset_due_date"`
 }

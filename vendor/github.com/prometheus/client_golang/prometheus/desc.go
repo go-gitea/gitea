@@ -19,6 +19,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cespare/xxhash/v2"
+	//lint:ignore SA1019 Need to keep deprecated package for compatibility.
 	"github.com/golang/protobuf/proto"
 	"github.com/prometheus/common/model"
 
@@ -49,7 +51,7 @@ type Desc struct {
 	// constLabelPairs contains precalculated DTO label pairs based on
 	// the constant labels.
 	constLabelPairs []*dto.LabelPair
-	// VariableLabels contains names of labels for which the metric
+	// variableLabels contains names of labels for which the metric
 	// maintains variable values.
 	variableLabels []string
 	// id is a hash of the values of the ConstLabels and fqName. This
@@ -93,7 +95,7 @@ func NewDesc(fqName, help string, variableLabels []string, constLabels Labels) *
 	// First add only the const label names and sort them...
 	for labelName := range constLabels {
 		if !checkLabelName(labelName) {
-			d.err = fmt.Errorf("%q is not a valid label name", labelName)
+			d.err = fmt.Errorf("%q is not a valid label name for metric %q", labelName, fqName)
 			return d
 		}
 		labelNames = append(labelNames, labelName)
@@ -115,7 +117,7 @@ func NewDesc(fqName, help string, variableLabels []string, constLabels Labels) *
 	// dimension with a different mix between preset and variable labels.
 	for _, labelName := range variableLabels {
 		if !checkLabelName(labelName) {
-			d.err = fmt.Errorf("%q is not a valid label name", labelName)
+			d.err = fmt.Errorf("%q is not a valid label name for metric %q", labelName, fqName)
 			return d
 		}
 		labelNames = append(labelNames, "$"+labelName)
@@ -126,24 +128,24 @@ func NewDesc(fqName, help string, variableLabels []string, constLabels Labels) *
 		return d
 	}
 
-	vh := hashNew()
+	xxh := xxhash.New()
 	for _, val := range labelValues {
-		vh = hashAdd(vh, val)
-		vh = hashAddByte(vh, separatorByte)
+		xxh.WriteString(val)
+		xxh.Write(separatorByteSlice)
 	}
-	d.id = vh
+	d.id = xxh.Sum64()
 	// Sort labelNames so that order doesn't matter for the hash.
 	sort.Strings(labelNames)
 	// Now hash together (in this order) the help string and the sorted
 	// label names.
-	lh := hashNew()
-	lh = hashAdd(lh, help)
-	lh = hashAddByte(lh, separatorByte)
+	xxh.Reset()
+	xxh.WriteString(help)
+	xxh.Write(separatorByteSlice)
 	for _, labelName := range labelNames {
-		lh = hashAdd(lh, labelName)
-		lh = hashAddByte(lh, separatorByte)
+		xxh.WriteString(labelName)
+		xxh.Write(separatorByteSlice)
 	}
-	d.dimHash = lh
+	d.dimHash = xxh.Sum64()
 
 	d.constLabelPairs = make([]*dto.LabelPair, 0, len(constLabels))
 	for n, v := range constLabels {

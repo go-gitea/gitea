@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"mvdan.cc/xurls/v2"
@@ -37,8 +36,9 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if ctx.HasAPIError() {
-		ctx.Error(422, "", ctx.GetErrMsg())
+		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}
 
@@ -48,10 +48,12 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	}
 
 	switch form.Mode {
+	case "comment":
+		fallthrough
 	case "gfm":
 		md := []byte(form.Text)
 		urlPrefix := form.Context
-		var meta map[string]string
+		meta := map[string]string{}
 		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
 			// check if urlPrefix is already set to a URL
 			linkRegex, _ := xurls.StrictMatchingScheme("https?://")
@@ -61,25 +63,33 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 			}
 		}
 		if ctx.Repo != nil && ctx.Repo.Repository != nil {
-			meta = ctx.Repo.Repository.ComposeMetas()
+			// "gfm" = Github Flavored Markdown - set this to render as a document
+			if form.Mode == "gfm" {
+				meta = ctx.Repo.Repository.ComposeDocumentMetas()
+			} else {
+				meta = ctx.Repo.Repository.ComposeMetas()
+			}
+		}
+		if form.Mode == "gfm" {
+			meta["mode"] = "document"
 		}
 		if form.Wiki {
 			_, err := ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "", err)
+				ctx.InternalServerError(err)
 				return
 			}
 		} else {
 			_, err := ctx.Write(markdown.Render(md, urlPrefix, meta))
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "", err)
+				ctx.InternalServerError(err)
 				return
 			}
 		}
 	default:
 		_, err := ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
+			ctx.InternalServerError(err)
 			return
 		}
 	}
@@ -106,14 +116,15 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {
-		ctx.Error(422, "", err)
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
 		return
 	}
 	_, err = ctx.Write(markdown.RenderRaw(body, "", false))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		ctx.InternalServerError(err)
 		return
 	}
 }

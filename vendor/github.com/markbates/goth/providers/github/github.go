@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -105,7 +104,13 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
 	}
 
-	response, err := p.Client().Get(p.profileURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	req, err := http.NewRequest("GET", p.profileURL, nil)
+	if err != nil {
+		return user, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+sess.AccessToken)
+	response, err := p.Client().Do(req)
 	if err != nil {
 		return user, err
 	}
@@ -172,7 +177,9 @@ func userFromReader(reader io.Reader, user *goth.User) error {
 }
 
 func getPrivateMail(p *Provider, sess *Session) (email string, err error) {
-	response, err := p.Client().Get(p.emailURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	req, err := http.NewRequest("GET", p.emailURL, nil)
+	req.Header.Add("Authorization", "Bearer "+sess.AccessToken)
+	response, err := p.Client().Do(req)
 	if err != nil {
 		if response != nil {
 			response.Body.Close()
@@ -199,8 +206,7 @@ func getPrivateMail(p *Provider, sess *Session) (email string, err error) {
 			return v.Email, nil
 		}
 	}
-	// can't get primary email - shouldn't be possible
-	return
+	return email, fmt.Errorf("The user does not have a verified, primary email address on GitHub")
 }
 
 func newConfig(provider *Provider, authURL, tokenURL string, scopes []string) *oauth2.Config {

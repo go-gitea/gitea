@@ -1,19 +1,20 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package user
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-
-	"github.com/Unknwon/com"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // Search search users
@@ -33,9 +34,13 @@ func Search(ctx *context.APIContext) {
 	//   description: ID of the user to search for
 	//   type: integer
 	//   format: int64
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: maximum number of users to return
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -49,16 +54,19 @@ func Search(ctx *context.APIContext) {
 	//           type: array
 	//           items:
 	//             "$ref": "#/definitions/User"
+
+	listOptions := utils.GetListOptions(ctx)
+
 	opts := &models.SearchUserOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		UID:      com.StrTo(ctx.Query("uid")).MustInt64(),
-		Type:     models.UserTypeIndividual,
-		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		UID:         ctx.QueryInt64("uid"),
+		Type:        models.UserTypeIndividual,
+		ListOptions: listOptions,
 	}
 
-	users, _, err := models.SearchUsers(opts)
+	users, maxResults, err := models.SearchUsers(opts)
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": err.Error(),
 		})
@@ -70,7 +78,11 @@ func Search(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": results,
 	})
@@ -94,21 +106,18 @@ func GetInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/User"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 
-	// Hide user e-mail when API caller isn't signed in.
-	if !ctx.IsSigned {
-		u.Email = ""
-	}
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -121,7 +130,8 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	ctx.JSON(200, ctx.User.APIFormat())
+
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap
@@ -154,10 +164,10 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		return
 	}
 
-	heatmap, err := models.GetUserHeatmapDataByUser(user)
+	heatmap, err := models.GetUserHeatmapDataByUser(user, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return
 	}
-	ctx.JSON(200, heatmap)
+	ctx.JSON(http.StatusOK, heatmap)
 }

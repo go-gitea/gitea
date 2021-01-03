@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Démarrer en tant que service Windows"
 slug: "windows-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -18,7 +18,7 @@ menu:
 Pour activer le service Windows Gitea, ouvrez une `cmd` en tant qu'Administrateur puis utilisez la commande suivante :
 
 ```
-sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
+sc create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
 N'oubliez pas de remplacer `C:\gitea` par le chemin que vous avez utilisez pour votre installation.

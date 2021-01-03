@@ -9,17 +9,19 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/routers/api/v1/utils"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
@@ -51,9 +53,27 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: keyword
 	//   type: string
+	// - name: topic
+	//   in: query
+	//   description: Limit search to repositories with keyword as topic
+	//   type: boolean
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
+	//   type: integer
+	//   format: int64
+	// - name: priority_owner_id
+	//   in: query
+	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
+	// - name: team_id
+	//   in: query
+	//   description: search only for repos that belong to the given team id
 	//   type: integer
 	//   format: int64
 	// - name: starredBy
@@ -65,14 +85,18 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: page
+	// - name: is_private
 	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
+	//   description: show only pubic, private or all repositories (defaults to all)
+	//   type: boolean
+	// - name: template
 	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
+	//   description: include template repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: archived
+	//   in: query
+	//   description: show only archived, non-archived or all repositories (defaults to all)
+	//   type: boolean
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -93,22 +117,37 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	opts := &models.SearchRepoOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OwnerID:     ctx.QueryInt64("uid"),
-		Page:        ctx.QueryInt("page"),
-		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		TopicOnly:   ctx.QueryBool("topic"),
-		Collaborate: util.OptionalBoolNone,
-		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		StarredByID: ctx.QueryInt64("starredBy"),
+		ListOptions:        utils.GetListOptions(ctx),
+		Actor:              ctx.User,
+		Keyword:            strings.Trim(ctx.Query("q"), " "),
+		OwnerID:            ctx.QueryInt64("uid"),
+		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
+		TeamID:             ctx.QueryInt64("team_id"),
+		TopicOnly:          ctx.QueryBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Template:           util.OptionalBoolNone,
+		StarredByID:        ctx.QueryInt64("starredBy"),
+		IncludeDescription: ctx.QueryBool("includeDesc"),
+	}
+
+	if ctx.Query("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -133,6 +172,14 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	if ctx.Query("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
+	}
+
+	if ctx.Query("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.QueryBool("is_private"))
+	}
+
 	var sortMode = ctx.Query("sort")
 	if len(sortMode) > 0 {
 		var sortOrder = ctx.Query("order")
@@ -153,9 +200,9 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepositoryByName(opts)
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
-		ctx.JSON(500, api.SearchError{
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
 			Error: err.Error(),
 		})
@@ -165,7 +212,7 @@ func Search(ctx *context.APIContext) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
-			ctx.JSON(500, api.SearchError{
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
@@ -173,17 +220,18 @@ func Search(ctx *context.APIContext) {
 		}
 		accessMode, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
-			ctx.JSON(500, api.SearchError{
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
-	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.JSON(200, api.SearchResults{
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
 	})
@@ -194,33 +242,38 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:        opt.Name,
-		Description: opt.Description,
-		Gitignores:  opt.Gitignores,
-		License:     opt.License,
-		Readme:      opt.Readme,
-		IsPrivate:   opt.Private,
-		AutoInit:    opt.AutoInit,
+	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
+		Name:          opt.Name,
+		Description:   opt.Description,
+		IssueLabels:   opt.IssueLabels,
+		Gitignores:    opt.Gitignores,
+		License:       opt.License,
+		Readme:        opt.Readme,
+		IsPrivate:     opt.Private,
+		AutoInit:      opt.AutoInit,
+		DefaultBranch: opt.DefaultBranch,
+		TrustModel:    models.ToTrustModel(opt.TrustModel),
+		IsTemplate:    opt.Template,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
-			ctx.Error(409, "", "The repository with the same name already exists.")
+			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			if repo != nil {
-				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
-					log.Error("DeleteRepository: %v", err)
-				}
-			}
-			ctx.Error(500, "CreateRepository", err)
+			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
 		}
 		return
 	}
 
-	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
+	// reload repo from db to get a real state after creation
+	repo, err = models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -244,19 +297,21 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
-		ctx.Error(422, "", "not allowed creating repository for organization")
+		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
 	CreateUserRepo(ctx, ctx.User, opt)
 }
 
-// CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:operation POST /org/{org}/repos organization createOrgRepo
+// CreateOrgRepoDeprecated create one repository of the organization
+func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
+	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -278,12 +333,43 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/validationError"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
+	CreateOrgRepo(ctx, opt)
+}
+
+// CreateOrgRepo create one repository of the organization
+func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
+	// ---
+	// summary: Create a repository in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetOrgByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 		}
 		return
 	}
@@ -294,152 +380,16 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	}
 
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
+		} else if !canCreate {
+			ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
 	CreateUserRepo(ctx, org, opt)
-}
-
-// Migrate migrate remote git repository to gitea
-func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
-	// swagger:operation POST /repos/migrate repository repoMigrate
-	// ---
-	// summary: Migrate a remote git repository
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/MigrateRepoForm"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/Repository"
-	ctxUser := ctx.User
-	// Not equal means context user is an organization,
-	// or is another user/organization if current user is admin.
-	if form.UID != ctxUser.ID {
-		org, err := models.GetUserByID(form.UID)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", err)
-			} else {
-				ctx.Error(500, "GetUserByID", err)
-			}
-			return
-		}
-		ctxUser = org
-	}
-
-	if ctx.HasError() {
-		ctx.Error(422, "", ctx.GetErrMsg())
-		return
-	}
-
-	if !ctx.User.IsAdmin {
-		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
-			ctx.Error(403, "", "Given user is not an organization.")
-			return
-		}
-
-		if ctxUser.IsOrganization() {
-			// Check ownership of organization.
-			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
-			if err != nil {
-				ctx.Error(500, "IsOwnedBy", err)
-				return
-			} else if !isOwner {
-				ctx.Error(403, "", "Given user is not owner of organization.")
-				return
-			}
-		}
-	}
-
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
-	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			addrErr := err.(models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsURLError:
-				ctx.Error(422, "", err)
-			case addrErr.IsPermissionDenied:
-				ctx.Error(422, "", "You are not allowed to import local repositories.")
-			case addrErr.IsInvalidPath:
-				ctx.Error(422, "", "Invalid local path, it does not exist or not a directory.")
-			default:
-				ctx.Error(500, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
-			}
-		} else {
-			ctx.Error(500, "ParseRemoteAddr", err)
-		}
-		return
-	}
-
-	var opts = migrations.MigrateOptions{
-		RemoteURL:    remoteAddr,
-		Name:         form.RepoName,
-		Description:  form.Description,
-		Private:      form.Private || setting.Repository.ForcePrivate,
-		Mirror:       form.Mirror,
-		AuthUsername: form.AuthUsername,
-		AuthPassword: form.AuthPassword,
-		Wiki:         form.Wiki,
-		Issues:       form.Issues,
-		Milestones:   form.Milestones,
-		Labels:       form.Labels,
-		Comments:     true,
-		PullRequests: form.PullRequests,
-		Releases:     form.Releases,
-	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
-
-	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-	if err == nil {
-		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
-		return
-	}
-
-	switch {
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(409, "", "The repository with the same name already exists.")
-	case migrations.IsRateLimitError(err):
-		ctx.Error(422, "", "Remote visit addressed rate limitation.")
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.Error(422, "", "Remote visit required two factors authentication.")
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
-	case models.IsErrNameReserved(err):
-		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Error(422, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
-	default:
-		err = util.URLSanitizedError(err, remoteAddr)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Error(422, "", fmt.Sprintf("Authentication failed: %v.", err))
-		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Error(422, "", fmt.Sprintf("Migration failed: %v.", err))
-		} else {
-			ctx.Error(500, "MigrateRepository", err)
-		}
-	}
 }
 
 // Get one repository
@@ -463,7 +413,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -483,25 +434,26 @@ func GetByID(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetRepositoryByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 		}
 		return
 	}
 
 	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
+		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -535,6 +487,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
@@ -549,22 +502,26 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	if opts.MirrorInterval != nil {
+		if err := updateMirrorInterval(ctx, opts); err != nil {
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	oldRepoName := repo.Name
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -575,18 +532,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			default:
 				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
 			}
-			return err
-		}
-
-		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-			return err
-		}
-
-		if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-			log.Error("RenameRepoAction: %v", err)
-			ctx.Error(http.StatusInternalServerError, "RenameRepoActions", err)
 			return err
 		}
 
@@ -622,6 +567,21 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsPrivate = *opts.Private
 	}
 
+	if opts.Template != nil {
+		repo.IsTemplate = *opts.Template
+	}
+
+	// Default branch only updated if changed and exist
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
+			}
+		}
+		repo.DefaultBranch = *opts.DefaultBranch
+	}
+
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
@@ -637,24 +597,43 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
 	var units []models.RepoUnit
-
-	for _, tp := range models.MustRepoUnits {
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Config: new(models.UnitConfig),
-		})
-	}
+	var deleteUnitTypes []models.UnitType
 
 	if opts.HasIssues != nil {
-		if *opts.HasIssues {
-			// We don't currently allow setting individual issue settings through the API,
-			// only can enable/disable issues, so when enabling issues,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
-			unit, err := repo.GetUnit(models.UnitTypeIssues)
+		if *opts.HasIssues && opts.ExternalTracker != nil && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+				err := fmt.Errorf("External tracker URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
+				return err
+			}
+			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				err := fmt.Errorf("External tracker URL format not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
+				return err
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalTracker,
+				Config: &models.ExternalTrackerConfig{
+					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
+					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
+					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
+				},
+			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !models.UnitTypeIssues.UnitGlobalDisabled() {
+			// Default to built-in tracker
 			var config *models.IssuesConfig
-			if err != nil {
+
+			if opts.InternalTracker != nil {
+				config = &models.IssuesConfig{
+					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
+					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
+					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
+				}
+			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.IssuesConfig{
 					EnableTimetracker:                true,
@@ -664,31 +643,60 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			} else {
 				config = unit.IssuesConfig()
 			}
+
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeIssues,
 				Config: config,
 			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+		} else if !*opts.HasIssues {
+			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			}
+			if !models.UnitTypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			}
 		}
 	}
 
 	if opts.HasWiki != nil {
-		if *opts.HasWiki {
-			// We don't currently allow setting individual wiki settings through the API,
-			// only can enable/disable the wiki, so when enabling the wiki,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
+		if *opts.HasWiki && opts.ExternalWiki != nil && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+				err := fmt.Errorf("External wiki URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
+				return err
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalWiki,
+				Config: &models.ExternalWikiConfig{
+					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
+				},
+			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !models.UnitTypeWiki.UnitGlobalDisabled() {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeWiki,
 				Config: config,
 			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+		} else if !*opts.HasWiki {
+			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			}
+			if !models.UnitTypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			}
 		}
 	}
 
 	if opts.HasPullRequests != nil {
-		if *opts.HasPullRequests {
+		if *opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
@@ -728,10 +736,23 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   models.UnitTypePullRequests,
 				Config: config,
 			})
+		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
 		}
 	}
 
-	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
+	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeProjects,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+	}
+
+	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
 	}
@@ -769,6 +790,38 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 	return nil
 }
 
+// updateMirrorInterval updates the repo's mirror Interval
+func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) error {
+	repo := ctx.Repo.Repository
+
+	if opts.MirrorInterval != nil {
+		if !repo.IsMirror {
+			err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
+			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			return err
+		}
+		if err := repo.GetMirror(); err != nil {
+			log.Error("Failed to get mirror: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+			return err
+		}
+		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
+			repo.Mirror.Interval = interval
+			if err := models.UpdateMirror(repo.Mirror); err != nil {
+				log.Error("Failed to Set Mirror Interval: %s", err)
+				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+				return err
+			}
+			log.Trace("Repository %s/%s Mirror Interval was Updated to %s", ctx.Repo.Owner.Name, repo.Name, interval)
+		} else {
+			log.Error("Wrong format for MirrorInternal Sent: %s", err)
+			ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+			return err
+		}
+	}
+	return nil
+}
+
 // Delete one repository
 func Delete(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo} repository repoDelete
@@ -792,98 +845,49 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	if owner.IsOrganization() && !ctx.User.IsAdmin {
-		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOwnedBy", err)
-			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
-			return
-		}
+	canDelete, err := repo.CanUserDelete(ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
+		return
+	} else if !canDelete {
+		ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
+		return
 	}
 
-	if err := models.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
-		ctx.Error(500, "DeleteRepository", err)
+	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
-// MirrorSync adds a mirrored repository to the sync queue
-func MirrorSync(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/mirror-sync repository repoMirrorSync
+// GetIssueTemplates returns the issue templates for a repository
+func GetIssueTemplates(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_templates repository repoGetIssueTemplates
 	// ---
-	// summary: Sync a mirrored repository
+	// summary: Get available issue templates for a repository
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to sync
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
-	//   description: name of the repo to sync
+	//   description: name of the repo
 	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/empty"
-	repo := ctx.Repo.Repository
+	//     "$ref": "#/responses/IssueTemplates"
 
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "MirrorSync", "Must have write access")
-	}
-
-	go models.MirrorQueue.Add(repo.ID)
-	ctx.Status(200)
-}
-
-// TopicSearch search for creating topic
-func TopicSearch(ctx *context.Context) {
-	// swagger:operation GET /topics/search repository topicSearch
-	// ---
-	// summary: search topics via keyword
-	// produces:
-	//   - application/json
-	// parameters:
-	//   - name: q
-	//     in: query
-	//     description: keywords to search
-	//     required: true
-	//     type: string
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Repository"
-	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
-			"message": "Only owners could change the topics.",
-		})
-		return
-	}
-
-	kw := ctx.Query("q")
-
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword: kw,
-		Limit:   10,
-	})
-	if err != nil {
-		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "Search topics failed.",
-		})
-		return
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"topics": topics,
-	})
+	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
 }

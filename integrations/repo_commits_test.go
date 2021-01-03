@@ -5,17 +5,20 @@
 package integrations
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoCommits(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -30,7 +33,7 @@ func TestRepoCommits(t *testing.T) {
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
@@ -48,7 +51,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	// Call API to add status for commit
 	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL)+"?token="+token,
 		api.CreateStatusOption{
-			State:       api.StatusState(state),
+			State:       api.CommitStatusState(state),
 			TargetURL:   "http://test.ci/",
 			Description: "",
 			Context:     "testci",
@@ -62,10 +65,33 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column
-	sel := doc.doc.Find("#commits-table tbody tr td.message i.commit-status")
+	sel := doc.doc.Find("#commits-table tbody tr td.message a.commit-statuses-trigger i.commit-status")
 	assert.Equal(t, sel.Length(), 1)
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
+	}
+
+	//By SHA
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/"+path.Base(commitURL)+"/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+	//By Ref
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/master/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/v1.1/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+}
+
+func testRepoCommitsWithStatus(t *testing.T, resp *httptest.ResponseRecorder, state string) {
+	decoder := json.NewDecoder(resp.Body)
+	statuses := []*api.CommitStatus{}
+	assert.NoError(t, decoder.Decode(&statuses))
+	assert.Len(t, statuses, 1)
+	for _, s := range statuses {
+		assert.Equal(t, api.CommitStatusState(state), s.State)
+		assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", s.URL)
+		assert.Equal(t, "http://test.ci/", s.TargetURL)
+		assert.Equal(t, "", s.Description)
+		assert.Equal(t, "testci", s.Context)
 	}
 }
 

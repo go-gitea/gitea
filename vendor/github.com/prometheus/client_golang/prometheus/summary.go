@@ -16,11 +16,14 @@ package prometheus
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/beorn7/perks/quantile"
+	//lint:ignore SA1019 Need to keep deprecated package for compatibility.
 	"github.com/golang/protobuf/proto"
 
 	dto "github.com/prometheus/client_model/go"
@@ -37,7 +40,7 @@ const quantileLabel = "quantile"
 // A typical use-case is the observation of request latencies. By default, a
 // Summary provides the median, the 90th and the 99th percentile of the latency
 // as rank estimations. However, the default behavior will change in the
-// upcoming v0.10 of the library. There will be no rank estimations at all by
+// upcoming v1.0.0 of the library. There will be no rank estimations at all by
 // default. For a sane transition, it is recommended to set the desired rank
 // estimations explicitly.
 //
@@ -56,16 +59,8 @@ type Summary interface {
 	Observe(float64)
 }
 
-// DefObjectives are the default Summary quantile values.
-//
-// Deprecated: DefObjectives will not be used as the default objectives in
-// v0.10 of the library. The default Summary will have no quantiles then.
-var (
-	DefObjectives = map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}
-
-	errQuantileLabelNotAllowed = fmt.Errorf(
-		"%q is not allowed as label name in summaries", quantileLabel,
-	)
+var errQuantileLabelNotAllowed = fmt.Errorf(
+	"%q is not allowed as label name in summaries", quantileLabel,
 )
 
 // Default values for SummaryOpts.
@@ -84,7 +79,7 @@ const (
 // mandatory to set Name to a non-empty string. While all other fields are
 // optional and can safely be left at their zero value, it is recommended to set
 // a help string and to explicitly set the Objectives field to the desired value
-// as the default value will change in the upcoming v0.10 of the library.
+// as the default value will change in the upcoming v1.0.0 of the library.
 type SummaryOpts struct {
 	// Namespace, Subsystem, and Name are components of the fully-qualified
 	// name of the Summary (created by joining these components with
@@ -115,19 +110,14 @@ type SummaryOpts struct {
 	// better covered by target labels set by the scraping Prometheus
 	// server, or by one specific metric (e.g. a build_info or a
 	// machine_role metric). See also
-	// https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels,-not-static-scraped-labels
+	// https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels
 	ConstLabels Labels
 
 	// Objectives defines the quantile rank estimates with their respective
 	// absolute error. If Objectives[q] = e, then the value reported for q
 	// will be the φ-quantile value for some φ between q-e and q+e.  The
-	// default value is DefObjectives. It is used if Objectives is left at
-	// its zero value (i.e. nil). To create a Summary without Objectives,
-	// set it to an empty map (i.e. map[float64]float64{}).
-	//
-	// Deprecated: Note that the current value of DefObjectives is
-	// deprecated. It will be replaced by an empty map in v0.10 of the
-	// library. Please explicitly set Objectives to the desired value.
+	// default value is an empty map, resulting in a summary without
+	// quantiles.
 	Objectives map[float64]float64
 
 	// MaxAge defines the duration for which an observation stays relevant
@@ -151,7 +141,7 @@ type SummaryOpts struct {
 	BufCap uint32
 }
 
-// Great fuck-up with the sliding-window decay algorithm... The Merge method of
+// Problem with the sliding-window decay algorithm... The Merge method of
 // perk/quantile is actually not working as advertised - and it might be
 // unfixable, as the underlying algorithm is apparently not capable of merging
 // summaries in the first place. To avoid using Merge, we are currently adding
@@ -181,7 +171,7 @@ func NewSummary(opts SummaryOpts) Summary {
 
 func newSummary(desc *Desc, opts SummaryOpts, labelValues ...string) Summary {
 	if len(desc.variableLabels) != len(labelValues) {
-		panic(errInconsistentCardinality)
+		panic(makeInconsistentCardinalityError(desc.fqName, desc.variableLabels, labelValues))
 	}
 
 	for _, n := range desc.variableLabels {
@@ -196,7 +186,7 @@ func newSummary(desc *Desc, opts SummaryOpts, labelValues ...string) Summary {
 	}
 
 	if opts.Objectives == nil {
-		opts.Objectives = DefObjectives
+		opts.Objectives = map[float64]float64{}
 	}
 
 	if opts.MaxAge < 0 {
@@ -214,13 +204,24 @@ func newSummary(desc *Desc, opts SummaryOpts, labelValues ...string) Summary {
 		opts.BufCap = DefBufCap
 	}
 
+	if len(opts.Objectives) == 0 {
+		// Use the lock-free implementation of a Summary without objectives.
+		s := &noObjectivesSummary{
+			desc:       desc,
+			labelPairs: MakeLabelPairs(desc, labelValues),
+			counts:     [2]*summaryCounts{{}, {}},
+		}
+		s.init(s) // Init self-collection.
+		return s
+	}
+
 	s := &summary{
 		desc: desc,
 
 		objectives:       opts.Objectives,
 		sortedObjectives: make([]float64, 0, len(opts.Objectives)),
 
-		labelPairs: makeLabelPairs(desc, labelValues),
+		labelPairs: MakeLabelPairs(desc, labelValues),
 
 		hotBuf:         make([]float64, 0, opts.BufCap),
 		coldBuf:        make([]float64, 0, opts.BufCap),
@@ -382,6 +383,116 @@ func (s *summary) swapBufs(now time.Time) {
 	}
 }
 
+type summaryCounts struct {
+	// sumBits contains the bits of the float64 representing the sum of all
+	// observations. sumBits and count have to go first in the struct to
+	// guarantee alignment for atomic operations.
+	// http://golang.org/pkg/sync/atomic/#pkg-note-BUG
+	sumBits uint64
+	count   uint64
+}
+
+type noObjectivesSummary struct {
+	// countAndHotIdx enables lock-free writes with use of atomic updates.
+	// The most significant bit is the hot index [0 or 1] of the count field
+	// below. Observe calls update the hot one. All remaining bits count the
+	// number of Observe calls. Observe starts by incrementing this counter,
+	// and finish by incrementing the count field in the respective
+	// summaryCounts, as a marker for completion.
+	//
+	// Calls of the Write method (which are non-mutating reads from the
+	// perspective of the summary) swap the hot–cold under the writeMtx
+	// lock. A cooldown is awaited (while locked) by comparing the number of
+	// observations with the initiation count. Once they match, then the
+	// last observation on the now cool one has completed. All cool fields must
+	// be merged into the new hot before releasing writeMtx.
+
+	// Fields with atomic access first! See alignment constraint:
+	// http://golang.org/pkg/sync/atomic/#pkg-note-BUG
+	countAndHotIdx uint64
+
+	selfCollector
+	desc     *Desc
+	writeMtx sync.Mutex // Only used in the Write method.
+
+	// Two counts, one is "hot" for lock-free observations, the other is
+	// "cold" for writing out a dto.Metric. It has to be an array of
+	// pointers to guarantee 64bit alignment of the histogramCounts, see
+	// http://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	counts [2]*summaryCounts
+
+	labelPairs []*dto.LabelPair
+}
+
+func (s *noObjectivesSummary) Desc() *Desc {
+	return s.desc
+}
+
+func (s *noObjectivesSummary) Observe(v float64) {
+	// We increment h.countAndHotIdx so that the counter in the lower
+	// 63 bits gets incremented. At the same time, we get the new value
+	// back, which we can use to find the currently-hot counts.
+	n := atomic.AddUint64(&s.countAndHotIdx, 1)
+	hotCounts := s.counts[n>>63]
+
+	for {
+		oldBits := atomic.LoadUint64(&hotCounts.sumBits)
+		newBits := math.Float64bits(math.Float64frombits(oldBits) + v)
+		if atomic.CompareAndSwapUint64(&hotCounts.sumBits, oldBits, newBits) {
+			break
+		}
+	}
+	// Increment count last as we take it as a signal that the observation
+	// is complete.
+	atomic.AddUint64(&hotCounts.count, 1)
+}
+
+func (s *noObjectivesSummary) Write(out *dto.Metric) error {
+	// For simplicity, we protect this whole method by a mutex. It is not in
+	// the hot path, i.e. Observe is called much more often than Write. The
+	// complication of making Write lock-free isn't worth it, if possible at
+	// all.
+	s.writeMtx.Lock()
+	defer s.writeMtx.Unlock()
+
+	// Adding 1<<63 switches the hot index (from 0 to 1 or from 1 to 0)
+	// without touching the count bits. See the struct comments for a full
+	// description of the algorithm.
+	n := atomic.AddUint64(&s.countAndHotIdx, 1<<63)
+	// count is contained unchanged in the lower 63 bits.
+	count := n & ((1 << 63) - 1)
+	// The most significant bit tells us which counts is hot. The complement
+	// is thus the cold one.
+	hotCounts := s.counts[n>>63]
+	coldCounts := s.counts[(^n)>>63]
+
+	// Await cooldown.
+	for count != atomic.LoadUint64(&coldCounts.count) {
+		runtime.Gosched() // Let observations get work done.
+	}
+
+	sum := &dto.Summary{
+		SampleCount: proto.Uint64(count),
+		SampleSum:   proto.Float64(math.Float64frombits(atomic.LoadUint64(&coldCounts.sumBits))),
+	}
+
+	out.Summary = sum
+	out.Label = s.labelPairs
+
+	// Finally add all the cold counts to the new hot counts and reset the cold counts.
+	atomic.AddUint64(&hotCounts.count, count)
+	atomic.StoreUint64(&coldCounts.count, 0)
+	for {
+		oldBits := atomic.LoadUint64(&hotCounts.sumBits)
+		newBits := math.Float64bits(math.Float64frombits(oldBits) + sum.GetSampleSum())
+		if atomic.CompareAndSwapUint64(&hotCounts.sumBits, oldBits, newBits) {
+			atomic.StoreUint64(&coldCounts.sumBits, 0)
+			break
+		}
+	}
+	return nil
+}
+
 type quantSort []*dto.Quantile
 
 func (s quantSort) Len() int {
@@ -402,7 +513,7 @@ func (s quantSort) Less(i, j int) bool {
 // (e.g. HTTP request latencies, partitioned by status code and method). Create
 // instances with NewSummaryVec.
 type SummaryVec struct {
-	*metricVec
+	*MetricVec
 }
 
 // NewSummaryVec creates a new SummaryVec based on the provided SummaryOpts and
@@ -424,14 +535,14 @@ func NewSummaryVec(opts SummaryOpts, labelNames []string) *SummaryVec {
 		opts.ConstLabels,
 	)
 	return &SummaryVec{
-		metricVec: newMetricVec(desc, func(lvs ...string) Metric {
+		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
 			return newSummary(desc, opts, lvs...)
 		}),
 	}
 }
 
 // GetMetricWithLabelValues returns the Summary for the given slice of label
-// values (same order as the VariableLabels in Desc). If that combination of
+// values (same order as the variable labels in Desc). If that combination of
 // label values is accessed for the first time, a new Summary is created.
 //
 // It is possible to call this method without using the returned Summary to only
@@ -446,7 +557,7 @@ func NewSummaryVec(opts SummaryOpts, labelNames []string) *SummaryVec {
 // example.
 //
 // An error is returned if the number of label values is not the same as the
-// number of VariableLabels in Desc (minus any curried labels).
+// number of variable labels in Desc (minus any curried labels).
 //
 // Note that for more than one label value, this method is prone to mistakes
 // caused by an incorrect order of arguments. Consider GetMetricWith(Labels) as
@@ -455,7 +566,7 @@ func NewSummaryVec(opts SummaryOpts, labelNames []string) *SummaryVec {
 // with a performance overhead (for creating and processing the Labels map).
 // See also the GaugeVec example.
 func (v *SummaryVec) GetMetricWithLabelValues(lvs ...string) (Observer, error) {
-	metric, err := v.metricVec.getMetricWithLabelValues(lvs...)
+	metric, err := v.MetricVec.GetMetricWithLabelValues(lvs...)
 	if metric != nil {
 		return metric.(Observer), err
 	}
@@ -463,19 +574,19 @@ func (v *SummaryVec) GetMetricWithLabelValues(lvs ...string) (Observer, error) {
 }
 
 // GetMetricWith returns the Summary for the given Labels map (the label names
-// must match those of the VariableLabels in Desc). If that label map is
+// must match those of the variable labels in Desc). If that label map is
 // accessed for the first time, a new Summary is created. Implications of
 // creating a Summary without using it and keeping the Summary for later use are
 // the same as for GetMetricWithLabelValues.
 //
 // An error is returned if the number and names of the Labels are inconsistent
-// with those of the VariableLabels in Desc (minus any curried labels).
+// with those of the variable labels in Desc (minus any curried labels).
 //
 // This method is used for the same purpose as
 // GetMetricWithLabelValues(...string). See there for pros and cons of the two
 // methods.
 func (v *SummaryVec) GetMetricWith(labels Labels) (Observer, error) {
-	metric, err := v.metricVec.getMetricWith(labels)
+	metric, err := v.MetricVec.GetMetricWith(labels)
 	if metric != nil {
 		return metric.(Observer), err
 	}
@@ -519,7 +630,7 @@ func (v *SummaryVec) With(labels Labels) Observer {
 // registered with a given registry (usually the uncurried version). The Reset
 // method deletes all metrics, even if called on a curried vector.
 func (v *SummaryVec) CurryWith(labels Labels) (ObserverVec, error) {
-	vec, err := v.curryWith(labels)
+	vec, err := v.MetricVec.CurryWith(labels)
 	if vec != nil {
 		return &SummaryVec{vec}, err
 	}
@@ -605,7 +716,7 @@ func NewConstSummary(
 		count:      count,
 		sum:        sum,
 		quantiles:  quantiles,
-		labelPairs: makeLabelPairs(desc, labelValues),
+		labelPairs: MakeLabelPairs(desc, labelValues),
 	}, nil
 }
 

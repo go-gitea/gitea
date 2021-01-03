@@ -5,7 +5,7 @@
 // Implements support for federated avatars lookup.
 // See https://wiki.libravatar.org/api/
 
-package libravatar
+package libravatar // import "strk.kbt.io/projects/go/libravatar"
 
 import (
 	"crypto/md5"
@@ -16,6 +16,7 @@ import (
 	"net/mail"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -38,7 +39,8 @@ const (
 )
 
 var (
-	// Default object, enabling object-less function calls
+	// DefaultLibravatar is a default Libravatar object,
+	// enabling object-less function calls
 	DefaultLibravatar = New()
 )
 
@@ -53,14 +55,16 @@ type cacheValue struct {
 	checkedAt time.Time
 }
 
+// Libravatar is an opaque structure holding service configuration
 type Libravatar struct {
-	defUrl             string // default url
+	defURL             string // default url
 	picSize            int    // picture size
 	fallbackHost       string // default fallback URL
 	secureFallbackHost string // default fallback URL for secure connections
 	useHTTPS           bool
 	nameCache          map[cacheKey]cacheValue
 	nameCacheDuration  time.Duration
+	nameCacheMutex     *sync.Mutex
 	minSize            uint   // smallest image dimension allowed
 	maxSize            uint   // largest image dimension allowed
 	size               uint   // what dimension should be used
@@ -68,7 +72,7 @@ type Libravatar struct {
 	secureServiceBase  string // SRV record to be queried for federation with secure servers
 }
 
-// Instanciate a library handle
+// New instanciates a new Libravatar object (handle)
 func New() *Libravatar {
 	// According to https://wiki.libravatar.org/running_your_own/
 	// the time-to-live (cache expiry) should be set to at least 1 day.
@@ -82,27 +86,28 @@ func New() *Libravatar {
 		secureServiceBase:  `avatars-sec`,
 		nameCache:          make(map[cacheKey]cacheValue),
 		nameCacheDuration:  24 * time.Hour,
+		nameCacheMutex:     &sync.Mutex{},
 	}
 }
 
-// Set the hostname for fallbacks in case no avatar service is defined
-// for a domain
+// SetFallbackHost sets the hostname for fallbacks in case no avatar
+// service is defined for a domain
 func (v *Libravatar) SetFallbackHost(host string) {
 	v.fallbackHost = host
 }
 
-// Set the hostname for fallbacks in case no avatar service is defined
-// for a domain, when requiring secure domains
+// SetSecureFallbackHost sets the hostname for fallbacks in case no
+// avatar service is defined for a domain, when requiring secure domains
 func (v *Libravatar) SetSecureFallbackHost(host string) {
 	v.secureFallbackHost = host
 }
 
-// Set useHTTPS flag
+// SetUseHTTPS sets flag requesting use of https for fetching avatars
 func (v *Libravatar) SetUseHTTPS(use bool) {
 	v.useHTTPS = use
 }
 
-// Set Avatars image dimension (0 for default)
+// SetAvatarSize sets avatars image dimension (0 for default)
 func (v *Libravatar) SetAvatarSize(size uint) {
 	v.size = size
 }
@@ -150,8 +155,8 @@ func (v *Libravatar) process(email *mail.Address, openid *url.URL) (string, erro
 	res := fmt.Sprintf("%s/avatar/%s", URL, v.genHash(email, openid))
 
 	values := make(url.Values)
-	if v.defUrl != "" {
-		values.Add("d", v.defUrl)
+	if v.defURL != "" {
+		values.Add("d", v.defURL)
 	}
 	if v.size > 0 {
 		values.Add("s", fmt.Sprintf("%d", v.size))
@@ -181,7 +186,9 @@ func (v *Libravatar) baseURL(email *mail.Address, openid *url.URL) (string, erro
 	host := v.getDomain(email, openid)
 	key := cacheKey{service, host}
 	now := time.Now()
+	v.nameCacheMutex.Lock()
 	val, found := v.nameCache[key]
+	v.nameCacheMutex.Unlock()
 	if found && now.Sub(val.checkedAt) <= v.nameCacheDuration {
 		return protocol + val.target, nil
 	}
@@ -204,53 +211,55 @@ func (v *Libravatar) baseURL(email *mail.Address, openid *url.URL) (string, erro
 		}
 
 		var (
-			total_weight uint16
-			records      []record
-			top_priority = addrs[0].Priority
-			top_record   *net.SRV
+			totalWeight uint16
+			records     []record
+			topPriority = addrs[0].Priority
+			topRecord   *net.SRV
 		)
 
 		for _, rr := range addrs {
-			if rr.Priority > top_priority {
+			if rr.Priority > topPriority {
 				continue
-			} else if rr.Priority < top_priority {
+			} else if rr.Priority < topPriority {
 				// won't happen, because net sorts
 				// by priority, but just in case
-				total_weight = 0
+				totalWeight = 0
 				records = nil
-				top_priority = rr.Priority
+				topPriority = rr.Priority
 			}
 
-			total_weight += rr.Weight
+			totalWeight += rr.Weight
 
 			if rr.Weight > 0 {
-				records = append(records, record{rr, total_weight})
+				records = append(records, record{rr, totalWeight})
 			} else if rr.Weight == 0 {
-				records = append([]record{record{srv: rr, weight: total_weight}}, records...)
+				records = append([]record{record{srv: rr, weight: totalWeight}}, records...)
 			}
 		}
 
 		if len(records) == 1 {
-			top_record = records[0].srv
+			topRecord = records[0].srv
 		} else {
-			randnum := uint16(rand.Intn(int(total_weight)))
+			randnum := uint16(rand.Intn(int(totalWeight)))
 
 			for _, rr := range records {
 				if rr.weight >= randnum {
-					top_record = rr.srv
+					topRecord = rr.srv
 					break
 				}
 			}
 		}
 
-		domain = fmt.Sprintf("%s:%d", top_record.Target, top_record.Port)
+		domain = fmt.Sprintf("%s:%d", topRecord.Target, topRecord.Port)
 	}
 
+	v.nameCacheMutex.Lock()
 	v.nameCache[key] = cacheValue{checkedAt: now, target: domain}
+	v.nameCacheMutex.Unlock()
 	return protocol + domain, nil
 }
 
-// Return url of the avatar for the given email
+// FromEmail returns the url of the avatar for the given email
 func (v *Libravatar) FromEmail(email string) (string, error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
@@ -265,12 +274,13 @@ func (v *Libravatar) FromEmail(email string) (string, error) {
 	return link, nil
 }
 
-// Object-less call to DefaultLibravatar for an email adders
+// FromEmail is the object-less call to DefaultLibravatar for an email adders
 func FromEmail(email string) (string, error) {
 	return DefaultLibravatar.FromEmail(email)
 }
 
-// Return url of the avatar for the given url (typically for OpenID)
+// FromURL returns the url of the avatar for the given url (typically
+// for OpenID)
 func (v *Libravatar) FromURL(openid string) (string, error) {
 	ourl, err := url.Parse(openid)
 	if err != nil {
@@ -291,7 +301,7 @@ func (v *Libravatar) FromURL(openid string) (string, error) {
 	return link, nil
 }
 
-// Object-less call to DefaultLibravatar for a URL
+// FromURL is the object-less call to DefaultLibravatar for a URL
 func FromURL(openid string) (string, error) {
 	return DefaultLibravatar.FromURL(openid)
 }

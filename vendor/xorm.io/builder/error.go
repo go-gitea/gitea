@@ -17,9 +17,9 @@ var (
 	ErrNeedMoreArguments = errors.New("Need more sql arguments")
 	// ErrNoTableName no table name
 	ErrNoTableName = errors.New("No table indicated")
-	// ErrNoColumnToInsert no column to update
+	// ErrNoColumnToUpdate no column to update
 	ErrNoColumnToUpdate = errors.New("No column(s) to update")
-	// ErrNoColumnToInsert no column to update
+	// ErrNoColumnToInsert no column to insert
 	ErrNoColumnToInsert = errors.New("No column(s) to insert")
 	// ErrNotSupportDialectType not supported dialect type error
 	ErrNotSupportDialectType = errors.New("Not supported dialect type")

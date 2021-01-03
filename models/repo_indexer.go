@@ -6,349 +6,114 @@ package models
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"xorm.io/builder"
+)
 
-	"github.com/ethantkoenig/rupture"
+// RepoIndexerType specifies the repository indexer type
+type RepoIndexerType int
+
+const (
+	// RepoIndexerTypeCode code indexer
+	RepoIndexerTypeCode RepoIndexerType = iota // 0
+	// RepoIndexerTypeStats repository stats indexer
+	RepoIndexerTypeStats // 1
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
 // For now, implicitly refers to default branch
 type RepoIndexerStatus struct {
-	ID        int64  `xorm:"pk autoincr"`
-	RepoID    int64  `xorm:"INDEX"`
-	CommitSha string `xorm:"VARCHAR(40)"`
+	ID          int64           `xorm:"pk autoincr"`
+	RepoID      int64           `xorm:"INDEX(s)"`
+	CommitSha   string          `xorm:"VARCHAR(40)"`
+	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 
-func (repo *Repository) getIndexerStatus() error {
-	if repo.IndexerStatus != nil {
-		return nil
+// GetUnindexedRepos returns repos which do not have an indexer status
+func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
+	ids := make([]int64, 0, 50)
+	cond := builder.Cond(builder.IsNull{
+		"repo_indexer_status.id",
+	}).And(builder.Eq{
+		"repository.is_empty": false,
+	})
+	sess := x.Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
+	if maxRepoID > 0 {
+		cond = builder.And(cond, builder.Lte{
+			"repository.id": maxRepoID,
+		})
+	}
+	if page >= 0 && pageSize > 0 {
+		start := 0
+		if page > 0 {
+			start = (page - 1) * pageSize
+		}
+		sess.Limit(pageSize, start)
+	}
+
+	sess.Where(cond).Cols("repository.id").Desc("repository.id")
+	err := sess.Find(&ids)
+	return ids, err
+}
+
+// getIndexerStatus loads repo codes indxer status
+func (repo *Repository) getIndexerStatus(e Engine, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+	switch indexerType {
+	case RepoIndexerTypeCode:
+		if repo.CodeIndexerStatus != nil {
+			return repo.CodeIndexerStatus, nil
+		}
+	case RepoIndexerTypeStats:
+		if repo.StatsIndexerStatus != nil {
+			return repo.StatsIndexerStatus, nil
+		}
 	}
 	status := &RepoIndexerStatus{RepoID: repo.ID}
-	has, err := x.Get(status)
-	if err != nil {
-		return err
+	if has, err := e.Where("`indexer_type` = ?", indexerType).Get(status); err != nil {
+		return nil, err
 	} else if !has {
+		status.IndexerType = indexerType
 		status.CommitSha = ""
 	}
-	repo.IndexerStatus = status
-	return nil
-}
-
-func (repo *Repository) updateIndexerStatus(sha string) error {
-	if err := repo.getIndexerStatus(); err != nil {
-		return err
+	switch indexerType {
+	case RepoIndexerTypeCode:
+		repo.CodeIndexerStatus = status
+	case RepoIndexerTypeStats:
+		repo.StatsIndexerStatus = status
 	}
-	if len(repo.IndexerStatus.CommitSha) == 0 {
-		repo.IndexerStatus.CommitSha = sha
-		_, err := x.Insert(repo.IndexerStatus)
-		return err
-	}
-	repo.IndexerStatus.CommitSha = sha
-	_, err := x.ID(repo.IndexerStatus.ID).Cols("commit_sha").
-		Update(repo.IndexerStatus)
-	return err
+	return status, nil
 }
 
-type repoIndexerOperation struct {
-	repo     *Repository
-	deleted  bool
-	watchers []chan<- error
+// GetIndexerStatus loads repo codes indxer status
+func (repo *Repository) GetIndexerStatus(indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+	return repo.getIndexerStatus(x, indexerType)
 }
 
-var repoIndexerOperationQueue chan repoIndexerOperation
-
-// InitRepoIndexer initialize the repo indexer
-func InitRepoIndexer() {
-	if !setting.Indexer.RepoIndexerEnabled {
-		return
-	}
-	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
-	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
-	go processRepoIndexerOperationQueue()
-}
-
-// populateRepoIndexerAsynchronously asynchronously populates the repo indexer
-// with pre-existing data. This should only be run when the indexer is created
-// for the first time.
-func populateRepoIndexerAsynchronously() error {
-	exist, err := x.Table("repository").Exist()
+// updateIndexerStatus updates indexer status
+func (repo *Repository) updateIndexerStatus(e Engine, indexerType RepoIndexerType, sha string) error {
+	status, err := repo.getIndexerStatus(e, indexerType)
 	if err != nil {
-		return err
-	} else if !exist {
-		return nil
+		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
 	}
 
-	// if there is any existing repo indexer metadata in the DB, delete it
-	// since we are starting afresh. Also, xorm requires deletes to have a
-	// condition, and we want to delete everything, thus 1=1.
-	if _, err := x.Where("1=1").Delete(new(RepoIndexerStatus)); err != nil {
-		return err
-	}
-
-	var maxRepoID int64
-	if _, err = x.Select("MAX(id)").Table("repository").Get(&maxRepoID); err != nil {
-		return err
-	}
-	go populateRepoIndexer(maxRepoID)
-	return nil
-}
-
-// populateRepoIndexer populate the repo indexer with pre-existing data. This
-// should only be run when the indexer is created for the first time.
-func populateRepoIndexer(maxRepoID int64) {
-	log.Info("Populating the repo indexer with existing repositories")
-	// start with the maximum existing repo ID and work backwards, so that we
-	// don't include repos that are created after gitea starts; such repos will
-	// already be added to the indexer, and we don't need to add them again.
-	for maxRepoID > 0 {
-		repos := make([]*Repository, 0, RepositoryListDefaultPageSize)
-		err := x.Where("id <= ?", maxRepoID).
-			OrderBy("id DESC").
-			Limit(RepositoryListDefaultPageSize).
-			Find(&repos)
+	if len(status.CommitSha) == 0 {
+		status.CommitSha = sha
+		_, err := e.Insert(status)
 		if err != nil {
-			log.Error("populateRepoIndexer: %v", err)
-			return
-		} else if len(repos) == 0 {
-			break
+			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
 		}
-		for _, repo := range repos {
-			repoIndexerOperationQueue <- repoIndexerOperation{
-				repo:    repo,
-				deleted: false,
-			}
-			maxRepoID = repo.ID - 1
-		}
-	}
-	log.Info("Done populating the repo indexer with existing repositories")
-}
-
-func updateRepoIndexer(repo *Repository) error {
-	sha, err := getDefaultBranchSha(repo)
-	if err != nil {
-		return err
-	}
-	changes, err := getRepoChanges(repo, sha)
-	if err != nil {
-		return err
-	} else if changes == nil {
 		return nil
 	}
-
-	batch := indexer.RepoIndexerBatch()
-	for _, update := range changes.Updates {
-		if err := addUpdate(update, repo, batch); err != nil {
-			return err
-		}
-	}
-	for _, filename := range changes.RemovedFilenames {
-		if err := addDelete(filename, repo, batch); err != nil {
-			return err
-		}
-	}
-	if err = batch.Flush(); err != nil {
-		return err
-	}
-	return repo.updateIndexerStatus(sha)
-}
-
-// repoChanges changes (file additions/updates/removals) to a repo
-type repoChanges struct {
-	Updates          []fileUpdate
-	RemovedFilenames []string
-}
-
-type fileUpdate struct {
-	Filename string
-	BlobSha  string
-}
-
-func getDefaultBranchSha(repo *Repository) (string, error) {
-	stdout, err := git.NewCommand("show-ref", "-s", repo.DefaultBranch).RunInDir(repo.RepoPath())
+	status.CommitSha = sha
+	_, err = e.ID(status.ID).Cols("commit_sha").
+		Update(status)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
 	}
-	return strings.TrimSpace(stdout), nil
+	return nil
 }
 
-// getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(repo *Repository, revision string) (*repoChanges, error) {
-	if err := repo.getIndexerStatus(); err != nil {
-		return nil, err
-	}
-
-	if len(repo.IndexerStatus.CommitSha) == 0 {
-		return genesisChanges(repo, revision)
-	}
-	return nonGenesisChanges(repo, revision)
-}
-
-func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch) error {
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return err
-	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return nil
-	}
-
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return err
-	} else if !base.IsTextFile(fileContents) {
-		return nil
-	}
-	indexerUpdate := indexer.RepoIndexerUpdate{
-		Filepath: update.Filename,
-		Op:       indexer.RepoIndexerOpUpdate,
-		Data: &indexer.RepoIndexerData{
-			RepoID:  repo.ID,
-			Content: string(fileContents),
-		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
-}
-
-func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) error {
-	indexerUpdate := indexer.RepoIndexerUpdate{
-		Filepath: filename,
-		Op:       indexer.RepoIndexerOpDelete,
-		Data: &indexer.RepoIndexerData{
-			RepoID: repo.ID,
-		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
-}
-
-// parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
-func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
-	entries, err := git.ParseTreeEntries(stdout)
-	if err != nil {
-		return nil, err
-	}
-	updates := make([]fileUpdate, len(entries))
-	for i, entry := range entries {
-		updates[i] = fileUpdate{
-			Filename: entry.Name(),
-			BlobSha:  entry.ID.String(),
-		}
-	}
-	return updates, nil
-}
-
-// genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(repo *Repository, revision string) (*repoChanges, error) {
-	var changes repoChanges
-	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-r", revision).
-		RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	changes.Updates, err = parseGitLsTreeOutput(stdout)
-	return &changes, err
-}
-
-// nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(repo *Repository, revision string) (*repoChanges, error) {
-	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.IndexerStatus.CommitSha, revision)
-	stdout, err := diffCmd.RunInDir(repo.RepoPath())
-	if err != nil {
-		// previous commit sha may have been removed by a force push, so
-		// try rebuilding from scratch
-		log.Warn("git diff: %v", err)
-		if err = indexer.DeleteRepoFromIndexer(repo.ID); err != nil {
-			return nil, err
-		}
-		return genesisChanges(repo, revision)
-	}
-	var changes repoChanges
-	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		filename := strings.TrimSpace(line[1:])
-		if len(filename) == 0 {
-			continue
-		} else if filename[0] == '"' {
-			filename, err = strconv.Unquote(filename)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		switch status := line[0]; status {
-		case 'M', 'A':
-			updatedFilenames = append(updatedFilenames, filename)
-		case 'D':
-			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
-		default:
-			log.Warn("Unrecognized status: %c (line=%s)", status, line)
-		}
-	}
-
-	cmd := git.NewCommand("ls-tree", "--full-tree", revision, "--")
-	cmd.AddArguments(updatedFilenames...)
-	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
-	return &changes, err
-}
-
-func processRepoIndexerOperationQueue() {
-	for {
-		op := <-repoIndexerOperationQueue
-		var err error
-		if op.deleted {
-			if err = indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
-				log.Error("DeleteRepoFromIndexer: %v", err)
-			}
-		} else {
-			if err = updateRepoIndexer(op.repo); err != nil {
-				log.Error("updateRepoIndexer: %v", err)
-			}
-		}
-		for _, watcher := range op.watchers {
-			watcher <- err
-		}
-	}
-}
-
-// DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *Repository, watchers ...chan<- error) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true, watchers: watchers})
-}
-
-// UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *Repository, watchers ...chan<- error) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false, watchers: watchers})
-}
-
-func addOperationToQueue(op repoIndexerOperation) {
-	if !setting.Indexer.RepoIndexerEnabled {
-		return
-	}
-	select {
-	case repoIndexerOperationQueue <- op:
-		break
-	default:
-		go func() {
-			repoIndexerOperationQueue <- op
-		}()
-	}
+// UpdateIndexerStatus updates indexer status
+func (repo *Repository) UpdateIndexerStatus(indexerType RepoIndexerType, sha string) error {
+	return repo.updateIndexerStatus(x, indexerType, sha)
 }

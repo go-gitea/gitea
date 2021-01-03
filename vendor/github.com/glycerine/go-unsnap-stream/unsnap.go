@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"hash/crc32"
 
@@ -189,7 +190,12 @@ func UnsnapOneFrame(r io.Reader, encBuf *FixedSizeRingBuf, outDecodedBuf *FixedS
 				err = nil
 			}
 		} else {
-			panic(err)
+			// may be an odd already closed... don't panic on that
+			if strings.Contains(err.Error(), "file already closed") {
+				err = nil
+			} else {
+				panic(err)
+			}
 		}
 	}
 

@@ -1,0 +1,13 @@
+jobs:
+  include:
+    - os: windows
+      script: $GOPATH/bin/goveralls -service=travis-ci
+      language: go
+      sudo: false
+      go: 1.13.x
+      before_install: go get github.com/mattn/goveralls
+    - os: linux
+      script: go build
+      language: go
+      sudo: false
+      go: 1.13.x

@@ -31,9 +31,9 @@ func runConvert(ctx *cli.Context) error {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
-	if models.DbCfg.Type != "mysql" {
+	if !setting.Database.UseMySQL {
 		fmt.Println("This command can only be used with a MySQL database")
 		return nil
 	}

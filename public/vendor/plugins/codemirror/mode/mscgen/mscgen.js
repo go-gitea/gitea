@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 // mode(s) for the sequence chart dsl's mscgen, xù and msgenny
 // For more information on mscgen, see the site of the original author:
@@ -23,6 +23,7 @@
     mscgen: {
       "keywords" : ["msc"],
       "options" : ["hscale", "width", "arcgradient", "wordwraparcs"],
+      "constants" : ["true", "false", "on", "off"],
       "attributes" : ["label", "idurl", "id", "url", "linecolor", "linecolour", "textcolor", "textcolour", "textbgcolor", "textbgcolour", "arclinecolor", "arclinecolour", "arctextcolor", "arctextcolour", "arctextbgcolor", "arctextbgcolour", "arcskip"],
       "brackets" : ["\\{", "\\}"], // [ and  ] are brackets too, but these get handled in with lists
       "arcsWords" : ["note", "abox", "rbox", "box"],
@@ -31,9 +32,10 @@
       "operators" : ["="]
     },
     xu: {
-      "keywords" : ["msc"],
-      "options" : ["hscale", "width", "arcgradient", "wordwraparcs", "watermark"],
-      "attributes" : ["label", "idurl", "id", "url", "linecolor", "linecolour", "textcolor", "textcolour", "textbgcolor", "textbgcolour", "arclinecolor", "arclinecolour", "arctextcolor", "arctextcolour", "arctextbgcolor", "arctextbgcolour", "arcskip"],
+      "keywords" : ["msc", "xu"],
+      "options" : ["hscale", "width", "arcgradient", "wordwraparcs", "wordwrapentities", "watermark"],
+      "constants" : ["true", "false", "on", "off", "auto"],
+      "attributes" : ["label", "idurl", "id", "url", "linecolor", "linecolour", "textcolor", "textcolour", "textbgcolor", "textbgcolour", "arclinecolor", "arclinecolour", "arctextcolor", "arctextcolour", "arctextbgcolor", "arctextbgcolour", "arcskip", "title", "deactivate", "activate", "activation"],
       "brackets" : ["\\{", "\\}"],  // [ and  ] are brackets too, but these get handled in with lists
       "arcsWords" : ["note", "abox", "rbox", "box", "alt", "else", "opt", "break", "par", "seq", "strict", "neg", "critical", "ignore", "consider", "assert", "loop", "ref", "exc"],
       "arcsOthers" : ["\\|\\|\\|", "\\.\\.\\.", "---", "--", "<->", "==", "<<=>>", "<=>", "\\.\\.", "<<>>", "::", "<:>", "->", "=>>", "=>", ">>", ":>", "<-", "<<=", "<=", "<<", "<:", "x-", "-x"],
@@ -42,7 +44,8 @@
     },
     msgenny: {
       "keywords" : null,
-      "options" : ["hscale", "width", "arcgradient", "wordwraparcs", "watermark"],
+      "options" : ["hscale", "width", "arcgradient", "wordwraparcs", "wordwrapentities", "watermark"],
+      "constants" : ["true", "false", "on", "off", "auto"],
       "attributes" : null,
       "brackets" : ["\\{", "\\}"],
       "arcsWords" : ["note", "abox", "rbox", "box", "alt", "else", "opt", "break", "par", "seq", "strict", "neg", "critical", "ignore", "consider", "assert", "loop", "ref", "exc"],
@@ -145,6 +148,9 @@
 
       if (!!pConfig.operators && pStream.match(wordRegexp(pConfig.operators), true, true))
         return "operator";
+
+      if (!!pConfig.constants && pStream.match(wordRegexp(pConfig.constants), true, true))
+        return "variable";
 
       /* attribute lists */
       if (!pConfig.inAttributeList && !!pConfig.attributes && pStream.match(/\[/, true, true)) {

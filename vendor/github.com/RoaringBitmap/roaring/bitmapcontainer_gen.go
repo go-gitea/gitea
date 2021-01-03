@@ -6,7 +6,7 @@ package roaring
 
 import "github.com/tinylib/msgp/msgp"
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *bitmapContainer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -54,7 +54,7 @@ func (z *bitmapContainer) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *bitmapContainer) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
 	// write "cardinality"
@@ -84,7 +84,7 @@ func (z *bitmapContainer) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *bitmapContainer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
@@ -100,7 +100,7 @@ func (z *bitmapContainer) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *bitmapContainer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -149,13 +149,13 @@ func (z *bitmapContainer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *bitmapContainer) Msgsize() (s int) {
 	s = 1 + 12 + msgp.IntSize + 7 + msgp.ArrayHeaderSize + (len(z.bitmap) * (msgp.Uint64Size))
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *bitmapContainerShortIterator) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -239,7 +239,7 @@ func (z *bitmapContainerShortIterator) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *bitmapContainerShortIterator) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
 	// write "ptr"
@@ -291,7 +291,7 @@ func (z *bitmapContainerShortIterator) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *bitmapContainerShortIterator) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
@@ -317,7 +317,7 @@ func (z *bitmapContainerShortIterator) MarshalMsg(b []byte) (o []byte, err error
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *bitmapContainerShortIterator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -402,7 +402,7 @@ func (z *bitmapContainerShortIterator) UnmarshalMsg(bts []byte) (o []byte, err e
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *bitmapContainerShortIterator) Msgsize() (s int) {
 	s = 1 + 4
 	if z.ptr == nil {

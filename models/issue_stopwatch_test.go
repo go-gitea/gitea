@@ -1,9 +1,13 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +67,7 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user3, issue1))
 	sw := AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
-	assert.Equal(t, true, sw.CreatedUnix <= util.TimeStampNow())
+	assert.Equal(t, true, sw.CreatedUnix <= timeutil.TimeStampNow())
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user2, issue2))
 	AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})

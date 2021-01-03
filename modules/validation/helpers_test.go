@@ -7,9 +7,9 @@ package validation
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_IsValidURL(t *testing.T) {

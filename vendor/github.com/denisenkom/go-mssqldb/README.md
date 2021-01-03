@@ -18,16 +18,15 @@ Other supported formats are listed below.
 
 ### Common parameters:
 
-* `user id` - enter the SQL Server Authentication user id or the Windows Authentication user id in the DOMAIN\User format. On Windows, if user id is empty or missing Single-Sign-On is used.
+* `user id` - enter the SQL Server Authentication user id or the Windows Authentication user id in the DOMAIN\User format. On Windows, if user id is empty or missing Single-Sign-On is used. The user domain sensitive to the case which is defined in the connection string.
 * `password`
 * `database`
-* `connection timeout` - in seconds (default is 30)
-* `dial timeout` - in seconds (default is 5)
+* `connection timeout` - in seconds (default is 0 for no timeout), set to 0 for no timeout. Recommended to set to 0 and use context to manage query and connection timeouts.
+* `dial timeout` - in seconds (default is 15), set to 0 for no timeout
 * `encrypt`
   * `disable` - Data send between client and server is not encrypted.
   * `false` - Data sent between client and server is not encrypted beyond the login packet. (Default)
   * `true` - Data sent between client and server is encrypted.
-* `keepAlive` - in seconds; 0 to disable (default is 30)
 * `app name` - The application name (default is go-mssqldb)
 
 ### Connection parameters for ODBC and ADO style connection strings:
@@ -37,6 +36,7 @@ Other supported formats are listed below.
 
 ### Less common parameters:
 
+* `keepAlive` - in seconds; 0 to disable (default is 30)
 * `failoverpartner` - host or host\instance (default is no partner). 
 * `failoverport` - used only when there is no instance in failoverpartner (default 1433)
 * `packet size` - in bytes; 512 to 32767 (default is 4096)
@@ -56,7 +56,7 @@ Other supported formats are listed below.
 * `hostNameInCertificate` - Specifies the Common Name (CN) in the server certificate. Default value is the server host.
 * `ServerSPN` - The kerberos SPN (Service Principal Name) for the server. Default is MSSQLSvc/host:port.
 * `Workstation ID` - The workstation name (default is the host name)
-* `ApplicationIntent` - Can be given the value `ReadOnly` to initiate a read-only connection to an Availability Group listener.
+* `ApplicationIntent` - Can be given the value `ReadOnly` to initiate a read-only connection to an Availability Group listener. The `database` must be specified when connecting with `Application Intent` set to `ReadOnly`. 
 
 ### The connection string can be specified in one of three formats:
 
@@ -68,14 +68,14 @@ Other supported formats are listed below.
   * `sqlserver://username:password@host:port?param1=value&param2=value`
   * `sqlserver://sa@localhost/SQLExpress?database=master&connection+timeout=30` // `SQLExpress instance.
   * `sqlserver://sa:mypass@localhost?database=master&connection+timeout=30`     // username=sa, password=mypass.
-  * `sqlserver://sa:mypass@localhost:1234?database=master&connection+timeout=30"` // port 1234 on localhost.
+  * `sqlserver://sa:mypass@localhost:1234?database=master&connection+timeout=30` // port 1234 on localhost.
   * `sqlserver://sa:my%7Bpass@somehost?connection+timeout=30` // password is "my{pass"
 
   A string of this format can be constructed using the `URL` type in the `net/url` package.
 
 ```go
   query := url.Values{}
-  query.Add("connection timeout", "30")
+  query.Add("app name", "MyAppName")
 
   u := &url.URL{
       Scheme:   "sqlserver",
@@ -90,14 +90,14 @@ Other supported formats are listed below.
 2. ADO: `key=value` pairs separated by `;`. Values may not contain `;`, leading and trailing whitespace is ignored.
      Examples:
 	
-  * `server=localhost\\SQLExpress;user id=sa;database=master;connection timeout=30`
-  * `server=localhost;user id=sa;database=master;connection timeout=30`
+  * `server=localhost\\SQLExpress;user id=sa;database=master;app name=MyAppName`
+  * `server=localhost;user id=sa;database=master;app name=MyAppName`
 
 3. ODBC: Prefix with `odbc`, `key=value` pairs separated by `;`. Allow `;` by wrapping
     values in `{}`. Examples:
 	
-  * `odbc:server=localhost\\SQLExpress;user id=sa;database=master;connection timeout=30`
-  * `odbc:server=localhost;user id=sa;database=master;connection timeout=30`
+  * `odbc:server=localhost\\SQLExpress;user id=sa;database=master;app name=MyAppName`
+  * `odbc:server=localhost;user id=sa;database=master;app name=MyAppName`
   * `odbc:server=localhost;user id=sa;password={foo;bar}` // Value marked with `{}`, password is "foo;bar"
   * `odbc:server=localhost;user id=sa;password={foo{bar}` // Value marked with `{}`, password is "foo{bar"
   * `odbc:server=localhost;user id=sa;password={foobar }` // Value marked with `{}`, password is "foobar "
@@ -106,6 +106,26 @@ Other supported formats are listed below.
   * `odbc:server=localhost;user id=sa;password={foo{bar}` // Literal `{`, password is "foo{bar"
   * `odbc:server=localhost;user id=sa;password={foo}}bar}` // Escaped `} with `}}`, password is "foo}bar"
 
+### Azure Active Directory authentication - preview
+
+The configuration of functionality might change in the future.
+
+Azure Active Directory (AAD) access tokens are relatively short lived and need to be 
+valid when a new connection is made. Authentication is supported using a callback func that
+provides a fresh and valid token using a connector:
+``` golang
+conn, err := mssql.NewAccessTokenConnector(
+  "Server=test.database.windows.net;Database=testdb",
+  tokenProvider)
+if err != nil {
+	// handle errors in DSN
+}
+db := sql.OpenDB(conn)
+```
+Where `tokenProvider` is a function that returns a fresh access token or an error. None of these statements
+actually trigger the retrieval of a token, this happens when the first statment is issued and a connection
+is created.
+
 ## Executing Stored Procedures
 
 To run a stored procedure, set the query text to the procedure name:
@@ -113,11 +133,94 @@ To run a stored procedure, set the query text to the procedure name:
 var account = "abc"
 _, err := db.ExecContext(ctx, "sp_RunMe",
 	sql.Named("ID", 123),
-	sql.Out{Dest{sql.Named("Account", &account)}
+	sql.Named("Account", sql.Out{Dest: &account}),
 )
 ```
 
-## Statement Parameters
+## Reading Output Parameters from a Stored Procedure with Resultset
+
+To read output parameters from a stored procedure with resultset, make sure you read all the rows before reading the output parameters:
+```go
+sqltextcreate := `
+CREATE PROCEDURE spwithoutputandrows
+	@bitparam BIT OUTPUT
+AS BEGIN
+	SET @bitparam = 1
+	SELECT 'Row 1'
+END
+`
+var bitout int64
+rows, err := db.QueryContext(ctx, "spwithoutputandrows", sql.Named("bitparam", sql.Out{Dest: &bitout}))
+var strrow string
+for rows.Next() {
+	err = rows.Scan(&strrow)
+}
+fmt.Printf("bitparam is %d", bitout)
+```
+
+## Caveat for local temporary tables
+
+Due to protocol limitations, temporary tables will only be allocated on the connection
+as a result of executing a query with zero parameters. The following query
+will, due to the use of a parameter, execute in its own session,
+and `#mytemp` will be de-allocated right away:
+
+```go
+conn, err := pool.Conn(ctx)
+defer conn.Close()
+_, err := conn.ExecContext(ctx, "select @p1 as x into #mytemp", 1)
+// at this point #mytemp is already dropped again as the session of the ExecContext is over
+```
+
+To work around this, always explicitly create the local temporary
+table in a query without any parameters. As a special case, the driver
+will then be able to execute the query directly on the
+connection-scoped session. The following example works:
+
+```go
+conn, err := pool.Conn(ctx)
+
+// Set us up so that temp table is always cleaned up, since conn.Close()
+// merely returns conn to pool, rather than actually closing the connection.
+defer func() {
+	_, _ = conn.ExecContext(ctx, "drop table #mytemp")  // always clean up
+	conn.Close() // merely returns conn to pool
+}()
+
+
+// Since we not pass any parameters below, the query will execute on the scope of
+// the connection and succeed in creating the table.
+_, err := conn.ExecContext(ctx, "create table #mytemp ( x int )")
+
+// #mytemp is now available even if you pass parameters
+_, err := conn.ExecContext(ctx, "insert into #mytemp (x) values (@p1)", 1)
+
+```
+
+## Return Status
+
+To get the procedure return status, pass into the parameters a
+`*mssql.ReturnStatus`. For example:
+```
+var rs mssql.ReturnStatus
+_, err := db.ExecContext(ctx, "theproc", &rs)
+log.Printf("status=%d", rs)
+```
+
+or
+
+```
+var rs mssql.ReturnStatus
+_, err := db.QueryContext(ctx, "theproc", &rs)
+for rows.Next() {
+	err = rows.Scan(&val)
+}
+log.Printf("status=%d", rs)
+```
+
+Limitation: ReturnStatus cannot be retrieved using `QueryRow`.
+
+## Parameters
 
 The `sqlserver` driver uses normal MS SQL Server syntax and expects parameters in
 the sql query to be in the form of either `@Name` or `@p1` to `@pN` (ordinal position).
@@ -125,6 +228,37 @@ the sql query to be in the form of either `@Name` or `@p1` to `@pN` (ordinal pos
 ```go
 db.QueryContext(ctx, `select * from t where ID = @ID and Name = @p2;`, sql.Named("ID", 6), "Bob")
 ```
+
+### Parameter Types
+
+To pass specific types to the query parameters, say `varchar` or `date` types,
+you must convert the types to the type before passing in. The following types
+are supported:
+
+ * string -> nvarchar
+ * mssql.VarChar -> varchar
+ * time.Time -> datetimeoffset or datetime (TDS version dependent)
+ * mssql.DateTime1 -> datetime
+ * mssql.DateTimeOffset -> datetimeoffset
+ * "github.com/golang-sql/civil".Date -> date
+ * "github.com/golang-sql/civil".DateTime -> datetime2
+ * "github.com/golang-sql/civil".Time -> time
+ * mssql.TVP -> Table Value Parameter (TDS version dependent)
+
+## Important Notes
+
+ * [LastInsertId](https://golang.org/pkg/database/sql/#Result.LastInsertId) should
+    not be used with this driver (or SQL Server) due to how the TDS protocol
+	works. Please use the [OUTPUT Clause](https://docs.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql)
+	or add a `select ID = convert(bigint, SCOPE_IDENTITY());` to the end of your
+	query (ref [SCOPE_IDENTITY](https://docs.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql)).
+	This will ensure you are getting the correct ID and will prevent a network round trip.
+ * [NewConnector](https://godoc.org/github.com/denisenkom/go-mssqldb#NewConnector)
+    may be used with [OpenDB](https://golang.org/pkg/database/sql/#OpenDB).
+ * [Connector.SessionInitSQL](https://godoc.org/github.com/denisenkom/go-mssqldb#Connector.SessionInitSQL)
+	may be set to set any driver specific session settings after the session
+	has been reset. If empty the session will still be reset but use the database
+	defaults in Go1.10+.
 
 ## Features
 
@@ -154,7 +288,7 @@ These features still exist in the driver, but they are are deprecated.
 
 ### Query Parameter Token Replace (driver "mssql")
 
-If you use the driver name "mssql" (rather then "sqlserver" the SQL text
+If you use the driver name "mssql" (rather then "sqlserver") the SQL text
 will be loosly parsed and an attempt to extract identifiers using one of
 
 * ?

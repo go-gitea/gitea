@@ -41,6 +41,14 @@ type BleveQueryTime struct {
 	time.Time
 }
 
+var MinRFC3339CompatibleTime time.Time
+var MaxRFC3339CompatibleTime time.Time
+
+func init() {
+	MinRFC3339CompatibleTime, _ = time.Parse(time.RFC3339, "1677-12-01T00:00:00Z")
+	MaxRFC3339CompatibleTime, _ = time.Parse(time.RFC3339, "2262-04-11T11:59:59Z")
+}
+
 func queryTimeFromString(t string) (time.Time, error) {
 	dateTimeParser, err := cache.DateTimeParserNamed(QueryDateTimeParser)
 	if err != nil {
@@ -143,10 +151,20 @@ func (q *DateRangeQuery) parseEndpoints() (*float64, *float64, error) {
 	min := math.Inf(-1)
 	max := math.Inf(1)
 	if !q.Start.IsZero() {
-		min = numeric.Int64ToFloat64(q.Start.UnixNano())
+		if !isDatetimeCompatible(q.Start) {
+			// overflow
+			return nil, nil, fmt.Errorf("invalid/unsupported date range, start: %v", q.Start)
+		}
+		startInt64 := q.Start.UnixNano()
+		min = numeric.Int64ToFloat64(startInt64)
 	}
 	if !q.End.IsZero() {
-		max = numeric.Int64ToFloat64(q.End.UnixNano())
+		if !isDatetimeCompatible(q.End) {
+			// overflow
+			return nil, nil, fmt.Errorf("invalid/unsupported date range, end: %v", q.End)
+		}
+		endInt64 := q.End.UnixNano()
+		max = numeric.Int64ToFloat64(endInt64)
 	}
 
 	return &min, &max, nil
@@ -161,4 +179,13 @@ func (q *DateRangeQuery) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func isDatetimeCompatible(t BleveQueryTime) bool {
+	if QueryDateTimeFormat == time.RFC3339 &&
+		(t.Before(MinRFC3339CompatibleTime) || t.After(MaxRFC3339CompatibleTime)) {
+		return false
+	}
+
+	return true
 }

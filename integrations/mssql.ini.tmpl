@@ -14,12 +14,21 @@ ISSUE_INDEXER_PATH = integrations/indexers-mssql/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-mssql/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
 [repository]
-ROOT = integrations/gitea-integration-mssql/gitea-repositories
+ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mssql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mssql
 LOCAL_WIKI_PATH = tmp/local-wiki-mssql
+
+[repository.signing]
+SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
@@ -30,10 +39,14 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-mssql
+LFS_CONTENT_PATH = integrations/gitea-integration-mssql/data/lfs-mssql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mssql/data
+BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+PATH = integrations/gitea-integration-mssql/data
 
 [mailer]
 ENABLED = true
@@ -42,6 +55,7 @@ FROM = mssql-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -52,16 +66,18 @@ NO_REPLY_ADDRESS                  = noreply.example.org
 ENABLE_NOTIFY_MAIL                = true
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-mssql/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-mssql/data/repo-avatars
 
 [session]
-PROVIDER = file
-PROVIDER_CONFIG = data/sessions-mssql
+PROVIDER        = file
+PROVIDER_CONFIG = integrations/gitea-integration-mssql/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = mssql-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,
@@ -75,6 +91,7 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
+DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ

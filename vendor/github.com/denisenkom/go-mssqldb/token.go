@@ -17,20 +17,21 @@ type token byte
 
 // token ids
 const (
-	tokenReturnStatus token = 121 // 0x79
-	tokenColMetadata  token = 129 // 0x81
-	tokenOrder        token = 169 // 0xA9
-	tokenError        token = 170 // 0xAA
-	tokenInfo         token = 171 // 0xAB
-	tokenReturnValue  token = 0xAC
-	tokenLoginAck     token = 173 // 0xad
-	tokenRow          token = 209 // 0xd1
-	tokenNbcRow       token = 210 // 0xd2
-	tokenEnvChange    token = 227 // 0xE3
-	tokenSSPI         token = 237 // 0xED
-	tokenDone         token = 253 // 0xFD
-	tokenDoneProc     token = 254
-	tokenDoneInProc   token = 255
+	tokenReturnStatus  token = 121 // 0x79
+	tokenColMetadata   token = 129 // 0x81
+	tokenOrder         token = 169 // 0xA9
+	tokenError         token = 170 // 0xAA
+	tokenInfo          token = 171 // 0xAB
+	tokenReturnValue   token = 0xAC
+	tokenLoginAck      token = 173 // 0xad
+	tokenFeatureExtAck token = 174 // 0xae
+	tokenRow           token = 209 // 0xd1
+	tokenNbcRow        token = 210 // 0xd2
+	tokenEnvChange     token = 227 // 0xE3
+	tokenSSPI          token = 237 // 0xED
+	tokenDone          token = 253 // 0xFD
+	tokenDoneProc      token = 254
+	tokenDoneInProc    token = 255
 )
 
 // done flags
@@ -213,7 +214,7 @@ func processEnvChg(sess *tdsSession) {
 
 			// SQL Collation data should contain 5 bytes in length
 			if collationSize != 5 {
-				badStreamPanicf("Invalid SQL Collation size value returned from server: %s", collationSize)
+				badStreamPanicf("Invalid SQL Collation size value returned from server: %d", collationSize)
 			}
 
 			// 4 bytes, contains: LCID ColFlags Version
@@ -385,11 +386,9 @@ func processEnvChg(sess *tdsSession) {
 	}
 }
 
-type returnStatus int32
-
 // http://msdn.microsoft.com/en-us/library/dd358180.aspx
-func parseReturnStatus(r *tdsBuffer) returnStatus {
-	return returnStatus(r.int32())
+func parseReturnStatus(r *tdsBuffer) ReturnStatus {
+	return ReturnStatus(r.int32())
 }
 
 func parseOrder(r *tdsBuffer) (res orderStruct) {
@@ -447,6 +446,22 @@ func parseLoginAck(r *tdsBuffer) loginAckStruct {
 	}
 	res.ProgVer = binary.BigEndian.Uint32(buf[size-4:])
 	return res
+}
+
+// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/2eb82f8e-11f0-46dc-b42d-27302fa4701a
+func parseFeatureExtAck(r *tdsBuffer) {
+	// at most 1 featureAck per feature in featureExt
+	// go-mssqldb will add at most 1 feature, the spec defines 7 different features
+	for i := 0; i < 8; i++ {
+		featureID := r.byte() // FeatureID
+		if featureID == 0xff {
+			return
+		}
+		size := r.uint32() // FeatureAckDataLen
+		d := make([]byte, size)
+		r.ReadFull(d)
+	}
+	panic("parsed more than 7 featureAck's, protocol implementation error?")
 }
 
 // http://msdn.microsoft.com/en-us/library/dd357363.aspx
@@ -579,6 +594,8 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 		case tokenLoginAck:
 			loginAck := parseLoginAck(sess.buf)
 			ch <- loginAck
+		case tokenFeatureExtAck:
+			parseFeatureExtAck(sess.buf)
 		case tokenOrder:
 			order := parseOrder(sess.buf)
 			ch <- order
@@ -640,7 +657,7 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 			if len(nv.Name) > 0 {
 				name := nv.Name[1:] // Remove the leading "@".
 				if ov, has := outs[name]; has {
-					err = scanIntoOut(nv.Value, ov)
+					err = scanIntoOut(name, nv.Value, ov)
 					if err != nil {
 						fmt.Println("scan error", err)
 						ch <- err
@@ -651,28 +668,6 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 			badStreamPanic(fmt.Errorf("unknown token type returned: %v", token))
 		}
 	}
-}
-
-func scanIntoOut(fromServer, scanInto interface{}) error {
-	switch fs := fromServer.(type) {
-	case int64:
-		switch si := scanInto.(type) {
-		case *int64:
-			*si = fs
-		default:
-			return fmt.Errorf("unsupported scan into type %[1]T for server type %[2]T", scanInto, fromServer)
-		}
-		return nil
-	case string:
-		switch si := scanInto.(type) {
-		case *string:
-			*si = fs
-		default:
-			return fmt.Errorf("unsupported scan into type %[1]T for server type %[2]T", scanInto, fromServer)
-		}
-		return nil
-	}
-	return fmt.Errorf("unsupported type from server %[1]T=%[1]v", fromServer)
 }
 
 type parseRespIter byte
@@ -709,14 +704,18 @@ func (ts *parseResp) sendAttention(ch chan tokenStruct) parseRespIter {
 }
 
 func (ts *parseResp) dlog(msg string) {
-	if ts.sess.logFlags&logDebug != 0 {
+	// logging from goroutine is disabled to prevent
+	// data race detection from firing
+	// The race is probably happening when
+	// test logger changes between tests.
+	/*if ts.sess.logFlags&logDebug != 0 {
 		ts.sess.log.Println(msg)
-	}
+	}*/
 }
 func (ts *parseResp) dlogf(f string, v ...interface{}) {
-	if ts.sess.logFlags&logDebug != 0 {
+	/*if ts.sess.logFlags&logDebug != 0 {
 		ts.sess.log.Printf(f, v...)
-	}
+	}*/
 }
 
 func (ts *parseResp) iter(ctx context.Context, ch chan tokenStruct, tokChan chan tokenStruct) parseRespIter {

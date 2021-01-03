@@ -7,14 +7,20 @@ package models
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,17 +28,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplPublicKey     = tplCommentPrefix + "\n" + `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommand       = "%s --config=%s serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+
+	authorizedPrincipalsFile = "authorized_principals"
 )
 
 var sshOpLocker sync.Mutex
@@ -45,6 +54,8 @@ const (
 	KeyTypeUser = iota + 1
 	// KeyTypeDeploy specifies the deploy key
 	KeyTypeDeploy
+	// KeyTypePrincipal specifies the authorized principal key
+	KeyTypePrincipal
 )
 
 // PublicKey represents a user or deploy SSH public key.
@@ -58,16 +69,16 @@ type PublicKey struct {
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
 	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // OmitEmail returns content of public key without email address.
@@ -77,7 +88,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, setting.AppPath, key.ID, setting.CustomConf, key.Content)
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID)), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
@@ -94,19 +105,74 @@ func extractTypeFromBase64Key(key string) (string, error) {
 	return string(b[4 : 4+keyLength]), nil
 }
 
+const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
+
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
-	// Transform all legal line endings to a single "\n".
-	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
-	// remove trailing newline (and beginning spaces too)
+	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
 
-	if len(lines) == 1 {
+	if strings.HasPrefix(content, ssh2keyStart) {
+		// Parse SSH2 file format.
+
+		// Transform all legal line endings to a single "\n".
+		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+		lines := strings.Split(content, "\n")
+		continuationLine := false
+
+		for _, line := range lines {
+			// Skip lines that:
+			// 1) are a continuation of the previous line,
+			// 2) contain ":" as that are comment lines
+			// 3) contain "-" as that are begin and end tags
+			if continuationLine || strings.ContainsAny(line, ":-") {
+				continuationLine = strings.HasSuffix(line, "\\")
+			} else {
+				keyContent += line
+			}
+		}
+
+		t, err := extractTypeFromBase64Key(keyContent)
+		if err != nil {
+			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+		}
+		keyType = t
+	} else {
+		if strings.Contains(content, "-----BEGIN") {
+			// Convert PEM Keys to OpenSSH format
+			// Transform all legal line endings to a single "\n".
+			content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+			block, _ := pem.Decode([]byte(content))
+			if block == nil {
+				return "", fmt.Errorf("failed to parse PEM block containing the public key")
+			}
+
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				var pk rsa.PublicKey
+				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
+				if err2 != nil {
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+				}
+				pub = &pk
+			}
+
+			sshKey, err := ssh.NewPublicKey(pub)
+			if err != nil {
+				return "", fmt.Errorf("unable to convert to ssh public key: %v", err)
+			}
+			content = string(ssh.MarshalAuthorizedKey(sshKey))
+		}
 		// Parse OpenSSH format.
-		parts := strings.SplitN(lines[0], " ", 3)
+
+		// Remove all newlines
+		content = strings.NewReplacer("\r\n", "", "\n", "").Replace(content)
+
+		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
 			return "", errors.New("empty key")
@@ -131,27 +197,11 @@ func parseKeyString(content string) (string, error) {
 		} else if keyType != t {
 			return "", fmt.Errorf("key type and content does not match: %s - %s", keyType, t)
 		}
-	} else {
-		// Parse SSH2 file format.
-		continuationLine := false
-
-		for _, line := range lines {
-			// Skip lines that:
-			// 1) are a continuation of the previous line,
-			// 2) contain ":" as that are comment lines
-			// 3) contain "-" as that are begin and end tags
-			if continuationLine || strings.ContainsAny(line, ":-") {
-				continuationLine = strings.HasSuffix(line, "\\")
-			} else {
-				keyContent += line
-			}
-		}
-
-		t, err := extractTypeFromBase64Key(keyContent)
-		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
-		}
-		keyType = t
+	}
+	// Finally we need to check whether we can actually read the proposed key:
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
+	if err != nil {
+		return "", fmt.Errorf("invalid ssh public key: %v", err)
 	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }
@@ -182,7 +232,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	if err != nil {
 		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
 	}
-	defer os.Remove(tmpName)
+	defer func() {
+		if err := util.Remove(tmpName); err != nil {
+			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpName, err)
+		}
+	}()
 
 	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", setting.SSH.KeygenPath, "-lf", tmpName)
 	if err != nil {
@@ -198,7 +252,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	}
 
 	keyType := strings.Trim(fields[len(fields)-1], "()\r\n")
-	return strings.ToLower(keyType), com.StrTo(fields[0]).MustInt(), nil
+	length, err := strconv.ParseInt(fields[0], 10, 32)
+	if err != nil {
+		return "", 0, err
+	}
+	return strings.ToLower(keyType), int(length), nil
 }
 
 // SSHNativeParsePublicKey extracts the key type and length using the golang SSH library.
@@ -308,12 +366,24 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
 func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
+
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
@@ -339,6 +409,9 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	}
 
 	for _, key := range keys {
+		if key.Type == KeyTypePrincipal {
+			continue
+		}
 		if _, err = f.WriteString(key.AuthorizedString()); err != nil {
 			return err
 		}
@@ -366,9 +439,16 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmpPath)
+	defer func() {
+		if err := util.Remove(tmpPath); err != nil {
+			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpPath, err)
+		}
+	}()
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
+		if strings.Contains(stderr, "is not a public key file") {
+			return "", ErrKeyUnableVerify{stderr}
+		}
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
@@ -399,6 +479,10 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
 	}
 	if err != nil {
+		if IsErrKeyUnableVerify(err) {
+			log.Info("%s", publicKeyContent)
+			return "", err
+		}
 		return "", fmt.Errorf("%s: %v", fnName, err)
 	}
 	return fp, nil
@@ -469,7 +553,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := x.
-		Id(keyID).
+		ID(keyID).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -498,6 +582,25 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return searchPublicKeyByContentWithEngine(x, content)
 }
 
+func searchPublicKeyByContentExactWithEngine(e Engine, content string) (*PublicKey, error) {
+	key := new(PublicKey)
+	has, err := e.
+		Where("content = ?", content).
+		Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrKeyNotExist{}
+	}
+	return key, nil
+}
+
+// SearchPublicKeyByContentExact searches content
+// and returns public key found.
+func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentExactWithEngine(x, content)
+}
+
 // SearchPublicKey returns a list of public keys matching the provided arguments.
 func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
@@ -512,11 +615,17 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64) ([]*PublicKey, error) {
+func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*PublicKey, 0, 5)
-	return keys, x.
-		Where("owner_id = ?", uid).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
@@ -538,7 +647,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 	}
 
 	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
-		UpdatedUnix: util.TimeStampNow(),
+		UpdatedUnix: timeutil.TimeStampNow(),
 	})
 	if err != nil {
 		return err
@@ -554,6 +663,82 @@ func deletePublicKeys(e Engine, keyIDs ...int64) error {
 
 	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
 	return err
+}
+
+// PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
+	sources := make([]*LoginSource, 0, 5)
+	externals := make([]bool, len(keys))
+keyloop:
+	for i, key := range keys {
+		if key.LoginSourceID == 0 {
+			externals[i] = false
+			continue keyloop
+		}
+
+		var source *LoginSource
+
+	sourceloop:
+		for _, s := range sources {
+			if s.ID == key.LoginSourceID {
+				source = s
+				break sourceloop
+			}
+		}
+
+		if source == nil {
+			var err error
+			source, err = GetLoginSourceByID(key.LoginSourceID)
+			if err != nil {
+				if IsErrLoginSourceNotExist(err) {
+					externals[i] = false
+					sources[i] = &LoginSource{
+						ID: key.LoginSourceID,
+					}
+					continue keyloop
+				}
+				return nil, err
+			}
+		}
+
+		ldapSource := source.LDAP()
+		if ldapSource != nil &&
+			source.IsSyncEnabled &&
+			(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+			len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+			// Disable setting SSH keys for this user
+			externals[i] = true
+		}
+	}
+
+	return externals, nil
+}
+
+// PublicKeyIsExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeyIsExternallyManaged(id int64) (bool, error) {
+	key, err := GetPublicKeyByID(id)
+	if err != nil {
+		return false, err
+	}
+	if key.LoginSourceID == 0 {
+		return false, nil
+	}
+	source, err := GetLoginSourceByID(key.LoginSourceID)
+	if err != nil {
+		if IsErrLoginSourceNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	ldapSource := source.LDAP()
+	if ldapSource != nil &&
+		source.IsSyncEnabled &&
+		(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+		// Disable setting SSH keys for this user
+		return true, nil
+	}
+	return false, nil
 }
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
@@ -583,6 +768,10 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	}
 	sess.Close()
 
+	if key.Type == KeyTypePrincipal {
+		return RewriteAllPrincipalKeys()
+	}
+
 	return RewriteAllPublicKeys()
 }
 
@@ -602,6 +791,18 @@ func rewriteAllPublicKeys(e Engine) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
+
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	tmpPath := fPath + ".tmp"
 	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
@@ -610,25 +811,53 @@ func rewriteAllPublicKeys(e Engine) error {
 	}
 	defer func() {
 		t.Close()
-		os.Remove(tmpPath)
+		if err := util.Remove(tmpPath); err != nil {
+			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %v", tmpPath, err)
+		}
 	}()
 
-	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedKeysBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
-	err = e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
-		return err
-	})
-	if err != nil {
+	if err := regeneratePublicKeys(e, t); err != nil {
 		return err
 	}
 
-	if com.IsExist(fPath) {
+	t.Close()
+	return os.Rename(tmpPath, fPath)
+}
+
+// RegeneratePublicKeys regenerates the authorized_keys file
+func RegeneratePublicKeys(t io.StringWriter) error {
+	return regeneratePublicKeys(x, t)
+}
+
+func regeneratePublicKeys(e Engine, t io.StringWriter) error {
+	if err := e.Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+		return err
+	}); err != nil {
+		return err
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err
@@ -642,13 +871,13 @@ func rewriteAllPublicKeys(e Engine) error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
+				f.Close()
 				return err
 			}
 		}
-		defer f.Close()
+		f.Close()
 	}
-
-	return os.Rename(tmpPath, fPath)
+	return nil
 }
 
 // ________                .__                 ____  __.
@@ -669,16 +898,16 @@ type DeployKey struct {
 
 	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *DeployKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // GetContent gets associated public key content.
@@ -901,15 +1130,21 @@ func deleteDeployKey(sess Engine, doer *User, id int64) error {
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
-func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
-	return listDeployKeys(x, repoID)
+func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID, listOptions)
 }
 
-func listDeployKeys(e Engine, repoID int64) ([]*DeployKey, error) {
+func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	sess := e.Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*DeployKey, 0, 5)
-	return keys, e.
-		Where("repo_id = ?", repoID).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // SearchDeployKeys returns a list of deploy keys matching the provided arguments.
@@ -926,4 +1161,217 @@ func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployK
 		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
 	}
 	return keys, x.Where(cond).Find(&keys)
+}
+
+// __________       .__              .__             .__
+// \______   _______|__| ____   ____ |_____________  |  |   ______
+//  |     ___\_  __ |  |/    \_/ ___\|  \____ \__  \ |  |  /  ___/
+//  |    |    |  | \|  |   |  \  \___|  |  |_> / __ \|  |__\___ \
+//  |____|    |__|  |__|___|  /\___  |__|   __(____  |____/____  >
+//                          \/     \/   |__|       \/          \/
+
+// AddPrincipalKey adds new principal to database and authorized_principals file.
+func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	// Principals cannot be duplicated.
+	has, err := sess.
+		Where("content = ? AND type = ?", content, KeyTypePrincipal).
+		Get(new(PublicKey))
+	if err != nil {
+		return nil, err
+	} else if has {
+		return nil, ErrKeyAlreadyExist{0, "", content}
+	}
+
+	key := &PublicKey{
+		OwnerID:       ownerID,
+		Name:          content,
+		Content:       content,
+		Mode:          AccessModeWrite,
+		Type:          KeyTypePrincipal,
+		LoginSourceID: loginSourceID,
+	}
+	if err = addPrincipalKey(sess, key); err != nil {
+		return nil, fmt.Errorf("addKey: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	sess.Close()
+
+	return key, RewriteAllPrincipalKeys()
+}
+
+func addPrincipalKey(e Engine, key *PublicKey) (err error) {
+	// Save Key representing a principal.
+	if _, err = e.Insert(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
+func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
+	if setting.SSH.Disabled {
+		return "", ErrSSHDisabled{}
+	}
+
+	content = strings.TrimSpace(content)
+	if strings.ContainsAny(content, "\r\n") {
+		return "", errors.New("only a single line with a single principal please")
+	}
+
+	// check all the allowed principals, email, username or anything
+	// if any matches, return ok
+	for _, v := range setting.SSH.AuthorizedPrincipalsAllow {
+		switch v {
+		case "anything":
+			return content, nil
+		case "email":
+			emails, err := GetEmailAddresses(user.ID)
+			if err != nil {
+				return "", err
+			}
+			for _, email := range emails {
+				if !email.IsActivated {
+					continue
+				}
+				if content == email.Email {
+					return content, nil
+				}
+			}
+
+		case "username":
+			if content == user.Name {
+				return content, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
+}
+
+// RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
+// Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
+// outside any session scope independently.
+func RewriteAllPrincipalKeys() error {
+	return rewriteAllPrincipalKeys(x)
+}
+
+func rewriteAllPrincipalKeys(e Engine) error {
+	// Don't rewrite key if internal server
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
+		return nil
+	}
+
+	sshOpLocker.Lock()
+	defer sshOpLocker.Unlock()
+
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
+	tmpPath := fPath + ".tmp"
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		t.Close()
+		os.Remove(tmpPath)
+	}()
+
+	if setting.SSH.AuthorizedPrincipalsBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := regeneratePrincipalKeys(e, t); err != nil {
+		return err
+	}
+
+	t.Close()
+	return os.Rename(tmpPath, fPath)
+}
+
+// ListPrincipalKeys returns a list of principals belongs to given user.
+func ListPrincipalKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
+	keys := make([]*PublicKey, 0, 5)
+	return keys, sess.Find(&keys)
+}
+
+// RegeneratePrincipalKeys regenerates the authorized_principals file
+func RegeneratePrincipalKeys(t io.StringWriter) error {
+	return regeneratePrincipalKeys(x, t)
+}
+
+func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
+	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+		return err
+	}); err != nil {
+		return err
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
+		f, err := os.Open(fPath)
+		if err != nil {
+			return err
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, tplCommentPrefix) {
+				scanner.Scan()
+				continue
+			}
+			_, err = t.WriteString(line + "\n")
+			if err != nil {
+				f.Close()
+				return err
+			}
+		}
+		f.Close()
+	}
+	return nil
 }

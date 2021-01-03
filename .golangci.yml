@@ -19,6 +19,9 @@ linters:
   disable-all: true
   fast: false
 
+run:
+  timeout: 3m
+
 linters-settings:
   gocritic:
     disabled-checks:
@@ -67,7 +70,10 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/routes.go
+    - path: routers/routes/macaron.go
+      linters:
+        - dupl
+    - path: routers/api/v1/repo/issue_subscription.go
       linters:
         - dupl
     - path: routers/repo/view.go
@@ -86,12 +92,21 @@ issues:
     - path: models/issue_comment_list.go
       linters:
         - dupl
-    # "Destroy" is misspelled in github.com/go-macaron/session/session.go:213 so it's not our responsability to fix it
-    - path: modules/session/virtual.go
-      linters:
+    - linters:
         - misspell
-      text: '`Destory` is a misspelling of `Destroy`'
-    - path: modules/session/memory.go
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/update.go
       linters:
-        - misspell
-      text: '`Destory` is a misspelling of `Destroy`'
+        - unused
+    - path: cmd/dump.go
+      linters:
+        - dupl
+    - path: services/webhook/webhook.go
+      linters:
+        - structcheck
+    - text: "commentFormatting: put a space between `//` and comment text"
+      linters:
+        - gocritic
+    - text: "exitAfterDefer:"
+      linters:
+        - gocritic

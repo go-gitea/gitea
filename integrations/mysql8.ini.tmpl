@@ -14,12 +14,21 @@ ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
 
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
 [repository]
-ROOT = integrations/gitea-integration-mysql8/gitea-repositories
+ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql8/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mysql8
 LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
+
+[repository.signing]
+SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
@@ -34,12 +43,14 @@ LFS_CONTENT_PATH = data/lfs-mysql8
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
+BUILTIN_SSH_SERVER_USER = git
 
 [mailer]
 ENABLED = false
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -58,7 +69,7 @@ PROVIDER_CONFIG = data/sessions-mysql8
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = mysql8-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,
@@ -73,6 +84,8 @@ LEVEL                = Debug
 
 
 [security]
+DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+

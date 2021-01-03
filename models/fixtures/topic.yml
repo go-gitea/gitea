@@ -15,3 +15,11 @@
 - id: 4
   name: graphql
   repo_count: 1
+
+- id: 5
+  name: topicname1
+  repo_count: 1
+
+- id: 6
+  name: topicname2
+  repo_count: 2

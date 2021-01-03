@@ -19,6 +19,7 @@ type HTMLDoc struct {
 
 // NewHTMLParser parse html file
 func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
+	t.Helper()
 	doc, err := goquery.NewDocumentFromReader(body)
 	assert.NoError(t, err)
 	return &HTMLDoc{doc: doc}
@@ -34,6 +35,13 @@ func (doc *HTMLDoc) GetInputValueByID(id string) string {
 func (doc *HTMLDoc) GetInputValueByName(name string) string {
 	text, _ := doc.doc.Find("input[name=\"" + name + "\"]").Attr("value")
 	return text
+}
+
+// Find gets the descendants of each element in the current set of
+// matched elements, filtered by a selector. It returns a new Selection
+// object containing these matched elements.
+func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
+	return doc.doc.Find(selector)
 }
 
 // GetCSRF for get CSRC token value from input

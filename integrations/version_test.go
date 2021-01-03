@@ -15,7 +15,7 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	setting.AppVer = "test-version-1"
 	req := NewRequest(t, "GET", "/api/v1/version")
@@ -23,5 +23,5 @@ func TestVersion(t *testing.T) {
 
 	var version structs.ServerVersion
 	DecodeJSON(t, resp, &version)
-	assert.Equal(t, setting.AppVer, string(version.Version))
+	assert.Equal(t, setting.AppVer, version.Version)
 }

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -29,63 +29,83 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
-	var comment *models.Comment
-	defer func() {
-		if comment != nil {
-			ctx.Redirect(comment.HTMLURL())
-		} else {
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
-		}
-	}()
+
 	signedLine := form.Line
 	if form.Side == "previous" {
 		signedLine *= -1
 	}
 
-	review := new(models.Review)
-	if form.IsReview {
-		var err error
-		// Check if the user has already a pending review for this issue
-		if review, err = models.GetCurrentReview(ctx.User, issue); err != nil {
-			if !models.IsErrReviewNotExist(err) {
-				ctx.ServerError("CreateCodeComment", err)
-				return
-			}
-			// No pending review exists
-			// Create a new pending review for this issue & user
-			if review, err = models.CreateReview(models.CreateReviewOptions{
-				Type:     models.ReviewTypePending,
-				Reviewer: ctx.User,
-				Issue:    issue,
-			}); err != nil {
-				ctx.ServerError("CreateCodeComment", err)
-				return
-			}
-		}
-	}
-	if review.ID == 0 {
-		review.ID = form.Reply
-	}
-	//FIXME check if line, commit and treepath exist
-	comment, err := models.CreateCodeComment(
+	comment, err := pull_service.CreateCodeComment(
 		ctx.User,
-		issue.Repo,
+		ctx.Repo.GitRepo,
 		issue,
+		signedLine,
 		form.Content,
 		form.TreePath,
-		signedLine,
-		review.ID,
+		form.IsReview,
+		form.Reply,
+		form.LatestCommitID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
 		return
 	}
-	// Send no notification if comment is pending
-	if !form.IsReview || form.Reply != 0 {
-		notification.NotifyCreateIssueComment(ctx.User, issue.Repo, issue, comment)
+
+	if comment == nil {
+		log.Trace("Comment not created: %-v #%d[%d]", ctx.Repo.Repository, issue.Index, issue.ID)
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		return
 	}
 
-	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
+	ctx.Redirect(comment.HTMLURL())
+}
+
+// UpdateResolveConversation add or remove an Conversation resolved mark
+func UpdateResolveConversation(ctx *context.Context) {
+	action := ctx.Query("action")
+	commentID := ctx.QueryInt64("comment_id")
+
+	comment, err := models.GetCommentByID(commentID)
+	if err != nil {
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+
+	if err = comment.LoadIssue(); err != nil {
+		ctx.ServerError("comment.LoadIssue", err)
+		return
+	}
+
+	var permResult bool
+	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.User); err != nil {
+		ctx.ServerError("CanMarkConversation", err)
+		return
+	}
+	if !permResult {
+		ctx.Error(403)
+		return
+	}
+
+	if !comment.Issue.IsPull {
+		ctx.Error(400)
+		return
+	}
+
+	if action == "Resolve" || action == "UnResolve" {
+		err = models.MarkConversation(comment, ctx.User, action == "Resolve")
+		if err != nil {
+			ctx.ServerError("MarkConversation", err)
+			return
+		}
+	} else {
+		ctx.Error(400)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
@@ -102,23 +122,17 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
-	var review *models.Review
-	var err error
 
 	reviewType := form.ReviewType()
-
 	switch reviewType {
 	case models.ReviewTypeUnknown:
-		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
+		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
 	case models.ReviewTypeApprove, models.ReviewTypeReject:
-
-		if issue.Poster.ID == ctx.User.ID {
-
+		if issue.IsPoster(ctx.User.ID) {
 			var translated string
-
 			if reviewType == models.ReviewTypeApprove {
 				translated = ctx.Tr("repo.issues.review.self.approval")
 			} else {
@@ -131,69 +145,16 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		}
 	}
 
-	review, err = models.GetCurrentReview(ctx.User, issue)
-	if err == nil {
-		review.Issue = issue
-		if errl := review.LoadCodeComments(); errl != nil {
-			ctx.ServerError("LoadCodeComments", err)
-			return
-		}
-	}
-
-	if ((err == nil && len(review.CodeComments) == 0) ||
-		(err != nil && models.IsErrReviewNotExist(err))) &&
-		form.HasEmptyContent() {
-		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
-		return
-	}
-
+	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID)
 	if err != nil {
-		if !models.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetCurrentReview", err)
-			return
+		if models.IsContentEmptyErr(err) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		} else {
+			ctx.ServerError("SubmitReview", err)
 		}
-		// No current review. Create a new one!
-		if review, err = models.CreateReview(models.CreateReviewOptions{
-			Type:     reviewType,
-			Issue:    issue,
-			Reviewer: ctx.User,
-			Content:  form.Content,
-		}); err != nil {
-			ctx.ServerError("CreateReview", err)
-			return
-		}
-	} else {
-		review.Content = form.Content
-		review.Type = reviewType
-		if err = models.UpdateReview(review); err != nil {
-			ctx.ServerError("UpdateReview", err)
-			return
-		}
-	}
-	comm, err := models.CreateComment(&models.CreateCommentOptions{
-		Type:     models.CommentTypeReview,
-		Doer:     ctx.User,
-		Content:  review.Content,
-		Issue:    issue,
-		Repo:     issue.Repo,
-		ReviewID: review.ID,
-	})
-	if err != nil || comm == nil {
-		ctx.ServerError("CreateComment", err)
 		return
 	}
-	if err = review.Publish(); err != nil {
-		ctx.ServerError("Publish", err)
-		return
-	}
-
-	pr, err := issue.GetPullRequest()
-	if err != nil {
-		ctx.ServerError("GetPullRequest", err)
-		return
-	}
-	notification.NotifyPullRequestReview(pr, review, comm)
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }

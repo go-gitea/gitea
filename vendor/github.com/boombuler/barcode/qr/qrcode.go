@@ -20,7 +20,7 @@ func (qr *qrcode) Content() string {
 }
 
 func (qr *qrcode) Metadata() barcode.Metadata {
-	return barcode.Metadata{"QR Code", 2}
+	return barcode.Metadata{barcode.TypeQR, 2}
 }
 
 func (qr *qrcode) ColorModel() color.Model {
@@ -44,10 +44,6 @@ func (qr *qrcode) Get(x, y int) bool {
 
 func (qr *qrcode) Set(x, y int, val bool) {
 	qr.data.SetBit(x*qr.dimension+y, val)
-}
-
-func (qr *qrcode) CheckSum() int {
-	return 0
 }
 
 func (qr *qrcode) calcPenalty() uint {

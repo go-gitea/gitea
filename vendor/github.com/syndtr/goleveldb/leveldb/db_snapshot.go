@@ -142,6 +142,10 @@ func (snap *Snapshot) Has(key []byte, ro *opt.ReadOptions) (ret bool, err error)
 // DB. And a nil Range.Limit is treated as a key after all keys in
 // the DB.
 //
+// WARNING: Any slice returned by interator (e.g. slice returned by calling
+// Iterator.Key() or Iterator.Value() methods), its content should not be
+// modified unless noted otherwise.
+//
 // The iterator must be released after use, by calling Release method.
 // Releasing the snapshot doesn't mean releasing the iterator too, the
 // iterator would be still valid until released.

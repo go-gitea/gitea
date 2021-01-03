@@ -10,12 +10,13 @@ type FileOptions struct {
 	// message (optional) for the commit of this file. if not supplied, a default message will be used
 	Message string `json:"message"`
 	// branch (optional) to base this file from. if not given, the default branch is used
-	BranchName string `json:"branch"`
+	BranchName string `json:"branch" binding:"GitRefName;MaxSize(100)"`
 	// new_branch (optional) will make a new branch from `branch` before creating the file
-	NewBranchName string `json:"new_branch"`
+	NewBranchName string `json:"new_branch" binding:"GitRefName;MaxSize(100)"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
-	Author    Identity `json:"author"`
-	Committer Identity `json:"committer"`
+	Author    Identity          `json:"author"`
+	Committer Identity          `json:"committer"`
+	Dates     CommitDateOptions `json:"dates"`
 }
 
 // CreateFileOptions options for creating files

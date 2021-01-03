@@ -35,8 +35,8 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 					Email: "johndoe@example.com",
 				},
 				Committer: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
 			},
 			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
@@ -80,21 +80,21 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "John Doe",
+					Email: "johndoe@example.com",
 				},
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
 			},
 			Message: "My update of README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -143,6 +143,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			gitRepo.Close()
 		}
 
 		// Test updating a file in a new branch
@@ -207,7 +208,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		updateFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
 			URL:     setting.API.SwaggerURL,

@@ -8,8 +8,6 @@ package git
 import (
 	"fmt"
 	"strings"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -26,12 +24,6 @@ func IsBranchExist(repoPath, name string) bool {
 	return IsReferenceExist(repoPath, BranchPrefix+name)
 }
 
-// IsBranchExist returns true if given branch exists in current repository.
-func (repo *Repository) IsBranchExist(name string) bool {
-	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
-	return err == nil
-}
-
 // Branch represents a Git branch.
 type Branch struct {
 	Name string
@@ -42,6 +34,9 @@ type Branch struct {
 
 // GetHEADBranch returns corresponding branch of HEAD.
 func (repo *Repository) GetHEADBranch() (*Branch, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("nil repo")
+	}
 	stdout, err := NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
@@ -65,23 +60,9 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 	return err
 }
 
-// GetBranches returns all branches of the repository.
-func (repo *Repository) GetBranches() ([]string, error) {
-	var branchNames []string
-
-	branches, err := repo.gogitRepo.Branches()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = branches.ForEach(func(branch *plumbing.Reference) error {
-		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
-		return nil
-	})
-
-	// TODO: Sort?
-
-	return branchNames, nil
+// GetDefaultBranch gets default branch of repository.
+func (repo *Repository) GetDefaultBranch() (string, error) {
+	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
 }
 
 // GetBranch returns a branch by it's name
@@ -102,6 +83,7 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	brs, err := gitRepo.GetBranches()
 	if err != nil {
@@ -135,7 +117,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 		cmd.AddArguments("-d")
 	}
 
-	cmd.AddArguments(name)
+	cmd.AddArguments("--", name)
 	_, err := cmd.RunInDir(repo.Path)
 
 	return err
@@ -165,7 +147,7 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand("remote", "remove", name).RunInDir(repo.Path)
+	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path)
 	return err
 }
 

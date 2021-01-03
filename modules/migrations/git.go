@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
@@ -28,6 +30,10 @@ func NewPlainGitDownloader(ownerName, repoName, remoteURL string) *PlainGitDownl
 	}
 }
 
+// SetContext set context
+func (g *PlainGitDownloader) SetContext(ctx context.Context) {
+}
+
 // GetRepoInfo returns a repository information
 func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	// convert github repo to stand Repo
@@ -36,6 +42,11 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 		Name:     g.repoName,
 		CloneURL: g.remoteURL,
 	}, nil
+}
+
+// GetTopics returns empty list for plain git repo
+func (g *PlainGitDownloader) GetTopics() ([]string, error) {
+	return []string{}, nil
 }
 
 // GetMilestones returns milestones
@@ -64,6 +75,11 @@ func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, er
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
+func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, bool, error) {
+	return nil, false, ErrNotSupported
+}
+
+// GetReviews returns reviews according issue number
+func (g *PlainGitDownloader) GetReviews(issueNumber int64) ([]*base.Review, error) {
 	return nil, ErrNotSupported
 }

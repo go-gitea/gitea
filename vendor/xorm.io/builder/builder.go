@@ -7,7 +7,6 @@ package builder
 import (
 	sql2 "database/sql"
 	"fmt"
-	"sort"
 )
 
 type optype byte
@@ -18,26 +17,32 @@ const (
 	insertType               // insert
 	updateType               // update
 	deleteType               // delete
-	unionType                // union
+	setOpType                // set operation
 )
 
+// all databasees
 const (
 	POSTGRES = "postgres"
 	SQLITE   = "sqlite3"
 	MYSQL    = "mysql"
 	MSSQL    = "mssql"
 	ORACLE   = "oracle"
+
+	UNION     = "union"
+	INTERSECT = "intersect"
+	EXCEPT    = "except"
 )
 
 type join struct {
 	joinType  string
-	joinTable string
+	joinTable interface{}
 	joinCond  Cond
 }
 
-type union struct {
-	unionType string
-	builder   *Builder
+type setOp struct {
+	opType       string
+	distinctType string
+	builder      *Builder
 }
 
 type limit struct {
@@ -56,11 +61,11 @@ type Builder struct {
 	cond       Cond
 	selects    []string
 	joins      []join
-	unions     []union
+	setOps     []setOp
 	limitation *limit
 	insertCols []string
 	insertVals []interface{}
-	updates    []Eq
+	updates    []UpdateCond
 	orderBy    string
 	groupBy    string
 	having     string
@@ -143,46 +148,49 @@ func (b *Builder) Into(tableName string) *Builder {
 	return b
 }
 
-// Join sets join table and conditions
-func (b *Builder) Join(joinType, joinTable string, joinCond interface{}) *Builder {
-	switch joinCond.(type) {
-	case Cond:
-		b.joins = append(b.joins, join{joinType, joinTable, joinCond.(Cond)})
-	case string:
-		b.joins = append(b.joins, join{joinType, joinTable, Expr(joinCond.(string))})
-	}
-
-	return b
+// Union sets union conditions
+func (b *Builder) Union(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(UNION, distinctType, cond)
 }
 
-// Union sets union conditions
-func (b *Builder) Union(unionTp string, unionCond *Builder) *Builder {
+// Intersect sets intersect conditions
+func (b *Builder) Intersect(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(INTERSECT, distinctType, cond)
+}
+
+// Except sets except conditions
+func (b *Builder) Except(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(EXCEPT, distinctType, cond)
+}
+
+func (b *Builder) setOperation(opType, distinctType string, cond *Builder) *Builder {
+
 	var builder *Builder
-	if b.optype != unionType {
+	if b.optype != setOpType {
 		builder = &Builder{cond: NewCond()}
-		builder.optype = unionType
+		builder.optype = setOpType
 		builder.dialect = b.dialect
 		builder.selects = b.selects
 
-		currentUnions := b.unions
-		// erase sub unions (actually append to new Builder.unions)
-		b.unions = nil
+		currentSetOps := b.setOps
+		// erase sub setOps (actually append to new Builder.unions)
+		b.setOps = nil
 
-		for e := range currentUnions {
-			currentUnions[e].builder.dialect = b.dialect
+		for e := range currentSetOps {
+			currentSetOps[e].builder.dialect = b.dialect
 		}
 
-		builder.unions = append(append(builder.unions, union{"", b}), currentUnions...)
+		builder.setOps = append(append(builder.setOps, setOp{opType, "", b}), currentSetOps...)
 	} else {
 		builder = b
 	}
 
-	if unionCond != nil {
-		if unionCond.dialect == "" && builder.dialect != "" {
-			unionCond.dialect = builder.dialect
+	if cond != nil {
+		if cond.dialect == "" && builder.dialect != "" {
+			cond.dialect = builder.dialect
 		}
 
-		builder.unions = append(builder.unions, union{unionTp, unionCond})
+		builder.setOps = append(builder.setOps, setOp{opType, distinctType, cond})
 	}
 
 	return builder
@@ -197,31 +205,6 @@ func (b *Builder) Limit(limitN int, offset ...int) *Builder {
 	}
 
 	return b
-}
-
-// InnerJoin sets inner join
-func (b *Builder) InnerJoin(joinTable string, joinCond interface{}) *Builder {
-	return b.Join("INNER", joinTable, joinCond)
-}
-
-// LeftJoin sets left join SQL
-func (b *Builder) LeftJoin(joinTable string, joinCond interface{}) *Builder {
-	return b.Join("LEFT", joinTable, joinCond)
-}
-
-// RightJoin sets right join SQL
-func (b *Builder) RightJoin(joinTable string, joinCond interface{}) *Builder {
-	return b.Join("RIGHT", joinTable, joinCond)
-}
-
-// CrossJoin sets cross join SQL
-func (b *Builder) CrossJoin(joinTable string, joinCond interface{}) *Builder {
-	return b.Join("CROSS", joinTable, joinCond)
-}
-
-// FullJoin sets full join SQL
-func (b *Builder) FullJoin(joinTable string, joinCond interface{}) *Builder {
-	return b.Join("FULL", joinTable, joinCond)
 }
 
 // Select sets select SQL
@@ -245,68 +228,12 @@ func (b *Builder) Or(cond Cond) *Builder {
 	return b
 }
 
-type insertColsSorter struct {
-	cols []string
-	vals []interface{}
-}
-
-func (s insertColsSorter) Len() int {
-	return len(s.cols)
-}
-func (s insertColsSorter) Swap(i, j int) {
-	s.cols[i], s.cols[j] = s.cols[j], s.cols[i]
-	s.vals[i], s.vals[j] = s.vals[j], s.vals[i]
-}
-
-func (s insertColsSorter) Less(i, j int) bool {
-	return s.cols[i] < s.cols[j]
-}
-
-// Insert sets insert SQL
-func (b *Builder) Insert(eq ...interface{}) *Builder {
-	if len(eq) > 0 {
-		var paramType = -1
-		for _, e := range eq {
-			switch t := e.(type) {
-			case Eq:
-				if paramType == -1 {
-					paramType = 0
-				}
-				if paramType != 0 {
-					break
-				}
-				for k, v := range t {
-					b.insertCols = append(b.insertCols, k)
-					b.insertVals = append(b.insertVals, v)
-				}
-			case string:
-				if paramType == -1 {
-					paramType = 1
-				}
-				if paramType != 1 {
-					break
-				}
-				b.insertCols = append(b.insertCols, t)
-			}
-		}
-	}
-
-	if len(b.insertCols) == len(b.insertVals) {
-		sort.Sort(insertColsSorter{
-			cols: b.insertCols,
-			vals: b.insertVals,
-		})
-	}
-	b.optype = insertType
-	return b
-}
-
 // Update sets update SQL
-func (b *Builder) Update(updates ...Eq) *Builder {
-	b.updates = make([]Eq, 0, len(updates))
+func (b *Builder) Update(updates ...Cond) *Builder {
+	b.updates = make([]UpdateCond, 0, len(updates))
 	for _, update := range updates {
-		if update.IsValid() {
-			b.updates = append(b.updates, update)
+		if u, ok := update.(UpdateCond); ok && u.IsValid() {
+			b.updates = append(b.updates, u)
 		}
 	}
 	b.optype = updateType
@@ -333,8 +260,8 @@ func (b *Builder) WriteTo(w Writer) error {
 		return b.updateWriteTo(w)
 	case deleteType:
 		return b.deleteWriteTo(w)
-	case unionType:
-		return b.unionWriteTo(w)
+	case setOpType:
+		return b.setOpWriteTo(w)
 	}
 
 	return ErrNotSupportType
@@ -354,7 +281,7 @@ func (b *Builder) ToSQL() (string, []interface{}, error) {
 		}
 	}
 
-	var sql = w.writer.String()
+	var sql = w.String()
 	var err error
 
 	switch b.dialect {
@@ -383,12 +310,12 @@ func (b *Builder) ToSQL() (string, []interface{}, error) {
 	return sql, w.args, nil
 }
 
-// ToBoundSQL
+// ToBoundSQL generated a bound SQL string
 func (b *Builder) ToBoundSQL() (string, error) {
 	w := NewWriter()
 	if err := b.WriteTo(w); err != nil {
 		return "", err
 	}
 
-	return ConvertToBoundSQL(w.writer.String(), w.args)
+	return ConvertToBoundSQL(w.String(), w.args)
 }

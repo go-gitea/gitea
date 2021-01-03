@@ -1,4 +1,4 @@
-# Goth: Multi-Provider Authentication for Go [![GoDoc](https://godoc.org/github.com/markbates/goth?status.svg)](https://godoc.org/github.com/markbates/goth) [![Build Status](https://travis-ci.org/markbates/goth.svg)](https://travis-ci.org/markbates/goth)
+# Goth: Multi-Provider Authentication for Go [![GoDoc](https://godoc.org/github.com/markbates/goth?status.svg)](https://godoc.org/github.com/markbates/goth) [![Build Status](https://github.com/markbates/goth/workflows/ci/badge.svg)](https://github.com/markbates/goth/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/markbates/goth)](https://goreportcard.com/report/github.com/markbates/goth)
 
 Package goth provides a simple, clean, and idiomatic way to write authentication
 packages for Go web applications.
@@ -17,6 +17,7 @@ $ go get github.com/markbates/goth
 ## Supported Providers
 
 * Amazon
+* Apple
 * Auth0
 * Azure AD
 * Battle.net
@@ -25,12 +26,13 @@ $ go get github.com/markbates/goth
 * Cloud Foundry
 * Dailymotion
 * Deezer
-* Digital Ocean
+* DigitalOcean
 * Discord
 * Dropbox
 * Eve Online
 * Facebook
 * Fitbit
+* Gitea
 * GitHub
 * Gitlab
 * Google
@@ -39,19 +41,25 @@ $ go get github.com/markbates/goth
 * InfluxCloud
 * Instagram
 * Intercom
+* Kakao
 * Lastfm
 * Linkedin
+* LINE
+* Mailru
 * Meetup
 * MicrosoftOnline
 * Naver
+* Nextcloud
 * OneDrive
 * OpenID Connect (auto discovery)
 * Paypal
 * SalesForce
+* Shopify
 * Slack
 * Soundcloud
 * Spotify
 * Steam
+* Strava
 * Stripe
 * Tumblr
 * Twitch

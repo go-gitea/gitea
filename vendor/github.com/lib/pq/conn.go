@@ -92,6 +92,7 @@ type Dialer interface {
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
 }
 
+// DialerContext is the context-aware dialer interface.
 type DialerContext interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
@@ -148,6 +149,15 @@ type conn struct {
 
 	// If true this connection is in the middle of a COPY
 	inCopy bool
+
+	// If not nil, notices will be synchronously sent here
+	noticeHandler func(*Error)
+
+	// If not nil, notifications will be synchronously sent here
+	notificationHandler func(*Notification)
+
+	// GSSAPI context
+	gss GSS
 }
 
 // Handle driver-side settings in parsed connection string.
@@ -301,6 +311,9 @@ func (c *Connector) open(ctx context.Context) (cn *conn, err error) {
 
 	err = cn.ssl(o)
 	if err != nil {
+		if cn.c != nil {
+			cn.c.Close()
+		}
 		return nil, err
 	}
 
@@ -325,10 +338,6 @@ func (c *Connector) open(ctx context.Context) (cn *conn, err error) {
 
 func dial(ctx context.Context, d Dialer, o values) (net.Conn, error) {
 	network, address := network(o)
-	// SSL is not necessary or supported over UNIX domain sockets
-	if network == "unix" {
-		o["sslmode"] = "disable"
-	}
 
 	// Zero or not specified means wait indefinitely.
 	if timeout, ok := o["connect_timeout"]; ok && timeout != "0" {
@@ -546,7 +555,7 @@ func (cn *conn) Commit() (err error) {
 	// would get the same behaviour if you issued a COMMIT in a failed
 	// transaction, so it's also the least surprising thing to do here.
 	if cn.txnStatus == txnStatusInFailedTransaction {
-		if err := cn.Rollback(); err != nil {
+		if err := cn.rollback(); err != nil {
 			return err
 		}
 		return ErrInFailedTransaction
@@ -573,7 +582,10 @@ func (cn *conn) Rollback() (err error) {
 		return driver.ErrBadConn
 	}
 	defer cn.errRecover(&err)
+	return cn.rollback()
+}
 
+func (cn *conn) rollback() (err error) {
 	cn.checkIsInTransaction(true)
 	_, commandTag, err := cn.simpleExec("ROLLBACK")
 	if err != nil {
@@ -964,7 +976,13 @@ func (cn *conn) recv() (t byte, r *readBuf) {
 		case 'E':
 			panic(parseError(r))
 		case 'N':
-			// ignore
+			if n := cn.noticeHandler; n != nil {
+				n(parseError(r))
+			}
+		case 'A':
+			if n := cn.notificationHandler; n != nil {
+				n(recvNotification(r))
+			}
 		default:
 			return
 		}
@@ -981,8 +999,14 @@ func (cn *conn) recv1Buf(r *readBuf) byte {
 		}
 
 		switch t {
-		case 'A', 'N':
-			// ignore
+		case 'A':
+			if n := cn.notificationHandler; n != nil {
+				n(recvNotification(r))
+			}
+		case 'N':
+			if n := cn.noticeHandler; n != nil {
+				n(parseError(r))
+			}
 		case 'S':
 			cn.processParameterStatus(r)
 		default:
@@ -1050,7 +1074,10 @@ func isDriverSetting(key string) bool {
 		return true
 	case "binary_parameters":
 		return true
-
+	case "krbsrvname":
+		return true
+	case "krbspn":
+		return true
 	default:
 		return false
 	}
@@ -1130,6 +1157,59 @@ func (cn *conn) auth(r *readBuf, o values) {
 		if r.int32() != 0 {
 			errorf("unexpected authentication response: %q", t)
 		}
+	case 7: // GSSAPI, startup
+		if newGss == nil {
+			errorf("kerberos error: no GSSAPI provider registered (import github.com/lib/pq/auth/kerberos if you need Kerberos support)")
+		}
+		cli, err := newGss()
+		if err != nil {
+			errorf("kerberos error: %s", err.Error())
+		}
+
+		var token []byte
+
+		if spn, ok := o["krbspn"]; ok {
+			// Use the supplied SPN if provided..
+			token, err = cli.GetInitTokenFromSpn(spn)
+		} else {
+			// Allow the kerberos service name to be overridden
+			service := "postgres"
+			if val, ok := o["krbsrvname"]; ok {
+				service = val
+			}
+
+			token, err = cli.GetInitToken(o["host"], service)
+		}
+
+		if err != nil {
+			errorf("failed to get Kerberos ticket: %q", err)
+		}
+
+		w := cn.writeBuf('p')
+		w.bytes(token)
+		cn.send(w)
+
+		// Store for GSSAPI continue message
+		cn.gss = cli
+
+	case 8: // GSSAPI continue
+
+		if cn.gss == nil {
+			errorf("GSSAPI protocol error")
+		}
+
+		b := []byte(*r)
+
+		done, tokOut, err := cn.gss.Continue(b)
+		if err == nil && !done {
+			w := cn.writeBuf('p')
+			w.bytes(tokOut)
+			cn.send(w)
+		}
+
+		// Errors fall through and read the more detailed message
+		// from the server..
+
 	case 10:
 		sc := scram.NewClient(sha256.New, o["user"], o["password"])
 		sc.Step(nil)
@@ -1498,6 +1578,39 @@ func QuoteIdentifier(name string) string {
 		name = name[:end]
 	}
 	return `"` + strings.Replace(name, `"`, `""`, -1) + `"`
+}
+
+// QuoteLiteral quotes a 'literal' (e.g. a parameter, often used to pass literal
+// to DDL and other statements that do not accept parameters) to be used as part
+// of an SQL statement.  For example:
+//
+//    exp_date := pq.QuoteLiteral("2023-01-05 15:00:00Z")
+//    err := db.Exec(fmt.Sprintf("CREATE ROLE my_user VALID UNTIL %s", exp_date))
+//
+// Any single quotes in name will be escaped. Any backslashes (i.e. "\") will be
+// replaced by two backslashes (i.e. "\\") and the C-style escape identifier
+// that PostgreSQL provides ('E') will be prepended to the string.
+func QuoteLiteral(literal string) string {
+	// This follows the PostgreSQL internal algorithm for handling quoted literals
+	// from libpq, which can be found in the "PQEscapeStringInternal" function,
+	// which is found in the libpq/fe-exec.c source file:
+	// https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/interfaces/libpq/fe-exec.c
+	//
+	// substitute any single-quotes (') with two single-quotes ('')
+	literal = strings.Replace(literal, `'`, `''`, -1)
+	// determine if the string has any backslashes (\) in it.
+	// if it does, replace any backslashes (\) with two backslashes (\\)
+	// then, we need to wrap the entire string with a PostgreSQL
+	// C-style escape. Per how "PQEscapeStringInternal" handles this case, we
+	// also add a space before the "E"
+	if strings.Contains(literal, `\`) {
+		literal = strings.Replace(literal, `\`, `\\`, -1)
+		literal = ` E'` + literal + `'`
+	} else {
+		// otherwise, we can just wrap the literal with a pair of single quotes
+		literal = `'` + literal + `'`
+	}
+	return literal
 }
 
 func md5s(s string) string {

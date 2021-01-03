@@ -9,11 +9,11 @@ import (
 	"crypto/subtle"
 	"time"
 
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	gouuid "github.com/google/uuid"
 )
 
 // AccessToken represents a personal access token.
@@ -26,16 +26,16 @@ type AccessToken struct {
 	TokenSalt      string
 	TokenLastEight string `xorm:"token_last_eight"`
 
-	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
 	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
-	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // NewAccessToken creates new access token.
@@ -45,7 +45,7 @@ func NewAccessToken(t *AccessToken) error {
 		return err
 	}
 	t.TokenSalt = salt
-	t.Token = base.EncodeSha1(gouuid.NewV4().String())
+	t.Token = base.EncodeSha1(gouuid.New().String())
 	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = x.Insert(t)
@@ -77,13 +77,37 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	return nil, ErrAccessTokenNotExist{token}
 }
 
+// AccessTokenByNameExists checks if a token name has been used already by a user.
+func AccessTokenByNameExists(token *AccessToken) (bool, error) {
+	return x.Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+}
+
+// ListAccessTokensOptions contain filter options
+type ListAccessTokensOptions struct {
+	ListOptions
+	Name   string
+	UserID int64
+}
+
 // ListAccessTokens returns a list of access tokens belongs to given user.
-func ListAccessTokens(uid int64) ([]*AccessToken, error) {
+func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
+	sess := x.Where("uid=?", opts.UserID)
+
+	if len(opts.Name) != 0 {
+		sess = sess.Where("name=?", opts.Name)
+	}
+
+	sess = sess.Desc("id")
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+
+		tokens := make([]*AccessToken, 0, opts.PageSize)
+		return tokens, sess.Find(&tokens)
+	}
+
 	tokens := make([]*AccessToken, 0, 5)
-	return tokens, x.
-		Where("uid=?", uid).
-		Desc("id").
-		Find(&tokens)
+	return tokens, sess.Find(&tokens)
 }
 
 // UpdateAccessToken updates information of access token.

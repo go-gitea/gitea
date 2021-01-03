@@ -1,0 +1,106 @@
+.admin {
+  &.hooks .list {
+    > .item {
+      &:not(:first-child) {
+        border-top: 1px solid var(--color-secondary);
+        padding: 1rem;
+        margin: 15px -1rem -1rem;
+      }
+    }
+  }
+
+  .table.segment {
+    padding: 0;
+    font-size: 13px;
+
+    &:not(.striped) {
+      thead {
+        th:last-child {
+          padding-right: 5px !important;
+        }
+      }
+    }
+
+    th {
+      padding-top: 5px;
+      padding-bottom: 5px;
+    }
+
+    &:not(.select) {
+      th,
+      td {
+        &:first-of-type {
+          padding-left: 15px !important;
+        }
+      }
+    }
+
+    form tbody button[type='submit'] {
+      padding: 5px 8px;
+    }
+
+  }
+
+  .settings .button.adopt,
+  .settings .button.delete {
+    margin-top: -15px;
+    margin-bottom: -15px;
+    .label {
+      vertical-align: middle;
+    }
+  }
+
+  &.user {
+    .email {
+      max-width: 200px;
+    }
+  }
+
+  dl.admin-dl-horizontal {
+    padding: 20px;
+    margin: 0;
+
+    dd {
+      margin-left: 275px;
+    }
+
+    dt {
+      font-weight: 600;
+      float: left;
+      width: 285px;
+      clear: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &.config {
+    #test-mail-btn {
+      margin-left: 5px;
+    }
+  }
+
+  code,
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  #notice-table {
+    .notice-description {
+      @media @mediaSm {
+        max-width: 80vw;
+      }
+      @media @mediaMd {
+        max-width: 360px;
+      }
+      @media @mediaLg {
+        max-width: 510px;
+      }
+      @media @mediaXl {
+        max-width: 640px;
+      }
+    }
+  }
+}

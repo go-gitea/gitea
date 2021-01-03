@@ -24,18 +24,6 @@ func TestIsValidHookContentType(t *testing.T) {
 	assert.False(t, IsValidHookContentType("invalid"))
 }
 
-func TestWebhook_GetSlackHook(t *testing.T) {
-	w := &Webhook{
-		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
-	}
-	slackHook := w.GetSlackHook()
-	assert.Equal(t, *slackHook, SlackMeta{
-		Channel:  "foo",
-		Username: "username",
-		Color:    "blue",
-	})
-}
-
 func TestWebhook_History(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	webhook := AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
@@ -73,7 +61,11 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.Equal(t, []string{"create", "delete", "fork", "push", "issues", "issue_comment", "pull_request", "repository", "release"},
+	assert.Equal(t, []string{"create", "delete", "fork", "push",
+		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
+		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
+		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
+		"pull_request_review_comment", "pull_request_sync", "repository", "release"},
 		(&Webhook{
 			HookEvent: &HookEvent{SendEverything: true},
 		}).EventsArray(),
@@ -132,7 +124,7 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByRepoID(1)
+	hooks, err := GetWebhooksByRepoID(1, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -152,7 +144,7 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByOrgID(3)
+	hooks, err := GetWebhooksByOrgID(3, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -193,28 +185,6 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestToHookTaskType(t *testing.T) {
-	assert.Equal(t, GOGS, ToHookTaskType("gogs"))
-	assert.Equal(t, SLACK, ToHookTaskType("slack"))
-	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
-	assert.Equal(t, TELEGRAM, ToHookTaskType("telegram"))
-}
-
-func TestHookTaskType_Name(t *testing.T) {
-	assert.Equal(t, "gogs", GOGS.Name())
-	assert.Equal(t, "slack", SLACK.Name())
-	assert.Equal(t, "gitea", GITEA.Name())
-	assert.Equal(t, "telegram", TELEGRAM.Name())
-}
-
-func TestIsValidHookTaskType(t *testing.T) {
-	assert.True(t, IsValidHookTaskType("gogs"))
-	assert.True(t, IsValidHookTaskType("slack"))
-	assert.True(t, IsValidHookTaskType("gitea"))
-	assert.True(t, IsValidHookTaskType("telegram"))
-	assert.False(t, IsValidHookTaskType("invalid"))
-}
-
 func TestHookTasks(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTasks, err := HookTasks(1, 1)
@@ -233,7 +203,7 @@ func TestCreateHookTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:    3,
 		HookID:    3,
-		Type:      GITEA,
+		Typ:       GITEA,
 		URL:       "http://www.example.com/unit_test",
 		Payloader: &api.PushPayload{},
 	}
@@ -253,23 +223,3 @@ func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
 }
-
-func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 1, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{}))
-	for _, hookTask := range hookTasks {
-		AssertExistsAndLoadBean(t, hookTask)
-	}
-}
-
-// TODO TestHookTask_deliver
-
-// TODO TestDeliverHooks

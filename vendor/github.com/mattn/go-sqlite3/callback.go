@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -35,86 +35,97 @@ import (
 //export callbackTrampoline
 func callbackTrampoline(ctx *C.sqlite3_context, argc int, argv **C.sqlite3_value) {
 	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
-	fi := lookupHandle(uintptr(C.sqlite3_user_data(ctx))).(*functionInfo)
+	fi := lookupHandle(C.sqlite3_user_data(ctx)).(*functionInfo)
 	fi.Call(ctx, args)
 }
 
 //export stepTrampoline
 func stepTrampoline(ctx *C.sqlite3_context, argc C.int, argv **C.sqlite3_value) {
 	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:int(argc):int(argc)]
-	ai := lookupHandle(uintptr(C.sqlite3_user_data(ctx))).(*aggInfo)
+	ai := lookupHandle(C.sqlite3_user_data(ctx)).(*aggInfo)
 	ai.Step(ctx, args)
 }
 
 //export doneTrampoline
 func doneTrampoline(ctx *C.sqlite3_context) {
-	handle := uintptr(C.sqlite3_user_data(ctx))
-	ai := lookupHandle(handle).(*aggInfo)
+	ai := lookupHandle(C.sqlite3_user_data(ctx)).(*aggInfo)
 	ai.Done(ctx)
 }
 
 //export compareTrampoline
-func compareTrampoline(handlePtr uintptr, la C.int, a *C.char, lb C.int, b *C.char) C.int {
+func compareTrampoline(handlePtr unsafe.Pointer, la C.int, a *C.char, lb C.int, b *C.char) C.int {
 	cmp := lookupHandle(handlePtr).(func(string, string) int)
 	return C.int(cmp(C.GoStringN(a, la), C.GoStringN(b, lb)))
 }
 
 //export commitHookTrampoline
-func commitHookTrampoline(handle uintptr) int {
+func commitHookTrampoline(handle unsafe.Pointer) int {
 	callback := lookupHandle(handle).(func() int)
 	return callback()
 }
 
 //export rollbackHookTrampoline
-func rollbackHookTrampoline(handle uintptr) {
+func rollbackHookTrampoline(handle unsafe.Pointer) {
 	callback := lookupHandle(handle).(func())
 	callback()
 }
 
 //export updateHookTrampoline
-func updateHookTrampoline(handle uintptr, op int, db *C.char, table *C.char, rowid int64) {
+func updateHookTrampoline(handle unsafe.Pointer, op int, db *C.char, table *C.char, rowid int64) {
 	callback := lookupHandle(handle).(func(int, string, string, int64))
 	callback(op, C.GoString(db), C.GoString(table), rowid)
 }
 
 //export authorizerTrampoline
-func authorizerTrampoline(handle uintptr, op int, arg1 *C.char, arg2 *C.char, arg3 *C.char) int {
+func authorizerTrampoline(handle unsafe.Pointer, op int, arg1 *C.char, arg2 *C.char, arg3 *C.char) int {
 	callback := lookupHandle(handle).(func(int, string, string, string) int)
 	return callback(op, C.GoString(arg1), C.GoString(arg2), C.GoString(arg3))
 }
 
-// Use handles to avoid passing Go pointers to C.
+//export preUpdateHookTrampoline
+func preUpdateHookTrampoline(handle unsafe.Pointer, dbHandle uintptr, op int, db *C.char, table *C.char, oldrowid int64, newrowid int64) {
+	hval := lookupHandleVal(handle)
+	data := SQLitePreUpdateData{
+		Conn:         hval.db,
+		Op:           op,
+		DatabaseName: C.GoString(db),
+		TableName:    C.GoString(table),
+		OldRowID:     oldrowid,
+		NewRowID:     newrowid,
+	}
+	callback := hval.val.(func(SQLitePreUpdateData))
+	callback(data)
+}
 
+// Use handles to avoid passing Go pointers to C.
 type handleVal struct {
 	db  *SQLiteConn
 	val interface{}
 }
 
 var handleLock sync.Mutex
-var handleVals = make(map[uintptr]handleVal)
-var handleIndex uintptr = 100
+var handleVals = make(map[unsafe.Pointer]handleVal)
 
-func newHandle(db *SQLiteConn, v interface{}) uintptr {
+func newHandle(db *SQLiteConn, v interface{}) unsafe.Pointer {
 	handleLock.Lock()
 	defer handleLock.Unlock()
-	i := handleIndex
-	handleIndex++
-	handleVals[i] = handleVal{db, v}
-	return i
+	val := handleVal{db: db, val: v}
+	var p unsafe.Pointer = C.malloc(C.size_t(1))
+	if p == nil {
+		panic("can't allocate 'cgo-pointer hack index pointer': ptr == nil")
+	}
+	handleVals[p] = val
+	return p
 }
 
-func lookupHandle(handle uintptr) interface{} {
+func lookupHandleVal(handle unsafe.Pointer) handleVal {
 	handleLock.Lock()
 	defer handleLock.Unlock()
-	r, ok := handleVals[handle]
-	if !ok {
-		if handle >= 100 && handle < handleIndex {
-			panic("deleted handle")
-		} else {
-			panic("invalid handle")
-		}
-	}
-	return r.val
+	return handleVals[handle]
+}
+
+func lookupHandle(handle unsafe.Pointer) interface{} {
+	return lookupHandleVal(handle).val
 }
 
 func deleteHandles(db *SQLiteConn) {
@@ -123,6 +134,7 @@ func deleteHandles(db *SQLiteConn) {
 	for handle, val := range handleVals {
 		if val.db == db {
 			delete(handleVals, handle)
+			C.free(handle)
 		}
 	}
 }
@@ -368,7 +380,7 @@ func callbackRet(typ reflect.Type) (callbackRetConverter, error) {
 func callbackError(ctx *C.sqlite3_context, err error) {
 	cstr := C.CString(err.Error())
 	defer C.free(unsafe.Pointer(cstr))
-	C.sqlite3_result_error(ctx, cstr, -1)
+	C.sqlite3_result_error(ctx, cstr, C.int(-1))
 }
 
 // Test support code. Tests are not allowed to import "C", so we can't

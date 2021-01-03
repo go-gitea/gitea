@@ -4,7 +4,12 @@
 
 package models
 
-import "github.com/go-xorm/xorm"
+import (
+	"code.gitea.io/gitea/modules/structs"
+
+	"xorm.io/builder"
+	"xorm.io/xorm"
+)
 
 // InsertMilestones creates milestones of repository.
 func InsertMilestones(ms ...*Milestone) (err error) {
@@ -59,41 +64,65 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 		})
 		labelIDs = append(labelIDs, label.ID)
 	}
-	if _, err := sess.Insert(issueLabels); err != nil {
-		return err
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
 	}
+
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
+	}
+
+	cols := make([]string, 0)
 	if !issue.IsPull {
 		sess.ID(issue.RepoID).Incr("num_issues")
+		cols = append(cols, "num_issues")
 		if issue.IsClosed {
 			sess.Incr("num_closed_issues")
+			cols = append(cols, "num_closed_issues")
 		}
 	} else {
 		sess.ID(issue.RepoID).Incr("num_pulls")
+		cols = append(cols, "num_pulls")
 		if issue.IsClosed {
 			sess.Incr("num_closed_pulls")
+			cols = append(cols, "num_closed_pulls")
 		}
 	}
-	if _, err := sess.NoAutoTime().Update(issue.Repo); err != nil {
+	if _, err := sess.NoAutoTime().Cols(cols...).Update(issue.Repo); err != nil {
 		return err
 	}
 
+	cols = []string{"num_issues"}
 	sess.Incr("num_issues")
 	if issue.IsClosed {
 		sess.Incr("num_closed_issues")
+		cols = append(cols, "num_closed_issues")
 	}
-	if _, err := sess.In("id", labelIDs).NoAutoTime().Update(new(Label)); err != nil {
+	if _, err := sess.In("id", labelIDs).NoAutoTime().Cols(cols...).Update(new(Label)); err != nil {
 		return err
 	}
 
 	if issue.MilestoneID > 0 {
+		cols = []string{"num_issues"}
 		sess.Incr("num_issues")
+		cl := "num_closed_issues"
 		if issue.IsClosed {
 			sess.Incr("num_closed_issues")
+			cols = append(cols, "num_closed_issues")
+			cl = "(num_closed_issues + 1)"
 		}
 
 		if _, err := sess.ID(issue.MilestoneID).
-			SetExpr("completeness", "num_closed_issues * 100 / num_issues").
-			NoAutoTime().
+			SetExpr("completeness", cl+" * 100 / (num_issues + 1)").
+			NoAutoTime().Cols(cols...).
 			Update(new(Milestone)); err != nil {
 			return err
 		}
@@ -118,9 +147,22 @@ func InsertIssueComments(comments []*Comment) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.NoAutoTime().Insert(comments); err != nil {
-		return err
+	for _, comment := range comments {
+		if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			if _, err := sess.Insert(comment.Reactions); err != nil {
+				return err
+			}
+		}
 	}
+
 	for issueID := range issueIDs {
 		if _, err := sess.Exec("UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
 			return err
@@ -161,14 +203,40 @@ func InsertReleases(rels ...*Release) error {
 			return err
 		}
 
-		for i := 0; i < len(rel.Attachments); i++ {
-			rel.Attachments[i].ReleaseID = rel.ID
-		}
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
 
-		if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
-			return err
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
 		}
 	}
 
 	return sess.Commit()
+}
+
+func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
+	return builder.In("issue_id",
+		builder.Select("issue.id").
+			From("issue").
+			InnerJoin("repository", "issue.repo_id = repository.id").
+			Where(builder.Eq{
+				"repository.original_service_type": tp,
+			}),
+	)
+}
+
+// UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
+func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := x.Table("review").
+		Where("original_author_id = ?", originalAuthorID).
+		And(migratedIssueCond(tp)).
+		Update(map[string]interface{}{
+			"reviewer_id":        posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }

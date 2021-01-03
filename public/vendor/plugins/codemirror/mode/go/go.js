@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -23,12 +23,13 @@ CodeMirror.defineMode("go", function(config) {
     "bool":true, "byte":true, "complex64":true, "complex128":true,
     "float32":true, "float64":true, "int8":true, "int16":true, "int32":true,
     "int64":true, "string":true, "uint8":true, "uint16":true, "uint32":true,
-    "uint64":true, "int":true, "uint":true, "uintptr":true, "error": true
+    "uint64":true, "int":true, "uint":true, "uintptr":true, "error": true,
+    "rune":true
   };
 
   var atoms = {
     "true":true, "false":true, "iota":true, "nil":true, "append":true,
-    "cap":true, "close":true, "complex":true, "copy":true, "imag":true,
+    "cap":true, "close":true, "complex":true, "copy":true, "delete":true, "imag":true,
     "len":true, "make":true, "new":true, "panic":true, "print":true,
     "println":true, "real":true, "recover":true
   };
@@ -154,14 +155,14 @@ CodeMirror.defineMode("go", function(config) {
       else if (curPunc == "[") pushContext(state, stream.column(), "]");
       else if (curPunc == "(") pushContext(state, stream.column(), ")");
       else if (curPunc == "case") ctx.type = "case";
-      else if (curPunc == "}" && ctx.type == "}") ctx = popContext(state);
+      else if (curPunc == "}" && ctx.type == "}") popContext(state);
       else if (curPunc == ctx.type) popContext(state);
       state.startOfLine = false;
       return style;
     },
 
     indent: function(state, textAfter) {
-      if (state.tokenize != tokenBase && state.tokenize != null) return 0;
+      if (state.tokenize != tokenBase && state.tokenize != null) return CodeMirror.Pass;
       var ctx = state.context, firstChar = textAfter && textAfter.charAt(0);
       if (ctx.type == "case" && /^(?:case|default)\b/.test(textAfter)) {
         state.context.type = "}";
@@ -173,6 +174,7 @@ CodeMirror.defineMode("go", function(config) {
     },
 
     electricChars: "{}):",
+    closeBrackets: "()[]{}''\"\"``",
     fold: "brace",
     blockCommentStart: "/*",
     blockCommentEnd: "*/",

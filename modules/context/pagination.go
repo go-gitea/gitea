@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Unknwon/paginater"
+	"github.com/unknwon/paginater"
 )
 
 // Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
@@ -34,6 +34,12 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 	}
 	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey]) // cast interface{} to string
 	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(paramKey), url.QueryEscape(paramData))
+	p.urlParams = append(p.urlParams, urlParam)
+}
+
+// AddParamString adds a string parameter directly
+func (p *Pagination) AddParamString(key string, value string) {
+	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
 	p.urlParams = append(p.urlParams, urlParam)
 }
 

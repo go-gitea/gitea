@@ -787,6 +787,10 @@ func (r *Reader) getDataIterErr(dataBH blockHandle, slice *util.Range, verifyChe
 // table. And a nil Range.Limit is treated as a key after all keys in
 // the table.
 //
+// WARNING: Any slice returned by interator (e.g. slice returned by calling
+// Iterator.Key() or Iterator.Key() methods), its content should not be modified
+// unless noted otherwise.
+//
 // The returned iterator is not safe for concurrent use and should be released
 // after use.
 //

@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.
@@ -82,7 +82,7 @@ func (h *Hook) Name() string {
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
 		if isExist(h.path) {
-			err := os.Remove(h.path)
+			err := util.Remove(h.path)
 			if err != nil {
 				return err
 			}
@@ -90,7 +90,12 @@ func (h *Hook) Update() error {
 		h.IsActive = false
 		return nil
 	}
-	err := ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
+	d := filepath.Dir(h.path)
+	if err := os.MkdirAll(d, os.ModePerm); err != nil {
+		return err
+	}
+
+	err := ioutil.WriteFile(h.path, []byte(strings.ReplaceAll(h.Content, "\r", "")), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -119,12 +124,17 @@ const (
 	HookPathUpdate = "hooks/update"
 )
 
-// SetUpdateHook writes given content to update hook of the reposiotry.
+// SetUpdateHook writes given content to update hook of the repository.
 func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
-	if com.IsExist(hookPath) {
-		err = os.Remove(hookPath)
+	isExist, err := util.IsExist(hookPath)
+	if err != nil {
+		log("Unable to check if %s exists. Error: %v", hookPath, err)
+		return err
+	}
+	if isExist {
+		err = util.Remove(hookPath)
 	} else {
 		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
 	}

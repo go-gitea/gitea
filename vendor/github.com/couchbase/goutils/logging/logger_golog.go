@@ -1,4 +1,4 @@
-//  Copyright (c) 2016 Couchbase, Inc.
+//  Copyright (c) 2016-2019 Couchbase, Inc.
 //  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 //  except in compliance with the License. You may obtain a copy of the License at
 //    http://www.apache.org/licenses/LICENSE-2.0
@@ -31,7 +31,7 @@ const (
 	_RLEVEL = "_rlevel"
 )
 
-func NewLogger(out io.Writer, lvl Level, fmtLogging LogEntryFormatter) *goLogger {
+func NewLogger(out io.Writer, lvl Level, fmtLogging LogEntryFormatter, fmtArgs ...interface{}) *goLogger {
 	logger := &goLogger{
 		logger: log.New(out, "", 0),
 		level:  lvl,
@@ -40,6 +40,10 @@ func NewLogger(out io.Writer, lvl Level, fmtLogging LogEntryFormatter) *goLogger
 		logger.entryFormatter = &jsonFormatter{}
 	} else if fmtLogging == KVFORMATTER {
 		logger.entryFormatter = &keyvalueFormatter{}
+	} else if fmtLogging == UNIFORMFORMATTER {
+		logger.entryFormatter = &uniformFormatter{
+			callback: fmtArgs[0].(ComponentCallback),
+		}
 	} else {
 		logger.entryFormatter = &textFormatter{}
 	}
@@ -314,5 +318,48 @@ func (*jsonFormatter) format(newEntry *logEntry) string {
 	newEntry.Data[_MSG] = newEntry.Message
 	serialized, _ := json.Marshal(newEntry.Data)
 	s := bytes.NewBuffer(append(serialized, '\n'))
+	return s.String()
+}
+
+type ComponentCallback func() string
+
+type uniformFormatter struct {
+	callback ComponentCallback
+}
+
+// ex. 2019-03-15T11:28:07.652-04:00 DEBU COMPONENT.subcomponent This is a message from test in uniform format
+
+var _LEVEL_UNIFORM = []string{
+	DEBUG:   "DEBU",
+	TRACE:   "TRAC",
+	REQUEST: "REQU",
+	INFO:    "INFO",
+	WARN:    "WARN",
+	ERROR:   "ERRO",
+	SEVERE:  "SEVE",
+	FATAL:   "FATA",
+	NONE:    "NONE",
+}
+
+func (level Level) UniformString() string {
+	return _LEVEL_UNIFORM[level]
+}
+
+func (uf *uniformFormatter) format(newEntry *logEntry) string {
+	b := &bytes.Buffer{}
+	appendValue(b, newEntry.Time)
+	component := uf.callback()
+	if newEntry.Rlevel != NONE {
+		// not really any accommodation for a composite level in the uniform standard; just output as abbr,abbr
+		fmt.Fprintf(b, "%s,%s %s ", newEntry.Level.UniformString(), newEntry.Rlevel.UniformString(), component)
+	} else {
+		fmt.Fprintf(b, "%s %s ", newEntry.Level.UniformString(), component)
+	}
+	appendValue(b, newEntry.Message)
+	for key, value := range newEntry.Data {
+		appendKeyValue(b, key, value)
+	}
+	b.WriteByte('\n')
+	s := bytes.NewBuffer(b.Bytes())
 	return s.String()
 }

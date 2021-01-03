@@ -5,14 +5,14 @@
 package auth
 
 import (
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	ID                            int64
-	Type                          int    `binding:"Range(2,6)"`
+	Type                          int    `binding:"Range(2,7)"`
 	Name                          string `binding:"Required;MaxSize(30)"`
 	Host                          string
 	Port                          int
@@ -30,6 +30,13 @@ type AuthenticationForm struct {
 	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
+	GroupsEnabled                 bool
+	GroupDN                       string
+	GroupFilter                   string
+	GroupMemberUID                string
+	UserUID                       string
+	RestrictedFilter              string
+	AllowDeactivateAll            bool
 	IsActive                      bool
 	IsSyncEnabled                 bool
 	SMTPAuth                      string
@@ -49,6 +56,12 @@ type AuthenticationForm struct {
 	Oauth2AuthURL                 string
 	Oauth2ProfileURL              string
 	Oauth2EmailURL                string
+	Oauth2IconURL                 string
+	SSPIAutoCreateUsers           bool
+	SSPIAutoActivateUsers         bool
+	SSPIStripDomainNames          bool
+	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
+	SSPIDefaultLanguage           string
 }
 
 // Validate validates fields

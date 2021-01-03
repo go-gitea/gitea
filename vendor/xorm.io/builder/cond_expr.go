@@ -18,6 +18,10 @@ func Expr(sql string, args ...interface{}) Cond {
 	return expr{sql, args}
 }
 
+func (expr expr) OpWriteTo(op string, w Writer) error {
+	return expr.WriteTo(w)
+}
+
 func (expr expr) WriteTo(w Writer) error {
 	if _, err := fmt.Fprint(w, expr.sql); err != nil {
 		return err

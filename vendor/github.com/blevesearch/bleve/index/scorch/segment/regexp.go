@@ -55,7 +55,7 @@ func LiteralPrefix(s *syntax.Regexp) string {
 		s = s.Sub[0]
 	}
 
-	if s.Op == syntax.OpLiteral {
+	if s.Op == syntax.OpLiteral && (s.Flags&syntax.FoldCase == 0) {
 		return string(s.Rune)
 	}
 

@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repofiles"
 )
@@ -44,21 +46,23 @@ func GetTree(ctx *context.APIContext) {
 	//   type: integer
 	// - name: per_page
 	//   in: query
-	//   description: number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE
+	//   description: number of items per page
 	//   required: false
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.Params(":sha")
 	if len(sha) == 0 {
-		ctx.Error(400, "", "sha not provided")
+		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return
 	}
 	if tree, err := repofiles.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.QueryInt("page"), ctx.QueryInt("per_page"), ctx.QueryBool("recursive")); err != nil {
-		ctx.Error(400, "", err.Error())
+		ctx.Error(http.StatusBadRequest, "", err.Error())
 	} else {
-		ctx.JSON(200, tree)
+		ctx.JSON(http.StatusOK, tree)
 	}
 }

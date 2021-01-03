@@ -3,7 +3,7 @@ date: "2016-12-21T15:00:00-02:00"
 title: "註冊為 Windows 服務"
 slug: "windows-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -18,7 +18,7 @@ menu:
 要註冊為 Windows 服務，首先要以管理者身份執行 `cmd`，跳出命令列視窗後執行底下指令：
 
 ```
-sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
+sc create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
 別忘記將 `C:\gitea` 取代為您的 Gitea 安裝路徑。

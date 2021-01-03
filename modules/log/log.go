@@ -5,36 +5,59 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 )
+
+type loggerMap struct {
+	sync.Map
+}
+
+func (m *loggerMap) Load(k string) (*MultiChannelledLogger, bool) {
+	v, ok := m.Map.Load(k)
+	if !ok {
+		return nil, false
+	}
+	l, ok := v.(*MultiChannelledLogger)
+	return l, ok
+}
+
+func (m *loggerMap) Store(k string, v *MultiChannelledLogger) {
+	m.Map.Store(k, v)
+}
+
+func (m *loggerMap) Delete(k string) {
+	m.Map.Delete(k)
+}
 
 var (
 	// DEFAULT is the name of the default logger
 	DEFAULT = "default"
 	// NamedLoggers map of named loggers
-	NamedLoggers = make(map[string]*Logger)
+	NamedLoggers loggerMap
 	prefix       string
 )
 
 // NewLogger create a logger for the default logger
-func NewLogger(bufLen int64, name, provider, config string) *Logger {
+func NewLogger(bufLen int64, name, provider, config string) *MultiChannelledLogger {
 	err := NewNamedLogger(DEFAULT, bufLen, name, provider, config)
 	if err != nil {
 		CriticalWithSkip(1, "Unable to create default logger: %v", err)
 		panic(err)
 	}
-	return NamedLoggers[DEFAULT]
+	l, _ := NamedLoggers.Load(DEFAULT)
+	return l
 }
 
 // NewNamedLogger creates a new named logger for a given configuration
 func NewNamedLogger(name string, bufLen int64, subname, provider, config string) error {
-	logger, ok := NamedLoggers[name]
+	logger, ok := NamedLoggers.Load(name)
 	if !ok {
 		logger = newLogger(name, bufLen)
-
-		NamedLoggers[name] = logger
+		NamedLoggers.Store(name, logger)
 	}
 
 	return logger.SetLogger(subname, provider, config)
@@ -42,16 +65,16 @@ func NewNamedLogger(name string, bufLen int64, subname, provider, config string)
 
 // DelNamedLogger closes and deletes the named logger
 func DelNamedLogger(name string) {
-	l, ok := NamedLoggers[name]
+	l, ok := NamedLoggers.Load(name)
 	if ok {
-		delete(NamedLoggers, name)
+		NamedLoggers.Delete(name)
 		l.Close()
 	}
 }
 
 // DelLogger removes the named sublogger from the default logger
 func DelLogger(name string) error {
-	logger := NamedLoggers[DEFAULT]
+	logger, _ := NamedLoggers.Load(DEFAULT)
 	found, err := logger.DelLogger(name)
 	if !found {
 		Trace("Log %s not found, no need to delete", name)
@@ -60,22 +83,25 @@ func DelLogger(name string) error {
 }
 
 // GetLogger returns either a named logger or the default logger
-func GetLogger(name string) *Logger {
-	logger, ok := NamedLoggers[name]
+func GetLogger(name string) *MultiChannelledLogger {
+	logger, ok := NamedLoggers.Load(name)
 	if ok {
 		return logger
 	}
-	return NamedLoggers[DEFAULT]
+	logger, _ = NamedLoggers.Load(DEFAULT)
+	return logger
 }
 
 // GetLevel returns the minimum logger level
 func GetLevel() Level {
-	return NamedLoggers[DEFAULT].GetLevel()
+	l, _ := NamedLoggers.Load(DEFAULT)
+	return l.GetLevel()
 }
 
 // GetStacktraceLevel returns the minimum logger level
 func GetStacktraceLevel() Level {
-	return NamedLoggers[DEFAULT].GetStacktraceLevel()
+	l, _ := NamedLoggers.Load(DEFAULT)
+	return l.GetStacktraceLevel()
 }
 
 // Trace records trace log
@@ -167,20 +193,56 @@ func IsFatal() bool {
 	return GetLevel() <= FATAL
 }
 
+// Pause pauses all the loggers
+func Pause() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		logger.Pause()
+		logger.Flush()
+		return true
+	})
+}
+
+// Resume resumes all the loggers
+func Resume() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		logger.Resume()
+		return true
+	})
+}
+
+// ReleaseReopen releases and reopens logging files
+func ReleaseReopen() error {
+	var accumulatedErr error
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*MultiChannelledLogger)
+		if err := logger.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+			} else {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+			}
+		}
+		return true
+	})
+	return accumulatedErr
+}
+
 // Close closes all the loggers
 func Close() {
-	l, ok := NamedLoggers[DEFAULT]
+	l, ok := NamedLoggers.Load(DEFAULT)
 	if !ok {
 		return
 	}
-	delete(NamedLoggers, DEFAULT)
+	NamedLoggers.Delete(DEFAULT)
 	l.Close()
 }
 
 // Log a message with defined skip and at logging level
 // A skip of 0 refers to the caller of this command
 func Log(skip int, level Level, format string, v ...interface{}) {
-	l, ok := NamedLoggers[DEFAULT]
+	l, ok := NamedLoggers.Load(DEFAULT)
 	if ok {
 		l.Log(skip+1, level, format, v...)
 	}
@@ -188,14 +250,15 @@ func Log(skip int, level Level, format string, v ...interface{}) {
 
 // LoggerAsWriter is a io.Writer shim around the gitea log
 type LoggerAsWriter struct {
-	ourLoggers []*Logger
+	ourLoggers []*MultiChannelledLogger
 	level      Level
 }
 
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
-func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
+func NewLoggerAsWriter(level string, ourLoggers ...*MultiChannelledLogger) *LoggerAsWriter {
 	if len(ourLoggers) == 0 {
-		ourLoggers = []*Logger{NamedLoggers[DEFAULT]}
+		l, _ := NamedLoggers.Load(DEFAULT)
+		ourLoggers = []*MultiChannelledLogger{l}
 	}
 	l := &LoggerAsWriter{
 		ourLoggers: ourLoggers,

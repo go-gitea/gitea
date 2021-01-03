@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	REQ_MAGIC = 0x80
-	RES_MAGIC = 0x81
+	REQ_MAGIC      = 0x80
+	RES_MAGIC      = 0x81
+	FLEX_MAGIC     = 0x08
+	FLEX_RES_MAGIC = 0x18
 )
 
 // CommandCode for memcached packets.
@@ -72,6 +74,7 @@ const (
 	TAP_VBUCKET_SET      = CommandCode(0x45) // Sets state of vbucket in receiver (used in takeover)
 	TAP_CHECKPOINT_START = CommandCode(0x46) // Notifies start of new checkpoint
 	TAP_CHECKPOINT_END   = CommandCode(0x47) // Notifies end of checkpoint
+	GET_ALL_VB_SEQNOS    = CommandCode(0x48) // Get current high sequence numbers from all vbuckets located on the server
 
 	UPR_OPEN        = CommandCode(0x50) // Open a UPR connection with a name
 	UPR_ADDSTREAM   = CommandCode(0x51) // Sent by ebucketMigrator to UPR Consumer
@@ -93,49 +96,61 @@ const (
 	OBSERVE_SEQNO = CommandCode(0x91) // Sequence Number based Observe
 	OBSERVE       = CommandCode(0x92)
 
-	GET_META            = CommandCode(0xA0) // Get meta. returns with expiry, flags, cas etc
-	SUBDOC_GET          = CommandCode(0xc5) // Get subdoc. Returns with xattrs
-	SUBDOC_MULTI_LOOKUP = CommandCode(0xd0) // Multi lookup. Doc xattrs and meta.
+	GET_META                 = CommandCode(0xA0) // Get meta. returns with expiry, flags, cas etc
+	GET_COLLECTIONS_MANIFEST = CommandCode(0xba) // Get entire collections manifest.
+	COLLECTIONS_GET_CID      = CommandCode(0xbb) // Get collection id.
+	SUBDOC_GET               = CommandCode(0xc5) // Get subdoc. Returns with xattrs
+	SUBDOC_MULTI_LOOKUP      = CommandCode(0xd0) // Multi lookup. Doc xattrs and meta.
+
+	DCP_SYSTEM_EVENT = CommandCode(0x5f) // A system event has occurred
+	DCP_SEQNO_ADV    = CommandCode(0x64) // Sent when the vb seqno has advanced due to an unsubscribed event
 )
 
 // command codes that are counted toward DCP control buffer
 // when DCP clients receive DCP messages with these command codes, they need to provide acknowledgement
 var BufferedCommandCodeMap = map[CommandCode]bool{
-	SET_VBUCKET:    true,
-	UPR_STREAMEND:  true,
-	UPR_SNAPSHOT:   true,
-	UPR_MUTATION:   true,
-	UPR_DELETION:   true,
-	UPR_EXPIRATION: true}
+	SET_VBUCKET:      true,
+	UPR_STREAMEND:    true,
+	UPR_SNAPSHOT:     true,
+	UPR_MUTATION:     true,
+	UPR_DELETION:     true,
+	UPR_EXPIRATION:   true,
+	DCP_SYSTEM_EVENT: true,
+	DCP_SEQNO_ADV:    true,
+}
 
 // Status field for memcached response.
 type Status uint16
 
 // Matches with protocol_binary.h as source of truth
 const (
-	SUCCESS         = Status(0x00)
-	KEY_ENOENT      = Status(0x01)
-	KEY_EEXISTS     = Status(0x02)
-	E2BIG           = Status(0x03)
-	EINVAL          = Status(0x04)
-	NOT_STORED      = Status(0x05)
-	DELTA_BADVAL    = Status(0x06)
-	NOT_MY_VBUCKET  = Status(0x07)
-	NO_BUCKET       = Status(0x08)
-	LOCKED          = Status(0x09)
-	AUTH_STALE      = Status(0x1f)
-	AUTH_ERROR      = Status(0x20)
-	AUTH_CONTINUE   = Status(0x21)
-	ERANGE          = Status(0x22)
-	ROLLBACK        = Status(0x23)
-	EACCESS         = Status(0x24)
-	NOT_INITIALIZED = Status(0x25)
-	UNKNOWN_COMMAND = Status(0x81)
-	ENOMEM          = Status(0x82)
-	NOT_SUPPORTED   = Status(0x83)
-	EINTERNAL       = Status(0x84)
-	EBUSY           = Status(0x85)
-	TMPFAIL         = Status(0x86)
+	SUCCESS            = Status(0x00)
+	KEY_ENOENT         = Status(0x01)
+	KEY_EEXISTS        = Status(0x02)
+	E2BIG              = Status(0x03)
+	EINVAL             = Status(0x04)
+	NOT_STORED         = Status(0x05)
+	DELTA_BADVAL       = Status(0x06)
+	NOT_MY_VBUCKET     = Status(0x07)
+	NO_BUCKET          = Status(0x08)
+	LOCKED             = Status(0x09)
+	AUTH_STALE         = Status(0x1f)
+	AUTH_ERROR         = Status(0x20)
+	AUTH_CONTINUE      = Status(0x21)
+	ERANGE             = Status(0x22)
+	ROLLBACK           = Status(0x23)
+	EACCESS            = Status(0x24)
+	NOT_INITIALIZED    = Status(0x25)
+	UNKNOWN_COMMAND    = Status(0x81)
+	ENOMEM             = Status(0x82)
+	NOT_SUPPORTED      = Status(0x83)
+	EINTERNAL          = Status(0x84)
+	EBUSY              = Status(0x85)
+	TMPFAIL            = Status(0x86)
+	UNKNOWN_COLLECTION = Status(0x88)
+
+	SYNC_WRITE_IN_PROGRESS = Status(0xa2)
+	SYNC_WRITE_AMBIGUOUS   = Status(0xa3)
 
 	// SUBDOC
 	SUBDOC_PATH_NOT_FOUND             = Status(0xc0)
@@ -261,6 +276,10 @@ func init() {
 	CommandNames[UPR_CONTROL] = "UPR_CONTROL"
 	CommandNames[SUBDOC_GET] = "SUBDOC_GET"
 	CommandNames[SUBDOC_MULTI_LOOKUP] = "SUBDOC_MULTI_LOOKUP"
+	CommandNames[GET_COLLECTIONS_MANIFEST] = "GET_COLLECTIONS_MANIFEST"
+	CommandNames[COLLECTIONS_GET_CID] = "COLLECTIONS_GET_CID"
+	CommandNames[DCP_SYSTEM_EVENT] = "DCP_SYSTEM_EVENT"
+	CommandNames[DCP_SEQNO_ADV] = "DCP_SEQNO_ADV"
 
 	StatusNames = make(map[Status]string)
 	StatusNames[SUCCESS] = "SUCCESS"
@@ -285,6 +304,7 @@ func init() {
 	StatusNames[EINTERNAL] = "EINTERNAL"
 	StatusNames[EBUSY] = "EBUSY"
 	StatusNames[TMPFAIL] = "TMPFAIL"
+	StatusNames[UNKNOWN_COLLECTION] = "UNKNOWN_COLLECTION"
 	StatusNames[SUBDOC_PATH_NOT_FOUND] = "SUBDOC_PATH_NOT_FOUND"
 	StatusNames[SUBDOC_BAD_MULTI] = "SUBDOC_BAD_MULTI"
 

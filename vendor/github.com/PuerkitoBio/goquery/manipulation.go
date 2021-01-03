@@ -270,13 +270,14 @@ func (s *Selection) ReplaceWithNodes(ns ...*html.Node) *Selection {
 	return s.Remove()
 }
 
-// Set the html content of each element in the selection to specified html string.
+// SetHtml sets the html content of each element in the selection to
+// specified html string.
 func (s *Selection) SetHtml(html string) *Selection {
 	return setHtmlNodes(s, parseHtml(html)...)
 }
 
-// Set the content of each element in the selection to specified content. The
-// provided text string is escaped.
+// SetText sets the content of each element in the selection to specified content.
+// The provided text string is escaped.
 func (s *Selection) SetText(text string) *Selection {
 	return s.SetHtml(html.EscapeString(text))
 }

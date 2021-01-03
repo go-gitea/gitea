@@ -8,12 +8,15 @@ package migrations
 import (
 	"errors"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v32/github"
 )
 
 var (
 	// ErrNotSupported returns the error not supported
 	ErrNotSupported = errors.New("not supported")
+
+	// ErrRepoNotCreated returns the error that repository not created
+	ErrRepoNotCreated = errors.New("repository is not created yet")
 )
 
 // IsRateLimitError returns true if the err is github.RateLimitError

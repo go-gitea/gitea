@@ -56,6 +56,8 @@ func TestGetContents(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -64,13 +66,13 @@ func TestGetContents(t *testing.T) {
 	t.Run("Get README.md contents with GetContents()", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, ref, false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContents()", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, "", false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -82,6 +84,8 @@ func TestGetContentsOrListForDir(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "" // root dir
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -97,13 +101,13 @@ func TestGetContentsOrListForDir(t *testing.T) {
 	t.Run("Get root dir contents with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -115,6 +119,8 @@ func TestGetContentsOrListForFile(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -123,13 +129,13 @@ func TestGetContentsOrListForFile(t *testing.T) {
 	t.Run("Get README.md contents with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -141,6 +147,8 @@ func TestGetContentsErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	treePath := "README.md"
 	ref := repo.DefaultBranch
@@ -170,6 +178,8 @@ func TestGetContentsOrListErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	treePath := "README.md"
 	ref := repo.DefaultBranch
@@ -188,5 +198,23 @@ func TestGetContentsOrListErrors(t *testing.T) {
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 		assert.Nil(t, fileContentResponse)
+	})
+}
+
+func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo15")
+	ctx.SetParams(":id", "15")
+	test.LoadRepo(t, ctx, 15)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
+	repo := ctx.Repo.Repository
+
+	t.Run("empty repo", func(t *testing.T) {
+		contents, err := GetContentsOrList(repo, "", "")
+		assert.NoError(t, err)
+		assert.Empty(t, contents)
 	})
 }

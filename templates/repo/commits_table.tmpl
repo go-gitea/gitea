@@ -1,90 +1,34 @@
-<h4 class="ui top attached header">
-	<div class="ui stackable grid">
-		<div class="five wide column">
-			{{if or .PageIsCommits (gt .CommitCount 0)}}
-				{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
-			{{else}}
-				{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}({{.Branch}}){{end}}
-			{{end}}
-		</div>
-		<div class="eleven wide right aligned column">
-			{{if .PageIsCommits}}
-				<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL | EscapePound}}/search">
-					<div class="ui tiny search input">
-						<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
-					</div>
-					&nbsp;
-					<div class="ui checkbox">
-						<input type="checkbox" name="all" id="all" value="true" {{.All}}>
-						<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
-					</div>
-					<button class="ui black tiny button" data-panel="#add-deploy-key-panel" data-tooltip={{.i18n.Tr "repo.commits.search.tooltip"}}>{{.i18n.Tr "repo.commits.find"}}</button>
-				</form>
-			{{else if .IsDiffCompare}}
-				<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}<i class="octicon octicon-git-branch"></i>{{else if .BaseIsTag}}<i class="octicon octicon-tag"></i>{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
-				...
-				<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}<i class="octicon octicon-git-branch"></i>{{else if .HeadIsTag}}<i class="octicon octicon-tag"></i>{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
-			{{end}}
-		</div>
+<h4 class="ui top attached header commits-table df ac sb">
+	<div class="commits-table-left df ac">
+		{{if or .PageIsCommits (gt .CommitCount 0)}}
+			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
+		{{else}}
+			{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}({{.Branch}}){{end}}
+		{{end}}
+	</div>
+	<div class="commits-table-right df ac">
+		{{if .PageIsCommits}}
+			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL | EscapePound}}/search">
+				<div class="ui tiny search input">
+					<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+				</div>
+				&nbsp;
+				<div class="ui checkbox">
+					<input type="checkbox" name="all" id="all" value="true" {{.All}}>
+					<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
+				</div>
+				<button class="ui primary tiny button mr-0 poping up" data-panel="#add-deploy-key-panel" data-content={{.i18n.Tr "repo.commits.search.tooltip"}}>{{.i18n.Tr "repo.commits.find"}}</button>
+			</form>
+		{{else if .IsDiffCompare}}
+			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
+			...
+			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
+		{{end}}
 	</div>
 </h4>
 
 {{if and .Commits (gt .CommitCount 0)}}
-	<div class="ui attached table segment">
-		<table class="ui very basic striped fixed table single line" id="commits-table">
-			<thead>
-				<tr>
-					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
-					<th class="two wide sha">SHA1</th>
-					<th class="seven wide message">{{.i18n.Tr "repo.commits.message"}}</th>
-					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
-				</tr>
-			</thead>
-			<tbody class="commit-list">
-				{{ $r:= List .Commits}}
-				{{range $r}}
-					<tr>
-						<td class="author">
-							{{if .User}}
-							  {{if .User.FullName}}
-								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.User.FullName}}</a>
-							  {{else}}
-								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.Author.Name}}</a>
-							  {{end}}
-							{{else}}
-								<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{.Author.Name}}
-							{{end}}
-						</td>
-						<td class="sha">
-							<a rel="nofollow" class="ui sha label {{if .Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">
-								{{ShortSha .ID.String}}
-								{{if .Signature}}
-									<div class="ui detail icon button">
-										{{if .Verification.Verified}}
-											<i title="{{.Verification.Reason}}" class="lock green icon"></i>
-										{{else}}
-											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
-										{{end}}
-									</div>
-								{{end}}
-							</a>
-						</td>
-						<td class="message">
-							<span class="message-wrapper">
-								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
-								{{if IsMultilineCommitMessage .Message}}
-								<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
-								<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
-								{{end}}
-							</span>
-							{{template "repo/commit_status" .Status}}
-						</td>
-						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>
-					</tr>
-				{{end}}
-			</tbody>
-		</table>
-	</div>
+    {{template "repo/commits_list" .}}
 {{end}}
 
 {{template "base/paginate" .}}

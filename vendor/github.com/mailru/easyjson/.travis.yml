@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - tip
+  - stable
+
+matrix:
+  allow_failures:
+    - go: tip
+
+install:
+  - go get golang.org/x/lint/golint

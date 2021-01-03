@@ -10,19 +10,16 @@ import (
 	"fmt"
 	"html"
 	gotemplate "html/template"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 const (
@@ -90,7 +87,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -105,33 +102,28 @@ func RefBlame(ctx *context.Context) {
 	blob := entry.Blob()
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
 
 	ctx.Data["Paths"] = paths
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(entry.Name())
-	if !markup.IsReadmeFile(blob.Name()) {
-		ctx.Data["RequireHighlightJS"] = true
-	}
+
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 	ctx.Data["PageIsViewCode"] = true
 
 	ctx.Data["IsBlame"] = true
 
-	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
-	} else if !ctx.Repo.IsViewBranch {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
-	}
-
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	if err != nil {
+		ctx.NotFound("GetBlobLineCount", err)
+		return
+	}
+
+	blameReader, err := git.CreateBlameReader(ctx.Req.Context(), models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
@@ -184,6 +176,12 @@ func RefBlame(ctx *context.Context) {
 		commitNames[c.ID.String()] = c
 	}
 
+	// Get Topics of this repo
+	renderRepoTopics(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	renderBlame(ctx, blameParts, commitNames)
 
 	ctx.HTML(200, tplBlame)
@@ -211,17 +209,15 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			commit := commitNames[part.Sha]
 			if index == 0 {
 				// User avatar image
-				avatar := ""
-				commitSince := base.TimeSinceUnix(util.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+
+				var avatar string
 				if commit.User != nil {
-					authorName := commit.Author.Name
-					if len(commit.User.FullName) > 0 {
-						authorName = commit.User.FullName
-					}
-					avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(authorName))
+					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
 				} else {
-					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(base.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
+					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
+
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
@@ -229,16 +225,17 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 			//Line number
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d" class="bottom-line"></span>`, i, i))
 			} else {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d"></span>`, i, i))
 			}
 
-			//Code line
-			line = gotemplate.HTMLEscapeString(line)
 			if i != len(lines)-1 {
 				line += "\n"
 			}
+			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
+			line = highlight.Code(fileName, line)
+			line = `<code class="code-inner">` + line + `</code>`
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {

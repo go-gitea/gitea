@@ -9,54 +9,7 @@ import (
 	"io"
 	"sort"
 	"strings"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
-
-// EntryMode the type of the object in the git tree
-type EntryMode int
-
-// There are only a few file modes in Git. They look like unix file modes, but they can only be
-// one of these.
-const (
-	// EntryModeBlob
-	EntryModeBlob EntryMode = 0100644
-	// EntryModeExec
-	EntryModeExec EntryMode = 0100755
-	// EntryModeSymlink
-	EntryModeSymlink EntryMode = 0120000
-	// EntryModeCommit
-	EntryModeCommit EntryMode = 0160000
-	// EntryModeTree
-	EntryModeTree EntryMode = 0040000
-)
-
-// TreeEntry the leaf in the git tree
-type TreeEntry struct {
-	ID SHA1
-
-	gogitTreeEntry *object.TreeEntry
-	ptree          *Tree
-
-	size     int64
-	sized    bool
-	fullName string
-}
-
-// Name returns the name of the entry
-func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
-	return te.gogitTreeEntry.Name
-}
-
-// Mode returns the mode of the entry
-func (te *TreeEntry) Mode() EntryMode {
-	return EntryMode(te.gogitTreeEntry.Mode)
-}
 
 // Type returns the type of the entry (commit, tree, blob)
 func (te *TreeEntry) Type() string {
@@ -67,58 +20,6 @@ func (te *TreeEntry) Type() string {
 		return "tree"
 	default:
 		return "blob"
-	}
-}
-
-// Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
-	if te.IsDir() {
-		return 0
-	} else if te.sized {
-		return te.size
-	}
-
-	file, err := te.ptree.gogitTree.TreeEntryFile(te.gogitTreeEntry)
-	if err != nil {
-		return 0
-	}
-
-	te.sized = true
-	te.size = file.Size
-	return te.size
-}
-
-// IsSubModule if the entry is a sub module
-func (te *TreeEntry) IsSubModule() bool {
-	return te.gogitTreeEntry.Mode == filemode.Submodule
-}
-
-// IsDir if the entry is a sub dir
-func (te *TreeEntry) IsDir() bool {
-	return te.gogitTreeEntry.Mode == filemode.Dir
-}
-
-// IsLink if the entry is a symlink
-func (te *TreeEntry) IsLink() bool {
-	return te.gogitTreeEntry.Mode == filemode.Symlink
-}
-
-// IsRegular if the entry is a regular file
-func (te *TreeEntry) IsRegular() bool {
-	return te.gogitTreeEntry.Mode == filemode.Regular
-}
-
-// Blob returns the blob object the entry
-func (te *TreeEntry) Blob() *Blob {
-	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)
-	if err != nil {
-		return nil
-	}
-
-	return &Blob{
-		ID:              te.gogitTreeEntry.Hash,
-		gogitEncodedObj: encodedObj,
-		name:            te.Name(),
 	}
 }
 
@@ -160,6 +61,38 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 		return nil, err
 	}
 	return target, nil
+}
+
+// FollowLinks returns the entry ultimately pointed to by a symlink
+func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+	if !te.IsLink() {
+		return nil, ErrBadLink{te.Name(), "not a symlink"}
+	}
+	entry := te
+	for i := 0; i < 999; i++ {
+		if entry.IsLink() {
+			next, err := entry.FollowLink()
+			if err != nil {
+				return nil, err
+			}
+			if next.ID == entry.ID {
+				return nil, ErrBadLink{
+					entry.Name(),
+					"recursive link",
+				}
+			}
+			entry = next
+		} else {
+			break
+		}
+	}
+	if entry.IsLink() {
+		return nil, ErrBadLink{
+			te.Name(),
+			"too many levels of symbolic links",
+		}
+	}
+	return entry, nil
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
