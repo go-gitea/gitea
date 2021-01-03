@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -114,16 +115,28 @@ func ReplaceSanitizer() {
 	}
 }
 
+var scriptRE = regexp.MustCompile("<(/?script[ >])")
+var scriptRepl = "&lt;$1"
+
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
 func Sanitize(s string) string {
 	NewSanitizer()
+	s = scriptRE.ReplaceAllString(s, scriptRepl)
 	return sanitizer.policy.Sanitize(s)
 }
 
 // SanitizeReader sanitizes a Reader
+// FIXME: it should be possible without reading all of the bytes here.
 func SanitizeReader(r io.Reader) *bytes.Buffer {
 	NewSanitizer()
-	return sanitizer.policy.SanitizeReader(r)
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r)
+	if err != nil {
+		log.Error("Error reading from reader during sanitize: %v", err)
+	}
+	bs := scriptRE.ReplaceAll(buf.Bytes(), []byte(scriptRepl))
+
+	return sanitizer.policy.SanitizeReader(bytes.NewReader(bs))
 }
 
 // SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
@@ -133,5 +146,6 @@ func SanitizeBytes(b []byte) []byte {
 		return b
 	}
 	NewSanitizer()
+	b = scriptRE.ReplaceAll(b, []byte(scriptRepl))
 	return sanitizer.policy.SanitizeBytes(b)
 }
