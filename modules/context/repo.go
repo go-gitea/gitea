@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
@@ -168,6 +169,18 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	}
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
 		return r.Commit.CommitsCount()
+	})
+}
+
+// GetCommitGraphsCount returns cached commit count for current view
+func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, files []string) (int64, error) {
+	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
+
+	return cache.GetInt64(cacheKey, func() (int64, error) {
+		if len(branches) == 0 {
+			return git.AllCommitsCount(r.Repository.RepoPath(), hidePRRefs, files...)
+		}
+		return git.CommitsCountFiles(r.Repository.RepoPath(), branches, files)
 	})
 }
 
@@ -449,10 +462,14 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-			IncludeDrafts: false,
-			IncludeTags:   true,
+		ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeTags: true,
 		})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID", err)
+			return
+		}
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
 		if err != nil {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
@@ -656,8 +673,11 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
-			return refName
+		// For legacy and API support only full commit sha
+		parts := strings.Split(path, "/")
+		if len(parts) > 0 && len(parts[0]) == 40 {
+			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			return parts[0]
 		}
 		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
 			return refName
@@ -670,7 +690,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -700,7 +720,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			err     error
 		)
 
-		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
@@ -763,14 +782,19 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) == 40 {
+			} else if len(refName) >= 7 && len(refName) <= 40 {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 				if err != nil {
-					ctx.NotFound("GetCommit", nil)
+					ctx.NotFound("GetCommit", err)
 					return
+				}
+				// If short commit ID add canonical link header
+				if len(refName) < 40 {
+					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))

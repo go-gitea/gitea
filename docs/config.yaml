@@ -18,7 +18,7 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.12.5
+  version: 1.13.1
   minGoVersion: 1.13
   goVersion: 1.15
   minNodeVersion: 10.13
@@ -48,10 +48,10 @@ menu:
       url: https://blog.gitea.io/
       weight: 30
       pre: rss
-    - name: Code
-      url: https://code.gitea.io/
+    - name: Shop
+      url: https://shop.gitea.io/
       weight: 40
-      pre: code
+      pre: shopping-cart
     - name: Translation
       url: https://crowdin.com/project/gitea
       weight: 41

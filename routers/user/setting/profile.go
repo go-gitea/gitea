@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/i18n"
 )
@@ -91,11 +92,17 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	ctx.User.FullName = form.FullName
-	ctx.User.Email = form.Email
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
-	ctx.User.Language = form.Language
+	if len(form.Language) != 0 {
+		if !util.IsStringInSlice(form.Language, setting.Langs) {
+			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
+		ctx.User.Language = form.Language
+	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
@@ -228,6 +235,9 @@ func Repos(ctx *context.Context) {
 		root := filepath.Join(models.UserPath(ctxUser.Name))
 		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
 				return err
 			}
 			if !info.IsDir() || path == root {

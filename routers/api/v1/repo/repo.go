@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,6 +69,11 @@ func Search(ctx *context.APIContext) {
 	// - name: priority_owner_id
 	//   in: query
 	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
+	// - name: team_id
+	//   in: query
+	//   description: search only for repos that belong to the given team id
 	//   type: integer
 	//   format: int64
 	// - name: starredBy
@@ -130,6 +137,7 @@ func Search(ctx *context.APIContext) {
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
+		TeamID:             ctx.QueryInt64("team_id"),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
@@ -217,7 +225,7 @@ func Search(ctx *context.APIContext) {
 				Error: err.Error(),
 			})
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
@@ -265,7 +273,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -406,7 +414,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -445,7 +453,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -494,7 +502,13 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	if opts.MirrorInterval != nil {
+		if err := updateMirrorInterval(ctx, opts); err != nil {
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
@@ -771,6 +785,38 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				return err
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		}
+	}
+	return nil
+}
+
+// updateMirrorInterval updates the repo's mirror Interval
+func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) error {
+	repo := ctx.Repo.Repository
+
+	if opts.MirrorInterval != nil {
+		if !repo.IsMirror {
+			err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
+			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			return err
+		}
+		if err := repo.GetMirror(); err != nil {
+			log.Error("Failed to get mirror: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+			return err
+		}
+		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
+			repo.Mirror.Interval = interval
+			if err := models.UpdateMirror(repo.Mirror); err != nil {
+				log.Error("Failed to Set Mirror Interval: %s", err)
+				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+				return err
+			}
+			log.Trace("Repository %s/%s Mirror Interval was Updated to %s", ctx.Repo.Owner.Name, repo.Name, interval)
+		} else {
+			log.Error("Wrong format for MirrorInternal Sent: %s", err)
+			ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+			return err
 		}
 	}
 	return nil

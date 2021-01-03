@@ -1,9 +1,9 @@
 kind: pipeline
-name: golang-1-1
+name: golang-1-14
 
 steps:
 - name: test
-  image: golang:1.11
+  image: golang:1.14
   environment:
       GOPROXY: https://goproxy.cn
   commands:
@@ -12,11 +12,11 @@ steps:
 
 ---
 kind: pipeline
-name: golang-1-2
+name: golang-1-15
 
 steps:
 - name: test
-  image: golang:1.12
+  image: golang:1.15
   environment:
       GOPROXY: https://goproxy.cn
   commands:

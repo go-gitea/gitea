@@ -57,7 +57,12 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment)
+		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -122,41 +127,76 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	}
 	defer gitRepo.Close()
 
-	// FIXME validate treePath
-	// Get latest commit referencing the commented line
-	// No need for get commit for base branch changes
+	invalidated := false
+	head := pr.GetGitRefName()
 	if line > 0 {
-		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err == nil {
-			commitID = commit.ID.String()
-		} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+		if reviewID != 0 {
+			first, err := models.FindComments(models.FindCommentsOptions{
+				ReviewID: reviewID,
+				Line:     line,
+				TreePath: treePath,
+				Type:     models.CommentTypeCode,
+				ListOptions: models.ListOptions{
+					PageSize: 1,
+					Page:     1,
+				},
+			})
+			if err == nil && len(first) > 0 {
+				commitID = first[0].CommitSHA
+				invalidated = first[0].Invalidated
+				patch = first[0].Patch
+			} else if err != nil && !models.IsErrCommentNotExist(err) {
+				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %v", reviewID, line, treePath, err)
+			} else {
+				review, err := models.GetReviewByID(reviewID)
+				if err == nil && len(review.CommitID) > 0 {
+					head = review.CommitID
+				} else if err != nil && !models.IsErrReviewNotExist(err) {
+					return nil, fmt.Errorf("GetReviewByID %d. Error: %v", reviewID, err)
+				}
+			}
+		}
+
+		if len(commitID) == 0 {
+			// FIXME validate treePath
+			// Get latest commit referencing the commented line
+			// No need for get commit for base branch changes
+			commit, err := gitRepo.LineBlame(head, gitRepo.Path, treePath, uint(line))
+			if err == nil {
+				commitID = commit.ID.String()
+			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+			}
 		}
 	}
 
 	// Only fetch diff if comment is review comment
-	if reviewID != 0 {
+	if len(patch) == 0 && reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
+		if len(commitID) == 0 {
+			commitID = headCommitID
+		}
 		patchBuf := new(bytes.Buffer)
 		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
+			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err)
 		}
 		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return models.CreateComment(&models.CreateCommentOptions{
-		Type:      models.CommentTypeCode,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		Content:   content,
-		LineNum:   line,
-		TreePath:  treePath,
-		CommitSHA: commitID,
-		ReviewID:  reviewID,
-		Patch:     patch,
+		Type:        models.CommentTypeCode,
+		Doer:        doer,
+		Repo:        repo,
+		Issue:       issue,
+		Content:     content,
+		LineNum:     line,
+		TreePath:    treePath,
+		CommitSHA:   commitID,
+		ReviewID:    reviewID,
+		Patch:       patch,
+		Invalidated: invalidated,
 	})
 }
 
@@ -191,7 +231,25 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm)
+	ctx := models.DefaultDBContext()
+	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, codeComment := range comments {
+				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				if err != nil {
+					return nil, nil, err
+				}
+				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+			}
+		}
+	}
 
 	return review, comm, nil
 }

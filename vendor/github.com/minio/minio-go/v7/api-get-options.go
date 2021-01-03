@@ -25,12 +25,19 @@ import (
 	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
+//AdvancedGetOptions for internal use by MinIO server - not intended for client use.
+type AdvancedGetOptions struct {
+	ReplicationDeleteMarker bool
+}
+
 // GetObjectOptions are used to specify additional headers or options
 // during GET requests.
 type GetObjectOptions struct {
 	headers              map[string]string
 	ServerSideEncryption encrypt.ServerSide
 	VersionID            string
+	// To be not used by external applications
+	Internal AdvancedGetOptions
 }
 
 // StatObjectOptions are used to specify additional headers or options

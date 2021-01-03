@@ -66,16 +66,16 @@ type STSWebIdentity struct {
 	// Required http Client to use when connecting to MinIO STS service.
 	Client *http.Client
 
-	// MinIO endpoint to fetch STS credentials.
-	stsEndpoint string
+	// Exported STS endpoint to fetch STS credentials.
+	STSEndpoint string
 
-	// getWebIDTokenExpiry function which returns ID tokens
-	// from IDP. This function should return two values one
-	// is ID token which is a self contained ID token (JWT)
+	// Exported GetWebIDTokenExpiry function which returns ID
+	// tokens from IDP. This function should return two values
+	// one is ID token which is a self contained ID token (JWT)
 	// and second return value is the expiry associated with
 	// this token.
 	// This is a customer provided function and is mandatory.
-	getWebIDTokenExpiry func() (*WebIdentityToken, error)
+	GetWebIDTokenExpiry func() (*WebIdentityToken, error)
 
 	// roleARN is the Amazon Resource Name (ARN) of the role that the caller is
 	// assuming.
@@ -98,8 +98,8 @@ func NewSTSWebIdentity(stsEndpoint string, getWebIDTokenExpiry func() (*WebIdent
 		Client: &http.Client{
 			Transport: http.DefaultTransport,
 		},
-		stsEndpoint:         stsEndpoint,
-		getWebIDTokenExpiry: getWebIDTokenExpiry,
+		STSEndpoint:         stsEndpoint,
+		GetWebIDTokenExpiry: getWebIDTokenExpiry,
 	}), nil
 }
 
@@ -124,7 +124,7 @@ func getWebIdentityCredentials(clnt *http.Client, endpoint, roleARN, roleSession
 	if idToken.Expiry > 0 {
 		v.Set("DurationSeconds", fmt.Sprintf("%d", idToken.Expiry))
 	}
-	v.Set("Version", "2011-06-15")
+	v.Set("Version", STSVersion)
 
 	u, err := url.Parse(endpoint)
 	if err != nil {
@@ -159,7 +159,7 @@ func getWebIdentityCredentials(clnt *http.Client, endpoint, roleARN, roleSession
 // Retrieve retrieves credentials from the MinIO service.
 // Error will be returned if the request fails.
 func (m *STSWebIdentity) Retrieve() (Value, error) {
-	a, err := getWebIdentityCredentials(m.Client, m.stsEndpoint, m.roleARN, m.roleSessionName, m.getWebIDTokenExpiry)
+	a, err := getWebIdentityCredentials(m.Client, m.STSEndpoint, m.roleARN, m.roleSessionName, m.GetWebIDTokenExpiry)
 	if err != nil {
 		return Value{}, err
 	}

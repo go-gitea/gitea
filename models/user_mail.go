@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,6 +31,21 @@ type EmailAddress struct {
 	Email       string `xorm:"UNIQUE NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"-"`
+}
+
+// ValidateEmail check if email is a allowed address
+func ValidateEmail(email string) error {
+	if len(email) == 0 {
+		return nil
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrEmailInvalid{email}
+	}
+
+	// TODO: add an email allow/block list
+
+	return nil
 }
 
 // GetEmailAddresses returns all email addresses belongs to given user.
@@ -143,6 +159,10 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 		return ErrEmailAlreadyUsed{email.Email}
 	}
 
+	if err = ValidateEmail(email.Email); err != nil {
+		return err
+	}
+
 	_, err = e.Insert(email)
 	return err
 }
@@ -166,6 +186,9 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 			return err
 		} else if used {
 			return ErrEmailAlreadyUsed{emails[i].Email}
+		}
+		if err = ValidateEmail(emails[i].Email); err != nil {
+			return err
 		}
 	}
 

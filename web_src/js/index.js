@@ -1,5 +1,4 @@
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
-/* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
 
@@ -12,7 +11,7 @@ import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
-import initUserHeatmap from './features/userheatmap.js';
+import initHeatmap from './features/heatmap.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
@@ -23,7 +22,7 @@ import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createCodeEditor} from './features/codeeditor.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 import {stripTags} from './utils.js';
 
@@ -112,10 +111,15 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
+  const $isNewIssue = $branchMenu.hasClass('new-issue');
   $branchMenu.find('.item:not(.no-select)').click(function () {
     const selectedValue = $(this).data('id');
     const editMode = $('#editing_mode').val();
     $($(this).data('id-selector')).val(selectedValue);
+    if ($isNewIssue) {
+      $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+      return;
+    }
 
     if (editMode === 'true') {
       const form = $('#update_issueref_form');
@@ -205,24 +209,22 @@ function initRepoStatusChecker() {
         _csrf: csrf,
       },
       complete(xhr) {
-        if (xhr.status === 200) {
-          if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 4) {
-              window.location.reload();
-              return;
-            } else if (xhr.responseJSON.status === 3) {
-              $('#repo_migrating_progress').hide();
-              $('#repo_migrating').hide();
-              $('#repo_migrating_failed').show();
-              $('#repo_migrating_failed_image').show();
-              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
-              return;
-            }
-            setTimeout(() => {
-              initRepoStatusChecker();
-            }, 2000);
+        if (xhr.status === 200 && xhr.responseJSON) {
+          if (xhr.responseJSON.status === 4) {
+            window.location.reload();
+            return;
+          } else if (xhr.responseJSON.status === 3) {
+            $('#repo_migrating_progress').hide();
+            $('#repo_migrating').hide();
+            $('#repo_migrating_failed').show();
+            $('#repo_migrating_failed_image').show();
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
             return;
           }
+          setTimeout(() => {
+            initRepoStatusChecker();
+          }, 2000);
+          return;
         }
         $('#repo_migrating_progress').hide();
         $('#repo_migrating').hide();
@@ -305,42 +307,32 @@ function replaceAndKeepCursor(field, oldval, newval) {
   }
 }
 
-function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
-  if (!pasteEvent.clipboardData) {
-    return;
+function getPastedImages(e) {
+  if (!e.clipboardData) return [];
+
+  const files = [];
+  for (const item of e.clipboardData.items || []) {
+    if (!item.type || !item.type.startsWith('image/')) continue;
+    files.push(item.getAsFile());
   }
 
-  const {items} = pasteEvent.clipboardData;
-  if (typeof items === 'undefined') {
-    return;
+  if (files.length) {
+    e.preventDefault();
+    e.stopPropagation();
   }
-
-  for (let i = 0; i < items.length; i++) {
-    if (!items[i].type.includes('image')) continue;
-    const blob = items[i].getAsFile();
-
-    if (typeof (callback) === 'function') {
-      pasteEvent.preventDefault();
-      pasteEvent.stopPropagation();
-      callback(blob);
-    }
-  }
+  return files;
 }
 
-function uploadFile(file, callback) {
-  const xhr = new XMLHttpRequest();
-
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      callback(xhr.responseText);
-    }
-  });
-
-  xhr.open('post', $('#dropzone').data('upload-url'), true);
-  xhr.setRequestHeader('X-Csrf-Token', csrf);
+async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file, file.name);
-  xhr.send(formData);
+
+  const res = await fetch($('#dropzone').data('upload-url'), {
+    method: 'POST',
+    headers: {'X-Csrf-Token': csrf},
+    body: formData,
+  });
+  return await res.json();
 }
 
 function reload() {
@@ -350,33 +342,29 @@ function reload() {
 function initImagePaste(target) {
   target.each(function () {
     const field = this;
-    field.addEventListener('paste', (event) => {
-      retrieveImageFromClipboardAsBlob(event, (img) => {
+    field.addEventListener('paste', async (e) => {
+      for (const img of getPastedImages(e)) {
         const name = img.name.substr(0, img.name.lastIndexOf('.'));
         insertAtCursor(field, `![${name}]()`);
-        uploadFile(img, (res) => {
-          const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
-        });
-      });
+        const data = await uploadFile(img);
+        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $('.files').append(input);
+      }
     }, false);
   });
 }
 
 function initSimpleMDEImagePaste(simplemde, files) {
-  simplemde.codemirror.on('paste', (_, event) => {
-    retrieveImageFromClipboardAsBlob(event, (img) => {
+  simplemde.codemirror.on('paste', async (_, e) => {
+    for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      uploadFile(img, (res) => {
-        const data = JSON.parse(res);
-        const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        files.append(input);
-      });
-    });
+      const data = await uploadFile(img);
+      const pos = simplemde.codemirror.getCursor();
+      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+      files.append(input);
+    }
   });
 }
 
@@ -531,20 +519,23 @@ function initCommentForm() {
           $(this).data('id'),
         ).then(reload);
       }
-      switch (input_id) {
-        case '#milestone_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#project_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEscape($(this).text())}</a>`);
-          break;
-        case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
-                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEscape($(this).text())}</a>`);
+
+      let icon = '';
+      if (input_id === '#milestone_id') {
+        icon = svg('octicon-milestone', 18, 'mr-3');
+      } else if (input_id === '#project_id') {
+        icon = svg('octicon-project', 18, 'mr-3');
+      } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
+
+      $list.find('.selected').html(`
+        <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
+          ${icon}
+          ${htmlEscape($(this).text())}
+        </a>
+      `);
+
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
@@ -704,6 +695,54 @@ function initIssueComments() {
   });
 }
 
+function getArchive($target, url, first) {
+  $.ajax({
+    url,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          // XXX Shouldn't happen?
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (!xhr.responseJSON.complete) {
+          $target.closest('.dropdown').children('i').addClass('loading');
+          // Wait for only three quarters of a second initially, in case it's
+          // quickly archived.
+          setTimeout(() => {
+            getArchive($target, url, false);
+          }, first ? 750 : 2000);
+        } else {
+          // We don't need to continue checking.
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          window.location.href = url;
+        }
+      }
+    }
+  });
+}
+
+function initArchiveLinks() {
+  if ($('.archive-link').length === 0) {
+    return;
+  }
+
+  $('.archive-link').on('click', function (event) {
+    const url = $(this).data('url');
+    if (typeof url === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    getArchive($(event.target), url, true);
+  });
+}
+
 async function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -722,6 +761,15 @@ async function initRepository() {
       message: {noResults: $dropdown.data('no-results')}
     });
   }
+
+  // Commit statuses
+  $('.commit-statuses-trigger').each(function () {
+    $(this)
+      .popup({
+        on: 'click',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+      });
+  });
 
   // File list and commits
   if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
@@ -792,6 +840,7 @@ async function initRepository() {
       $('#pull-desc').toggle();
       $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
+      $('#issue-title-wrapper').toggleClass('edit-active');
       $editInput.focus();
       return false;
     };
@@ -863,25 +912,23 @@ async function initRepository() {
       const target = $(this).data('target');
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
       const content = `> ${quote}\n\n`;
-
-      let $content;
+      let $simplemde = autoSimpleMDE;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').trigger('click');
-        $content = $parent.find('[name="content"]');
-        if ($content.val() !== '') {
-          $content.val(`${$content.val()}\n\n${content}`);
+        $simplemde = $parent.find('[name="content"]').data('simplemde');
+      }
+      if ($simplemde !== null) {
+        if ($simplemde.value() !== '') {
+          $simplemde.value(`${$simplemde.value()}\n\n${content}`);
         } else {
-          $content.val(`${content}`);
-        }
-        $content.focus();
-      } else if (autoSimpleMDE !== null) {
-        if (autoSimpleMDE.value() !== '') {
-          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
-        } else {
-          autoSimpleMDE.value(`${content}`);
+          $simplemde.value(`${content}`);
         }
       }
+      requestAnimationFrame(() => {
+        $simplemde.codemirror.focus();
+        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+      });
       event.preventDefault();
     });
 
@@ -1013,17 +1060,14 @@ async function initRepository() {
               if (data.attachments !== '') {
                 $content.append(`
                   <div class="dropzone-attachments">
-                    <div class="ui clearing divider"></div>
-                    <div class="ui middle aligned padded grid">
-                    </div>
                   </div>
                 `);
-                $content.find('.dropzone-attachments .grid').html(data.attachments);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
               $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.dropzone-attachments .grid').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
             if (dz) {
               dz.emit('submit');
@@ -1044,8 +1088,10 @@ async function initRepository() {
         $textarea.val($rawContent.text());
         $simplemde.value($rawContent.text());
       }
-      $textarea.focus();
-      $simplemde.codemirror.focus();
+      requestAnimationFrame(() => {
+        $textarea.focus();
+        $simplemde.codemirror.focus();
+      });
       event.preventDefault();
     });
 
@@ -1056,7 +1102,11 @@ async function initRepository() {
         $.post($this.data('url'), {
           _csrf: csrf
         }).done(() => {
+          const $conversationHolder = $this.closest('.conversation-holder');
           $(`#${$this.data('comment-id')}`).remove();
+          if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
+            $conversationHolder.remove();
+          }
         });
       }
       return false;
@@ -1082,6 +1132,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1095,35 +1147,25 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
-  }
-
-  // Diff
-  if ($('.repository.diff').length > 0) {
-    $('.diff-counter').each(function () {
-      const $item = $(this);
-      const addLine = $item.find('span[data-line].add').data('line');
-      const delLine = $item.find('span[data-line].del').data('line');
-      const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-      $item.find('.bar .add').css('width', `${addPercent}%`);
-    });
   }
 
   // Quick start and repository home
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-https').removeClass('blue');
+    $(this).addClass('primary');
+    $('#repo-clone-https').removeClass('primary');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
   $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
+    $(this).addClass('primary');
     if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('blue');
+      $('#repo-clone-ssh').removeClass('primary');
       localStorage.setItem('repo-clone-protocol', 'https');
     }
   });
@@ -1170,7 +1212,29 @@ async function initRepository() {
   }
 }
 
+function initPullRequestMergeInstruction() {
+  $('.show-instruction').on('click', () => {
+    $('.instruct-content').toggle();
+  });
+}
+
 function initPullRequestReview() {
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      if (groupID && groupID.startsWith('code-comments-')) {
+        const id = groupID.substr(14);
+        $(`#show-outdated-${id}`).addClass('hide');
+        $(`#code-comments-${id}`).removeClass('hide');
+        $(`#code-preview-${id}`).removeClass('hide');
+        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(window).scrollTop(commentDiv.offset().top);
+      }
+    }
+  }
+
   $('.show-outdated').on('click', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
@@ -1215,22 +1279,11 @@ function initPullRequestReview() {
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
-  }).closest('.dropdown').find('.link.close')
-    .on('click', function (e) {
-      e.preventDefault();
-      $(this).closest('.menu').toggle('visible');
-    });
+  }).closest('.dropdown').find('.close').on('click', function (e) {
+    e.preventDefault();
+    $(this).closest('.menu').toggle('visible');
+  });
 
-  $('.code-view .lines-code,.code-view .lines-num')
-    .on('mouseenter', function () {
-      const parent = $(this).closest('td');
-      $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
-      );
-    })
-    .on('mouseleave', function () {
-      $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
-    });
   $('.add-code-comment').on('click', function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
@@ -1575,16 +1628,12 @@ async function initEditor() {
     let value;
     let parts;
 
-    if (e.keyCode === 8) {
-      if ($(this).getCursorPosition() === 0) {
-        if ($section.length > 0) {
-          value = $section.last().find('a').text();
-          $(this).val(value + $(this).val());
-          $(this)[0].setSelectionRange(value.length, value.length);
-          $section.last().remove();
-          $divider.last().remove();
-        }
-      }
+    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length > 0) {
+      value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      $(this)[0].setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
     }
     if (e.keyCode === 191) {
       parts = $(this).val().split('/');
@@ -1691,15 +1740,10 @@ function initUserSettings() {
   }
 }
 
-function initGithook() {
-  if ($('.edit.githook').length === 0) {
-    return;
-  }
-
-  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
-    lineNumbers: true,
-    mode: 'shell'
-  }), 'shell');
+async function initGithook() {
+  if ($('.edit.githook').length === 0) return;
+  const filename = document.querySelector('.hook-filename').textContent;
+  await createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 function initWebhook() {
@@ -1787,16 +1831,19 @@ function initAdmin() {
     }
   }
 
-  function onOAuth2Change() {
+  function onOAuth2Change(applyDefaultValues) {
     $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
     $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'github':
-      case 'gitlab':
       case 'gitea':
       case 'nextcloud':
+      case 'mastodon':
+        $('#oauth2_use_custom_url').attr('checked', 'checked');
+        // fallthrough intentional
+      case 'github':
+      case 'gitlab':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1804,19 +1851,21 @@ function initAdmin() {
         $('.open_id_connect_auto_discovery_url').show();
         break;
     }
-    onOAuth2UseCustomURLChange();
+    onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange() {
+  function onOAuth2UseCustomURLChange(applyDefaultValues) {
     const provider = $('#oauth2_provider').val();
     $('.oauth2_use_custom_url_field').hide();
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      if (applyDefaultValues) {
+        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      }
 
       switch (provider) {
         case 'github':
@@ -1829,6 +1878,10 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
+          break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
           break;
       }
     }
@@ -1873,7 +1926,7 @@ function initAdmin() {
         case '6': // OAuth2
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
-          onOAuth2Change();
+          onOAuth2Change(true);
           break;
         case '7': // SSPI
           $('.sspi').show();
@@ -1891,8 +1944,8 @@ function initAdmin() {
     $('#auth_type').trigger('change');
     $('#security_protocol').on('change', onSecurityProtocolChange);
     $('#use_paged_search').on('change', onUsePagedSearchChange);
-    $('#oauth2_provider').on('change', onOAuth2Change);
-    $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+    $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
     $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
@@ -1906,9 +1959,9 @@ function initAdmin() {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').on('change', onOAuth2Change);
-      $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
-      onOAuth2Change();
+      $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+      $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(false));
+      onOAuth2Change(false);
     }
   }
 
@@ -2085,6 +2138,7 @@ function initCodeView() {
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
@@ -2464,13 +2518,13 @@ $(document).ready(async () => {
   initMarkdownAnchors();
   initCommentForm();
   initInstall();
+  initArchiveLinks();
   initRepository();
   initMigration();
   initWikiForm();
   initEditForm();
   initEditor();
   initOrganization();
-  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
@@ -2482,6 +2536,8 @@ $(document).ready(async () => {
   initU2FAuth();
   initU2FRegister();
   initIssueList();
+  initIssueTimetracking();
+  initIssueDue();
   initWipTitle();
   initPullRequestReview();
   initRepoStatusChecker();
@@ -2489,22 +2545,7 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
-
-  // Repo clone url.
-  if ($('#repo-clone-url').length > 0) {
-    switch (localStorage.getItem('repo-clone-protocol')) {
-      case 'ssh':
-        if ($('#repo-clone-ssh').length > 0) {
-          $('#repo-clone-ssh').trigger('click');
-        } else {
-          $('#repo-clone-https').trigger('click');
-        }
-        break;
-      default:
-        $('#repo-clone-https').trigger('click');
-        break;
-    }
-  }
+  initPullRequestMergeInstruction();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -2523,11 +2564,12 @@ $(document).ready(async () => {
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
-    initUserHeatmap(),
+    initHeatmap(),
     initProject(),
     initServiceWorker(),
     initNotificationCount(),
     renderMarkdownContent(),
+    initGithook(),
   ]);
 });
 
@@ -2689,7 +2731,15 @@ function initVueComponents() {
       .replace(/height="[0-9]+"/, 'v-bind:height="size"')
       .replace(/width="[0-9]+"/, 'v-bind:width="size"');
 
-    Vue.component(name, {props: ['size'], template});
+    Vue.component(name, {
+      props: {
+        size: {
+          type: String,
+          default: '16',
+        },
+      },
+      template,
+    });
   }
 
   const vueDelimeters = ['${', '}'];
@@ -2710,9 +2760,14 @@ function initVueComponents() {
         type: Number,
         required: true
       },
+      teamId: {
+        type: Number,
+        required: false,
+        default: 0
+      },
       organizations: {
         type: Array,
-        default: []
+        default: () => [],
       },
       isOrganization: {
         type: Boolean,
@@ -2808,7 +2863,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
+        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -2989,7 +3044,7 @@ function initVueComponents() {
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
             self.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
@@ -3052,36 +3107,38 @@ function initVueApp() {
   initVueComponents();
 
   new Vue({
-    delimiters: ['${', '}'],
     el,
-    data: {
-      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
-      suburl: AppSubUrl,
-      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
-      activityTopAuthors: window.ActivityTopAuthors || [],
-    },
+    delimiters: ['${', '}'],
     components: {
       ActivityTopAuthors,
+    },
+    data: () => {
+      return {
+        searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+        suburl: AppSubUrl,
+        uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+        activityTopAuthors: window.ActivityTopAuthors || [],
+      };
     },
   });
 }
 
-window.timeAddManual = function () {
-  $('.mini.modal')
-    .modal({
+function initIssueTimetracking() {
+  $(document).on('click', '.issue-add-time', () => {
+    $('.mini.modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
-};
-
-window.toggleStopwatch = function () {
-  $('#toggle_stopwatch_form').trigger('submit');
-};
-window.cancelStopwatch = function () {
-  $('#cancel_stopwatch_form').trigger('submit');
-};
+  });
+  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
+    $('#toggle_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', '.issue-cancel-time', () => {
+    $('#cancel_stopwatch_form').trigger('submit');
+  });
+}
 
 function initFilterBranchTagDropdown(selector) {
   $(selector).each(function () {
@@ -3107,24 +3164,30 @@ function initFilterBranchTagDropdown(selector) {
     });
     $data.remove();
     new Vue({
-      delimiters: ['${', '}'],
       el: this,
+      delimiters: ['${', '}'],
       data,
+      computed: {
+        filteredItems() {
+          const items = this.items.filter((item) => {
+            return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+              (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          });
 
-      beforeMount() {
-        const vm = this;
-
-        this.noResults = vm.$el.getAttribute('data-no-results');
-        this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
-
-        document.body.addEventListener('click', (event) => {
-          if (vm.$el.contains(event.target)) {
-            return;
+          // no idea how to fix this so linting rule is disabled instead
+          this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1); // eslint-disable-line vue/no-side-effects-in-computed-properties
+          return items;
+        },
+        showNoResults() {
+          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+        },
+        showCreateNewBranch() {
+          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+            return false;
           }
-          if (vm.menuVisible) {
-            Vue.set(vm, 'menuVisible', false);
-          }
-        });
+
+          return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+        }
       },
 
       watch: {
@@ -3135,30 +3198,16 @@ function initFilterBranchTagDropdown(selector) {
         }
       },
 
-      computed: {
-        filteredItems() {
-          const vm = this;
+      beforeMount() {
+        this.noResults = this.$el.getAttribute('data-no-results');
+        this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
 
-          const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
-              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
-          });
-
-          vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
-
-          return items;
-        },
-        showNoResults() {
-          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
-        },
-        showCreateNewBranch() {
-          const vm = this;
-          if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
-            return false;
+        document.body.addEventListener('click', (event) => {
+          if (this.$el.contains(event.target)) return;
+          if (this.menuVisible) {
+            Vue.set(this, 'menuVisible', false);
           }
-
-          return vm.items.filter((item) => item.name.toLowerCase() === vm.searchTerm.toLowerCase()).length === 0;
-        }
+        });
       },
 
       methods: {
@@ -3171,15 +3220,12 @@ function initFilterBranchTagDropdown(selector) {
           window.location.href = item.url;
         },
         createNewBranch() {
-          if (!this.showCreateNewBranch) {
-            return;
-          }
+          if (!this.showCreateNewBranch) return;
           $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
-          const vm = this;
           Vue.nextTick(() => {
-            vm.$refs.searchField.focus();
+            this.$refs.searchField.focus();
           });
         },
         getSelected() {
@@ -3196,15 +3242,12 @@ function initFilterBranchTagDropdown(selector) {
         },
         scrollToActive() {
           let el = this.$refs[`listItem${this.active}`];
-          if (!el || el.length === 0) {
-            return;
-          }
+          if (!el || !el.length) return;
           if (Array.isArray(el)) {
             el = el[0];
           }
 
           const cont = this.$refs.scrollContainer;
-
           if (el.offsetTop < cont.scrollTop) {
             cont.scrollTop = el.offsetTop;
           } else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
@@ -3212,49 +3255,41 @@ function initFilterBranchTagDropdown(selector) {
           }
         },
         keydown(event) {
-          const vm = this;
-          if (event.keyCode === 40) {
-            // arrow down
+          if (event.keyCode === 40) { // arrow down
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+            if (this.active + (this.showCreateNewBranch ? 0 : 1) >= this.filteredItems.length) {
               return;
             }
-            vm.active++;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 38) {
-            // arrow up
+            this.active++;
+            this.scrollToActive();
+          } else if (event.keyCode === 38) { // arrow up
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active <= 0) {
+            if (this.active <= 0) {
               return;
             }
-            vm.active--;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 13) {
-            // enter
+            this.active--;
+            this.scrollToActive();
+          } else if (event.keyCode === 13) { // enter
             event.preventDefault();
 
-            if (vm.active >= vm.filteredItems.length) {
-              vm.createNewBranch();
-            } else if (vm.active >= 0) {
-              vm.selectItem(vm.filteredItems[vm.active]);
+            if (this.active >= this.filteredItems.length) {
+              this.createNewBranch();
+            } else if (this.active >= 0) {
+              this.selectItem(this.filteredItems[this.active]);
             }
-          }
-          if (event.keyCode === 27) {
-            // escape
+          } else if (event.keyCode === 27) { // escape
             event.preventDefault();
-            vm.menuVisible = false;
+            this.menuVisible = false;
           }
         }
       }
@@ -3321,7 +3356,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            const link = $('<a class="ui repo-topic small label topic"></a>');
+            const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
@@ -3459,16 +3494,7 @@ function initTopicbar() {
   });
 }
 
-window.toggleDeadlineForm = function () {
-  $('#deadlineForm').fadeToggle(150);
-};
-
-window.setDeadline = function () {
-  const deadline = $('#deadlineDate').val();
-  window.updateDeadline(deadline);
-};
-
-window.updateDeadline = function (deadlineString) {
+function updateDeadline(deadlineString) {
   $('#deadline-err-invalid-date').hide();
   $('#deadline-loader').addClass('loading');
 
@@ -3502,7 +3528,20 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
     }
   });
-};
+}
+
+function initIssueDue() {
+  $(document).on('click', '.issue-due-edit', () => {
+    $('#deadlineForm').fadeToggle(150);
+  });
+  $(document).on('click', '.issue-due-remove', () => {
+    updateDeadline('');
+  });
+  $(document).on('submit', '.issue-due-form', () => {
+    updateDeadline($('#deadlineDate').val());
+    return false;
+  });
+}
 
 window.deleteDependencyModal = function (id, type) {
   $('.remove-dependency')

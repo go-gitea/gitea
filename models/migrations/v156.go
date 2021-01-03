@@ -55,6 +55,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 	var (
 		repo    *Repository
 		gitRepo *git.Repository
+		user    *User
 	)
 	defer func() {
 		if gitRepo != nil {
@@ -68,7 +69,10 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.Limit(batchSize, start).Asc("repo_id", "id").Where("is_tag=?", true).Find(&releases); err != nil {
+		if err := sess.Limit(batchSize, start).
+			Where("publisher_id = 0 OR publisher_id is null").
+			Asc("repo_id", "id").Where("is_tag=?", true).
+			Find(&releases); err != nil {
 			return err
 		}
 
@@ -114,17 +118,21 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				return fmt.Errorf("GetTagCommit: %v", err)
 			}
 
-			u := new(User)
-			exists, err := sess.Where("email=?", commit.Author.Email).Get(u)
-			if err != nil {
-				return err
+			if user == nil || !strings.EqualFold(user.Email, commit.Author.Email) {
+				user = new(User)
+				_, err = sess.Where("email=?", commit.Author.Email).Get(user)
+				if err != nil {
+					return err
+				}
+
+				user.Email = commit.Author.Email
 			}
 
-			if !exists {
+			if user.ID <= 0 {
 				continue
 			}
 
-			release.PublisherID = u.ID
+			release.PublisherID = user.ID
 			if _, err := sess.ID(release.ID).Cols("publisher_id").Update(release); err != nil {
 				return err
 			}

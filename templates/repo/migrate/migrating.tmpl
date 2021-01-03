@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository quickstart">
+<div class="page-content repository quickstart">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui grid">
@@ -23,7 +23,7 @@
 							<div id="repo_migrating_progress">
 								<p>{{.i18n.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
 							</div>
-							<div id="repo_migrating_failed">
+							<div id="repo_migrating_failed" hidden>
 								<p>{{.i18n.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
 								<p id="repo_migrating_failed_error"></p>
 							</div>

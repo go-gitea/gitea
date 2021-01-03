@@ -46,6 +46,12 @@ func TestRender_Commits(t *testing.T) {
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
+	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
+
+	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
+	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -142,7 +148,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
-		`<p><a href="magnet:?dn=download&xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+		`<p><a href="magnet:?xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
