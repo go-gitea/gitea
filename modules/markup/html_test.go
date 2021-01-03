@@ -46,6 +46,12 @@ func TestRender_Commits(t *testing.T) {
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
+	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
+
+	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
+	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {
