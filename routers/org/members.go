@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -70,7 +68,7 @@ func Members(ctx *context.Context) {
 
 // MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
-	uid := com.StrTo(ctx.Query("uid")).MustInt64()
+	uid := ctx.QueryInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/members")
 		return

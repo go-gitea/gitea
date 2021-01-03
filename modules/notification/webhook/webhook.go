@@ -122,6 +122,18 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models
 	}
 }
 
+func (m *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	// Add to hook queue for created repo after session commit.
+	if err := webhook_services.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+		Organization: convert.ToUser(u, false, false),
+		Sender:       convert.ToUser(doer, false, false),
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
 func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	if issue.IsPull {
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, models.UnitTypePullRequests)
@@ -249,7 +261,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 	}
 }
 
-func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
+func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
 	if err := issue.LoadRepo(); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
@@ -271,7 +283,7 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
+func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions []*models.User) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
 		return
@@ -387,7 +399,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 }
 
 func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment) {
+	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	mode, _ := models.AccessLevel(doer, repo)
 
 	var err error
@@ -639,7 +651,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User,
 	}
 }
 
-func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User) {
 	var reviewHookType models.HookEventType
 
 	switch review.Type {

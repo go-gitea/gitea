@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm/convert"
 )
 
@@ -178,6 +177,7 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 		ClientSecret:                  form.Oauth2Secret,
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
+		IconURL:                       form.Oauth2IconURL,
 	}
 }
 
@@ -373,7 +373,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + com.ToStr(form.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + fmt.Sprint(form.ID))
 }
 
 // DeleteAuthSource response for deleting an auth source

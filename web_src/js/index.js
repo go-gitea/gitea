@@ -111,10 +111,15 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
+  const $isNewIssue = $branchMenu.hasClass('new-issue');
   $branchMenu.find('.item:not(.no-select)').click(function () {
     const selectedValue = $(this).data('id');
     const editMode = $('#editing_mode').val();
     $($(this).data('id-selector')).val(selectedValue);
+    if ($isNewIssue) {
+      $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+      return;
+    }
 
     if (editMode === 'true') {
       const form = $('#update_issueref_form');
@@ -204,24 +209,22 @@ function initRepoStatusChecker() {
         _csrf: csrf,
       },
       complete(xhr) {
-        if (xhr.status === 200) {
-          if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 4) {
-              window.location.reload();
-              return;
-            } else if (xhr.responseJSON.status === 3) {
-              $('#repo_migrating_progress').hide();
-              $('#repo_migrating').hide();
-              $('#repo_migrating_failed').show();
-              $('#repo_migrating_failed_image').show();
-              $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
-              return;
-            }
-            setTimeout(() => {
-              initRepoStatusChecker();
-            }, 2000);
+        if (xhr.status === 200 && xhr.responseJSON) {
+          if (xhr.responseJSON.status === 4) {
+            window.location.reload();
+            return;
+          } else if (xhr.responseJSON.status === 3) {
+            $('#repo_migrating_progress').hide();
+            $('#repo_migrating').hide();
+            $('#repo_migrating_failed').show();
+            $('#repo_migrating_failed_image').show();
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
             return;
           }
+          setTimeout(() => {
+            initRepoStatusChecker();
+          }, 2000);
+          return;
         }
         $('#repo_migrating_progress').hide();
         $('#repo_migrating').hide();
@@ -759,6 +762,15 @@ async function initRepository() {
     });
   }
 
+  // Commit statuses
+  $('.commit-statuses-trigger').each(function () {
+    $(this)
+      .popup({
+        on: 'click',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+      });
+  });
+
   // File list and commits
   if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
@@ -1048,17 +1060,14 @@ async function initRepository() {
               if (data.attachments !== '') {
                 $content.append(`
                   <div class="dropzone-attachments">
-                    <div class="ui clearing divider"></div>
-                    <div class="ui middle aligned padded grid">
-                    </div>
                   </div>
                 `);
-                $content.find('.dropzone-attachments .grid').html(data.attachments);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
               $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.dropzone-attachments .grid').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
             if (dz) {
               dz.emit('submit');
@@ -1123,6 +1132,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1136,6 +1147,7 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
   }
@@ -1202,7 +1214,7 @@ async function initRepository() {
 
 function initPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
-    $('.instruct').toggle();
+    $('.instruct-content').toggle();
   });
 }
 
@@ -1616,16 +1628,12 @@ async function initEditor() {
     let value;
     let parts;
 
-    if (e.keyCode === 8) {
-      if ($(this).getCursorPosition() === 0) {
-        if ($section.length > 0) {
-          value = $section.last().find('a').text();
-          $(this).val(value + $(this).val());
-          $(this)[0].setSelectionRange(value.length, value.length);
-          $section.last().remove();
-          $divider.last().remove();
-        }
-      }
+    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length > 0) {
+      value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      $(this)[0].setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
     }
     if (e.keyCode === 191) {
       parts = $(this).val().split('/');
@@ -1823,17 +1831,19 @@ function initAdmin() {
     }
   }
 
-  function onOAuth2Change() {
+  function onOAuth2Change(applyDefaultValues) {
     $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
     $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'github':
-      case 'gitlab':
       case 'gitea':
       case 'nextcloud':
       case 'mastodon':
+        $('#oauth2_use_custom_url').attr('checked', 'checked');
+        // fallthrough intentional
+      case 'github':
+      case 'gitlab':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1841,19 +1851,21 @@ function initAdmin() {
         $('.open_id_connect_auto_discovery_url').show();
         break;
     }
-    onOAuth2UseCustomURLChange();
+    onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange() {
+  function onOAuth2UseCustomURLChange(applyDefaultValues) {
     const provider = $('#oauth2_provider').val();
     $('.oauth2_use_custom_url_field').hide();
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      if (applyDefaultValues) {
+        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      }
 
       switch (provider) {
         case 'github':
@@ -1914,7 +1926,7 @@ function initAdmin() {
         case '6': // OAuth2
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
-          onOAuth2Change();
+          onOAuth2Change(true);
           break;
         case '7': // SSPI
           $('.sspi').show();
@@ -1932,8 +1944,8 @@ function initAdmin() {
     $('#auth_type').trigger('change');
     $('#security_protocol').on('change', onSecurityProtocolChange);
     $('#use_paged_search').on('change', onUsePagedSearchChange);
-    $('#oauth2_provider').on('change', onOAuth2Change);
-    $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+    $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
     $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
@@ -1947,9 +1959,9 @@ function initAdmin() {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').on('change', onOAuth2Change);
-      $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
-      onOAuth2Change();
+      $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+      $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(false));
+      onOAuth2Change(false);
     }
   }
 
@@ -2748,6 +2760,11 @@ function initVueComponents() {
         type: Number,
         required: true
       },
+      teamId: {
+        type: Number,
+        required: false,
+        default: 0
+      },
       organizations: {
         type: Array,
         default: () => [],
@@ -2846,7 +2863,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
+        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -3027,7 +3044,7 @@ function initVueComponents() {
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
             self.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
