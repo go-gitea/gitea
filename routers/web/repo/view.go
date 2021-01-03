@@ -826,7 +826,15 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
+<<<<<<< HEAD:routers/web/repo/view.go
 		ctx.HTML(http.StatusOK, tplRepoEMPTY)
+=======
+		if ctx.Repo.CanWrite(models.UnitTypeCode) {
+			ctx.Data["CanAddFile"] = true
+			ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
+		}
+		ctx.HTML(200, tplRepoEMPTY)
+>>>>>>> 7d4422307 (Add buttons on empty repository page):routers/repo/view.go
 		return
 	}
 
