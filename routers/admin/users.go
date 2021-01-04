@@ -259,6 +259,19 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		u.HashPassword(form.Password)
 	}
 
+	if form.Reset2FA {
+		tf, err := models.GetTwoFactorByUID(u.ID)
+		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.InternalServerError(err)
+			return
+		}
+
+		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+	}
+
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
 	u.Email = form.Email
