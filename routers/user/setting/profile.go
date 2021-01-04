@@ -235,6 +235,9 @@ func Repos(ctx *context.Context) {
 		root := filepath.Join(models.UserPath(ctxUser.Name))
 		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
 				return err
 			}
 			if !info.IsDir() || path == root {

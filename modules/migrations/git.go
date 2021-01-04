@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"io"
 
 	"code.gitea.io/gitea/modules/migrations/base"
 )
@@ -62,11 +61,6 @@ func (g *PlainGitDownloader) GetLabels() ([]*base.Label, error) {
 
 // GetReleases returns releases
 func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
-	return nil, ErrNotSupported
-}
-
-// GetAsset returns an asset
-func (g *PlainGitDownloader) GetAsset(_ string, _, _ int64) (io.ReadCloser, error) {
 	return nil, ErrNotSupported
 }
 

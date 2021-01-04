@@ -39,10 +39,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
 
-	if u.Avatar == "" {
-		u.Avatar = HashEmail(u.AvatarEmail)
-	}
+	u.Avatar = HashEmail(seed)
 
+	// Don't share the images so that we can delete them easily
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, img); err != nil {
 			log.Error("Encode: %v", err)
@@ -132,7 +131,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	// Otherwise, if any of the users delete his avatar
 	// Other users will lose their avatars too.
 	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = updateUser(sess, u); err != nil {
+	if err = updateUserCols(sess, u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 

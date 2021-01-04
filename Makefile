@@ -317,8 +317,8 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
-	npx stylelint --max-warnings=0 web_src/less
+	npx eslint --color --max-warnings=0 web_src/js build templates webpack.config.js
+	npx stylelint --color --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -330,7 +330,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: go-check
@@ -584,7 +584,7 @@ release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -660,7 +660,7 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack --hide-modules --display-entrypoints=false
+	npx webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg

@@ -42,17 +42,8 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
-		// Organization.
-		org, err := models.GetUserByName(orgName)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("GetUserByName", err)
-			}
-			return nil
-		}
-		ctxUser = org
+		ctxUser = ctx.Org.Organization
+		ctx.Data["Teams"] = ctx.Org.Organization.Teams
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
@@ -112,12 +103,13 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
 	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
+		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
 		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUser", err)
+			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 			return
 		}
 		ctx.Data["HeatmapData"] = data
@@ -126,12 +118,16 @@ func Dashboard(ctx *context.Context) {
 	var err error
 	var mirrors []*models.Repository
 	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
+		var env models.AccessibleReposEnvironment
+		if ctx.Org.Team != nil {
+			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+		} else {
+			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("AccessibleReposEnv", err)
+				return
+			}
 		}
-
 		mirrors, err = env.MirrorRepos()
 		if err != nil {
 			ctx.ServerError("env.MirrorRepos", err)
@@ -155,6 +151,7 @@ func Dashboard(ctx *context.Context) {
 
 	retrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
+		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
@@ -183,16 +180,20 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	var (
-		repoOpts = models.SearchRepoOptions{
-			Actor:         ctxUser,
-			OwnerID:       ctxUser.ID,
-			Private:       true,
-			AllPublic:     false,                 // Include also all public repositories of users and public organisations
-			AllLimited:    false,                 // Include also all public repositories of limited organisations
-			HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
-		}
+	repoOpts := models.SearchRepoOptions{
+		Actor:         ctxUser,
+		OwnerID:       ctxUser.ID,
+		Private:       true,
+		AllPublic:     false,                 // Include also all public repositories of users and public organisations
+		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
+	}
 
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+		repoOpts.TeamID = ctx.Org.Team.ID
+	}
+
+	var (
 		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
@@ -363,21 +364,17 @@ func Issues(ctx *context.Context) {
 		filterMode = models.FilterModeAll
 	)
 
-	if ctxUser.IsOrganization() {
+	viewType = ctx.Query("type")
+	switch viewType {
+	case "assigned":
+		filterMode = models.FilterModeAssign
+	case "created_by":
+		filterMode = models.FilterModeCreate
+	case "mentioned":
+		filterMode = models.FilterModeMention
+	case "your_repositories": // filterMode already set to All
+	default:
 		viewType = "your_repositories"
-	} else {
-		viewType = ctx.Query("type")
-		switch viewType {
-		case "assigned":
-			filterMode = models.FilterModeAssign
-		case "created_by":
-			filterMode = models.FilterModeCreate
-		case "mentioned":
-			filterMode = models.FilterModeMention
-		case "your_repositories": // filterMode already set to All
-		default:
-			viewType = "your_repositories"
-		}
 	}
 
 	page := ctx.QueryInt("page")
@@ -412,10 +409,15 @@ func Issues(ctx *context.Context) {
 	var err error
 	var userRepoIDs []int64
 	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
+		var env models.AccessibleReposEnvironment
+		if ctx.Org.Team != nil {
+			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+		} else {
+			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("AccessibleReposEnv", err)
+				return
+			}
 		}
 		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
 		if err != nil {
@@ -447,11 +449,15 @@ func Issues(ctx *context.Context) {
 	case models.FilterModeAll:
 		opts.RepoIDs = userRepoIDs
 	case models.FilterModeAssign:
-		opts.AssigneeID = ctxUser.ID
+		opts.AssigneeID = ctx.User.ID
 	case models.FilterModeCreate:
-		opts.PosterID = ctxUser.ID
+		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
+	}
+
+	if ctxUser.IsOrganization() {
+		opts.RepoIDs = userRepoIDs
 	}
 
 	var forceEmpty bool
@@ -569,14 +575,18 @@ func Issues(ctx *context.Context) {
 	}
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
+		UserID:      ctx.User.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
+		LabelIDs:    opts.LabelIDs,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
+	}
+	if ctxUser.IsOrganization() {
+		userIssueStatsOpts.RepoIDs = userRepoIDs
 	}
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
@@ -587,15 +597,18 @@ func Issues(ctx *context.Context) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
+			LabelIDs:    opts.LabelIDs,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
+		} else if ctxUser.IsOrganization() {
+			statsOpts.RepoIDs = userRepoIDs
 		}
 		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
@@ -608,14 +621,19 @@ func Issues(ctx *context.Context) {
 
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
-		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+		allIssueStatsOpts := models.UserIssueStatsOptions{
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
-		})
+			LabelIDs:    opts.LabelIDs,
+		}
+		if ctxUser.IsOrganization() {
+			allIssueStatsOpts.RepoIDs = userRepoIDs
+		}
+		allIssueStats, err = models.GetUserIssueStats(allIssueStatsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)
 			return
@@ -666,6 +684,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["TotalIssueCount"] = totalIssues
+	ctx.Data["SelectLabels"] = selectLabels
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"

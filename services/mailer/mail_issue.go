@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -80,6 +79,12 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Avoid mailing the doer
 	visited[ctx.Doer.ID] = true
+
+	// =========== Mentions ===========
+	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
+	}
+
 	// Avoid mailing explicit unwatched
 	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
 	if err != nil {
@@ -91,11 +96,6 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
-	}
-
-	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
 	}
 
 	return nil
@@ -145,22 +145,14 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) error {
-	return mailParticipants(models.DefaultDBContext(), issue, doer, opType)
+func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	return mailParticipants(issue, doer, opType, mentions)
 }
 
-func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	rawMentions := references.FindAllMentionsMarkdown(issue.Content)
-	userMentions, err := issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
-	if err != nil {
-		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", issue.ID, err)
-	}
-	if err = models.UpdateIssueMentions(ctx, issue.ID, userMentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
-	}
-	mentions := make([]int64, len(userMentions))
-	for i, u := range userMentions {
-		mentions[i] = u.ID
+func mailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) (err error) {
+	mentionedIDs := make([]int64, len(mentions))
+	for i, u := range mentions {
+		mentionedIDs[i] = u.ID
 	}
 	if err = mailIssueCommentToParticipants(
 		&mailCommentContext{
@@ -169,7 +161,7 @@ func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.Us
 			ActionType: opType,
 			Content:    issue.Content,
 			Comment:    nil,
-		}, mentions); err != nil {
+		}, mentionedIDs); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil
