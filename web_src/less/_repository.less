@@ -1475,7 +1475,7 @@
     }
   }
 
-  .diff-box .header {
+  .diff-box .header:not(.resolved-placeholder) {
     display: flex;
     align-items: center;
 
@@ -1490,6 +1490,15 @@
       margin-top: -8px;
       margin-bottom: -8px;
       margin-right: 0;
+    }
+  }
+
+  .diff-box .resolved-placeholder {
+    display: flex;
+    align-items: center;
+
+    .button {
+      padding: 8px 12px;
     }
   }
 
