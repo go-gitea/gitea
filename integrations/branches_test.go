@@ -25,6 +25,17 @@ func TestViewBranches(t *testing.T) {
 	assert.False(t, exists, "The template has changed")
 }
 
+func TestViewBranchesSinglePage(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo_with_over_10_branches/branches")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	_, exists := htmlDoc.doc.Find(".delete-branch-button").Attr("data-url")
+	assert.False(t, exists, "The template has changed")
+}
+
 func TestDeleteBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
