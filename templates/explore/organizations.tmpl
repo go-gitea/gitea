@@ -12,7 +12,7 @@
 					<span class="header">
 						<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
 						{{if .Visibility.IsPrivate}}
-							<span class="text gold">{{svg "octicon-lock"}}</span>
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
 						{{end}}
 					</span>
 					<div class="description">
