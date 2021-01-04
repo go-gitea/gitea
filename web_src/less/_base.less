@@ -176,6 +176,7 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow-wrap: break-word;
 }
 
 img {
@@ -1555,8 +1556,11 @@ a.ui.label:hover {
 .ui.button {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
-  box-shadow: none !important;
   color: var(--color-text);
+}
+
+.page-content .ui.button {
+  box-shadow: none !important;
 }
 
 .ui.button:hover {

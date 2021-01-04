@@ -59,11 +59,20 @@ the url `http://gitea.domain.tld/image.png`.
 
 ## Changing the default logo
 
-To automatically update custom logo png and svg files replace `assets/logo.svg` and run `make generate-images`. This will update the user-designated logo files served in `public/img`. Alternatively, you can manually update each `logo-X.png` and `logo.svg` file in `public/img`.
+To build a custom logo replace `assets/logo.svg` and run `make generate-images`. This will update
+these customizable logo files which you can then place in `custom/public/img` on your server:
+
+- `public/img/logo.svg`
+- `public/img/logo.png`
+- `public/img/favicon.png`
+- `public/img/avatar_default.png`
+- `public/img/apple-touch-icon.png`
 
 ## Changing the default avatar
 
-Place the png image at the following path: `custom/public/img/avatar_default.png`
+Either generate it via above method or place the png image at the following path:
+
+- `custom/public/img/avatar_default.png`
 
 ## Customizing Gitea pages and resources
 

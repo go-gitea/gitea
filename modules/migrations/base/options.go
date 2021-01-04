@@ -33,4 +33,5 @@ type MigrateOptions struct {
 	PullRequests    bool
 	ReleaseAssets   bool
 	MigrateToRepoID int64
+	MirrorInterval  string `json:"mirror_interval"`
 }

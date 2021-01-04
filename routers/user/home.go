@@ -384,21 +384,17 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	// TODO: distinguish during routing
 
-	if ctxUser.IsOrganization() {
+	viewType = ctx.Query("type")
+	switch viewType {
+	case "assigned":
+		filterMode = models.FilterModeAssign
+	case "created_by":
+		filterMode = models.FilterModeCreate
+	case "mentioned":
+		filterMode = models.FilterModeMention
+	case "your_repositories": // filterMode already set to All
+	default:
 		viewType = "your_repositories"
-	} else {
-		viewType = ctx.Query("type")
-		switch viewType {
-		case "assigned":
-			filterMode = models.FilterModeAssign
-		case "created_by":
-			filterMode = models.FilterModeCreate
-		case "mentioned":
-			filterMode = models.FilterModeMention
-		case "your_repositories": // filterMode already set to All
-		default:
-			viewType = "your_repositories"
-		}
 	}
 
 	// --------------------------------------------------------------------------
@@ -427,11 +423,15 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	case models.FilterModeAll:
 		opts.RepoIDs = userRepoIDs
 	case models.FilterModeAssign:
-		opts.AssigneeID = ctxUser.ID
+		opts.AssigneeID = ctx.User.ID
 	case models.FilterModeCreate:
-		opts.PosterID = ctxUser.ID
+		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
+	}
+
+	if ctxUser.IsOrganization() {
+		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -554,17 +554,20 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// -------------------------------
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
+		UserID:      ctx.User.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
 		IsArchived:  util.OptionalBoolFalse,
+		LabelIDs:    opts.LabelIDs,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
 	}
-
+	if ctxUser.IsOrganization() {
+		userIssueStatsOpts.RepoIDs = userRepoIDs
+	}
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats User", err)
@@ -574,16 +577,19 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
 			IsArchived:  util.OptionalBoolFalse,
+			LabelIDs:    opts.LabelIDs,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
+		} else if ctxUser.IsOrganization() {
+			statsOpts.RepoIDs = userRepoIDs
 		}
 		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
@@ -596,15 +602,20 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
-		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
-			UserID:      ctxUser.ID,
+		allIssueStatsOpts := models.UserIssueStatsOptions{
+			UserID:      ctx.User.ID,
 			UserRepoIDs: userRepoIDs,
 			FilterMode:  filterMode,
 			IsPull:      isPullList,
 			IsClosed:    isShowClosed,
 			IssueIDs:    issueIDsFromSearch,
 			IsArchived:  util.OptionalBoolFalse,
-		})
+			LabelIDs:    opts.LabelIDs,
+		}
+		if ctxUser.IsOrganization() {
+			allIssueStatsOpts.RepoIDs = userRepoIDs
+		}
+		allIssueStats, err = models.GetUserIssueStats(allIssueStatsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats All", err)
 			return
@@ -661,6 +672,8 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
+	ctx.Data["IsShowClosed"] = isShowClosed
+	ctx.Data["SelectLabels"] = selectedLabels
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
