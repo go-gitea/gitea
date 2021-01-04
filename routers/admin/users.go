@@ -183,6 +183,16 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	}
 	ctx.Data["Sources"] = sources
 
+	ctx.Data["TwoFactorEnabled"] = true
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.InternalServerError(err)
+			return nil
+		}
+		ctx.Data["TwoFactorEnabled"] = false
+	}
+
 	return u
 }
 
