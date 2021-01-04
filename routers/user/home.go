@@ -417,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Get repository IDs where User/Org has access.
-	userRepoIDs, err := getActiveUserRepoIDs(ctx.Org, ctx.User, unitType)
+	userRepoIDs, err := getActiveUserRepoIDs(ctxUser, ctx.Org.Team, unitType)
 	if err != nil {
 		ctx.ServerError("userRepoIDs", err)
 		return
@@ -713,17 +713,17 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func getActiveUserRepoIDs(ctxOrg *context.Organization, user *models.User, unitType models.UnitType) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType models.UnitType) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
-	if ctxOrg != nil {
-		userRepoIDs, err = getActiveOrgRepoIds(ctxOrg, user, unitType)
+	if ctxUser.IsOrganization() {
+		userRepoIDs, err = getActiveTeamOrOrgRepoIds(ctxUser, team, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
-		userRepoIDs, err = user.GetActiveAccessRepoIDs(unitType)
+		userRepoIDs, err = ctxUser.GetActiveAccessRepoIDs(unitType)
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -736,21 +736,20 @@ func getActiveUserRepoIDs(ctxOrg *context.Organization, user *models.User, unitT
 	return userRepoIDs, nil
 }
 
-// getActiveOrgRepoIds gets RepoIDs for ctx.Organisation.
+// getActiveTeamOrOrgRepoIds gets RepoIDs for ctxUser as Organization.
 // Should be called if and only if ctxUser.IsOrganization == true.
-func getActiveOrgRepoIds(ctxOrg *context.Organization, user *models.User, unitType models.UnitType) ([]int64, error) {
+func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType models.UnitType) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	var env models.AccessibleReposEnvironment
-	ctxUser := ctxOrg.Organization
 
-	if ctxOrg.Team != nil {
-		env = ctxUser.AccessibleTeamReposEnv(ctxOrg.Team)
+	if team != nil {
+		env = ctxUser.AccessibleTeamReposEnv(team)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleTeamReposEnv: %v", err)
 		}
 	} else {
-		env, err = ctxUser.AccessibleReposEnv(user.ID)
+		env, err = ctxUser.AccessibleReposEnv(ctxUser.ID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -759,7 +758,7 @@ func getActiveOrgRepoIds(ctxOrg *context.Organization, user *models.User, unitTy
 	if err != nil {
 		return nil, fmt.Errorf("env.RepoIDs: %v", err)
 	}
-	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(user, orgRepoIDs, unitType)
+	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctxUser, orgRepoIDs, unitType)
 	if err != nil {
 		return nil, fmt.Errorf("FilterOutRepoIdsWithoutUnitAccess: %v", err)
 	}

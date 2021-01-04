@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -22,6 +23,7 @@ func TestIssues(t *testing.T) {
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "closed")
+	ctx.Org = &context.Organization{}
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
@@ -38,6 +40,7 @@ func TestPulls(t *testing.T) {
 	ctx := test.MockContext(t, "pulls")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "open")
+	ctx.Org = &context.Organization{}
 	Pulls(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
