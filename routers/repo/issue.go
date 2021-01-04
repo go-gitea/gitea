@@ -1618,6 +1618,13 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
+	// Assert permissions:
+	// 1. Only Signed in Users can change referred Branch.
+	// 2. Only Issues - not Pulls have ref Branches.
+	// 3. Omly the Issue Poster can change the Branch OR...
+	// 4. Issue Writers may change the branch.
+	//
+	// Otherwise FORBIDDEN
 	if !ctx.IsSigned || issue.IsPull || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues)) {
 		ctx.Error(403)
 		return
