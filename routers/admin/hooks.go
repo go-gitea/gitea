@@ -18,30 +18,41 @@ const (
 
 // DefaultOrSystemWebhooks renders both admin default and system webhook list pages
 func DefaultOrSystemWebhooks(ctx *context.Context) {
-	var ws []*models.Webhook
 	var err error
 
-	// Are we looking at default webhooks?
-	if ctx.Params(":configType") == "hooks" {
-		ctx.Data["Title"] = ctx.Tr("admin.hooks")
-		ctx.Data["Description"] = ctx.Tr("admin.hooks.desc")
-		ctx.Data["PageIsAdminHooks"] = true
-		ctx.Data["BaseLink"] = setting.AppSubURL + "/admin/hooks"
-		ws, err = models.GetDefaultWebhooks()
-	} else {
-		ctx.Data["Title"] = ctx.Tr("admin.systemhooks")
-		ctx.Data["Description"] = ctx.Tr("admin.systemhooks.desc")
-		ctx.Data["PageIsAdminSystemHooks"] = true
-		ctx.Data["BaseLink"] = setting.AppSubURL + "/admin/system-hooks"
-		ws, err = models.GetSystemWebhooks()
+	ctx.Data["PageIsAdminSystemHooks"] = true
+	ctx.Data["PageIsAdminDefaultHooks"] = true
+
+	def := make(map[string]interface{}, len(ctx.Data))
+	sys := make(map[string]interface{}, len(ctx.Data))
+	for k, v := range ctx.Data {
+		def[k] = v
+		sys[k] = v
 	}
 
+	sys["Title"] = ctx.Tr("admin.systemhooks")
+	sys["Description"] = ctx.Tr("admin.systemhooks.desc")
+	sys["Webhooks"], err = models.GetSystemWebhooks()
+	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks"
+	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/system-hooks"
 	if err != nil {
 		ctx.ServerError("GetWebhooksAdmin", err)
 		return
 	}
 
-	ctx.Data["Webhooks"] = ws
+	def["Title"] = ctx.Tr("admin.defaulthooks")
+	def["Description"] = ctx.Tr("admin.defaulthooks.desc")
+	def["Webhooks"], err = models.GetDefaultWebhooks()
+	def["BaseLink"] = setting.AppSubURL + "/admin/hooks"
+	def["BaseLinkNew"] = setting.AppSubURL + "/admin/default-hooks"
+	if err != nil {
+		ctx.ServerError("GetWebhooksAdmin", err)
+		return
+	}
+
+	ctx.Data["DefaultWebhooks"] = def
+	ctx.Data["SystemWebhooks"] = sys
+
 	ctx.HTML(200, tplAdminHooks)
 }
 
@@ -53,14 +64,7 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	// Are we looking at default webhooks?
-	if ctx.Params(":configType") == "hooks" {
-		ctx.JSON(200, map[string]interface{}{
-			"redirect": setting.AppSubURL + "/admin/hooks",
-		})
-	} else {
-		ctx.JSON(200, map[string]interface{}{
-			"redirect": setting.AppSubURL + "/admin/system-hooks",
-		})
-	}
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/admin/hooks",
+	})
 }
