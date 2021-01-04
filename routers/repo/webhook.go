@@ -650,7 +650,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		return nil, nil
 	}
 
-	ctx.Data["HookType"] = strings.TrimSpace(w.Type)
+	ctx.Data["HookType"] = w.Type
 	switch w.Type {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = webhook.GetSlackHook(w)
