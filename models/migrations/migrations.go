@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -737,5 +739,41 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		log.Fatal("Unrecognized DB")
 	}
 
+	return nil
+}
+
+// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+	var indexes map[string]*schemas.Index
+	var err error
+	// MSSQL have to remove index at first, otherwise alter column will fail
+	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
+		if err != nil {
+			return err
+		}
+
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().DropIndexSQL(tableName, index))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer func() {
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
+			if err != nil {
+				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
+			}
+		}
+	}()
+
+	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
+	if _, err := x.Exec(alterSQL); err != nil {
+		return err
+	}
 	return nil
 }
