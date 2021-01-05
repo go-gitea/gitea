@@ -26,19 +26,18 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
 
-	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 )
 
@@ -93,33 +92,6 @@ func initDBEngine(ctx context.Context) (err error) {
 	return nil
 }
 
-// InitLocales loads the locales
-func InitLocales() {
-	localeNames, err := options.Dir("locale")
-
-	if err != nil {
-		log.Fatal("Failed to list locale files: %v", err)
-	}
-	localFiles := make(map[string][]byte)
-
-	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
-		}
-	}
-	i18n.I18n(i18n.Options{
-		SubURL:       setting.AppSubURL,
-		Files:        localFiles,
-		Langs:        setting.Langs,
-		Names:        setting.Names,
-		DefaultLang:  "en-US",
-		Redirect:     false,
-		CookieDomain: setting.SessionConfig.Domain,
-	})
-}
-
 // PreInstallInit preloads the configuration to check if we need to run install
 func PreInstallInit(ctx context.Context) bool {
 	setting.NewContext()
@@ -129,7 +101,7 @@ func PreInstallInit(ctx context.Context) bool {
 		log.Trace("Custom path: %s", setting.CustomPath)
 		log.Trace("Log path: %s", setting.LogRootPath)
 		log.Trace("Preparing to run install page")
-		InitLocales()
+		translation.InitLocales()
 		if setting.EnableSQLite3 {
 			log.Info("SQLite3 Supported")
 		}
@@ -170,7 +142,7 @@ func GlobalInit(ctx context.Context) {
 	log.Trace("Log path: %s", setting.LogRootPath)
 
 	// Setup i18n
-	InitLocales()
+	translation.InitLocales()
 
 	NewServices()
 
