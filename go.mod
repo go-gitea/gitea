@@ -5,6 +5,7 @@ go 1.14
 require (
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.13.1
+	gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
@@ -34,7 +35,7 @@ require (
 	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
-	github.com/go-chi/chi v1.5.0
+	github.com/go-chi/chi v1.5.1
 	github.com/go-enry/go-enry/v2 v2.6.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
@@ -79,7 +80,6 @@ require (
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.21
-	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
 	github.com/pkg/errors v0.9.1
@@ -99,6 +99,7 @@ require (
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
+	github.com/unrolled/render v1.0.3
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.39.0
@@ -115,7 +116,6 @@ require (
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9
-	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.62.0
@@ -123,7 +123,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.5
+	xorm.io/xorm v1.0.6
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4

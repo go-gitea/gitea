@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -1844,6 +1845,19 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 			true,
 			issue.RepoID,
 		)
+	}
+	return
+}
+
+// FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
+func (issue *Issue) FindAndUpdateIssueMentions(ctx DBContext, doer *User, content string) (mentions []*User, err error) {
+	rawMentions := references.FindAllMentionsMarkdown(content)
+	mentions, err = issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
+	}
+	if err = UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
+		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 	return
 }

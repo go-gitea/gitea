@@ -704,7 +704,7 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			col.SQLType.IsBlob() || col.SQLType.Name == schemas.TimeStampz) {
 			continue
 		}
-		if col.SQLType.IsJson() {
+		if col.IsJSON {
 			continue
 		}
 
@@ -813,7 +813,7 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 					continue
 				}
 			} else {
-				if col.SQLType.IsJson() {
+				if col.IsJSON {
 					if col.SQLType.IsText() {
 						bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 						if err != nil {
