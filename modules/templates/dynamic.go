@@ -9,7 +9,9 @@ package templates
 import (
 	"html/template"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
@@ -24,6 +26,25 @@ var (
 	subjectTemplates = texttmpl.New("")
 	bodyTemplates    = template.New("")
 )
+
+// GetAsset returns asset content via name
+func GetAsset(name string) ([]byte, error) {
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		return bs, nil
+	}
+
+	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
+}
+
+// GetAssetNames returns assets list
+func GetAssetNames() []string {
+	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
+	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
+	return append(tmpls, tmpls2...)
+}
 
 // HTMLRenderer implements the macaron handler for serving HTML templates.
 func HTMLRenderer() macaron.Handler {
