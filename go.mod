@@ -122,7 +122,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.5
+	xorm.io/xorm v1.0.6
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
