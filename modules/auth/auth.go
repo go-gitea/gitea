@@ -9,41 +9,16 @@ import (
 	"reflect"
 	"strings"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/validation"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
 	"github.com/unknwon/com"
 )
 
 // IsAPIPath if URL is an api path
 func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
-}
-
-// SignedInUser returns the user object of signed user.
-// It returns a bool value to indicate whether user uses basic auth or not.
-func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool) {
-	if !models.HasEngine {
-		return nil, false
-	}
-
-	// Try to sign in with each of the enabled plugins
-	for _, ssoMethod := range sso.Methods() {
-		if !ssoMethod.IsEnabled() {
-			continue
-		}
-		user := ssoMethod.VerifyAuthData(ctx, sess)
-		if user != nil {
-			_, isBasic := ssoMethod.(*sso.Basic)
-			return user, isBasic
-		}
-	}
-
-	return nil, false
 }
 
 // Form form binding interface
