@@ -28,6 +28,7 @@ steps:
     image: golang:1.15
     commands:
       - make lint-backend
+      - GOOS=windows make golangci-lint vet
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org

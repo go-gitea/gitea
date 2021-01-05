@@ -5,10 +5,11 @@
 package sso
 
 import (
-	"code.gitea.io/gitea/modules/templates"
 	"errors"
 	"net/http"
 	"strings"
+
+	"code.gitea.io/gitea/modules/templates"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -82,7 +83,9 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		// Include the user login page in the 401 response to allow the user
 		// to login with another authentication method if SSPI authentication
 		// fails
-		//addFlashErr(ctx, ctx.Tr("auth.sspi_auth_failed"))
+		store.GetData()["Flash"] = map[string]string{
+			"ErrMsg": err.Error(),
+		}
 
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
@@ -228,24 +231,6 @@ func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
 	username = replaceSeparators(username, cfg)
 	return username
 }
-
-/*
-// TODO flash err not implemented for chi
-// addFlashErr adds an error message to the Flash object mapped to a macaron.Context
-func addFlashErr(ctx *macaron.Context, err string) {
-	fv := ctx.GetVal(reflect.TypeOf(&session.Flash{}))
-	if !fv.IsValid() {
-		return
-	}
-	flash, ok := fv.Interface().(*session.Flash)
-	if !ok {
-		return
-	}
-	flash.Error(err)
-	ctx.Data["Flash"] = flash
-}
-
-*/
 
 // init registers the SSPI auth method as the last method in the list.
 // The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
