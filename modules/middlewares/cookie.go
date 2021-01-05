@@ -26,6 +26,7 @@ func NewCookie(name, value string, maxAge int) *http.Cookie {
 }
 
 // SetCookie set the cookies
+// TODO: Copied from gitea.com/macaron/macaron and should be improved after macaron removed.
 func SetCookie(resp http.ResponseWriter, name string, value string, others ...interface{}) {
 	cookie := http.Cookie{}
 	cookie.Name = name

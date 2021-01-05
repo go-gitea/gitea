@@ -44,7 +44,7 @@ func InstallRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(InstallInit)
 	r.Get("/", Wrap(Install))
-	r.Post("/", Bind(&forms.InstallForm{}, Wrap(InstallPost)))
+	r.Post("/", Bind(&forms.InstallForm{}, InstallPost))
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, setting.AppURL, 302)
 	})
@@ -88,9 +88,8 @@ func InstallInit(next http.Handler) http.Handler {
 			Session: session.GetSession(req),
 		}
 
-		req = context.WithDefaultContext(req, &ctx)
-		ctx.Req = req
-		next.ServeHTTP(resp, req)
+		ctx.Req = context.WithDefaultContext(req, &ctx)
+		next.ServeHTTP(resp, ctx.Req)
 	})
 }
 
@@ -170,12 +169,9 @@ func Install(ctx *context.DefaultContext) {
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.DefaultContext) {
-	var form forms.InstallForm
-	_ = ctx.Bind(&form)
+	form := ctx.Data["form"].(*forms.InstallForm)
 
-	var err error
 	ctx.Data["CurDbOption"] = form.DbType
-
 	if ctx.HasError() {
 		if ctx.HasValue("Err_SMTPUser") {
 			ctx.Data["Err_SMTP"] = true
@@ -190,6 +186,7 @@ func InstallPost(ctx *context.DefaultContext) {
 		return
 	}
 
+	var err error
 	if _, err = exec.LookPath("git"); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
@@ -197,7 +194,6 @@ func InstallPost(ctx *context.DefaultContext) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-
 	setting.Database.Type = setting.GetDBTypeByName(form.DbType)
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser

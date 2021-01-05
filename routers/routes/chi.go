@@ -188,18 +188,16 @@ func Wrap(f func(ctx *gitea_context.DefaultContext)) http.HandlerFunc {
 }
 
 // Bind binding an obj to a handler
-func Bind(obj interface{}, handler http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		errs := binding.Bind(req, obj)
+func Bind(obj interface{}, handler func(ctx *gitea_context.DefaultContext)) http.HandlerFunc {
+	return Wrap(func(ctx *gitea_context.DefaultContext) {
+		errs := binding.Bind(ctx.Req, obj)
 		if errs.Len() > 0 {
-			ctx := gitea_context.GetDefaultContext(req)
 			ctx.Data["HasError"] = true
-			auth.AssignForm(obj, ctx.Data)
-			// FIXME:
-			//ctx.Flash(ErrorFlash, msg)
+			ctx.Flash(gitea_context.ErrorFlash, errs[0].Error())
 		}
-
-		handler(resp, req)
+		auth.AssignForm(obj, ctx.Data)
+		ctx.Data["form"] = obj
+		handler(ctx)
 	})
 }
 
