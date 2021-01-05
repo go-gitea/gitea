@@ -412,8 +412,12 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 		IsArchived: util.OptionalBoolFalse,
 	}
 
-	// Get repository IDs where User/Org has access.
-	userRepoIDs, err := getActiveUserRepoIDs(ctxUser, ctx.Org.Team, unitType)
+	// Get repository IDs where User/Org/Team has access.
+	var team *models.Team
+	if ctx.Org != nil {
+		team = ctx.Org.Team
+	}
+	userRepoIDs, err := getActiveUserRepoIDs(ctxUser, team, unitType)
 	if err != nil {
 		ctx.ServerError("userRepoIDs", err)
 		return
