@@ -79,6 +79,11 @@ func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
 }
 
+// GetIn get allowed values in form tag
+func GetIn(field reflect.StructField) string {
+	return getRuleBody(field, "In(")
+}
+
 // Validate validate TODO:
 func Validate(errs binding.Errors, data map[string]interface{}, f Form, l translation.Locale) binding.Errors {
 	if errs.Len() == 0 {
@@ -131,6 +136,8 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.url_error", errs[0].Message)
 			case binding.ERR_INCLUDE:
 				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
+			case binding.ERR_IN:
+				data["ErrorMsg"] = trName + l.Tr("form.in_error", strings.Join(strings.Split(GetIn(field), ","), ", "))
 			case validation.ErrGlobPattern:
 				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
 			case validation.ErrRegexPattern:
