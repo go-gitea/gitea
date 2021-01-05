@@ -601,7 +601,7 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
 			"UNION "+
 			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
-			") AND uid NOT IN (?, ?) ORDER BY name",
+			") AND id NOT IN (?, ?) ORDER BY name",
 			repo.ID, AccessModeRead,
 			repo.ID, RepoWatchModeNormal, RepoWatchModeAuto,
 			repo.OwnerID,
