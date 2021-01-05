@@ -215,6 +215,8 @@ var (
 		HMACKey   string `ini:"HMAC_KEY"`
 		Allways   bool
 	}{}
+	MasterKeyProvider                  string
+	MasterKey                          []byte
 
 	// UI settings
 	UI = struct {
@@ -963,6 +965,20 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
+	// Master key provider configuration
+	MasterKeyProvider = sec.Key("MASTER_KEY_PROVIDER").MustString("none")
+	switch MasterKeyProvider {
+	case "plain":
+		if MasterKey, err = base64.StdEncoding.DecodeString(sec.Key("MASTER_KEY").MustString("")); err != nil {
+			log.Fatal("error loading master key: %v", err)
+			return
+		}
+	case "none":
+	default:
+		log.Fatal("invalid master key provider type: %v", MasterKeyProvider)
+		return
+	}
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {

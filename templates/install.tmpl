@@ -170,6 +170,22 @@
 						<span class="help">{{.locale.Tr "install.enable_update_checker_helper"}}</span>
 					</div>
 
+					<!-- Security Settings -->
+					<h4 class="ui dividing header">{{.i18n.Tr "install.security_title"}}</h4>
+
+					<div class="inline required field">
+						<label>{{.i18n.Tr "install.master_key_provider"}}</label>
+						<div class="ui selection master-key-provider dropdown">
+							<input type="hidden" name="master_key_provider" value="{{if .master_key_provider}}{{.master_key_provider}}{{else}}plain{{end}}">
+							<div class="text">{{.i18n.Tr "install.master_key_provider_plain"}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item" data-value="none">{{.i18n.Tr "install.master_key_provider_none"}}</div>
+								<div class="item" data-value="plain">{{.i18n.Tr "install.master_key_provider_plain"}}</div>
+							</div>
+						</div>
+						<span class="help">{{.i18n.Tr "install.master_key_provider_helper"}}</span>
+					</div>
 
 					<!-- Optional Settings -->
 					<h4 class="ui dividing header">{{.locale.Tr "install.optional_title"}}</h4>
