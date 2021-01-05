@@ -26,10 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"gitea.com/go-chi/session"
 
+	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
-	"github.com/unknwon/com"
 	"github.com/unrolled/render"
 	"gopkg.in/ini.v1"
 )

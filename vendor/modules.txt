@@ -736,9 +736,6 @@ github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.5
-# github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
-## explicit
-# github.com/tinylib/msgp v1.1.2
 ## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/webbrowser v1.2.0
