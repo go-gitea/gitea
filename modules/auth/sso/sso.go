@@ -7,15 +7,14 @@ package sso
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
 )
 
 // ssoMethods contains the list of SSO authentication plugins in the order they are expected to be
@@ -73,7 +72,7 @@ func Free() {
 }
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
-func SessionUser(sess session.Store) *models.User {
+func SessionUser(sess SessionStore) *models.User {
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
@@ -96,22 +95,22 @@ func SessionUser(sess session.Store) *models.User {
 }
 
 // isAPIPath returns true if the specified URL is an API path
-func isAPIPath(ctx *macaron.Context) bool {
-	return strings.HasPrefix(ctx.Req.URL.Path, "/api/")
+func isAPIPath(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, "/api/")
 }
 
 // isInternalPath returns true if the specified URL is an internal API path
-func isInternalPath(ctx *macaron.Context) bool {
-	return strings.HasPrefix(ctx.Req.URL.Path, "/api/internal/")
+func isInternalPath(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, "/api/internal/")
 }
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
-func isAttachmentDownload(ctx *macaron.Context) bool {
-	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
+func isAttachmentDownload(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(ctx *macaron.Context, sess session.Store, user *models.User) {
+func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *models.User) {
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
@@ -132,15 +131,16 @@ func handleSignIn(ctx *macaron.Context, sess session.Store, user *models.User) {
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
-		user.Language = ctx.Locale.Language()
+		lc := middlewares.Locale(resp, req)
+		user.Language = lc.Language()
 		if err := models.UpdateUserCols(user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}
 	}
 
-	ctx.SetCookie("lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middlewares.SetCookie(resp, "lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middlewares.SetCookie(resp, setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 }

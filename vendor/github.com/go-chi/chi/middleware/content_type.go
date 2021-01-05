@@ -19,9 +19,9 @@ func SetHeader(key, value string) func(next http.Handler) http.Handler {
 // AllowContentType enforces a whitelist of request Content-Types otherwise responds
 // with a 415 Unsupported Media Type status.
 func AllowContentType(contentTypes ...string) func(next http.Handler) http.Handler {
-	cT := []string{}
-	for _, t := range contentTypes {
-		cT = append(cT, strings.ToLower(t))
+	allowedContentTypes := make(map[string]struct{}, len(contentTypes))
+	for _, ctype := range contentTypes {
+		allowedContentTypes[strings.TrimSpace(strings.ToLower(ctype))] = struct{}{}
 	}
 
 	return func(next http.Handler) http.Handler {
@@ -37,11 +37,9 @@ func AllowContentType(contentTypes ...string) func(next http.Handler) http.Handl
 				s = s[0:i]
 			}
 
-			for _, t := range cT {
-				if t == s {
-					next.ServeHTTP(w, r)
-					return
-				}
+			if _, ok := allowedContentTypes[s]; ok {
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			w.WriteHeader(http.StatusUnsupportedMediaType)

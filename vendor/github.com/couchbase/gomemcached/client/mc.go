@@ -375,6 +375,25 @@ func (c *Client) setCollection(req *gomemcached.MCRequest, context ...*ClientCon
 	return nil
 }
 
+// Sets collection info in extras
+func (c *Client) setExtrasCollection(req *gomemcached.MCRequest, context ...*ClientContext) error {
+	collectionId := uint32(0)
+	if len(context) > 0 {
+		collectionId = context[0].CollId
+	}
+
+	// if the optional collection is specified, it must be default for clients that haven't turned on collections
+	if atomic.LoadUint32(&c.collectionsEnabled) == 0 {
+		if collectionId != 0 {
+			return fmt.Errorf("Client does not use collections but a collection was specified")
+		}
+	} else {
+		req.Extras = make([]byte, 4)
+		binary.BigEndian.PutUint32(req.Extras, collectionId)
+	}
+	return nil
+}
+
 func (c *Client) setVbSeqnoContext(req *gomemcached.MCRequest, context ...*ClientContext) error {
 	if len(context) == 0 || req == nil {
 		return nil
@@ -516,9 +535,14 @@ func (c *Client) Del(vb uint16, key string, context ...*ClientContext) (*gomemca
 
 // Get a random document
 func (c *Client) GetRandomDoc(context ...*ClientContext) (*gomemcached.MCResponse, error) {
-	return c.Send(&gomemcached.MCRequest{
+	req := &gomemcached.MCRequest{
 		Opcode: 0xB6,
-	})
+	}
+	err := c.setExtrasCollection(req, context...)
+	if err != nil {
+		return nil, err
+	}
+	return c.Send(req)
 }
 
 // AuthList lists SASL auth mechanisms.
