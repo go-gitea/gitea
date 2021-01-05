@@ -1,0 +1,15 @@
+language: go
+
+go:
+  - 1.11.x
+  - 1.12.x
+  - tip
+
+env:
+  - GO111MODULE=on
+
+install:
+  - go mod download 
+
+script:
+  - go test -v -race -tags=integration

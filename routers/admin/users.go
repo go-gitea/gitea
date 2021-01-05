@@ -184,6 +184,16 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	}
 	ctx.Data["Sources"] = sources
 
+	ctx.Data["TwoFactorEnabled"] = true
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.InternalServerError(err)
+			return nil
+		}
+		ctx.Data["TwoFactorEnabled"] = false
+	}
+
 	return u
 }
 
@@ -267,6 +277,19 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		}
 		u.Name = form.UserName
 		u.LowerName = strings.ToLower(form.UserName)
+	}
+
+	if form.Reset2FA {
+		tf, err := models.GetTwoFactorByUID(u.ID)
+		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.InternalServerError(err)
+			return
+		}
+
+		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	u.LoginName = form.LoginName
