@@ -9,12 +9,45 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestArchivedIssues(t *testing.T) {
+	// Arrange
+	setting.UI.IssuePagingNum = 1
+	assert.NoError(t, models.LoadFixtures())
+
+	ctx := test.MockContext(t, "issues")
+	test.LoadUser(t, ctx, 30)
+	ctx.Req.Form.Set("state", "open")
+
+	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
+	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctx.User})
+	assert.Len(t, repos, 2)
+	IsArchived := make(map[int64]bool)
+	NumIssues := make(map[int64]int)
+	for _, repo := range repos {
+		IsArchived[repo.ID] = repo.IsArchived
+		NumIssues[repo.ID] = repo.NumIssues
+	}
+	assert.EqualValues(t, false, IsArchived[50])
+	assert.EqualValues(t, 1, NumIssues[50])
+	assert.EqualValues(t, true, IsArchived[51])
+	assert.EqualValues(t, 1, NumIssues[51])
+
+	// Act
+	Issues(ctx)
+
+	// Assert: One Issue (ID 30) from one Repo (ID 50) is retrieved, while nothing from archived Repo 51 is retrieved
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+
+	assert.EqualValues(t, map[int64]int64{50: 1}, ctx.Data["Counts"])
+	assert.Len(t, ctx.Data["Issues"], 1)
+	assert.Len(t, ctx.Data["Repos"], 1)
+}
 
 func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
@@ -23,7 +56,6 @@ func TestIssues(t *testing.T) {
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "closed")
-	ctx.Org = &context.Organization{}
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
@@ -40,7 +72,6 @@ func TestPulls(t *testing.T) {
 	ctx := test.MockContext(t, "pulls")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "open")
-	ctx.Org = &context.Organization{}
 	Pulls(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
