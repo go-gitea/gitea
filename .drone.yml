@@ -81,8 +81,7 @@ steps:
       GOARCH: arm64
       TAGS: bindata gogit
     commands:
-      - make backend # test cross compile
-      - rm ./gitea # clean
+      - go build -mod=vendor -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-windows
