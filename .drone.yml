@@ -85,6 +85,19 @@ steps:
       - rm ./gitea # clean
     depends_on: [checks-backend]
 
+  - name: build-backend-windows
+    image: golang:1.15
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: windows
+      GOARCH: amd64
+      TAGS: bindata gogit
+    commands:
+      - make backend # test cross compile
+      - rm ./gitea # clean
+    depends_on: [checks-backend]
+
   - name: build-backend-386
     image: golang:1.15
     environment:
