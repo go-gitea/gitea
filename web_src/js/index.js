@@ -15,6 +15,7 @@ import initHeatmap from './features/heatmap.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
+import initMarkdownCheckboxes from './markdown/checkboxes.js';
 import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
@@ -2571,6 +2572,8 @@ $(document).ready(async () => {
     renderMarkdownContent(),
     initGithook(),
   ]);
+
+  initMarkdownCheckboxes();
 });
 
 function changeHash(hash) {
