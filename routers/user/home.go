@@ -552,7 +552,7 @@ func Issues(ctx *context.Context) {
 				return
 			}
 			if !perm.CanRead(unitType) {
-				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+				log.Debug("User created Issues in Repository which they no longer have access to: [%d]", repoID)
 			}
 		}
 	}
