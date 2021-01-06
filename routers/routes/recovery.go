@@ -75,7 +75,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					}
 
 					// Get user from session if logged in.
-					user, _ := sso.SignedInUser(req, &store, sess)
+					user, _ := sso.SignedInUser(req, w, &store, sess)
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user
