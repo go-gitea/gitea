@@ -1523,20 +1523,16 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
-	if opts.IsArchived != util.OptionalBoolNone {
-		relevantRepoIDs := []int64{}
-		r := []*Repository{}
-		s := x.Table("repository").Where(builder.Eq{"is_archived": opts.IsArchived.IsTrue()})
-		s.Select("id").Find(&relevantRepoIDs)
-		s.Find(&r)
-		cond = cond.And(builder.In("issue.repo_id", relevantRepoIDs))
-	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := x.Where(cond)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
+		}
+		if opts.IsArchived != util.OptionalBoolNone {
+			s.Join("INNER", "repository", "issue.repo_id = repository.id").
+				And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 		}
 		return s
 	}
