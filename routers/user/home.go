@@ -551,8 +551,8 @@ func Issues(ctx *context.Context) {
 				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
-			if !perm.CanRead(models.UnitTypeIssues) {
-				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			if !perm.CanRead(unitType) {
+				log.Debug("User created Issues in Repository which they no longer have access to: [%d]", repoID)
 			}
 		}
 	}
