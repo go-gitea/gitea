@@ -4,7 +4,7 @@ title: "Installation with Docker (rootless)"
 slug: "install-with-docker-rootless"
 weight: 10
 toc: false
-draft: true
+draft: false
 menu:
   sidebar:
     parent: "installation"
