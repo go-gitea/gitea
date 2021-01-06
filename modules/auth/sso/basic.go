@@ -47,7 +47,7 @@ func (b *Basic) IsEnabled() bool {
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	baHead := req.Header.Get("Authorization")
 	if len(baHead) == 0 {
 		return nil

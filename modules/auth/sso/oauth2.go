@@ -114,7 +114,7 @@ func (o *OAuth2) IsEnabled() bool {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !models.HasEngine {
 		return nil
 	}
