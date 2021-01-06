@@ -670,6 +670,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer baseGitRepo.Close()
+
 	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		return false, err
@@ -682,6 +684,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer headGitRepo.Close()
+
 	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
 	if err != nil {
 		return false, err
