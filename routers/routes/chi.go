@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers"
 
+	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +38,7 @@ type routerLoggerOptions struct {
 }
 
 // SignedUserName returns signed user's name via context
-// FIXME currently no any data stored on gin.Context but macaron.Context, so this will
+// FIXME currently no any data stored on chi.Context but macaron.Context, so this will
 // return "" before we remove macaron totally
 func SignedUserName(req *http.Request) string {
 	if v, ok := req.Context().Value("SignedUserName").(string); ok {
@@ -93,24 +94,6 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 
 			status := ww.Status()
 			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
-		})
-	}
-}
-
-// Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
-// Although similar to macaron.Recovery() the main difference is that this error will be created
-// with the gitea 500 page.
-func Recovery() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					http.Error(w, combinedErr, 500)
-				}
-			}()
-
-			next.ServeHTTP(w, req)
 		})
 	}
 }
@@ -202,6 +185,17 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	c.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
+
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)

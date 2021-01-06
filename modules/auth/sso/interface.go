@@ -5,11 +5,22 @@
 package sso
 
 import (
-	"code.gitea.io/gitea/models"
+	"net/http"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"code.gitea.io/gitea/models"
 )
+
+// DataStore represents a data store
+type DataStore interface {
+	GetData() map[string]interface{}
+}
+
+// SessionStore represents a session store
+type SessionStore interface {
+	Get(interface{}) interface{}
+	Set(interface{}, interface{}) error
+	Delete(interface{}) error
+}
 
 // SingleSignOn represents a SSO authentication method (plugin) for HTTP requests.
 type SingleSignOn interface {
@@ -29,5 +40,5 @@ type SingleSignOn interface {
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
 	// Returns nil if verification fails.
-	VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User
+	VerifyAuthData(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
 }
