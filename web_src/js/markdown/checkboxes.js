@@ -10,13 +10,13 @@ export default function initMarkdownCheckboxes() {
     const $segment = $(segment);
     const $checkboxes = $segment.find('.render-content.markdown input:checkbox');
 
-    const onChange = async (ev, cbIndex) => {
-      const $cb = $(ev.target);
-      const checkboxMarkdown = $cb.is(':checked') ? '[x]' : '[ ]';
+    const onChange = async (ev, checkboxIndex) => {
+      const $checkbox = $(ev.target);
+      const checkboxMarkdown = $checkbox.is(':checked') ? '[x]' : '[ ]';
 
       const $rawContent = $segment.find('.raw-content');
       const oldContent = $rawContent.text();
-      const newContent = oldContent.replace(checkboxMarkdownPattern, replaceNthMatchWith(cbIndex, checkboxMarkdown));
+      const newContent = oldContent.replace(checkboxMarkdownPattern, replaceNthMatchWith(checkboxIndex, checkboxMarkdown));
 
       if (newContent !== oldContent) {
         disableAll($checkboxes);
@@ -28,7 +28,7 @@ export default function initMarkdownCheckboxes() {
           await submit(newContent, url, context);
           $rawContent.text(newContent);
         } catch (e) {
-          $cb.prop('checked', !$cb.is(':checked'));
+          $checkbox.prop('checked', !$checkbox.is(':checked'));
 
           console.error(e);
         } finally {
@@ -38,8 +38,8 @@ export default function initMarkdownCheckboxes() {
     };
 
     enableAll($checkboxes);
-    $checkboxes.each((cbIndex, cb) => {
-      $(cb).on('change', (ev) => onChange(ev, cbIndex));
+    $checkboxes.each((checkboxIndex, checkboxElement) => {
+      $(checkboxElement).on('change', (ev) => onChange(ev, checkboxIndex));
     });
   });
 }
