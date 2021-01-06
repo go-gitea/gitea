@@ -397,9 +397,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextFile"] = isTextFile
 
 	isDisplayingSource := ctx.Query("display") == "source"
-	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	isDisplayingRendered := !isDisplayingSource
-	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 	isRepresentableAsText := base.IsRepresentableAsText(buf)
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	if !isRepresentableAsText {
@@ -407,6 +405,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		isDisplayingSource = false
 		isDisplayingRendered = true
 	}
+	ctx.Data["IsDisplayingSource"] = isDisplayingSource
+	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
