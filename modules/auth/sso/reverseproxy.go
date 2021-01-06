@@ -60,7 +60,7 @@ func (r *ReverseProxy) IsEnabled() bool {
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
