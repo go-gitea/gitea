@@ -40,6 +40,7 @@ var (
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
 type SSPI struct {
+	rnd *render.Render
 }
 
 // Init creates a new global websspi.Authenticator object
@@ -47,7 +48,18 @@ func (s *SSPI) Init() error {
 	config := websspi.NewConfig()
 	var err error
 	sspiAuth, err = websspi.New(config)
-	return err
+	if err != nil {
+		return err
+	}
+	s.rnd = render.New(render.Options{
+		Extensions:    []string{".tmpl"},
+		Directory:     "templates",
+		Funcs:         templates.NewFuncMap(),
+		Asset:         templates.GetAsset,
+		AssetNames:    templates.GetAssetNames,
+		IsDevelopment: setting.RunMode != "prod",
+	})
+	return nil
 }
 
 // Free releases resources used by the global websspi.Authenticator object
@@ -86,19 +98,10 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		store.GetData()["Flash"] = map[string]string{
 			"ErrMsg": err.Error(),
 		}
-
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
 
-		rnd := render.New(render.Options{
-			Extensions:    []string{".tmpl"},
-			Directory:     "templates",
-			Funcs:         templates.NewFuncMap(),
-			Asset:         templates.GetAsset,
-			AssetNames:    templates.GetAssetNames,
-			IsDevelopment: setting.RunMode != "prod",
-		})
-		err := rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
+		err := s.rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
 		if err != nil {
 			log.Error("%v", err)
 		}
