@@ -3,6 +3,20 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.0.6](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1308) - 2021-01-05
+
+* BUGFIXES
+  * Fix bug when modify column on mssql (#1849)
+  * Fix find and count bug with cols (#1826)
+  * Fix update bug (#1823)
+  * Fix json tag with other type (#1822)
+* ENHANCEMENTS
+  * prevent panic when struct with unexport field (#1839)
+  * Automatically convert datetime to int64 (#1715)
+* MISC
+  * Fix index (#1841)
+  * Performance improvement for columnsbyName (#1788)
+
 ## [1.0.5](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1299) - 2020-09-08
 
 * BUGFIXES
