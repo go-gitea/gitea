@@ -524,7 +524,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// ----------------------------------
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := repoIDMap(ctxUser, issueCountByRepo)
+	showReposMap, err := repoIDMap(ctxUser, issueCountByRepo, unitType)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
@@ -800,7 +800,7 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64) (map[int64]*models.Repository, error) {
+func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType models.UnitType) (map[int64]*models.Repository, error) {
 	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
 	for id := range issueCountByRepo {
 		if id <= 0 {
@@ -822,8 +822,8 @@ func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64) (map[int6
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission: [%d]%v", id, err)
 		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			log.Error("User created Issues in Repository which they no longer have access to: [%d]", id)
+		if !perm.CanRead(unitType) {
+			log.Debug("User created Issues in Repository which they no longer have access to: [%d]", id)
 		}
 	}
 	return repoByID, nil

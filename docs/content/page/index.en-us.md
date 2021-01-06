@@ -268,7 +268,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 ## Components
 
 * Web framework: [Macaron](http://go-macaron.com/)
-* ORM: [XORM](https://github.com/go-xorm/xorm)
+* ORM: [XORM](https://xorm.io)
 * UI components:
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)
