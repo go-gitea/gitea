@@ -246,6 +246,7 @@ func TestCantMergeConflict(t *testing.T) {
 		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleRebase, "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
+		gitRepo.Close()
 	})
 }
 
@@ -329,5 +330,6 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleMerge, "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
+		gitRepo.Close()
 	})
 }
