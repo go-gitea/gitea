@@ -774,7 +774,7 @@ func UserSignIn(username, password string) (*User, error) {
 					if err = user.SetPassword(password); err != nil {
 						return nil, err
 					}
-					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 						return nil, err
 					}
 				}
