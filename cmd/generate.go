@@ -142,10 +142,13 @@ func runGenerateMasterKey(c *cli.Context) error {
 			fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(secret))
 		}
 	}
-	fmt.Println("Setting changes required:")
-	fmt.Println("[secrets]")
+
 	if providerType == secrets.MasterKeyProviderTypePlain && len(scrts) == 1 {
-		fmt.Printf("MASTER_KEY = %s\n", base64.StdEncoding.EncodeToString(scrts[0]))
+		fmt.Printf("%s", base64.StdEncoding.EncodeToString(scrts[0]))
+
+		if isatty.IsTerminal(os.Stdout.Fd()) {
+			fmt.Printf("\n")
+		}
 	}
 
 	return nil
