@@ -42,6 +42,7 @@ type AdminEditUserForm struct {
 	AllowImportLocal        bool
 	AllowCreateOrganization bool
 	ProhibitLogin           bool
+	Reset2FA                bool `form:"reset_2fa"`
 }
 
 // Validate validates form fields

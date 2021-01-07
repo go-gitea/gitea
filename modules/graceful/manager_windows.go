@@ -73,7 +73,7 @@ func (g *Manager) start() {
 
 	// Make SVC process
 	run := svc.Run
-	isInteractive, err := svc.IsAnInteractiveSession()
+	isInteractive, err := svc.IsWindowsService()
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Interactive Session: %v", err)
 		return
@@ -81,7 +81,9 @@ func (g *Manager) start() {
 	if isInteractive {
 		run = debug.Run
 	}
-	go run(WindowsServiceName, g)
+	go func() {
+		_ = run(WindowsServiceName, g)
+	}()
 }
 
 // Execute makes Manager implement svc.Handler
