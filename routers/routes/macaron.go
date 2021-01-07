@@ -83,13 +83,15 @@ func NewMacaron() *macaron.Macaron {
 	}
 
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:       setting.AppSubURL,
-		Files:        localFiles,
-		Langs:        setting.Langs,
-		Names:        setting.Names,
-		DefaultLang:  "en-US",
-		Redirect:     false,
-		CookieDomain: setting.SessionConfig.Domain,
+		SubURL:         setting.AppSubURL,
+		Files:          localFiles,
+		Langs:          setting.Langs,
+		Names:          setting.Names,
+		DefaultLang:    "en-US",
+		Redirect:       false,
+		CookieHttpOnly: true,
+		Secure:         setting.SessionConfig.Secure,
+		CookieDomain:   setting.SessionConfig.Domain,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
