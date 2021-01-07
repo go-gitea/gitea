@@ -113,7 +113,7 @@ type Webhook struct {
 	*HookEvent      `xorm:"-"`
 	IsSSL           bool         `xorm:"is_ssl"`
 	IsActive        bool         `xorm:"INDEX"`
-	Type            HookTaskType `xorm:"char(16) 'type'"`
+	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
 	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus   // Last delivery status
 
@@ -641,9 +641,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Typ             HookTaskType
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
