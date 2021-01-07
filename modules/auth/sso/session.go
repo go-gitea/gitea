@@ -5,9 +5,10 @@
 package sso
 
 import (
-	"net/http"
-
 	"code.gitea.io/gitea/models"
+
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
 )
 
 // Ensure the struct implements the interface.
@@ -39,7 +40,7 @@ func (s *Session) IsEnabled() bool {
 // VerifyAuthData checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
-func (s *Session) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (s *Session) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
 	user := SessionUser(sess)
 	if user != nil {
 		return user

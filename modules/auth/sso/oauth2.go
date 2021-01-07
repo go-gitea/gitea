@@ -6,13 +6,15 @@
 package sso
 
 import (
-	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
 )
 
 // Ensure the struct implements the interface.
@@ -61,15 +63,15 @@ func (o *OAuth2) Free() error {
 }
 
 // userIDFromToken returns the user id corresponding to the OAuth token.
-func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
+func (o *OAuth2) userIDFromToken(ctx *macaron.Context) int64 {
 	// Check access token.
-	tokenSHA := req.Form.Get("token")
+	tokenSHA := ctx.Query("token")
 	if len(tokenSHA) == 0 {
-		tokenSHA = req.Form.Get("access_token")
+		tokenSHA = ctx.Query("access_token")
 	}
 	if len(tokenSHA) == 0 {
 		// Well, check with header again.
-		auHead := req.Header.Get("Authorization")
+		auHead := ctx.Req.Header.Get("Authorization")
 		if len(auHead) > 0 {
 			auths := strings.Fields(auHead)
 			if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
@@ -85,7 +87,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	if strings.Contains(tokenSHA, ".") {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
-			store.GetData()["IsApiToken"] = true
+			ctx.Data["IsApiToken"] = true
 		}
 		return uid
 	}
@@ -100,7 +102,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	if err = models.UpdateAccessToken(t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
-	store.GetData()["IsApiToken"] = true
+	ctx.Data["IsApiToken"] = true
 	return t.UID
 }
 
@@ -114,16 +116,16 @@ func (o *OAuth2) IsEnabled() bool {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (o *OAuth2) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
 	if !models.HasEngine {
 		return nil
 	}
 
-	if isInternalPath(req) || !isAPIPath(req) && !isAttachmentDownload(req) {
+	if isInternalPath(ctx) || !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
 		return nil
 	}
 
-	id := o.userIDFromToken(req, store)
+	id := o.userIDFromToken(ctx)
 	if id <= 0 {
 		return nil
 	}

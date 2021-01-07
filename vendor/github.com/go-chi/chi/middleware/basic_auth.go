@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"crypto/subtle"
 	"fmt"
 	"net/http"
 )
@@ -17,7 +16,7 @@ func BasicAuth(realm string, creds map[string]string) func(next http.Handler) ht
 			}
 
 			credPass, credUserOk := creds[user]
-			if !credUserOk || subtle.ConstantTimeCompare([]byte(pass), []byte(credPass)) != 1 {
+			if !credUserOk || pass != credPass {
 				basicAuthFailed(w, realm)
 				return
 			}

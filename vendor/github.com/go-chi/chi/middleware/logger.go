@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 )
 
@@ -17,7 +16,7 @@ var (
 	// DefaultLogger is called by the Logger middleware handler to log each request.
 	// Its made a package-level variable so that it can be reconfigured for custom
 	// logging configurations.
-	DefaultLogger func(next http.Handler) http.Handler
+	DefaultLogger = RequestLogger(&DefaultLogFormatter{Logger: log.New(os.Stdout, "", log.LstdFlags), NoColor: false})
 )
 
 // Logger is a middleware that logs the start and end of each request, along
@@ -28,16 +27,6 @@ var (
 //
 // Alternatively, look at https://github.com/goware/httplog for a more in-depth
 // http logger with structured logging support.
-//
-// IMPORTANT NOTE: Logger should go before any other middleware that may change
-// the response, such as `middleware.Recoverer`. Example:
-//
-// ```go
-// r := chi.NewRouter()
-// r.Use(middleware.Logger)        // <--<< Logger should come before Recoverer
-// r.Use(middleware.Recoverer)
-// r.Get("/", handler)
-// ```
 func Logger(next http.Handler) http.Handler {
 	return DefaultLogger(next)
 }
@@ -163,12 +152,4 @@ func (l *defaultLogEntry) Write(status, bytes int, header http.Header, elapsed t
 
 func (l *defaultLogEntry) Panic(v interface{}, stack []byte) {
 	PrintPrettyStack(v)
-}
-
-func init() {
-	color := true
-	if runtime.GOOS == "windows" {
-		color = false
-	}
-	DefaultLogger = RequestLogger(&DefaultLogFormatter{Logger: log.New(os.Stdout, "", log.LstdFlags), NoColor: !color})
 }

@@ -17,7 +17,11 @@ type CollectionsFilter struct {
 	ScopeId         uint32
 }
 
-type nonStreamIdNonCollectionsMeta struct {
+type nonStreamIdNonResumeScopeMeta struct {
+	ScopeId string `json:"scope"`
+}
+
+type nonStreamIdResumeScopeMeta struct {
 	ManifestId string `json:"uid"`
 }
 
@@ -25,7 +29,7 @@ type nonStreamIdNonResumeCollectionsMeta struct {
 	CollectionsList []string `json:"collections"`
 }
 
-type nonStreamIdCollectionsMeta struct {
+type nonStreamIdResumeCollectionsMeta struct {
 	ManifestId      string   `json:"uid"`
 	CollectionsList []string `json:"collections"`
 }
@@ -95,19 +99,10 @@ func (c *CollectionsFilter) ToStreamReqBody() ([]byte, error) {
 	case false:
 		switch c.UseManifestUid {
 		case true:
-			switch len(c.CollectionsList) > 0 {
-			case true:
-				filter := &nonStreamIdCollectionsMeta{
-					ManifestId:      fmt.Sprintf("%x", c.ManifestUid),
-					CollectionsList: c.outputCollectionsFilterColList(),
-				}
-				output = *filter
-			case false:
-				filter := &nonStreamIdNonCollectionsMeta{
-					ManifestId: fmt.Sprintf("%x", c.ManifestUid),
-				}
-				output = *filter
+			filter := &nonStreamIdResumeScopeMeta{
+				ManifestId: fmt.Sprintf("%x", c.ManifestUid),
 			}
+			output = *filter
 		case false:
 			switch len(c.CollectionsList) > 0 {
 			case true:
@@ -116,7 +111,7 @@ func (c *CollectionsFilter) ToStreamReqBody() ([]byte, error) {
 				}
 				output = *filter
 			case false:
-				return nil, fmt.Errorf("Specifying scopeID must require the use of streamId")
+				output = nonStreamIdNonResumeScopeMeta{ScopeId: c.outputScopeId()}
 			}
 		}
 	}

@@ -53,7 +53,7 @@ func URLFormat(next http.Handler) http.Handler {
 
 		if strings.Index(path, ".") > 0 {
 			base := strings.LastIndex(path, "/")
-			idx := strings.LastIndex(path[base:], ".")
+			idx := strings.Index(path[base:], ".")
 
 			if idx > 0 {
 				idx += base

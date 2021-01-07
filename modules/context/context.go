@@ -17,7 +17,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,11 +46,6 @@ type Context struct {
 
 	Repo *Repository
 	Org  *Organization
-}
-
-// GetData returns the data
-func (ctx *Context) GetData() map[string]interface{} {
-	return ctx.Data
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin
@@ -309,7 +303,7 @@ func Contexter() macaron.Handler {
 		}
 
 		// Get user from session if logged in.
-		ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req.Request, ctx, ctx.Session)
+		ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Context, ctx.Session)
 
 		if ctx.User != nil {
 			ctx.IsSigned = true

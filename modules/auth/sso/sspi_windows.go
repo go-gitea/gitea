@@ -6,7 +6,6 @@ package sso
 
 import (
 	"errors"
-	"net/http"
 	"reflect"
 	"strings"
 
@@ -65,7 +64,7 @@ func (s *SSPI) IsEnabled() bool {
 // If authentication is successful, returs the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
+func (s *SSPI) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
 	if !s.shouldAuthenticate(ctx) {
 		return nil
 	}
@@ -76,7 +75,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionSt
 		return nil
 	}
 
-	userInfo, outToken, err := sspiAuth.Authenticate(req, ctx.Resp)
+	userInfo, outToken, err := sspiAuth.Authenticate(ctx.Req.Request, ctx.Resp)
 	if err != nil {
 		log.Warn("Authentication failed with error: %v\n", err)
 		sspiAuth.AppendAuthenticateHeader(ctx.Resp, outToken)
@@ -140,18 +139,18 @@ func (s *SSPI) getConfig() (*models.SSPIConfig, error) {
 	return sources[0].SSPI(), nil
 }
 
-func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
+func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) (shouldAuth bool) {
 	shouldAuth = false
-	path := strings.TrimSuffix(req.URL.Path, "/")
+	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
 	if path == "/user/login" {
-		if req.FormValue("user_name") != "" && req.FormValue("password") != "" {
+		if ctx.Req.FormValue("user_name") != "" && ctx.Req.FormValue("password") != "" {
 			shouldAuth = false
 		} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if isInternalPath(req) {
+	} else if isInternalPath(ctx) {
 		shouldAuth = false
-	} else if isAPIPath(req) || isAttachmentDownload(req) {
+	} else if isAPIPath(ctx) || isAttachmentDownload(ctx) {
 		shouldAuth = true
 	}
 	return
@@ -159,7 +158,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(username string, cfg *models.SSPIConfig) (*models.User, error) {
+func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPIConfig) (*models.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &models.User{
 		Name:                         username,
