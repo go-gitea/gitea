@@ -255,7 +255,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
 ## Composants
 
 * Framework web : [Macaron](http://go-macaron.com/)
-* ORM : [XORM](https://github.com/go-xorm/xorm)
+* ORM: [XORM](https://xorm.io)
 * Interface graphique :
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)
