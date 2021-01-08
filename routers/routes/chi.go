@@ -176,6 +176,10 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
+var (
+	sessionManager *session.Manager
+)
+
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
@@ -185,7 +189,8 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
-	c.Use(session.Sessioner(session.Options{
+
+	var opt = session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -194,7 +199,14 @@ func NewChi() chi.Router {
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
-	}))
+	}
+	opt = session.PrepareOptions([]session.Options{opt})
+
+	var err error
+	sessionManager, err = session.NewManager(opt.Provider, opt)
+	if err != nil {
+		panic(err)
+	}
 
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
