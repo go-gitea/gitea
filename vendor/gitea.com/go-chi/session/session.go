@@ -101,7 +101,8 @@ type Options struct {
 	FlashEncryptionKey string
 }
 
-func prepareOptions(options []Options) Options {
+// PrepareOptions gives some default values for options
+func PrepareOptions(options []Options) Options {
 	var opt Options
 	if len(options) > 0 {
 		opt = options[0]
@@ -231,7 +232,7 @@ func NewCookie(name string, value string, others ...interface{}) *http.Cookie {
 // Sessioner is a middleware that maps a session.SessionStore service into the Macaron handler chain.
 // An single variadic session.Options struct can be optionally provided to configure.
 func Sessioner(options ...Options) func(next http.Handler) http.Handler {
-	opt := prepareOptions(options)
+	opt := PrepareOptions(options)
 	manager, err := NewManager(opt.Provider, opt)
 	if err != nil {
 		panic(err)
