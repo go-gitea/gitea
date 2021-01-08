@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 
-	"gitea.com/go-chi/session"
 	"github.com/unrolled/render"
 )
 
@@ -64,7 +63,13 @@ func Recovery() func(next http.Handler) http.Handler {
 					log.Error("%v", combinedErr)
 
 					lc := middlewares.Locale(w, req)
-					sess := session.GetSession(req)
+
+					// TODO: this should be replaced by real session after macaron removed totally
+					sessionStore, err := sessionManager.Start(w, req)
+					if err != nil {
+						// Just invoke the above recover catch
+						panic("session(start): " + err.Error())
+					}
 
 					var store = dataStore{
 						Data: templates.Vars{
@@ -75,7 +80,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					}
 
 					// Get user from session if logged in.
-					user, _ := sso.SignedInUser(req, w, &store, sess)
+					user, _ := sso.SignedInUser(req, w, &store, sessionStore)
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user
@@ -92,7 +97,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					if setting.RunMode != "prod" {
 						store.Data["ErrMsg"] = combinedErr
 					}
-					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
+					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
 					if err != nil {
 						log.Error("%v", err)
 					}
