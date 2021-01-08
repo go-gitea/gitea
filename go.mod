@@ -5,7 +5,7 @@ go 1.14
 require (
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.13.1
-	gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
+	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
