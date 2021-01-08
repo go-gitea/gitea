@@ -64,6 +64,7 @@ func Recovery() func(next http.Handler) http.Handler {
 
 					lc := middlewares.Locale(w, req)
 
+					// TODO: this should be replaced by real session after macaron removed totally
 					sessionStore, err := sessionManager.Start(w, req)
 					if err != nil {
 						// Just invoke the above recover catch
