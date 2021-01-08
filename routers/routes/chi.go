@@ -176,6 +176,50 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
+var (
+	sessionManager *session.Manager
+)
+
+func prepareOptions(options []session.Options) session.Options {
+	var opt session.Options
+	if len(options) > 0 {
+		opt = options[0]
+	}
+
+	if len(opt.Provider) == 0 {
+		opt.Provider = "memory"
+	}
+	if len(opt.ProviderConfig) == 0 {
+		opt.ProviderConfig = "data/sessions"
+	}
+	if len(opt.CookieName) == 0 {
+		opt.CookieName = "MacaronSession"
+	}
+	if len(opt.CookiePath) == 0 {
+		opt.CookiePath = "/"
+	}
+	if opt.Gclifetime == 0 {
+		opt.Gclifetime = 3600
+	}
+	if opt.Maxlifetime == 0 {
+		opt.Maxlifetime = opt.Gclifetime
+	}
+	if !opt.Secure {
+		opt.Secure = false
+	}
+	if opt.IDLength == 0 {
+		opt.IDLength = 16
+	}
+	if len(opt.FlashEncryptionKey) == 0 {
+		opt.FlashEncryptionKey = ""
+	}
+	if len(opt.FlashEncryptionKey) == 0 {
+		opt.FlashEncryptionKey, _ = session.NewSecret()
+	}
+
+	return opt
+}
+
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
@@ -185,7 +229,8 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
-	c.Use(session.Sessioner(session.Options{
+
+	var opt = session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -194,7 +239,14 @@ func NewChi() chi.Router {
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
-	}))
+	}
+	opt = prepareOptions([]session.Options{opt})
+
+	var err error
+	sessionManager, err = session.NewManager(opt.Provider, opt)
+	if err != nil {
+		panic(err)
+	}
 
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
