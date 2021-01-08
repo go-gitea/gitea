@@ -13,6 +13,10 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
+var (
+	_ binding.Validator = &InstallForm{}
+)
+
 // InstallForm form for installation page
 type InstallForm struct {
 	DbType   string `binding:"Required"`

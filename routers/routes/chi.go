@@ -12,11 +12,11 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"text/template"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -188,16 +188,12 @@ func Wrap(f func(ctx *gitea_context.DefaultContext)) http.HandlerFunc {
 }
 
 // Bind binding an obj to a handler
-func Bind(obj interface{}, handler func(ctx *gitea_context.DefaultContext)) http.HandlerFunc {
+func Bind(obj interface{}, handler func(ctx *gitea_context.DefaultContext, form interface{})) http.HandlerFunc {
+	var tp = reflect.TypeOf(obj).Elem()
 	return Wrap(func(ctx *gitea_context.DefaultContext) {
-		errs := binding.Bind(ctx.Req, obj)
-		if errs.Len() > 0 {
-			ctx.Data["HasError"] = true
-			ctx.Flash(gitea_context.ErrorFlash, errs[0].Error())
-		}
-		auth.AssignForm(obj, ctx.Data)
-		ctx.Data["form"] = obj
-		handler(ctx)
+		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		binding.Bind(ctx.Req, theObj)
+		handler(ctx, theObj)
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/validation"
 
@@ -20,29 +21,8 @@ type Form interface {
 	binding.Validator
 }
 
-// AssignForm assign form values back to the template data.
-func AssignForm(form interface{}, data map[string]interface{}) {
-	typ := reflect.TypeOf(form)
-	val := reflect.ValueOf(form)
-
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-		val = val.Elem()
-	}
-
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		fieldName := field.Tag.Get("form")
-		// Allow ignored fields in the struct
-		if fieldName == "-" {
-			continue
-		} else if len(fieldName) == 0 {
-			fieldName = com.ToSnakeCase(field.Name)
-		}
-
-		data[fieldName] = val.Field(i).Interface()
-	}
+func init() {
+	binding.SetNameMapper(com.ToSnakeCase)
 }
 
 func getRuleBody(field reflect.StructField, prefix string) string {
@@ -84,7 +64,7 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 	// somehow, some code later on will panic on Data["ErrorMsg"].(string).
 	// So initialize it to some default.
 	data["ErrorMsg"] = l.Tr("form.unknown_error")
-	AssignForm(f, data)
+	auth.AssignForm(f, data)
 
 	typ := reflect.TypeOf(f)
 	val := reflect.ValueOf(f)
