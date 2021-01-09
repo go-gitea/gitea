@@ -856,6 +856,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 			m.Group("/files", func() {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
 				m.Group("/reviews", func() {
+					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", bindIgnErr(auth.CodeCommentForm{}), repo.CreateCodeComment)
 					m.Post("/submit", bindIgnErr(auth.SubmitReviewForm{}), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
