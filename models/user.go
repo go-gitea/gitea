@@ -398,6 +398,10 @@ func hashPassword(passwd, salt, algo string) string {
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
 // change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
+	if len(passwd) == 0 {
+		return fmt.Errorf("no passord to be set")
+	}
+
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
