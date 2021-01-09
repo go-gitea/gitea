@@ -137,6 +137,9 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				return err
 			}
 		}
+		if gitRepo != nil {
+			gitRepo.Close()
+		}
 
 		if err := sess.Commit(); err != nil {
 			return err
