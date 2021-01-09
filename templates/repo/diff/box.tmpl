@@ -144,28 +144,25 @@
 		{{end}}
 
 		{{if not $.Repository.IsArchived}}
-			<div id="pull_review_add_comment" class="hide">
-					{{template "repo/diff/new_comment" dict "root" .}}
+			<div class="hide" id="edit-content-form">
+				<div class="ui comment form">
+					<div class="ui top attached tabular menu">
+						<a class="active write item">{{$.i18n.Tr "write"}}</a>
+						<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 					</div>
-					<div class="hide" id="edit-content-form">
-							<div class="ui comment form">
-									<div class="ui top attached tabular menu">
-											<a class="active write item">{{$.i18n.Tr "write"}}</a>
-											<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
-									</div>
-									<div class="ui bottom attached active write tab segment">
-											<textarea class="review-textarea" tabindex="1" name="content"></textarea>
-									</div>
-									<div class="ui bottom attached tab preview segment markdown">
-									{{$.i18n.Tr "loading"}}
-									</div>
-									<div class="text right edit buttons">
-											<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-											<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
-									</div>
-							</div>
+					<div class="ui bottom attached active write tab segment">
+						<textarea class="review-textarea" tabindex="1" name="content"></textarea>
 					</div>
-		 {{end}}
+					<div class="ui bottom attached tab preview segment markdown">
+					{{$.i18n.Tr "loading"}}
+					</div>
+					<div class="text right edit buttons">
+						<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+						<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+					</div>
+				</div>
+			</div>
+		{{end}}
 
 		{{if .IsSplitStyle}}
 			<script>

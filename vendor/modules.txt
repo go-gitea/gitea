@@ -7,7 +7,7 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.1
 ## explicit
 code.gitea.io/sdk/gitea
-# gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
+# gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 ## explicit
 gitea.com/go-chi/session
 gitea.com/go-chi/session/couchbase
