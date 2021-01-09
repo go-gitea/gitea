@@ -399,7 +399,10 @@ func hashPassword(passwd, salt, algo string) string {
 // change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
 	if len(passwd) == 0 {
-		return fmt.Errorf("no passord to be set")
+		u.Passwd = ""
+		u.Salt = ""
+		u.PasswdHashAlgo = ""
+		return nil
 	}
 
 	if u.Salt, err = GetUserSalt(); err != nil {
