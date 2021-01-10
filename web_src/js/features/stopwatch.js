@@ -1,4 +1,7 @@
+import prettyMilliseconds from 'pretty-ms';
 const {AppSubUrl, csrf, NotificationSettings} = window.config;
+
+let updateTimeInterval = null; // holds setInterval id when active
 
 export async function initStopwatch() {
   const stopwatchEl = $('.active-stopwatch-trigger');
@@ -25,6 +28,7 @@ export async function initStopwatch() {
   };
 
   fn(NotificationSettings.MinTimeout);
+  updateTimeInterval = updateStopwatchTime(parseInt($('.stopwatch-time').data('seconds')));
 }
 
 async function updateStopwatchWithCallback(callback, timeout) {
@@ -46,20 +50,35 @@ async function updateStopwatch() {
     headers: {'X-Csrf-Token': csrf},
   });
 
+  if (updateTimeInterval) {
+    clearInterval(updateTimeInterval);
+    updateTimeInterval = null;
+  }
+
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
     btnEl.addClass('hidden');
   } else {
-    const {repo_owner_name, repo_name, issue_index, duration} = watch;
+    const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${AppSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
     $('.stopwatch-link').attr('href', issueUrl);
     $('.stopwatch-commit').attr('action', `${issueUrl}/times/stopwatch/toggle`);
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
     $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
-    $('.stopwatch-time').text(`${duration}`);
+    $('.stopwatch-time').text(prettyMilliseconds(seconds * 1000));
+    updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
 
   return !!data.length;
+}
+
+async function updateStopwatchTime(seconds) {
+  const start = Date.now();
+  updateTimeInterval = setInterval(() => {
+    const delta = Date.now() - start;
+    const dur = prettyMilliseconds(seconds * 1000 + delta, {compact: true});
+    $('.stopwatch-time').text(dur);
+  }, 1000);
 }
