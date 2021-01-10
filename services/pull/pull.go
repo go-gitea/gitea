@@ -53,7 +53,12 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		return err
 	}
 
-	notification.NotifyNewPullRequest(pr)
+	mentions, err := pull.FindAndUpdateIssueMentions(models.DefaultDBContext(), pull.Poster, pull.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewPullRequest(pr, mentions)
 
 	// add first push codes comment
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
@@ -665,6 +670,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer baseGitRepo.Close()
+
 	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		return false, err
@@ -677,6 +684,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer headGitRepo.Close()
+
 	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
 	if err != nil {
 		return false, err

@@ -195,6 +195,7 @@
       border-radius: 0;
       padding: 5px 10px;
       width: 50%;
+      line-height: 1.4;
     }
 
     .clone.button {
@@ -1474,7 +1475,7 @@
     }
   }
 
-  .diff-box .header {
+  .diff-box .header:not(.resolved-placeholder) {
     display: flex;
     align-items: center;
 
@@ -1489,6 +1490,15 @@
       margin-top: -8px;
       margin-bottom: -8px;
       margin-right: 0;
+    }
+  }
+
+  .diff-box .resolved-placeholder {
+    display: flex;
+    align-items: center;
+
+    .button {
+      padding: 8px 12px;
     }
   }
 
@@ -1641,6 +1651,7 @@
         border-radius: 0;
         padding: 5px 10px;
         font-size: 1.2em;
+        line-height: 1.4;
       }
     }
   }
@@ -2695,7 +2706,12 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
-  margin: 0;
+}
+
+.repository:not(.diff) {
+  .commit-body {
+    margin: 0;
+  }
 }
 
 .git-notes.top {

@@ -979,6 +979,7 @@ type CreateRepoOptions struct {
 	AutoInit       bool
 	Status         RepositoryStatus
 	TrustModel     TrustModelType
+	MirrorInterval string
 }
 
 // GetRepoInitFile returns repository init files

@@ -107,9 +107,10 @@ type AccessTokenResponse struct {
 	TokenType    TokenType `json:"token_type"`
 	ExpiresIn    int64     `json:"expires_in"`
 	RefreshToken string    `json:"refresh_token"`
+	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(); err != nil {
 			return nil, &AccessTokenError{
@@ -153,11 +154,40 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 		}
 	}
 
+	// generate OpenID Connect id_token
+	signedIDToken := ""
+	if grant.ScopeContains("openid") {
+		app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+		if err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "cannot find application",
+			}
+		}
+		idToken := &models.OIDCToken{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationDate.AsTime().Unix(),
+				Issuer:    setting.AppURL,
+				Audience:  app.ClientID,
+				Subject:   fmt.Sprint(grant.UserID),
+			},
+			Nonce: grant.Nonce,
+		}
+		signedIDToken, err = idToken.SignToken(clientSecret)
+		if err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "cannot sign token",
+			}
+		}
+	}
+
 	return &AccessTokenResponse{
 		AccessToken:  signedAccessToken,
 		TokenType:    TokenTypeBearer,
 		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
 		RefreshToken: signedRefreshToken,
+		IDToken:      signedIDToken,
 	}, nil
 }
 
@@ -264,6 +294,13 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
 		}
+		// Update nonce to reflect the new session
+		if len(form.Nonce) > 0 {
+			err := grant.SetNonce(form.Nonce)
+			if err != nil {
+				log.Error("Unable to update nonce: %v", err)
+			}
+		}
 		ctx.Redirect(redirect.String(), 302)
 		return
 	}
@@ -272,6 +309,8 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
+	ctx.Data["Scope"] = form.Scope
+	ctx.Data["Nonce"] = form.Nonce
 	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(app.User.LowerName)) + "\">@" + html.EscapeString(app.User.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
@@ -313,7 +352,7 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.User.ID)
+	grant, err := app.CreateGrant(ctx.User.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
@@ -321,6 +360,12 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 			ErrorCode:        ErrorCodeServerError,
 		}, form.RedirectURI)
 		return
+	}
+	if len(form.Nonce) > 0 {
+		err := grant.SetNonce(form.Nonce)
+		if err != nil {
+			log.Error("Unable to update nonce: %v", err)
+		}
 	}
 
 	var codeChallenge, codeChallengeMethod string
@@ -409,7 +454,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-	accessToken, tokenErr := newAccessTokenResponse(grant)
+	accessToken, tokenErr := newAccessTokenResponse(grant, form.ClientSecret)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -471,7 +516,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, form.ClientSecret)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return

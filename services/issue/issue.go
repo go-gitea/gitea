@@ -23,7 +23,12 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		}
 	}
 
-	notification.NotifyNewIssue(issue)
+	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), issue.Poster, issue.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewIssue(issue, mentions)
 
 	return nil
 }
