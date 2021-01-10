@@ -269,7 +269,7 @@ var migrations = []Migration{
 	NewMigration("Convert task type from int to string", convertTaskTypeToString),
 	// v162 -> v163
 	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
-	// v163 -> v164
+	// v166 -> v167
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 }
 
