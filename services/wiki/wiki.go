@@ -17,8 +17,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -88,8 +86,8 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
+	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)
@@ -242,8 +240,8 @@ func EditWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWi
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string) (err error) {
-	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
+	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)

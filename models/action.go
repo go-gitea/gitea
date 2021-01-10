@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -266,7 +265,7 @@ func (a *Action) GetIssueInfos() []string {
 // GetIssueTitle returns the title of first issue associated
 // with the action.
 func (a *Action) GetIssueTitle() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
@@ -278,7 +277,7 @@ func (a *Action) GetIssueTitle() string {
 // GetIssueContent returns the content of first issue associated with
 // this action.
 func (a *Action) GetIssueContent() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
@@ -290,6 +289,7 @@ func (a *Action) GetIssueContent() string {
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	RequestedUser   *User // the user we want activity for
+	RequestedTeam   *Team // the team we want activity for
 	Actor           *User // the user viewing the activity
 	IncludePrivate  bool  // include private actions
 	OnlyPerformedBy bool  // only actions performed by requested user
@@ -356,6 +356,15 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 		}
+	}
+
+	if opts.RequestedTeam != nil {
+		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
+		}
+		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})

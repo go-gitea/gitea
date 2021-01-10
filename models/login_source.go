@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
@@ -20,8 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -130,6 +131,7 @@ type OAuth2Config struct {
 	ClientSecret                  string
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *oauth2.CustomURLMapping
+	IconURL                       string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -180,7 +182,9 @@ func Cell2Int64(val xorm.Cell) int64 {
 	switch (*val).(type) {
 	case []uint8:
 		log.Trace("Cell2Int64 ([]uint8): %v", *val)
-		return com.StrTo(string((*val).([]uint8))).MustInt64()
+
+		v, _ := strconv.ParseInt(string((*val).([]uint8)), 10, 64)
+		return v
 	}
 	return (*val).(int64)
 }
@@ -200,7 +204,7 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 		case LoginSSPI:
 			source.Cfg = new(SSPIConfig)
 		default:
-			panic("unrecognized login source type: " + com.ToStr(*val))
+			panic(fmt.Sprintf("unrecognized login source type: %v", *val))
 		}
 	}
 }
@@ -610,7 +614,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		idx := strings.Index(login, "@")
 		if idx == -1 {
 			return nil, ErrUserNotExist{0, login, 0}
-		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx+1:]) {
+		} else if !util.IsStringInSlice(login[idx+1:], strings.Split(cfg.AllowedDomains, ","), true) {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
 	}

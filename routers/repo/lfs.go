@@ -26,8 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -122,13 +120,16 @@ func LFSLocks(ctx *context.Context) {
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		return
 	}
 
 	gitRepo, err := git.OpenRepository(tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		return
 	}
+	defer gitRepo.Close()
 
 	filenames := make([]string, len(lfsLocks))
 
@@ -139,6 +140,7 @@ func LFSLocks(ctx *context.Context) {
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		return
 	}
 
 	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
@@ -149,6 +151,7 @@ func LFSLocks(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
+		return
 	}
 
 	lockables := make([]bool, len(lfsLocks))
@@ -168,6 +171,7 @@ func LFSLocks(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
+		return
 	}
 
 	filemap := make(map[string]bool, len(filelist))
@@ -579,7 +583,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
-		metas[i].Size, err = com.StrTo(oid[idx+1:]).Int64()
+		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
 			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
 			return

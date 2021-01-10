@@ -114,6 +114,7 @@ Admin operations:
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+        - `--icon-url`: Custom icon URL for OAuth2 login source.
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -129,6 +130,7 @@ Admin operations:
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+        - `--icon-url`: Custom icon URL for OAuth2 login source.
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
@@ -441,3 +443,28 @@ Manage running server operations:
               - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
               - `--send-to value`, `-s value`: Email address(es) to send to
               - `--subject value`, `-S value`: Subject header of sent emails
+
+### dump-repo
+
+Dump-repo dumps repository data from git/github/gitea/gitlab:
+
+- Options:
+  - `--git_service service` : Git service, it could be `git`, `github`, `gitea`, `gitlab`, If clone_addr could be recognized, this could be ignored.
+  - `--repo_dir dir`, `-r dir`: Repository dir path to store the data 
+  - `--clone_addr addr`: The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL. i.e. https://github.com/lunny/tango.git
+  - `--auth_username lunny`: The username to visit the clone_addr
+  - `--auth_password <password>`: The password to visit the clone_addr
+  - `--auth_token <token>`: The personal token to visit the clone_addr
+  - `--owner_name lunny`: The data will be stored on a directory with owner name if not empty
+  - `--repo_name tango`: The data will be stored on a directory with repository name if not empty
+  - `--units <units>`: Which items will be migrated, one or more units should be separated as comma. wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.
+
+### restore-repo
+
+Restore-repo restore repository data from disk dir:
+
+- Options:
+  - `--repo_dir dir`, `-r dir`: Repository dir path to restore from
+  - `--owner_name lunny`: Restore destination owner name
+  - `--repo_name tango`: Restore destination repository name
+  - `--units <units>`: Which items will be restored, one or more units should be separated as comma. wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.

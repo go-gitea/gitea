@@ -147,6 +147,8 @@ type AuthorizationForm struct {
 	ClientID     string `binding:"Required"`
 	RedirectURI  string
 	State        string
+	Scope        string
+	Nonce        string
 
 	// PKCE support
 	CodeChallengeMethod string // S256, plain
@@ -163,6 +165,8 @@ type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
 	RedirectURI string
 	State       string
+	Scope       string
+	Nonce       string
 }
 
 // Validate validates the fields

@@ -7,20 +7,13 @@ package base
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"code.gitea.io/gitea/modules/structs"
 )
 
-// AssetDownloader downloads an asset (attachment) for a release
-type AssetDownloader interface {
-	GetAsset(relTag string, relID, id int64) (io.ReadCloser, error)
-}
-
 // Downloader downloads the site repo informations
 type Downloader interface {
-	AssetDownloader
 	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
