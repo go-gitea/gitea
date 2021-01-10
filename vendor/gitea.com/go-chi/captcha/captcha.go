@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"html/template"
 	"image/color"
+	"net/http"
 	"path"
 	"strings"
 
-	"gitea.com/macaron/cache"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/cache"
 	"github.com/unknwon/com"
 )
 
@@ -40,7 +40,7 @@ var (
 
 // Captcha represents a captcha service.
 type Captcha struct {
-	store            cache.Cache
+	Store            cache.Cache
 	SubURL           string
 	URLPrefix        string
 	FieldIdName      string
@@ -75,22 +75,17 @@ func (c *Captcha) CreateHTML() template.HTML {
 	</a>`, c.FieldIdName, value, c.SubURL, c.URLPrefix))
 }
 
-// DEPRECATED
-func (c *Captcha) CreateHtml() template.HTML {
-	return c.CreateHTML()
-}
-
 // create a new captcha id
 func (c *Captcha) CreateCaptcha() (string, error) {
 	id := string(com.RandomCreateBytes(15))
-	if err := c.store.Put(c.key(id), c.genRandChars(), c.Expiration); err != nil {
+	if err := c.Store.Put(c.key(id), c.genRandChars(), c.Expiration); err != nil {
 		return "", err
 	}
 	return id, nil
 }
 
 // verify from a request
-func (c *Captcha) VerifyReq(req macaron.Request) bool {
+func (c *Captcha) VerifyReq(req *http.Request) bool {
 	req.ParseForm()
 	return c.Verify(req.Form.Get(c.FieldIdName), req.Form.Get(c.FieldCaptchaName))
 }
@@ -105,13 +100,13 @@ func (c *Captcha) Verify(id string, challenge string) bool {
 
 	key := c.key(id)
 
-	if v, ok := c.store.Get(key).(string); ok {
+	if v, ok := c.Store.Get(key).(string); ok {
 		chars = v
 	} else {
 		return false
 	}
 
-	defer c.store.Delete(key)
+	defer c.Store.Delete(key)
 
 	if len(chars) != len(challenge) {
 		return false
@@ -191,7 +186,8 @@ func prepareOptions(options []Options) Options {
 }
 
 // NewCaptcha initializes and returns a captcha with given options.
-func NewCaptcha(opt Options) *Captcha {
+func NewCaptcha(opts ...Options) *Captcha {
+	opt := prepareOptions(opts)
 	return &Captcha{
 		SubURL:           opt.SubURL,
 		URLPrefix:        opt.URLPrefix,
@@ -209,45 +205,44 @@ func NewCaptcha(opt Options) *Captcha {
 // Captchaer is a middleware that maps a captcha.Captcha service into the Macaron handler chain.
 // An single variadic captcha.Options struct can be optionally provided to configure.
 // This should be register after cache.Cacher.
-func Captchaer(options ...Options) macaron.Handler {
-	return func(ctx *macaron.Context, cache cache.Cache) {
-		cpt := NewCaptcha(prepareOptions(options))
-		cpt.store = cache
-
-		if strings.HasPrefix(ctx.Req.URL.Path, cpt.URLPrefix) {
-			var chars string
-			id := path.Base(ctx.Req.URL.Path)
-			if i := strings.Index(id, "."); i > -1 {
-				id = id[:i]
-			}
-			key := cpt.key(id)
-
-			// Reload captcha.
-			if len(ctx.Query("reload")) > 0 {
-				chars = cpt.genRandChars()
-				if err := cpt.store.Put(key, chars, cpt.Expiration); err != nil {
-					ctx.Status(500)
-					ctx.Write([]byte("captcha reload error"))
-					panic(fmt.Errorf("reload captcha: %v", err))
+func Captchaer(cpt *Captcha) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if strings.HasPrefix(req.URL.Path, cpt.URLPrefix) {
+				var chars string
+				id := path.Base(req.URL.Path)
+				if i := strings.Index(id, "."); i > -1 {
+					id = id[:i]
 				}
-			} else {
-				if v, ok := cpt.store.Get(key).(string); ok {
-					chars = v
+				key := cpt.key(id)
+
+				reloads := req.URL.Query()["reload"]
+				// Reload captcha.
+				if len(reloads) > 0 && len(reloads[0]) > 0 {
+					chars = cpt.genRandChars()
+					if err := cpt.Store.Put(key, chars, cpt.Expiration); err != nil {
+						w.WriteHeader(500)
+						w.Write([]byte("captcha reload error"))
+						panic(fmt.Errorf("reload captcha: %v", err))
+					}
 				} else {
-					ctx.Status(404)
-					ctx.Write([]byte("captcha not found"))
-					return
+					if v, ok := cpt.Store.Get(key).(string); ok {
+						chars = v
+					} else {
+						w.WriteHeader(404)
+						w.Write([]byte("captcha not found"))
+						return
+					}
 				}
+
+				w.WriteHeader(200)
+				if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(w); err != nil {
+					panic(fmt.Errorf("write captcha: %v", err))
+				}
+				return
 			}
 
-			ctx.Status(200)
-			if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(ctx.Resp); err != nil {
-				panic(fmt.Errorf("write captcha: %v", err))
-			}
-			return
-		}
-
-		ctx.Data["Captcha"] = cpt
-		ctx.Map(cpt)
+			next.ServeHTTP(w, req)
+		})
 	}
 }

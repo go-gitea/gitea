@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to

@@ -5,6 +5,7 @@
 package misc
 
 import (
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -117,7 +118,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	body, err := ctx.Req.Body().Bytes()
+	body, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 		return

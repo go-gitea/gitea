@@ -6,12 +6,17 @@ package routes
 
 import (
 	"encoding/gob"
+	"net/http"
+	"os"
+	"path"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -31,16 +36,17 @@ import (
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
 
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/cache"
-	"gitea.com/macaron/captcha"
+	"gitea.com/go-chi/binding"
+	"gitea.com/go-chi/cache"
+	"gitea.com/go-chi/captcha"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 	"gitea.com/macaron/toolbox"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
 
@@ -135,17 +141,44 @@ func NewMacaron() *macaron.Macaron {
 	return m
 }
 
-// RegisterMacaronInstallRoute registers the install routes
-func RegisterMacaronInstallRoute(m *macaron.Macaron) {
-	m.Combo("/", routers.InstallInit).Get(routers.Install).
-		Post(binding.BindIgnErr(auth.InstallForm{}), routers.InstallPost)
-	m.NotFound(func(ctx *context.Context) {
-		ctx.Redirect(setting.AppURL, 302)
+// NormalRoutes represents non install routes
+func NormalRoutes() *Route {
+	r := BaseRoute()
+	// for health check
+	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	})
+
+	if setting.HasRobotsTxt {
+		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+			filePath := path.Join(setting.CustomPath, "robots.txt")
+			fi, err := os.Stat(filePath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+			http.ServeFile(w, req, filePath)
+		})
+	}
+
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		r.Get("/metrics", routers.Metrics)
+	}
+
+	RegisterRoutes(r)
+
+	return r
 }
 
-// RegisterMacaronRoutes routes routes to Macaron
-func RegisterMacaronRoutes(m *macaron.Macaron) {
+// RegisterRoutes routes routes to Macaron
+func RegisterRoutes(r *Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})

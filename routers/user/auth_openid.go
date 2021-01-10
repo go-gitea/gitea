@@ -9,10 +9,10 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/captcha"
+	"gitea.com/go-chi/captcha"
 )
 
 const (
@@ -143,9 +143,9 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.URL.String())
 
-	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: " + fullURL)
 
 	var id, err = openid.Verify(fullURL)

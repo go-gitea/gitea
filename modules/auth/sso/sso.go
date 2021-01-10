@@ -94,7 +94,6 @@ func SessionUser(sess SessionStore) *models.User {
 	return user
 }
 
-// isAPIPath returns true if the specified URL is an API path
 func isAPIPath(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/api/")
 }

@@ -168,7 +168,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Get uploaded file from request
-	file, header, err := ctx.GetFile("attachment")
+	file, header, err := ctx.Req.FormFile("attachment")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFile", err)
 		return

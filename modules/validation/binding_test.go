@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitea.com/macaron/binding"
+	"gitea.com/go-chi/binding"
 	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )

@@ -3,21 +3,23 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package forms
 
 import (
+	"net/http"
 	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/binding"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -52,8 +54,9 @@ type CreateRepoForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // MigrateRepoForm form for migrating repository
@@ -82,8 +85,9 @@ type MigrateRepoForm struct {
 }
 
 // Validate validates the fields
-func (f *MigrateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ParseRemoteAddr checks if given remote address is valid,
@@ -166,8 +170,9 @@ type RepoSettingForm struct {
 }
 
 // Validate validates the fields
-func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // __________                             .__
@@ -202,8 +207,9 @@ type ProtectBranchForm struct {
 }
 
 // Validate validates the fields
-func (f *ProtectBranchForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 //  __      __      ___.   .__    .__            __
@@ -263,8 +269,9 @@ type NewWebhookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewWebhookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewGogshookForm form for creating gogs hook
@@ -276,8 +283,9 @@ type NewGogshookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewGogshookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewGogshookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewSlackHookForm form for creating slack hook
@@ -291,8 +299,9 @@ type NewSlackHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // HasInvalidChannel validates the channel name is in the right format
@@ -309,8 +318,9 @@ type NewDiscordHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewDiscordHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewDiscordHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewDingtalkHookForm form for creating dingtalk hook
@@ -320,8 +330,9 @@ type NewDingtalkHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewTelegramHookForm form for creating telegram hook
@@ -332,8 +343,9 @@ type NewTelegramHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewMatrixHookForm form for creating Matrix hook
@@ -346,8 +358,9 @@ type NewMatrixHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewMatrixHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewMatrixHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewMSTeamsHookForm form for creating MS Teams hook
@@ -357,8 +370,9 @@ type NewMSTeamsHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewMSTeamsHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewFeishuHookForm form for creating feishu hook
@@ -368,8 +382,9 @@ type NewFeishuHookForm struct {
 }
 
 // Validate validates the fields
-func (f *NewFeishuHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // .___
@@ -393,8 +408,9 @@ type CreateIssueForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateIssueForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // CreateCommentForm form for creating comment
@@ -405,8 +421,9 @@ type CreateCommentForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ReactionForm form for adding and removing reaction
@@ -415,8 +432,9 @@ type ReactionForm struct {
 }
 
 // Validate validates the fields
-func (f *ReactionForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *ReactionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // IssueLockForm form for locking an issue
@@ -425,8 +443,9 @@ type IssueLockForm struct {
 }
 
 // Validate validates the fields
-func (i *IssueLockForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, i, ctx.Locale)
+func (i *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, i, ctx.Locale)
 }
 
 // HasValidReason checks to make sure that the reason submitted in
@@ -489,8 +508,9 @@ type CreateMilestoneForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateMilestoneForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // .____          ___.          .__
@@ -509,8 +529,9 @@ type CreateLabelForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateLabelForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateLabelForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // InitializeLabelsForm form for initializing labels
@@ -519,8 +540,9 @@ type InitializeLabelsForm struct {
 }
 
 // Validate validates the fields
-func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // __________      .__  .__    __________                                     __
@@ -542,8 +564,9 @@ type MergePullRequestForm struct {
 }
 
 // Validate validates the fields
-func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // CodeCommentForm form for adding code comments for PRs
@@ -559,8 +582,9 @@ type CodeCommentForm struct {
 }
 
 // Validate validates the fields
-func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // SubmitReviewForm for submitting a finished code review
@@ -571,8 +595,9 @@ type SubmitReviewForm struct {
 }
 
 // Validate validates the fields
-func (f *SubmitReviewForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ReviewType will return the corresponding reviewtype for type
@@ -616,8 +641,9 @@ type NewReleaseForm struct {
 }
 
 // Validate validates the fields
-func (f *NewReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // EditReleaseForm form for changing release
@@ -630,8 +656,9 @@ type EditReleaseForm struct {
 }
 
 // Validate validates the fields
-func (f *EditReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *EditReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 //  __      __.__ __   .__
@@ -650,8 +677,9 @@ type NewWikiForm struct {
 
 // Validate validates the fields
 // FIXME: use code generation to generate this method.
-func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ___________    .___.__  __
@@ -673,8 +701,9 @@ type EditRepoFileForm struct {
 }
 
 // Validate validates the fields
-func (f *EditRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *EditRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // EditPreviewDiffForm form for changing preview diff
@@ -683,8 +712,9 @@ type EditPreviewDiffForm struct {
 }
 
 // Validate validates the fields
-func (f *EditPreviewDiffForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 //  ____ ___        .__                    .___
@@ -706,8 +736,9 @@ type UploadRepoFileForm struct {
 }
 
 // Validate validates the fields
-func (f *UploadRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *UploadRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // RemoveUploadFileForm form for removing uploaded file
@@ -716,8 +747,9 @@ type RemoveUploadFileForm struct {
 }
 
 // Validate validates the fields
-func (f *RemoveUploadFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *RemoveUploadFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ________         .__          __
@@ -737,8 +769,9 @@ type DeleteRepoFileForm struct {
 }
 
 // Validate validates the fields
-func (f *DeleteRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *DeleteRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ___________.__                 ___________                     __
@@ -755,8 +788,9 @@ type AddTimeManuallyForm struct {
 }
 
 // Validate validates the fields
-func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // SaveTopicForm form for save topics for repository
@@ -770,6 +804,7 @@ type DeadlineForm struct {
 }
 
 // Validate validates the fields
-func (f *DeadlineForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *DeadlineForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }

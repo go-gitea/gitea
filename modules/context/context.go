@@ -6,37 +6,48 @@
 package context
 
 import (
-	"html"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"html/template"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
+	gitea_templates "code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"golang.org/x/crypto/pbkdf2"
 
+	"gitea.com/go-chi/session"
 	"gitea.com/macaron/cache"
 	"gitea.com/macaron/csrf"
-	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
+	"github.com/unrolled/render"
 )
 
 // Context represents context of a request.
 type Context struct {
-	*macaron.Context
+	Resp   http.ResponseWriter
+	Req    *http.Request
+	Data   map[string]interface{}
+	Render *render.Render
+	translation.Locale
 	Cache   cache.Cache
 	csrf    csrf.CSRF
-	Flash   *session.Flash
+	Flash   *middlewares.Flash
 	Session session.Store
 
 	Link        string // current request URL
@@ -163,13 +174,19 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
-	ctx.Context.HTML(status, string(name))
+	ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data)
+}
+
+func (ctx *Context) HTMLString(name string, data interface{}) (string, error) {
+	var buf strings.Builder
+	err := ctx.Render.HTML(&buf, 200, string(name), data)
+	return buf.String(), err
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.
 func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}) {
 	if form != nil {
-		auth.AssignForm(form, ctx.Data)
+		middlewares.AssignForm(form, ctx.Data)
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
@@ -249,47 +266,275 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
 	ctx.Resp.Header().Set("Pragma", "public")
 	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-	http.ServeContent(ctx.Resp, ctx.Req.Request, name, modtime, r)
+	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
+}
+
+func (ctx *Context) PlainText(status int, bs []byte) {
+	ctx.Render.Text(ctx.Resp, status, string(bs))
+}
+
+func (ctx *Context) Header() http.Header {
+	return ctx.Resp.Header()
+}
+
+func (ctx *Context) QueryStrings(k string) []string {
+	return ctx.Req.URL.Query()[k]
+}
+
+func (ctx *Context) Query(k string) string {
+	s := ctx.QueryStrings(k)
+	if len(s) == 0 {
+		return ""
+	}
+	return s[0]
+}
+
+func (ctx *Context) QueryInt(k string) int {
+	s := ctx.Query(k)
+	if s == "" {
+		return 0
+	}
+	r, _ := strconv.Atoi(s)
+	return r
+}
+
+func (ctx *Context) QueryBool(k string) bool {
+	s := ctx.Query(k)
+	if s == "" {
+		return false
+	}
+	r, _ := strconv.ParseBool(s)
+	return r
+}
+
+// QueryTrim querys and trims spaces form parameter.
+func (ctx *Context) QueryTrim(name string) string {
+	return strings.TrimSpace(ctx.Query(name))
+}
+
+// ServeFile serves given file to response.
+func (ctx *Context) ServeFile(file string, names ...string) {
+	var name string
+	if len(names) > 0 {
+		name = names[0]
+	} else {
+		name = path.Base(file)
+	}
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	http.ServeFile(ctx.Resp, ctx.Req, file)
+}
+
+func (ctx *Context) InternalServerError(err error) {
+
+}
+
+// Error returned an error to web browser
+func (ctx *Context) Error(status int, contents ...string) {
+	var v = http.StatusText(status)
+	if len(contents) > 0 {
+		v = contents[0]
+	}
+	http.Error(ctx.Resp, v, status)
+}
+
+func (ctx *Context) JSON(status int, content interface{}) {
+	ctx.Render.JSON(ctx.Resp, status, content)
+}
+
+func (ctx *Context) Redirect(location string, status ...int) {
+	code := http.StatusFound
+	if len(status) == 1 {
+		code = status[0]
+	}
+
+	http.Redirect(ctx.Resp, ctx.Req, location, code)
+}
+
+func (ctx *Context) SetCookie(name string, value string, others ...interface{}) {
+	middlewares.SetCookie(ctx.Resp, name, value, others...)
+}
+
+// GetCookie returns given cookie value from request header.
+func (ctx *Context) GetCookie(name string) string {
+	cookie, err := ctx.Req.Cookie(name)
+	if err != nil {
+		return ""
+	}
+	val, _ := url.QueryUnescape(cookie.Value)
+	return val
+}
+
+// GetSuperSecureCookie returns given cookie value from request header with secret string.
+func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
+	val := ctx.GetCookie(name)
+	if val == "" {
+		return "", false
+	}
+
+	text, err := hex.DecodeString(val)
+	if err != nil {
+		return "", false
+	}
+
+	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
+	text, err = com.AESGCMDecrypt(key, text)
+	return string(text), err == nil
+}
+
+// SetSuperSecureCookie sets given cookie value to response header with secret string.
+func (ctx *Context) SetSuperSecureCookie(secret, name, value string, others ...interface{}) {
+	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
+	text, err := com.AESGCMEncrypt(key, []byte(value))
+	if err != nil {
+		panic("error encrypting cookie: " + err.Error())
+	}
+
+	ctx.SetCookie(name, hex.EncodeToString(text), others...)
+}
+
+// GetCookieInt returns cookie result in int type.
+func (ctx *Context) GetCookieInt(name string) int {
+	r, _ := strconv.Atoi(ctx.GetCookie(name))
+	return r
+}
+
+// GetCookieInt64 returns cookie result in int64 type.
+func (ctx *Context) GetCookieInt64(name string) int64 {
+	r, _ := strconv.ParseInt(ctx.GetCookie(name), 10, 64)
+	return r
+}
+
+// GetCookieFloat64 returns cookie result in float64 type.
+func (ctx *Context) GetCookieFloat64(name string) float64 {
+	v, _ := strconv.ParseFloat(ctx.GetCookie(name), 64)
+	return v
+}
+
+func (ctx *Context) RemoteAddr() string {
+	return ctx.Req.RemoteAddr
+}
+
+func (ctx *Context) Params(p string) string {
+	return chi.URLParam(ctx.Req, p)
+}
+
+func (ctx *Context) ParamsInt64(p string) int64 {
+	v, _ := strconv.ParseInt(ctx.Params(p), 10, 64)
+	return v
+}
+
+func (ctx *Context) WriteHeader(status int) {
+	ctx.Resp.WriteHeader(status)
+}
+
+func (ctx *Context) Write(bs []byte) (int, error) {
+	return ctx.Resp.Write(bs)
+}
+
+func (ctx *Context) Written() bool {
+	// TODO:
+	return false
+}
+
+func (ctx *Context) Status(status int) {
+	ctx.Resp.WriteHeader(status)
+}
+
+// QueryInt64 returns int64 of query value
+func (ctx *Context) QueryInt64(name string) int64 {
+	vals := ctx.Req.URL.Query()[name]
+	if len(vals) == 0 {
+		return 0
+	}
+	v, _ := strconv.ParseInt(vals[0], 10, 64)
+	return v
+}
+
+// FIXME?
+func (ctx *Context) SetParams(k, v string) {
+
+}
+
+type Handler func(*Context)
+
+var (
+	ContextKey interface{} = "default_context"
+)
+
+// WithContext set up install context in request
+func WithContext(req *http.Request, ctx *Context) *http.Request {
+	return req.WithContext(context.WithValue(req.Context(), ContextKey, ctx))
+}
+
+// GetContext retrieves install context from request
+func GetContext(req *http.Request) *Context {
+	return req.Context().Value(ContextKey).(*Context)
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter() macaron.Handler {
-	return func(c *macaron.Context, l i18n.Locale, cache cache.Cache, sess session.Store, f *session.Flash, x csrf.CSRF) {
-		ctx := &Context{
-			Context: c,
-			Cache:   cache,
-			csrf:    x,
-			Flash:   f,
-			Session: sess,
-			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.EscapedPath(), "/"),
+func Contexter(next http.Handler) http.Handler {
+	rnd := render.New(render.Options{
+		Directory:  "templates",
+		Extensions: []string{".tmpl"},
+		Funcs:      gitea_templates.NewFuncMap(),
+	})
+
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		var locale = middlewares.Locale(resp, req)
+		var startTime = time.Now()
+		var ctx = Context{
+			Resp: resp,
+			Req:  req,
+			//Cache: cache, TODO:
+			//csrf:    x,
+			//Flash: flash
+			Locale:  locale,
+			Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
+			Render:  rnd,
+			Session: session.GetSession(req),
 			Repo: &Repository{
 				PullRequest: &PullRequest{},
 			},
 			Org: &Organization{},
 		}
-		ctx.Data["Language"] = ctx.Locale.Language()
-		c.Data["Link"] = ctx.Link
-		ctx.Data["CurrentURL"] = setting.AppSubURL + c.Req.URL.RequestURI()
-		ctx.Data["PageStartTime"] = time.Now()
+		var data = map[string]interface{}{
+			"i18n":          locale,
+			"Language":      locale.Language(),
+			"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+			"PageStartTime": startTime,
+			"TmplLoadTimes": func() string {
+				return time.Since(startTime).String()
+			},
+			"Link": ctx.Link,
+		}
+		ctx.Data = data
+		ctx.Req = WithContext(req, &ctx)
+
 		// Quick responses appropriate go-get meta with status 200
 		// regardless of if user have access to the repository,
 		// or the repository does not exist at all.
 		// This is particular a workaround for "go get" command which does not respect
 		// .netrc file.
 		if ctx.Query("go-get") == "1" {
-			ownerName := c.Params(":username")
-			repoName := c.Params(":reponame")
+			ownerName := ctx.Params(":username")
+			repoName := ctx.Params(":reponame")
 			trimmedRepoName := strings.TrimSuffix(repoName, ".git")
 
 			if ownerName == "" || trimmedRepoName == "" {
-				_, _ = c.Write([]byte(`<!doctype html>
+				_, _ = ctx.Write([]byte(`<!doctype html>
 <html>
 	<body>
 		invalid import path
 	</body>
 </html>
 `))
-				c.WriteHeader(400)
+				ctx.WriteHeader(400)
 				return
 			}
 			branchName := "master"
@@ -306,9 +551,9 @@ func Contexter() macaron.Handler {
 			if appURL.Scheme == string(setting.HTTP) {
 				insecure = "--insecure "
 			}
-			c.Header().Set("Content-Type", "text/html")
-			c.WriteHeader(http.StatusOK)
-			_, _ = c.Write([]byte(com.Expand(`<!doctype html>
+			ctx.Header().Set("Content-Type", "text/html")
+			ctx.WriteHeader(http.StatusOK)
+			_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
@@ -329,7 +574,7 @@ func Contexter() macaron.Handler {
 		}
 
 		// Get user from session if logged in.
-		ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req.Request, c.Resp, ctx, ctx.Session)
+		ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
 
 		if ctx.User != nil {
 			ctx.IsSigned = true
@@ -353,9 +598,10 @@ func Contexter() macaron.Handler {
 
 		ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
-		ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
+		// TODO:
+		//ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
 		ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
-		log.Debug("Session ID: %s", sess.ID())
+		log.Debug("Session ID: %s", ctx.Session.ID())
 		log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
 		ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
@@ -373,6 +619,6 @@ func Contexter() macaron.Handler {
 
 		ctx.Data["ManifestData"] = setting.ManifestData
 
-		c.Map(ctx)
-	}
+		next.ServeHTTP(resp, req)
+	})
 }

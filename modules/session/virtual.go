@@ -9,15 +9,15 @@ import (
 	"fmt"
 	"sync"
 
-	"gitea.com/macaron/session"
-	couchbase "gitea.com/macaron/session/couchbase"
-	memcache "gitea.com/macaron/session/memcache"
-	mysql "gitea.com/macaron/session/mysql"
-	nodb "gitea.com/macaron/session/nodb"
-	postgres "gitea.com/macaron/session/postgres"
+	"gitea.com/go-chi/session"
+	couchbase "gitea.com/go-chi/session/couchbase"
+	memcache "gitea.com/go-chi/session/memcache"
+	mysql "gitea.com/go-chi/session/mysql"
+	postgres "gitea.com/go-chi/session/postgres"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
+// TODO: copied from modules/session/redis.go and should remove that one until macaron removed.
 type VirtualSessionProvider struct {
 	lock     sync.RWMutex
 	provider session.Provider
@@ -48,8 +48,6 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &couchbase.CouchbaseProvider{}
 	case "memcache":
 		o.provider = &memcache.MemcacheProvider{}
-	case "nodb":
-		o.provider = &nodb.NodbProvider{}
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}

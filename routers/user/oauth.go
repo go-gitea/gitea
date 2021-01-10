@@ -12,14 +12,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"gitea.com/macaron/binding"
+	"gitea.com/go-chi/binding"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -194,7 +194,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	errs := binding.Errors{}
-	errs = form.Validate(ctx.Context, errs)
+	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
 		errstring := ""
 		for _, e := range errs {

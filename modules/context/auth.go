@@ -6,14 +6,19 @@
 package context
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/macaron"
 )
+
+// IsAPIPath if URL is an api path
+func IsAPIPath(url string) bool {
+	return strings.HasPrefix(url, "/api/")
+}
 
 // ToggleOptions contains required or check options
 type ToggleOptions struct {
@@ -26,7 +31,7 @@ type ToggleOptions struct {
 // Toggle returns toggle options as middleware
 func Toggle(options *ToggleOptions) macaron.Handler {
 	return func(ctx *Context) {
-		isAPIPath := auth.IsAPIPath(ctx.Req.URL.Path)
+		isAPIPath := IsAPIPath(ctx.Req.URL.Path)
 
 		// Check prohibit login users.
 		if ctx.IsSigned {
@@ -82,12 +87,13 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" && !auth.IsAPIPath(ctx.Req.URL.Path) {
+		// TODO:
+		/*if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" && !IsAPIPath(ctx.Req.URL.Path) {
 			csrf.Validate(ctx.Context, ctx.csrf)
 			if ctx.Written() {
 				return
 			}
-		}
+		}*/
 
 		if options.SignInRequired {
 			if !ctx.IsSigned {

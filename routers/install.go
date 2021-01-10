@@ -13,12 +13,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
@@ -116,7 +117,7 @@ func Install(ctx *context.Context) {
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
-	auth.AssignForm(form, ctx.Data)
+	middlewares.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
 }
 

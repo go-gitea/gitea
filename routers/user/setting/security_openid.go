@@ -6,9 +6,9 @@ package setting
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -70,9 +70,9 @@ func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 }
 
 func settingsOpenIDVerify(ctx *context.Context) {
-	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.URL.String())
 
-	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: " + fullURL)
 
 	id, err := openid.Verify(fullURL)

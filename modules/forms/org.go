@@ -3,14 +3,17 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package forms
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/structs"
 
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/binding"
 )
 
 // ________                            .__                __  .__
@@ -28,8 +31,9 @@ type CreateOrgForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateOrgForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // UpdateOrgSettingForm form for updating organization settings
@@ -45,8 +49,9 @@ type UpdateOrgSettingForm struct {
 }
 
 // Validate validates the fields
-func (f *UpdateOrgSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ___________
@@ -67,6 +72,7 @@ type CreateTeamForm struct {
 }
 
 // Validate validates the fields
-func (f *CreateTeamForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }

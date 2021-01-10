@@ -23,11 +23,12 @@ import (
 
 	"code.gitea.io/gitea/modules/nosql"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 	"github.com/go-redis/redis/v7"
 )
 
 // RedisStore represents a redis session store implementation.
+// TODO: copied from modules/session/redis.go and should remove that one until macaron removed.
 type RedisStore struct {
 	c           redis.UniversalClient
 	prefix, sid string

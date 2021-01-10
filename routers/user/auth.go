@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/captcha"
+	"gitea.com/go-chi/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
@@ -563,20 +563,20 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
-	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
+	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
 		handleOAuth2SignIn(user, gothUser, ctx, err)
 		return
 	}
 
-	if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+	if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
 			if err = models.ResetOAuth2(); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
-			if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+			if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
 			return
@@ -602,7 +602,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
+	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 
 	handleOAuth2SignIn(u, gothUser, ctx, err)
 }
@@ -1029,7 +1029,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
-	_ = ctx.Session.Destroy(ctx.Context)
+	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)

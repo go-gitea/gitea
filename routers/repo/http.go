@@ -344,7 +344,7 @@ func HTTP(ctx *context.Context) {
 	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
-	r := ctx.Req.Request
+	r := ctx.Req
 	cfg := &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,

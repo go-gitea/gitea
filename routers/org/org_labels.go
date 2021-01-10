@@ -6,8 +6,8 @@ package org
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 )
 
 // RetrieveLabels find all the labels of an organization

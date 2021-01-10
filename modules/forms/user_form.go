@@ -3,16 +3,18 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package forms
 
 import (
 	"mime/multipart"
+	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/binding"
 )
 
 // InstallForm form for installation page
@@ -65,8 +67,9 @@ type InstallForm struct {
 }
 
 // Validate validates the fields
-func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 //    _____   ____ _________________ ___
@@ -87,8 +90,9 @@ type RegisterForm struct {
 }
 
 // Validate validates the fields
-func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // IsEmailDomainWhitelisted validates that the email address
@@ -124,8 +128,9 @@ type MustChangePasswordForm struct {
 }
 
 // Validate validates the fields
-func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *MustChangePasswordForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // SignInForm form for signing in with user/password
@@ -137,8 +142,9 @@ type SignInForm struct {
 }
 
 // Validate validates the fields
-func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *SignInForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AuthorizationForm form for authorizing oauth2 clients
@@ -156,8 +162,9 @@ type AuthorizationForm struct {
 }
 
 // Validate validates the fields
-func (f *AuthorizationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // GrantApplicationForm form for authorizing oauth2 clients
@@ -170,8 +177,9 @@ type GrantApplicationForm struct {
 }
 
 // Validate validates the fields
-func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *GrantApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
@@ -188,8 +196,9 @@ type AccessTokenForm struct {
 }
 
 // Validate validates the fields
-func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 //   __________________________________________.___ _______    ________  _________
@@ -212,8 +221,9 @@ type UpdateProfileForm struct {
 }
 
 // Validate validates the fields
-func (f *UpdateProfileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *UpdateProfileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // Avatar types
@@ -231,8 +241,9 @@ type AvatarForm struct {
 }
 
 // Validate validates the fields
-func (f *AvatarForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AvatarForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AddEmailForm form for adding new email
@@ -241,8 +252,9 @@ type AddEmailForm struct {
 }
 
 // Validate validates the fields
-func (f *AddEmailForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // UpdateThemeForm form for updating a users' theme
@@ -251,8 +263,9 @@ type UpdateThemeForm struct {
 }
 
 // Validate validates the field
-func (f *UpdateThemeForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // IsThemeExists checks if the theme is a theme available in the config.
@@ -277,8 +290,9 @@ type ChangePasswordForm struct {
 }
 
 // Validate validates the fields
-func (f *ChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *ChangePasswordForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AddOpenIDForm is for changing openid uri
@@ -287,8 +301,9 @@ type AddOpenIDForm struct {
 }
 
 // Validate validates the fields
-func (f *AddOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AddKeyForm form for adding SSH/GPG key
@@ -300,8 +315,9 @@ type AddKeyForm struct {
 }
 
 // Validate validates the fields
-func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewAccessTokenForm form for creating access token
@@ -310,8 +326,9 @@ type NewAccessTokenForm struct {
 }
 
 // Validate validates the fields
-func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
@@ -321,8 +338,9 @@ type EditOAuth2ApplicationForm struct {
 }
 
 // Validate validates the fields
-func (f *EditOAuth2ApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *EditOAuth2ApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // TwoFactorAuthForm for logging in with 2FA token.
@@ -331,8 +349,9 @@ type TwoFactorAuthForm struct {
 }
 
 // Validate validates the fields
-func (f *TwoFactorAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *TwoFactorAuthForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // TwoFactorScratchAuthForm for logging in with 2FA scratch token.
@@ -341,8 +360,9 @@ type TwoFactorScratchAuthForm struct {
 }
 
 // Validate validates the fields
-func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *TwoFactorScratchAuthForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // U2FRegistrationForm for reserving an U2F name
@@ -351,8 +371,9 @@ type U2FRegistrationForm struct {
 }
 
 // Validate validates the fields
-func (f *U2FRegistrationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *U2FRegistrationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // U2FDeleteForm for deleting U2F keys
@@ -361,6 +382,7 @@ type U2FDeleteForm struct {
 }
 
 // Validate validates the fields
-func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *U2FDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }

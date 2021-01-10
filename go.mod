@@ -5,11 +5,13 @@ go 1.14
 require (
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.13.1
+	gitea.com/go-chi/binding v0.0.0-20201220025549-f1056649c959
+	gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
+	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
-	gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5

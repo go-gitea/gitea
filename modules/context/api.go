@@ -6,6 +6,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/macaron"
 )
 
@@ -118,6 +118,21 @@ func (ctx *APIContext) InternalServerError(err error) {
 	})
 }
 
+type APIHandler func(*Context)
+
+var (
+	APIContextKey interface{} = "default_api_context"
+)
+
+// WithAPIContext set up api context in request
+func WithAPIContext(req *http.Request, ctx *APIContext) *http.Request {
+	return req.WithContext(context.WithValue(req.Context(), APIContextKey, ctx))
+}
+
+func GetAPIContext(req *http.Request) *APIContext {
+	return req.Context().Value(APIContextKey).(*APIContext)
+}
+
 func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	page := NewPagination(total, pageSize, curPage, 0)
 	paginater := page.Paginater
@@ -169,13 +184,14 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 
 // RequireCSRF requires a validated a CSRF token
 func (ctx *APIContext) RequireCSRF() {
-	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
+	// TODO:
+	/*headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
 	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
 	if len(headerToken) > 0 || len(formValueToken) > 0 {
 		csrf.Validate(ctx.Context.Context, ctx.csrf)
 	} else {
 		ctx.Context.Error(401, "Missing CSRF token.")
-	}
+	}*/
 }
 
 // CheckForOTP validates OTP
@@ -201,42 +217,49 @@ func (ctx *APIContext) CheckForOTP() {
 }
 
 // APIContexter returns apicontext as macaron middleware
-func APIContexter() macaron.Handler {
-	return func(c *Context) {
-		ctx := &APIContext{
-			Context: c,
-		}
-		c.Map(ctx)
+func APIContexter() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := &APIContext{
+				// TODO:
+				//Context: c,
+			}
+			req = WithAPIContext(req, ctx)
+			next.ServeHTTP(w, req)
+		})
 	}
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
-	return func(ctx *APIContext) {
-		// Empty repository does not have reference information.
-		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
-			return
-		}
-
-		// For API calls.
-		if ctx.Repo.GitRepo == nil {
-			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepository(repoPath)
-			if err != nil {
-				ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := GetAPIContext(req)
+			// Empty repository does not have reference information.
+			if !allowEmpty && ctx.Repo.Repository.IsEmpty {
 				return
 			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			defer func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
-				}
-			}()
-		}
 
-		ctx.Next()
+			// For API calls.
+			if ctx.Repo.GitRepo == nil {
+				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+				gitRepo, err := git.OpenRepository(repoPath)
+				if err != nil {
+					ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+					return
+				}
+				ctx.Repo.GitRepo = gitRepo
+				// We opened it, we should close it
+				defer func() {
+					// If it's been set to nil then assume someone else has closed it.
+					if ctx.Repo.GitRepo != nil {
+						ctx.Repo.GitRepo.Close()
+					}
+				}()
+			}
+
+			next.ServeHTTP(w, req)
+		})
 	}
 }
 
@@ -266,59 +289,62 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 }
 
 // RepoRefForAPI handles repository reference names when the ref name is not explicitly given
-func RepoRefForAPI() macaron.Handler {
-	return func(ctx *APIContext) {
-		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
-			return
-		}
-
-		var err error
-
-		if ctx.Repo.GitRepo == nil {
-			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
-			if err != nil {
-				ctx.InternalServerError(err)
+func RepoRefForAPI() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := GetAPIContext(req)
+			// Empty repository does not have reference information.
+			if ctx.Repo.Repository.IsEmpty {
 				return
 			}
-			// We opened it, we should close it
-			defer func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
+
+			var err error
+
+			if ctx.Repo.GitRepo == nil {
+				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+				ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+				if err != nil {
+					ctx.InternalServerError(err)
+					return
 				}
-			}()
-		}
+				// We opened it, we should close it
+				defer func() {
+					// If it's been set to nil then assume someone else has closed it.
+					if ctx.Repo.GitRepo != nil {
+						ctx.Repo.GitRepo.Close()
+					}
+				}()
+			}
 
-		refName := getRefName(ctx.Context, RepoRefAny)
+			refName := getRefName(ctx.Context, RepoRefAny)
 
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
+			if ctx.Repo.GitRepo.IsBranchExist(refName) {
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+				if err != nil {
+					ctx.InternalServerError(err)
+					return
+				}
+				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+				if err != nil {
+					ctx.InternalServerError(err)
+					return
+				}
+				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			} else if len(refName) == 40 {
+				ctx.Repo.CommitID = refName
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+				if err != nil {
+					ctx.NotFound("GetCommit", err)
+					return
+				}
+			} else {
+				ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
 				return
 			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == 40 {
-			ctx.Repo.CommitID = refName
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
-			if err != nil {
-				ctx.NotFound("GetCommit", err)
-				return
-			}
-		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
-			return
-		}
 
-		ctx.Next()
+			next.ServeHTTP(w, req)
+		})
 	}
 }

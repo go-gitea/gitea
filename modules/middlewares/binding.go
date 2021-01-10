@@ -3,23 +3,17 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package middlewares
 
 import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/validation"
-
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/binding"
 	"github.com/unknwon/com"
 )
-
-// IsAPIPath if URL is an api path
-func IsAPIPath(url string) bool {
-	return strings.HasPrefix(url, "/api/")
-}
 
 // Form form binding interface
 type Form interface {
@@ -84,7 +78,8 @@ func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
 }
 
-func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaron.Locale) binding.Errors {
+// Validate validate TODO:
+func Validate(errs binding.Errors, data map[string]interface{}, f Form, l translation.Locale) binding.Errors {
 	if errs.Len() == 0 {
 		return errs
 	}

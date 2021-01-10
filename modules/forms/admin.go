@@ -2,11 +2,15 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package forms
 
 import (
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"net/http"
+
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/middlewares"
+
+	"gitea.com/go-chi/binding"
 )
 
 // AdminCreateUserForm form for admin to create user
@@ -21,8 +25,9 @@ type AdminCreateUserForm struct {
 }
 
 // Validate validates form fields
-func (f *AdminCreateUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AdminEditUserForm form for admin to create user
@@ -47,8 +52,9 @@ type AdminEditUserForm struct {
 }
 
 // Validate validates form fields
-func (f *AdminEditUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AdminDashboardForm form for admin dashboard operations
@@ -58,6 +64,7 @@ type AdminDashboardForm struct {
 }
 
 // Validate validates form fields
-func (f *AdminDashboardForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
-	return validate(errs, ctx.Data, f, ctx.Locale)
+func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
 }

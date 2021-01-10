@@ -7,6 +7,15 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.1
 ## explicit
 code.gitea.io/sdk/gitea
+# gitea.com/go-chi/binding v0.0.0-20201220025549-f1056649c959
+## explicit
+gitea.com/go-chi/binding
+# gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
+## explicit
+gitea.com/go-chi/cache
+# gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
+## explicit
+gitea.com/go-chi/captcha
 # gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 ## explicit
 gitea.com/go-chi/session
@@ -32,9 +41,6 @@ gitea.com/macaron/binding
 ## explicit
 gitea.com/macaron/cache
 gitea.com/macaron/cache/memcache
-# gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
-## explicit
-gitea.com/macaron/captcha
 # gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 ## explicit
 gitea.com/macaron/cors
