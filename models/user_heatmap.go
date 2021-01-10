@@ -17,6 +17,15 @@ type UserHeatmapData struct {
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
 func GetUserHeatmapDataByUser(user *User, doer *User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, nil, doer)
+}
+
+// GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
+func GetUserHeatmapDataByUserTeam(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, team, doer)
+}
+
+func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !activityReadable(user, doer) {
@@ -39,6 +48,7 @@ func GetUserHeatmapDataByUser(user *User, doer *User) ([]*UserHeatmapData, error
 
 	cond, err := activityQueryCondition(GetFeedsOptions{
 		RequestedUser:  user,
+		RequestedTeam:  team,
 		Actor:          doer,
 		IncludePrivate: true, // don't filter by private, as we already filter by repo access
 		IncludeDeleted: true,

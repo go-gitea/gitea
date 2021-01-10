@@ -141,6 +141,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,
+		MirrorInterval: form.MirrorInterval,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -176,11 +177,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		}
 
 		if err == nil {
-			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
-				return
-			}
+			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
+			return
 		}
 
 		if repo != nil {

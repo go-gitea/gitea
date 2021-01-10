@@ -22,7 +22,6 @@
 							{{.i18n.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.repos.private"}}</th>
 						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
 						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
 							{{.i18n.Tr "admin.repos.stars"}}
@@ -51,8 +50,12 @@
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
-							<td><a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a></td>
-							<td>{{if .IsPrivate}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>
+								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
+								{{if .IsPrivate}}
+									<span class="text gold">{{svg "octicon-lock"}}</span>
+								{{end}}
+							</td>
 							<td>{{.NumWatches}}</td>
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>

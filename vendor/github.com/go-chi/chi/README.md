@@ -15,7 +15,8 @@ public API service, which in turn powers all of our client-side applications.
 The key considerations of chi's design are: project structure, maintainability, standard http
 handlers (stdlib-only), developer productivity, and deconstructing a large system into many small
 parts. The core router `github.com/go-chi/chi` is quite small (less than 1000 LOC), but we've also
-included some useful/optional subpackages: [middleware](/middleware), [render](https://github.com/go-chi/render) and [docgen](https://github.com/go-chi/docgen). We hope you enjoy it too!
+included some useful/optional subpackages: [middleware](/middleware), [render](https://github.com/go-chi/render)
+and [docgen](https://github.com/go-chi/docgen). We hope you enjoy it too!
 
 ## Install
 
@@ -27,10 +28,11 @@ included some useful/optional subpackages: [middleware](/middleware), [render](h
 * **Lightweight** - cloc'd in ~1000 LOC for the chi router
 * **Fast** - yes, see [benchmarks](#benchmarks)
 * **100% compatible with net/http** - use any http or middleware pkg in the ecosystem that is also compatible with `net/http`
-* **Designed for modular/composable APIs** - middlewares, inline middlewares, route groups and subrouter mounting
+* **Designed for modular/composable APIs** - middlewares, inline middlewares, route groups and sub-router mounting
 * **Context control** - built on new `context` package, providing value chaining, cancellations and timeouts
 * **Robust** - in production at Pressly, CloudFlare, Heroku, 99Designs, and many others (see [discussion](https://github.com/go-chi/chi/issues/91))
 * **Doc generation** - `docgen` auto-generates routing documentation from your source to JSON or Markdown
+* **Go.mod support** - v1.x of chi (starting from v1.5.0), now has go.mod support (see [CHANGELOG](https://github.com/go-chi/chi/blob/master/CHANGELOG.md#v150-2020-11-12---now-with-gomod-support))
 * **No external dependencies** - plain ol' Go stdlib + net/http
 
 
@@ -334,9 +336,12 @@ with `net/http` can be used with chi's mux.
 ----------------------------------------------------------------------------------------------------
 | chi/middleware Handler | description                                                             |
 | :--------------------- | :---------------------------------------------------------------------- |
+| [AllowContentEncoding] | Enforces a whitelist of request Content-Encoding headers                |
 | [AllowContentType]     | Explicit whitelist of accepted request Content-Types                    |
 | [BasicAuth]            | Basic HTTP authentication                                               |
 | [Compress]             | Gzip compression for clients that accept compressed responses           |
+| [ContentCharset]       | Ensure charset for Content-Type request headers                         |
+| [CleanPath]            | Clean double slashes from request path                                  |
 | [GetHead]              | Automatically route undefined HEAD requests to GET handlers             |
 | [Heartbeat]            | Monitoring endpoint to check the servers pulse                          |
 | [Logger]               | Logs the start and end of each request with the elapsed processing time |
@@ -346,6 +351,7 @@ with `net/http` can be used with chi's mux.
 | [Recoverer]            | Gracefully absorb panics and prints the stack trace                     |
 | [RequestID]            | Injects a request ID into the context of each request                   |
 | [RedirectSlashes]      | Redirect slashes on routing paths                                       |
+| [RouteHeaders]         | Route handling for request headers                                      |
 | [SetHeader]            | Short-hand middleware to set a response header key/value                |
 | [StripSlashes]         | Strip slashes on routing paths                                          |
 | [Throttle]             | Puts a ceiling on the number of concurrent requests                     |
@@ -359,20 +365,19 @@ with `net/http` can be used with chi's mux.
 [BasicAuth]: https://pkg.go.dev/github.com/go-chi/chi/middleware#BasicAuth
 [Compress]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Compress
 [ContentCharset]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ContentCharset
+[CleanPath]: https://pkg.go.dev/github.com/go-chi/chi/middleware#CleanPath
 [GetHead]: https://pkg.go.dev/github.com/go-chi/chi/middleware#GetHead
 [GetReqID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#GetReqID
 [Heartbeat]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Heartbeat
 [Logger]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Logger
-[New]: https://pkg.go.dev/github.com/go-chi/chi/middleware#New
-[NextRequestID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#NextRequestID
 [NoCache]: https://pkg.go.dev/github.com/go-chi/chi/middleware#NoCache
-[PrintPrettyStack]: https://pkg.go.dev/github.com/go-chi/chi/middleware#PrintPrettyStack
 [Profiler]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Profiler
 [RealIP]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RealIP
 [Recoverer]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Recoverer
 [RedirectSlashes]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RedirectSlashes
-[RequestID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RequestID
 [RequestLogger]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RequestLogger
+[RequestID]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RequestID
+[RouteHeaders]: https://pkg.go.dev/github.com/go-chi/chi/middleware#RouteHeaders
 [SetHeader]: https://pkg.go.dev/github.com/go-chi/chi/middleware#SetHeader
 [StripSlashes]: https://pkg.go.dev/github.com/go-chi/chi/middleware#StripSlashes
 [Throttle]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Throttle
@@ -390,7 +395,6 @@ with `net/http` can be used with chi's mux.
 [LogEntry]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LogEntry
 [LogFormatter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LogFormatter
 [LoggerInterface]: https://pkg.go.dev/github.com/go-chi/chi/middleware#LoggerInterface
-[Pattern]: https://pkg.go.dev/github.com/go-chi/chi/middleware#Pattern
 [ThrottleOpts]: https://pkg.go.dev/github.com/go-chi/chi/middleware#ThrottleOpts
 [WrapResponseWriter]: https://pkg.go.dev/github.com/go-chi/chi/middleware#WrapResponseWriter
 
@@ -430,25 +434,25 @@ and..
 
 The benchmark suite: https://github.com/pkieltyka/go-http-routing-benchmark
 
-Results as of Jan 9, 2019 with Go 1.11.4 on Linux X1 Carbon laptop
+Results as of Nov 29, 2020 with Go 1.15.5 on Linux AMD 3950x
 
 ```shell
-BenchmarkChi_Param            3000000         475 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_Param5           2000000         696 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_Param20          1000000        1275 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_ParamWrite       3000000         505 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GithubStatic     3000000         508 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GithubParam      2000000         669 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GithubAll          10000      134627 ns/op     87699 B/op    609 allocs/op
-BenchmarkChi_GPlusStatic      3000000         402 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GPlusParam       3000000         500 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GPlus2Params     3000000         586 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_GPlusAll          200000        7237 ns/op      5616 B/op     39 allocs/op
-BenchmarkChi_ParseStatic      3000000         408 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_ParseParam       3000000         488 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_Parse2Params     3000000         551 ns/op       432 B/op      3 allocs/op
-BenchmarkChi_ParseAll          100000       13508 ns/op     11232 B/op     78 allocs/op
-BenchmarkChi_StaticAll          20000       81933 ns/op     67826 B/op    471 allocs/op
+BenchmarkChi_Param          	3075895	        384 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_Param5         	2116603	        566 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_Param20        	 964117	       1227 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_ParamWrite     	2863413	        420 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GithubStatic   	3045488	        395 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GithubParam    	2204115	        540 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GithubAll      	  10000	     113811 ns/op	    81203 B/op    406 allocs/op
+BenchmarkChi_GPlusStatic    	3337485	        359 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GPlusParam     	2825853	        423 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GPlus2Params   	2471697	        483 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_GPlusAll       	 194220	       5950 ns/op	     5200 B/op     26 allocs/op
+BenchmarkChi_ParseStatic    	3365324	        356 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_ParseParam     	2976614	        404 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_Parse2Params   	2638084	        439 ns/op	      400 B/op      2 allocs/op
+BenchmarkChi_ParseAll       	 109567	      11295 ns/op	    10400 B/op     52 allocs/op
+BenchmarkChi_StaticAll      	  16846	      71308 ns/op	    62802 B/op    314 allocs/op
 ```
 
 Comparison with other routers: https://gist.github.com/pkieltyka/123032f12052520aaccab752bd3e78cc
@@ -457,6 +461,17 @@ NOTE: the allocs in the benchmark above are from the calls to http.Request's
 `WithContext(context.Context)` method that clones the http.Request, sets the `Context()`
 on the duplicated (alloc'd) request and returns it the new request object. This is just
 how setting context on a request in Go works.
+
+
+## Go module support & note on chi's versioning
+
+* Go.mod support means we reset our versioning starting from v1.5 (see [CHANGELOG](https://github.com/go-chi/chi/blob/master/CHANGELOG.md#v150-2020-11-12---now-with-gomod-support))
+* All older tags are preserved, are backwards-compatible and will "just work" as they
+* Brand new systems can run `go get -u github.com/go-chi/chi` as normal, or `go get -u github.com/go-chi/chi@latest`
+to install chi, which will install v1.x+ built with go.mod support, starting from v1.5.0.
+* For existing projects who want to upgrade to the latest go.mod version, run: `go get -u github.com/go-chi/chi@v1.5.0`,
+which will get you on the go.mod version line (as Go's mod cache may still remember v4.x).
+* Any breaking changes will bump a "minor" release and backwards-compatible improvements/fixes will bump a "tiny" release.
 
 
 ## Credits

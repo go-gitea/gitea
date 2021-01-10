@@ -9,20 +9,18 @@
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					{{if not .ContextUser.IsOrganization}}
-						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
-						</a>
-						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
-						</a>
-						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
-						</a>
-					{{end}}
+					<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
+					</a>
+					<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
+					</a>
+					<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
+					</a>
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>

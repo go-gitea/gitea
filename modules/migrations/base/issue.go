@@ -10,15 +10,15 @@ import "time"
 // Issue is a standard issue information
 type Issue struct {
 	Number      int64
-	PosterID    int64
-	PosterName  string
-	PosterEmail string
+	PosterID    int64  `yaml:"poster_id"`
+	PosterName  string `yaml:"poster_name"`
+	PosterEmail string `yaml:"poster_email"`
 	Title       string
 	Content     string
 	Ref         string
 	Milestone   string
 	State       string // closed, open
-	IsLocked    bool
+	IsLocked    bool   `yaml:"is_locked"`
 	Created     time.Time
 	Updated     time.Time
 	Closed      *time.Time

@@ -291,7 +291,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            *asset.ID,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
@@ -299,6 +299,16 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,
 			Updated:       asset.UpdatedAt.Time,
+			DownloadFunc: func() (io.ReadCloser, error) {
+				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, *asset.ID, http.DefaultClient)
+				if err != nil {
+					return nil, err
+				}
+				if asset == nil {
+					return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
+				}
+				return asset, nil
+			},
 		})
 	}
 	return r
@@ -330,18 +340,6 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	return releases, nil
 }
 
-// GetAsset returns an asset
-func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, error) {
-	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
-	if err != nil {
-		return nil, err
-	}
-	if asset == nil {
-		return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
-	}
-	return asset, nil
-}
-
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
@@ -363,6 +361,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
+	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.rate = &resp.Rate
 	for _, issue := range issues {
 		if issue.IsPullRequest() {

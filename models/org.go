@@ -746,6 +746,7 @@ type AccessibleReposEnvironment interface {
 type accessibleReposEnv struct {
 	org     *User
 	user    *User
+	team    *Team
 	teamIDs []int64
 	e       Engine
 	keyword string
@@ -782,16 +783,31 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 	}, nil
 }
 
+// AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// that are accessible to the specified team.
+func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+	return &accessibleReposEnv{
+		org:     org,
+		team:    team,
+		e:       x,
+		orderBy: SearchOrderByRecentUpdated,
+	}
+}
+
 func (env *accessibleReposEnv) cond() builder.Cond {
 	var cond = builder.NewCond()
-	if env.user == nil || !env.user.IsRestricted {
-		cond = cond.Or(builder.Eq{
-			"`repository`.owner_id":   env.org.ID,
-			"`repository`.is_private": false,
-		})
-	}
-	if len(env.teamIDs) > 0 {
-		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	if env.team != nil {
+		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
+	} else {
+		if env.user == nil || !env.user.IsRestricted {
+			cond = cond.Or(builder.Eq{
+				"`repository`.owner_id":   env.org.ID,
+				"`repository`.is_private": false,
+			})
+		}
+		if len(env.teamIDs) > 0 {
+			cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+		}
 	}
 	if env.keyword != "" {
 		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})
