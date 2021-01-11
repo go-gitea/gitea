@@ -10,12 +10,12 @@ import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-
+	"code.gitea.io/gitea/modules/web"
 	"gitea.com/go-chi/binding"
-	"gitea.com/macaron/macaron"
 )
 
 // CheckInternalToken check internal token is set
@@ -26,59 +26,41 @@ func CheckInternalToken(next http.Handler) http.Handler {
 		if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
 			log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		}
-	})
-}
-
-// wrap converts an install route to a chi route
-func wrap(handlers ...interface{}) http.HandlerFunc {
-	if len(handlers) == 0 {
-		panic("No handlers found")
-	}
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx := GetContext(req)
-		ctx.Resp = resp
-		for _, handler := range handlers {
-			switch t := handler.(type) {
-			case func(ctx *Context):
-				// TODO: if ctx.Written return immediately
-				t(ctx)
-			case func(resp http.ResponseWriter, req *http.Request):
-				t(resp, req)
-			}
+		} else {
+			next.ServeHTTP(w, req)
 		}
 	})
 }
 
 // bind binding an obj to a handler
-func bind(obj interface{}, handler func(ctx *Context, form interface{})) http.HandlerFunc {
+func bind(obj interface{}) http.HandlerFunc {
 	var tp = reflect.TypeOf(obj).Elem()
-	return wrap(func(ctx *Context) {
+	return web.Wrap(func(ctx *context.PrivateContext) {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
-		handler(ctx, theObj)
+		web.SetForm(ctx, theObj)
 	})
 }
 
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
-func RegisterRoutes(m *macaron.Macaron) {
-	m.Group("/", func() {
-		m.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
-		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
-		m.Post("/hook/pre-receive/:owner/:repo", bind(&private.HookOptions{}, HookPreReceive))
-		m.Post("/hook/post-receive/:owner/:repo", bind(&private.HookOptions{}, HookPostReceive))
-		m.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
-		m.Get("/serv/none/:keyid", ServNoCommand)
-		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
-		m.Post("/manager/shutdown", Shutdown)
-		m.Post("/manager/restart", Restart)
-		m.Post("/manager/flush-queues", bind(&private.FlushOptions{}, FlushQueues))
-		m.Post("/manager/pause-logging", PauseLogging)
-		m.Post("/manager/resume-logging", ResumeLogging)
-		m.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
-		m.Post("/manager/add-logger", bind(&private.LoggerOptions{}, AddLogger))
-		m.Post("/manager/remove-logger/:group/:name", RemoveLogger)
-		m.Post("/mail/send", SendEmail)
+func RegisterRoutes(r *web.Route) {
+	r.Group("/", func(r *web.Route) {
+		r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
+		r.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
+		r.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
+		r.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
+		r.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
+		r.Get("/serv/none/:keyid", ServNoCommand)
+		r.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
+		r.Post("/manager/shutdown", Shutdown)
+		r.Post("/manager/restart", Restart)
+		r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
+		r.Post("/manager/pause-logging", PauseLogging)
+		r.Post("/manager/resume-logging", ResumeLogging)
+		r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
+		r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
+		r.Post("/manager/remove-logger/:group/:name", RemoveLogger)
+		r.Post("/mail/send", SendEmail)
 	}, CheckInternalToken)
 }

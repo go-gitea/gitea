@@ -463,8 +463,7 @@ func (ctx *Context) Write(bs []byte) (int, error) {
 }
 
 func (ctx *Context) Written() bool {
-	// TODO:
-	return false
+	return ctx.Resp.written
 }
 
 func (ctx *Context) Status(status int) {
@@ -653,40 +652,6 @@ func Contexter(next http.Handler) http.Handler {
 
 		ctx.Data["ManifestData"] = setting.ManifestData
 
-		next.ServeHTTP(resp, req)
+		next.ServeHTTP(ctx.Resp, req)
 	})
-}
-
-// Wrap converts routes to stand one
-func Wrap(handlers ...interface{}) http.HandlerFunc {
-	if len(handlers) == 0 {
-		panic("No handlers found")
-	}
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		for _, handler := range handlers {
-			switch t := handler.(type) {
-			case func(ctx *Context):
-				ctx := GetContext(req)
-				// TODO: if ctx.Written return immediately
-				t(ctx)
-			case func(ctx *APIContext):
-				ctx := GetAPIContext(req)
-				ctx.Resp = resp
-				// TODO: if ctx.Written return immediately
-				t(ctx)
-			case func(resp http.ResponseWriter, req *http.Request):
-				t(resp, req)
-			}
-		}
-	})
-}
-
-// SetForm set the form object
-func SetForm(data middlewares.DataStore, obj interface{}) {
-	data.GetData()["__form"] = obj
-}
-
-// GetForm returns the validate form information
-func GetForm(data middlewares.DataStore) interface{} {
-	return data.GetData()["__form"]
 }

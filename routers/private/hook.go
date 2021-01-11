@@ -21,10 +21,9 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"gitea.com/macaron/macaron"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -117,8 +116,8 @@ func isErrUnverifiedCommit(err error) bool {
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
-func HookPreReceive(ctx *Context, form interface{}) {
-	opts := form.(*private.HookOptions)
+func HookPreReceive(ctx *Context) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -371,8 +370,8 @@ func HookPreReceive(ctx *Context, form interface{}) {
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx *Context, form interface{}) {
-	opts := form.(*private.HookOptions)
+func HookPostReceive(ctx *Context) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 
@@ -542,7 +541,7 @@ func HookPostReceive(ctx *Context, form interface{}) {
 }
 
 // SetDefaultBranch updates the default branch
-func SetDefaultBranch(ctx *macaron.Context) {
+func SetDefaultBranch(ctx *Context) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")

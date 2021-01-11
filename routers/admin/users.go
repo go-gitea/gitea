@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	router_user_setting "code.gitea.io/gitea/routers/user/setting"
 	"code.gitea.io/gitea/services/mailer"
@@ -63,7 +64,8 @@ func NewUser(ctx *context.Context) {
 }
 
 // NewUserPost response for adding a new user
-func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
+func NewUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true

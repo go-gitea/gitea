@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"mvdan.cc/xurls/v2"
 )
@@ -38,7 +39,7 @@ func Markdown(ctx *context.APIContext, opt interface{}) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := context.GetForm(ctx).(*api.MarkdownOption)
+	form := web.GetForm(ctx).(*api.MarkdownOption)
 
 	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())

@@ -14,13 +14,14 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/macaron/macaron"
 )
 
 // FlushQueues flushes all the Queues
-func FlushQueues(ctx *Context, form interface{}) {
-	opts := form.(*private.FlushOptions)
+func FlushQueues(ctx *Context) {
+	opts := web.GetForm(ctx).(*private.FlushOptions)
 	if opts.NonBlocking {
 		// Save the hammer ctx here - as a new one is created each time you call this.
 		baseCtx := graceful.GetManager().HammerContext()
@@ -85,8 +86,8 @@ func RemoveLogger(ctx *macaron.Context) {
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx *Context, form interface{}) {
-	opts := form.(*private.LoggerOptions)
+func AddLogger(ctx *Context) {
+	opts := web.GetForm(ctx).(*private.LoggerOptions)
 	if len(opts.Group) == 0 {
 		opts.Group = log.DEFAULT
 	}

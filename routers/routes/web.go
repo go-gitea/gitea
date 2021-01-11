@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -48,8 +50,8 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// NewMacaron initializes Macaron instance.
-func NewMacaron() *macaron.Macaron {
+// NormalMiddles initializes Macaron instance.
+func NormalMiddles(r *web.Route) {
 	gob.Register(&u2f.Challenge{})
 	var m *macaron.Macaron
 	if setting.RedirectMacaronLog {
@@ -97,9 +99,10 @@ func NewMacaron() *macaron.Macaron {
 		Secure:         setting.SessionConfig.Secure,
 		CookieDomain:   setting.SessionConfig.Domain,
 	}))
-	m.Use(captcha.Captchaer(captcha.Options{
+	cpt := captcha.NewCaptcha(captcha.Options{
 		SubURL: setting.AppSubURL,
-	}))
+	})
+	m.Use(captcha.Captchaer(cpt))
 	m.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -131,12 +134,13 @@ func NewMacaron() *macaron.Macaron {
 	}))
 	m.Use(context.Contexter())
 	m.SetAutoHead(true)
-	return m
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *Route {
+func NormalRoutes() *web.Route {
 	r := BaseRoute()
+	NormalMiddles(r)
+
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -171,7 +175,7 @@ func NormalRoutes() *Route {
 }
 
 // RegisterRoutes routes routes to Macaron
-func RegisterRoutes(r *Route) {
+func RegisterRoutes(m *web.Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
@@ -215,7 +219,7 @@ func RegisterRoutes(r *Route) {
 	// Routers.
 	// for health check
 	m.Get("/", routers.Home)
-	m.Group("/explore", func() {
+	m.Group("/explore", func(m *web.Route) {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
@@ -224,47 +228,45 @@ func RegisterRoutes(r *Route) {
 		m.Get("/organizations", routers.ExploreOrganizations)
 		m.Get("/code", routers.ExploreCode)
 	}, ignSignIn)
-	m.Combo("/install", routers.InstallInit).Get(routers.Install).
-		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
-	m.Group("/user", func() {
+	m.Group("/user", func(m *web.Route) {
 		m.Get("/login", user.SignIn)
-		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		m.Group("", func() {
+		m.Post("/login", bindIgnErr(forms.SignInForm{}), user.SignInPost)
+		m.Group("", func(m *web.Route) {
 			m.Combo("/login/openid").
 				Get(user.SignInOpenID).
-				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
+				Post(bindIgnErr(forms.SignInOpenIDForm{}), user.SignInOpenIDPost)
 		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
+		m.Group("/openid", func(m *web.Route) {
 			m.Combo("/connect").
 				Get(user.ConnectOpenID).
-				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-			m.Group("/register", func() {
+				Post(bindIgnErr(forms.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
+			m.Group("/register", func(m *web.Route) {
 				m.Combo("").
 					Get(user.RegisterOpenID, openIDSignUpEnabled).
-					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
+					Post(bindIgnErr(forms.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			}, openIDSignUpEnabled)
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", user.SignUp)
-		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
-		m.Group("/oauth2", func() {
+		m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), user.SignUpPost)
+		m.Group("/oauth2", func(m *web.Route) {
 			m.Get("/:provider", user.SignInOAuth)
 			m.Get("/:provider/callback", user.SignInOAuthCallback)
 		})
 		m.Get("/link_account", user.LinkAccount)
 		m.Post("/link_account_signin", bindIgnErr(auth.SignInForm{}), user.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", bindIgnErr(auth.RegisterForm{}), user.LinkAccountPostRegister)
-		m.Group("/two_factor", func() {
+		m.Group("/two_factor", func(m *web.Route) {
 			m.Get("", user.TwoFactor)
 			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
-		m.Group("/u2f", func() {
+		m.Group("/u2f", func(m *web.Route) {
 			m.Get("", user.U2F)
 			m.Get("/challenge", user.U2FChallenge)
 			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
@@ -274,7 +276,7 @@ func RegisterRoutes(r *Route) {
 
 	m.Any("/user/events", reqSignIn, events.Events)
 
-	m.Group("/login/oauth", func() {
+	m.Group("/login/oauth", func(m *web.Route) {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
 		m.Post("/grant", bindIgnErr(auth.GrantApplicationForm{}), user.GrantApplicationOAuth)
 		// TODO manage redirection
@@ -282,41 +284,41 @@ func RegisterRoutes(r *Route) {
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Post("/login/oauth/access_token", bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
-	m.Group("/user/settings", func() {
+	m.Group("/user/settings", func(m *web.Route) {
 		m.Get("", userSetting.Profile)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
 		m.Get("/change_password", user.MustChangePassword)
 		m.Post("/change_password", bindIgnErr(auth.MustChangePasswordForm{}), user.MustChangePasswordPost)
 		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
 		m.Post("/avatar/delete", userSetting.DeleteAvatar)
-		m.Group("/account", func() {
+		m.Group("/account", func(m *web.Route) {
 			m.Combo("").Get(userSetting.Account).Post(bindIgnErr(auth.ChangePasswordForm{}), userSetting.AccountPost)
 			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
 			m.Post("/theme", bindIgnErr(auth.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
-		m.Group("/security", func() {
+		m.Group("/security", func(m *web.Route) {
 			m.Get("", userSetting.Security)
-			m.Group("/two_factor", func() {
+			m.Group("/two_factor", func(m *web.Route) {
 				m.Post("/regenerate_scratch", userSetting.RegenerateScratchTwoFactor)
 				m.Post("/disable", userSetting.DisableTwoFactor)
 				m.Get("/enroll", userSetting.EnrollTwoFactor)
 				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.EnrollTwoFactorPost)
 			})
-			m.Group("/u2f", func() {
+			m.Group("/u2f", func(m *web.Route) {
 				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), userSetting.U2FRegister)
 				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), userSetting.U2FRegisterPost)
 				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), userSetting.U2FDelete)
 			})
-			m.Group("/openid", func() {
+			m.Group("/openid", func(m *web.Route) {
 				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.OpenIDPost)
 				m.Post("/delete", userSetting.DeleteOpenID)
 				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
 			m.Post("/account_link", userSetting.DeleteAccountLink)
 		})
-		m.Group("/applications/oauth2", func() {
+		m.Group("/applications/oauth2", func(m *web.Route) {
 			m.Get("/:id", userSetting.OAuth2ApplicationShow)
 			m.Post("/:id", bindIgnErr(auth.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsEdit)
 			m.Post("/:id/regenerate_secret", userSetting.OAuthApplicationsRegenerateSecret)
@@ -338,7 +340,7 @@ func RegisterRoutes(r *Route) {
 		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
-	m.Group("/user", func() {
+	m.Group("/user", func(m *web.Route) {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
 		m.Any("/activate", user.Activate, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
@@ -358,15 +360,15 @@ func RegisterRoutes(r *Route) {
 	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
-	m.Group("/admin", func() {
+	m.Group("/admin", func(m *web.Route) {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Post("", adminReq, bindIgnErr(auth.AdminDashboardForm{}), admin.DashboardPost)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
-		m.Group("/monitor", func() {
+		m.Group("/monitor", func(m *web.Route) {
 			m.Get("", admin.Monitor)
 			m.Post("/cancel/:pid", admin.MonitorCancel)
-			m.Group("/queue/:qid", func() {
+			m.Group("/queue/:qid", func(m *web.Route) {
 				m.Get("", admin.Queue)
 				m.Post("/set", admin.SetQueueSettings)
 				m.Post("/add", admin.AddWorkers)
@@ -375,23 +377,23 @@ func RegisterRoutes(r *Route) {
 			})
 		})
 
-		m.Group("/users", func() {
+		m.Group("/users", func(m *web.Route) {
 			m.Get("", admin.Users)
 			m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(auth.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Combo("/:userid").Get(admin.EditUser).Post(bindIgnErr(auth.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/:userid/delete", admin.DeleteUser)
 		})
 
-		m.Group("/emails", func() {
+		m.Group("/emails", func(m *web.Route) {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
 		})
 
-		m.Group("/orgs", func() {
+		m.Group("/orgs", func(m *web.Route) {
 			m.Get("", admin.Organizations)
 		})
 
-		m.Group("/repos", func() {
+		m.Group("/repos", func(m *web.Route) {
 			m.Get("", admin.Repos)
 			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
@@ -433,7 +435,7 @@ func RegisterRoutes(r *Route) {
 			m.Post("/:authid/delete", admin.DeleteAuthSource)
 		})
 
-		m.Group("/notices", func() {
+		m.Group("/notices", func(m *web.Route) {
 			m.Get("", admin.Notices)
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
@@ -441,12 +443,12 @@ func RegisterRoutes(r *Route) {
 	}, adminReq)
 	// ***** END: Admin *****
 
-	m.Group("", func() {
+	m.Group("", func(m *web.Route) {
 		m.Get("/:username", user.Profile)
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/:username", func() {
+	m.Group("/:username", func(m *web.Route) {
 		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
 
@@ -469,13 +471,13 @@ func RegisterRoutes(r *Route) {
 	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
 
 	// ***** START: Organization *****
-	m.Group("/org", func() {
-		m.Group("", func() {
+	m.Group("/org", func(m *web.Route) {
+		m.Group("", func(m *web.Route) {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
 		})
 
-		m.Group("/:org", func() {
+		m.Group("/:org", func(m *web.Route) {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/:team", user.Dashboard)
 			m.Get("/issues", user.Issues)
@@ -489,27 +491,27 @@ func RegisterRoutes(r *Route) {
 			m.Get("/teams", org.Teams)
 		}, context.OrgAssignment(true, false, true))
 
-		m.Group("/:org", func() {
+		m.Group("/:org", func(m *web.Route) {
 			m.Get("/teams/:team", org.TeamMembers)
 			m.Get("/teams/:team/repositories", org.TeamRepositories)
 			m.Post("/teams/:team/action/:action", org.TeamsAction)
 			m.Post("/teams/:team/action/repo/:action", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
-		m.Group("/:org", func() {
+		m.Group("/:org", func(m *web.Route) {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(auth.CreateTeamForm{}), org.NewTeamPost)
 			m.Get("/teams/:team/edit", org.EditTeam)
 			m.Post("/teams/:team/edit", bindIgnErr(auth.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/:team/delete", org.DeleteTeam)
 
-			m.Group("/settings", func() {
+			m.Group("/settings", func(m *web.Route) {
 				m.Combo("").Get(org.Settings).
 					Post(bindIgnErr(auth.UpdateOrgSettingForm{}), org.SettingsPost)
 				m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 
-				m.Group("/hooks", func() {
+				m.Group("/hooks", func(m *web.Route) {
 					m.Get("", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/:type/new", repo.WebhooksNew)
@@ -534,7 +536,7 @@ func RegisterRoutes(r *Route) {
 					m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 				})
 
-				m.Group("/labels", func() {
+				m.Group("/labels", func(m *web.Route) {
 					m.Get("", org.RetrieveLabels, org.Labels)
 					m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), org.NewLabel)
 					m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), org.UpdateLabel)
@@ -549,12 +551,12 @@ func RegisterRoutes(r *Route) {
 	// ***** END: Organization *****
 
 	// ***** START: Repository *****
-	m.Group("/repo", func() {
+	m.Group("/repo", func(m *web.Route) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", bindIgnErr(auth.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", bindIgnErr(auth.MigrateRepoForm{}), repo.MigratePost)
-		m.Group("/fork", func() {
+		m.Group("/fork", func(m *web.Route) {
 			m.Combo("/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
@@ -563,23 +565,23 @@ func RegisterRoutes(r *Route) {
 	// ***** Release Attachment Download without Signin
 	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
 
-	m.Group("/:username/:reponame", func() {
-		m.Group("/settings", func() {
+	m.Group("/:username/:reponame", func(m *web.Route) {
+		m.Group("/settings", func(m *web.Route) {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(auth.RepoSettingForm{}), repo.SettingsPost)
 			m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), repo.SettingsAvatar)
 			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
 
-			m.Group("/collaboration", func() {
+			m.Group("/collaboration", func(m *web.Route) {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
-				m.Group("/team", func() {
+				m.Group("/team", func(m *web.Route) {
 					m.Post("", repo.AddTeamPost)
 					m.Post("/delete", repo.DeleteTeam)
 				})
 			})
-			m.Group("/branches", func() {
+			m.Group("/branches", func(m *web.Route) {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(auth.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)

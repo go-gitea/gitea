@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/auth/sso"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi/middleware"
@@ -48,7 +48,7 @@ func SignedUserName(req *http.Request) string {
 	return ""
 }
 
-func accessLogger() {
+func accessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
 	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
 	return func(next http.Handler) http.Handler {
@@ -77,7 +77,7 @@ func accessLogger() {
 				log.Error("Could not set up macaron access logger: %v", err.Error())
 			}
 		})
-	})
+	}
 }
 
 // LoggerHandler is a handler that will log the routing to the default gitea log
@@ -224,7 +224,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					log.Error("%v", combinedErr)
 
 					lc := middlewares.Locale(w, req)
-					sessionStore = context.GetSession(req)
+					sessionStore := session.GetSession(req)
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":   lc.Language(),
@@ -264,8 +264,8 @@ func Recovery() func(next http.Handler) http.Handler {
 }
 
 // BaseRoute creates a route
-func BaseRoute() *Route {
-	r := NewRoute()
+func BaseRoute() *web.Route {
+	r := web.NewRoute()
 	r.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
@@ -286,7 +286,7 @@ func BaseRoute() *Route {
 
 	r.Use(Recovery())
 	if setting.EnableAccessLog {
-		r.Use(setupAccessLogger())
+		r.Use(accessLogger())
 	}
 
 	r.Use(public.Custom(
