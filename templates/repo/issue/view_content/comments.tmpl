@@ -530,7 +530,7 @@
 									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
 
 									{{if and $.CanMarkConversation $isNotPending}}
-										<button class="ui tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+										<button class="ui tiny button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
 											{{if $resolved}}
 												{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 											{{else}}

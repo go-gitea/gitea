@@ -40,5 +40,5 @@ type SingleSignOn interface {
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
 	// Returns nil if verification fails.
-	VerifyAuthData(http *http.Request, store DataStore, sess SessionStore) *models.User
+	VerifyAuthData(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
 }
