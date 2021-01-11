@@ -19,7 +19,7 @@ import (
 )
 
 // Markdown render markdown document to HTML
-func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
+func Markdown(ctx *context.APIContext, opt interface{}) {
 	// swagger:operation POST /markdown miscellaneous renderMarkdown
 	// ---
 	// summary: Render a markdown document as HTML
@@ -37,6 +37,8 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := context.GetForm(ctx).(*api.MarkdownOption)
 
 	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())

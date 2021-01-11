@@ -29,8 +29,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"golang.org/x/crypto/pbkdf2"
 
+	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	"gitea.com/macaron/cache"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/macaron"
 	"github.com/go-chi/chi"
@@ -38,9 +38,34 @@ import (
 	"github.com/unrolled/render"
 )
 
+type response struct {
+	http.ResponseWriter
+	written bool
+}
+
+func (r *response) Write(bs []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(bs)
+	if err != nil {
+		return 0, err
+	}
+	r.written = true
+	return size, nil
+}
+
+func (r *response) WriteHeader(statusCode int) {
+	r.written = true
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (r *response) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // Context represents context of a request.
 type Context struct {
-	Resp   http.ResponseWriter
+	Resp   *response
 	Req    *http.Request
 	Data   map[string]interface{}
 	Render *render.Render
@@ -485,13 +510,22 @@ func Contexter(next http.Handler) http.Handler {
 		Funcs:      gitea_templates.NewFuncMap(),
 	})
 
+	c, err := cache.NewCacher(cache.Options{
+		Adapter:       setting.CacheService.Adapter,
+		AdapterConfig: setting.CacheService.Conn,
+		Interval:      setting.CacheService.Interval,
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		var locale = middlewares.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = Context{
-			Resp: resp,
-			Req:  req,
-			//Cache: cache, TODO:
+			Resp:  &response{resp, false},
+			Req:   req,
+			Cache: c,
 			//csrf:    x,
 			//Flash: flash
 			Locale:  locale,
@@ -621,4 +655,38 @@ func Contexter(next http.Handler) http.Handler {
 
 		next.ServeHTTP(resp, req)
 	})
+}
+
+// Wrap converts routes to stand one
+func Wrap(handlers ...interface{}) http.HandlerFunc {
+	if len(handlers) == 0 {
+		panic("No handlers found")
+	}
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		for _, handler := range handlers {
+			switch t := handler.(type) {
+			case func(ctx *Context):
+				ctx := GetContext(req)
+				// TODO: if ctx.Written return immediately
+				t(ctx)
+			case func(ctx *APIContext):
+				ctx := GetAPIContext(req)
+				ctx.Resp = resp
+				// TODO: if ctx.Written return immediately
+				t(ctx)
+			case func(resp http.ResponseWriter, req *http.Request):
+				t(resp, req)
+			}
+		}
+	})
+}
+
+// SetForm set the form object
+func SetForm(data middlewares.DataStore, obj interface{}) {
+	data.GetData()["__form"] = obj
+}
+
+// GetForm returns the validate form information
+func GetForm(data middlewares.DataStore) interface{} {
+	return data.GetData()["__form"]
 }

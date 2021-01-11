@@ -19,7 +19,8 @@ import (
 )
 
 // FlushQueues flushes all the Queues
-func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
+func FlushQueues(ctx *Context, form interface{}) {
+	opts := form.(*private.FlushOptions)
 	if opts.NonBlocking {
 		// Save the hammer ctx here - as a new one is created each time you call this.
 		baseCtx := graceful.GetManager().HammerContext()
@@ -34,7 +35,7 @@ func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
 		})
 		return
 	}
-	err := queue.GetManager().FlushAll(ctx.Req.Request.Context(), opts.Timeout)
+	err := queue.GetManager().FlushAll(ctx.Req.Context(), opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, map[string]interface{}{
 			"err": fmt.Sprintf("%v", err),
@@ -84,7 +85,8 @@ func RemoveLogger(ctx *macaron.Context) {
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
+func AddLogger(ctx *Context, form interface{}) {
+	opts := form.(*private.LoggerOptions)
 	if len(opts.Group) == 0 {
 		opts.Group = log.DEFAULT
 	}

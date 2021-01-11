@@ -11,7 +11,6 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
@@ -37,14 +36,13 @@ import (
 	_ "code.gitea.io/gitea/modules/session"
 
 	"gitea.com/go-chi/binding"
-	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/captcha"
+	"gitea.com/go-chi/session"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
-	"gitea.com/go-chi/session"
 	"gitea.com/macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
@@ -98,11 +96,6 @@ func NewMacaron() *macaron.Macaron {
 		CookieHttpOnly: true,
 		Secure:         setting.SessionConfig.Secure,
 		CookieDomain:   setting.SessionConfig.Domain,
-	}))
-	m.Use(cache.Cacher(cache.Options{
-		Adapter:       setting.CacheService.Adapter,
-		AdapterConfig: setting.CacheService.Conn,
-		Interval:      setting.CacheService.Interval,
 	}))
 	m.Use(captcha.Captchaer(captcha.Options{
 		SubURL: setting.AppSubURL,

@@ -40,7 +40,7 @@ func ListEmails(ctx *context.APIContext) {
 }
 
 // AddEmail add an email address
-func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
+func AddEmail(ctx *context.APIContext, opt interface{}) {
 	// swagger:operation POST /user/emails user userAddEmail
 	// ---
 	// summary: Add email addresses
@@ -61,7 +61,7 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	//     "$ref": "#/responses/EmailList"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := opt.(*api.CreateEmailOption)
 	if len(form.Emails) == 0 {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Email list empty")
 		return
@@ -96,7 +96,7 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 }
 
 // DeleteEmail delete email
-func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
+func DeleteEmail(ctx *context.APIContext, opt interface{}) {
 	// swagger:operation DELETE /user/emails user userDeleteEmail
 	// ---
 	// summary: Delete email addresses
@@ -110,7 +110,7 @@ func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-
+	form := opt.(*api.DeleteEmailOption)
 	if len(form.Emails) == 0 {
 		ctx.Status(http.StatusNoContent)
 		return

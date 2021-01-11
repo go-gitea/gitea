@@ -10,12 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"gitea.com/macaron/macaron"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
-func UpdatePublicKeyInRepo(ctx *macaron.Context) {
+func UpdatePublicKeyInRepo(ctx *Context) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
 	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
@@ -49,7 +47,7 @@ func UpdatePublicKeyInRepo(ctx *macaron.Context) {
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
-func AuthorizedPublicKeyByContent(ctx *macaron.Context) {
+func AuthorizedPublicKeyByContent(ctx *Context) {
 	content := ctx.Query("content")
 
 	publicKey, err := models.SearchPublicKeyByContent(content)

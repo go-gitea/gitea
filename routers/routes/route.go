@@ -14,43 +14,24 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Wrap converts an install route to a chi route
-func Wrap(handlers ...interface{}) http.HandlerFunc {
-	if len(handlers) == 0 {
-		panic("No handlers found")
-	}
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx := context.GetContext(req)
-		ctx.Resp = resp
-		for _, handler := range handlers {
-			switch t := handler.(type) {
-			case func(ctx *context.Context):
-				// TODO: if ctx.Written return immediately
-				hanlder(ctx)
-			case func(resp http.ResponseWriter, req *http.Request):
-				t(resp, req)
-			}
-		}
-	})
-}
-
 // Middle wrap a function to middle
 func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			Wrap(f)(resp, req)
+			contexts.Wrap(f)(resp, req)
 			next.ServeHTTP(resp, req)
 		})
 	}
 }
 
 // Bind binding an obj to a handler
-func Bind(obj interface{}, handler func(ctx *context.Context, form interface{})) http.HandlerFunc {
+func Bind(obj interface{}, handler func(ctx *context.Context)) http.HandlerFunc {
 	var tp = reflect.TypeOf(obj).Elem()
-	return Wrap(func(ctx *context.Context) {
+	return contexts.Wrap(func(ctx *context.Context) {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
-		handler(ctx, theObj)
+		contexts.SetForm(theObj)
+		handler(ctx)
 	})
 }
 

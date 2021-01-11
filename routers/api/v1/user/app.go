@@ -61,7 +61,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 }
 
 // CreateAccessToken create access tokens
-func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
+func CreateAccessToken(ctx *context.APIContext, opt interface{}) {
 	// swagger:operation POST /users/{username}/tokens user userCreateToken
 	// ---
 	// summary: Create an access token
@@ -87,6 +87,8 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/AccessToken"
+
+	form := opt.(*api.CreateAccessTokenOption)
 
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,

@@ -117,7 +117,8 @@ func isErrUnverifiedCommit(err error) bool {
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
-func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
+func HookPreReceive(ctx *Context, form interface{}) {
+	opts := form.(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -370,7 +371,8 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
+func HookPostReceive(ctx *Context, form interface{}) {
+	opts := form.(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 
