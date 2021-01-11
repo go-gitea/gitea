@@ -517,7 +517,7 @@ func (u *User) GetActiveRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 	sess.Where(builder.Eq{"is_archived": false})
 
-	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
+	return ids, sess.Where("owner_id = ?", u.ID).GroupBy("repository.id").Find(&ids)
 }
 
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
