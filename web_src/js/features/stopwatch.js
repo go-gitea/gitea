@@ -28,7 +28,11 @@ export async function initStopwatch() {
   };
 
   fn(NotificationSettings.MinTimeout);
-  updateTimeInterval = updateStopwatchTime(parseInt($('.stopwatch-time').data('seconds')));
+
+  const currSeconds = $('.stopwatch-time').data('seconds');
+  if (currSeconds) {
+    updateTimeInterval = updateStopwatchTime(currSeconds);
+  }
 }
 
 async function updateStopwatchWithCallback(callback, timeout) {
@@ -75,10 +79,13 @@ async function updateStopwatch() {
 }
 
 async function updateStopwatchTime(seconds) {
+  const secs = parseInt(seconds);
+  if (!isFinite(secs)) return;
+
   const start = Date.now();
   updateTimeInterval = setInterval(() => {
     const delta = Date.now() - start;
-    const dur = prettyMilliseconds(seconds * 1000 + delta, {compact: true});
+    const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
     $('.stopwatch-time').text(dur);
   }, 1000);
 }
