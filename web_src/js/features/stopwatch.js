@@ -80,7 +80,7 @@ async function updateStopwatch() {
 
 async function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
-  if (!isFinite(secs)) return;
+  if (!Number.isFinite(secs)) return;
 
   const start = Date.now();
   updateTimeInterval = setInterval(() => {
