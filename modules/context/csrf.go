@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/unknwon/com"
-	"gopkg.in/macaron.v1/cookie"
 )
 
 // CSRF represents a CSRF service and is used to get the current token and validate a suspect token.
@@ -222,7 +221,11 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 					if opt.CookieLifeTime == 0 {
 						expires = time.Now().AddDate(0, 0, 1)
 					}
-					ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, expires, cookie.SameSite(opt.SameSite))
+					ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, expires,
+						func(c *http.Cookie) {
+							c.SameSite = opt.SameSite
+						},
+					)
 				}
 			}
 
