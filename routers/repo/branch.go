@@ -63,6 +63,9 @@ func Branches(ctx *context.Context) {
 	}
 
 	branches, branchesCount := loadBranches(ctx, page, pageSize)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["Branches"] = branches
 	pager := context.NewPagination(int(branchesCount), git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
