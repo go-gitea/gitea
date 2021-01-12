@@ -30,9 +30,6 @@ gitea.com/lunny/levelqueue
 # gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 ## explicit
 gitea.com/macaron/cors
-# gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
-## explicit
-gitea.com/macaron/csrf
 # gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 ## explicit
 gitea.com/macaron/gzip
@@ -41,9 +38,6 @@ gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 ## explicit
 gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
-## explicit
-gitea.com/macaron/session
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
 # github.com/PuerkitoBio/goquery v1.5.1
@@ -416,6 +410,8 @@ github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.2
 ## explicit
 github.com/google/uuid
+# github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99
+github.com/gopherjs/gopherjs/js
 # github.com/gorilla/context v1.1.1
 ## explicit
 github.com/gorilla/context
@@ -470,6 +466,8 @@ github.com/jessevdk/go-flags
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
+# github.com/jtolds/gls v4.20.0+incompatible
+github.com/jtolds/gls
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
@@ -679,6 +677,16 @@ github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 ## explicit
 github.com/shurcooL/vfsgen
+# github.com/smartystreets/assertions v1.1.1
+github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch
+github.com/smartystreets/assertions/internal/go-render/render
+github.com/smartystreets/assertions/internal/oglematchers
+# github.com/smartystreets/goconvey v1.6.4
+## explicit
+github.com/smartystreets/goconvey/convey
+github.com/smartystreets/goconvey/convey/gotest
+github.com/smartystreets/goconvey/convey/reporting
 # github.com/spf13/afero v1.3.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
@@ -957,6 +965,9 @@ gopkg.in/gomail.v2
 # gopkg.in/ini.v1 v1.62.0
 ## explicit
 gopkg.in/ini.v1
+# gopkg.in/macaron.v1 v1.4.0
+## explicit
+gopkg.in/macaron.v1/cookie
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.3.0

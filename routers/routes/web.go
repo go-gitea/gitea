@@ -40,7 +40,6 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"gitea.com/macaron/cors"
-	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/gzip"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
@@ -88,7 +87,7 @@ func NormalMiddles(r *web.Route) {
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
 	}))
-	r.Use(csrf.Csrfer(csrf.Options{
+	r.Use(context.Csrfer(context.CsrfOptions{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,

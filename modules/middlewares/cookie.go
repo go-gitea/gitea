@@ -102,3 +102,13 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 
 	resp.Header().Add("Set-Cookie", cookie.String())
 }
+
+// GetCookie returns given cookie value from request header.
+func GetCookie(req *http.Request, name string) string {
+	cookie, err := req.Cookie(name)
+	if err != nil {
+		return ""
+	}
+	val, _ := url.QueryUnescape(cookie.Value)
+	return val
+}

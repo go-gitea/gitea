@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"html"
 	"html/template"
 	"io"
 	"net/http"
@@ -31,7 +32,6 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	"gitea.com/macaron/csrf"
 	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
 	"github.com/unrolled/render"
@@ -70,7 +70,7 @@ type Context struct {
 	Render *render.Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    csrf.CSRF
+	csrf    CSRF
 	Flash   *middlewares.Flash
 	Session session.Store
 
@@ -382,12 +382,7 @@ func (ctx *Context) SetCookie(name string, value string, others ...interface{}) 
 
 // GetCookie returns given cookie value from request header.
 func (ctx *Context) GetCookie(name string) string {
-	cookie, err := ctx.Req.Cookie(name)
-	if err != nil {
-		return ""
-	}
-	val, _ := url.QueryUnescape(cookie.Value)
-	return val
+	return middlewares.GetCookie(ctx.Req, name)
 }
 
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
@@ -513,11 +508,12 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			var locale = middlewares.Locale(resp, req)
 			var startTime = time.Now()
+			var x CSRF
 			var ctx = Context{
-				Resp:  &response{resp, false},
-				Req:   req,
-				Cache: c,
-				//csrf:    x, // TODO:
+				Resp:    &response{resp, false},
+				Req:     req,
+				Cache:   c,
+				csrf:    x,
 				Flash:   &middlewares.Flash{},
 				Locale:  locale,
 				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
@@ -623,8 +619,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
-			// TODO:
-			//ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
+			ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
