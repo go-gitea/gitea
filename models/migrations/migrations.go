@@ -282,7 +282,6 @@ var migrations = []Migration{
 	// v167 -> v168
 	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 }
-}
 
 // GetCurrentDBVersion returns the current db version
 func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
