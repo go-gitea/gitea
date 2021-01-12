@@ -11,8 +11,8 @@ require (
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
 	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/alecthomas/chroma v0.8.2

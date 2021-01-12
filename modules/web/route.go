@@ -63,7 +63,13 @@ func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 
 // Bind binding an obj to a handler
 func Bind(obj interface{}) http.HandlerFunc {
-	var tp = reflect.TypeOf(obj).Elem()
+	var tp = reflect.TypeOf(obj)
+	if tp.Kind() == reflect.Ptr {
+		tp = tp.Elem()
+	}
+	if tp.Kind() != reflect.Struct {
+		panic("Only structs are allowed to bind")
+	}
 	return Wrap(func(ctx *context.Context) {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)

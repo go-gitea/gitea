@@ -30,9 +30,6 @@ gitea.com/lunny/levelqueue
 # gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 ## explicit
 gitea.com/macaron/cors
-# gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-## explicit
-gitea.com/macaron/gzip
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
@@ -40,6 +37,9 @@ gitea.com/macaron/inject
 gitea.com/macaron/macaron
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
+# github.com/NYTimes/gziphandler v1.1.1
+## explicit
+github.com/NYTimes/gziphandler
 # github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
 github.com/PuerkitoBio/goquery

@@ -40,7 +40,7 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"gitea.com/macaron/cors"
-	"gitea.com/macaron/gzip"
+	"github.com/NYTimes/gziphandler"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
@@ -50,10 +50,8 @@ func NormalMiddles(r *web.Route) {
 	gob.Register(&u2f.Challenge{})
 
 	if setting.EnableGzip {
-		r.Use(gzip.Middleware())
+		r.Use(gziphandler.GzipHandler)
 	}
-
-	r.Use(templates.HTMLRenderer())
 
 	mailer.InitMailRender(templates.Mailer())
 

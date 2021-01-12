@@ -263,7 +263,7 @@ func BaseRoute() *web.Route {
 		}
 	}
 
-	r.Use(session.Options{
+	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -272,7 +272,7 @@ func BaseRoute() *web.Route {
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
-	})
+	}))
 
 	r.Use(Recovery())
 	if setting.EnableAccessLog {
