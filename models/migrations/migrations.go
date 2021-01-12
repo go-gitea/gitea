@@ -278,7 +278,10 @@ var migrations = []Migration{
 	// v165 -> v166
 	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
 	// v166 -> v167
-	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+	// v167 -> v168
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+}
 }
 
 // GetCurrentDBVersion returns the current db version

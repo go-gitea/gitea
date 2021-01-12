@@ -771,8 +771,10 @@ func UserSignIn(username, password string) (*User, error) {
 
 				// Update password hash if server password hash algorithm have changed
 				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
-					user.HashPassword(password)
-					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+					if err = user.SetPassword(password); err != nil {
+						return nil, err
+					}
+					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 						return nil, err
 					}
 				}
