@@ -395,10 +395,23 @@ func hashPassword(passwd, salt, algo string) string {
 	return fmt.Sprintf("%x", tempPasswd)
 }
 
-// HashPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO.
-func (u *User) HashPassword(passwd string) {
+// SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
+// change passwd, salt and passwd_hash_algo fields
+func (u *User) SetPassword(passwd string) (err error) {
+	if len(passwd) == 0 {
+		u.Passwd = ""
+		u.Salt = ""
+		u.PasswdHashAlgo = ""
+		return nil
+	}
+
+	if u.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
 	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
+
+	return nil
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
@@ -416,7 +429,7 @@ func (u *User) ValidatePassword(passwd string) bool {
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return !u.ValidatePassword("")
+	return len(u.Passwd) != 0
 }
 
 // IsOrganization returns true if user is actually a organization.
@@ -826,10 +839,9 @@ func CreateUser(u *User) (err error) {
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if u.Salt, err = GetUserSalt(); err != nil {
+	if err = u.SetPassword(u.Passwd); err != nil {
 		return err
 	}
-	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
@@ -913,17 +925,17 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	isExist, err := IsUserExist(0, newUserName)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrUserAlreadyExist{newUserName}
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
+	}
+
+	isExist, err := isUserExist(sess, 0, newUserName)
+	if err != nil {
+		return err
+	} else if isExist {
+		return ErrUserAlreadyExist{newUserName}
 	}
 
 	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {

@@ -123,10 +123,14 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 			return err
 		}
 
+		checkUnit := models.UnitTypeIssues
+		if ctx.Issue.IsPull {
+			checkUnit = models.UnitTypePullRequests
+		}
 		// Make sure all recipients can still see the issue
 		idx := 0
 		for _, r := range recipients {
-			if ctx.Issue.Repo.CheckUnitUser(r, models.UnitTypeIssues) {
+			if ctx.Issue.Repo.CheckUnitUser(r, checkUnit) {
 				recipients[idx] = r
 				idx++
 			}

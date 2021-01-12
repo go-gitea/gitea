@@ -28,6 +28,7 @@ func (f *AdminCreateUserForm) Validate(ctx *macaron.Context, errs binding.Errors
 // AdminEditUserForm form for admin to create user
 type AdminEditUserForm struct {
 	LoginType               string `binding:"Required"`
+	UserName                string `binding:"AlphaDashDot;MaxSize(40)"`
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`
 	Email                   string `binding:"Required;Email;MaxSize(254)"`
@@ -42,6 +43,7 @@ type AdminEditUserForm struct {
 	AllowImportLocal        bool
 	AllowCreateOrganization bool
 	ProhibitLogin           bool
+	Reset2FA                bool `form:"reset_2fa"`
 }
 
 // Validate validates form fields

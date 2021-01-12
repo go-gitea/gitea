@@ -33,6 +33,18 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: lint-backend-windows
+    pull: always
+    image: golang:1.15
+    commands:
+      - make golangci-lint vet
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GOOS: windows
+      GOARCH: amd64
+
   - name: lint-backend-gogit
     pull: always
     image: golang:1.15
@@ -83,6 +95,18 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
+    depends_on: [checks-backend]
+
+  - name: build-backend-windows
+    image: golang:1.15
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: windows
+      GOARCH: amd64
+      TAGS: bindata gogit
+    commands:
+      - go build -mod=vendor -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
