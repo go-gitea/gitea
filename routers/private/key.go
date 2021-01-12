@@ -9,11 +9,12 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
-func UpdatePublicKeyInRepo(ctx *Context) {
+func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
 	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
@@ -47,7 +48,7 @@ func UpdatePublicKeyInRepo(ctx *Context) {
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
-func AuthorizedPublicKeyByContent(ctx *Context) {
+func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.Query("content")
 
 	publicKey, err := models.SearchPublicKeyByContent(content)

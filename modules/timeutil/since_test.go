@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 
-	macaroni18n "gitea.com/macaron/i18n"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
 )
@@ -28,12 +28,7 @@ const (
 
 func TestMain(m *testing.M) {
 	// setup
-	macaroni18n.I18n(macaroni18n.Options{
-		Directory:   "../../options/locale/",
-		DefaultLang: "en-US",
-		Langs:       []string{"en-US"},
-		Names:       []string{"english"},
-	})
+	translation.InitLocales()
 	BaseDate = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	// run the tests

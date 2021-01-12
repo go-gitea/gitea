@@ -13,32 +13,29 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/middlewares"
 
 	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
 	"github.com/stretchr/testify/assert"
 )
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
-	var macaronContext macaron.Context
-	macaronContext.ReplaceAllParams(macaron.Params{})
-	macaronContext.Locale = &mockLocale{}
+	var ctx context.Context
+	ctx.Locale = &mockLocale{}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	macaronContext.Req = macaron.Request{Request: &http.Request{
+	ctx.Req = &http.Request{
 		URL:  requestURL,
 		Form: url.Values{},
-	}}
-	macaronContext.Resp = &mockResponseWriter{}
-	macaronContext.Render = &mockRender{ResponseWriter: macaronContext.Resp}
-	macaronContext.Data = map[string]interface{}{}
-	return &context.Context{
-		Context: &macaronContext,
-		Flash: &session.Flash{
-			Values: make(url.Values),
-		},
 	}
+	ctx.Resp = &mockResponseWriter{}
+	ctx.Render = &mockRender{ResponseWriter: macaronContext.Resp}
+	ctx.Data = map[string]interface{}{}
+	ctx.Flash = &middlewares.Flash{
+		Values: make(url.Values),
+	}
+	return &ctx
 }
 
 // LoadRepo load a repo into a test context.

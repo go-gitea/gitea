@@ -22,7 +22,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
 )
@@ -82,7 +81,7 @@ func (r *Repository) CanCreateBranch() bool {
 }
 
 // RepoMustNotBeArchived checks if a repo is archived
-func RepoMustNotBeArchived() macaron.Handler {
+func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
 			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
@@ -375,7 +374,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 }
 
 // RepoIDAssignment returns a macaron handler which assigns the repo to the context.
-func RepoIDAssignment() macaron.Handler {
+func RepoIDAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
 		repoID := ctx.ParamsInt64(":repoid")
 
@@ -633,7 +632,7 @@ const (
 
 // RepoRef handles repository reference names when the ref name is not
 // explicitly given
-func RepoRef() macaron.Handler {
+func RepoRef() func(http.Handler) http.Handler {
 	// since no ref name is explicitly specified, ok to just use branch
 	return RepoRefByType(RepoRefBranch)
 }
@@ -840,7 +839,7 @@ func RepoRefByType(refType RepoRefType) func(http.Handler) http.Handler {
 }
 
 // GitHookService checks if repository Git hooks service has been enabled.
-func GitHookService() macaron.Handler {
+func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.User.CanEditGitHook() {
 			ctx.NotFound("GitHookService", nil)
@@ -850,7 +849,7 @@ func GitHookService() macaron.Handler {
 }
 
 // UnitTypes returns a macaron middleware to set unit types to context variables.
-func UnitTypes() macaron.Handler {
+func UnitTypes() func(ctx *Context) {
 	return func(ctx *Context) {
 		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
 		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues

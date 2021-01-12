@@ -28,8 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 const (
@@ -239,7 +238,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(macaron.Env)
+	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}

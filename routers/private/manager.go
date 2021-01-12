@@ -9,18 +9,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-
-	"gitea.com/macaron/macaron"
 )
 
 // FlushQueues flushes all the Queues
-func FlushQueues(ctx *Context) {
+func FlushQueues(ctx *context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.FlushOptions)
 	if opts.NonBlocking {
 		// Save the hammer ctx here - as a new one is created each time you call this.
@@ -46,19 +45,19 @@ func FlushQueues(ctx *Context) {
 }
 
 // PauseLogging pauses logging
-func PauseLogging(ctx *macaron.Context) {
+func PauseLogging(ctx *context.PrivateContext) {
 	log.Pause()
 	ctx.PlainText(http.StatusOK, []byte("success"))
 }
 
 // ResumeLogging resumes logging
-func ResumeLogging(ctx *macaron.Context) {
+func ResumeLogging(ctx *context.PrivateContext) {
 	log.Resume()
 	ctx.PlainText(http.StatusOK, []byte("success"))
 }
 
 // ReleaseReopenLogging releases and reopens logging files
-func ReleaseReopenLogging(ctx *macaron.Context) {
+func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := log.ReleaseReopen(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": fmt.Sprintf("Error during release and reopen: %v", err),
@@ -69,7 +68,7 @@ func ReleaseReopenLogging(ctx *macaron.Context) {
 }
 
 // RemoveLogger removes a logger
-func RemoveLogger(ctx *macaron.Context) {
+func RemoveLogger(ctx *context.PrivateContext) {
 	group := ctx.Params("group")
 	name := ctx.Params("name")
 	ok, err := log.GetLogger(group).DelLogger(name)
@@ -86,7 +85,7 @@ func RemoveLogger(ctx *macaron.Context) {
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx *Context) {
+func AddLogger(ctx *context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.LoggerOptions)
 	if len(opts.Group) == 0 {
 		opts.Group = log.DEFAULT

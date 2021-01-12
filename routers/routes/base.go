@@ -28,7 +28,6 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi/middleware"
-	"github.com/unrolled/render"
 )
 
 type routerLoggerOptions struct {
@@ -190,17 +189,8 @@ func (d *dataStore) GetData() map[string]interface{} {
 // Although similar to macaron.Recovery() the main difference is that this error will be created
 // with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
-	var isDevelopment = setting.RunMode != "prod"
+	var rnd = templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
-		rnd := render.New(render.Options{
-			Extensions:    []string{".tmpl"},
-			Directory:     "templates",
-			Funcs:         templates.NewFuncMap(),
-			Asset:         templates.GetAsset,
-			AssetNames:    templates.GetAssetNames,
-			IsDevelopment: isDevelopment,
-		})
-
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				// Why we need this? The first recover will try to render a beautiful
@@ -211,10 +201,10 @@ func Recovery() func(next http.Handler) http.Handler {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 						log.Error(combinedErr)
-						if isDevelopment {
-							http.Error(w, combinedErr, 500)
-						} else {
+						if setting.IsProd() {
 							http.Error(w, http.StatusText(500), 500)
+						} else {
+							http.Error(w, combinedErr, 500)
 						}
 					}
 				}()

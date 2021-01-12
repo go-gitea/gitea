@@ -10,16 +10,11 @@ require (
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
-	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
-	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
 	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
-	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
-	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
-	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
+	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee // indirect
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/alecthomas/chroma v0.8.2

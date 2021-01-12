@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
 )
 
 // IsAPIPath if URL is an api path
@@ -29,7 +27,7 @@ type ToggleOptions struct {
 }
 
 // Toggle returns toggle options as middleware
-func Toggle(options *ToggleOptions) macaron.Handler {
+func Toggle(options *ToggleOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		isAPIPath := IsAPIPath(ctx.Req.URL.Path)
 

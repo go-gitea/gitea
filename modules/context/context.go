@@ -32,7 +32,6 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"gitea.com/macaron/csrf"
-	"gitea.com/macaron/macaron"
 	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
 	"github.com/unrolled/render"
@@ -226,7 +225,7 @@ func (ctx *Context) NotFound(title string, err error) {
 func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if macaron.Env != macaron.PROD {
+		if !setting.IsProd() {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -245,7 +244,7 @@ func (ctx *Context) ServerError(title string, err error) {
 func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if macaron.Env != macaron.PROD {
+		if !setting.IsProd() {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}

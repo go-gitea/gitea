@@ -134,7 +134,7 @@ func runWeb(ctx *cli.Context) error {
 			}
 		}
 		c := routes.InstallRoutes()
-		err := listen(c, false)
+		err := listen(c.R, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -164,10 +164,15 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
+
 	// Set up Chi routes
 	c := routes.NormalRoutes()
 
-	err := listen(c, true)
+	/*if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
+		r.SetURLPrefix(setting.AppSubURL)
+	}*/
+
+	err := listen(c.R, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()

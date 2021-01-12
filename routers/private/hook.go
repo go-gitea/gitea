@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -116,7 +117,7 @@ func isErrUnverifiedCommit(err error) bool {
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
-func HookPreReceive(ctx *Context) {
+func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
@@ -370,7 +371,7 @@ func HookPreReceive(ctx *Context) {
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx *Context) {
+func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
@@ -541,7 +542,7 @@ func HookPostReceive(ctx *Context) {
 }
 
 // SetDefaultBranch updates the default branch
-func SetDefaultBranch(ctx *Context) {
+func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")

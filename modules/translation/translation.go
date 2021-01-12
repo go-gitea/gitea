@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 
-	macaron_i18n "gitea.com/macaron/i18n"
 	"github.com/unknwon/i18n"
 	"golang.org/x/text/language"
 )
@@ -42,7 +41,7 @@ func InitLocales() {
 	}
 
 	// These codes will be used once macaron removed
-	/*tags := make([]language.Tag, len(setting.Langs))
+	tags := make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)
 	}
@@ -50,19 +49,7 @@ func InitLocales() {
 	for i, name := range setting.Names {
 		i18n.SetMessage(setting.Langs[i], localFiles[name])
 	}
-	i18n.SetDefaultLang("en-US")*/
-
-	// To be compatible with macaron, we now have to use macaron i18n, once macaron
-	// removed, we can use i18n directly
-	macaron_i18n.I18n(macaron_i18n.Options{
-		SubURL:       setting.AppSubURL,
-		Files:        localFiles,
-		Langs:        setting.Langs,
-		Names:        setting.Names,
-		DefaultLang:  "en-US",
-		Redirect:     false,
-		CookieDomain: setting.SessionConfig.Domain,
-	})
+	i18n.SetDefaultLang("en-US")
 }
 
 // Match matches accept languages

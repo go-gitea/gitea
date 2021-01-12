@@ -66,9 +66,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c = routes.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {

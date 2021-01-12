@@ -37,15 +37,11 @@ import (
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
 
-	"gitea.com/go-chi/binding"
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/gzip"
-	"gitea.com/macaron/i18n"
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
@@ -53,22 +49,12 @@ import (
 // NormalMiddles initializes Macaron instance.
 func NormalMiddles(r *web.Route) {
 	gob.Register(&u2f.Challenge{})
-	var m *macaron.Macaron
-	if setting.RedirectMacaronLog {
-		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
-		m = macaron.NewWithLogger(loggerAsWriter)
-	} else {
-		m = macaron.New()
-	}
 
 	if setting.EnableGzip {
-		m.Use(gzip.Middleware())
-	}
-	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
-		m.SetURLPrefix(setting.AppSubURL)
+		r.Use(gzip.Middleware())
 	}
 
-	m.Use(templates.HTMLRenderer())
+	r.Use(templates.HTMLRenderer())
 
 	mailer.InitMailRender(templates.Mailer())
 
@@ -88,22 +74,11 @@ func NormalMiddles(r *web.Route) {
 		}
 	}
 
-	m.Use(i18n.I18n(i18n.Options{
-		SubURL:         setting.AppSubURL,
-		Files:          localFiles,
-		Langs:          setting.Langs,
-		Names:          setting.Names,
-		DefaultLang:    "en-US",
-		Redirect:       false,
-		CookieHttpOnly: true,
-		Secure:         setting.SessionConfig.Secure,
-		CookieDomain:   setting.SessionConfig.Domain,
-	}))
 	cpt := captcha.NewCaptcha(captcha.Options{
 		SubURL: setting.AppSubURL,
 	})
-	m.Use(captcha.Captchaer(cpt))
-	m.Use(session.Sessioner(session.Options{
+	r.Use(captcha.Captchaer(cpt))
+	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -113,7 +88,7 @@ func NormalMiddles(r *web.Route) {
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
 	}))
-	m.Use(csrf.Csrfer(csrf.Options{
+	r.Use(csrf.Csrfer(csrf.Options{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
@@ -123,7 +98,7 @@ func NormalMiddles(r *web.Route) {
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
-	m.Use(toolbox.Toolboxer(m, toolbox.Options{
+	/*r.Use(toolbox.Toolboxer(r, toolbox.Options{
 		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{
 			{
 				Desc: "Database connection",
@@ -131,9 +106,9 @@ func NormalMiddles(r *web.Route) {
 			},
 		},
 		DisableDebug: !setting.EnablePprof,
-	}))
-	m.Use(context.Contexter)
-	m.SetAutoHead(true)
+	}))*/
+	r.Use(context.Contexter)
+	//r.SetAutoHead(true)
 }
 
 // NormalRoutes represents non install routes
@@ -181,7 +156,8 @@ func RegisterRoutes(m *web.Route) {
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
-	bindIgnErr := binding.BindIgnErr
+	//bindIgnErr := binding.BindIgnErr
+	bindIgnErr := web.Bind
 	validation.AddBindingRules()
 
 	openIDSignInEnabled := func(ctx *context.Context) {
@@ -289,7 +265,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("", bindIgnErr(forms.UpdateProfileForm{}), userSetting.ProfilePost)
 		m.Get("/change_password", user.MustChangePassword)
 		m.Post("/change_password", bindIgnErr(forms.MustChangePasswordForm{}), user.MustChangePasswordPost)
-		m.Post("/avatar", binding.MultipartForm(forms.AvatarForm{}), userSetting.AvatarPost)
+		m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), userSetting.AvatarPost)
 		m.Post("/avatar/delete", userSetting.DeleteAvatar)
 		m.Group("/account", func(m *web.Route) {
 			m.Combo("").Get(userSetting.Account).Post(bindIgnErr(forms.ChangePasswordForm{}), userSetting.AccountPost)
@@ -452,7 +428,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
 
-	if macaron.Env == macaron.DEV {
+	if !setting.IsProd() {
 		m.Get("/template/*", dev.TemplatePreview)
 	}
 
@@ -508,7 +484,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Group("/settings", func(m *web.Route) {
 				m.Combo("").Get(org.Settings).
 					Post(bindIgnErr(forms.UpdateOrgSettingForm{}), org.SettingsPost)
-				m.Post("/avatar", binding.MultipartForm(forms.AvatarForm{}), org.SettingsAvatar)
+				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 
 				m.Group("/hooks", func(m *web.Route) {
@@ -569,7 +545,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/settings", func(m *web.Route) {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
-			m.Post("/avatar", binding.MultipartForm(forms.AvatarForm{}), repo.SettingsAvatar)
+			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo.SettingsAvatar)
 			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
 
 			m.Group("/collaboration", func(m *web.Route) {
@@ -992,7 +968,7 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
+		m.Get("/swagger.v1.json", routers.SwaggerV1Json)
 	}
 
 	var handlers []interface{}

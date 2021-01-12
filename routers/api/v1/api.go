@@ -86,10 +86,11 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 
 	"gitea.com/go-chi/binding"
-	"gitea.com/macaron/macaron"
 )
 
-func sudo() macaron.Handler {
+type Handler func(ctx *context.APIContext)
+
+func sudo() Handler {
 	return func(ctx *context.APIContext) {
 		sudo := ctx.Query("sudo")
 		if len(sudo) == 0 {
@@ -119,7 +120,7 @@ func sudo() macaron.Handler {
 	}
 }
 
-func repoAssignment() macaron.Handler {
+func repoAssignment() Handler {
 	return func(ctx *context.APIContext) {
 		userName := ctx.Params(":username")
 		repoName := ctx.Params(":reponame")
@@ -186,7 +187,7 @@ func repoAssignment() macaron.Handler {
 }
 
 // Contexter middleware already checks token for user sign in process.
-func reqToken() macaron.Handler {
+func reqToken() Handler {
 	return func(ctx *context.APIContext) {
 		if true == ctx.Data["IsApiToken"] {
 			return
@@ -203,7 +204,7 @@ func reqToken() macaron.Handler {
 	}
 }
 
-func reqBasicAuth() macaron.Handler {
+func reqBasicAuth() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
@@ -214,7 +215,7 @@ func reqBasicAuth() macaron.Handler {
 }
 
 // reqSiteAdmin user should be the site admin
-func reqSiteAdmin() macaron.Handler {
+func reqSiteAdmin() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqSiteAdmin", "user should be the site admin")
@@ -224,7 +225,7 @@ func reqSiteAdmin() macaron.Handler {
 }
 
 // reqOwner user should be the owner of the repo or site admin.
-func reqOwner() macaron.Handler {
+func reqOwner() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
@@ -234,7 +235,7 @@ func reqOwner() macaron.Handler {
 }
 
 // reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
-func reqAdmin() macaron.Handler {
+func reqAdmin() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAdmin", "user should be an owner or a collaborator with admin write of a repository")
@@ -244,7 +245,7 @@ func reqAdmin() macaron.Handler {
 }
 
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
-func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
+func reqRepoWriter(unitTypes ...models.UnitType) Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
@@ -254,7 +255,7 @@ func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 }
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
-func reqRepoReader(unitType models.UnitType) macaron.Handler {
+func reqRepoReader(unitType models.UnitType) Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
@@ -264,7 +265,7 @@ func reqRepoReader(unitType models.UnitType) macaron.Handler {
 }
 
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
-func reqAnyRepoReader() macaron.Handler {
+func reqAnyRepoReader() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
@@ -274,7 +275,7 @@ func reqAnyRepoReader() macaron.Handler {
 }
 
 // reqOrgOwnership user should be an organization owner, or a site admin
-func reqOrgOwnership() macaron.Handler {
+func reqOrgOwnership() Handler {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -306,7 +307,7 @@ func reqOrgOwnership() macaron.Handler {
 }
 
 // reqTeamMembership user should be an team member, or a site admin
-func reqTeamMembership() macaron.Handler {
+func reqTeamMembership() Handler {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -343,7 +344,7 @@ func reqTeamMembership() macaron.Handler {
 }
 
 // reqOrgMembership user should be an organization member, or a site admin
-func reqOrgMembership() macaron.Handler {
+func reqOrgMembership() Handler {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -373,7 +374,7 @@ func reqOrgMembership() macaron.Handler {
 	}
 }
 
-func reqGitHook() macaron.Handler {
+func reqGitHook() Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.User.CanEditGitHook() {
 			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
@@ -382,7 +383,7 @@ func reqGitHook() macaron.Handler {
 	}
 }
 
-func orgAssignment(args ...bool) macaron.Handler {
+func orgAssignment(args ...bool) Handler {
 	var (
 		assignOrg  bool
 		assignTeam bool
@@ -999,12 +1000,10 @@ func RegisterRoutes(m *web.Route) {
 	}, securityHeaders(), context.APIContexter(), sudo())
 }
 
-func securityHeaders() macaron.Handler {
-	return func(ctx *macaron.Context) {
-		ctx.Resp.Before(func(w macaron.ResponseWriter) {
-			// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
-			// http://stackoverflow.com/a/3146618/244009
-			w.Header().Set("x-content-type-options", "nosniff")
-		})
+func securityHeaders() Handler {
+	return func(ctx *context.APIContext) {
+		// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
+		// http://stackoverflow.com/a/3146618/244009
+		ctx.Resp.Header().Set("x-content-type-options", "nosniff")
 	}
 }

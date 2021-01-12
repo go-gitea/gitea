@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
 )
 
 // APIContext is a specific macaron context for API service
@@ -91,7 +89,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if macaron.Env == macaron.PROD && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd() && !(ctx.User != nil && ctx.User.IsAdmin) {
 			message = ""
 		}
 	}
@@ -108,7 +106,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if macaron.Env != macaron.PROD || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd() || (ctx.User != nil && ctx.User.IsAdmin) {
 		message = err.Error()
 	}
 

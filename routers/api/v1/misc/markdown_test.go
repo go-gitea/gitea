@@ -17,7 +17,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"gitea.com/macaron/inject"
 	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,17 +25,14 @@ const AppURL = "http://localhost:3000/"
 const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
-func createContext(req *http.Request) (*macaron.Context, *httptest.ResponseRecorder) {
+func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
-	c := &macaron.Context{
-		Injector: inject.New(),
-		Req:      macaron.Request{Request: req},
-		Resp:     macaron.NewResponseWriter(req.Method, resp),
-		Render:   &macaron.DummyRender{ResponseWriter: resp},
-		Data:     make(map[string]interface{}),
+	c := &context.Context{
+		Req:    req,
+		Resp:   resp,
+		Render: &macaron.DummyRender{ResponseWriter: resp},
+		Data:   make(map[string]interface{}),
 	}
-	c.Map(c)
-	c.Map(req)
 	return c, resp
 }
 
