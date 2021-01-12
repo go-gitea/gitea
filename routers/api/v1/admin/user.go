@@ -174,7 +174,10 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = u.SetPassword(form.Password); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	if form.MustChangePassword != nil {
