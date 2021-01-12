@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
-	gitea_templates "code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"golang.org/x/crypto/pbkdf2"
@@ -354,10 +354,6 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
-func (ctx *Context) InternalServerError(err error) {
-
-}
-
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
 	var v = http.StatusText(status)
@@ -501,12 +497,8 @@ func GetContext(req *http.Request) *Context {
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter(next http.Handler) http.Handler {
-	rnd := render.New(render.Options{
-		Directory:  "templates",
-		Extensions: []string{".tmpl"},
-		Funcs:      gitea_templates.NewFuncMap(),
-	})
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.HTMLRenderer()
 
 	c, err := cache.NewCacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
@@ -517,75 +509,76 @@ func Contexter(next http.Handler) http.Handler {
 		panic(err)
 	}
 
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		var locale = middlewares.Locale(resp, req)
-		var startTime = time.Now()
-		var ctx = Context{
-			Resp:  &response{resp, false},
-			Req:   req,
-			Cache: c,
-			//csrf:    x,
-			//Flash: flash
-			Locale:  locale,
-			Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
-			Render:  rnd,
-			Session: session.GetSession(req),
-			Repo: &Repository{
-				PullRequest: &PullRequest{},
-			},
-			Org: &Organization{},
-		}
-		var data = map[string]interface{}{
-			"i18n":          locale,
-			"Language":      locale.Language(),
-			"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
-			"PageStartTime": startTime,
-			"TmplLoadTimes": func() string {
-				return time.Since(startTime).String()
-			},
-			"Link": ctx.Link,
-		}
-		ctx.Data = data
-		ctx.Req = WithContext(req, &ctx)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			var locale = middlewares.Locale(resp, req)
+			var startTime = time.Now()
+			var ctx = Context{
+				Resp:  &response{resp, false},
+				Req:   req,
+				Cache: c,
+				//csrf:    x, // TODO:
+				Flash:   &middlewares.Flash{},
+				Locale:  locale,
+				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
+				Render:  rnd,
+				Session: session.GetSession(req),
+				Repo: &Repository{
+					PullRequest: &PullRequest{},
+				},
+				Org: &Organization{},
+			}
+			var data = map[string]interface{}{
+				"i18n":          locale,
+				"Language":      locale.Language(),
+				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+				"PageStartTime": startTime,
+				"TmplLoadTimes": func() string {
+					return time.Since(startTime).String()
+				},
+				"Link": ctx.Link,
+			}
+			ctx.Data = data
+			ctx.Req = WithContext(req, &ctx)
 
-		// Quick responses appropriate go-get meta with status 200
-		// regardless of if user have access to the repository,
-		// or the repository does not exist at all.
-		// This is particular a workaround for "go get" command which does not respect
-		// .netrc file.
-		if ctx.Query("go-get") == "1" {
-			ownerName := ctx.Params(":username")
-			repoName := ctx.Params(":reponame")
-			trimmedRepoName := strings.TrimSuffix(repoName, ".git")
+			// Quick responses appropriate go-get meta with status 200
+			// regardless of if user have access to the repository,
+			// or the repository does not exist at all.
+			// This is particular a workaround for "go get" command which does not respect
+			// .netrc file.
+			if ctx.Query("go-get") == "1" {
+				ownerName := ctx.Params(":username")
+				repoName := ctx.Params(":reponame")
+				trimmedRepoName := strings.TrimSuffix(repoName, ".git")
 
-			if ownerName == "" || trimmedRepoName == "" {
-				_, _ = ctx.Write([]byte(`<!doctype html>
+				if ownerName == "" || trimmedRepoName == "" {
+					_, _ = ctx.Write([]byte(`<!doctype html>
 <html>
 	<body>
 		invalid import path
 	</body>
 </html>
 `))
-				ctx.WriteHeader(400)
-				return
-			}
-			branchName := "master"
+					ctx.WriteHeader(400)
+					return
+				}
+				branchName := "master"
 
-			repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
-			if err == nil && len(repo.DefaultBranch) > 0 {
-				branchName = repo.DefaultBranch
-			}
-			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+				repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+				if err == nil && len(repo.DefaultBranch) > 0 {
+					branchName = repo.DefaultBranch
+				}
+				prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 
-			appURL, _ := url.Parse(setting.AppURL)
+				appURL, _ := url.Parse(setting.AppURL)
 
-			insecure := ""
-			if appURL.Scheme == string(setting.HTTP) {
-				insecure = "--insecure "
-			}
-			ctx.Header().Set("Content-Type", "text/html")
-			ctx.WriteHeader(http.StatusOK)
-			_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
+				insecure := ""
+				if appURL.Scheme == string(setting.HTTP) {
+					insecure = "--insecure "
+				}
+				ctx.Header().Set("Content-Type", "text/html")
+				ctx.WriteHeader(http.StatusOK)
+				_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
@@ -596,61 +589,62 @@ func Contexter(next http.Handler) http.Handler {
 	</body>
 </html>
 `, map[string]string{
-				"GoGetImport":    ComposeGoGetImport(ownerName, trimmedRepoName),
-				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
-				"GoDocDirectory": prefix + "{/dir}",
-				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-				"Insecure":       insecure,
-			})))
-			return
-		}
-
-		// Get user from session if logged in.
-		ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-
-		if ctx.User != nil {
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.User
-			ctx.Data["SignedUserID"] = ctx.User.ID
-			ctx.Data["SignedUserName"] = ctx.User.Name
-			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-		}
-
-		// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
-		if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-			if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-				ctx.ServerError("ParseMultipartForm", err)
+					"GoGetImport":    ComposeGoGetImport(ownerName, trimmedRepoName),
+					"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
+					"GoDocDirectory": prefix + "{/dir}",
+					"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
+					"Insecure":       insecure,
+				})))
 				return
 			}
-		}
 
-		ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			// Get user from session if logged in.
+			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
 
-		// TODO:
-		//ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
-		ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
-		log.Debug("Session ID: %s", ctx.Session.ID())
-		log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
+			if ctx.User != nil {
+				ctx.IsSigned = true
+				ctx.Data["IsSigned"] = ctx.IsSigned
+				ctx.Data["SignedUser"] = ctx.User
+				ctx.Data["SignedUserID"] = ctx.User.ID
+				ctx.Data["SignedUserName"] = ctx.User.Name
+				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+			} else {
+				ctx.Data["SignedUserID"] = int64(0)
+				ctx.Data["SignedUserName"] = ""
+			}
 
-		ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
-		ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
-		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
+			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
+				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
+					ctx.ServerError("ParseMultipartForm", err)
+					return
+				}
+			}
 
-		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
-		ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
-		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
-		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
-		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
-		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
-		ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+			// TODO:
+			//ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
+			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
+			log.Debug("Session ID: %s", ctx.Session.ID())
+			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
-		ctx.Data["ManifestData"] = setting.ManifestData
+			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
+			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
+			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
 
-		next.ServeHTTP(ctx.Resp, req)
-	})
+			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
+			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
+			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
+			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+
+			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
+			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+
+			ctx.Data["ManifestData"] = setting.ManifestData
+
+			next.ServeHTTP(ctx.Resp, req)
+		})
+	}
 }

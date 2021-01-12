@@ -107,7 +107,7 @@ func NormalMiddles(r *web.Route) {
 		},
 		DisableDebug: !setting.EnablePprof,
 	}))*/
-	r.Use(context.Contexter)
+	r.Use(context.Contexter())
 	//r.SetAutoHead(true)
 }
 

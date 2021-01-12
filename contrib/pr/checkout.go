@@ -136,7 +136,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(c.R))
+	http.ListenAndServe(":8080", context2.ClearHandler(c))
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
