@@ -39,8 +39,8 @@ import (
 
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
-	"gitea.com/macaron/cors"
 	"github.com/NYTimes/gziphandler"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
@@ -970,13 +970,13 @@ func RegisterRoutes(m *web.Route) {
 
 	var handlers []interface{}
 	if setting.CORSConfig.Enabled {
-		handlers = append(handlers, cors.CORS(cors.Options{
-			Scheme:           setting.CORSConfig.Scheme,
-			AllowDomain:      setting.CORSConfig.AllowDomain,
-			AllowSubdomain:   setting.CORSConfig.AllowSubdomain,
-			Methods:          setting.CORSConfig.Methods,
-			MaxAgeSeconds:    int(setting.CORSConfig.MaxAge.Seconds()),
+		handlers = append(handlers, cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme,
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain
+			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
 	handlers = append(handlers, ignSignIn)

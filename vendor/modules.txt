@@ -27,9 +27,6 @@ gitea.com/go-chi/session/postgres
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
-# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-## explicit
-gitea.com/macaron/cors
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
@@ -245,6 +242,9 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
+# github.com/go-chi/cors v1.1.1
+## explicit
+github.com/go-chi/cors
 # github.com/go-enry/go-enry/v2 v2.6.0
 ## explicit
 github.com/go-enry/go-enry/v2

@@ -10,7 +10,6 @@ require (
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
-	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.5.1
@@ -30,6 +29,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-chi/chi v1.5.1
+	github.com/go-chi/cors v1.1.1
 	github.com/go-enry/go-enry/v2 v2.6.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0

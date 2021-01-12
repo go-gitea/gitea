@@ -43,7 +43,6 @@ func InstallInit(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("install.install")
 	ctx.Data["PageIsInstall"] = true
-
 	ctx.Data["DbOptions"] = setting.SupportedDatabases
 }
 
