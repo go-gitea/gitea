@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
@@ -47,6 +48,9 @@ import (
 
 // NormalMiddles initializes Macaron instance.
 func NormalMiddles(r *web.Route) {
+	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+
 	gob.Register(&u2f.Challenge{})
 
 	if setting.EnableGzip {
@@ -56,13 +60,11 @@ func NormalMiddles(r *web.Route) {
 	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
-
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
 	localFiles := make(map[string][]byte)
-
 	for _, name := range localeNames {
 		localFiles[name], err = options.Locale(name)
 

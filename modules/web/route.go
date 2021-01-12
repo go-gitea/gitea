@@ -17,9 +17,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// CtxFunc defines default context function
-type CtxFunc func(ctx *context.Context)
-
 // Wrap converts routes to stand one
 func Wrap(handlers ...interface{}) http.HandlerFunc {
 	if len(handlers) == 0 {
@@ -28,7 +25,9 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		for _, handler := range handlers {
 			switch t := handler.(type) {
-			case CtxFunc:
+			case http.HandlerFunc:
+				t(resp, req)
+			case func(ctx *context.Context):
 				ctx := context.GetContext(req)
 				t(ctx)
 				if ctx.Written() {

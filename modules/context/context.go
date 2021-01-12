@@ -37,12 +37,13 @@ import (
 	"github.com/unrolled/render"
 )
 
-type response struct {
+// Response represents a response
+type Response struct {
 	http.ResponseWriter
 	written bool
 }
 
-func (r *response) Write(bs []byte) (int, error) {
+func (r *Response) Write(bs []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(bs)
 	if err != nil {
 		return 0, err
@@ -51,20 +52,25 @@ func (r *response) Write(bs []byte) (int, error) {
 	return size, nil
 }
 
-func (r *response) WriteHeader(statusCode int) {
+func (r *Response) WriteHeader(statusCode int) {
 	r.written = true
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (r *response) Flush() {
+func (r *Response) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
+// NewReponse creates a response
+func NewReponse(resp http.ResponseWriter) *Response {
+	return &Response{resp, false}
+}
+
 // Context represents context of a request.
 type Context struct {
-	Resp   *response
+	Resp   *Response
 	Req    *http.Request
 	Data   map[string]interface{}
 	Render *render.Render
@@ -510,7 +516,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			var startTime = time.Now()
 			var x CSRF
 			var ctx = Context{
-				Resp:    &response{resp, false},
+				Resp:    NewReponse(resp),
 				Req:     req,
 				Cache:   c,
 				csrf:    x,
