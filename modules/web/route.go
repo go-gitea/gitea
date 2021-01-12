@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/middlewares"
@@ -120,6 +121,19 @@ func (r *Route) Mount(pattern string, subR *Route) {
 	r.R.Mount(pattern, subR.R)
 }
 
+// Any delegate all methods
+func (r *Route) Any(pattern string, h ...interface{}) {
+	r.R.HandleFunc(pattern, Wrap(h...))
+}
+
+// Route delegate special methods
+func (r *Route) Route(pattern string, methods string, h ...interface{}) {
+	ms := strings.Split(methods, ",")
+	for _, method := range ms {
+		r.R.MethodFunc(strings.TrimSpace(method), pattern, Wrap(h...))
+	}
+}
+
 // Delete delegate delete method
 func (r *Route) Delete(pattern string, h ...interface{}) {
 	r.R.Delete(pattern, Wrap(h...))
@@ -145,6 +159,11 @@ func (r *Route) Put(pattern string, h ...interface{}) {
 	r.R.Put(pattern, Wrap(h...))
 }
 
+// Patch delegate patch method
+func (r *Route) Patch(pattern string, h ...interface{}) {
+	r.R.Patch(pattern, Wrap(h...))
+}
+
 // NotFound defines a handler to respond whenever a route could
 // not be found.
 func (r *Route) NotFound(h http.HandlerFunc) {
@@ -155,4 +174,39 @@ func (r *Route) NotFound(h http.HandlerFunc) {
 // not allowed.
 func (r *Route) MethodNotAllowed(h http.HandlerFunc) {
 	r.R.MethodNotAllowed(h)
+}
+
+type Combo struct {
+	r       *Route
+	pattern string
+	h       []interface{}
+}
+
+func (c *Combo) Get(h ...interface{}) *Combo {
+	c.r.Get(c.pattern, append(c.h, h...))
+	return c
+}
+
+func (c *Combo) Post(h ...interface{}) *Combo {
+	c.r.Post(c.pattern, append(c.h, h...))
+	return c
+}
+
+func (c *Combo) Delete(h ...interface{}) *Combo {
+	c.r.Delete(c.pattern, append(c.h, h...))
+	return c
+}
+
+func (c *Combo) Put(h ...interface{}) *Combo {
+	c.r.Put(c.pattern, append(c.h, h...))
+	return c
+}
+
+func (c *Combo) Patch(h ...interface{}) *Combo {
+	c.r.Patch(c.pattern, append(c.h, h...))
+	return c
+}
+
+func (r *Route) Combo(pattern string, h ...interface{}) *Combo {
+	return &Combo{r, pattern, h}
 }
