@@ -9,9 +9,9 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="inline field {{if .Err_UserName}}error{{end}}">
+				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
-					<span>{{.User.Name}}</span>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">

@@ -1796,6 +1796,7 @@ function initAdmin() {
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
     $('#login_type').on('change', function () {
       if ($(this).val().substring(0, 1) === '0') {
+        $('#user_name').removeAttr('disabled');
         $('#login_name').removeAttr('required');
         $('.non-local').hide();
         $('.local').show();
@@ -1805,6 +1806,7 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
+        $('#user_name').attr('disabled', 'disabled');
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
