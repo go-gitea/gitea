@@ -280,7 +280,7 @@ var migrations = []Migration{
 	// v166 -> v167
 	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 	// v167 -> v168
-	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
