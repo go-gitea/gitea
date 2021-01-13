@@ -73,6 +73,7 @@ func Bind(obj interface{}) http.HandlerFunc {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		SetForm(ctx, theObj)
+		middlewares.AssignForm(theObj, ctx.Data)
 	})
 }
 

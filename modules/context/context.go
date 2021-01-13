@@ -515,32 +515,31 @@ func Contexter() func(next http.Handler) http.Handler {
 			var locale = middlewares.Locale(resp, req)
 			var startTime = time.Now()
 			var x CSRF
+			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
 				Resp:    NewReponse(resp),
-				Req:     req,
 				Cache:   c,
 				csrf:    x,
 				Flash:   &middlewares.Flash{},
 				Locale:  locale,
-				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
+				Link:    link,
 				Render:  rnd,
 				Session: session.GetSession(req),
 				Repo: &Repository{
 					PullRequest: &PullRequest{},
 				},
 				Org: &Organization{},
-			}
-			var data = map[string]interface{}{
-				"i18n":          locale,
-				"Language":      locale.Language(),
-				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
-				"PageStartTime": startTime,
-				"TmplLoadTimes": func() string {
-					return time.Since(startTime).String()
+				Data: map[string]interface{}{
+					"i18n":          locale,
+					"Language":      locale.Language(),
+					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+					"PageStartTime": startTime,
+					"TmplLoadTimes": func() string {
+						return time.Since(startTime).String()
+					},
+					"Link": link,
 				},
-				"Link": ctx.Link,
 			}
-			ctx.Data = data
 			ctx.Req = WithContext(req, &ctx)
 
 			// Quick responses appropriate go-get meta with status 200

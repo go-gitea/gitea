@@ -50,9 +50,12 @@ func InstallInit(next http.Handler) http.Handler {
 		var locale = middlewares.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = context.Context{
-			Resp:   context.NewReponse(resp),
-			Req:    req,
-			Locale: locale,
+			Resp: context.NewReponse(resp),
+			//csrf:    x,
+			Flash:   &middlewares.Flash{},
+			Locale:  locale,
+			Render:  rnd,
+			Session: session.GetSession(req),
 			Data: map[string]interface{}{
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
@@ -65,8 +68,6 @@ func InstallInit(next http.Handler) http.Handler {
 					return time.Since(startTime).String()
 				},
 			},
-			Render:  rnd,
-			Session: session.GetSession(req),
 		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
@@ -168,7 +169,7 @@ func InstallPost(ctx *context.Context) {
 	}
 
 	if _, err = exec.LookPath("git"); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, form)
 		return
 	}
 
@@ -188,7 +189,7 @@ func InstallPost(ctx *context.Context) {
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
 		return
 	}
 
@@ -199,7 +200,7 @@ func InstallPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		}
 		return
 	}
@@ -208,7 +209,7 @@ func InstallPost(ctx *context.Context) {
 	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, form)
 		return
 	}
 
@@ -217,7 +218,7 @@ func InstallPost(ctx *context.Context) {
 		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
 		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
 			ctx.Data["Err_LFSRootPath"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, form)
 			return
 		}
 	}
@@ -226,14 +227,14 @@ func InstallPost(ctx *context.Context) {
 	form.LogRootPath = strings.ReplaceAll(form.LogRootPath, "\\", "/")
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, form)
 		return
 	}
 
 	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
 	if !match {
 		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, form)
 		return
 	}
 

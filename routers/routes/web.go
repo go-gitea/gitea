@@ -15,9 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
@@ -46,8 +44,9 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// NormalMiddles initializes Macaron instance.
-func NormalMiddles(r *web.Route) {
+// NormalRoutes represents non install routes
+func NormalRoutes() *web.Route {
+	r := BaseRoute()
 	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
@@ -58,20 +57,6 @@ func NormalMiddles(r *web.Route) {
 	}
 
 	mailer.InitMailRender(templates.Mailer())
-
-	localeNames, err := options.Dir("locale")
-	if err != nil {
-		log.Fatal("Failed to list locale files: %v", err)
-	}
-
-	localFiles := make(map[string][]byte)
-	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
-		}
-	}
 
 	cpt := captcha.NewCaptcha(captcha.Options{
 		SubURL: setting.AppSubURL,
@@ -108,12 +93,6 @@ func NormalMiddles(r *web.Route) {
 	}))*/
 	r.Use(context.Contexter())
 	//r.SetAutoHead(true)
-}
-
-// NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
-	r := BaseRoute()
-	NormalMiddles(r)
 
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {

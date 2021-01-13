@@ -28,7 +28,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	}
 
 	// Check again in case someone modify by purpose.
-	if !i18n.IsExist(lang) {
+	if lang != "" && !i18n.IsExist(lang) {
 		lang = ""
 		hasCookie = false
 	}

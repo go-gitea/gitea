@@ -26,15 +26,13 @@ var (
 // InitLocales loads the locales
 func InitLocales() {
 	localeNames, err := options.Dir("locale")
-
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
-	localFiles := make(map[string][]byte)
 
+	localFiles := make(map[string][]byte)
 	for _, name := range localeNames {
 		localFiles[name], err = options.Locale(name)
-
 		if err != nil {
 			log.Fatal("Failed to load %s locale file. %v", name, err)
 		}
@@ -46,8 +44,9 @@ func InitLocales() {
 		tags[i] = language.Raw.Make(lang)
 	}
 	matcher = language.NewMatcher(tags)
-	for i, name := range setting.Names {
-		i18n.SetMessage(setting.Langs[i], localFiles[name])
+	for i := range setting.Names {
+		key := "locale_" + setting.Langs[i] + ".ini"
+		i18n.SetMessage(setting.Langs[i], localFiles[key])
 	}
 	i18n.SetDefaultLang("en-US")
 }
@@ -75,5 +74,6 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	return i18n.Tr(l.Lang, format, args...)
+	res := i18n.Tr(l.Lang, format, args...)
+	return res
 }
