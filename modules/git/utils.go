@@ -6,6 +6,7 @@ package git
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -68,11 +69,12 @@ func isExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func concatenateError(err error, stderr string) error {
+// ConcatenateError concatenats an error with stderr string
+func ConcatenateError(err error, stderr string) error {
 	if len(stderr) == 0 {
 		return err
 	}
-	return fmt.Errorf("%v - %s", err, stderr)
+	return fmt.Errorf("%w - %s", err, stderr)
 }
 
 // RefEndName return the end name of a ref name
@@ -139,4 +141,30 @@ func ParseBool(value string) (result bool, valid bool) {
 		return false, false
 	}
 	return intValue != 0, true
+}
+
+// LimitedReaderCloser is a limited reader closer
+type LimitedReaderCloser struct {
+	R io.Reader
+	C io.Closer
+	N int64
+}
+
+// Read implements io.Reader
+func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
+	if l.N <= 0 {
+		_ = l.C.Close()
+		return 0, io.EOF
+	}
+	if int64(len(p)) > l.N {
+		p = p[0:l.N]
+	}
+	n, err = l.R.Read(p)
+	l.N -= int64(n)
+	return
+}
+
+// Close implements io.Closer
+func (l *LimitedReaderCloser) Close() error {
+	return l.C.Close()
 }

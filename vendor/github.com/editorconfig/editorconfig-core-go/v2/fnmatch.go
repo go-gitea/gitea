@@ -3,6 +3,7 @@ package editorconfig
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -41,6 +42,11 @@ func translate(pattern string) string { // nolint: gocyclo
 
 	matchesBraces := len(findLeftBrackets.FindAllString(pattern, -1)) == len(findRightBrackets.FindAllString(pattern, -1))
 
+	pathSeparator := "/"
+	if runtime.GOOS == "windows" {
+		pathSeparator = regexp.QuoteMeta("\\")
+	}
+
 	for index < length {
 		r := pat[index]
 		index++
@@ -52,19 +58,19 @@ func translate(pattern string) string { // nolint: gocyclo
 				result.WriteString(".*")
 				index++
 			} else {
-				result.WriteString("[^/]*")
+				result.WriteString(fmt.Sprintf("[^%s]*", pathSeparator))
 			}
 		case '/':
 			p := index
 			if p+2 < length && pat[p] == '*' && pat[p+1] == '*' && pat[p+2] == '/' {
-				result.WriteString("(?:/|/.*/)")
+				result.WriteString(fmt.Sprintf("(?:%s|%s.*%s)", pathSeparator, pathSeparator, pathSeparator))
 
 				index += 3
 			} else {
 				result.WriteRune(r)
 			}
 		case '?':
-			result.WriteString("[^/]")
+			result.WriteString(fmt.Sprintf("[^%s]", pathSeparator))
 		case '[':
 			if inBrackets {
 				result.WriteString("\\[")

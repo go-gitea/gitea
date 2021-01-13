@@ -34,6 +34,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		Poster:   ToUser(issue.Poster, false, false),
 		Title:    issue.Title,
 		Body:     issue.Content,
+		Ref:      issue.Ref,
 		Labels:   ToLabelList(issue.Labels),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,

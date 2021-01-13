@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -35,6 +35,10 @@ executable path, you will have to manage this yourself.
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
+
+**Table of Contents**
+
+{{< toc >}}
 
 ## Download
 
@@ -90,13 +94,14 @@ are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
 
-* `bindata`: Build a single monolithic binary, with all assets included.
-* `sqlite sqlite_unlock_notify`: Enable support for a
+- `bindata`: Build a single monolithic binary, with all assets included.
+- `sqlite sqlite_unlock_notify`: Enable support for a
   [SQLite3](https://sqlite.org/) database. Suggested only for tiny
   installations.
-* `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
+- `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
+* `gogit`: (EXPERIMENTAL) Use go-git variants of git commands.
 
 Bundling assets into the binary using the `bindata` build tag is recommended for
 production deployments. It is possible to serve the static assets directly via a reverse proxy,
@@ -151,11 +156,11 @@ One option is to use a script file to shadow the `gitea` binary and create an ap
 environment before running Gitea. However, when building you can change these defaults
 using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
 
-* To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-* For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-* For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-* To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+- To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+- For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+- For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+- For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

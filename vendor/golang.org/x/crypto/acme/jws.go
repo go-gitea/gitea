@@ -7,15 +7,29 @@ package acme
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/sha512"
 	_ "crypto/sha512" // need for EC keys
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"hash"
 	"math/big"
+)
+
+// MACAlgorithm represents a JWS MAC signature algorithm.
+// See https://tools.ietf.org/html/rfc7518#section-3.1 for more details.
+type MACAlgorithm string
+
+const (
+	MACAlgorithmHS256 = MACAlgorithm("HS256")
+	MACAlgorithmHS384 = MACAlgorithm("HS384")
+	MACAlgorithmHS512 = MACAlgorithm("HS512")
 )
 
 // keyID is the account identity provided by a CA during registration.
@@ -30,6 +44,14 @@ const noKeyID = keyID("")
 // authenticated GET requests via POSTing with an empty payload.
 // See https://tools.ietf.org/html/rfc8555#section-6.3 for more details.
 const noPayload = ""
+
+// jsonWebSignature can be easily serialized into a JWS following
+// https://tools.ietf.org/html/rfc7515#section-3.2.
+type jsonWebSignature struct {
+	Protected string `json:"protected"`
+	Payload   string `json:"payload"`
+	Sig       string `json:"signature"`
+}
 
 // jwsEncodeJSON signs claimset using provided key and a nonce.
 // The result is serialized in JSON format containing either kid or jwk
@@ -71,17 +93,38 @@ func jwsEncodeJSON(claimset interface{}, key crypto.Signer, kid keyID, nonce, ur
 	if err != nil {
 		return nil, err
 	}
-
-	enc := struct {
-		Protected string `json:"protected"`
-		Payload   string `json:"payload"`
-		Sig       string `json:"signature"`
-	}{
+	enc := jsonWebSignature{
 		Protected: phead,
 		Payload:   payload,
 		Sig:       base64.RawURLEncoding.EncodeToString(sig),
 	}
 	return json.Marshal(&enc)
+}
+
+// jwsWithMAC creates and signs a JWS using the given key and algorithm.
+// "rawProtected" and "rawPayload" should not be base64-URL-encoded.
+func jwsWithMAC(key []byte, alg MACAlgorithm, rawProtected, rawPayload []byte) (*jsonWebSignature, error) {
+	if len(key) == 0 {
+		return nil, errors.New("acme: cannot sign JWS with an empty MAC key")
+	}
+	protected := base64.RawURLEncoding.EncodeToString(rawProtected)
+	payload := base64.RawURLEncoding.EncodeToString(rawPayload)
+
+	// Only HMACs are currently supported.
+	hmac, err := newHMAC(key, alg)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := hmac.Write([]byte(protected + "." + payload)); err != nil {
+		return nil, err
+	}
+	mac := hmac.Sum(nil)
+
+	return &jsonWebSignature{
+		Protected: protected,
+		Payload:   payload,
+		Sig:       base64.RawURLEncoding.EncodeToString(mac),
+	}, nil
 }
 
 // jwkEncode encodes public part of an RSA or ECDSA key into a JWK.
@@ -173,6 +216,20 @@ func jwsHasher(pub crypto.PublicKey) (string, crypto.Hash) {
 		}
 	}
 	return "", 0
+}
+
+// newHMAC returns an appropriate HMAC for the given MACAlgorithm.
+func newHMAC(key []byte, alg MACAlgorithm) (hash.Hash, error) {
+	switch alg {
+	case MACAlgorithmHS256:
+		return hmac.New(sha256.New, key), nil
+	case MACAlgorithmHS384:
+		return hmac.New(sha512.New384, key), nil
+	case MACAlgorithmHS512:
+		return hmac.New(sha512.New, key), nil
+	default:
+		return nil, fmt.Errorf("acme: unsupported MAC algorithm: %v", alg)
+	}
 }
 
 // JWKThumbprint creates a JWK thumbprint out of pub

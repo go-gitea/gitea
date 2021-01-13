@@ -2,9 +2,9 @@ package chi
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // URLParam returns the url parameter from a http.Request object.
@@ -28,26 +28,6 @@ func URLParamFromCtx(ctx context.Context, key string) string {
 func RouteContext(ctx context.Context) *Context {
 	val, _ := ctx.Value(RouteCtxKey).(*Context)
 	return val
-}
-
-// ServerBaseContext wraps an http.Handler to set the request context to the
-// `baseCtx`.
-func ServerBaseContext(baseCtx context.Context, h http.Handler) http.Handler {
-	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		baseCtx := baseCtx
-
-		// Copy over default net/http server context keys
-		if v, ok := ctx.Value(http.ServerContextKey).(*http.Server); ok {
-			baseCtx = context.WithValue(baseCtx, http.ServerContextKey, v)
-		}
-		if v, ok := ctx.Value(http.LocalAddrContextKey).(net.Addr); ok {
-			baseCtx = context.WithValue(baseCtx, http.LocalAddrContextKey, v)
-		}
-
-		h.ServeHTTP(w, r.WithContext(baseCtx))
-	})
-	return fn
 }
 
 // NewRouteContext returns a new routing Context object.
@@ -92,6 +72,11 @@ type Context struct {
 
 	// methodNotAllowed hint
 	methodNotAllowed bool
+
+	// parentCtx is the parent of this one, for using Context as a
+	// context.Context directly. This is an optimization that saves
+	// 1 allocation.
+	parentCtx context.Context
 }
 
 // Reset a routing context to its initial state.
@@ -107,6 +92,7 @@ func (x *Context) Reset() {
 	x.routeParams.Keys = x.routeParams.Keys[:0]
 	x.routeParams.Values = x.routeParams.Values[:0]
 	x.methodNotAllowed = false
+	x.parentCtx = nil
 }
 
 // URLParam returns the corresponding URL parameter value from the request
@@ -158,6 +144,32 @@ type RouteParams struct {
 func (s *RouteParams) Add(key, value string) {
 	s.Keys = append(s.Keys, key)
 	s.Values = append(s.Values, value)
+}
+
+// directContext provides direct access to the routing *Context object,
+// while implementing the context.Context interface, thereby allowing
+// us to saving 1 allocation during routing.
+type directContext Context
+
+var _ context.Context = (*directContext)(nil)
+
+func (d *directContext) Deadline() (deadline time.Time, ok bool) {
+	return d.parentCtx.Deadline()
+}
+
+func (d *directContext) Done() <-chan struct{} {
+	return d.parentCtx.Done()
+}
+
+func (d *directContext) Err() error {
+	return d.parentCtx.Err()
+}
+
+func (d *directContext) Value(key interface{}) interface{} {
+	if key == RouteCtxKey {
+		return (*Context)(d)
+	}
+	return d.parentCtx.Value(key)
 }
 
 // contextKey is a value for use with context.WithValue. It's used as

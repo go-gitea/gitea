@@ -207,6 +207,14 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 	}
 
 	repo.DefaultBranch = templateRepo.DefaultBranch
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
+	if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		return fmt.Errorf("setDefaultBranch: %v", err)
+	}
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}

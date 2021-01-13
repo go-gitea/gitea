@@ -1,5 +1,5 @@
 <div class="commit-form-wrapper">
-	<img width="48" height="48" class="ui image commit-avatar" src="{{.SignedUser.RelAvatarLink}}">
+	{{avatar .SignedUser 48 "commit-avatar"}}
 	<div class="commit-form">
 		<h3>{{- if .CanCommitToBranch.WillSign}}
 			<span title="{{.i18n.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>

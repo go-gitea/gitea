@@ -286,15 +286,15 @@ func EncodePath(pathName string) string {
 	if reservedObjectNames.MatchString(pathName) {
 		return pathName
 	}
-	var encodedPathname string
+	var encodedPathname strings.Builder
 	for _, s := range pathName {
 		if 'A' <= s && s <= 'Z' || 'a' <= s && s <= 'z' || '0' <= s && s <= '9' { // §2.3 Unreserved characters (mark)
-			encodedPathname = encodedPathname + string(s)
+			encodedPathname.WriteRune(s)
 			continue
 		}
 		switch s {
 		case '-', '_', '.', '~', '/': // §2.3 Unreserved characters (mark)
-			encodedPathname = encodedPathname + string(s)
+			encodedPathname.WriteRune(s)
 			continue
 		default:
 			len := utf8.RuneLen(s)
@@ -306,11 +306,11 @@ func EncodePath(pathName string) string {
 			utf8.EncodeRune(u, s)
 			for _, r := range u {
 				hex := hex.EncodeToString([]byte{r})
-				encodedPathname = encodedPathname + "%" + strings.ToUpper(hex)
+				encodedPathname.WriteString("%" + strings.ToUpper(hex))
 			}
 		}
 	}
-	return encodedPathname
+	return encodedPathname.String()
 }
 
 // We support '.' with bucket names but we fallback to using path

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetThread get notification by ID
@@ -44,7 +45,7 @@ func GetThread(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, n.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotificationThread(n))
 }
 
 // ReadThread mark notification as read by ID

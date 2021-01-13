@@ -6,7 +6,7 @@
 		<span class="avatar"><img src="/img/avatar_default.png"></span>
 	{{else}}
 		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-			<img src="{{.Poster.RelAvatarLink}}">
+			{{avatar .Poster}}
 		</a>
 	{{end}}
 	<div class="content comment-container">

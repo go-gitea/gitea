@@ -6,10 +6,10 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -147,7 +147,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 		case UnitTypeIssues:
 			r.Config = new(IssuesConfig)
 		default:
-			panic("unrecognized repo unit type: " + com.ToStr(*val))
+			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
 		}
 	}
 }
