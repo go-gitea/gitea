@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 
-	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,21 +26,20 @@ const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
 func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
+	var rnd = templates.HTMLRenderer()
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
-		Resp:   resp,
-		Render: &macaron.DummyRender{ResponseWriter: resp},
+		Resp:   context.NewReponse(resp),
+		Render: rnd,
 		Data:   make(map[string]interface{}),
 	}
 	return c, resp
 }
 
-func wrap(ctx *macaron.Context) *context.APIContext {
+func wrap(ctx *context.Context) *context.APIContext {
 	return &context.APIContext{
-		Context: &context.Context{
-			Context: ctx,
-		},
+		Context: ctx,
 	}
 }
 

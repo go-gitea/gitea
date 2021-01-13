@@ -94,6 +94,15 @@ func NormalRoutes() *web.Route {
 	r.Use(context.Contexter())
 	//r.SetAutoHead(true)
 
+	m.Use(user.GetNotificationCount)
+	m.Use(repo.GetActiveStopwatch)
+	r.Use(func(ctx *context.Context) {
+		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
+	})
+
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -159,22 +168,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
-	m.Use(user.GetNotificationCount)
-	m.Use(repo.GetActiveStopwatch)
-	m.Use(func(ctx *context.Context) {
-		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
-	})
-
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
 	m.Get("/", routers.Home)
 	m.Group("/explore", func(m *web.Route) {
-		m.Get("", func(ctx *context.Context) {
+		m.Get("/", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", routers.ExploreRepos)
@@ -190,7 +190,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/user", func(m *web.Route) {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(forms.SignInForm{}), user.SignInPost)
-		m.Group("", func(m *web.Route) {
+		m.Group("/", func(m *web.Route) {
 			m.Combo("/login/openid").
 				Get(user.SignInOpenID).
 				Post(bindIgnErr(forms.SignInOpenIDForm{}), user.SignInOpenIDPost)
@@ -200,7 +200,7 @@ func RegisterRoutes(m *web.Route) {
 				Get(user.ConnectOpenID).
 				Post(bindIgnErr(forms.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
 			m.Group("/register", func(m *web.Route) {
-				m.Combo("").
+				m.Combo("/").
 					Get(user.RegisterOpenID, openIDSignUpEnabled).
 					Post(bindIgnErr(forms.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			}, openIDSignUpEnabled)
@@ -215,17 +215,29 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/link_account_signin", bindIgnErr(forms.SignInForm{}), user.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", bindIgnErr(forms.RegisterForm{}), user.LinkAccountPostRegister)
 		m.Group("/two_factor", func(m *web.Route) {
-			m.Get("", user.TwoFactor)
-			m.Post("", bindIgnErr(forms.TwoFactorAuthForm{}), user.TwoFactorPost)
+			m.Get("/", user.TwoFactor)
+			m.Post("/", bindIgnErr(forms.TwoFactorAuthForm{}), user.TwoFactorPost)
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(forms.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
 		m.Group("/u2f", func(m *web.Route) {
-			m.Get("", user.U2F)
+			m.Get("/", user.U2F)
 			m.Get("/challenge", user.U2FChallenge)
 			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
 
 		})
+
+		// r.Get("/feeds", binding.Bind(forms.FeedsForm{}), user.Feeds)
+		m.Any("/activate", user.Activate, reqSignIn)
+		m.Any("/activate_email", user.ActivateEmail)
+		m.Get("/avatar/:username/:size", user.Avatar)
+		m.Get("/email2user", user.Email2User)
+		m.Get("/recover_account", user.ResetPasswd)
+		m.Post("/recover_account", user.ResetPasswdPost)
+		m.Get("/forgot_password", user.ForgotPasswd)
+		m.Post("/forgot_password", user.ForgotPasswdPost)
+		m.Post("/logout", user.SignOut)
+		m.Get("/task/:task", user.TaskStatus)
 	}, reqSignOut)
 
 	m.Any("/user/events", reqSignIn, events.Events)
@@ -239,21 +251,21 @@ func RegisterRoutes(m *web.Route) {
 	m.Post("/login/oauth/access_token", bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func(m *web.Route) {
-		m.Get("", userSetting.Profile)
-		m.Post("", bindIgnErr(forms.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Get("/", userSetting.Profile)
+		m.Post("/", bindIgnErr(forms.UpdateProfileForm{}), userSetting.ProfilePost)
 		m.Get("/change_password", user.MustChangePassword)
 		m.Post("/change_password", bindIgnErr(forms.MustChangePasswordForm{}), user.MustChangePasswordPost)
 		m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), userSetting.AvatarPost)
 		m.Post("/avatar/delete", userSetting.DeleteAvatar)
 		m.Group("/account", func(m *web.Route) {
-			m.Combo("").Get(userSetting.Account).Post(bindIgnErr(forms.ChangePasswordForm{}), userSetting.AccountPost)
+			m.Combo("/").Get(userSetting.Account).Post(bindIgnErr(forms.ChangePasswordForm{}), userSetting.AccountPost)
 			m.Post("/email", bindIgnErr(forms.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
 		m.Group("/security", func(m *web.Route) {
-			m.Get("", userSetting.Security)
+			m.Get("/", userSetting.Security)
 			m.Group("/two_factor", func(m *web.Route) {
 				m.Post("/regenerate_scratch", userSetting.RegenerateScratchTwoFactor)
 				m.Post("/disable", userSetting.DisableTwoFactor)
@@ -266,7 +278,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/delete", bindIgnErr(forms.U2FDeleteForm{}), userSetting.U2FDelete)
 			})
 			m.Group("/openid", func(m *web.Route) {
-				m.Post("", bindIgnErr(forms.AddOpenIDForm{}), userSetting.OpenIDPost)
+				m.Post("/", bindIgnErr(forms.AddOpenIDForm{}), userSetting.OpenIDPost)
 				m.Post("/delete", userSetting.DeleteOpenID)
 				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
@@ -276,7 +288,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/:id", userSetting.OAuth2ApplicationShow)
 			m.Post("/:id", bindIgnErr(forms.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsEdit)
 			m.Post("/:id/regenerate_secret", userSetting.OAuthApplicationsRegenerateSecret)
-			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsPost)
+			m.Post("/", bindIgnErr(forms.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsPost)
 			m.Post("/delete", userSetting.DeleteOAuth2Application)
 			m.Post("/revoke", userSetting.RevokeOAuth2Grant)
 		})
@@ -294,19 +306,6 @@ func RegisterRoutes(m *web.Route) {
 		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
-	m.Group("/user", func(m *web.Route) {
-		// r.Get("/feeds", binding.Bind(forms.FeedsForm{}), user.Feeds)
-		m.Any("/activate", user.Activate, reqSignIn)
-		m.Any("/activate_email", user.ActivateEmail)
-		m.Get("/avatar/:username/:size", user.Avatar)
-		m.Get("/email2user", user.Email2User)
-		m.Get("/recover_account", user.ResetPasswd)
-		m.Post("/recover_account", user.ResetPasswdPost)
-		m.Get("/forgot_password", user.ForgotPasswd)
-		m.Post("/forgot_password", user.ForgotPasswdPost)
-		m.Post("/logout", user.SignOut)
-		m.Get("/task/:task", user.TaskStatus)
-	})
 	// ***** END: User *****
 
 	m.Get("/avatar/:hash", user.AvatarByEmailHash)
@@ -315,15 +314,15 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: Admin *****
 	m.Group("/admin", func(m *web.Route) {
-		m.Get("", adminReq, admin.Dashboard)
-		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
+		m.Get("/", adminReq, admin.Dashboard)
+		m.Post("/", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func(m *web.Route) {
-			m.Get("", admin.Monitor)
+			m.Get("/", admin.Monitor)
 			m.Post("/cancel/:pid", admin.MonitorCancel)
 			m.Group("/queue/:qid", func(m *web.Route) {
-				m.Get("", admin.Queue)
+				m.Get("/", admin.Queue)
 				m.Post("/set", admin.SetQueueSettings)
 				m.Post("/add", admin.AddWorkers)
 				m.Post("/cancel/:pid", admin.WorkerCancel)
@@ -332,23 +331,23 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/users", func(m *web.Route) {
-			m.Get("", admin.Users)
+			m.Get("/", admin.Users)
 			m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Combo("/:userid").Get(admin.EditUser).Post(bindIgnErr(forms.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/:userid/delete", admin.DeleteUser)
 		})
 
 		m.Group("/emails", func(m *web.Route) {
-			m.Get("", admin.Emails)
+			m.Get("/", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
 		})
 
 		m.Group("/orgs", func(m *web.Route) {
-			m.Get("", admin.Organizations)
+			m.Get("/", admin.Organizations)
 		})
 
 		m.Group("/repos", func(m *web.Route) {
-			m.Get("", admin.Repos)
+			m.Get("/", admin.Repos)
 			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
@@ -390,14 +389,14 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/notices", func(m *web.Route) {
-			m.Get("", admin.Notices)
+			m.Get("/", admin.Notices)
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
 		})
 	}, adminReq)
 	// ***** END: Admin *****
 
-	m.Group("", func(m *web.Route) {
+	m.Group("/", func(m *web.Route) {
 		m.Get("/:username", user.Profile)
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
@@ -426,7 +425,7 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: Organization *****
 	m.Group("/org", func(m *web.Route) {
-		m.Group("", func(m *web.Route) {
+		m.Group("/", func(m *web.Route) {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
 		})
@@ -443,9 +442,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/members", org.Members)
 			m.Post("/members/action/:action", org.MembersAction)
 			m.Get("/teams", org.Teams)
-		}, context.OrgAssignment(true, false, true))
 
-		m.Group("/:org", func(m *web.Route) {
 			m.Get("/teams/:team", org.TeamMembers)
 			m.Get("/teams/:team/repositories", org.TeamRepositories)
 			m.Post("/teams/:team/action/:action", org.TeamsAction)
@@ -460,13 +457,13 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/teams/:team/delete", org.DeleteTeam)
 
 			m.Group("/settings", func(m *web.Route) {
-				m.Combo("").Get(org.Settings).
+				m.Combo("/").Get(org.Settings).
 					Post(bindIgnErr(forms.UpdateOrgSettingForm{}), org.SettingsPost)
 				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 
 				m.Group("/hooks", func(m *web.Route) {
-					m.Get("", org.Webhooks)
+					m.Get("/", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/:type/new", repo.WebhooksNew)
 					m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -491,7 +488,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Group("/labels", func(m *web.Route) {
-					m.Get("", org.RetrieveLabels, org.Labels)
+					m.Get("/", org.RetrieveLabels, org.Labels)
 					m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), org.NewLabel)
 					m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), org.UpdateLabel)
 					m.Post("/delete", org.DeleteLabel)
@@ -521,28 +518,28 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/:username/:reponame", func(m *web.Route) {
 		m.Group("/settings", func(m *web.Route) {
-			m.Combo("").Get(repo.Settings).
+			m.Combo("/").Get(repo.Settings).
 				Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
 			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo.SettingsAvatar)
 			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
 
 			m.Group("/collaboration", func(m *web.Route) {
-				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
+				m.Combo("/").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
 				m.Group("/team", func(m *web.Route) {
-					m.Post("", repo.AddTeamPost)
+					m.Post("/", repo.AddTeamPost)
 					m.Post("/delete", repo.DeleteTeam)
 				})
 			})
 			m.Group("/branches", func(m *web.Route) {
-				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
+				m.Combo("/").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
 
 			m.Group("/hooks", func(m *web.Route) {
-				m.Get("", repo.Webhooks)
+				m.Get("/", repo.Webhooks)
 				m.Post("/delete", repo.DeleteWebhook)
 				m.Get("/:type/new", repo.WebhooksNew)
 				m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -567,20 +564,20 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/feishu/:id", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 
 				m.Group("/git", func(m *web.Route) {
-					m.Get("", repo.GitHooks)
+					m.Get("/", repo.GitHooks)
 					m.Combo("/:name").Get(repo.GitHooksEdit).
 						Post(repo.GitHooksEditPost)
 				}, context.GitHookService())
 			})
 
 			m.Group("/keys", func(m *web.Route) {
-				m.Combo("").Get(repo.DeployKeys).
+				m.Combo("/").Get(repo.DeployKeys).
 					Post(bindIgnErr(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 
 			m.Group("/lfs", func(m *web.Route) {
-				m.Get("", repo.LFSFiles)
+				m.Get("/", repo.LFSFiles)
 				m.Get("/show/:oid", repo.LFSFileGet)
 				m.Post("/delete/:oid", repo.LFSDelete)
 				m.Get("/pointers", repo.LFSPointerFiles)
@@ -615,7 +612,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/:username/:reponame", func(m *web.Route) {
 		m.Group("/issues", func(m *web.Route) {
 			m.Group("/new", func(m *web.Route) {
-				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
+				m.Combo("/").Get(context.RepoRef(), repo.NewIssue).
 					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})

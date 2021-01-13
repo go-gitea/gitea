@@ -162,11 +162,11 @@ This value represent a go template. It's default value is:
 
 The template is passed following options:
 
-- `Ctx` is the `macaron.Context`
+- `Ctx` is the `context.Context`
 - `Identity` is the `SignedUserName` or `"-"` if the user is not logged
   in
 - `Start` is the start time of the request
-- `ResponseWriter` is the `macaron.ResponseWriter`
+- `ResponseWriter` is the `http.ResponseWriter`
 
 Caution must be taken when changing this template as it runs outside of
 the standard panic recovery trap. The template should also be as simple

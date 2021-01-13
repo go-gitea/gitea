@@ -14,14 +14,15 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/templates"
 
-	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
 	var ctx context.Context
+	var rnd = templates.HTMLRenderer()
 	ctx.Locale = &mockLocale{}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
@@ -29,8 +30,8 @@ func MockContext(t *testing.T, path string) *context.Context {
 		URL:  requestURL,
 		Form: url.Values{},
 	}
-	ctx.Resp = &mockResponseWriter{}
-	ctx.Render = &mockRender{ResponseWriter: macaronContext.Resp}
+	ctx.Resp = context.NewReponse(&mockResponseWriter{})
+	ctx.Render = rnd
 	ctx.Data = map[string]interface{}{}
 	ctx.Flash = &middlewares.Flash{
 		Values: make(url.Values),
@@ -110,77 +111,6 @@ func (rw *mockResponseWriter) Size() int {
 	return rw.size
 }
 
-func (rw *mockResponseWriter) Before(b macaron.BeforeFunc) {
-	b(rw)
-}
-
 func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
 	return nil
-}
-
-type mockRender struct {
-	http.ResponseWriter
-}
-
-func (tr *mockRender) SetResponseWriter(rw http.ResponseWriter) {
-	tr.ResponseWriter = rw
-}
-
-func (tr *mockRender) JSON(status int, _ interface{}) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) JSONString(interface{}) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) RawData(status int, _ []byte) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) PlainText(status int, _ []byte) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTML(status int, _ string, _ interface{}, _ ...macaron.HTMLOptions) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTMLSet(status int, _ string, _ string, _ interface{}, _ ...macaron.HTMLOptions) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTMLSetString(string, string, interface{}, ...macaron.HTMLOptions) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) HTMLString(string, interface{}, ...macaron.HTMLOptions) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) HTMLSetBytes(string, string, interface{}, ...macaron.HTMLOptions) ([]byte, error) {
-	return nil, nil
-}
-
-func (tr *mockRender) HTMLBytes(string, interface{}, ...macaron.HTMLOptions) ([]byte, error) {
-	return nil, nil
-}
-
-func (tr *mockRender) XML(status int, _ interface{}) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) Error(status int, _ ...string) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) Status(status int) {
-	tr.ResponseWriter.WriteHeader(status)
-}
-
-func (tr *mockRender) SetTemplatePath(string, string) {
-}
-
-func (tr *mockRender) HasTemplateSet(string) bool {
-	return true
 }

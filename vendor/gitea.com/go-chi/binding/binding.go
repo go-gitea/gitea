@@ -14,7 +14,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-// Package binding is a middleware that provides request data binding and validation for Macaron.
+// Package binding is a middleware that provides request data binding and validation for Chi.
 package binding
 
 import (
@@ -357,6 +357,13 @@ func validateStruct(errors Errors, obj interface{}) Errors {
 		errors = validateField(errors, zero, field, fieldVal, fieldValue)
 	}
 	return errors
+}
+
+// Don't pass in pointers to bind to. Can lead to bugs.
+func ensureNotPointer(obj interface{}) {
+	if reflect.TypeOf(obj).Kind() == reflect.Ptr {
+		panic("Pointers are not accepted as binding models")
+	}
 }
 
 func validateField(errors Errors, zero interface{}, field reflect.StructField, fieldVal reflect.Value, fieldValue interface{}) Errors {

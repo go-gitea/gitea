@@ -7,7 +7,7 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.1
 ## explicit
 code.gitea.io/sdk/gitea
-# gitea.com/go-chi/binding v0.0.0-20201220025549-f1056649c959
+# gitea.com/go-chi/binding v0.0.0-20210113025129-03f1d313373c
 ## explicit
 gitea.com/go-chi/binding
 # gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
@@ -27,11 +27,6 @@ gitea.com/go-chi/session/postgres
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
-# gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
-## explicit
-gitea.com/macaron/macaron
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
 # github.com/NYTimes/gziphandler v1.1.1

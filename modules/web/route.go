@@ -116,24 +116,39 @@ func (r *Route) Use(middlewares ...interface{}) {
 
 // Group mounts a sub-Router along a `pattern`` string.
 func (r *Route) Group(pattern string, fn func(r *Route), middlewares ...interface{}) {
-	sr := NewRoute()
-	sr.Use(middlewares...)
-	fn(sr)
-	r.Mount(pattern, sr)
+	if pattern == "" {
+		pattern = "/"
+	}
+	r.R.Route(pattern, func(r chi.Router) {
+		sr := &Route{
+			R: r,
+		}
+		sr.Use(middlewares...)
+		fn(sr)
+	})
 }
 
 // Mount attaches another http.Handler along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Mount(pattern, subR.R)
 }
 
 // Any delegate all methods
 func (r *Route) Any(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.HandleFunc(pattern, Wrap(h...))
 }
 
 // Route delegate special methods
 func (r *Route) Route(pattern string, methods string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	ms := strings.Split(methods, ",")
 	for _, method := range ms {
 		r.R.MethodFunc(strings.TrimSpace(method), pattern, Wrap(h...))
@@ -142,31 +157,49 @@ func (r *Route) Route(pattern string, methods string, h ...interface{}) {
 
 // Delete delegate delete method
 func (r *Route) Delete(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Delete(pattern, Wrap(h...))
 }
 
 // Get delegate get method
 func (r *Route) Get(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Get(pattern, Wrap(h...))
 }
 
 // Head delegate head method
 func (r *Route) Head(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Head(pattern, Wrap(h...))
 }
 
 // Post delegate post method
 func (r *Route) Post(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Post(pattern, Wrap(h...))
 }
 
 // Put delegate put method
 func (r *Route) Put(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Put(pattern, Wrap(h...))
 }
 
 // Patch delegate patch method
 func (r *Route) Patch(pattern string, h ...interface{}) {
+	if pattern == "" {
+		pattern = "/"
+	}
 	r.R.Patch(pattern, Wrap(h...))
 }
 
@@ -189,6 +222,9 @@ func (r *Route) MethodNotAllowed(h http.HandlerFunc) {
 
 // Combo deletegate requests to Combo
 func (r *Route) Combo(pattern string, h ...interface{}) *Combo {
+	if pattern == "" {
+		pattern = "/"
+	}
 	return &Combo{r, pattern, h}
 }
 

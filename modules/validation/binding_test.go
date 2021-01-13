@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.gitea.io/gitea/modules/web"
 	"gitea.com/go-chi/binding"
-	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,9 +34,9 @@ type (
 
 func performValidationTest(t *testing.T, testCase validationTestCase) {
 	httpRecorder := httptest.NewRecorder()
-	m := macaron.Classic()
+	m := web.NewRoute()
 
-	m.Post(testRoute, binding.Validate(testCase.data), func(actual binding.Errors) {
+	m.Post(testRoute, web.Bind(testCase.data), func(actual binding.Errors) {
 		// see https://github.com/stretchr/testify/issues/435
 		if actual == nil {
 			actual = binding.Errors{}
