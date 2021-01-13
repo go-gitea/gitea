@@ -114,7 +114,11 @@ func WebRoutes() *web.Route {
 	gob.Register(&u2f.Challenge{})
 
 	if setting.EnableGzip {
-		r.Use(gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize)))
+		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
+		if err != nil {
+			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+		}
+		r.Use(h)
 	}
 
 	if (setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix) && setting.AppSubURL != "" {
