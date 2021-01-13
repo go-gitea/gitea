@@ -4,8 +4,8 @@
 
 package session
 
-// SessionStore represents a session store
-type SessionStore interface {
+// Store represents a session store
+type Store interface {
 	Get(interface{}) interface{}
 	Set(interface{}, interface{}) error
 	Delete(interface{}) error

@@ -1,5 +1,6 @@
 // Copyright 2012 Google Inc. All Rights Reserved.
 // Copyright 2014 The Macaron Authors
+// Copyright 2020 The Gitea Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,9 +25,9 @@ import (
 )
 
 const (
-	KEY       = "quay"
-	USER_ID   = "12345678"
-	ACTION_ID = "POST /form"
+	key      = "quay"
+	userID   = "12345678"
+	actionID = "POST /form"
 )
 
 var (
@@ -36,10 +37,10 @@ var (
 
 func Test_ValidToken(t *testing.T) {
 	Convey("Validate token", t, func() {
-		tok := generateTokenAtTime(KEY, USER_ID, ACTION_ID, now)
-		So(validTokenAtTime(tok, KEY, USER_ID, ACTION_ID, oneMinuteFromNow), ShouldBeTrue)
-		So(validTokenAtTime(tok, KEY, USER_ID, ACTION_ID, now.Add(TIMEOUT-1*time.Nanosecond)), ShouldBeTrue)
-		So(validTokenAtTime(tok, KEY, USER_ID, ACTION_ID, now.Add(-1*time.Minute)), ShouldBeTrue)
+		tok := generateTokenAtTime(key, userID, actionID, now)
+		So(validTokenAtTime(tok, key, userID, actionID, oneMinuteFromNow), ShouldBeTrue)
+		So(validTokenAtTime(tok, key, userID, actionID, now.Add(Timeout-1*time.Nanosecond)), ShouldBeTrue)
+		So(validTokenAtTime(tok, key, userID, actionID, now.Add(-1*time.Minute)), ShouldBeTrue)
 	})
 }
 
@@ -57,14 +58,14 @@ func Test_InvalidToken(t *testing.T) {
 			name, key, userID, actionID string
 			t                           time.Time
 		}{
-			{"Bad key", "foobar", USER_ID, ACTION_ID, oneMinuteFromNow},
-			{"Bad userID", KEY, "foobar", ACTION_ID, oneMinuteFromNow},
-			{"Bad actionID", KEY, USER_ID, "foobar", oneMinuteFromNow},
-			{"Expired", KEY, USER_ID, ACTION_ID, now.Add(TIMEOUT)},
-			{"More than 1 minute from the future", KEY, USER_ID, ACTION_ID, now.Add(-1*time.Nanosecond - 1*time.Minute)},
+			{"Bad key", "foobar", userID, actionID, oneMinuteFromNow},
+			{"Bad userID", key, "foobar", actionID, oneMinuteFromNow},
+			{"Bad actionID", key, userID, "foobar", oneMinuteFromNow},
+			{"Expired", key, userID, actionID, now.Add(Timeout)},
+			{"More than 1 minute from the future", key, userID, actionID, now.Add(-1*time.Nanosecond - 1*time.Minute)},
 		}
 
-		tok := generateTokenAtTime(KEY, USER_ID, ACTION_ID, now)
+		tok := generateTokenAtTime(key, userID, actionID, now)
 		for _, itt := range invalidTokenTests {
 			So(validTokenAtTime(tok, itt.key, itt.userID, itt.actionID, itt.t), ShouldBeFalse)
 		}
@@ -83,7 +84,7 @@ func Test_ValidateBadData(t *testing.T) {
 		}
 
 		for _, bdt := range badDataTests {
-			So(validTokenAtTime(bdt.tok, KEY, USER_ID, ACTION_ID, oneMinuteFromNow), ShouldBeFalse)
+			So(validTokenAtTime(bdt.tok, key, userID, actionID, oneMinuteFromNow), ShouldBeFalse)
 		}
 	})
 }

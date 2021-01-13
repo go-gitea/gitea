@@ -37,10 +37,14 @@ import (
 	"github.com/unrolled/render"
 )
 
+var (
+	_ http.ResponseWriter = &Response{}
+)
+
 // Response represents a response
 type Response struct {
 	http.ResponseWriter
-	written bool
+	status int
 }
 
 func (r *Response) Write(bs []byte) (int, error) {
@@ -48,24 +52,33 @@ func (r *Response) Write(bs []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	r.written = true
+	if r.status == 0 {
+		r.WriteHeader(200)
+	}
 	return size, nil
 }
 
+// WriteHeader write status code
 func (r *Response) WriteHeader(statusCode int) {
-	r.written = true
+	r.status = statusCode
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Flush flush cached data
 func (r *Response) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
+// Status returned status code written
+func (r *Response) Status() int {
+	return r.status
+}
+
 // NewReponse creates a response
 func NewReponse(resp http.ResponseWriter) *Response {
-	return &Response{resp, false}
+	return &Response{resp, 0}
 }
 
 // Context represents context of a request.
@@ -204,9 +217,12 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
-	ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data)
+	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+		ctx.ServerError("Render failed", err)
+	}
 }
 
+// HTMLString render content to a string but not http.ResponseWriter
 func (ctx *Context) HTMLString(name string, data interface{}) (string, error) {
 	var buf strings.Builder
 	err := ctx.Render.HTML(&buf, 200, string(name), data)
@@ -299,18 +315,24 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
 }
 
+// PlainText render content as plain text
 func (ctx *Context) PlainText(status int, bs []byte) {
-	ctx.Render.Text(ctx.Resp, status, string(bs))
+	if err := ctx.Render.Text(ctx.Resp, status, string(bs)); err != nil {
+		ctx.ServerError("Render failed", err)
+	}
 }
 
+// Header returns a header
 func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
 }
 
+// QueryStrings returns a query strings
 func (ctx *Context) QueryStrings(k string) []string {
 	return ctx.Req.URL.Query()[k]
 }
 
+// Query returns a query string
 func (ctx *Context) Query(k string) string {
 	s := ctx.QueryStrings(k)
 	if len(s) == 0 {
@@ -319,6 +341,7 @@ func (ctx *Context) Query(k string) string {
 	return s[0]
 }
 
+// QueryInt returns a query content with int
 func (ctx *Context) QueryInt(k string) int {
 	s := ctx.Query(k)
 	if s == "" {
@@ -328,6 +351,7 @@ func (ctx *Context) QueryInt(k string) int {
 	return r
 }
 
+// QueryBool returns a query content as bool
 func (ctx *Context) QueryBool(k string) bool {
 	s := ctx.Query(k)
 	if s == "" {
@@ -340,6 +364,16 @@ func (ctx *Context) QueryBool(k string) bool {
 // QueryTrim querys and trims spaces form parameter.
 func (ctx *Context) QueryTrim(name string) string {
 	return strings.TrimSpace(ctx.Query(name))
+}
+
+// QueryInt64 returns int64 of query value
+func (ctx *Context) QueryInt64(name string) int64 {
+	vals := ctx.Req.URL.Query()[name]
+	if len(vals) == 0 {
+		return 0
+	}
+	v, _ := strconv.ParseInt(vals[0], 10, 64)
+	return v
 }
 
 // ServeFile serves given file to response.
@@ -369,10 +403,14 @@ func (ctx *Context) Error(status int, contents ...string) {
 	http.Error(ctx.Resp, v, status)
 }
 
+// JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Render.JSON(ctx.Resp, status, content)
+	if err := ctx.Render.JSON(ctx.Resp, status, content); err != nil {
+		ctx.ServerError("Render JSON failed", err)
+	}
 }
 
+// Redirect redirect the request
 func (ctx *Context) Redirect(location string, status ...int) {
 	code := http.StatusFound
 	if len(status) == 1 {
@@ -382,6 +420,7 @@ func (ctx *Context) Redirect(location string, status ...int) {
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
+// SetCookie set cookies to web browser
 func (ctx *Context) SetCookie(name string, value string, others ...interface{}) {
 	middlewares.SetCookie(ctx.Resp, name, value, others...)
 }
@@ -437,64 +476,59 @@ func (ctx *Context) GetCookieFloat64(name string) float64 {
 	return v
 }
 
+// RemoteAddr returns the client machie ip address
 func (ctx *Context) RemoteAddr() string {
 	return ctx.Req.RemoteAddr
 }
 
+// Params returns the param on route
 func (ctx *Context) Params(p string) string {
 	return chi.URLParam(ctx.Req, p)
 }
 
+// ParamsInt64 returns the param on route as int64
 func (ctx *Context) ParamsInt64(p string) int64 {
 	v, _ := strconv.ParseInt(ctx.Params(p), 10, 64)
 	return v
 }
 
-func (ctx *Context) WriteHeader(status int) {
-	ctx.Resp.WriteHeader(status)
+// SetParams set params into routes
+func (ctx *Context) SetParams(k, v string) {
+	chiCtx := chi.RouteContext(ctx.Req.Context())
+	chiCtx.URLParams.Add(k, v)
 }
 
+// Write writes data to webbrowser
 func (ctx *Context) Write(bs []byte) (int, error) {
 	return ctx.Resp.Write(bs)
 }
 
+// Written returns true if there are something sent to web browser
 func (ctx *Context) Written() bool {
-	return ctx.Resp.written
+	return ctx.Resp.status > 0
 }
 
+// Status writes status code
 func (ctx *Context) Status(status int) {
 	ctx.Resp.WriteHeader(status)
 }
 
-// QueryInt64 returns int64 of query value
-func (ctx *Context) QueryInt64(name string) int64 {
-	vals := ctx.Req.URL.Query()[name]
-	if len(vals) == 0 {
-		return 0
-	}
-	v, _ := strconv.ParseInt(vals[0], 10, 64)
-	return v
-}
-
-// FIXME?
-func (ctx *Context) SetParams(k, v string) {
-
-}
-
+// Handler represents a custom handler
 type Handler func(*Context)
 
+// enumerate all content
 var (
-	ContextKey interface{} = "default_context"
+	contextKey interface{} = "default_context"
 )
 
 // WithContext set up install context in request
 func WithContext(req *http.Request, ctx *Context) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), ContextKey, ctx))
+	return req.WithContext(context.WithValue(req.Context(), contextKey, ctx))
 }
 
 // GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
-	return req.Context().Value(ContextKey).(*Context)
+	return req.Context().Value(contextKey).(*Context)
 }
 
 // Contexter initializes a classic context for a request.
@@ -560,7 +594,7 @@ func Contexter() func(next http.Handler) http.Handler {
 	</body>
 </html>
 `))
-					ctx.WriteHeader(400)
+					ctx.Status(400)
 					return
 				}
 				branchName := "master"
@@ -578,7 +612,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					insecure = "--insecure "
 				}
 				ctx.Header().Set("Content-Type", "text/html")
-				ctx.WriteHeader(http.StatusOK)
+				ctx.Status(http.StatusOK)
 				_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>

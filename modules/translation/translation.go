@@ -46,7 +46,9 @@ func InitLocales() {
 	matcher = language.NewMatcher(tags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		i18n.SetMessage(setting.Langs[i], localFiles[key])
+		if err := i18n.SetMessage(setting.Langs[i], localFiles[key]); err != nil {
+			log.Fatal("Failed to set messages to %s", setting.Langs[i])
+		}
 	}
 	i18n.SetDefaultLang("en-US")
 }

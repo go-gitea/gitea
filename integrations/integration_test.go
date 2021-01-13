@@ -31,15 +31,15 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
-var c chi.Router
+var c *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder

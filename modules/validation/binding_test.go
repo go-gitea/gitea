@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/modules/web"
 	"gitea.com/go-chi/binding"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,9 +34,10 @@ type (
 
 func performValidationTest(t *testing.T, testCase validationTestCase) {
 	httpRecorder := httptest.NewRecorder()
-	m := web.NewRoute()
+	m := chi.NewRouter()
 
-	m.Post(testRoute, web.Bind(testCase.data), func(actual binding.Errors) {
+	m.Post(testRoute, func(resp http.ResponseWriter, req *http.Request) {
+		actual := binding.Bind(req, testCase.data)
 		// see https://github.com/stretchr/testify/issues/435
 		if actual == nil {
 			actual = binding.Errors{}

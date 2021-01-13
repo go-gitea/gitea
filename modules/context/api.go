@@ -116,19 +116,21 @@ func (ctx *APIContext) InternalServerError(err error) {
 	})
 }
 
+// APIHandler represents a handler for api routes
 type APIHandler func(*Context)
 
 var (
-	APIContextKey interface{} = "default_api_context"
+	apiContextKey interface{} = "default_api_context"
 )
 
 // WithAPIContext set up api context in request
 func WithAPIContext(req *http.Request, ctx *APIContext) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), APIContextKey, ctx))
+	return req.WithContext(context.WithValue(req.Context(), apiContextKey, ctx))
 }
 
+// GetAPIContext returns a context for API routes
 func GetAPIContext(req *http.Request) *APIContext {
-	return req.Context().Value(APIContextKey).(*APIContext)
+	return req.Context().Value(apiContextKey).(*APIContext)
 }
 
 func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {

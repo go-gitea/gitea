@@ -1,5 +1,6 @@
 // Copyright 2012 Google Inc. All Rights Reserved.
 // Copyright 2014 The Macaron Authors
+// Copyright 2020 The Gitea Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,9 +28,9 @@ import (
 	"time"
 )
 
-// The duration that XSRF tokens are valid.
+// Timeout represents the duration that XSRF tokens are valid.
 // It is exported so clients may set cookie timeouts that match generated tokens.
-const TIMEOUT = 24 * time.Hour
+const Timeout = 24 * time.Hour
 
 // clean sanitizes a string for inclusion in a token by replacing all ":"s.
 func clean(s string) string {
@@ -53,7 +54,7 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 	return base64.RawURLEncoding.EncodeToString([]byte(tok))
 }
 
-// Valid returns true if token is a valid, unexpired token returned by Generate.
+// ValidToken returns true if token is a valid, unexpired token returned by Generate.
 func ValidToken(token, key, userID, actionID string) bool {
 	return validTokenAtTime(token, key, userID, actionID, time.Now())
 }
@@ -78,7 +79,7 @@ func validTokenAtTime(token, key, userID, actionID string, now time.Time) bool {
 	issueTime := time.Unix(0, nanos)
 
 	// Check that the token is not expired.
-	if now.Sub(issueTime) >= TIMEOUT {
+	if now.Sub(issueTime) >= Timeout {
 		return false
 	}
 

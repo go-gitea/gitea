@@ -23,7 +23,7 @@ type CSRF interface {
 	// Return cookie path
 	GetCookiePath() string
 	// Return the flag value used for the csrf token.
-	GetCookieHttpOnly() bool
+	GetCookieHTTPOnly() bool
 	// Return the token.
 	GetToken() string
 	// Validate by token.
@@ -44,7 +44,7 @@ type csrf struct {
 	//Cookie path
 	CookiePath string
 	// Cookie HttpOnly flag value used for the csrf token.
-	CookieHttpOnly bool
+	CookieHTTPOnly bool
 	// Token generated to pass via header, cookie, or hidden form value.
 	Token string
 	// This value must be unique per user.
@@ -75,9 +75,9 @@ func (c *csrf) GetCookiePath() string {
 	return c.CookiePath
 }
 
-// GetCookieHttpOnly returns the flag value used for the csrf token.
-func (c *csrf) GetCookieHttpOnly() bool {
-	return c.CookieHttpOnly
+// GetCookieHTTPOnly returns the flag value used for the csrf token.
+func (c *csrf) GetCookieHTTPOnly() bool {
+	return c.CookieHTTPOnly
 }
 
 // GetToken returns the current token. This is typically used
@@ -110,7 +110,7 @@ type CsrfOptions struct {
 	CookieDomain string
 	// Cookie path.
 	CookiePath     string
-	CookieHttpOnly bool
+	CookieHTTPOnly bool
 	// SameSite set the cookie SameSite type
 	SameSite http.SameSite
 	// Key used for getting the unique ID per user.
@@ -180,7 +180,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 				Cookie:         opt.Cookie,
 				CookieDomain:   opt.CookieDomain,
 				CookiePath:     opt.CookiePath,
-				CookieHttpOnly: opt.CookieHttpOnly,
+				CookieHTTPOnly: opt.CookieHTTPOnly,
 				ErrorFunc:      opt.ErrorFunc,
 			}
 
@@ -202,7 +202,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 			oldUID := sess.Get(opt.oldSessionKey)
 			if oldUID == nil || oldUID.(string) != x.ID {
 				needsNew = true
-				sess.Set(opt.oldSessionKey, x.ID)
+				_ = sess.Set(opt.oldSessionKey, x.ID)
 			} else {
 				// If cookie present, map existing token, else generate a new one.
 				if val := ctx.GetCookie(opt.Cookie); len(val) > 0 {
@@ -221,7 +221,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 					if opt.CookieLifeTime == 0 {
 						expires = time.Now().AddDate(0, 0, 1)
 					}
-					ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHttpOnly, expires,
+					ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
 						func(c *http.Cookie) {
 							c.SameSite = opt.SameSite
 						},

@@ -45,6 +45,11 @@ import (
 	"github.com/tstranex/u2f"
 )
 
+const (
+	// GzipMinSize represents min size to compress for the body size of response
+	GzipMinSize = 1400
+)
+
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Route {
 	r := BaseRoute()
@@ -54,7 +59,7 @@ func NormalRoutes() *web.Route {
 	gob.Register(&u2f.Challenge{})
 
 	if setting.EnableGzip {
-		r.Use(gziphandler.GzipHandler)
+		r.Use(gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize)))
 	}
 
 	if (setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix) && setting.AppSubURL != "" {
@@ -87,7 +92,7 @@ func NormalRoutes() *web.Route {
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
-		CookieHttpOnly: setting.CSRFCookieHTTPOnly,
+		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,

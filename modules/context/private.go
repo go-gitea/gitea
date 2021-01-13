@@ -8,10 +8,12 @@ import (
 	"net/http"
 )
 
+// PrivateContext represents a context for private routes
 type PrivateContext struct {
 	*Context
 }
 
+// GetPrivateContext returned private context
 // TODO
 func GetPrivateContext(req *http.Request) *PrivateContext {
 	return nil

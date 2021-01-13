@@ -88,6 +88,7 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
+// Handler represents a handler for api routes
 type Handler func(ctx *context.APIContext)
 
 func sudo() Handler {
