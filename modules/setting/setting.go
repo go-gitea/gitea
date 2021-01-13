@@ -190,6 +190,10 @@ var (
 			EventSourceUpdateTime time.Duration
 		} `ini:"ui.notification"`
 
+		SVG struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		} `ini:"ui.svg"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -229,6 +233,11 @@ var (
 			TimeoutStep:           10 * time.Second,
 			MaxTimeout:            60 * time.Second,
 			EventSourceUpdateTime: 10 * time.Second,
+		},
+		SVG: struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		}{
+			Enabled: true,
 		},
 		Admin: struct {
 			UserPagingNum   int
