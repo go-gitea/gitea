@@ -20,11 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi/middleware"
@@ -200,7 +198,7 @@ func Recovery() func(next http.Handler) http.Handler {
 				defer func() {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-						log.Error(combinedErr)
+						log.Error("%v", combinedErr)
 						if setting.IsProd() {
 							http.Error(w, http.StatusText(500), 500)
 						} else {
@@ -215,6 +213,15 @@ func Recovery() func(next http.Handler) http.Handler {
 
 					lc := middlewares.Locale(w, req)
 					sessionStore := session.GetSession(req)
+					if sessionStore == nil {
+						if setting.IsProd() {
+							http.Error(w, http.StatusText(500), 500)
+						} else {
+							http.Error(w, combinedErr, 500)
+						}
+						return
+					}
+
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":   lc.Language(),
@@ -251,45 +258,4 @@ func Recovery() func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, req)
 		})
 	}
-}
-
-// BaseRoute creates a route
-func BaseRoute() *web.Route {
-	r := web.NewRoute()
-	r.Use(middleware.RealIP)
-	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			r.Use(LoggerHandler(setting.RouterLogLevel))
-		}
-	}
-
-	r.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		Domain:         setting.SessionConfig.Domain,
-	}))
-
-	r.Use(Recovery())
-	if setting.EnableAccessLog {
-		r.Use(accessLogger())
-	}
-
-	r.Use(public.Custom(
-		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-	r.Use(public.Static(
-		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-
-	return r
 }

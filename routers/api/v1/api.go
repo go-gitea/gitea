@@ -84,6 +84,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"github.com/go-chi/cors"
 
 	"gitea.com/go-chi/binding"
 )
@@ -528,11 +529,22 @@ func bind(obj interface{}) http.HandlerFunc {
 	})
 }
 
-// RegisterRoutes registers all v1 APIs routes to web application.
-func RegisterRoutes(m *web.Route) {
-	if setting.API.EnableSwagger {
-		m.Get("/swagger", misc.Swagger) // Render V1 by default
+// Routes registers all v1 APIs routes to web application.
+func Routes() *web.Route {
+	var m = web.NewRoute()
+	var ignSignIn = context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
+
+	if setting.CORSConfig.Enabled {
+		m.Use(cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme,
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		}))
 	}
+	m.Use(ignSignIn)
 
 	m.Group("/v1", func(m *web.Route) {
 		// Miscellaneous
@@ -999,6 +1011,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/search", repo.TopicSearch)
 		})
 	}, securityHeaders(), context.APIContexter(), sudo())
+
+	return m
 }
 
 func securityHeaders() Handler {

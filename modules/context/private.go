@@ -5,6 +5,7 @@
 package context
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -13,8 +14,32 @@ type PrivateContext struct {
 	*Context
 }
 
-// GetPrivateContext returned private context
-// TODO
+var (
+	privateContextKey interface{} = "default_private_context"
+)
+
+// WithPrivateContext set up private context in request
+func WithPrivateContext(req *http.Request, ctx *PrivateContext) *http.Request {
+	return req.WithContext(context.WithValue(req.Context(), privateContextKey, ctx))
+}
+
+// GetPrivateContext returns a context for Private routes
 func GetPrivateContext(req *http.Request) *PrivateContext {
-	return nil
+	return req.Context().Value(privateContextKey).(*PrivateContext)
+}
+
+// PrivateContexter returns apicontext as macaron middleware
+func PrivateContexter() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := &APIContext{
+				Context: &Context{
+					Resp: NewResponse(w),
+					Data: map[string]interface{}{},
+				},
+			}
+			ctx.Req = WithAPIContext(req, ctx)
+			next.ServeHTTP(w, ctx.Req)
+		})
+	}
 }

@@ -184,14 +184,13 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 
 // RequireCSRF requires a validated a CSRF token
 func (ctx *APIContext) RequireCSRF() {
-	// TODO:
-	/*headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
+	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
 	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
 	if len(headerToken) > 0 || len(formValueToken) > 0 {
-		csrf.Validate(ctx.Context.Context, ctx.csrf)
+		Validate(ctx.Context, ctx.csrf)
 	} else {
 		ctx.Context.Error(401, "Missing CSRF token.")
-	}*/
+	}
 }
 
 // CheckForOTP validates OTP
@@ -221,11 +220,13 @@ func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := &APIContext{
-				// TODO:
-				//Context: c,
+				Context: &Context{
+					Resp: NewResponse(w),
+					Data: map[string]interface{}{},
+				},
 			}
-			req = WithAPIContext(req, ctx)
-			next.ServeHTTP(w, req)
+			ctx.Req = WithAPIContext(req, ctx)
+			next.ServeHTTP(w, ctx.Req)
 		})
 	}
 }

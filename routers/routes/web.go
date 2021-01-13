@@ -16,7 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
@@ -25,6 +27,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/events"
 	"code.gitea.io/gitea/routers/org"
@@ -40,7 +43,7 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-chi/cors"
+	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
@@ -50,9 +53,61 @@ const (
 	GzipMinSize = 1400
 )
 
+func commonMiddlewares() []func(http.Handler) http.Handler {
+	var handlers = []func(http.Handler) http.Handler{
+		middleware.RealIP,
+	}
+	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
+		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
+			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
+		}
+	}
+	if setting.EnableAccessLog {
+		handlers = append(handlers, accessLogger())
+	}
+	handlers = append(handlers, Recovery())
+	return handlers
+}
+
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Route {
-	r := BaseRoute()
+	r := web.NewRoute()
+	for _, middle := range commonMiddlewares() {
+		r.Use(middle)
+	}
+	r.Mount("/", WebRoutes())
+	r.Mount("/api", apiv1.Routes())
+	r.Mount("/api/internal", private.Routes())
+	return r
+}
+
+// WebRoutes returns all web routes
+func WebRoutes() *web.Route {
+	r := web.NewRoute()
+
+	r.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
+
+	r.Use(public.Custom(
+		&public.Options{
+			SkipLogging: setting.DisableRouterLog,
+		},
+	))
+	r.Use(public.Static(
+		&public.Options{
+			Directory:   path.Join(setting.StaticRootPath, "public"),
+			SkipLogging: setting.DisableRouterLog,
+		},
+	))
+
 	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
@@ -77,16 +132,6 @@ func NormalRoutes() *web.Route {
 		SubURL: setting.AppSubURL,
 	})
 	r.Use(captcha.Captchaer(cpt))
-	r.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		Domain:         setting.SessionConfig.Domain,
-	}))
 	r.Use(context.Csrfer(context.CsrfOptions{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
@@ -144,6 +189,11 @@ func NormalRoutes() *web.Route {
 		prometheus.MustRegister(c)
 
 		r.Get("/metrics", routers.Metrics)
+	}
+
+	if setting.API.EnableSwagger {
+		// FIXME:
+		r.Get("/api/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	RegisterRoutes(r)
@@ -960,27 +1010,6 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", routers.SwaggerV1Json)
 	}
-
-	var handlers []interface{}
-	if setting.CORSConfig.Enabled {
-		handlers = append(handlers, cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme,
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain
-			AllowedMethods:   setting.CORSConfig.Methods,
-			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
-		}))
-	}
-	handlers = append(handlers, ignSignIn)
-	m.Group("/api", func(m *web.Route) {
-		apiv1.RegisterRoutes(m)
-	}, handlers...)
-
-	m.Group("/api/internal", func(m *web.Route) {
-		// package name internal is ideal but Golang is not allowed, so we use private as package name.
-		private.RegisterRoutes(m)
-	})
 
 	// Not found handler.
 	m.NotFound(web.Wrap(routers.NotFound))

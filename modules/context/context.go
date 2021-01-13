@@ -76,8 +76,8 @@ func (r *Response) Status() int {
 	return r.status
 }
 
-// NewReponse creates a response
-func NewReponse(resp http.ResponseWriter) *Response {
+// NewResponse creates a response
+func NewResponse(resp http.ResponseWriter) *Response {
 	return &Response{resp, 0}
 }
 
@@ -551,7 +551,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			var x CSRF
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
-				Resp:    NewReponse(resp),
+				Resp:    NewResponse(resp),
 				Cache:   c,
 				csrf:    x,
 				Flash:   &middlewares.Flash{},

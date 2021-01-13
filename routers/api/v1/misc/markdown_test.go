@@ -30,7 +30,7 @@ func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecor
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
-		Resp:   context.NewReponse(resp),
+		Resp:   context.NewResponse(resp),
 		Render: rnd,
 		Data:   make(map[string]interface{}),
 	}
