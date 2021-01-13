@@ -34,7 +34,7 @@ const Timeout = 24 * time.Hour
 
 // clean sanitizes a string for inclusion in a token by replacing all ":"s.
 func clean(s string) string {
-	return strings.Replace(s, ":", "_", -1)
+	return strings.ReplaceAll(s, ":", "_")
 }
 
 // GenerateToken returns a URL-safe secure XSRF token that expires in 24 hours.
