@@ -32,12 +32,18 @@
 		</div>
 		{{if not .ReadmeInList}}
 		<div class="file-header-right file-actions df ac">
+			{{if .HasSourceRenderedToggle}}
+				<div class="ui compact icon buttons">
+					<a href="{{$.Link}}?display=source" class="ui tiny basic button poping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</a>
+					<a href="{{$.Link}}" class="ui tiny basic button poping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</a>
+				</div>
+			{{end}}
 			<div class="ui buttons mr-2">
 				<a class="ui mini basic button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				{{if .IsTextFile}}
+				{{if .IsRepresentableAsText}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
 				{{end}}
 				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
@@ -58,12 +64,12 @@
 		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}}">
+		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextSource}}code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
 				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
-			{{else if not .IsTextFile}}
+			{{else if not .IsTextSource}}
 				<div class="view-raw ui center">
 					{{if .IsImageFile}}
 						<img src="{{EscapePound $.RawFileLink}}">

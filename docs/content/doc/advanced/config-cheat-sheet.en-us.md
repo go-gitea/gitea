@@ -194,6 +194,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `TIMEOUT_STEP`: **10s**.
 - `EVENT_SOURCE_UPDATE_TIME`: **10s**: This setting determines how often the database is queried to update notification counts. If the browser client supports `EventSource` and `SharedWorker`, a `SharedWorker` will be used in preference to polling notification endpoint. Set to **-1** to disable the `EventSource`.
 
+### UI - SVG Images (`ui.svg`)
+
+- `ENABLE_RENDER`: **true**: Whether to render SVG files as images.  If SVG rendering is disabled, SVG files are displayed as text and cannot be embedded in markdown files as images.
+
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
