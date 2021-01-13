@@ -42,7 +42,7 @@
   <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea" title="TODOs">
     <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea">
   </a>
-  <a href="https://img.shields.io/bountysource/team/gitea" title="Bountysource">
+  <a href="https://www.bountysource.com/teams/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">
   </a>
 </p>
