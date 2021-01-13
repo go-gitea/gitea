@@ -279,14 +279,19 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	buf = buf[:n]
 
-	isTextFile := base.IsTextFile(buf)
-	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsTextFile"] = base.IsTextFile(buf)
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
