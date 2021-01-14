@@ -389,7 +389,7 @@ var (
 
 // IsProd if it's a production mode
 func IsProd() bool {
-	return RunMode == "prod"
+	return strings.EqualFold(RunMode, "prod")
 }
 
 func getAppPath() (string, error) {
