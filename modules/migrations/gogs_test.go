@@ -17,7 +17,7 @@ import (
 )
 
 func TestGogsDownloadRepo(t *testing.T) {
-	// Skip tests if Gitlab token is not found
+	// Skip tests if Gogs token is not found
 	gogsPersonalAccessToken := os.Getenv("GOGS_READ_TOKEN")
 	if len(gogsPersonalAccessToken) == 0 {
 		t.Skip("skipped test because GOGS_READ_TOKEN was not in the environment")

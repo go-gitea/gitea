@@ -46,7 +46,7 @@ func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOption
 
 	log.Trace("Create gogs downloader: %s/%s", oldOwner, oldName)
 
-	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -71,7 +71,7 @@ func (g *GogsDownloader) SetContext(ctx context.Context) {
 }
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(ctx context.Context, baseURL, userName, password, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
 	var downloader = GogsDownloader{
 		ctx:       ctx,
 		baseURL:   baseURL,
@@ -82,21 +82,21 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, repoOwn
 	}
 
 	var client *gogs.Client
-	if userName != "" {
-		if password == "" {
-			client = gogs.NewClient(baseURL, userName)
-		} else {
-			client = gogs.NewClient(baseURL, "")
-			client.SetHTTPClient(&http.Client{
-				Transport: &http.Transport{
-					Proxy: func(req *http.Request) (*url.URL, error) {
-						req.SetBasicAuth(userName, password)
-						return nil, nil
-					},
+	if len(token) != 0 {
+		client = gogs.NewClient(baseURL, token)
+		downloader.userName = token
+	} else {
+		client = gogs.NewClient(baseURL, "")
+		client.SetHTTPClient(&http.Client{
+			Transport: &http.Transport{
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					req.SetBasicAuth(userName, password)
+					return nil, nil
 				},
-			})
-		}
+			},
+		})
 	}
+
 	downloader.client = client
 	return &downloader
 }

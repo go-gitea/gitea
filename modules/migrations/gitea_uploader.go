@@ -87,7 +87,6 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 }
 
 func fullURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
-	var fullRemoteAddr = remoteAddr
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
@@ -95,11 +94,15 @@ func fullURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
 		}
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
 		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
+			if opts.GitServiceType == structs.GogsService {
+				u.User = url.UserPassword(opts.AuthToken, "")
+			} else {
+				u.User = url.UserPassword("oauth2", opts.AuthToken)
+			}
 		}
-		fullRemoteAddr = u.String()
+		return u.String(), nil
 	}
-	return fullRemoteAddr, nil
+	return remoteAddr, nil
 }
 
 // CreateRepo creates a repository
