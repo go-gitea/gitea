@@ -277,6 +277,8 @@ var migrations = []Migration{
 	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
 	// v165 -> v166
 	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
+	// v166 -> v167
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 }
 
 // GetCurrentDBVersion returns the current db version

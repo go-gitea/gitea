@@ -86,14 +86,14 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 
-			_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
+			_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(req.Method), req.URL.RequestURI(), req.RemoteAddr)
 
 			next.ServeHTTP(w, req)
 
 			ww := middleware.NewWrapResponseWriter(w, req.ProtoMajor)
 
 			status := ww.Status()
-			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
+			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
 		})
 	}
 }
@@ -107,12 +107,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					return
 				}
 
-				if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+				if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
 					next.ServeHTTP(w, req)
 					return
 				}
 
-				rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+				rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 				u, err := objStore.URL(rPath, path.Base(rPath))
 				if err != nil {
 					if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
@@ -139,12 +139,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+			if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+			rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 			rPath = strings.TrimPrefix(rPath, "/")
 
 			fi, err := objStore.Stat(rPath)
@@ -176,6 +176,10 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
+var (
+	sessionManager *session.Manager
+)
+
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
@@ -185,7 +189,8 @@ func NewChi() chi.Router {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
-	c.Use(session.Sessioner(session.Options{
+
+	var opt = session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -194,7 +199,14 @@ func NewChi() chi.Router {
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
-	}))
+	}
+	opt = session.PrepareOptions([]session.Options{opt})
+
+	var err error
+	sessionManager, err = session.NewManager(opt.Provider, opt)
+	if err != nil {
+		panic(err)
+	}
 
 	c.Use(Recovery())
 	if setting.EnableAccessLog {

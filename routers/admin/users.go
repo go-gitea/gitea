@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	router_user_setting "code.gitea.io/gitea/routers/user/setting"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -266,7 +267,19 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = u.SetPassword(form.Password); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+	}
+
+	if len(form.UserName) != 0 && u.Name != form.UserName {
+		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			return
+		}
+		u.Name = form.UserName
+		u.LowerName = strings.ToLower(form.UserName)
 	}
 
 	if form.Reset2FA {
