@@ -149,7 +149,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	log.Trace("migrating topics")
 	topics, err := downloader.GetTopics()
 	if err != nil {
-		return err
+		if !IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("migrating topics is not supported, ignored")
 	}
 	if len(topics) > 0 {
 		if err := uploader.CreateTopics(topics...); err != nil {
@@ -161,7 +164,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
 		if err != nil {
-			if err != ErrNotSupported {
+			if !IsErrNotSupported(err) {
 				return err
 			}
 			log.Warn("migrating milestones is not supported, ignored")

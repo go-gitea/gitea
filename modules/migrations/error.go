@@ -19,6 +19,11 @@ var (
 	ErrRepoNotCreated = errors.New("repository is not created yet")
 )
 
+// IsErrNotSupported returns true if the err is ErrNotSupported
+func IsErrNotSupported(err error) bool {
+	return err == ErrNotSupported
+}
+
 // IsRateLimitError returns true if the err is github.RateLimitError
 func IsRateLimitError(err error) bool {
 	_, ok := err.(*github.RateLimitError)
