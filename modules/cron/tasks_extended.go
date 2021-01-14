@@ -121,7 +121,7 @@ func registerRemoveRandomAvatars() {
 func registerImapFetchUnReadMails() {
 	RegisterTaskFatal("imap_fetch_mails", &BaseConfig{
 		Enabled:    setting.MailReciveService != nil,
-		RunAtStart: true,
+		RunAtStart: false,
 		Schedule:   "@every 5m",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return imap.FetchAllUnReadMails()
