@@ -126,11 +126,11 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}{{if .IsFlusher}}<i class="icon sync-alternate" title="{{.i18n.Tr "admin.monitor.queue.flush"}}"></i>{{end}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{.i18n.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
-							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><i class="close icon text red" title="{{$.i18n.Tr "remove"}}"></i></a>
+							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><span class="text red" title="{{$.i18n.Tr "remove"}}">{{svg "octicon-trashcan"}}</span></a>
 						</td>
 					</tr>
 					{{else}}
@@ -152,7 +152,7 @@
 </div>
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="close icon"></i>
+		{{svg "octicon-x" 16 "close inside"}}
 		{{.i18n.Tr "admin.monitor.queue.pool.cancel"}}
 	</div>
 	<div class="content">

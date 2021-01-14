@@ -137,9 +137,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	var c git.LastCommitCache
+	var c *git.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = cache.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
 	}
 
 	var latestCommit *git.Commit
@@ -353,12 +353,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
@@ -394,6 +395,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := base.IsTextFile(buf)
 	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
+
+	isDisplayingSource := ctx.Query("display") == "source"
+	isDisplayingRendered := !isDisplayingSource
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
+	if !isRepresentableAsText {
+		// If we can't show plain text, always try to render.
+		isDisplayingSource = false
+		isDisplayingRendered = true
+	}
+	ctx.Data["IsDisplayingSource"] = isDisplayingSource
+	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+
+	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
@@ -450,12 +465,18 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	// Assume file is not editable first.
 	if isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isTextFile {
+	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+			ctx.Data["HasSourceRenderedToggle"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break

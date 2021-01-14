@@ -3,7 +3,7 @@ date: "2020-03-19T19:27:00+02:00"
 title: "Installation with Docker"
 slug: "install-with-docker"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -22,6 +22,10 @@ Docker images.
 This reference setup guides users through the setup based on `docker-compose`, but the installation
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
 the official [install instructions](https://docs.docker.com/compose/install/).
+
+**Table of Contents**
+
+{{< toc >}}
 
 ## Basics
 
@@ -59,7 +63,7 @@ services:
       - "222:22"
 ```
 
-## Custom port
+## Ports
 
 To bind the integrated openSSH daemon and the webserver on a different port, adjust
 the port section. It's common to just change the host port and keep the ports within
@@ -87,13 +91,15 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
--      - "3000:3000"
--      - "222:22"
-+      - "8080:3000"
-+      - "2221:22"
+-     - "3000:3000"
+-     - "222:22"
++     - "8080:3000"
++     - "2221:22"
 ```
 
-## MySQL database
+## Databases
+
+### MySQL database
 
 To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
@@ -112,11 +118,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+      - DB_TYPE=mysql
-+      - DB_HOST=db:3306
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++     - DB_TYPE=mysql
++     - DB_HOST=db:3306
++     - DB_NAME=gitea
++     - DB_USER=gitea
++     - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -144,7 +150,7 @@ services:
 +      - ./mysql:/var/lib/mysql
 ```
 
-## PostgreSQL database
+### PostgreSQL database
 
 To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
@@ -163,11 +169,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+      - DB_TYPE=postgres
-+      - DB_HOST=db:5432
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++     - DB_TYPE=postgres
++     - DB_HOST=db:5432
++     - DB_NAME=gitea
++     - DB_USER=gitea
++     - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -220,8 +226,8 @@ services:
     networks:
       - gitea
     volumes:
--      - ./gitea:/data
-+      - gitea:/data
+-     - ./gitea:/data
++     - gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -231,7 +237,7 @@ services:
 
 MySQL or PostgreSQL containers will need to be created separately.
 
-## Start
+## Startup
 
 To start this setup based on `docker-compose`, execute `docker-compose up -d`,
 to launch Gitea in the background. Using `docker-compose ps` will show if Gitea
@@ -243,42 +249,42 @@ and kill the containers. The volumes will still exist.
 Notice: if using a non-3000 port on http, change app.ini to match
 `LOCAL_ROOT_URL = http://localhost:3000/`.
 
-## Install
+## Installation
 
 After starting the Docker setup via `docker-compose`, Gitea should be available using a
 favorite browser to finalize the installation. Visit http://server-ip:3000 and follow the
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
-## Environments variables
+## Environment variables
 
 You can configure some of Gitea's settings via environment variables:
 
 (Default values are provided in **bold**)
 
-* `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
-* `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
-* `DOMAIN`: **localhost**: Domain name of this server, used for the displayed http clone URL in Gitea's UI.
-* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
-* `SSH_PORT`: **22**: SSH port displayed in clone URL.
-* `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
-* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available. If you want to disable SSH feature, you should set SSH port to `0` when installing Gitea.
-* `HTTP_PORT`: **3000**: HTTP listen port.
-* `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
-* `LFS_START_SERVER`: **false**: Enables git-lfs support.
-* `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-* `DB_HOST`: **localhost:3306**: Database host address and port.
-* `DB_NAME`: **gitea**: Database name.
-* `DB_USER`: **root**: Database username.
-* `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-* `INSTALL_LOCK`: **false**: Disallow access to the install page.
-* `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
-* `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
-* `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
-* `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
-* `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+- `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
+- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
+- `DOMAIN`: **localhost**: Domain name of this server, used for the displayed http clone URL in Gitea's UI.
+- `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
+- `SSH_PORT`: **22**: SSH port displayed in clone URL.
+- `SSH_LISTEN_PORT`: **%(SSH_PORT)s**: Port for the built-in SSH server.
+- `DISABLE_SSH`: **false**: Disable SSH feature when it's not available. If you want to disable SSH feature, you should set SSH port to `0` when installing Gitea.
+- `HTTP_PORT`: **3000**: HTTP listen port.
+- `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
+- `LFS_START_SERVER`: **false**: Enables git-lfs support.
+- `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
+- `DB_HOST`: **localhost:3306**: Database host address and port.
+- `DB_NAME`: **gitea**: Database name.
+- `DB_USER`: **root**: Database username.
+- `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
+- `INSTALL_LOCK`: **false**: Disallow access to the install page.
+- `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
+- `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
+- `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
+- `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+- `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
-# Customization
+## Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
 be placed in `/data/gitea` directory. If using host volumes, it's quite easy to access these
@@ -286,7 +292,7 @@ files; for named volumes, this is done through another container or by direct ac
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
 
-# Upgrading
+## Upgrading
 
 :exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:
 
@@ -300,7 +306,7 @@ docker-compose pull
 docker-compose up -d
 ```
 
-# SSH Container Passthrough
+## SSH Container Passthrough
 
 Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH connections from the host to the container. This setup is explained in the following.
 

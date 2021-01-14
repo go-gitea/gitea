@@ -26,7 +26,7 @@ var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 // Topic represents a topic of repositories
 type Topic struct {
 	ID          int64  `xorm:"pk autoincr"`
-	Name        string `xorm:"UNIQUE VARCHAR(25)"`
+	Name        string `xorm:"UNIQUE VARCHAR(50)"`
 	RepoCount   int
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

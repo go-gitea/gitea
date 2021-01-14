@@ -3,7 +3,7 @@ date: "2018-05-11T11:00:00+02:00"
 title: "Usage: Setup fail2ban"
 slug: "fail2ban-setup"
 weight: 16
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -20,10 +20,34 @@ sure to test this before relying on it so you don't lock yourself out.**
 
 Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in
 `app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this
-on a bad authentication:
+on a bad authentication from the web or CLI using SSH or HTTP respectively:
 
 ```log
 2018/04/26 18:15:54 [I] Failed authentication attempt for user from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:143:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:155:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:198:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:213:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:05:09 modules/ssh/ssh.go:227:publicKeyHandler() [W] Failed authentication attempt from xxx.xxx.xxx.xxx
+```
+
+```log
+2020/10/15 16:08:44 ...s/context/context.go:204:HandleText() [E] invalid credentials from xxx.xxx.xxx.xxx
 ```
 
 Add our filter in `/etc/fail2ban/filter.d/gitea.conf`:
@@ -31,7 +55,7 @@ Add our filter in `/etc/fail2ban/filter.d/gitea.conf`:
 ```ini
 # gitea.conf
 [Definition]
-failregex =  .*Failed authentication attempt for .* from <HOST>
+failregex =  .*(Failed authentication attempt|invalid credentials|Attempted access of unknown user).* from <HOST>
 ignoreregex =
 ```
 

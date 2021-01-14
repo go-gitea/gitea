@@ -325,6 +325,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		{"@gitea.", "@gitea"},
 		{"@gitea,", "@gitea"},
 		{"@gitea;", "@gitea"},
+		{"@gitea/team1;", "@gitea/team1"},
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -340,6 +341,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@gitea?this",
 		"@gitea,this",
 		"@gitea;this",
+		"@gitea/team1/more",
 	}
 
 	for _, testCase := range trueTestCases {

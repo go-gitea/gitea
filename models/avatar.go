@@ -40,6 +40,12 @@ func DefaultAvatarLink() string {
 // determined by the avatar-hosting service.
 const DefaultAvatarSize = -1
 
+// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
+const DefaultAvatarPixelSize = 28
+
+// AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
+const AvatarRenderedSizeFactor = 2
+
 // HashEmail hashes email address to MD5 string.
 // https://en.gravatar.com/site/implement/hash/
 func HashEmail(email string) string {

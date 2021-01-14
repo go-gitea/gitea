@@ -145,7 +145,16 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	var engine *xorm.Engine
+
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// OK whilst we sort out our schema issues - create a schema aware postgres
+		registerPostgresSchemaDriver()
+		engine, err = xorm.NewEngine("postgresschema", connStr)
+	} else {
+		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -155,16 +164,6 @@ func getEngine() (*xorm.Engine, error) {
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
-	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
-		// Add the schema to the search path
-		if _, err := engine.Exec(`SELECT set_config(
-			'search_path',
-			? || ',' || current_setting('search_path'),
-			false)`,
-			setting.Database.Schema); err != nil {
-			return nil, err
-		}
-	}
 	return engine, nil
 }
 

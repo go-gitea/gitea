@@ -5,31 +5,20 @@
 package mailer
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers
 // and mentioned people.
-func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue) error {
-	return mailParticipantsComment(models.DefaultDBContext(), c, opType, issue)
+func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
+	return mailParticipantsComment(c, opType, issue, mentions)
 }
 
-func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	rawMentions := references.FindAllMentionsMarkdown(c.Content)
-	userMentions, err := issue.ResolveMentionsByVisibility(ctx, c.Poster, rawMentions)
-	if err != nil {
-		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)
-	}
-	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
-	}
-	mentions := make([]int64, len(userMentions))
-	for i, u := range userMentions {
-		mentions[i] = u.ID
+func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) (err error) {
+	mentionedIDs := make([]int64, len(mentions))
+	for i, u := range mentions {
+		mentionedIDs[i] = u.ID
 	}
 	if err = mailIssueCommentToParticipants(
 		&mailCommentContext{
@@ -38,8 +27,29 @@ func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType mod
 			ActionType: opType,
 			Content:    c.Content,
 			Comment:    c,
-		}, mentions); err != nil {
+		}, mentionedIDs); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
+	}
+	return nil
+}
+
+// MailMentionsComment sends email to users mentioned in a code comment
+func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) (err error) {
+	mentionedIDs := make([]int64, len(mentions))
+	for i, u := range mentions {
+		mentionedIDs[i] = u.ID
+	}
+	visited := make(map[int64]bool, len(mentions)+1)
+	visited[c.Poster.ID] = true
+	if err = mailIssueCommentBatch(
+		&mailCommentContext{
+			Issue:      pr.Issue,
+			Doer:       c.Poster,
+			ActionType: models.ActionCommentPull,
+			Content:    c.Content,
+			Comment:    c,
+		}, mentionedIDs, visited, true); err != nil {
+		log.Error("mailIssueCommentBatch: %v", err)
 	}
 	return nil
 }
