@@ -1104,6 +1104,7 @@ type IssuesOptions struct {
 	UpdatedBeforeUnix  int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
+	IsArchived     util.OptionalBool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1205,6 +1206,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.And("issue.is_pull=?", true)
 	case util.OptionalBoolFalse:
 		sess.And("issue.is_pull=?", false)
+	}
+
+	if opts.IsArchived != util.OptionalBoolNone {
+		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
 	if opts.LabelIDs != nil {
@@ -1501,6 +1506,7 @@ type UserIssueStatsOptions struct {
 	IsPull      bool
 	IsClosed    bool
 	IssueIDs    []int64
+	IsArchived  util.OptionalBool
 	LabelIDs    []int64
 }
 
@@ -1523,6 +1529,10 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
+		}
+		if opts.IsArchived != util.OptionalBoolNone {
+			s.Join("INNER", "repository", "issue.repo_id = repository.id").
+				And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 		}
 		return s
 	}
