@@ -85,13 +85,12 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 			return
 		}
 
-		// TODO:
-		/*if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" && !IsAPIPath(ctx.Req.URL.Path) {
-			csrf.Validate(ctx.Context, ctx.csrf)
+		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" && !IsAPIPath(ctx.Req.URL.Path) {
+			Validate(ctx, ctx.csrf)
 			if ctx.Written() {
 				return
 			}
-		}*/
+		}
 
 		if options.SignInRequired {
 			if !ctx.IsSigned {
