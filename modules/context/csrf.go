@@ -124,6 +124,8 @@ type CsrfOptions struct {
 	// Cookie path.
 	CookiePath     string
 	CookieHTTPOnly bool
+	// SameSite set the cookie SameSite type
+	SameSite http.SameSite
 	// Key used for getting the unique ID per user.
 	SessionKey string
 	// oldSessionKey saves old value corresponding to SessionKey.
@@ -138,6 +140,8 @@ type CsrfOptions struct {
 	Origin bool
 	// The function called when Validate fails.
 	ErrorFunc func(w http.ResponseWriter)
+	// Cookie life time. Default is 0
+	CookieLifeTime int
 }
 
 func prepareOptions(options []CsrfOptions) CsrfOptions {
