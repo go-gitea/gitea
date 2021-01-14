@@ -6,13 +6,13 @@
 package admin
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -50,7 +50,7 @@ func DeleteNotices(ctx *context.Context) {
 	strs := ctx.QueryStrings("ids[]")
 	ids := make([]int64, 0, len(strs))
 	for i := range strs {
-		id := com.StrTo(strs[i]).MustInt64()
+		id, _ := strconv.ParseInt(strs[i], 10, 64)
 		if id > 0 {
 			ids = append(ids, id)
 		}

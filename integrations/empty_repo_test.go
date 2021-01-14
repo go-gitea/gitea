@@ -12,7 +12,7 @@ import (
 )
 
 func TestEmptyRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	subpaths := []string{
 		"commits/master",
 		"raw/foo",

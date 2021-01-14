@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="user settings organization">
+<div class="page-content user settings organization">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -7,7 +7,7 @@
 			{{.i18n.Tr "settings.orgs"}}
 			{{if .SignedUser.CanCreateOrganization}}
 			<div class="ui right">
-				<a class="ui black tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
+				<a class="ui blue tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
 			</div>
 			{{end}}
 		</h4>
@@ -17,9 +17,12 @@
 					{{range .Orgs}}
 					<div class="item">
 						<div class="right floated content">
-							<a class="ui blue small button" href="{{AppSubUrl}}/org/{{.Name}}/members/action/leave?uid={{.ID}}">{{$.i18n.Tr "org.members.leave"}}</a>
+							<form method="post" action="{{AppSubUrl}}/org/{{.Name}}/members/action/leave">
+								{{$.CsrfTokenHtml}}
+								<button type="submit" class="ui blue small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
+							</form>
 						</div>
-						<img class="ui mini image" src="{{.RelAvatarLink}}">
+						{{avatar . 28 "mini"}}
 						<div class="content">
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 						</div>

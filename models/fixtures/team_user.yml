@@ -69,3 +69,21 @@
   org_id: 25
   team_id: 10
   uid: 24
+
+-
+  id: 13
+  org_id: 3
+  team_id: 12
+  uid: 28
+
+-
+  id: 14
+  org_id: 6
+  team_id: 13
+  uid: 28
+
+-
+  id: 15
+  org_id: 17
+  team_id: 9
+  uid: 29

@@ -4,7 +4,7 @@ title: "文件"
 slug: "documentation"
 url: "/zh-tw/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -48,7 +48,7 @@ Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使�
 ## 元件
 
 * Web 框架： [Macaron](http://go-macaron.com/)
-* ORM： [XORM](https://github.com/go-xorm/xorm)
+* ORM： [XORM](https://xorm.io)
 * UI 元件：
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)
@@ -56,9 +56,7 @@ Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使�
   * [DropzoneJS](http://www.dropzonejs.com/)
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)
-  * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 * 資料庫：
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)

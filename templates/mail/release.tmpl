@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>{{.Subject}}</title>
+
+	<style>
+		blockquote { padding-left: 1em; margin: 1em 0; border-left: 1px solid grey; color: #777}
+		.footer { font-size:small; color:#666;}
+	</style>
+
+</head>
+
+<body>
+	<p><b>@{{.Release.Publisher.Name}}</b> released <a href="{{.Release.HTMLURL}}">{{.Release.TagName}}</a> 
+	  in <a href="{{AppUrl}}{{.Release.Repo.OwnerName}}/{{.Release.Repo.Name}}">{{.Release.Repo.FullName}} </p>
+	<h4>Title: {{.Release.Title}}</h4>
+	<p>
+		Note: <br>
+		{{- if eq .Release.RenderedNote ""}}
+		{{else}}
+			{{.Release.RenderedNote | Str2html}}
+		{{end -}}
+	</p>
+	<br><br>
+	<p>
+		--- 
+		<br>
+		Downloads:
+		<ul>
+			<li>
+				<a href="{{AppUrl}}{{.Release.Repo.OwnerName}}/{{.Release.Repo.Name}}/archive/{{.Release.TagName | EscapePound}}.zip" rel="nofollow"><strong> Source Code (ZIP)</strong></a>
+			</li>
+			<li>
+				<a href="{{AppUrl}}{{.Release.Repo.OwnerName}}/{{.Release.Repo.Name}}/archive/{{.Release.TagName | EscapePound}}.tar.gz"><strong> Source Code (TAR.GZ)</strong></a>
+			</li>
+			{{if .Release.Attachments}}
+				{{range .Release.Attachments}}
+					<li>
+						<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+							<strong>{{.Name}} ({{.Size | FileSize}})</strong>
+						</a>
+					</li>
+				{{end}}
+			{{end}}
+		</ul>
+	</p>
+	<div class="footer">
+	<p>
+		---
+		<br>
+		<a href="{{.Release.HTMLURL}}">View it on {{AppName}}</a>.
+	</p>
+	</div>
+</body>
+</html>

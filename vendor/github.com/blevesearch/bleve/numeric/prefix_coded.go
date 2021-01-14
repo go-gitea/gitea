@@ -23,12 +23,26 @@ const ShiftStartInt64 byte = 0x20
 type PrefixCoded []byte
 
 func NewPrefixCodedInt64(in int64, shift uint) (PrefixCoded, error) {
+	rv, _, err := NewPrefixCodedInt64Prealloc(in, shift, nil)
+	return rv, err
+}
+
+func NewPrefixCodedInt64Prealloc(in int64, shift uint, prealloc []byte) (
+	rv PrefixCoded, preallocRest []byte, err error) {
 	if shift > 63 {
-		return nil, fmt.Errorf("cannot shift %d, must be between 0 and 63", shift)
+		return nil, prealloc, fmt.Errorf("cannot shift %d, must be between 0 and 63", shift)
 	}
 
 	nChars := ((63 - shift) / 7) + 1
-	rv := make(PrefixCoded, nChars+1)
+
+	size := int(nChars + 1)
+	if len(prealloc) >= size {
+		rv = PrefixCoded(prealloc[0:size])
+		preallocRest = prealloc[size:]
+	} else {
+		rv = make(PrefixCoded, size)
+	}
+
 	rv[0] = ShiftStartInt64 + byte(shift)
 
 	sortableBits := int64(uint64(in) ^ 0x8000000000000000)
@@ -40,7 +54,8 @@ func NewPrefixCodedInt64(in int64, shift uint) (PrefixCoded, error) {
 		nChars--
 		sortableBits = int64(uint64(sortableBits) >> 7)
 	}
-	return rv, nil
+
+	return rv, preallocRest, nil
 }
 
 func MustNewPrefixCodedInt64(in int64, shift uint) PrefixCoded {

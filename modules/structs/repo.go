@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -54,6 +55,7 @@ type Repository struct {
 	Empty         bool        `json:"empty"`
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
+	Template      bool        `json:"template"`
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
@@ -66,6 +68,8 @@ type Repository struct {
 	Forks         int         `json:"forks_count"`
 	Watchers      int         `json:"watchers_count"`
 	OpenIssues    int         `json:"open_issues_count"`
+	OpenPulls     int         `json:"open_pr_counter"`
+	Releases      int         `json:"release_counter"`
 	DefaultBranch string      `json:"default_branch"`
 	Archived      bool        `json:"archived"`
 	// swagger:strfmt date-time
@@ -79,12 +83,15 @@ type Repository struct {
 	HasWiki                   bool             `json:"has_wiki"`
 	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests           bool             `json:"has_pull_requests"`
+	HasProjects               bool             `json:"has_projects"`
 	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                bool             `json:"allow_merge_commits"`
 	AllowRebase               bool             `json:"allow_rebase"`
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
+	Internal                  bool             `json:"internal"`
+	MirrorInterval            string           `json:"mirror_interval"`
 }
 
 // CreateRepoOption options when creating repository
@@ -103,12 +110,19 @@ type CreateRepoOption struct {
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
+	// Whether the repository is template
+	Template bool `json:"template"`
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
 	License string `json:"license"`
 	// Readme of the repository to create
 	Readme string `json:"readme"`
+	// DefaultBranch of the repository (used when initializes and in template)
+	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// TrustModel of the repository
+	// enum: default,collaborator,committer,collaboratorcommitter
+	TrustModel string `json:"trust_model"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -125,6 +139,8 @@ type EditRepoOption struct {
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
 	Private *bool `json:"private,omitempty"`
+	// either `true` to make this repository a template or `false` to make it a normal repository
+	Template *bool `json:"template,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
 	// set this structure to configure internal issue tracker (requires has_issues)
@@ -139,6 +155,8 @@ type EditRepoOption struct {
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
+	// either `true` to enable project unit, or `false` to disable them.
+	HasProjects *bool `json:"has_projects,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
@@ -151,6 +169,33 @@ type EditRepoOption struct {
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
+	// set to a string like `8h30m0s` to set the mirror interval time
+	MirrorInterval *string `json:"mirror_interval,omitempty"`
+}
+
+// CreateBranchRepoOption options when creating a branch in a repository
+// swagger:model
+type CreateBranchRepoOption struct {
+
+	// Name of the branch to create
+	//
+	// required: true
+	// unique: true
+	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
+
+	// Name of the old branch to create from
+	//
+	// unique: true
+	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+}
+
+// TransferRepoOption options when transfer a repository's ownership
+// swagger:model
+type TransferRepoOption struct {
+	// required: true
+	NewOwner string `json:"new_owner"`
+	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
+	TeamIDs *[]int64 `json:"team_ids"`
 }
 
 // GitServiceType represents a git service
@@ -169,17 +214,63 @@ const (
 // Name represents the service type's name
 // WARNNING: the name have to be equal to that on goth's library
 func (gt GitServiceType) Name() string {
+	return strings.ToLower(gt.Title())
+}
+
+// Title represents the service type's proper title
+func (gt GitServiceType) Title() string {
 	switch gt {
 	case GithubService:
-		return "github"
+		return "GitHub"
 	case GiteaService:
-		return "gitea"
+		return "Gitea"
 	case GitlabService:
-		return "gitlab"
+		return "GitLab"
 	case GogsService:
-		return "gogs"
+		return "Gogs"
+	case PlainGitService:
+		return "Git"
 	}
 	return ""
+}
+
+// MigrateRepoOptions options for migrating repository's
+// this is used to interact with api v1
+type MigrateRepoOptions struct {
+	// required: true
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// deprecated (only for backwards compatibility)
+	RepoOwnerID int64 `json:"uid"`
+	// Name of User or Organisation who will own Repo after migration
+	RepoOwner string `json:"repo_owner"`
+	// required: true
+	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+
+	// enum: git,github,gitea,gitlab
+	Service      string `json:"service"`
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"auth_password"`
+	AuthToken    string `json:"auth_token"`
+
+	Mirror         bool   `json:"mirror"`
+	Private        bool   `json:"private"`
+	Description    string `json:"description" binding:"MaxSize(255)"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	MirrorInterval string `json:"mirror_interval"`
+}
+
+// TokenAuth represents whether a service type supports token-based auth
+func (gt GitServiceType) TokenAuth() bool {
+	switch gt {
+	case GithubService, GiteaService, GitlabService:
+		return true
+	}
+	return false
 }
 
 var (
@@ -187,30 +278,7 @@ var (
 	// TODO: add to this list after new git service added
 	SupportedFullGitService = []GitServiceType{
 		GithubService,
+		GitlabService,
+		GiteaService,
 	}
 )
-
-// MigrateRepoOption options for migrating a repository from an external service
-type MigrateRepoOption struct {
-	// required: true
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
-	// required: true
-	UID int `json:"uid" binding:"Required"`
-	// required: true
-	RepoName        string `json:"repo_name" binding:"Required"`
-	Mirror          bool   `json:"mirror"`
-	Private         bool   `json:"private"`
-	Description     string `json:"description"`
-	OriginalURL     string
-	GitServiceType  GitServiceType
-	Wiki            bool
-	Issues          bool
-	Milestones      bool
-	Labels          bool
-	Releases        bool
-	Comments        bool
-	PullRequests    bool
-	MigrateToRepoID int64
-}

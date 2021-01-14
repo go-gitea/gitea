@@ -68,9 +68,9 @@ func defaultReturnHandler() ReturnHandler {
 			respVal = respVal.Elem()
 		}
 		if isByteSlice(respVal) {
-			resp.Write(respVal.Bytes())
+			_, _ = resp.Write(respVal.Bytes())
 		} else {
-			resp.Write([]byte(respVal.String()))
+			_, _ = resp.Write([]byte(respVal.String()))
 		}
 	}
 }

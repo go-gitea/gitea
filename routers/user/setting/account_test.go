@@ -91,7 +91,7 @@ func TestChangePassword(t *testing.T) {
 			Retype:      req.Retype,
 		})
 
-		assert.EqualValues(t, req.Message, ctx.Flash.ErrorMsg)
+		assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	}
 }

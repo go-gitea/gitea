@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,7 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	ldap "gopkg.in/ldap.v3"
+	"github.com/go-ldap/ldap/v3"
 )
 
 // SecurityProtocol protocol type
@@ -46,7 +47,14 @@ type Source struct {
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
+	RestrictedFilter      string // Query filter to check if user is restricted
 	Enabled               bool   // if this source is disabled
+	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
+	GroupsEnabled         bool   // if the group checking is enabled
+	GroupDN               string // Group Search Base
+	GroupFilter           string // Group Name Filter
+	GroupMemberUID        string // Group Attribute containing array of UserUID
+	UserUID               string // User Attribute listed in Group
 }
 
 // SearchResult : user data
@@ -57,6 +65,7 @@ type SearchResult struct {
 	Mail         string   // E-mail address
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
+	IsRestricted bool     // if user is restricted
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -79,6 +88,28 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 	}
 
 	return fmt.Sprintf(ls.UserDN, username), true
+}
+
+func (ls *Source) sanitizedGroupFilter(group string) (string, bool) {
+	// See http://tools.ietf.org/search/rfc4515
+	badCharacters := "\x00*\\"
+	if strings.ContainsAny(group, badCharacters) {
+		log.Trace("Group filter invalid query characters: %s", group)
+		return "", false
+	}
+
+	return group, true
+}
+
+func (ls *Source) sanitizedGroupDN(groupDn string) (string, bool) {
+	// See http://tools.ietf.org/search/rfc4514: "special characters"
+	badCharacters := "\x00()*\\'\"#+;<>"
+	if strings.ContainsAny(groupDn, badCharacters) || strings.HasPrefix(groupDn, " ") || strings.HasSuffix(groupDn, " ") {
+		log.Trace("Group DN contains invalid query characters: %s", groupDn)
+		return "", false
+	}
+
+	return groupDn, true
 }
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
@@ -152,22 +183,48 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 }
 
 func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
-	if len(ls.AdminFilter) > 0 {
-		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
-		search := ldap.NewSearchRequest(
-			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-			[]string{ls.AttributeName},
-			nil)
+	if len(ls.AdminFilter) == 0 {
+		return false
+	}
+	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+		[]string{ls.AttributeName},
+		nil)
 
-		sr, err := l.Search(search)
+	sr, err := l.Search(search)
 
-		if err != nil {
-			log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
-		} else if len(sr.Entries) < 1 {
-			log.Trace("LDAP Admin Search found no matching entries.")
-		} else {
-			return true
-		}
+	if err != nil {
+		log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Admin Search found no matching entries.")
+	} else {
+		return true
+	}
+	return false
+}
+
+func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
+	if len(ls.RestrictedFilter) == 0 {
+		return false
+	}
+	if ls.RestrictedFilter == "*" {
+		return true
+	}
+	log.Trace("Checking restricted with filter %s and base %s", ls.RestrictedFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
+		[]string{ls.AttributeName},
+		nil)
+
+	sr, err := l.Search(search)
+
+	if err != nil {
+		log.Error("LDAP Restrictred Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Restricted Search found no matching entries.")
+	} else {
+		return true
 	}
 	return false
 }
@@ -250,11 +307,14 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if len(strings.TrimSpace(ls.UserUID)) > 0 {
+		attribs = append(attribs, ls.UserUID)
+	}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -279,10 +339,59 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
+	uid := sr.Entries[0].GetAttributeValue(ls.UserUID)
+
+	// Check group membership
+	if ls.GroupsEnabled {
+		groupFilter, ok := ls.sanitizedGroupFilter(ls.GroupFilter)
+		if !ok {
+			return nil
+		}
+		groupDN, ok := ls.sanitizedGroupDN(ls.GroupDN)
+		if !ok {
+			return nil
+		}
+
+		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", ls.GroupMemberUID, groupFilter, groupDN)
+		groupSearch := ldap.NewSearchRequest(
+			groupDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter,
+			[]string{ls.GroupMemberUID},
+			nil)
+
+		srg, err := l.Search(groupSearch)
+		if err != nil {
+			log.Error("LDAP group search failed: %v", err)
+			return nil
+		} else if len(srg.Entries) < 1 {
+			log.Error("LDAP group search failed: 0 entries")
+			return nil
+		}
+
+		isMember := false
+	Entries:
+		for _, group := range srg.Entries {
+			for _, member := range group.GetAttributeValues(ls.GroupMemberUID) {
+				if (ls.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
+					isMember = true
+					break Entries
+				}
+			}
+		}
+
+		if !isMember {
+			log.Error("LDAP group membership test failed")
+			return nil
+		}
+	}
+
 	if isAttributeSSHPublicKeySet {
 		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
 	}
 	isAdmin := checkAdmin(l, ls, userDN)
+	var isRestricted bool
+	if !isAdmin {
+		isRestricted = checkRestricted(l, ls, userDN)
+	}
 
 	if !directBind && ls.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
@@ -299,6 +408,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		Mail:         mail,
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
+		IsRestricted: isRestricted,
 	}
 }
 
@@ -362,6 +472,9 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 			Surname:  v.GetAttributeValue(ls.AttributeSurname),
 			Mail:     v.GetAttributeValue(ls.AttributeMail),
 			IsAdmin:  checkAdmin(l, ls, v.DN),
+		}
+		if !result[i].IsAdmin {
+			result[i].IsRestricted = checkRestricted(l, ls, v.DN)
 		}
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)

@@ -240,10 +240,10 @@ func Captchaer(options ...Options) macaron.Handler {
 				}
 			}
 
+			ctx.Status(200)
 			if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(ctx.Resp); err != nil {
 				panic(fmt.Errorf("write captcha: %v", err))
 			}
-			ctx.Status(200)
 			return
 		}
 

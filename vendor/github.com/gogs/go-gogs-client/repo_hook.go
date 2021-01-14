@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webhook")
+	ErrInvalidReceiveHook = errors.New("invalid JSON payload received over webhook")
 )
 
 type Hook struct {

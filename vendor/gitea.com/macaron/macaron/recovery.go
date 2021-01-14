@@ -153,7 +153,7 @@ func Recovery() Handler {
 
 				res.WriteHeader(http.StatusInternalServerError)
 				if nil != body {
-					res.Write(body)
+					_, _ = res.Write(body)
 				}
 			}
 		}()

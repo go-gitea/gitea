@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>{{.Subject}}</title>
+
+	<style>
+		blockquote { padding-left: 1em; margin: 1em 0; border-left: 1px solid grey; color: #777}
+		.footer { font-size:small; color:#666;}
+		{{if .ReviewComments}}
+			.review { padding-left: 1em; margin: 1em 0; }
+			.review > pre { padding: 1em; border-left: 1px solid grey; }
+		{{end}}
+	</style>
+
+</head>
+
+<body>
+	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
+	{{if eq .ActionName "push"}}
+		<p>
+			<b>{{.Doer.Name}}</b>  
+			{{if .Comment.IsForcePush}}
+				{{ $oldCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
+				{{ $newCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
+				force-pushed the <b>{{.Comment.Issue.PullRequest.HeadBranch}}</b> from
+				<a href="{{$oldCommitLink}}"><b>{{ShortSha .Comment.OldCommit}}</b></a>
+				to
+				<a href="{{$newCommitLink}}"><b>{{ShortSha .Comment.NewCommit}}</b></a>.
+			{{else}}
+				{{if eq .Comment.Commits.Len 1}}
+					{{printf "pushed 1 commit to %s:" .Comment.Issue.PullRequest.HeadBranch}}
+				{{else}}
+					{{printf "pushed %d commits to %s:" .Comment.Commits.Len .Comment.Issue.PullRequest.HeadBranch}}
+				{{end}}
+			{{end}}
+		</p>
+	{{end}}
+	<p>
+		{{if eq .ActionName "close"}}
+			Closed #{{.Issue.Index}}.
+		{{else if eq .ActionName "reopen"}}
+			Reopened #{{.Issue.Index}}.
+		{{else if eq .ActionName "merge"}}
+			Merged #{{.Issue.Index}} into {{.Issue.PullRequest.BaseBranch}}.
+		{{else if eq .ActionName "approve"}}
+			<b>@{{.Doer.Name}}</b> approved this pull request.
+		{{else if eq .ActionName "reject"}}
+			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
+		{{else if eq .ActionName "review"}}
+			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{end}}
+
+		{{- if eq .Body ""}}
+			{{if eq .ActionName "new"}}
+				Created #{{.Issue.Index}}.
+			{{end}}
+		{{else}}
+			{{.Body | Str2html}}
+		{{end -}}
+		{{- range .ReviewComments}}
+			<hr>
+			In {{.TreePath}}:
+			<div class="review">
+				<pre>{{.Patch}}</pre>
+				<div>{{.RenderedContent | Safe}}</div>
+			</div>
+		{{end -}}
+		{{if eq .ActionName "push"}}
+			{{ $r:= List .Comment.Commits}}
+			<ul>
+			{{range $r}}
+				<li>
+					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
+						{{ShortSha .ID.String}}
+					</a>  -  {{.Summary}}
+				</li>
+			{{end}}
+			</ul>
+		{{end}}
+	</p>
+	<div class="footer">
+	<p>
+		---
+		<br>
+		<a href="{{.Link}}">View it on {{AppName}}</a>.
+	</p>
+	</div>
+</body>
+</html>

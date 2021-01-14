@@ -45,7 +45,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.False(t, left)
 
 	// Close #2 and check again
-	err = issue2.ChangeStatus(user1, true)
+	_, err = issue2.ChangeStatus(user1, true)
 	assert.NoError(t, err)
 
 	left, err = IssueNoDependenciesLeft(issue1)

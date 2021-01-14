@@ -1,1 +1,39 @@
-[] # empty
+-
+  id: 1 #issue reaction
+  type: zzz # not allowed reaction (added before allowed reaction list has changed)
+  issue_id: 1
+  comment_id: 0
+  user_id: 2
+  created_unix: 1573248001
+
+-
+  id: 2 #issue reaction
+  type: zzz # not allowed reaction (added before allowed reaction list has changed)
+  issue_id: 1
+  comment_id: 0
+  user_id: 1
+  created_unix: 1573248002
+
+-
+  id: 3 #issue reaction
+  type: eyes # allowed reaction
+  issue_id: 1
+  comment_id: 0
+  user_id: 2
+  created_unix: 1573248003
+
+-
+  id: 4 #comment reaction
+  type: laugh # allowed reaction
+  issue_id: 1
+  comment_id: 2
+  user_id: 2
+  created_unix: 1573248004
+
+-
+  id: 5 #comment reaction
+  type: laugh # allowed reaction
+  issue_id: 1
+  comment_id: 2
+  user_id: 1
+  created_unix: 1573248005

@@ -91,32 +91,27 @@ func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 
 	description := string(link)
 	if l.Description != nil {
-		description = r.nodesAsString(l.Description...)
+		description = r.WriteNodesAsString(l.Description...)
 	}
 	switch l.Kind() {
 	case "image":
-		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, link, description, description))
+		imageSrc := getMediaURL(link)
+		fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, imageSrc, description, description)
 	case "video":
-		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, link, description, description))
+		videoSrc := getMediaURL(link)
+		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, videoSrc, description, description)
 	default:
-		r.WriteString(fmt.Sprintf(`<a href="%s" title="%s">%s</a>`, link, description, description))
+		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
 	}
 }
 
-func (r *Renderer) emptyClone() *Renderer {
-	wcopy := *(r.HTMLWriter)
-	wcopy.Builder = strings.Builder{}
+func getMediaURL(l []byte) string {
+	srcURL := string(l)
 
-	rcopy := *r
-	rcopy.HTMLWriter = &wcopy
+	// Check if link is valid
+	if len(srcURL) > 0 && !markup.IsLink(l) {
+		srcURL = strings.Replace(srcURL, "/src/", "/media/", 1)
+	}
 
-	wcopy.ExtendingWriter = &rcopy
-
-	return &rcopy
-}
-
-func (r *Renderer) nodesAsString(nodes ...org.Node) string {
-	tmp := r.emptyClone()
-	org.WriteNodes(tmp, nodes...)
-	return tmp.String()
+	return srcURL
 }

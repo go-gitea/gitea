@@ -22,6 +22,11 @@ import (
 	"github.com/blevesearch/bleve/search"
 )
 
+type filterFunc func(key []byte) bool
+
+var GeoBitsShift1 = geo.GeoBits << 1
+var GeoBitsShift1Minus1 = GeoBitsShift1 - 1
+
 func NewGeoBoundingBoxSearcher(indexReader index.IndexReader, minLon, minLat,
 	maxLon, maxLat float64, field string, boost float64,
 	options search.SearcherOptions, checkBoundaries bool) (
@@ -36,8 +41,11 @@ func NewGeoBoundingBoxSearcher(indexReader index.IndexReader, minLon, minLat,
 	}
 
 	// do math to produce list of terms needed for this search
-	onBoundaryTerms, notOnBoundaryTerms := ComputeGeoRange(0, (geo.GeoBits<<1)-1,
-		minLon, minLat, maxLon, maxLat, checkBoundaries)
+	onBoundaryTerms, notOnBoundaryTerms, err := ComputeGeoRange(0, GeoBitsShift1Minus1,
+		minLon, minLat, maxLon, maxLat, checkBoundaries, indexReader, field)
+	if err != nil {
+		return nil, err
+	}
 
 	var onBoundarySearcher search.Searcher
 	dvReader, err := indexReader.DocValueReader([]string{field})
@@ -92,67 +100,87 @@ func NewGeoBoundingBoxSearcher(indexReader index.IndexReader, minLon, minLat,
 
 var geoMaxShift = document.GeoPrecisionStep * 4
 var geoDetailLevel = ((geo.GeoBits << 1) - geoMaxShift) / 2
+type closeFunc func() error
 
 func ComputeGeoRange(term uint64, shift uint,
-	sminLon, sminLat, smaxLon, smaxLat float64,
-	checkBoundaries bool) (
-	onBoundary [][]byte, notOnBoundary [][]byte) {
-	split := term | uint64(0x1)<<shift
-	var upperMax uint64
-	if shift < 63 {
-		upperMax = term | ((uint64(1) << (shift + 1)) - 1)
-	} else {
-		upperMax = 0xffffffffffffffff
+	sminLon, sminLat, smaxLon, smaxLat float64, checkBoundaries bool,
+	indexReader index.IndexReader, field string) (
+	onBoundary [][]byte, notOnBoundary [][]byte, err error) {
+
+	isIndexed, closeF, err := buildIsIndexedFunc(indexReader, field)
+	if closeF != nil {
+		defer func() {
+			cerr := closeF()
+			if cerr != nil {
+				err = cerr
+			}
+		}()
 	}
-	lowerMax := split - 1
-	onBoundary, notOnBoundary = relateAndRecurse(term, lowerMax, shift,
-		sminLon, sminLat, smaxLon, smaxLat, checkBoundaries)
-	plusOnBoundary, plusNotOnBoundary := relateAndRecurse(split, upperMax, shift,
-		sminLon, sminLat, smaxLon, smaxLat, checkBoundaries)
-	onBoundary = append(onBoundary, plusOnBoundary...)
-	notOnBoundary = append(notOnBoundary, plusNotOnBoundary...)
-	return
+
+	grc := &geoRangeCompute{
+		preallocBytesLen: 32,
+		preallocBytes:    make([]byte, 32),
+		sminLon:          sminLon,
+		sminLat:          sminLat,
+		smaxLon:          smaxLon,
+		smaxLat:          smaxLat,
+		checkBoundaries:  checkBoundaries,
+		isIndexed:        isIndexed,
+	}
+
+	grc.computeGeoRange(term, shift)
+
+	return grc.onBoundary, grc.notOnBoundary, nil
 }
 
-func relateAndRecurse(start, end uint64, res uint,
-	sminLon, sminLat, smaxLon, smaxLat float64,
-	checkBoundaries bool) (
-	onBoundary [][]byte, notOnBoundary [][]byte) {
-	minLon := geo.MortonUnhashLon(start)
-	minLat := geo.MortonUnhashLat(start)
-	maxLon := geo.MortonUnhashLon(end)
-	maxLat := geo.MortonUnhashLat(end)
-
-	level := ((geo.GeoBits << 1) - res) >> 1
-
-	within := res%document.GeoPrecisionStep == 0 &&
-		geo.RectWithin(minLon, minLat, maxLon, maxLat,
-			sminLon, sminLat, smaxLon, smaxLat)
-	if within || (level == geoDetailLevel &&
-		geo.RectIntersects(minLon, minLat, maxLon, maxLat,
-			sminLon, sminLat, smaxLon, smaxLat)) {
-		if !within && checkBoundaries {
-			return [][]byte{
-				numeric.MustNewPrefixCodedInt64(int64(start), res),
-			}, nil
+func buildIsIndexedFunc(indexReader index.IndexReader, field string) (isIndexed filterFunc, closeF closeFunc, err error) {
+	if irr, ok := indexReader.(index.IndexReaderContains); ok {
+		fieldDict, err := irr.FieldDictContains(field)
+		if err != nil {
+			return nil, nil, err
 		}
-		return nil,
-			[][]byte{
-				numeric.MustNewPrefixCodedInt64(int64(start), res),
+
+		isIndexed = func(term []byte) bool {
+			found, err := fieldDict.Contains(term)
+			return err == nil && found
+		}
+
+		closeF = func() error {
+			if fd, ok := fieldDict.(index.FieldDict); ok {
+				err := fd.Close()
+				if err != nil {
+					return err
+				}
 			}
-	} else if level < geoDetailLevel &&
-		geo.RectIntersects(minLon, minLat, maxLon, maxLat,
-			sminLon, sminLat, smaxLon, smaxLat) {
-		return ComputeGeoRange(start, res-1, sminLon, sminLat, smaxLon, smaxLat,
-			checkBoundaries)
+			return nil
+		}
+	} else if indexReader != nil {
+		isIndexed = func(term []byte) bool {
+				reader, err := indexReader.TermFieldReader(term, field, false, false, false)
+				if err != nil || reader == nil {
+					return false
+				}
+				if reader.Count() == 0 {
+					_ = reader.Close()
+					return false
+				}
+				_ = reader.Close()
+				return true
+		}
+
+	} else {
+		isIndexed = func([]byte) bool {
+			return true
+		}
 	}
-	return nil, nil
+	return isIndexed, closeF, err
 }
 
 func buildRectFilter(dvReader index.DocValueReader, field string,
 	minLon, minLat, maxLon, maxLat float64) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
-		var lon, lat float64
+		// check geo matches against all numeric type terms indexed
+		var lons, lats []float64
 		var found bool
 		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
 			// only consider the values which are shifted 0
@@ -162,16 +190,83 @@ func buildRectFilter(dvReader index.DocValueReader, field string,
 				var i64 int64
 				i64, err = prefixCoded.Int64()
 				if err == nil {
-					lon = geo.MortonUnhashLon(uint64(i64))
-					lat = geo.MortonUnhashLat(uint64(i64))
+					lons = append(lons, geo.MortonUnhashLon(uint64(i64)))
+					lats = append(lats, geo.MortonUnhashLat(uint64(i64)))
 					found = true
 				}
 			}
 		})
 		if err == nil && found {
-			return geo.BoundingBoxContains(lon, lat,
-				minLon, minLat, maxLon, maxLat)
+			for i := range lons {
+				if geo.BoundingBoxContains(lons[i], lats[i],
+					minLon, minLat, maxLon, maxLat) {
+					return true
+				}
+			}
 		}
 		return false
+	}
+}
+
+type geoRangeCompute struct {
+	preallocBytesLen int
+	preallocBytes []byte
+	sminLon, sminLat, smaxLon, smaxLat float64
+	checkBoundaries bool
+	onBoundary, notOnBoundary [][]byte
+	isIndexed func(term []byte) bool
+}
+
+func (grc *geoRangeCompute) makePrefixCoded(in int64, shift uint) (rv numeric.PrefixCoded) {
+	if len(grc.preallocBytes) <= 0 {
+		grc.preallocBytesLen = grc.preallocBytesLen * 2
+		grc.preallocBytes = make([]byte, grc.preallocBytesLen)
+	}
+
+	rv, grc.preallocBytes, _ =
+		numeric.NewPrefixCodedInt64Prealloc(in, shift, grc.preallocBytes)
+
+	return rv
+}
+
+func (grc *geoRangeCompute) computeGeoRange(term uint64, shift uint) {
+	split := term | uint64(0x1)<<shift
+	var upperMax uint64
+	if shift < 63 {
+		upperMax = term | ((uint64(1) << (shift + 1)) - 1)
+	} else {
+		upperMax = 0xffffffffffffffff
+	}
+	lowerMax := split - 1
+	grc.relateAndRecurse(term, lowerMax, shift)
+	grc.relateAndRecurse(split, upperMax, shift)
+}
+
+func (grc *geoRangeCompute) relateAndRecurse(start, end uint64, res uint) {
+	minLon := geo.MortonUnhashLon(start)
+	minLat := geo.MortonUnhashLat(start)
+	maxLon := geo.MortonUnhashLon(end)
+	maxLat := geo.MortonUnhashLat(end)
+
+	level := (GeoBitsShift1 - res) >> 1
+
+	within := res%document.GeoPrecisionStep == 0 &&
+		geo.RectWithin(minLon, minLat, maxLon, maxLat,
+			grc.sminLon, grc.sminLat, grc.smaxLon, grc.smaxLat)
+	if within || (level == geoDetailLevel &&
+		geo.RectIntersects(minLon, minLat, maxLon, maxLat,
+			grc.sminLon, grc.sminLat, grc.smaxLon, grc.smaxLat)) {
+		codedTerm := grc.makePrefixCoded(int64(start), res)
+		if grc.isIndexed(codedTerm) {
+			if !within && grc.checkBoundaries {
+				grc.onBoundary = append(grc.onBoundary, codedTerm)
+			} else {
+				grc.notOnBoundary = append(grc.notOnBoundary, codedTerm)
+			}
+		}
+	} else if level < geoDetailLevel &&
+		geo.RectIntersects(minLon, minLat, maxLon, maxLat,
+			grc.sminLon, grc.sminLat, grc.smaxLon, grc.smaxLat) {
+		grc.computeGeoRange(start, res-1)
 	}
 }

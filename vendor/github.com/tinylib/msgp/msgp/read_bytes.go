@@ -201,14 +201,14 @@ func ReadMapHeaderBytes(b []byte) (sz uint32, o []byte, err error) {
 // - ErrShortBytes (too few bytes)
 // - TypeError{} (not a str or bin)
 func ReadMapKeyZC(b []byte) ([]byte, []byte, error) {
-	o, b, err := ReadStringZC(b)
+	o, x, err := ReadStringZC(b)
 	if err != nil {
 		if tperr, ok := err.(TypeError); ok && tperr.Encoded == BinType {
 			return ReadBytesZC(b)
 		}
 		return nil, b, err
 	}
-	return o, b, nil
+	return o, x, nil
 }
 
 // ReadArrayHeaderBytes attempts to read

@@ -16,7 +16,6 @@ package searcher
 
 import (
 	"fmt"
-
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 )
@@ -37,6 +36,11 @@ func NewDisjunctionSearcher(indexReader index.IndexReader,
 	return newDisjunctionSearcher(indexReader, qsearchers, min, options, true)
 }
 
+func optionsDisjunctionOptimizable(options search.SearcherOptions) bool {
+	rv := options.Score == "none" && !options.IncludeTermVectors
+	return rv
+}
+
 func newDisjunctionSearcher(indexReader index.IndexReader,
 	qsearchers []search.Searcher, min float64, options search.SearcherOptions,
 	limit bool) (search.Searcher, error) {
@@ -44,7 +48,7 @@ func newDisjunctionSearcher(indexReader index.IndexReader,
 	// do not need extra information like freq-norm's or term vectors
 	// and the requested min is simple
 	if len(qsearchers) > 1 && min <= 1 &&
-		options.Score == "none" && !options.IncludeTermVectors {
+		optionsDisjunctionOptimizable(options) {
 		rv, err := optimizeCompositeSearcher("disjunction:unadorned",
 			indexReader, qsearchers, options)
 		if err != nil || rv != nil {
@@ -103,7 +107,7 @@ func tooManyClauses(count int) bool {
 	return false
 }
 
-func tooManyClausesErr(count int) error {
-	return fmt.Errorf("TooManyClauses[%d > maxClauseCount, which is set to %d]",
-		count, DisjunctionMaxClauseCount)
+func tooManyClausesErr(field string, count int) error {
+	return fmt.Errorf("TooManyClauses over field: `%s` [%d > maxClauseCount,"+
+		" which is set to %d]", field, count, DisjunctionMaxClauseCount)
 }

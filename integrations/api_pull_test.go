@@ -19,7 +19,7 @@ import (
 )
 
 func TestAPIViewPulls(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
@@ -36,7 +36,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, models.Cond("has_merged = ?", false)).(*models.PullRequest)
@@ -58,8 +58,8 @@ func TestAPIMergePullWIP(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusMethodNotAllowed)
 }
 
-func TestAPICreatePullSuccess1(t *testing.T) {
-	prepareTestEnv(t)
+func TestAPICreatePullSuccess(t *testing.T) {
+	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	// repo10 have code, pulls units.
 	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
@@ -78,8 +78,8 @@ func TestAPICreatePullSuccess1(t *testing.T) {
 	session.MakeRequest(t, req, 201)
 }
 
-func TestAPICreatePullSuccess2(t *testing.T) {
-	prepareTestEnv(t)
+func TestAPIEditPull(t *testing.T) {
+	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
 
@@ -90,6 +90,21 @@ func TestAPICreatePullSuccess2(t *testing.T) {
 		Base:  "master",
 		Title: "create a success pr",
 	})
+	pull := new(api.PullRequest)
+	resp := session.MakeRequest(t, req, 201)
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, "master", pull.Base.Name)
 
-	session.MakeRequest(t, req, 201)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+		Base:  "feature/1",
+		Title: "edit a this pr",
+	})
+	resp = session.MakeRequest(t, req, 201)
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, "feature/1", pull.Base.Name)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+		Base: "not-exist",
+	})
+	session.MakeRequest(t, req, 404)
 }

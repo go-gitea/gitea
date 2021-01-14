@@ -5,12 +5,14 @@
 package mirror
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/structs"
+	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/repository"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +29,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
-	opts := structs.MigrateRepoOption{
+	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
 		Private:     false,
@@ -37,7 +39,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		Releases:    false,
 	}
 
-	mirrorRepo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+	mirrorRepo, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -46,11 +48,12 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := models.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
+	mirror, err := repository.MigrateRepositoryGitData(context.Background(), user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -75,6 +78,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
@@ -85,5 +89,6 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

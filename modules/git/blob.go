@@ -6,31 +6,13 @@
 package git
 
 import (
+	"bytes"
 	"encoding/base64"
 	"io"
 	"io/ioutil"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
-// Blob represents a Git object.
-type Blob struct {
-	ID SHA1
-
-	gogitEncodedObj plumbing.EncodedObject
-	name            string
-}
-
-// DataAsync gets a ReadCloser for the contents of a blob without reading it all.
-// Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	return b.gogitEncodedObj.Reader()
-}
-
-// Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
-	return b.gogitEncodedObj.Size()
-}
+// This file contains common functions between the gogit and !gogit variants for git Blobs
 
 // Name returns name of the tree entry this blob object was created from (or empty string)
 func (b *Blob) Name() string {
@@ -48,6 +30,28 @@ func (b *Blob) GetBlobContent() (string, error) {
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
 	return string(buf), nil
+}
+
+// GetBlobLineCount gets line count of lob as raw text
+func (b *Blob) GetBlobLineCount() (int, error) {
+	reader, err := b.DataAsync()
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+	for {
+		c, err := reader.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+		switch {
+		case err == io.EOF:
+			return count, nil
+		case err != nil:
+			return count, err
+		}
+	}
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string

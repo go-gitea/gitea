@@ -1,2 +1,2 @@
 #!/bin/bash
-exit 0
+s6-svscanctl -t /etc/s6/

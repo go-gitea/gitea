@@ -17,10 +17,12 @@ var Service struct {
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
+	RegisterManualConfirm                   bool
 	EmailDomainWhitelist                    []string
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
+	ShowMilestonesDashboardPage             bool
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
@@ -34,6 +36,8 @@ var Service struct {
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	RecaptchaURL                            string
+	HcaptchaSecret                          string
+	HcaptchaSitekey                         string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	EnableTimetracking                      bool
@@ -44,6 +48,7 @@ var Service struct {
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
+	AutoWatchOnChanges                      bool
 	DefaultOrgMemberVisible                 bool
 
 	// OpenID settings
@@ -59,8 +64,14 @@ func newService() {
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
+		Service.RegisterManualConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(false)
+	} else {
+		Service.RegisterManualConfirm = false
+	}
 	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
+	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
@@ -73,6 +84,8 @@ func newService() {
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
+	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
+	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
@@ -82,9 +95,10 @@ func newService() {
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.AllowCrossRepositoryDependencies = sec.Key("ALLOW_CROSS_REPOSITORY_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
-	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply." + Domain)
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
+	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()

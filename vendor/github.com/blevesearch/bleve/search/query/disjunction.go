@@ -80,12 +80,6 @@ func (q *DisjunctionQuery) Searcher(i index.IndexReader, m mapping.IndexMapping,
 
 	if len(ss) < 1 {
 		return searcher.NewMatchNoneSearcher(i)
-	} else if len(ss) == 1 && int(q.Min) == ss[0].Min() {
-		// apply optimization only if both conditions below are satisfied:
-		// - disjunction searcher has only 1 child searcher
-		// - parent searcher's min setting is equal to child searcher's min
-
-		return ss[0], nil
 	}
 
 	return searcher.NewDisjunctionSearcher(i, ss, q.Min, options)

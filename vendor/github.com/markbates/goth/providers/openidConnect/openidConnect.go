@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/markbates/goth"
-	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/markbates/goth"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -173,6 +174,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		RefreshToken: sess.RefreshToken,
 		ExpiresAt:    expiresAt,
 		RawData:      claims,
+		IDToken:      sess.IDToken,
 	}
 
 	p.userFromClaims(claims, &user)
@@ -391,13 +393,8 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 		return nil, errors.New("jws: invalid token received, not all parts available")
 	}
 
-	// Re-pad, if needed
-	encodedPayload := jwtParts[1]
-	if l := len(encodedPayload) % 4; l != 0 {
-		encodedPayload += strings.Repeat("=", 4-l)
-	}
+	decodedPayload, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(jwtParts[1])
 
-	decodedPayload, err := base64.StdEncoding.DecodeString(encodedPayload)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,7 @@ type Repository struct {
 	FullName      string      `json:"full_name"`
 	Description   string      `json:"description"`
 	Private       bool        `json:"private"`
+	Unlisted      bool        `json:"unlisted"`
 	Fork          bool        `json:"fork"`
 	Parent        *Repository `json:"parent"`
 	Empty         bool        `json:"empty"`
@@ -65,6 +66,7 @@ type CreateRepoOption struct {
 	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	Private     bool   `json:"private"`
+	Unlisted    bool   `json:"unlisted"`
 	AutoInit    bool   `json:"auto_init"`
 	Gitignores  string `json:"gitignores"`
 	License     string `json:"license"`
@@ -111,6 +113,7 @@ type MigrateRepoOption struct {
 	RepoName     string `json:"repo_name" binding:"Required"`
 	Mirror       bool   `json:"mirror"`
 	Private      bool   `json:"private"`
+	Unlisted     bool   `json:"unlisted"`
 	Description  string `json:"description"`
 }
 
@@ -143,6 +146,23 @@ func (c *Client) EditIssueTracker(owner, repo string, opt EditIssueTrackerOption
 		return err
 	}
 	_, err = c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/issue-tracker", owner, repo), jsonHeader, bytes.NewReader(body))
+	return err
+}
+
+type EditWikiOption struct {
+	EnableWiki         *bool   `json:"enable_wiki"`
+	AllowPublicWiki    *bool   `json:"allow_public_wiki"`
+	EnableExternalWiki *bool   `json:"enable_external_wiki"`
+	ExternalWikiURL    *string `json:"external_wiki_url"`
+}
+
+// EditWiki updates wiki options of the repository.
+func (c *Client) EditWiki(owner, repo string, opt EditWikiOption) error {
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return err
+	}
+	_, err = c.getResponse("PATCH", fmt.Sprintf("/repos/%s/%s/wiki", owner, repo), jsonHeader, bytes.NewReader(body))
 	return err
 }
 

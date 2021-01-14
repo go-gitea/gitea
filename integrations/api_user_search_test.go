@@ -5,9 +5,12 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +22,7 @@ type SearchResults struct {
 }
 
 func TestAPIUserSearchLoggedIn(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -37,7 +40,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 }
 
 func TestAPIUserSearchNotLoggedIn(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -45,8 +48,14 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	var results SearchResults
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
+	var modelUser *models.User
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
-		assert.Empty(t, user.Email)
+		modelUser = models.AssertExistsAndLoadBean(t, &models.User{ID: user.ID}).(*models.User)
+		if modelUser.KeepEmailPrivate {
+			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
+		} else {
+			assert.EqualValues(t, modelUser.Email, user.Email)
+		}
 	}
 }

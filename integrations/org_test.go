@@ -13,7 +13,7 @@ import (
 )
 
 func TestOrgRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var (
 		users = []string{"user1", "user2"}
@@ -43,7 +43,7 @@ func TestOrgRepos(t *testing.T) {
 }
 
 func TestLimitedOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/limited_org")
@@ -73,7 +73,7 @@ func TestLimitedOrg(t *testing.T) {
 }
 
 func TestPrivateOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/privated_org")

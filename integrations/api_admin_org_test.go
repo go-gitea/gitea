@@ -69,7 +69,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 }
 
 func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
 	token := getTokenForLoggedInUser(t, session)

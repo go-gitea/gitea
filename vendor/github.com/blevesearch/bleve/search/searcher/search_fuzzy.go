@@ -75,7 +75,7 @@ func findFuzzyCandidateTerms(indexReader index.IndexReader, term string,
 		for err == nil && tfd != nil {
 			rv = append(rv, tfd.Term)
 			if tooManyClauses(len(rv)) {
-				return nil, tooManyClausesErr(len(rv))
+				return nil, tooManyClausesErr(field, len(rv))
 			}
 			tfd, err = fieldDict.Next()
 		}
@@ -107,7 +107,7 @@ func findFuzzyCandidateTerms(indexReader index.IndexReader, term string,
 		if !exceeded && ld <= fuzziness {
 			rv = append(rv, tfd.Term)
 			if tooManyClauses(len(rv)) {
-				return nil, tooManyClausesErr(len(rv))
+				return nil, tooManyClausesErr(field, len(rv))
 			}
 		}
 		tfd, err = fieldDict.Next()

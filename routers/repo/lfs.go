@@ -11,13 +11,10 @@ import (
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
-	"os"
-	"path/filepath"
-	"sort"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -28,16 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/mcuadros/go-version"
-	"github.com/unknwon/com"
-	gogit "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 const (
 	tplSettingsLFS         base.TplName = "repo/settings/lfs"
+	tplSettingsLFSLocks    base.TplName = "repo/settings/lfs_locks"
 	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
 	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
 	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
@@ -58,6 +51,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.ServerError("LFSFiles", err)
 		return
 	}
+	ctx.Data["Total"] = total
 
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
@@ -70,6 +64,185 @@ func LFSFiles(ctx *context.Context) {
 	ctx.Data["LFSFiles"] = lfsMetaObjects
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsLFS)
+}
+
+// LFSLocks shows a repository's LFS locks
+func LFSLocks(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	total, err := models.CountLFSLockByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
+	ctx.Data["PageIsSettingsLFS"] = true
+	lfsLocks, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["LFSLocks"] = lfsLocks
+
+	if len(lfsLocks) == 0 {
+		ctx.Data["Page"] = pager
+		ctx.HTML(200, tplSettingsLFSLocks)
+		return
+	}
+
+	// Clone base repo.
+	tmpBasePath, err := models.CreateTemporaryPath("locks")
+	if err != nil {
+		log.Error("Failed to create temporary path: %v", err)
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	defer func() {
+		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
+		}
+	}()
+
+	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		return
+	}
+
+	gitRepo, err := git.OpenRepository(tmpBasePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		return
+	}
+	defer gitRepo.Close()
+
+	filenames := make([]string, len(lfsLocks))
+
+	for i, lock := range lfsLocks {
+		filenames[i] = lock.Path
+	}
+
+	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
+		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		return
+	}
+
+	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		Attributes: []string{"lockable"},
+		Filenames:  filenames,
+		CachedOnly: true,
+	})
+	if err != nil {
+		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+
+	lockables := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		attribute2info, has := name2attribute2info[lock.Path]
+		if !has {
+			continue
+		}
+		if attribute2info["lockable"] != "set" {
+			continue
+		}
+		lockables[i] = true
+	}
+	ctx.Data["Lockables"] = lockables
+
+	filelist, err := gitRepo.LsFiles(filenames...)
+	if err != nil {
+		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+
+	filemap := make(map[string]bool, len(filelist))
+	for _, name := range filelist {
+		filemap[name] = true
+	}
+
+	linkable := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		linkable[i] = filemap[lock.Path]
+	}
+	ctx.Data["Linkable"] = linkable
+
+	ctx.Data["Page"] = pager
+	ctx.HTML(200, tplSettingsLFSLocks)
+}
+
+// LFSLockFile locks a file
+func LFSLockFile(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	originalPath := ctx.Query("path")
+	lockPath := originalPath
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	if lockPath[len(lockPath)-1] == '/' {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_lock_directory", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	lockPath = path.Clean("/" + lockPath)[1:]
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+
+	_, err := models.CreateLFSLock(&models.LFSLock{
+		Repo:  ctx.Repo.Repository,
+		Path:  lockPath,
+		Owner: ctx.User,
+	})
+	if err != nil {
+		if models.IsErrLFSLockAlreadyExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.lfs_lock_already_exists", originalPath))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+			return
+		}
+		ctx.ServerError("LFSLockFile", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+}
+
+// LFSUnlock forcibly unlocks an LFS lock
+func LFSUnlock(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSUnlock", nil)
+		return
+	}
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, true)
+	if err != nil {
+		ctx.ServerError("LFSUnlock", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 }
 
 // LFSFileGet serves a single LFS file
@@ -106,14 +279,19 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	buf = buf[:n]
 
-	isTextFile := base.IsTextFile(buf)
-	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsTextFile"] = base.IsTextFile(buf)
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
@@ -179,8 +357,8 @@ func LFSDelete(ctx *context.Context) {
 	// FIXME: Warning: the LFS store is not locked - and can't be locked - there could be a race condition here
 	// Please note a similar condition happens in models/repo.go DeleteRepository
 	if count == 0 {
-		oidPath := filepath.Join(oid[0:2], oid[2:4], oid[4:])
-		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
+		oidPath := path.Join(oid[0:2], oid[2:4], oid[4:])
+		err = storage.LFS.Delete(oidPath)
 		if err != nil {
 			ctx.ServerError("LFSDelete", err)
 			return
@@ -188,22 +366,6 @@ func LFSDelete(ctx *context.Context) {
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")
 }
-
-type lfsResult struct {
-	Name           string
-	SHA            string
-	Summary        string
-	When           time.Time
-	ParentHashes   []plumbing.Hash
-	BranchName     string
-	FullCommitName string
-}
-
-type lfsResultSlice []*lfsResult
-
-func (a lfsResultSlice) Len() int           { return len(a) }
-func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
 func LFSFileFind(ctx *context.Context) {
@@ -220,138 +382,25 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.Query("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	var hash plumbing.Hash
+	var hash git.SHA1
 	if len(sha) == 0 {
 		meta := models.LFSMetaObject{Oid: oid, Size: size}
 		pointer := meta.Pointer()
-		hash = plumbing.ComputeHash(plumbing.BlobObject, []byte(pointer))
+		hash = git.ComputeBlobHash([]byte(pointer))
 		sha = hash.String()
 	} else {
-		hash = plumbing.NewHash(sha)
+		hash = git.MustIDFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	resultsMap := map[string]*lfsResult{}
-	results := make([]*lfsResult, 0)
-
-	basePath := ctx.Repo.Repository.RepoPath()
-	gogitRepo := ctx.Repo.GitRepo.GoGitRepo()
-
-	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
-		Order: gogit.LogOrderCommitterTime,
-		All:   true,
-	})
-	if err != nil {
-		log.Error("Failed to get GoGit CommitsIter: %v", err)
-		ctx.ServerError("LFSFind: Iterate Commits", err)
-		return
-	}
-
-	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
-		tree, err := gitCommit.Tree()
-		if err != nil {
-			return err
-		}
-		treeWalker := object.NewTreeWalker(tree, true, nil)
-		defer treeWalker.Close()
-		for {
-			name, entry, err := treeWalker.Next()
-			if err == io.EOF {
-				break
-			}
-			if entry.Hash == hash {
-				result := lfsResult{
-					Name:         name,
-					SHA:          gitCommit.Hash.String(),
-					Summary:      strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
-					When:         gitCommit.Author.When,
-					ParentHashes: gitCommit.ParentHashes,
-				}
-				resultsMap[gitCommit.Hash.String()+":"+name] = &result
-			}
-		}
-		return nil
-	})
+	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, hash)
 	if err != nil && err != io.EOF {
-		log.Error("Failure in CommitIter.ForEach: %v", err)
-		ctx.ServerError("LFSFind: IterateCommits ForEach", err)
+		log.Error("Failure in FindLFSFile: %v", err)
+		ctx.ServerError("LFSFind: FindLFSFile.", err)
 		return
-	}
-
-	for _, result := range resultsMap {
-		hasParent := false
-		for _, parentHash := range result.ParentHashes {
-			if _, hasParent = resultsMap[parentHash.String()+":"+result.Name]; hasParent {
-				break
-			}
-		}
-		if !hasParent {
-			results = append(results, result)
-		}
-	}
-
-	sort.Sort(lfsResultSlice(results))
-
-	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
-	shasToNameReader, shasToNameWriter := io.Pipe()
-	nameRevStdinReader, nameRevStdinWriter := io.Pipe()
-	errChan := make(chan error, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(nameRevStdinReader)
-		i := 0
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(line) == 0 {
-				continue
-			}
-			result := results[i]
-			result.FullCommitName = line
-			result.BranchName = strings.Split(line, "~")[0]
-			i++
-		}
-	}()
-	go pipeline.NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
-	go func() {
-		defer wg.Done()
-		defer shasToNameWriter.Close()
-		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
-			}
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
-			}
-
-		}
-	}()
-
-	wg.Wait()
-
-	select {
-	case err, has := <-errChan:
-		if has {
-			ctx.ServerError("LFSPointerFiles", err)
-		}
-	default:
 	}
 
 	ctx.Data["Results"] = results
@@ -365,7 +414,7 @@ func LFSPointerFiles(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
@@ -410,7 +459,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
-	if !version.Compare(binVersion, "2.6.0", ">=") {
+	if git.CheckGitVersionAtLeast("2.6.0") != nil {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)
@@ -444,7 +493,7 @@ type pointerResult struct {
 func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
-	contentStore := lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := lfs.ContentStore{ObjectStorage: storage.LFS}
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
@@ -498,7 +547,11 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			result.InRepo = true
 		}
 
-		result.Exists = contentStore.Exists(pointer)
+		result.Exists, err = contentStore.Exists(pointer)
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
 
 		if result.Exists {
 			if !result.InRepo {
@@ -535,7 +588,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
-		metas[i].Size, err = com.StrTo(oid[idx+1:]).Int64()
+		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
 			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
 			return

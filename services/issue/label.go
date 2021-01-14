@@ -51,7 +51,10 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 		return err
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return models.ErrLabelNotExist{}
+		if label.OrgID > 0 {
+			return models.ErrOrgLabelNotExist{}
+		}
+		return models.ErrRepoLabelNotExist{}
 	}
 
 	if err := models.DeleteIssueLabel(issue, label, doer); err != nil {
@@ -59,5 +62,20 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 	}
 
 	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
+	return nil
+}
+
+// ReplaceLabels removes all current labels and add new labels to the issue.
+func ReplaceLabels(issue *models.Issue, doer *models.User, labels []*models.Label) error {
+	old, err := models.GetLabelsByIssueID(issue.ID)
+	if err != nil {
+		return err
+	}
+
+	if err := issue.ReplaceLabels(labels, doer); err != nil {
+		return err
+	}
+
+	notification.NotifyIssueChangeLabels(doer, issue, labels, old)
 	return nil
 }

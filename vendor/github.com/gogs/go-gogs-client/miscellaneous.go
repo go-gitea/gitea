@@ -6,6 +6,5 @@ package gogs
 
 type MarkdownOption struct {
 	Text    string
-	Mode    string
 	Context string
 }

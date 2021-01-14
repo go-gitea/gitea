@@ -1,7 +1,7 @@
 # Gitea: 文档
 
 [![Build Status](http://drone.gitea.io/api/badges/go-gitea/docs/status.svg)](http://drone.gitea.io/go-gitea/docs)
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
+[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
 [![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
 
 ## 关于托管方式

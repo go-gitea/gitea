@@ -17,6 +17,7 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err

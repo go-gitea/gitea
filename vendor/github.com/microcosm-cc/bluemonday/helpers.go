@@ -135,7 +135,7 @@ func (p *Policy) AllowStandardURLs() {
 	// Most common URL schemes only
 	p.AllowURLSchemes("mailto", "http", "https")
 
-	// For all anchors we will add rel="nofollow" if it does not already exist
+	// For linking elements we will add rel="nofollow" if it does not already exist
 	// This applies to "a" "area" "link"
 	p.RequireNoFollowOnLinks(true)
 }

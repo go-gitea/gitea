@@ -12,7 +12,7 @@ import (
 )
 
 func TestCORSNotSet(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)

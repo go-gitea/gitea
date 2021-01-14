@@ -54,13 +54,13 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 }
 
 func TestRepoFork(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user1")
 	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 }
 
 func TestRepoForkToOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testRepoFork(t, session, "user2", "repo1", "user3", "repo1")
 

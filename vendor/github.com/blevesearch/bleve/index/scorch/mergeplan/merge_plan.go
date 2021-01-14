@@ -134,6 +134,17 @@ var DefaultMergePlanOptions = MergePlanOptions{
 	ReclaimDeletesWeight: 2.0,
 }
 
+// SingleSegmentMergePlanOptions helps in creating a
+// single segment index.
+var SingleSegmentMergePlanOptions = MergePlanOptions{
+	MaxSegmentsPerTier:   1,
+	MaxSegmentSize:       1 << 30,
+	TierGrowth:           1.0,
+	SegmentsPerMergeTask: 10,
+	FloorSegmentSize:     1 << 30,
+	ReclaimDeletesWeight: 2.0,
+}
+
 // -------------------------------------------
 
 func plan(segmentsIn []Segment, o *MergePlanOptions) (*MergePlan, error) {
@@ -173,7 +184,7 @@ func plan(segmentsIn []Segment, o *MergePlanOptions) (*MergePlan, error) {
 		calcBudget = CalcBudget
 	}
 
-	budgetNumSegments := CalcBudget(eligiblesLiveSize, minLiveSize, o)
+	budgetNumSegments := calcBudget(eligiblesLiveSize, minLiveSize, o)
 
 	scoreSegments := o.ScoreSegments
 	if scoreSegments == nil {

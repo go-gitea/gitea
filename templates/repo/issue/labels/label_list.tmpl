@@ -1,0 +1,96 @@
+<h4 class="ui top attached header">
+		{{.i18n.Tr "repo.issues.label_count" .NumLabels}}
+		<div class="ui right">
+			<div class="ui right floated secondary filter menu">
+				<!-- Sort -->
+				<div class="ui dropdown type jump item">
+					<span class="text">
+						{{.i18n.Tr "repo.issues.filter_sort"}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+					<div class="menu">
+						<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{.i18n.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+						<a class="{{if eq .SortType "reversealphabetically"}}active{{end}} item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+						<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+						<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?sort=mostissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+					</div>
+				</div>
+			</div>
+		</div> <!-- filter menu -->
+</h4>
+
+<div class="ui attached segment">
+	<div class="labelspage">
+		{{if and (not $.PageIsOrgSettingsLabels) (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
+			{{template "repo/issue/labels/label_load_template" .}}
+			<div class="ui divider"></div>
+		{{else if and ($.PageIsOrgSettingsLabels) (eq .NumLabels 0)}}
+			{{template "repo/issue/labels/label_load_template" .}}
+		{{end}}
+		{{range .Labels}}
+			<li class="item">
+			<div class="ui grid middle aligned">
+				<div class="four wide column">
+					<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag"}} {{.Name | RenderEmoji}}</div>
+				</div>
+				<div class="six wide column">
+					<div class="ui">
+					{{.Description | RenderEmoji}}
+					</div>
+				</div>
+				<div class="three wide column">
+					{{if $.PageIsOrgSettingsLabels}}
+						<a class="ui right open-issues" href="/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+					{{else}}
+						<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+					{{end}}
+				</div>
+				<div class="three wide column">
+					{{if and (not $.PageIsOrgSettingsLabels ) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
+						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+					{{else if $.PageIsOrgSettingsLabels}}
+						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+					{{end}}
+				</div>
+			</div>
+			</li>
+		{{end}}
+		{{if and (not .PageIsOrgSettingsLabels) (.OrgLabels) }}
+			<li class="item">
+				<div class="ui grid middle aligned">
+					<div class="ten wide column">
+						{{$.i18n.Tr "repo.org_labels_desc" | Str2html}}
+						{{if .IsOrganizationOwner}}
+							<a class="ui" href="{{.OrganizationLink}}/settings/labels">({{$.i18n.Tr "repo.org_labels_desc_manage"}})</a>:
+						{{end}}
+					</div>
+				</div>
+			</li>
+			{{if (not $.PageIsOrgSettingsLabels)}}
+				<div class="orglabel">
+					{{range .OrgLabels}}
+					<li class="item">
+					<div class="ui grid middle aligned">
+						<div class="three wide column">
+							<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag"}} {{.Name | RenderEmoji}}</div>
+						</div>
+						<div class="seven wide column">
+							<div class="ui">
+							{{.Description | RenderEmoji}}
+							</div>
+						</div>
+						<div class="three wide column">
+								<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
+						</div>
+						<div class="three wide column">
+						</div>
+					</div>
+					</li>
+					{{end}}
+				</div>
+			{{end}}
+		{{end}}
+	</div>
+</div>

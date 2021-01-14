@@ -23,3 +23,9 @@ func (c *Client) GetUserInfo(user string) (*User, error) {
 	err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)
 	return u, err
 }
+
+func (c *Client) GetSelfInfo() (*User, error) {
+	u := new(User)
+	err := c.getParsedResponse("GET", "/user", nil, nil, u)
+	return u, err
+}

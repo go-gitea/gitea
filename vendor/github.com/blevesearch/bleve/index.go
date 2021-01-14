@@ -117,6 +117,8 @@ func (b *Batch) String() string {
 // be re-used in the future.
 func (b *Batch) Reset() {
 	b.internal.Reset()
+	b.lastDocSize = 0
+	b.totalSize = 0
 }
 
 func (b *Batch) Merge(o *Batch) {
@@ -290,4 +292,18 @@ func Open(path string) (Index, error) {
 // persisted when the kvstore was created.
 func OpenUsing(path string, runtimeConfig map[string]interface{}) (Index, error) {
 	return openIndexUsing(path, runtimeConfig)
+}
+
+// Builder is a limited interface, used to build indexes in an offline mode.
+// Items cannot be updated or deleted, and the caller MUST ensure a document is
+// indexed only once.
+type Builder interface {
+	Index(id string, data interface{}) error
+	Close() error
+}
+
+// NewBuilder creates a builder, which will build an index at the specified path,
+// using the specified mapping and options.
+func NewBuilder(path string, mapping mapping.IndexMapping, config map[string]interface{}) (Builder, error) {
+	return newBuilder(path, mapping, config)
 }

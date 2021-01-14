@@ -5,14 +5,17 @@
 package integrations
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -48,6 +51,7 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			Description: "Temporary repo",
 			Name:        ctx.Reponame,
 			Private:     true,
+			Template:    true,
 			Gitignores:  "",
 			License:     "WTFPL",
 			Readme:      "Default",
@@ -224,11 +228,29 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			Do:                string(models.MergeStyleMerge),
 		})
 
-		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
-			return
+		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+
+		if resp.Code == http.StatusMethodNotAllowed {
+			err := api.APIError{}
+			DecodeJSON(t, resp, &err)
+			assert.EqualValues(t, "Please try again later", err.Message)
+			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+				MergeMessageField: "doAPIMergePullRequest Merge",
+				Do:                string(models.MergeStyleMerge),
+			})
+			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}
-		ctx.Session.MakeRequest(t, req, 200)
+
+		expected := ctx.ExpectedCode
+		if expected == 0 {
+			expected = 200
+		}
+
+		if !assert.EqualValues(t, expected, resp.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, resp)
+		}
 	}
 }
 
@@ -264,5 +286,88 @@ func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFil
 		if len(callback) > 0 {
 			callback[0](t, contents)
 		}
+	}
+}
+
+func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, callback ...func(*testing.T, api.Organization)) func(t *testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/orgs?token=%s", ctx.Token)
+
+		req := NewRequestWithJSON(t, "POST", url, &options)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var contents api.Organization
+		DecodeJSON(t, resp, &contents)
+		if len(callback) > 0 {
+			callback[0](t, contents)
+		}
+	}
+}
+
+func doAPICreateOrganizationRepository(ctx APITestContext, orgName string, options *api.CreateRepoOption, callback ...func(*testing.T, api.Repository)) func(t *testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/orgs/%s/repos?token=%s", orgName, ctx.Token)
+
+		req := NewRequestWithJSON(t, "POST", url, &options)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var contents api.Repository
+		DecodeJSON(t, resp, &contents)
+		if len(callback) > 0 {
+			callback[0](t, contents)
+		}
+	}
+}
+
+func doAPICreateOrganizationTeam(ctx APITestContext, orgName string, options *api.CreateTeamOption, callback ...func(*testing.T, api.Team)) func(t *testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, ctx.Token)
+
+		req := NewRequestWithJSON(t, "POST", url, &options)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var contents api.Team
+		DecodeJSON(t, resp, &contents)
+		if len(callback) > 0 {
+			callback[0](t, contents)
+		}
+	}
+}
+
+func doAPIAddUserToOrganizationTeam(ctx APITestContext, teamID int64, username string) func(t *testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", teamID, username, ctx.Token)
+
+		req := NewRequest(t, "PUT", url)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+	}
+}
+
+func doAPIAddRepoToOrganizationTeam(ctx APITestContext, teamID int64, orgName, repoName string) func(t *testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/teams/%d/repos/%s/%s?token=%s", teamID, orgName, repoName, ctx.Token)
+
+		req := NewRequest(t, "PUT", url)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
 	}
 }

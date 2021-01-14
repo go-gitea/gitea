@@ -38,6 +38,8 @@ type SearchSort interface {
 	RequiresScoring() bool
 	RequiresFields() []string
 
+	Reverse()
+
 	Copy() SearchSort
 }
 
@@ -231,7 +233,11 @@ func (so SortOrder) Compare(cachedScoring, cachedDesc []bool, i, j *DocumentMatc
 		} else {
 			iVal := i.Sort[x]
 			jVal := j.Sort[x]
-			c = strings.Compare(iVal, jVal)
+			if iVal < jVal {
+				c = -1
+			} else if iVal > jVal {
+				c = 1
+			}
 		}
 
 		if c == 0 {
@@ -291,6 +297,12 @@ func (so SortOrder) CacheDescending() []bool {
 		rv = append(rv, soi.Descending())
 	}
 	return rv
+}
+
+func (so SortOrder) Reverse() {
+	for _, soi := range so {
+		soi.Reverse()
+	}
 }
 
 // SortFieldType lets you control some internal sort behavior
@@ -415,7 +427,8 @@ func (s *SortField) filterTermsByType(terms [][]byte) [][]byte {
 				allTermsPrefixCoded = false
 			}
 		}
-		if allTermsPrefixCoded {
+		// reset the terms only when valid zero shift terms are found.
+		if allTermsPrefixCoded && len(termsWithShiftZero) > 0 {
 			terms = termsWithShiftZero
 			s.tmp = termsWithShiftZero[:0]
 		}
@@ -492,6 +505,15 @@ func (s *SortField) Copy() SearchSort {
 	return &rv
 }
 
+func (s *SortField) Reverse() {
+	s.Desc = !s.Desc
+	if s.Missing == SortFieldMissingFirst {
+		s.Missing = SortFieldMissingLast
+	} else {
+		s.Missing = SortFieldMissingFirst
+	}
+}
+
 // SortDocID will sort results by the document identifier
 type SortDocID struct {
 	Desc bool
@@ -533,6 +555,10 @@ func (s *SortDocID) Copy() SearchSort {
 	return &rv
 }
 
+func (s *SortDocID) Reverse() {
+	s.Desc = !s.Desc
+}
+
 // SortScore will sort results by the document match score
 type SortScore struct {
 	Desc bool
@@ -572,6 +598,10 @@ func (s *SortScore) MarshalJSON() ([]byte, error) {
 func (s *SortScore) Copy() SearchSort {
 	rv := *s
 	return &rv
+}
+
+func (s *SortScore) Reverse() {
+	s.Desc = !s.Desc
 }
 
 var maxDistance = string(numeric.MustNewPrefixCodedInt64(math.MaxInt64, 0))
@@ -703,6 +733,10 @@ func (s *SortGeoDistance) MarshalJSON() ([]byte, error) {
 func (s *SortGeoDistance) Copy() SearchSort {
 	rv := *s
 	return &rv
+}
+
+func (s *SortGeoDistance) Reverse() {
+	s.Desc = !s.Desc
 }
 
 type BytesSlice [][]byte

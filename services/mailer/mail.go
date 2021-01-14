@@ -9,10 +9,14 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"path"
+	"mime"
+	"regexp"
+	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -28,23 +32,27 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	mailIssueComment  base.TplName = "issue/comment"
-	mailIssueMention  base.TplName = "issue/mention"
-	mailIssueAssigned base.TplName = "issue/assigned"
-
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
+
+	// There's no actual limit for subject in RFC 5322
+	mailMaxSubjectRunes = 256
 )
 
-var templates *template.Template
+var (
+	bodyTemplates       *template.Template
+	subjectTemplates    *texttmpl.Template
+	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+)
 
 // InitMailRender initializes the mail renderer
-func InitMailRender(tmpls *template.Template) {
-	templates = tmpls
+func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
+	subjectTemplates = subjectTpl
+	bodyTemplates = bodyTpl
 }
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // SendUserMail sends a mail to the user
@@ -58,7 +66,7 @@ func SendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -96,7 +104,7 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -121,7 +129,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -134,7 +142,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
-	repoName := path.Join(repo.Owner.Name, repo.Name)
+	repoName := repo.FullName()
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
 	data := map[string]interface{}{
@@ -145,7 +153,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -156,74 +164,180 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeTplData(subject, body, link string) map[string]interface{} {
-	data := make(map[string]interface{}, 10)
-	data["Subject"] = subject
-	data["Body"] = body
-	data["Link"] = link
-	return data
-}
+func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMention bool, info string) []*Message {
 
-func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tplName base.TplName, tos []string, info string) *Message {
-	var subject string
-	if comment != nil {
-		subject = "Re: " + mailSubject(issue)
-	} else {
-		subject = mailSubject(issue)
-	}
-	err := issue.LoadRepo()
-	if err != nil {
-		log.Error("LoadRepo: %v", err)
-	}
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	var (
+		subject string
+		link    string
+		prefix  string
+		// Fall back subject for bad templates, make sure subject is never empty
+		fallback       string
+		reviewComments []*models.Comment
+	)
 
-	var data = make(map[string]interface{}, 10)
-	if comment != nil {
-		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
+	commentType := models.CommentTypeComment
+	if ctx.Comment != nil {
+		commentType = ctx.Comment.Type
+		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
 	} else {
-		data = composeTplData(subject, body, issue.HTMLURL())
+		link = ctx.Issue.HTMLURL()
 	}
-	data["Doer"] = doer
-	data["Issue"] = issue
+
+	reviewType := models.ReviewTypeComment
+	if ctx.Comment != nil && ctx.Comment.Review != nil {
+		reviewType = ctx.Comment.Review.Type
+	}
+
+	// This is the body of the new issue or comment, not the mail body
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
+
+	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
+
+	if actName != "new" {
+		prefix = "Re: "
+	}
+	fallback = prefix + fallbackMailSubject(ctx.Issue)
+
+	if ctx.Comment != nil && ctx.Comment.Review != nil {
+		reviewComments = make([]*models.Comment, 0, 10)
+		for _, lines := range ctx.Comment.Review.CodeComments {
+			for _, comments := range lines {
+				reviewComments = append(reviewComments, comments...)
+			}
+		}
+	}
+
+	mailMeta := map[string]interface{}{
+		"FallbackSubject": fallback,
+		"Body":            body,
+		"Link":            link,
+		"Issue":           ctx.Issue,
+		"Comment":         ctx.Comment,
+		"IsPull":          ctx.Issue.IsPull,
+		"User":            ctx.Issue.Repo.MustOwner(),
+		"Repo":            ctx.Issue.Repo.FullName(),
+		"Doer":            ctx.Doer,
+		"IsMention":       fromMention,
+		"SubjectPrefix":   prefix,
+		"ActionType":      actType,
+		"ActionName":      actName,
+		"ReviewComments":  reviewComments,
+	}
+
+	var mailSubject bytes.Buffer
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+		subject = sanitizeSubject(mailSubject.String())
+	} else {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/subject", err)
+	}
+
+	if subject == "" {
+		subject = fallback
+	}
+
+	subject = emoji.ReplaceAliases(subject)
+
+	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
-		log.Error("Template: %v", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
-	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
-	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
+	// Make sure to compose independent messages to avoid leaking user emails
+	msgs := make([]*Message, 0, len(tos))
+	for _, to := range tos {
+		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-	// Set Message-ID on first message so replies know what to reference
-	if comment == nil {
-		msg.SetHeader("Message-ID", "<"+issue.ReplyReference()+">")
-	} else {
-		msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
-		msg.SetHeader("References", "<"+issue.ReplyReference()+">")
+		// Set Message-ID on first message so replies know what to reference
+		if actName == "new" {
+			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
+		} else {
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
+			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference()+">")
+		}
+		msgs = append(msgs, msg)
 	}
 
-	return msg
+	return msgs
 }
 
-// SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	if len(tos) == 0 {
-		return
+func sanitizeSubject(subject string) string {
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	if len(runes) > mailMaxSubjectRunes {
+		runes = runes[:mailMaxSubjectRunes]
 	}
-
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
-}
-
-// SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	if len(tos) == 0 {
-		return
-	}
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
+	// Encode non-ASCII characters
+	return mime.QEncoding.Encode("utf-8", string(runes))
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
 func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueAssigned, tos, "issue assigned"))
+	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
+		Issue:      issue,
+		Doer:       doer,
+		ActionType: models.ActionType(0),
+		Content:    content,
+		Comment:    comment,
+	}, tos, false, "issue assigned"))
+}
+
+// actionToTemplate returns the type and name of the action facing the user
+// (slightly different from models.ActionType) and the name of the template to use (based on availability)
+func actionToTemplate(issue *models.Issue, actionType models.ActionType,
+	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
+	if issue.IsPull {
+		typeName = "pull"
+	} else {
+		typeName = "issue"
+	}
+	switch actionType {
+	case models.ActionCreateIssue, models.ActionCreatePullRequest:
+		name = "new"
+	case models.ActionCommentIssue, models.ActionCommentPull:
+		name = "comment"
+	case models.ActionCloseIssue, models.ActionClosePullRequest:
+		name = "close"
+	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+		name = "reopen"
+	case models.ActionMergePullRequest:
+		name = "merge"
+	default:
+		switch commentType {
+		case models.CommentTypeReview:
+			switch reviewType {
+			case models.ReviewTypeApprove:
+				name = "approve"
+			case models.ReviewTypeReject:
+				name = "reject"
+			default:
+				name = "review"
+			}
+		case models.CommentTypeCode:
+			name = "code"
+		case models.CommentTypeAssignees:
+			name = "assigned"
+		case models.CommentTypePullPush:
+			name = "push"
+		default:
+			name = "default"
+		}
+	}
+
+	template = typeName + "/" + name
+	ok := bodyTemplates.Lookup(template) != nil
+	if !ok && typeName != "issue" {
+		template = "issue/" + name
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = typeName + "/default"
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = "issue/default"
+	}
+	return
 }

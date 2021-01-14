@@ -84,7 +84,7 @@ bluemonday is heavily inspired by both the OWASP Java HTML Sanitizer
 
 We ship two default policies, one is bluemonday.StrictPolicy() and can be
 thought of as equivalent to stripping all HTML elements and their attributes as
-it has nothing on it's whitelist.
+it has nothing on its whitelist.
 
 The other is bluemonday.UGCPolicy() and allows a broad selection of HTML
 elements and attributes that are safe for user generated content. Note that

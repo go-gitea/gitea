@@ -1,0 +1,31 @@
+{{if eq .HookType "matrix"}}
+	<p>{{.i18n.Tr "repo.settings.add_matrix_hook_desc" "https://matrix.org/" | Str2html}}</p>
+	<form class="ui form" action="{{.BaseLink}}/matrix/{{or .Webhook.ID "new"}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_HomeserverURL}}error{{end}}">
+			<label for="homeserver_url">{{.i18n.Tr "repo.settings.matrix.homeserver_url"}}</label>
+			<input id="homeserver_url" name="homeserver_url" type="url" value="{{.MatrixHook.HomeserverURL}}" autofocus required>
+		</div>
+		<div class="required field {{if .Err_Room}}error{{end}}">
+        	<label for="room_id">{{.i18n.Tr "repo.settings.matrix.room_id"}}</label>
+          	<input id="room_id" name="room_id" type="text" value="{{.MatrixHook.Room}}" required>
+        </div>
+    	<div class="required field {{if .Err_AccessToken}}error{{end}}">
+    		<label for="access_token">{{.i18n.Tr "repo.settings.matrix.access_token"}}</label>
+    		<input id="access_token" name="access_token" type="text" value="{{.MatrixHook.AccessToken}}" required>
+    	</div>
+    	<div class="field">
+    		<label>{{.i18n.Tr "repo.settings.matrix.message_type"}}</label>
+     		<div class="ui selection dropdown">
+	     		<input type="hidden" id="message_type" name="message_type" value="{{if .MatrixHook.MessageType}}{{.MatrixHook.MessageType}}{{else}}1{{end}}">
+    	 		<div class="default text"></div>
+     				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+     				<div class="menu">
+     					<div class="item" data-value="1">m.notice</div>
+     					<div class="item" data-value="2">m.text</div>
+     				</div>
+     			</div>
+     	</div>
+		{{template "repo/settings/webhook/settings" .}}
+	</form>
+{{end}}

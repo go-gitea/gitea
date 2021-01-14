@@ -32,4 +32,4 @@ func (d *Document) parseFootnoteDefinition(i int, parentStop stopFn) (int, Node)
 	return consumed, definition
 }
 
-func (n FootnoteDefinition) String() string { return orgWriter.nodesAsString(n) }
+func (n FootnoteDefinition) String() string { return orgWriter.WriteNodesAsString(n) }

@@ -18,6 +18,7 @@ func TestComplexity_IsComplexEnough(t *testing.T) {
 		truevalues  []string
 		falsevalues []string
 	}{
+		{[]string{"off"}, []string{"1", "-", "a", "A", "ñ", "日本語"}, []string{}},
 		{[]string{"lower"}, []string{"abc", "abc!"}, []string{"ABC", "123", "=!$", ""}},
 		{[]string{"upper"}, []string{"ABC"}, []string{"abc", "123", "=!$", "abc!", ""}},
 		{[]string{"digit"}, []string{"123"}, []string{"abc", "ABC", "=!$", "abc!", ""}},
@@ -25,6 +26,7 @@ func TestComplexity_IsComplexEnough(t *testing.T) {
 		{[]string{"off"}, []string{"abc", "ABC", "123", "=!$", "abc!", ""}, nil},
 		{[]string{"lower", "spec"}, []string{"abc!"}, []string{"abc", "ABC", "123", "=!$", "abcABC123", ""}},
 		{[]string{"lower", "upper", "digit"}, []string{"abcABC123"}, []string{"abc", "ABC", "123", "=!$", "abc!", ""}},
+		{[]string{""}, []string{"abC=1", "abc!9D"}, []string{"ABC", "123", "=!$", ""}},
 	}
 
 	for _, test := range testlist {
@@ -70,6 +72,6 @@ func TestComplexity_Generate(t *testing.T) {
 func testComplextity(values []string) {
 	// Cleanup previous values
 	validChars = ""
-	requiredChars = make([]string, 0, len(values))
+	requiredList = make([]complexity, 0, len(values))
 	setupComplexity(values)
 }

@@ -17,7 +17,7 @@ import (
 )
 
 func TestAPIGitTags(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	// Login as User2.
@@ -29,6 +29,8 @@ func TestAPIGitTags(t *testing.T) {
 	git.NewCommand("config", "user.email", user.Email).RunInDir(repo.RepoPath())
 
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	defer gitRepo.Close()
+
 	commit, _ := gitRepo.GetBranchCommit("master")
 	lTagName := "lightweightTag"
 	gitRepo.CreateTag(lTagName, commit.ID.String())
@@ -48,7 +50,7 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, aTagName, tag.Tag)
 	assert.Equal(t, aTag.ID.String(), tag.SHA)
 	assert.Equal(t, commit.ID.String(), tag.Object.SHA)
-	assert.Equal(t, aTagMessage, tag.Message)
+	assert.Equal(t, aTagMessage+"\n", tag.Message)
 	assert.Equal(t, user.Name, tag.Tagger.Name)
 	assert.Equal(t, user.Email, tag.Tagger.Email)
 	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)

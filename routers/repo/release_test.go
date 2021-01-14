@@ -57,5 +57,6 @@ func TestNewReleasePost(t *testing.T) {
 			Title:       testCase.Form.Title,
 			Note:        testCase.Form.Content,
 		}, models.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
+		ctx.Repo.GitRepo.Close()
 	}
 }

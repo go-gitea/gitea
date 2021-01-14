@@ -18,8 +18,6 @@ import (
 	"unsafe"
 )
 
-//sys	sysctl(mib []_C_int, old *byte, oldlen *uintptr, new *byte, newlen uintptr) (err error) = SYS___SYSCTL
-
 // SockaddrDatalink implements the Sockaddr interface for AF_LINK type sockets.
 type SockaddrDatalink struct {
 	Len    uint8
@@ -31,6 +29,10 @@ type SockaddrDatalink struct {
 	Slen   uint8
 	Data   [12]int8
 	raw    RawSockaddrDatalink
+}
+
+func anyToSockaddrGOOS(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
+	return nil, EAFNOSUPPORT
 }
 
 func Syscall9(trap, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err syscall.Errno)
@@ -108,23 +110,6 @@ func direntNamlen(buf []byte) (uint64, bool) {
 	return readInt(buf, unsafe.Offsetof(Dirent{}.Namlen), unsafe.Sizeof(Dirent{}.Namlen))
 }
 
-func SysctlClockinfo(name string) (*Clockinfo, error) {
-	mib, err := sysctlmib(name)
-	if err != nil {
-		return nil, err
-	}
-
-	n := uintptr(SizeofClockinfo)
-	var ci Clockinfo
-	if err := sysctl(mib, (*byte)(unsafe.Pointer(&ci)), &n, nil, 0); err != nil {
-		return nil, err
-	}
-	if n != SizeofClockinfo {
-		return nil, EIO
-	}
-	return &ci, nil
-}
-
 //sysnb pipe() (fd1 int, fd2 int, err error)
 func Pipe(p []int) (err error) {
 	if len(p) != 2 {
@@ -160,22 +145,7 @@ func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
 	return
 }
 
-const ImplementsGetwd = true
-
 //sys	Getcwd(buf []byte) (n int, err error) = SYS___GETCWD
-
-func Getwd() (string, error) {
-	var buf [PathMax]byte
-	_, err := Getcwd(buf[0:])
-	if err != nil {
-		return "", err
-	}
-	n := clen(buf[:])
-	if n < 1 {
-		return "", EINVAL
-	}
-	return string(buf[:n]), nil
-}
 
 // TODO
 func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
@@ -188,6 +158,8 @@ func setattrlistTimes(path string, times []Timespec, flags int) error {
 }
 
 //sys	ioctl(fd int, req uint, arg uintptr) (err error)
+
+//sys   sysctl(mib []_C_int, old *byte, oldlen *uintptr, new *byte, newlen uintptr) (err error) = SYS___SYSCTL
 
 func IoctlGetPtmget(fd int, req uint) (*Ptmget, error) {
 	var value Ptmget
@@ -249,6 +221,14 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 	return sendfile(outfd, infd, offset, count)
 }
 
+func Fstatvfs(fd int, buf *Statvfs_t) (err error) {
+	return Fstatvfs1(fd, buf, ST_WAIT)
+}
+
+func Statvfs(path string, buf *Statvfs_t) (err error) {
+	return Statvfs1(path, buf, ST_WAIT)
+}
+
 /*
  * Exposed directly
  */
@@ -262,6 +242,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Close(fd int) (err error)
 //sys	Dup(fd int) (nfd int, err error)
 //sys	Dup2(from int, to int) (err error)
+//sys	Dup3(from int, to int, flags int) (err error)
 //sys	Exit(code int)
 //sys	ExtattrGetFd(fd int, attrnamespace int, attrname string, data uintptr, nbytes int) (ret int, err error)
 //sys	ExtattrSetFd(fd int, attrnamespace int, attrname string, data uintptr, nbytes int) (ret int, err error)
@@ -287,6 +268,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Fpathconf(fd int, name int) (val int, err error)
 //sys	Fstat(fd int, stat *Stat_t) (err error)
 //sys	Fstatat(fd int, path string, stat *Stat_t, flags int) (err error)
+//sys	Fstatvfs1(fd int, buf *Statvfs_t, flags int) (err error) = SYS_FSTATVFS1
 //sys	Fsync(fd int) (err error)
 //sys	Ftruncate(fd int, length int64) (err error)
 //sysnb	Getegid() (egid int)
@@ -330,7 +312,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Revoke(path string) (err error)
 //sys	Rmdir(path string) (err error)
 //sys	Seek(fd int, offset int64, whence int) (newoffset int64, err error) = SYS_LSEEK
-//sys	Select(n int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (err error)
+//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error)
 //sysnb	Setegid(egid int) (err error)
 //sysnb	Seteuid(euid int) (err error)
 //sysnb	Setgid(gid int) (err error)
@@ -343,6 +325,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sysnb	Settimeofday(tp *Timeval) (err error)
 //sysnb	Setuid(uid int) (err error)
 //sys	Stat(path string, stat *Stat_t) (err error)
+//sys	Statvfs1(path string, buf *Statvfs_t, flags int) (err error) = SYS_STATVFS1
 //sys	Symlink(path string, link string) (err error)
 //sys	Symlinkat(oldpath string, newdirfd int, newpath string) (err error)
 //sys	Sync() (err error)

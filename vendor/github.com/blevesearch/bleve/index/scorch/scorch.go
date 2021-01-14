@@ -28,10 +28,9 @@ import (
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	"github.com/blevesearch/bleve/index/scorch/segment/zap"
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/registry"
-	bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 const Name = "scorch"
@@ -41,12 +40,14 @@ const Version uint8 = 2
 var ErrClosed = fmt.Errorf("scorch closed")
 
 type Scorch struct {
+	nextSegmentID uint64
+	stats         Stats
+	iStats        internalStats
+
 	readOnly      bool
 	version       uint8
 	config        map[string]interface{}
 	analysisQueue *index.AnalysisQueue
-	stats         Stats
-	nextSegmentID uint64
 	path          string
 
 	unsafeBatch bool
@@ -65,7 +66,6 @@ type Scorch struct {
 	persists           chan *persistIntroduction
 	merges             chan *segmentMerge
 	introducerNotifier chan *epochWatcher
-	revertToSnapshots  chan *snapshotReversion
 	persisterNotifier  chan *epochWatcher
 	rootBolt           *bolt.DB
 	asyncTasks         sync.WaitGroup
@@ -73,11 +73,9 @@ type Scorch struct {
 	onEvent      func(event Event)
 	onAsyncError func(err error)
 
-	iStats internalStats
+	forceMergeRequestCh chan *mergerCtrl
 
-	pauseLock sync.RWMutex
-
-	pauseCount uint64
+	segPlugin segment.Plugin
 }
 
 type internalStats struct {
@@ -101,7 +99,22 @@ func NewScorch(storeName string,
 		nextSnapshotEpoch:    1,
 		closeCh:              make(chan struct{}),
 		ineligibleForRemoval: map[string]bool{},
+		forceMergeRequestCh:  make(chan *mergerCtrl, 1),
+		segPlugin:            defaultSegmentPlugin,
 	}
+
+	forcedSegmentType, forcedSegmentVersion, err := configForceSegmentTypeVersion(config)
+	if err != nil {
+		return nil, err
+	}
+	if forcedSegmentType != "" && forcedSegmentVersion != 0 {
+		err := rv.loadSegmentPlugin(forcedSegmentType,
+			uint32(forcedSegmentVersion))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
 	ro, ok := config["read_only"].(bool)
 	if ok {
@@ -122,30 +135,34 @@ func NewScorch(storeName string,
 	return rv, nil
 }
 
-func (s *Scorch) paused() uint64 {
-	s.pauseLock.Lock()
-	pc := s.pauseCount
-	s.pauseLock.Unlock()
-	return pc
+// configForceSegmentTypeVersion checks if the caller has requested a
+// specific segment type/version
+func configForceSegmentTypeVersion(config map[string]interface{}) (string, uint32, error) {
+	forcedSegmentVersion, err := parseToInteger(config["forceSegmentVersion"])
+	if err != nil {
+		return "", 0, nil
+	}
+
+	forcedSegmentType, ok := config["forceSegmentType"].(string)
+	if !ok {
+		return "", 0, fmt.Errorf(
+			"forceSegmentVersion set to %d, must also specify forceSegmentType", forcedSegmentVersion)
+	}
+
+	return forcedSegmentType, uint32(forcedSegmentVersion), nil
 }
 
-func (s *Scorch) incrPause() {
-	s.pauseLock.Lock()
-	s.pauseCount++
-	s.pauseLock.Unlock()
-}
-
-func (s *Scorch) decrPause() {
-	s.pauseLock.Lock()
-	s.pauseCount--
-	s.pauseLock.Unlock()
+func (s *Scorch) NumEventsBlocking() uint64 {
+	eventsCompleted := atomic.LoadUint64(&s.stats.TotEventTriggerCompleted)
+	eventsStarted := atomic.LoadUint64(&s.stats.TotEventTriggerStarted)
+	return eventsStarted - eventsCompleted
 }
 
 func (s *Scorch) fireEvent(kind EventKind, dur time.Duration) {
 	if s.onEvent != nil {
-		s.incrPause()
+		atomic.AddUint64(&s.stats.TotEventTriggerStarted, 1)
 		s.onEvent(Event{Kind: kind, Scorch: s, Duration: dur})
-		s.decrPause()
+		atomic.AddUint64(&s.stats.TotEventTriggerCompleted, 1)
 	}
 }
 
@@ -163,7 +180,7 @@ func (s *Scorch) Open() error {
 	}
 
 	s.asyncTasks.Add(1)
-	go s.mainLoop()
+	go s.introducerLoop()
 
 	if !s.readOnly && s.path != "" {
 		s.asyncTasks.Add(1)
@@ -221,8 +238,9 @@ func (s *Scorch) openBolt() error {
 	s.persists = make(chan *persistIntroduction)
 	s.merges = make(chan *segmentMerge)
 	s.introducerNotifier = make(chan *epochWatcher, 1)
-	s.revertToSnapshots = make(chan *snapshotReversion)
 	s.persisterNotifier = make(chan *epochWatcher, 1)
+	s.closeCh = make(chan struct{})
+	s.forceMergeRequestCh = make(chan *mergerCtrl, 1)
 
 	if !s.readOnly && s.path != "" {
 		err := s.removeOldZapFiles() // Before persister or merger create any new files.
@@ -263,7 +281,10 @@ func (s *Scorch) Close() (err error) {
 		err = s.rootBolt.Close()
 		s.rootLock.Lock()
 		if s.root != nil {
-			_ = s.root.DecRef()
+			err2 := s.root.DecRef()
+			if err == nil {
+				err = err2
+			}
 		}
 		s.root = nil
 		s.rootLock.Unlock()
@@ -312,7 +333,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 
 	// FIXME could sort ids list concurrent with analysis?
 
-	if len(batch.IndexOps) > 0 {
+	if numUpdates > 0 {
 		go func() {
 			for _, doc := range batch.IndexOps {
 				if doc != nil {
@@ -349,7 +370,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 	var newSegment segment.Segment
 	var bufBytes uint64
 	if len(analysisResults) > 0 {
-		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor)
+		newSegment, bufBytes, err = s.segPlugin.New(analysisResults)
 		if err != nil {
 			return err
 		}
@@ -466,8 +487,9 @@ func (s *Scorch) Stats() json.Marshaler {
 	return &s.stats
 }
 
-func (s *Scorch) diskFileStats() (uint64, uint64) {
-	var numFilesOnDisk, numBytesUsedDisk uint64
+func (s *Scorch) diskFileStats(rootSegmentPaths map[string]struct{}) (uint64,
+	uint64, uint64) {
+	var numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot uint64
 	if s.path != "" {
 		finfos, err := ioutil.ReadDir(s.path)
 		if err == nil {
@@ -475,17 +497,39 @@ func (s *Scorch) diskFileStats() (uint64, uint64) {
 				if !finfo.IsDir() {
 					numBytesUsedDisk += uint64(finfo.Size())
 					numFilesOnDisk++
+					if rootSegmentPaths != nil {
+						fname := s.path + string(os.PathSeparator) + finfo.Name()
+						if _, fileAtRoot := rootSegmentPaths[fname]; fileAtRoot {
+							numBytesOnDiskByRoot += uint64(finfo.Size())
+						}
+					}
 				}
 			}
 		}
 	}
-	return numFilesOnDisk, numBytesUsedDisk
+	// if no root files path given, then consider all disk files.
+	if rootSegmentPaths == nil {
+		return numFilesOnDisk, numBytesUsedDisk, numBytesUsedDisk
+	}
+
+	return numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot
 }
 
 func (s *Scorch) StatsMap() map[string]interface{} {
 	m := s.stats.ToMap()
 
-	numFilesOnDisk, numBytesUsedDisk := s.diskFileStats()
+	indexSnapshot := s.currentSnapshot()
+	defer func() {
+		_ = indexSnapshot.Close()
+	}()
+
+	rootSegPaths := indexSnapshot.diskSegmentsPaths()
+
+	s.rootLock.RLock()
+	m["CurFilesIneligibleForRemoval"] = uint64(len(s.ineligibleForRemoval))
+	s.rootLock.RUnlock()
+
+	numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot := s.diskFileStats(rootSegPaths)
 
 	m["CurOnDiskBytes"] = numBytesUsedDisk
 	m["CurOnDiskFiles"] = numFilesOnDisk
@@ -504,8 +548,15 @@ func (s *Scorch) StatsMap() map[string]interface{} {
 	m["num_items_introduced"] = m["TotIntroducedItems"]
 	m["num_items_persisted"] = m["TotPersistedItems"]
 	m["num_recs_to_persist"] = m["TotItemsToPersist"]
-	m["num_bytes_used_disk"] = m["CurOnDiskBytes"]
-	m["num_files_on_disk"] = m["CurOnDiskFiles"]
+	// total disk bytes found in index directory inclusive of older snapshots
+	m["num_bytes_used_disk"] = numBytesUsedDisk
+	// total disk bytes by the latest root index, exclusive of older snapshots
+	m["num_bytes_used_disk_by_root"] = numBytesOnDiskByRoot
+	// num_bytes_used_disk_by_root_reclaimable is an approximation about the
+	// reclaimable disk space in an index. (eg: from a full compaction)
+	m["num_bytes_used_disk_by_root_reclaimable"] = uint64(float64(numBytesOnDiskByRoot) *
+		indexSnapshot.reClaimableDocsRatio())
+	m["num_files_on_disk"] = numFilesOnDisk
 	m["num_root_memorysegments"] = m["TotMemorySegmentsAtRoot"]
 	m["num_root_filesegments"] = m["TotFileSegmentsAtRoot"]
 	m["num_persister_nap_pause_completed"] = m["TotPersisterNapPauseCompleted"]
@@ -516,6 +567,10 @@ func (s *Scorch) StatsMap() map[string]interface{} {
 }
 
 func (s *Scorch) Analyze(d *document.Document) *index.AnalysisResult {
+	return analyze(d)
+}
+
+func analyze(d *document.Document) *index.AnalysisResult {
 	rv := &index.AnalysisResult{
 		Document: d,
 		Analyzed: make([]analysis.TokenFrequencies, len(d.Fields)+len(d.CompositeFields)),

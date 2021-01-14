@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,12 +24,13 @@ const message = "Wiki commit message for unit tests"
 func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
+	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
-		if entry.Name() == models.WikiNameToFilename(wikiName) {
+		if entry.Name() == wiki_service.NameToFilename(wikiName) {
 			return entry
 		}
 	}
@@ -190,6 +192,7 @@ func TestDeleteWikiPagePost(t *testing.T) {
 func TestWikiRaw(t *testing.T) {
 	for filepath, filetype := range map[string]string{
 		"jpeg.jpg":                 "image/jpeg",
+		"images/jpeg.jpg":          "image/jpeg",
 		"Page With Spaced Name":    "text/plain; charset=utf-8",
 		"Page-With-Spaced-Name":    "text/plain; charset=utf-8",
 		"Page With Spaced Name.md": "text/plain; charset=utf-8",

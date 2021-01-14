@@ -20,4 +20,12 @@
   name: milestone3
   content: content3
   is_closed: true
+  num_issues: 1
+
+-
+  id: 4
+  repo_id: 42
+  name: milestone of repo42
+  content: content random
+  is_closed: false
   num_issues: 0

@@ -280,3 +280,37 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 
 	return elliptic.Unmarshal(curve, data)
 }
+
+func GenerateKey(curve elliptic.Curve, random io.Reader) (priv *PrivateKey, err error) {
+	var privBytes []byte
+	var Vx, Vy *big.Int
+
+	if _, ok := curve25519.ToCurve25519(curve); ok {
+		privBytes = make([]byte, 32)
+		_, err = io.ReadFull(random, privBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		// NOTE: PGP expect scalars in reverse order than Curve 25519
+		// go library. That's why this trimming is backwards compared
+		// to curve25519.go
+		privBytes[31] &= 248
+		privBytes[0] &= 127
+		privBytes[0] |= 64
+
+		Vx,Vy = curve.ScalarBaseMult(privBytes)
+	} else {
+		privBytes, Vx, Vy, err = elliptic.GenerateKey(curve, random)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	priv = &PrivateKey{}
+	priv.X = new(big.Int).SetBytes(privBytes)
+	priv.PublicKey.Curve = curve
+	priv.PublicKey.X = Vx
+	priv.PublicKey.Y = Vy
+	return priv, nil
+}

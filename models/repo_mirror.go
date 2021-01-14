@@ -97,3 +97,9 @@ func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 		And("next_update_unix!=0").
 		Iterate(new(Mirror), f)
 }
+
+// InsertMirror inserts a mirror to database
+func InsertMirror(mirror *Mirror) error {
+	_, err := x.Insert(mirror)
+	return err
+}

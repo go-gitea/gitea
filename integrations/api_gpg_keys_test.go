@@ -18,7 +18,7 @@ import (
 type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseRecorder
 
 func TestGPGKeys(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 
@@ -32,7 +32,7 @@ func TestGPGKeys(t *testing.T) {
 			results: []int{http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
 		},
 		{name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
-			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusInternalServerError, http.StatusInternalServerError, http.StatusCreated, http.StatusCreated}},
+			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusUnprocessableEntity, http.StatusNotFound, http.StatusCreated, http.StatusCreated}},
 	}
 
 	for _, tc := range tt {

@@ -59,3 +59,24 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 }
+
+func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
+	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{}, IDs)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	assert.Error(t, err)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1}, IDs)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("user2", []string{""})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{2}, IDs)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"user1", "user2"})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2}, IDs)
+}

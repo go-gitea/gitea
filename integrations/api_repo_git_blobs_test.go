@@ -15,7 +15,7 @@ import (
 )
 
 func TestAPIReposGitBlobs(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3
 	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos

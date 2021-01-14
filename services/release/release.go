@@ -6,16 +6,15 @@ package release
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/webhook"
 )
 
 func createTag(gitRepo *git.Repository, rel *models.Release) error {
@@ -38,6 +37,20 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			rel.LowerTagName = strings.ToLower(rel.TagName)
+			// Prepare Notify
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+				return err
+			}
+			notification.NotifyPushCommits(
+				rel.Publisher, rel.Repo,
+				&repository.PushUpdateOptions{
+					RefFullName: git.TagPrefix + rel.TagName,
+					OldCommitID: git.EmptySHA,
+					NewCommitID: commit.ID.String(),
+				}, repository.NewPushCommits())
+			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -45,11 +58,18 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+
+		if rel.PublisherID <= 0 {
+			u, err := models.GetUserByEmail(commit.Author.Email)
+			if err == nil {
+				rel.PublisherID = u.ID
+			}
+		}
+
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
@@ -81,32 +101,20 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	}
 
 	if !rel.IsDraft {
-		if err := rel.LoadAttributes(); err != nil {
-			log.Error("LoadAttributes: %v", err)
-		} else {
-			mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
-			if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-				Action:     api.HookReleasePublished,
-				Release:    rel.APIFormat(),
-				Repository: rel.Repo.APIFormat(mode),
-				Sender:     rel.Publisher.APIFormat(),
-			}); err != nil {
-				log.Error("PrepareWebhooks: %v", err)
-			}
-		}
+		notification.NotifyNewRelease(rel)
 	}
 
 	return nil
 }
 
-// UpdateRelease updates information of a release.
-func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string) (err error) {
+// UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	if err = models.UpdateRelease(rel); err != nil {
+	if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 		return err
 	}
 
@@ -114,19 +122,13 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		log.Error("AddReleaseAttachments: %v", err)
 	}
 
-	if err = rel.LoadAttributes(); err != nil {
-		return err
+	if !isCreate {
+		notification.NotifyUpdateRelease(doer, rel)
+		return
 	}
 
-	// even if attachments added failed, hooks will be still triggered
-	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err1 := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseUpdated,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err1 != nil {
-		log.Error("PrepareWebhooks: %v", err)
+	if !rel.IsDraft {
+		notification.NotifyNewRelease(rel)
 	}
 
 	return err
@@ -145,24 +147,29 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	}
 
 	if delTag {
-		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
-			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			git.GitExecutable, "tag", "-d", rel.TagName)
-		if err != nil && !strings.Contains(stderr, "not found") {
-			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
+			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
+			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
+			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
+			return fmt.Errorf("git tag -d: %v", err)
 		}
+
+		notification.NotifyPushCommits(
+			doer, repo,
+			&repository.PushUpdateOptions{
+				RefFullName: git.TagPrefix + rel.TagName,
+				OldCommitID: rel.Sha1,
+				NewCommitID: git.EmptySHA,
+			}, repository.NewPushCommits())
+		notification.NotifyDeleteRef(doer, repo, "tag", git.TagPrefix+rel.TagName)
 
 		if err := models.DeleteReleaseByID(id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %v", err)
 		}
 	} else {
 		rel.IsTag = true
-		rel.IsDraft = false
-		rel.IsPrerelease = false
-		rel.Title = ""
-		rel.Note = ""
 
-		if err = models.UpdateRelease(rel); err != nil {
+		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}
@@ -178,20 +185,12 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 
 	for i := range rel.Attachments {
 		attachment := rel.Attachments[i]
-		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
+		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
 			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
 		}
 	}
 
-	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseDeleted,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+	notification.NotifyDeleteRelease(doer, rel)
 
 	return nil
 }

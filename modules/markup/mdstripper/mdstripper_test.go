@@ -53,6 +53,20 @@ A HIDDEN ` + "`" + `GHOST` + "`" + ` IN THIS LINE.
 			[]string{
 				"link",
 			}},
+		{
+			"Simply closes: #29 yes",
+			[]string{
+				"Simply closes: #29 yes",
+			},
+			[]string{},
+		},
+		{
+			"Simply closes: !29 yes",
+			[]string{
+				"Simply closes: !29 yes",
+			},
+			[]string{},
+		},
 	}
 
 	for _, test := range list {

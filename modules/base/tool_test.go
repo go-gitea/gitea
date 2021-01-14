@@ -1,10 +1,11 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package base
 
 import (
-	"net/url"
 	"testing"
-
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,6 +43,12 @@ func TestBasicAuthDecode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", user)
 	assert.Equal(t, "bar", pass)
+
+	_, _, err = BasicAuthDecode("aW52YWxpZA==")
+	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("invalid")
+	assert.Error(t, err)
 }
 
 func TestBasicAuthEncode(t *testing.T) {
@@ -52,70 +59,21 @@ func TestBasicAuthEncode(t *testing.T) {
 // TODO: Test VerifyTimeLimitCode()
 // TODO: Test CreateTimeLimitCode()
 
-func TestHashEmail(t *testing.T) {
-	assert.Equal(t,
-		"d41d8cd98f00b204e9800998ecf8427e",
-		HashEmail(""),
-	)
-	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
-		HashEmail("gitea@example.com"),
-	)
-}
-
-const gravatarSource = "https://secure.gravatar.com/avatar/"
-
-func disableGravatar() {
-	setting.EnableFederatedAvatar = false
-	setting.LibravatarService = nil
-	setting.DisableGravatar = true
-}
-
-func enableGravatar(t *testing.T) {
-	setting.DisableGravatar = false
-	var err error
-	setting.GravatarSourceURL, err = url.Parse(gravatarSource)
-	assert.NoError(t, err)
-}
-
-func TestSizedAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png",
-		SizedAvatarLink("gitea@example.com", 100))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		SizedAvatarLink("gitea@example.com", 100),
-	)
-}
-
-func TestAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
-		AvatarLink("gitea@example.com"),
-	)
-}
-
 func TestFileSize(t *testing.T) {
 	var size int64 = 512
-	assert.Equal(t, "512B", FileSize(size))
+	assert.Equal(t, "512 B", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512KB", FileSize(size))
+	assert.Equal(t, "512 KiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512MB", FileSize(size))
+	assert.Equal(t, "512 MiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512GB", FileSize(size))
+	assert.Equal(t, "512 GiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512TB", FileSize(size))
+	assert.Equal(t, "512 TiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512PB", FileSize(size))
+	assert.Equal(t, "512 PiB", FileSize(size))
 	size *= 4
-	assert.Equal(t, "2.0EB", FileSize(size))
+	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
 func TestSubtract(t *testing.T) {
@@ -225,9 +183,69 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter('$'))
 }
 
+func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
+	// Pre-condition: Shorter than sniffLen detects SVG.
+	assert.Equal(t, "image/svg+xml", DetectContentType([]byte(`<!-- Comment --><svg></svg>`)))
+	// Longer than sniffLen detects something else.
+	assert.Equal(t, "text/plain; charset=utf-8", DetectContentType([]byte(`<!--
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment --><svg></svg>`)))
+}
+
 func TestIsTextFile(t *testing.T) {
 	assert.True(t, IsTextFile([]byte{}))
 	assert.True(t, IsTextFile([]byte("lorem ipsum")))
+}
+
+func TestIsSVGImageFile(t *testing.T) {
+	assert.True(t, IsSVGImageFile([]byte("<svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte("    <svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte(`<svg width="100"></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte("<svg/>")))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?><svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiline
+	Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multline
+	Comment -->
+	<svg></svg>`)))
+	assert.False(t, IsSVGImageFile([]byte{}))
+	assert.False(t, IsSVGImageFile([]byte("svg")))
+	assert.False(t, IsSVGImageFile([]byte("<svgfoo></svgfoo>")))
+	assert.False(t, IsSVGImageFile([]byte("text<svg></svg>")))
+	assert.False(t, IsSVGImageFile([]byte("<html><body><svg></svg></body></html>")))
+	assert.False(t, IsSVGImageFile([]byte(`<script>"<svg></svg>"</script>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
+}
+
+func TestFormatNumberSI(t *testing.T) {
+	assert.Equal(t, "125", FormatNumberSI(int(125)))
+	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
+	assert.Equal(t, "21.3M", FormatNumberSI(21317675))
+	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
+	assert.Equal(t, "", FormatNumberSI("test"))
 }
 
 // TODO: IsImageFile(), currently no idea how to test

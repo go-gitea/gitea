@@ -22,11 +22,31 @@ const (
 )
 
 var (
-	// GitRefNamePattern is regular expression with unallowed characters in git reference name
+	// GitRefNamePatternInvalid is regular expression with unallowed characters in git reference name
 	// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
 	// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
-	GitRefNamePattern = regexp.MustCompile(`[\000-\037\177 \\~^:?*[]+`)
+	GitRefNamePatternInvalid = regexp.MustCompile(`[\000-\037\177 \\~^:?*[]+`)
 )
+
+// CheckGitRefAdditionalRulesValid check name is valid on additional rules
+func CheckGitRefAdditionalRulesValid(name string) bool {
+
+	// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
+	if strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") ||
+		strings.HasSuffix(name, ".") || strings.Contains(name, "..") ||
+		strings.Contains(name, "//") || strings.Contains(name, "@{") ||
+		name == "@" {
+		return false
+	}
+	parts := strings.Split(name, "/")
+	for _, part := range parts {
+		if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
+			return false
+		}
+	}
+
+	return true
+}
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
@@ -44,24 +64,14 @@ func addGitRefNameBindingRule() {
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 
-			if GitRefNamePattern.MatchString(str) {
+			if GitRefNamePatternInvalid.MatchString(str) {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
-			// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
-			if strings.HasPrefix(str, "/") || strings.HasSuffix(str, "/") ||
-				strings.HasSuffix(str, ".") || strings.Contains(str, "..") ||
-				strings.Contains(str, "//") || strings.Contains(str, "@{") ||
-				str == "@" {
+
+			if !CheckGitRefAdditionalRulesValid(str) {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
-			}
-			parts := strings.Split(str, "/")
-			for _, part := range parts {
-				if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
-					errs.Add([]string{name}, ErrGitRefName, "GitRefName")
-					return false, errs
-				}
 			}
 
 			return true, errs

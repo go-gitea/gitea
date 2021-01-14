@@ -62,7 +62,7 @@ func newDisjunctionHeapSearcher(indexReader index.IndexReader,
 	limit bool) (
 	*DisjunctionHeapSearcher, error) {
 	if limit && tooManyClauses(len(searchers)) {
-		return nil, tooManyClausesErr(len(searchers))
+		return nil, tooManyClausesErr("", len(searchers))
 	}
 
 	// build our searcher
@@ -310,7 +310,7 @@ func (s *DisjunctionHeapSearcher) Optimize(kind string, octx index.OptimizableCo
 		}
 	}
 
-	return octx, nil
+	return nil, nil
 }
 
 // heap impl

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/blevesearch/bleve/analysis"
@@ -262,6 +263,9 @@ func (h *HighlightRequest) AddField(field string) {
 // result score explanations.
 // Sort describes the desired order for the results to be returned.
 // Score controls the kind of scoring performed
+// SearchAfter supports deep paging by providing a minimum sort key
+// SearchBefore supports deep paging by providing a maximum sort key
+// sortFunc specifies the sort implementation to use for sorting results.
 //
 // A special field named "*" can be used to return all fields.
 type SearchRequest struct {
@@ -275,6 +279,10 @@ type SearchRequest struct {
 	Sort             search.SortOrder  `json:"sort"`
 	IncludeLocations bool              `json:"includeLocations"`
 	Score            string            `json:"score,omitempty"`
+	SearchAfter      []string          `json:"search_after"`
+	SearchBefore     []string          `json:"search_before"`
+
+	sortFunc func(sort.Interface)
 }
 
 func (r *SearchRequest) Validate() error {
@@ -282,6 +290,27 @@ func (r *SearchRequest) Validate() error {
 		err := srq.Validate()
 		if err != nil {
 			return err
+		}
+	}
+
+	if r.SearchAfter != nil && r.SearchBefore != nil {
+		return fmt.Errorf("cannot use search after and search before together")
+	}
+
+	if r.SearchAfter != nil {
+		if r.From != 0 {
+			return fmt.Errorf("cannot use search after with from !=0")
+		}
+		if len(r.SearchAfter) != len(r.Sort) {
+			return fmt.Errorf("search after must have same size as sort order")
+		}
+	}
+	if r.SearchBefore != nil {
+		if r.From != 0 {
+			return fmt.Errorf("cannot use search before with from !=0")
+		}
+		if len(r.SearchBefore) != len(r.Sort) {
+			return fmt.Errorf("search before must have same size as sort order")
 		}
 	}
 
@@ -311,6 +340,18 @@ func (r *SearchRequest) SortByCustom(order search.SortOrder) {
 	r.Sort = order
 }
 
+// SetSearchAfter sets the request to skip over hits with a sort
+// value less than the provided sort after key
+func (r *SearchRequest) SetSearchAfter(after []string) {
+	r.SearchAfter = after
+}
+
+// SetSearchBefore sets the request to skip over hits with a sort
+// value greater than the provided sort before key
+func (r *SearchRequest) SetSearchBefore(before []string) {
+	r.SearchBefore = before
+}
+
 // UnmarshalJSON deserializes a JSON representation of
 // a SearchRequest
 func (r *SearchRequest) UnmarshalJSON(input []byte) error {
@@ -325,6 +366,8 @@ func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 		Sort             []json.RawMessage `json:"sort"`
 		IncludeLocations bool              `json:"includeLocations"`
 		Score            string            `json:"score"`
+		SearchAfter      []string          `json:"search_after"`
+		SearchBefore     []string          `json:"search_before"`
 	}
 
 	err := json.Unmarshal(input, &temp)
@@ -352,6 +395,8 @@ func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 	r.Facets = temp.Facets
 	r.IncludeLocations = temp.IncludeLocations
 	r.Score = temp.Score
+	r.SearchAfter = temp.SearchAfter
+	r.SearchBefore = temp.SearchBefore
 	r.Query, err = query.ParseQuery(temp.Q)
 	if err != nil {
 		return err
@@ -564,4 +609,23 @@ func MemoryNeededForSearchResult(req *SearchRequest) uint64 {
 	}
 
 	return uint64(estimate)
+}
+
+// SetSortFunc sets the sort implementation to use when sorting hits.
+//
+// SearchRequests can specify a custom sort implementation to meet
+// their needs. For instance, by specifying a parallel sort
+// that uses all available cores.
+func (r *SearchRequest) SetSortFunc(s func(sort.Interface)) {
+	r.sortFunc = s
+}
+
+// SortFunc returns the sort implementation to use when sorting hits.
+// Defaults to sort.Sort.
+func (r *SearchRequest) SortFunc() func(data sort.Interface) {
+	if r.sortFunc != nil {
+		return r.sortFunc
+	}
+
+	return sort.Sort
 }

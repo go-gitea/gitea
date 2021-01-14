@@ -12,18 +12,22 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 var (
-	templates = template.New("")
+	subjectTemplates = texttmpl.New("")
+	bodyTemplates    = template.New("")
 )
 
 type templateFileSystem struct {
@@ -42,6 +46,30 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 	}
 
 	return nil, fmt.Errorf("file '%s' not found", name)
+}
+
+// GetAsset get a special asset, only for chi
+func GetAsset(name string) ([]byte, error) {
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		return bs, nil
+	}
+	return Asset(strings.TrimPrefix(name, "templates/"))
+}
+
+// GetAssetNames only for chi
+func GetAssetNames() []string {
+	realFS := Assets.(vfsgen۰FS)
+	var tmpls = make([]string, 0, len(realFS))
+	for k := range realFS {
+		tmpls = append(tmpls, "templates/"+k[1:])
+	}
+
+	customDir := path.Join(setting.CustomPath, "templates")
+	customTmpls := getDirAssetNames(customDir)
+	return append(tmpls, customTmpls...)
 }
 
 func NewTemplateFileSystem() templateFileSystem {
@@ -75,9 +103,12 @@ func NewTemplateFileSystem() templateFileSystem {
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates")
-
-	if com.IsDir(customDir) {
-		files, err := com.StatDir(customDir)
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
+	}
+	if isDir {
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)
@@ -130,19 +161,13 @@ func JSONRenderer() macaron.Handler {
 	})
 }
 
-// JSRenderer implements the macaron handler for serving JS templates.
-func JSRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:              NewFuncMap(),
-		TemplateFileSystem: NewTemplateFileSystem(),
-		HTMLContentType:    "application/javascript",
-	})
-}
-
 // Mailer provides the templates required for sending notification mails.
-func Mailer() *template.Template {
+func Mailer() (*texttmpl.Template, *template.Template) {
+	for _, funcs := range NewTextFuncMap() {
+		subjectTemplates.Funcs(funcs)
+	}
 	for _, funcs := range NewFuncMap() {
-		templates.Funcs(funcs)
+		bodyTemplates.Funcs(funcs)
 	}
 
 	for _, assetPath := range AssetNames() {
@@ -161,7 +186,8 @@ func Mailer() *template.Template {
 			continue
 		}
 
-		templates.New(
+		buildSubjectBodyTemplate(subjectTemplates,
+			bodyTemplates,
 			strings.TrimPrefix(
 				strings.TrimSuffix(
 					assetPath,
@@ -169,13 +195,16 @@ func Mailer() *template.Template {
 				),
 				"mail/",
 			),
-		).Parse(string(content))
+			content)
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates", "mail")
-
-	if com.IsDir(customDir) {
-		files, err := com.StatDir(customDir)
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		log.Warn("Failed to check if custom directory %s is a directory. %v", err)
+	}
+	if isDir {
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)
@@ -192,17 +221,18 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				buildSubjectBodyTemplate(subjectTemplates,
+					bodyTemplates,
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
-				).Parse(string(content))
+					content)
 			}
 		}
 	}
 
-	return templates
+	return subjectTemplates, bodyTemplates
 }
 
 func Asset(name string) ([]byte, error) {
@@ -221,4 +251,17 @@ func AssetNames() []string {
 		results = append(results, k[1:])
 	}
 	return results
+}
+
+func AssetIsDir(name string) (bool, error) {
+	if f, err := Assets.Open("/" + name); err != nil {
+		return false, err
+	} else {
+		defer f.Close()
+		if fi, err := f.Stat(); err != nil {
+			return false, err
+		} else {
+			return fi.IsDir(), nil
+		}
+	}
 }
