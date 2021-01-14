@@ -27,6 +27,9 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	setting.StaticRootPath = "../../"
+	setting.Names = []string{"English"}
+	setting.Langs = []string{"en-US"}
 	// setup
 	translation.InitLocales()
 	BaseDate = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)

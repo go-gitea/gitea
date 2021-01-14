@@ -43,6 +43,7 @@ func InitLocales() {
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)
 	}
+
 	matcher = language.NewMatcher(tags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
