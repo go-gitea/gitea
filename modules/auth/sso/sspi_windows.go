@@ -95,7 +95,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		// to login with another authentication method if SSPI authentication
 		// fails
 		store.GetData()["Flash"] = map[string]string{
-			"ErrMsg": err.Error(),
+			"ErrorMsg": err.Error(),
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
