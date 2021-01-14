@@ -95,7 +95,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 					if setting.RunMode != "prod" {
-						store.Data["ErrMsg"] = combinedErr
+						store.Data["ErrorMsg"] = combinedErr
 					}
 					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
 					if err != nil {
