@@ -17,7 +17,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Wrap converts routes to stand one
+// Wrap converts all kinds of routes to standard library one
 func Wrap(handlers ...interface{}) http.HandlerFunc {
 	if len(handlers) == 0 {
 		panic("No handlers found")
@@ -39,6 +39,12 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				if ctx.Written() {
 					return
 				}
+			case func(*context.PrivateContext):
+				ctx := context.GetPrivateContext(req)
+				t(ctx)
+				if ctx.Written() {
+					return
+				}
 			default:
 				panic(fmt.Sprintf("No supported handler type: %#v", t))
 			}
@@ -46,7 +52,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 	})
 }
 
-// Middle wrap a function to middle
+// Middle wrap a context function as a chi middleware
 func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -114,7 +120,7 @@ func (r *Route) Use(middlewares ...interface{}) {
 	}
 }
 
-// Group mounts a sub-Router along a `pattern`` string.
+// Group mounts a sub-Router along a `pattern` string.
 func (r *Route) Group(pattern string, fn func(r *Route), middlewares ...interface{}) {
 	if pattern == "" {
 		pattern = "/"
@@ -128,7 +134,7 @@ func (r *Route) Group(pattern string, fn func(r *Route), middlewares ...interfac
 	})
 }
 
-// Mount attaches another http.Handler along ./pattern/*
+// Mount attaches another Route along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
 	if pattern == "" {
 		pattern = "/"
@@ -136,7 +142,7 @@ func (r *Route) Mount(pattern string, subR *Route) {
 	r.R.Mount(pattern, subR.R)
 }
 
-// Any delegate all methods
+// Any delegate requests for all methods
 func (r *Route) Any(pattern string, h ...interface{}) {
 	if pattern == "" {
 		pattern = "/"

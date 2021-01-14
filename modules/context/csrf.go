@@ -1,7 +1,20 @@
-// Copyright 2014 The Macaron Authors. All rights reserved.
-// Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Martini Authors
+// Copyright 2014 The Macaron Authors
+// Copyright 2021 The Gitea Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
+// a middleware that generates and validates CSRF tokens.
 
 package context
 
@@ -111,8 +124,6 @@ type CsrfOptions struct {
 	// Cookie path.
 	CookiePath     string
 	CookieHTTPOnly bool
-	// SameSite set the cookie SameSite type
-	SameSite http.SameSite
 	// Key used for getting the unique ID per user.
 	SessionKey string
 	// oldSessionKey saves old value corresponding to SessionKey.
@@ -127,8 +138,6 @@ type CsrfOptions struct {
 	Origin bool
 	// The function called when Validate fails.
 	ErrorFunc func(w http.ResponseWriter)
-	// Cookie life time. Default is 0
-	CookieLifeTime int
 }
 
 func prepareOptions(options []CsrfOptions) CsrfOptions {

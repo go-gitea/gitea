@@ -76,6 +76,5 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	res := i18n.Tr(l.Lang, format, args...)
-	return res
+	return i18n.Tr(l.Lang, format, args...)
 }
