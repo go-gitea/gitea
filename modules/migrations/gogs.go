@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -40,7 +41,7 @@ func (f *GogsDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GogsDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
@@ -53,7 +54,7 @@ func (f *GogsDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader, 
 
 	log.Trace("Create gogs downloader: %s/%s", oldOwner, oldName)
 
-	return NewGogsDownloader(baseURL, opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
 }
 
 // GitServiceType returns the type of git service
@@ -64,6 +65,7 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GogsDownloader implements a Downloader interface to get repository informations
 // from gogs via API
 type GogsDownloader struct {
+	ctx       context.Context
 	client    *gogs.Client
 	baseURL   string
 	repoOwner string
@@ -72,9 +74,14 @@ type GogsDownloader struct {
 	password  string
 }
 
+func (g *GogsDownloader) SetContext(ctx context.Context) {
+	g.ctx = ctx
+}
+
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(baseURL, userName, password, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(ctx context.Context, baseURL, userName, password, repoOwner, repoName string) *GogsDownloader {
 	var downloader = GogsDownloader{
+		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
 		password:  password,
@@ -109,19 +116,21 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 		return nil, err
 	}
 
-	// convert github repo to stand Repo
+	// convert gogs repo to stand Repo
 	return &base.Repository{
-		Owner:       g.repoOwner,
-		Name:        g.repoName,
-		IsPrivate:   gr.Private,
-		Description: gr.Description,
-		CloneURL:    gr.CloneURL,
+		Owner:         g.repoOwner,
+		Name:          g.repoName,
+		IsPrivate:     gr.Private,
+		Description:   gr.Description,
+		CloneURL:      gr.CloneURL,
+		OriginalURL:   gr.HTMLURL,
+		DefaultBranch: gr.DefaultBranch,
 	}, nil
 }
 
-// GetTopics return github topics
+// GetTopics return gogs topics
 func (g *GogsDownloader) GetTopics() ([]string, error) {
-	return []string{}, nil
+	return nil, ErrNotSupported
 }
 
 // GetMilestones returns milestones
@@ -151,13 +160,6 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
-func convertGogsLabel(label *gogs.Label) *base.Label {
-	return &base.Label{
-		Name:  label.Name,
-		Color: label.Color,
-	}
-}
-
 // GetLabels returns labels
 func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
@@ -172,12 +174,6 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 	}
 
 	return labels, nil
-}
-
-// GetReleases returns releases
-// FIXME: gogs API haven't support get releases
-func (g *GogsDownloader) GetReleases() ([]*base.Release, error) {
-	return nil, ErrNotSupported
 }
 
 // GetIssues returns issues according start and limit, perPage is not supported
@@ -195,33 +191,7 @@ func (g *GogsDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, erro
 			continue
 		}
 
-		var milestone string
-		if issue.Milestone != nil {
-			milestone = issue.Milestone.Title
-		}
-		var labels = make([]*base.Label, 0, len(issue.Labels))
-		for _, l := range issue.Labels {
-			labels = append(labels, convertGogsLabel(l))
-		}
-
-		var closed *time.Time
-		if issue.State == gogs.STATE_CLOSED {
-			// gogs client haven't provide closed, so we use updated instead
-			closed = &issue.Updated
-		}
-
-		allIssues = append(allIssues, &base.Issue{
-			Title:       issue.Title,
-			Number:      issue.Index,
-			PosterName:  issue.Poster.Login,
-			PosterEmail: issue.Poster.Email,
-			Content:     issue.Body,
-			Milestone:   milestone,
-			State:       string(issue.State),
-			Created:     issue.Created,
-			Labels:      labels,
-			Closed:      closed,
-		})
+		allIssues = append(allIssues, convertGogsIssue(issue))
 	}
 
 	return allIssues, len(issues) == 0, nil
@@ -248,7 +218,54 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 	return allComments, nil
 }
 
+func convertGogsIssue(issue *gogs.Issue) *base.Issue {
+	var milestone string
+	if issue.Milestone != nil {
+		milestone = issue.Milestone.Title
+	}
+	var labels = make([]*base.Label, 0, len(issue.Labels))
+	for _, l := range issue.Labels {
+		labels = append(labels, convertGogsLabel(l))
+	}
+
+	var closed *time.Time
+	if issue.State == gogs.STATE_CLOSED {
+		// gogs client haven't provide closed, so we use updated instead
+		closed = &issue.Updated
+	}
+
+	return &base.Issue{
+		Title:       issue.Title,
+		Number:      issue.Index,
+		PosterName:  issue.Poster.Login,
+		PosterEmail: issue.Poster.Email,
+		Content:     issue.Body,
+		Milestone:   milestone,
+		State:       string(issue.State),
+		Created:     issue.Created,
+		Labels:      labels,
+		Closed:      closed,
+	}
+}
+
+func convertGogsLabel(label *gogs.Label) *base.Label {
+	return &base.Label{
+		Name:  label.Name,
+		Color: label.Color,
+	}
+}
+
+// GetReleases returns releases
+// FIXME: gogs API haven't support get releases
+func (g *GogsDownloader) GetReleases() ([]*base.Release, error) {
+	return nil, ErrNotSupported
+}
+
 // GetPullRequests returns pull requests according page and perPage
-func (g *GogsDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
+func (g *GogsDownloader) GetPullRequests(_, _ int) ([]*base.PullRequest, bool, error) {
+	return nil, false, ErrNotSupported
+}
+
+func (g *GogsDownloader) GetReviews(_ int64) ([]*base.Review, error) {
 	return nil, ErrNotSupported
 }

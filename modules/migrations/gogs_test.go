@@ -5,7 +5,9 @@
 package migrations
 
 import (
+	"context"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -15,7 +17,11 @@ import (
 )
 
 func TestGogsDownloadRepo(t *testing.T) {
-	t.Skip()
+	// Skip tests if Gitlab token is not found
+	gogsPersonalAccessToken := os.Getenv("GOGS_READ_TOKEN")
+	if len(gogsPersonalAccessToken) == 0 {
+		t.Skip("skipped test because GOGS_READ_TOKEN was not in the environment")
+	}
 
 	resp, err := http.Get("https://try.gogs.io/lunnytest/TESTREPO")
 	if err != nil || resp.StatusCode/100 != 2 {
@@ -24,7 +30,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 		return
 	}
 
-	downloader := NewGogsDownloader("https://try.gogs.io", "c109b3c905eb57951cfdea270cfcfdc297a74500", "", "lunnytest", "TESTREPO")
+	downloader := NewGogsDownloader(context.Background(), "https://try.gogs.io", gogsPersonalAccessToken, "", "lunnytest", "TESTREPO")
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 
@@ -48,23 +54,23 @@ func TestGogsDownloadRepo(t *testing.T) {
 
 	labels, err := downloader.GetLabels()
 	assert.NoError(t, err)
-	assert.True(t, len(labels) == 7)
+	assert.Len(t, labels, 7)
 	for _, l := range labels {
 		switch l.Name {
 		case "bug":
-			assertLabelEqual(t, "bug", "ee0701", l)
+			assertLabelEqual(t, "bug", "ee0701", "", l)
 		case "duplicated":
-			assertLabelEqual(t, "duplicated", "cccccc", l)
+			assertLabelEqual(t, "duplicated", "cccccc", "", l)
 		case "enhancement":
-			assertLabelEqual(t, "enhancement", "84b6eb", l)
+			assertLabelEqual(t, "enhancement", "84b6eb", "", l)
 		case "help wanted":
-			assertLabelEqual(t, "help wanted", "128a0c", l)
+			assertLabelEqual(t, "help wanted", "128a0c", "", l)
 		case "invalid":
-			assertLabelEqual(t, "invalid", "e6e6e6", l)
+			assertLabelEqual(t, "invalid", "e6e6e6", "", l)
 		case "question":
-			assertLabelEqual(t, "question", "cc317c", l)
+			assertLabelEqual(t, "question", "cc317c", "", l)
 		case "wontfix":
-			assertLabelEqual(t, "wontfix", "ffffff", l)
+			assertLabelEqual(t, "wontfix", "ffffff", "", l)
 		}
 	}
 
@@ -111,6 +117,6 @@ func TestGogsDownloadRepo(t *testing.T) {
 	}, comments)
 
 	// downloader.GetPullRequests()
-	_, err = downloader.GetPullRequests(1, 3)
+	_, _, err = downloader.GetPullRequests(1, 3)
 	assert.Error(t, err)
 }
