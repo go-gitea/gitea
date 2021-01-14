@@ -70,7 +70,7 @@
 						<div class="inline field">
 							<label>{{.i18n.Tr "repo.template.items"}}</label>
 							<div class="ui checkbox">
-								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
+								<input class="hidden" id="git_content" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_content"}}</label>
 							</div>
 							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} poping up{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
@@ -98,6 +98,13 @@
 							<div class="ui checkbox">
 								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.issue_labels"}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input class="hidden" id="branch_protection" name="branch_protection" type="checkbox" tabindex="0" {{if .branch_protection}}checked{{end}} {{if not .git_content}}disabled{{end}}>
+								<label>{{.i18n.Tr "repo.template.branch_protection"}}</label>
 							</div>
 						</div>
 					</div>

@@ -821,10 +821,14 @@ func (repo *Repository) GetWriters() (_ []*User, err error) {
 
 // IsReader returns true if user has explicit read access or higher to the repository.
 func (repo *Repository) IsReader(userID int64) (bool, error) {
+	return repo.isReader(x, userID)
+}
+
+func (repo *Repository) isReader(e Engine, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
+	return e.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.

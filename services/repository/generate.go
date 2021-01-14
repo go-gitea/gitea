@@ -25,6 +25,13 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 			if err = repo_module.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
+
+			// Branch Protection
+			if opts.BranchProtection {
+				if err := models.GenerateBranchProtection(ctx, doer, templateRepo, generateRepo); err != nil {
+					return err
+				}
+			}
 		}
 
 		// Topics

@@ -2291,6 +2291,15 @@ function initWipTitle() {
   });
 }
 
+function initTemplateBranchProtection() {
+  const $gitContent = $('#git_content');
+  const $branchProtection = $('#branch_protection');
+  $gitContent.on('change', () => {
+    $branchProtection.prop('checked', false);
+    $branchProtection.prop('disabled', !$gitContent.is(':checked'));
+  });
+}
+
 function initTemplateSearch() {
   const $repoTemplate = $('#repo_template');
   const checkTemplate = function () {
@@ -2552,6 +2561,7 @@ $(document).ready(async () => {
   initWipTitle();
   initPullRequestReview();
   initRepoStatusChecker();
+  initTemplateBranchProtection();
   initTemplateSearch();
   initContextPopups();
   initTableSort();
