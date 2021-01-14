@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/forms"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -86,7 +86,7 @@ func TestChangePassword(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 
-		web.SetForm(ctx, &forms.ChangePasswordForm{
+		web.SetForm(ctx, &auth.ChangePasswordForm{
 			OldPassword: req.OldPassword,
 			Password:    req.NewPassword,
 			Retype:      req.Retype,
