@@ -116,9 +116,6 @@ func (ctx *APIContext) InternalServerError(err error) {
 	})
 }
 
-// APIHandler represents a handler for api routes
-type APIHandler func(*Context)
-
 var (
 	apiContextKey interface{} = "default_api_context"
 )
