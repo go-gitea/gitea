@@ -280,5 +280,6 @@ var (
 		GithubService,
 		GitlabService,
 		GiteaService,
+		GogsService,
 	}
 )

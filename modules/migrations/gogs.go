@@ -32,14 +32,6 @@ func init() {
 type GogsDownloaderFactory struct {
 }
 
-// Match returns ture if the migration remote URL matched this downloader factory
-func (f *GogsDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
-	if opts.GitServiceType == structs.GogsService {
-		return true, nil
-	}
-	return false, nil
-}
-
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
@@ -126,11 +118,6 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 		OriginalURL:   gr.HTMLURL,
 		DefaultBranch: gr.DefaultBranch,
 	}, nil
-}
-
-// GetTopics return gogs topics
-func (g *GogsDownloader) GetTopics() ([]string, error) {
-	return nil, ErrNotSupported
 }
 
 // GetMilestones returns milestones
@@ -258,6 +245,11 @@ func convertGogsLabel(label *gogs.Label) *base.Label {
 // GetReleases returns releases
 // FIXME: gogs API haven't support get releases
 func (g *GogsDownloader) GetReleases() ([]*base.Release, error) {
+	return nil, ErrNotSupported
+}
+
+// GetTopics return gogs topics
+func (g *GogsDownloader) GetTopics() ([]string, error) {
 	return nil, ErrNotSupported
 }
 
