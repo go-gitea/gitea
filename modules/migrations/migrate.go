@@ -190,7 +190,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if err != ErrNotSupported {
 				return err
 			}
-
 			log.Warn("migrating labels is not supported, ignored")
 		}
 
