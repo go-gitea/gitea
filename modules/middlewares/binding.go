@@ -30,7 +30,7 @@ func AssignForm(form interface{}, data map[string]interface{}) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
 
-	if typ.Kind() == reflect.Ptr {
+	for typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 		val = val.Elem()
 	}
