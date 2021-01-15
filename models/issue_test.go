@@ -299,7 +299,7 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	total, ids, err = SearchIssueIDsByKeyword("for", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, total)
-	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
+	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	// issue1's comment id 2
 	total, ids, err = SearchIssueIDsByKeyword("good", []int64{1}, 10, 0)
