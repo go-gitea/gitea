@@ -216,6 +216,9 @@ func TestIsSVGImageFile(t *testing.T) {
 	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiline
 	Comment -->
 	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Basic//EN"
+	"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-basic.dtd">
+	<svg></svg>`)))
 	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
 	<!-- Comment -->
 	<svg></svg>`)))
@@ -224,6 +227,11 @@ func TestIsSVGImageFile(t *testing.T) {
 	<!-- Comments -->
 	<svg></svg>`)))
 	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multline
+	Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 	<!-- Multline
 	Comment -->
 	<svg></svg>`)))
