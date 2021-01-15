@@ -696,11 +696,11 @@ func UpdatePullRequest(ctx *context.Context) {
 	}
 
 	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
 	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
