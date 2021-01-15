@@ -4,23 +4,17 @@
 
 package base
 
-import "errors"
-
-var (
-	// ErrRepoNotCreated returns the error that repository not created
-	ErrRepoNotCreated = errors.New("repository is not created yet")
-)
-
 // ErrNotSupported represents status if a downloader do not supported something.
 type ErrNotSupported struct {
 }
 
-// ErrNotSupported checks if an error is an ErrNotSupported
+// IsErrNotSupported checks if an error is an ErrNotSupported
 func IsErrNotSupported(err error) bool {
 	_, ok := err.(ErrNotSupported)
 	return ok
 }
 
+// Error return error message
 func (err ErrNotSupported) Error() string {
 	return "not supported"
 }

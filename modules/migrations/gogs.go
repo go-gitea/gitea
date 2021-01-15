@@ -67,6 +67,7 @@ type GogsDownloader struct {
 	password  string
 }
 
+// SetContext set context
 func (g *GogsDownloader) SetContext(ctx context.Context) {
 	g.ctx = ctx
 }
@@ -206,7 +207,8 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 	return allComments, nil
 }
 
-func (n GogsDownloader) FormatGitURL() func(opts MigrateOptions, remoteAddr string) (string, error) {
+// FormatGitURL return func to add authentification into remote URLs
+func (g GogsDownloader) FormatGitURL() func(opts MigrateOptions, remoteAddr string) (string, error) {
 	return func(opts MigrateOptions, remoteAddr string) (string, error) {
 		if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 			u, err := url.Parse(remoteAddr)
