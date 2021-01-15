@@ -141,6 +141,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		repo.Description = opts.Description
 	}
 	log.Trace("migrating git data")
+
+	if opts.OriginalURL, err = downloader.FormatGitURL()(opts, opts.OriginalURL); err != nil {
+		return err
+	}
 	if err := uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
@@ -149,7 +153,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	log.Trace("migrating topics")
 	topics, err := downloader.GetTopics()
 	if err != nil {
-		if !IsErrNotSupported(err) {
+		if !base.IsErrNotSupported(err) {
 			return err
 		}
 		log.Warn("migrating topics is not supported, ignored")
@@ -164,7 +168,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
 		if err != nil {
-			if !IsErrNotSupported(err) {
+			if !base.IsErrNotSupported(err) {
 				return err
 			}
 			log.Warn("migrating milestones is not supported, ignored")
@@ -187,7 +191,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating labels")
 		labels, err := downloader.GetLabels()
 		if err != nil {
-			if err != ErrNotSupported {
+			if !base.IsErrNotSupported(err) {
 				return err
 			}
 			log.Warn("migrating labels is not supported, ignored")
@@ -210,7 +214,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating releases")
 		releases, err := downloader.GetReleases()
 		if err != nil {
-			if err != ErrNotSupported {
+			if !base.IsErrNotSupported(err) {
 				return err
 			}
 
@@ -247,7 +251,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
 			if err != nil {
-				if err != ErrNotSupported {
+				if !base.IsErrNotSupported(err) {
 					return err
 				}
 
@@ -298,7 +302,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
-				if err != ErrNotSupported {
+				if !base.IsErrNotSupported(err) {
 					return err
 				}
 				log.Warn("migrating pull requests is not supported, ignored")

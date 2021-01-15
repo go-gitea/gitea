@@ -12,17 +12,9 @@ import (
 )
 
 var (
-	// ErrNotSupported returns the error not supported
-	ErrNotSupported = errors.New("not supported")
-
 	// ErrRepoNotCreated returns the error that repository not created
 	ErrRepoNotCreated = errors.New("repository is not created yet")
 )
-
-// IsErrNotSupported returns true if the err is ErrNotSupported
-func IsErrNotSupported(err error) bool {
-	return err == ErrNotSupported
-}
 
 // IsRateLimitError returns true if the err is github.RateLimitError
 func IsRateLimitError(err error) bool {

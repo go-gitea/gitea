@@ -57,6 +57,7 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GogsDownloader implements a Downloader interface to get repository informations
 // from gogs via API
 type GogsDownloader struct {
+	base.NullDownloader
 	ctx       context.Context
 	client    *gogs.Client
 	baseURL   string
@@ -205,6 +206,25 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 	return allComments, nil
 }
 
+func (n GogsDownloader) FormatGitURL() func(opts MigrateOptions, remoteAddr string) (string, error) {
+	return func(opts MigrateOptions, remoteAddr string) (string, error) {
+		if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+			u, err := url.Parse(remoteAddr)
+			if err != nil {
+				return "", err
+			}
+			if len(opts.AuthToken) != 0 {
+				u.User = url.UserPassword(opts.AuthToken, "")
+			} else {
+				u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+			}
+			return u.String(), nil
+		}
+		return remoteAddr, nil
+	}
+
+}
+
 func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 	var milestone string
 	if issue.Milestone != nil {
@@ -240,24 +260,4 @@ func convertGogsLabel(label *gogs.Label) *base.Label {
 		Name:  label.Name,
 		Color: label.Color,
 	}
-}
-
-// GetReleases returns releases
-// FIXME: gogs API haven't support get releases
-func (g *GogsDownloader) GetReleases() ([]*base.Release, error) {
-	return nil, ErrNotSupported
-}
-
-// GetTopics return gogs topics
-func (g *GogsDownloader) GetTopics() ([]string, error) {
-	return nil, ErrNotSupported
-}
-
-// GetPullRequests returns pull requests according page and perPage
-func (g *GogsDownloader) GetPullRequests(_, _ int) ([]*base.PullRequest, bool, error) {
-	return nil, false, ErrNotSupported
-}
-
-func (g *GogsDownloader) GetReviews(_ int64) ([]*base.Review, error) {
-	return nil, ErrNotSupported
 }

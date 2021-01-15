@@ -69,6 +69,7 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
+	base.NullDownloader
 	ctx        context.Context
 	client     *gitea_sdk.Client
 	repoOwner  string
