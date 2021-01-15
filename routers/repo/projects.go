@@ -353,7 +353,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 
 	pb, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("GetProjectBoard", err)
 		return
 	}
 	if pb.ProjectID != ctx.ParamsInt64(":id") {
@@ -443,7 +443,7 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 
 	board, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("GetProjectBoard", err)
 		return
 	}
 	if board.ProjectID != ctx.ParamsInt64(":id") {
