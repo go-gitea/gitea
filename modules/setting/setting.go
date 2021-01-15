@@ -190,6 +190,10 @@ var (
 			EventSourceUpdateTime time.Duration
 		} `ini:"ui.notification"`
 
+		SVG struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		} `ini:"ui.svg"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -229,6 +233,11 @@ var (
 			TimeoutStep:           10 * time.Second,
 			MaxTimeout:            60 * time.Second,
 			EventSourceUpdateTime: 10 * time.Second,
+		},
+		SVG: struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		}{
+			Enabled: true,
 		},
 		Admin: struct {
 			UserPagingNum   int
@@ -367,7 +376,6 @@ var (
 	CustomConf    string
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
-	ProdMode      bool
 	RunMode       string
 	RunUser       string
 	IsWindows     bool
@@ -378,6 +386,11 @@ var (
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
 )
+
+// IsProd if it's a production mode
+func IsProd() bool {
+	return strings.EqualFold(RunMode, "prod")
+}
 
 func getAppPath() (string, error) {
 	var appPath string
