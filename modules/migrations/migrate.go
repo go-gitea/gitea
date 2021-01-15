@@ -161,7 +161,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 		log.Warn("migrating topics is not supported, ignored")
 	}
-	if len(topics) > 0 {
+	if len(topics) != 0 {
 		if err := uploader.CreateTopics(topics...); err != nil {
 			return err
 		}

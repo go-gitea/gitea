@@ -48,6 +48,9 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 		if repo, err = d.Downloader.GetRepoInfo(); err == nil {
 			return repo, nil
 		}
+		if IsErrNotSupported(err) {
+			return nil, err
+		}
 		select {
 		case <-d.ctx.Done():
 			return nil, d.ctx.Err()
@@ -67,6 +70,9 @@ func (d *RetryDownloader) GetTopics() ([]string, error) {
 	for ; times > 0; times-- {
 		if topics, err = d.Downloader.GetTopics(); err == nil {
 			return topics, nil
+		}
+		if IsErrNotSupported(err) {
+			return nil, err
 		}
 		select {
 		case <-d.ctx.Done():
@@ -88,6 +94,9 @@ func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 		if milestones, err = d.Downloader.GetMilestones(); err == nil {
 			return milestones, nil
 		}
+		if IsErrNotSupported(err) {
+			return nil, err
+		}
 		select {
 		case <-d.ctx.Done():
 			return nil, d.ctx.Err()
@@ -108,6 +117,9 @@ func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 		if releases, err = d.Downloader.GetReleases(); err == nil {
 			return releases, nil
 		}
+		if IsErrNotSupported(err) {
+			return nil, err
+		}
 		select {
 		case <-d.ctx.Done():
 			return nil, d.ctx.Err()
@@ -127,6 +139,9 @@ func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 	for ; times > 0; times-- {
 		if labels, err = d.Downloader.GetLabels(); err == nil {
 			return labels, nil
+		}
+		if IsErrNotSupported(err) {
+			return nil, err
 		}
 		select {
 		case <-d.ctx.Done():
@@ -149,6 +164,9 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 		if issues, isEnd, err = d.Downloader.GetIssues(page, perPage); err == nil {
 			return issues, isEnd, nil
 		}
+		if IsErrNotSupported(err) {
+			return nil, false, err
+		}
 		select {
 		case <-d.ctx.Done():
 			return nil, false, d.ctx.Err()
@@ -168,6 +186,9 @@ func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 	for ; times > 0; times-- {
 		if comments, err = d.Downloader.GetComments(issueNumber); err == nil {
 			return comments, nil
+		}
+		if IsErrNotSupported(err) {
+			return nil, err
 		}
 		select {
 		case <-d.ctx.Done():
@@ -190,6 +211,9 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 		if prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
 			return prs, isEnd, nil
 		}
+		if IsErrNotSupported(err) {
+			return nil, false, err
+		}
 		select {
 		case <-d.ctx.Done():
 			return nil, false, d.ctx.Err()
@@ -209,6 +233,9 @@ func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error)
 	for ; times > 0; times-- {
 		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
 			return reviews, nil
+		}
+		if IsErrNotSupported(err) {
+			return nil, err
 		}
 		select {
 		case <-d.ctx.Done():
