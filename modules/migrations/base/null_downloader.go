@@ -22,47 +22,47 @@ func (n NullDownloader) SetContext(_ context.Context) {}
 
 // GetRepoInfo returns a repository information
 func (n NullDownloader) GetRepoInfo() (*Repository, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "RepoInfo"}
 }
 
 // GetTopics return gitlab topics
 func (n NullDownloader) GetTopics() ([]string, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Topics"}
 }
 
 // GetMilestones returns milestones
 func (n NullDownloader) GetMilestones() ([]*Milestone, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Milestones"}
 }
 
 // GetReleases returns releases
 func (n NullDownloader) GetReleases() ([]*Release, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Releases"}
 }
 
 // GetLabels returns labels
 func (n NullDownloader) GetLabels() ([]*Label, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Labels"}
 }
 
 // GetIssues returns issues according start and limit
 func (n NullDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
-	return nil, false, &ErrNotSupported{}
+	return nil, false, &ErrNotSupported{Entity: "Issues"}
 }
 
 // GetComments returns comments according issueNumber
 func (n NullDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Comments"}
 }
 
 // GetPullRequests returns pull requests according page and perPage
 func (n NullDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
-	return nil, false, &ErrNotSupported{}
+	return nil, false, &ErrNotSupported{Entity: "PullRequests"}
 }
 
 // GetReviews returns pull requests review
 func (n NullDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
-	return nil, &ErrNotSupported{}
+	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 
 // FormatGitURL return func to add authentification into remote URLs
