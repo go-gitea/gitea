@@ -133,15 +133,18 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
-		return err
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Info("migrating repo infos is not supported, ignored")
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}
-	log.Trace("migrating git data")
 
+	log.Trace("migrating git data")
 	if opts.OriginalURL, err = downloader.FormatGitURL()(opts, opts.OriginalURL); err != nil {
 		return err
 	}
@@ -217,7 +220,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if !base.IsErrNotSupported(err) {
 				return err
 			}
-
 			log.Warn("migrating releases is not supported, ignored")
 		}
 
@@ -254,7 +256,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				if !base.IsErrNotSupported(err) {
 					return err
 				}
-
 				log.Warn("migrating issues is not supported, ignored")
 				break
 			}
@@ -269,7 +270,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating issue %d's comments", issue.Number)
 					comments, err := downloader.GetComments(issue.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
@@ -320,7 +324,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating pull request %d's comments", pr.Number)
 					comments, err := downloader.GetComments(pr.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
@@ -349,13 +356,17 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					}
 
 					reviews, err := downloader.GetReviews(number)
+					if err != nil {
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating reviews is not supported, ignored")
+						break
+					}
 					if pr.OriginalNumber > 0 {
 						for i := range reviews {
 							reviews[i].IssueIndex = pr.Number
 						}
-					}
-					if err != nil {
-						return err
 					}
 
 					allReviews = append(allReviews, reviews...)
