@@ -800,6 +800,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 					m.Group("/:boardID", func() {
 						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
 						m.Delete("", repo.DeleteProjectBoard)
+						m.Post("/default", repo.SetDefaultProjectBoard)
 
 						m.Post("/:index", repo.MoveIssueAcrossBoards)
 					})
