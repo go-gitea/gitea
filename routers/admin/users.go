@@ -188,7 +188,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if !models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.InternalServerError(err)
+			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 			return nil
 		}
 		ctx.Data["TwoFactorEnabled"] = false
@@ -268,7 +268,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			return
 		}
 		if err = u.SetPassword(form.Password); err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("SetPassword", err)
 			return
 		}
 	}
@@ -285,12 +285,12 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	if form.Reset2FA {
 		tf, err := models.GetTwoFactorByUID(u.ID)
 		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.InternalServerError(err)
+			ctx.ServerError("GetTwoFactorByUID", err)
 			return
 		}
 
 		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("DeleteTwoFactorByID", err)
 			return
 		}
 	}
