@@ -422,7 +422,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/hooks", func() {
+		m.Group("/hooks", func(m *web.Route) {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Get("/:id", repo.WebHooksEdit)
@@ -437,7 +437,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 		})
 
-		m.Group("/^:configType(default-hooks|system-hooks)$", func() {
+		m.Group("/^:configType(default-hooks|system-hooks)$", func(m *web.Route) {
 			m.Get("/:type/new", repo.WebhooksNew)
 			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
 			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
@@ -450,7 +450,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 		})
 
-		m.Group("/auths", func() {
+		m.Group("/auths", func(m *web.Route) {
 			m.Get("", admin.Authentications)
 			m.Combo("/new").Get(admin.NewAuthSource).Post(bindIgnErr(forms.AuthenticationForm{}), admin.NewAuthSourcePost)
 			m.Combo("/:authid").Get(admin.EditAuthSource).
