@@ -1151,14 +1151,12 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if section, err := setting.Cfg.GetSection("service"); err == nil {
-		if maxDays, err := section.Key("USER_DELETE_WITH_COMMENTS_MAX_DAYS").Int(); err == nil && maxDays != 0 &&
-			u.CreatedUnix.AsTime().Add(time.Duration(maxDays)*24*time.Hour).After(time.Now()) {
-			if err = deleteBeans(e,
-				&Comment{PosterID: u.ID},
-			); err != nil {
-				return fmt.Errorf("deleteBeans: %v", err)
-			}
+	if setting.Service.UserDeleteWithCommentsMaxDays != 0 &&
+		u.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays)*24*time.Hour).After(time.Now()) {
+		if err = deleteBeans(e,
+			&Comment{PosterID: u.ID},
+		); err != nil {
+			return fmt.Errorf("deleteBeans: %v", err)
 		}
 	}
 
