@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -36,24 +36,24 @@ var (
 )
 
 func Test_ValidToken(t *testing.T) {
-	Convey("Validate token", t, func() {
+	t.Run("Validate token", func(t *testing.T) {
 		tok := generateTokenAtTime(key, userID, actionID, now)
-		So(validTokenAtTime(tok, key, userID, actionID, oneMinuteFromNow), ShouldBeTrue)
-		So(validTokenAtTime(tok, key, userID, actionID, now.Add(Timeout-1*time.Nanosecond)), ShouldBeTrue)
-		So(validTokenAtTime(tok, key, userID, actionID, now.Add(-1*time.Minute)), ShouldBeTrue)
+		assert.True(t, validTokenAtTime(tok, key, userID, actionID, oneMinuteFromNow))
+		assert.True(t, validTokenAtTime(tok, key, userID, actionID, now.Add(Timeout-1*time.Nanosecond)))
+		assert.True(t, validTokenAtTime(tok, key, userID, actionID, now.Add(-1*time.Minute)))
 	})
 }
 
 // Test_SeparatorReplacement tests that separators are being correctly substituted
 func Test_SeparatorReplacement(t *testing.T) {
-	Convey("Test two separator replacements", t, func() {
-		So(generateTokenAtTime("foo:bar", "baz", "wah", now), ShouldNotEqual,
+	t.Run("Test two separator replacements", func(t *testing.T) {
+		assert.NotEqual(t, generateTokenAtTime("foo:bar", "baz", "wah", now),
 			generateTokenAtTime("foo", "bar:baz", "wah", now))
 	})
 }
 
 func Test_InvalidToken(t *testing.T) {
-	Convey("Test invalid tokens", t, func() {
+	t.Run("Test invalid tokens", func(t *testing.T) {
 		invalidTokenTests := []struct {
 			name, key, userID, actionID string
 			t                           time.Time
@@ -67,14 +67,14 @@ func Test_InvalidToken(t *testing.T) {
 
 		tok := generateTokenAtTime(key, userID, actionID, now)
 		for _, itt := range invalidTokenTests {
-			So(validTokenAtTime(tok, itt.key, itt.userID, itt.actionID, itt.t), ShouldBeFalse)
+			assert.False(t, validTokenAtTime(tok, itt.key, itt.userID, itt.actionID, itt.t))
 		}
 	})
 }
 
 // Test_ValidateBadData primarily tests that no unexpected panics are triggered during parsing
 func Test_ValidateBadData(t *testing.T) {
-	Convey("Validate bad data", t, func() {
+	t.Run("Validate bad data", func(t *testing.T) {
 		badDataTests := []struct {
 			name, tok string
 		}{
@@ -84,7 +84,7 @@ func Test_ValidateBadData(t *testing.T) {
 		}
 
 		for _, bdt := range badDataTests {
-			So(validTokenAtTime(bdt.tok, key, userID, actionID, oneMinuteFromNow), ShouldBeFalse)
+			assert.False(t, validTokenAtTime(bdt.tok, key, userID, actionID, oneMinuteFromNow))
 		}
 	})
 }
