@@ -89,10 +89,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-// Handler represents a handler for api routes
-type Handler func(ctx *context.APIContext)
-
-func sudo() Handler {
+func sudo() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		sudo := ctx.Query("sudo")
 		if len(sudo) == 0 {
@@ -122,7 +119,7 @@ func sudo() Handler {
 	}
 }
 
-func repoAssignment() Handler {
+func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.Params(":username")
 		repoName := ctx.Params(":reponame")
@@ -189,7 +186,7 @@ func repoAssignment() Handler {
 }
 
 // Contexter middleware already checks token for user sign in process.
-func reqToken() Handler {
+func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if true == ctx.Data["IsApiToken"] {
 			return
@@ -206,7 +203,7 @@ func reqToken() Handler {
 	}
 }
 
-func reqBasicAuth() Handler {
+func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
@@ -217,7 +214,7 @@ func reqBasicAuth() Handler {
 }
 
 // reqSiteAdmin user should be the site admin
-func reqSiteAdmin() Handler {
+func reqSiteAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqSiteAdmin", "user should be the site admin")
@@ -227,7 +224,7 @@ func reqSiteAdmin() Handler {
 }
 
 // reqOwner user should be the owner of the repo or site admin.
-func reqOwner() Handler {
+func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
@@ -237,7 +234,7 @@ func reqOwner() Handler {
 }
 
 // reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
-func reqAdmin() Handler {
+func reqAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAdmin", "user should be an owner or a collaborator with admin write of a repository")
@@ -247,7 +244,7 @@ func reqAdmin() Handler {
 }
 
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
-func reqRepoWriter(unitTypes ...models.UnitType) Handler {
+func reqRepoWriter(unitTypes ...models.UnitType) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
@@ -257,7 +254,7 @@ func reqRepoWriter(unitTypes ...models.UnitType) Handler {
 }
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
-func reqRepoReader(unitType models.UnitType) Handler {
+func reqRepoReader(unitType models.UnitType) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
@@ -267,7 +264,7 @@ func reqRepoReader(unitType models.UnitType) Handler {
 }
 
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
-func reqAnyRepoReader() Handler {
+func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
@@ -277,7 +274,7 @@ func reqAnyRepoReader() Handler {
 }
 
 // reqOrgOwnership user should be an organization owner, or a site admin
-func reqOrgOwnership() Handler {
+func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -309,7 +306,7 @@ func reqOrgOwnership() Handler {
 }
 
 // reqTeamMembership user should be an team member, or a site admin
-func reqTeamMembership() Handler {
+func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -346,7 +343,7 @@ func reqTeamMembership() Handler {
 }
 
 // reqOrgMembership user should be an organization member, or a site admin
-func reqOrgMembership() Handler {
+func reqOrgMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Context.IsUserSiteAdmin() {
 			return
@@ -376,7 +373,7 @@ func reqOrgMembership() Handler {
 	}
 }
 
-func reqGitHook() Handler {
+func reqGitHook() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.User.CanEditGitHook() {
 			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
@@ -385,7 +382,7 @@ func reqGitHook() Handler {
 	}
 }
 
-func orgAssignment(args ...bool) Handler {
+func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 	var (
 		assignOrg  bool
 		assignTeam bool
@@ -519,7 +516,7 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
-// bind binding an obj to a handler
+// bind binding an obj to a func(ctx *context.APIContext)
 func bind(obj interface{}) http.HandlerFunc {
 	var tp = reflect.TypeOf(obj)
 	for tp.Kind() == reflect.Ptr {
@@ -535,8 +532,7 @@ func bind(obj interface{}) http.HandlerFunc {
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Route {
 	var m = web.NewRoute()
-	var ignSignIn = context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
-
+	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
 			//Scheme:           setting.CORSConfig.Scheme,
@@ -547,7 +543,10 @@ func Routes() *web.Route {
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
-	m.Use(ignSignIn)
+	m.Use(context.APIContexter())
+	m.Use(context.ToggleAPI(&context.ToggleOptions{
+		SignInRequired: setting.Service.RequireSignInView,
+	}))
 
 	m.Group("/v1", func() {
 		// Miscellaneous
@@ -1013,15 +1012,18 @@ func Routes() *web.Route {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, securityHeaders(), context.APIContexter(), sudo())
+	}, sudo())
 
 	return m
 }
 
-func securityHeaders() Handler {
-	return func(ctx *context.APIContext) {
-		// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
-		// http://stackoverflow.com/a/3146618/244009
-		ctx.Resp.Header().Set("x-content-type-options", "nosniff")
+func securityHeaders() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
+			// http://stackoverflow.com/a/3146618/244009
+			resp.Header().Set("x-content-type-options", "nosniff")
+			next.ServeHTTP(resp, req)
+		})
 	}
 }

@@ -28,6 +28,8 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			switch t := handler.(type) {
 			case http.HandlerFunc:
 				t(resp, req)
+			case func(http.ResponseWriter, *http.Request):
+				t(resp, req)
 			case func(ctx *context.Context):
 				ctx := context.GetContext(req)
 				t(ctx)
@@ -59,6 +61,20 @@ func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			Wrap(f)(resp, req)
 			ctx := context.GetContext(req)
+			if ctx.Written() {
+				return
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
+}
+
+// MiddleAPI wrap a context function as a chi middleware
+func MiddleAPI(f func(ctx *context.APIContext)) func(netx http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			Wrap(f)(resp, req)
+			ctx := context.GetAPIContext(req)
 			if ctx.Written() {
 				return
 			}
@@ -122,6 +138,8 @@ func (r *Route) Use(middlewares ...interface{}) {
 				r.R.Use(t)
 			case func(*context.Context):
 				r.R.Use(Middle(t))
+			case func(*context.APIContext):
+				r.R.Use(MiddleAPI(t))
 			default:
 				panic(fmt.Sprintf("Unsupported middleware type: %#v", t))
 			}
