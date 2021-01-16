@@ -34,6 +34,7 @@ import (
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
 	"github.com/unknwon/com"
+	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
 )
 
@@ -573,8 +574,6 @@ func Contexter() func(next http.Handler) http.Handler {
 				},
 				Org: &Organization{},
 				Data: map[string]interface{}{
-					"i18n":          locale,
-					"Language":      locale.Language(),
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"TmplLoadTimes": func() string {
@@ -687,6 +686,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 
 			ctx.Data["ManifestData"] = setting.ManifestData
+
+			ctx.Data["i18n"] = locale
+			ctx.Data["Tr"] = i18n.Tr
+			ctx.Data["Lang"] = locale.Language()
+			ctx.Data["AllLangs"] = translation.AllLangs()
+			for _, lang := range translation.AllLangs() {
+				if lang.Lang == locale.Language() {
+					ctx.Data["LangName"] = lang.Name
+					break
+				}
+			}
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

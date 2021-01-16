@@ -19,9 +19,20 @@ type Locale interface {
 	Tr(string, ...interface{}) string
 }
 
+// LangType represents a lang type
+type LangType struct {
+	Lang, Name string
+}
+
 var (
-	matcher language.Matcher
+	matcher  language.Matcher
+	allLangs []LangType
 )
+
+// AllLangs returns all supported langauages
+func AllLangs() []LangType {
+	return allLangs
+}
 
 // InitLocales loads the locales
 func InitLocales() {
@@ -47,11 +58,18 @@ func InitLocales() {
 	matcher = language.NewMatcher(tags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err := i18n.SetMessage(setting.Langs[i], localFiles[key]); err != nil {
+		if err := i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Fatal("Failed to set messages to %s", setting.Langs[i])
 		}
 	}
 	i18n.SetDefaultLang("en-US")
+
+	allLangs = make([]LangType, 0, i18n.Count()-1)
+	langs := i18n.ListLangs()
+	names := i18n.ListLangDescs()
+	for i, v := range langs {
+		allLangs = append(allLangs, LangType{v, names[i]})
+	}
 }
 
 // Match matches accept languages
