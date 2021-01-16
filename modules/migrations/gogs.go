@@ -193,7 +193,7 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 
 	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
-		State: state, // TODO: fix SDK to respect this param!!!
+		State: state,
 	})
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)

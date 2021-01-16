@@ -129,3 +129,5 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 
 replace github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
+
+replace github.com/gogs/go-gogs-client => github.com/6543-forks/go-gogs-client v0.0.0-20210116182316-f2f8bc0ea9cc
