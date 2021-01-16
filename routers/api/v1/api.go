@@ -84,9 +84,9 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
-	"github.com/go-chi/cors"
 
 	"gitea.com/go-chi/binding"
+	"github.com/go-chi/cors"
 )
 
 // Handler represents a handler for api routes
