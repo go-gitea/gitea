@@ -58,7 +58,7 @@ func setup(logPath string, debug bool) {
 	}
 	setting.NewContext()
 	if debug {
-		setting.ProdMode = false
+		setting.RunMode = "dev"
 	}
 }
 
@@ -76,7 +76,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
-		if !setting.ProdMode {
+		if !setting.IsProd() {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
