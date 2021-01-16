@@ -58,13 +58,14 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // from gogs via API
 type GogsDownloader struct {
 	base.NullDownloader
-	ctx       context.Context
-	client    *gogs.Client
-	baseURL   string
-	repoOwner string
-	repoName  string
-	userName  string
-	password  string
+	ctx                context.Context
+	client             *gogs.Client
+	baseURL            string
+	repoOwner          string
+	repoName           string
+	userName           string
+	password           string
+	openIssuesFinished bool
 }
 
 // SetContext set context
@@ -167,16 +168,24 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 
 // GetIssues returns issues according start and limit, perPage is not supported
 func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
-	issuesOpen, isEndOpen, err := g.getIssues(page, "open")
-	if err != nil {
-		return nil, false, err
+	state := "open"
+	if g.openIssuesFinished {
+		state = "closed"
 	}
-	issuesClosed, isEndClosed, err := g.getIssues(page, "closed")
+
+	issues, isEnd, err := g.getIssues(page, state)
 	if err != nil {
 		return nil, false, err
 	}
 
-	return append(issuesOpen, issuesClosed...), isEndOpen && isEndClosed, nil
+	if isEnd {
+		if g.openIssuesFinished {
+			return issues, true, nil
+		}
+		g.openIssuesFinished = true
+	}
+
+	return issues, false, nil
 }
 
 func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool, error) {
