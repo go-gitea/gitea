@@ -143,12 +143,12 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}
-
-	log.Trace("migrating git data")
-	if opts.OriginalURL, err = downloader.FormatGitURL()(opts, opts.OriginalURL); err != nil {
+	if repo.CloneURL, err = downloader.FormatGitURL()(opts, repo.CloneURL); err != nil {
 		return err
 	}
-	if err := uploader.CreateRepo(repo, opts); err != nil {
+
+	log.Trace("migrating git data")
+	if err = uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
 	defer uploader.Close()
@@ -162,7 +162,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Warn("migrating topics is not supported, ignored")
 	}
 	if len(topics) != 0 {
-		if err := uploader.CreateTopics(topics...); err != nil {
+		if err = uploader.CreateTopics(topics...); err != nil {
 			return err
 		}
 	}
@@ -229,14 +229,14 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err = uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
 		}
 
 		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		if err := uploader.SyncTags(); err != nil {
+		if err = uploader.SyncTags(); err != nil {
 			return err
 		}
 	}
@@ -279,7 +279,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 
@@ -288,7 +288,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -333,14 +333,14 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 						allComments = allComments[commentBatchSize:]
 					}
 				}
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -372,14 +372,14 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					allReviews = append(allReviews, reviews...)
 
 					if len(allReviews) >= reviewBatchSize {
-						if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
 							return err
 						}
 						allReviews = allReviews[reviewBatchSize:]
 					}
 				}
 				if len(allReviews) > 0 {
-					if err := uploader.CreateReviews(allReviews...); err != nil {
+					if err = uploader.CreateReviews(allReviews...); err != nil {
 						return err
 					}
 				}
