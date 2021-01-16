@@ -8,13 +8,12 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/session"
 )
 
 // DataStore represents a data store
-type DataStore interface {
-	GetData() map[string]interface{}
-}
+type DataStore middlewares.DataStore
 
 // SessionStore represents a session store
 type SessionStore session.Store

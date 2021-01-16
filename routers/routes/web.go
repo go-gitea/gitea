@@ -147,17 +147,9 @@ func WebRoutes() *web.Route {
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
-	/*r.Use(toolbox.Toolboxer(r, toolbox.Options{
-		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{
-			{
-				Desc: "Database connection",
-				Func: models.Ping,
-			},
-		},
-		DisableDebug: !setting.EnablePprof,
-	}))*/
+	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
-	//r.SetAutoHead(true)
+	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
 
 	m.Use(user.GetNotificationCount)
 	m.Use(repo.GetActiveStopwatch)
@@ -197,7 +189,7 @@ func WebRoutes() *web.Route {
 	}
 
 	if setting.API.EnableSwagger {
-		// FIXME:
+		// Note: The route moved from apiroutes because it's in fact want to render a web page
 		r.Get("/api/swagger", misc.Swagger) // Render V1 by default
 	}
 
@@ -244,7 +236,7 @@ func RegisterRoutes(m *web.Route) {
 	// for health check
 	m.Get("/", routers.Home)
 	m.Group("/explore", func() {
-		m.Get("/", func(ctx *context.Context) {
+		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", routers.ExploreRepos)
@@ -260,7 +252,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		m.Group("/", func() {
+		m.Group("", func() {
 			m.Combo("/login/openid").
 				Get(user.SignInOpenID).
 				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
@@ -270,7 +262,7 @@ func RegisterRoutes(m *web.Route) {
 				Get(user.ConnectOpenID).
 				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
 			m.Group("/register", func() {
-				m.Combo("/").
+				m.Combo("").
 					Get(user.RegisterOpenID, openIDSignUpEnabled).
 					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			}, openIDSignUpEnabled)
@@ -285,29 +277,17 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/link_account_signin", bindIgnErr(auth.SignInForm{}), user.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", bindIgnErr(auth.RegisterForm{}), user.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
-			m.Get("/", user.TwoFactor)
-			m.Post("/", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
+			m.Get("", user.TwoFactor)
+			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
 		m.Group("/u2f", func() {
-			m.Get("/", user.U2F)
+			m.Get("", user.U2F)
 			m.Get("/challenge", user.U2FChallenge)
 			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
 
 		})
-
-		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
-		m.Any("/activate", user.Activate, reqSignIn)
-		m.Any("/activate_email", user.ActivateEmail)
-		m.Get("/avatar/:username/:size", user.Avatar)
-		m.Get("/email2user", user.Email2User)
-		m.Get("/recover_account", user.ResetPasswd)
-		m.Post("/recover_account", user.ResetPasswdPost)
-		m.Get("/forgot_password", user.ForgotPasswd)
-		m.Post("/forgot_password", user.ForgotPasswdPost)
-		m.Post("/logout", user.SignOut)
-		m.Get("/task/:task", user.TaskStatus)
 	}, reqSignOut)
 
 	m.Any("/user/events", reqSignIn, events.Events)
@@ -376,6 +356,19 @@ func RegisterRoutes(m *web.Route) {
 		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
+	m.Group("/user", func() {
+		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
+		m.Any("/activate", user.Activate, reqSignIn)
+		m.Any("/activate_email", user.ActivateEmail)
+		m.Get("/avatar/:username/:size", user.Avatar)
+		m.Get("/email2user", user.Email2User)
+		m.Get("/recover_account", user.ResetPasswd)
+		m.Post("/recover_account", user.ResetPasswdPost)
+		m.Get("/forgot_password", user.ForgotPasswd)
+		m.Post("/forgot_password", user.ForgotPasswdPost)
+		m.Post("/logout", user.SignOut)
+		m.Get("/task/:task", user.TaskStatus)
+	})
 	// ***** END: User *****
 
 	m.Get("/avatar/:hash", user.AvatarByEmailHash)
