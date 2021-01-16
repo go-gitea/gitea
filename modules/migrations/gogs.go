@@ -168,9 +168,9 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 
 // GetIssues returns issues according start and limit, perPage is not supported
 func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
-	state := "open"
+	state := string(gogs.STATE_OPEN)
 	if g.openIssuesFinished {
-		state = "closed"
+		state = string(gogs.STATE_CLOSED)
 	}
 
 	issues, isEnd, err := g.getIssues(page, state)
@@ -193,7 +193,7 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 
 	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
-		State: state,
+		State: state, // TODO: fix SDK to respect this param!!!
 	})
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
