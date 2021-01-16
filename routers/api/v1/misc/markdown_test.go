@@ -17,6 +17,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +111,8 @@ Here are some links to the most important topics. You can find the full list of 
 
 	for i := 0; i < len(testCases); i += 2 {
 		options.Text = testCases[i]
-		Markdown(ctx, options)
+		web.SetForm(ctx, &options)
+		Markdown(ctx)
 		assert.Equal(t, testCases[i+1], resp.Body.String())
 		resp.Body.Reset()
 	}
@@ -151,7 +153,8 @@ func TestAPI_RenderSimple(t *testing.T) {
 
 	for i := 0; i < len(simpleCases); i += 2 {
 		options.Text = simpleCases[i]
-		Markdown(ctx, options)
+		web.SetForm(ctx, &options)
+		Markdown(ctx)
 		assert.Equal(t, simpleCases[i+1], resp.Body.String())
 		resp.Body.Reset()
 	}
