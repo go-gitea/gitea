@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/mailer"
@@ -149,7 +150,8 @@ func SignIn(ctx *context.Context) {
 }
 
 // SignInPost response for sign in request
-func SignInPost(ctx *context.Context, form auth.SignInForm) {
+func SignInPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignInForm)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
@@ -250,7 +252,8 @@ func TwoFactor(ctx *context.Context) {
 }
 
 // TwoFactorPost validates a user's two-factor authentication token.
-func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
+func TwoFactorPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
 	// Ensure user is in a 2FA session.
@@ -328,7 +331,8 @@ func TwoFactorScratch(ctx *context.Context) {
 }
 
 // TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
-func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthForm) {
+func TwoFactorScratchPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.TwoFactorScratchAuthForm)
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
 	// Ensure user is in a 2FA session.
@@ -427,7 +431,8 @@ func U2FChallenge(ctx *context.Context) {
 }
 
 // U2FSign authenticates the user by signResp
-func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
+func U2FSign(ctx *context.Context) {
+	signResp := web.GetForm(ctx).(*u2f.SignResponse)
 	challSess := ctx.Session.Get("u2fChallenge")
 	idSess := ctx.Session.Get("twofaUid")
 	if challSess == nil || idSess == nil {
@@ -447,7 +452,7 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 			log.Fatal("parsing u2f registration: %v", err)
 			continue
 		}
-		newCounter, authErr := r.Authenticate(signResp, *challenge, reg.Counter)
+		newCounter, authErr := r.Authenticate(*signResp, *challenge, reg.Counter)
 		if authErr == nil {
 			reg.Counter = newCounter
 			user, err := models.GetUserByID(id)
@@ -788,7 +793,8 @@ func LinkAccount(ctx *context.Context) {
 }
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
-func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
+func LinkAccountPostSignIn(ctx *context.Context) {
+	signInForm := web.GetForm(ctx).(*auth.SignInForm)
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
