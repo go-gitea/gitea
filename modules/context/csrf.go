@@ -22,6 +22,9 @@ import (
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/middlewares"
+
+	"gitea.com/go-chi/session"
 	"github.com/unknwon/com"
 )
 
@@ -197,9 +200,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 				ErrorFunc:      opt.ErrorFunc,
 			}
 
-			ctx := GetContext(req)
-			ctx.csrf = x
-			sess := ctx.Session
+			sess := session.GetSession(req)
 
 			if opt.Origin && len(req.Header.Get("Origin")) > 0 {
 				return
@@ -218,7 +219,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 				_ = sess.Set(opt.oldSessionKey, x.ID)
 			} else {
 				// If cookie present, map existing token, else generate a new one.
-				if val := ctx.GetCookie(opt.Cookie); len(val) > 0 {
+				if val := middlewares.GetCookie(req, opt.Cookie); len(val) > 0 {
 					// FIXME: test coverage.
 					x.Token = val
 				} else {
@@ -234,7 +235,7 @@ func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
 					if opt.CookieLifeTime == 0 {
 						expires = time.Now().AddDate(0, 0, 1)
 					}
-					ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
+					middlewares.SetCookie(resp, opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
 						func(c *http.Cookie) {
 							c.SameSite = opt.SameSite
 						},

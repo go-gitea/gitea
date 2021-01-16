@@ -521,7 +521,10 @@ func mustNotBeArchived(ctx *context.APIContext) {
 
 // bind binding an obj to a handler
 func bind(obj interface{}) http.HandlerFunc {
-	var tp = reflect.TypeOf(obj).Elem()
+	var tp = reflect.TypeOf(obj)
+	for tp.Kind() == reflect.Ptr {
+		tp = tp.Elem()
+	}
 	return web.Wrap(func(ctx *context.APIContext) {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
