@@ -136,16 +136,6 @@ func WebRoutes() *web.Route {
 		SubURL: setting.AppSubURL,
 	})
 	r.Use(captcha.Captchaer(cpt))
-	r.Use(context.Csrfer(context.CsrfOptions{
-		Secret:         setting.SecretKey,
-		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
-		Secure:         setting.SessionConfig.Secure,
-		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
-		CookieDomain:   setting.SessionConfig.Domain,
-		CookiePath:     setting.AppSubURL,
-	}))
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist

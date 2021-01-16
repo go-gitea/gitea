@@ -544,16 +544,25 @@ func Contexter() func(next http.Handler) http.Handler {
 		panic(err)
 	}
 
+	var csrfOpts = CsrfOptions{
+		Secret:         setting.SecretKey,
+		Cookie:         setting.CSRFCookieName,
+		SetCookie:      true,
+		Secure:         setting.SessionConfig.Secure,
+		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
+		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
+		CookiePath:     setting.AppSubURL,
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			var locale = middlewares.Locale(resp, req)
 			var startTime = time.Now()
-			var x CSRF
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
 				Resp:    NewResponse(resp),
 				Cache:   c,
-				csrf:    x,
 				Flash:   &middlewares.Flash{},
 				Locale:  locale,
 				Link:    link,
@@ -575,6 +584,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				},
 			}
 			ctx.Req = WithContext(req, &ctx)
+			ctx.csrf = Csrfer(csrfOpts, &ctx)
 
 			// Quick responses appropriate go-get meta with status 200
 			// regardless of if user have access to the repository,
@@ -658,7 +668,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(x.GetToken())
+			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
@@ -678,7 +688,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
-			next.ServeHTTP(ctx.Resp, req)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
 }

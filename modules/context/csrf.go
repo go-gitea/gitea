@@ -22,9 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/modules/middlewares"
-
-	"gitea.com/go-chi/session"
 	"github.com/unknwon/com"
 )
 
@@ -184,70 +181,64 @@ func prepareOptions(options []CsrfOptions) CsrfOptions {
 
 // Csrfer maps CSRF to each request. If this request is a Get request, it will generate a new token.
 // Additionally, depending on options set, generated tokens will be sent via Header and/or Cookie.
-func Csrfer(options ...CsrfOptions) func(next http.Handler) http.Handler {
-	opt := prepareOptions(options)
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			x := &csrf{
-				Secret:         opt.Secret,
-				Header:         opt.Header,
-				Form:           opt.Form,
-				Cookie:         opt.Cookie,
-				CookieDomain:   opt.CookieDomain,
-				CookiePath:     opt.CookiePath,
-				CookieHTTPOnly: opt.CookieHTTPOnly,
-				ErrorFunc:      opt.ErrorFunc,
-			}
-
-			sess := session.GetSession(req)
-
-			if opt.Origin && len(req.Header.Get("Origin")) > 0 {
-				return
-			}
-
-			x.ID = "0"
-			uid := sess.Get(opt.SessionKey)
-			if uid != nil {
-				x.ID = com.ToStr(uid)
-			}
-
-			needsNew := false
-			oldUID := sess.Get(opt.oldSessionKey)
-			if oldUID == nil || oldUID.(string) != x.ID {
-				needsNew = true
-				_ = sess.Set(opt.oldSessionKey, x.ID)
-			} else {
-				// If cookie present, map existing token, else generate a new one.
-				if val := middlewares.GetCookie(req, opt.Cookie); len(val) > 0 {
-					// FIXME: test coverage.
-					x.Token = val
-				} else {
-					needsNew = true
-				}
-			}
-
-			if needsNew {
-				// FIXME: actionId.
-				x.Token = GenerateToken(x.Secret, x.ID, "POST")
-				if opt.SetCookie {
-					var expires interface{}
-					if opt.CookieLifeTime == 0 {
-						expires = time.Now().AddDate(0, 0, 1)
-					}
-					middlewares.SetCookie(resp, opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
-						func(c *http.Cookie) {
-							c.SameSite = opt.SameSite
-						},
-					)
-				}
-			}
-
-			if opt.SetHeader {
-				resp.Header().Add(opt.Header, x.Token)
-			}
-		})
+func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
+	opt = prepareOptions([]CsrfOptions{opt})
+	x := &csrf{
+		Secret:         opt.Secret,
+		Header:         opt.Header,
+		Form:           opt.Form,
+		Cookie:         opt.Cookie,
+		CookieDomain:   opt.CookieDomain,
+		CookiePath:     opt.CookiePath,
+		CookieHTTPOnly: opt.CookieHTTPOnly,
+		ErrorFunc:      opt.ErrorFunc,
 	}
+
+	if opt.Origin && len(ctx.Req.Header.Get("Origin")) > 0 {
+		return x
+	}
+
+	x.ID = "0"
+	uid := ctx.Session.Get(opt.SessionKey)
+	if uid != nil {
+		x.ID = com.ToStr(uid)
+	}
+
+	needsNew := false
+	oldUID := ctx.Session.Get(opt.oldSessionKey)
+	if oldUID == nil || oldUID.(string) != x.ID {
+		needsNew = true
+		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
+	} else {
+		// If cookie present, map existing token, else generate a new one.
+		if val := ctx.GetCookie(opt.Cookie); len(val) > 0 {
+			// FIXME: test coverage.
+			x.Token = val
+		} else {
+			needsNew = true
+		}
+	}
+
+	if needsNew {
+		// FIXME: actionId.
+		x.Token = GenerateToken(x.Secret, x.ID, "POST")
+		if opt.SetCookie {
+			var expires interface{}
+			if opt.CookieLifeTime == 0 {
+				expires = time.Now().AddDate(0, 0, 1)
+			}
+			ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
+				func(c *http.Cookie) {
+					c.SameSite = opt.SameSite
+				},
+			)
+		}
+	}
+
+	if opt.SetHeader {
+		ctx.Resp.Header().Add(opt.Header, x.Token)
+	}
+	return x
 }
 
 // Validate should be used as a per route middleware. It attempts to get a token from a "X-CSRFToken"
