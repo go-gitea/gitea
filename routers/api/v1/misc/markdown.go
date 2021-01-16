@@ -20,7 +20,7 @@ import (
 )
 
 // Markdown render markdown document to HTML
-func Markdown(ctx *context.APIContext, opt interface{}) {
+func Markdown(ctx *context.APIContext) {
 	// swagger:operation POST /markdown miscellaneous renderMarkdown
 	// ---
 	// summary: Render a markdown document as HTML

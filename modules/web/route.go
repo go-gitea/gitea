@@ -134,13 +134,15 @@ func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
 	if pattern == "" {
 		pattern = "/"
 	}
-	r.curGroupPrefix = pattern
-	r.curMiddlewares = middlewares
+	var previousGroupPrefix = r.curGroupPrefix
+	var previousMiddlewares = r.curMiddlewares
+	r.curGroupPrefix = path.Join(r.curGroupPrefix, pattern)
+	r.curMiddlewares = append(r.curMiddlewares, middlewares...)
 
 	fn()
 
-	r.curGroupPrefix = ""
-	r.curMiddlewares = []interface{}{}
+	r.curGroupPrefix = previousGroupPrefix
+	r.curMiddlewares = previousMiddlewares
 }
 
 func (r *Route) getPattern(pattern string) string {
