@@ -76,7 +76,7 @@ func NormalRoutes() *web.Route {
 		r.Use(middle)
 	}
 	r.Mount("/", WebRoutes())
-	r.Mount("/api", apiv1.Routes())
+	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
 	return r
 }

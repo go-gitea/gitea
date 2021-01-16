@@ -548,7 +548,7 @@ func Routes() *web.Route {
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
-	m.Group("/v1", func() {
+	m.Group("", func() {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", misc.Swagger)
