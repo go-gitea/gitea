@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/auth/sso"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
@@ -36,11 +37,13 @@ type routerLoggerOptions struct {
 }
 
 // SignedUserName returns signed user's name via context
-// FIXME currently no any data stored on chi.Context but macaron.Context, so this will
-// return "" before we remove macaron totally
 func SignedUserName(req *http.Request) string {
-	if v, ok := req.Context().Value("SignedUserName").(string); ok {
-		return v
+	ctx := context.GetContext(req)
+	if ctx != nil {
+		v := ctx.Data["SignedUserName"]
+		if res, ok := v.(string); ok {
+			return res
+		}
 	}
 	return ""
 }
@@ -184,8 +187,7 @@ func (d *dataStore) GetData() map[string]interface{} {
 }
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
-// Although similar to macaron.Recovery() the main difference is that this error will be created
-// with the gitea 500 page.
+// This error will be created with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
