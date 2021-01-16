@@ -2475,7 +2475,7 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
-  $('.show-modal.button').on('click', function () {
+  $('.show-modal.button,.show-modal-button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
   $('.delete-post.button').on('click', function () {
