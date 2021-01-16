@@ -2337,6 +2337,31 @@ function initTemplateSearch() {
   changeOwner();
 }
 
+function initIssueReferenceRepositorySearch() {
+  $('.issue_reference_repository_search')
+    .dropdown({
+      apiSettings: {
+        url: `${AppSubUrl}/api/v1/repos/search?private=true`,
+        onResponse(response) {
+          const filteredResponse = {success: true, results: []};
+          $.each(response.data, (_r, repo) => {
+            filteredResponse.results.push({
+              name: htmlEscape(repo.full_name),
+              value: repo.full_name
+            });
+          });
+          return filteredResponse;
+        },
+      },
+      onChange(_value, _text, $choice) {
+        let $form = $choice.closest('form');
+        $form.attr('action', '/' + _text + '/issues/new');
+        $form.find('button').prop('disabled', false);
+      },
+      fullTextSearch: true
+    });
+}
+
 $(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
@@ -2553,6 +2578,7 @@ $(document).ready(async () => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initIssueReferenceRepositorySearch();
   initContextPopups();
   initTableSort();
   initNotificationsTable();

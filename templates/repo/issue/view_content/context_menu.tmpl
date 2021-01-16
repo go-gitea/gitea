@@ -10,6 +10,7 @@
 			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
 		{{end}}
 		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
+		<div class="item context show-modal button reference-issue {{if .diff}}reference-issue-diff{{end}}" data-modal="#reference-issue-modal-{{.item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.reference_issue"}}</div>
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
 			<div class="divider"></div>
 			<div class="item context edit-content">{{.ctx.i18n.Tr "repo.issues.context.edit"}}</div>
@@ -17,6 +18,39 @@
 				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.i18n.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.i18n.Tr "repo.issues.context.delete"}}</div>
 			{{end}}
 		{{end}}
+	</div>
+</div>
+<div class="ui small modal" id="reference-issue-modal-{{.item.HashTag}}">
+	<div class="header">
+		{{.ctx.i18n.Tr "repo.issues.context.reference_issue"}}
+	</div>
+	<div class="content" style="text-align:left">
+		<form class="ui form" action="/comments/issues" method="post">
+			{{.ctx.CsrfTokenHtml}}
+			<div class="ui segment content">
+				<div class="field">
+					<span class="text"><strong>{{.ctx.i18n.Tr "repository"}}</strong></span>
+					<div class="ui search normal selection dropdown issue_reference_repository_search">
+						<div class="default text">{{.ctx.i18n.Tr "repository"}}</div>
+						<div class="menu">
+						</div>
+					</div>
+				</div>
+				<div class="field">
+					<span class="text"><strong>{{.ctx.i18n.Tr "repo.milestones.title"}}</strong></span>
+					<input name="title" value="{{(SubStr (.item.Content | FirstLine ) 0 255) | Safe}}" autofocus required maxlength="255" autocomplete="off">
+				</div>
+				<div class="field">
+					<span class="text"><strong>{{.ctx.i18n.Tr "repo.issues.reference_issue.body"}}</strong></span>
+					<textarea name="content" class="form-control">{{.item.Content}}
+
+_Originally posted by @{{.item.Poster.GetDisplayName}} in {{if .diff}}{{Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}{{else}}{{Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}{{end}}_</textarea>
+				</div>
+				<div class="text right">
+					<button class="ui green button" disabled>{{.ctx.i18n.Tr "repo.issues.create"}}</button>
+				</div>
+			</div>
+		</form>
 	</div>
 </div>
 {{end}}

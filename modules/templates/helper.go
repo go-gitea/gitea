@@ -6,6 +6,7 @@
 package templates
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"encoding/json"
@@ -376,6 +377,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			html += "</span>"
 			return template.HTML(html)
+		},
+		"FirstLine": func(raw string) string {
+			scanner := bufio.NewScanner(strings.NewReader(raw))
+			if scanner.Scan() {
+				return scanner.Text()
+			}
+			return raw
 		},
 	}}
 }
