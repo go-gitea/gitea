@@ -54,12 +54,12 @@ func Routes() *web.Route {
 	r.Use(CheckInternalToken)
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
-	r.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
-	r.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
-	r.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
-	r.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
-	r.Get("/serv/none/:keyid", ServNoCommand)
-	r.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
+	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
+	r.Post("/hook/pre-receive/{owner}/{repo}", bind(private.HookOptions{}), HookPreReceive)
+	r.Post("/hook/post-receive/{owner}/{repo}", bind(private.HookOptions{}), HookPostReceive)
+	r.Post("/hook/set-default-branch/{owner}/{repo}/{branch}", SetDefaultBranch)
+	r.Get("/serv/none/{keyid}", ServNoCommand)
+	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
 	r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
@@ -67,7 +67,7 @@ func Routes() *web.Route {
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
-	r.Post("/manager/remove-logger/:group/:name", RemoveLogger)
+	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
 	r.Post("/mail/send", SendEmail)
 
 	return r

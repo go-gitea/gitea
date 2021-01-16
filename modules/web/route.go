@@ -24,7 +24,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 		panic("No handlers found")
 	}
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		for _, handler := range handlers {
+		for i, handler := range handlers {
 			switch t := handler.(type) {
 			case http.HandlerFunc:
 				t(resp, req)
@@ -48,6 +48,14 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				if ctx.Written() {
 					return
 				}
+			case func(http.Handler) http.Handler:
+				var next http.Handler
+				if i == len(handlers)-1 {
+					next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+				} else {
+					next = Wrap(handlers[i+1])
+				}
+				t(next).ServeHTTP(resp, req)
 			default:
 				panic(fmt.Sprintf("No supported handler type: %#v", t))
 			}

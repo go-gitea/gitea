@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"html"
 	"html/template"
 	"io"
@@ -406,7 +407,9 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	if err := ctx.Render.JSON(ctx.Resp, status, content); err != nil {
+	ctx.Resp.WriteHeader(status)
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
 }
@@ -484,7 +487,7 @@ func (ctx *Context) RemoteAddr() string {
 
 // Params returns the param on route
 func (ctx *Context) Params(p string) string {
-	return chi.URLParam(ctx.Req, p)
+	return chi.URLParam(ctx.Req, strings.TrimPrefix(p, ":"))
 }
 
 // ParamsInt64 returns the param on route as int64
