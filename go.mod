@@ -19,6 +19,7 @@ require (
 	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.1
+	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
@@ -30,8 +31,9 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.3.9
 	github.com/emirpasic/gods v1.12.0
-	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
+	github.com/ethantkoenig/rupture v1.0.0
 	github.com/gliderlabs/ssh v0.3.1
+	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-chi/chi v1.5.1
 	github.com/go-enry/go-enry/v2 v2.6.0
 	github.com/go-git/go-billy/v5 v5.0.0
@@ -88,8 +90,9 @@ require (
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/unknwon/com v1.0.1
@@ -97,6 +100,7 @@ require (
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.0.3
 	github.com/urfave/cli v1.22.5
+	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.39.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.2.1
@@ -124,5 +128,3 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 
 replace github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
-
-replace github.com/ethantkoenig/rupture => github.com/lafriks-fork/rupture v0.0.0-20210115065155-ba9dc0d3d3c4

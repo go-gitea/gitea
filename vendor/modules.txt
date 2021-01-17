@@ -74,6 +74,7 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.5.5
+## explicit
 github.com/RoaringBitmap/roaring
 # github.com/alecthomas/chroma v0.8.2
 ## explicit
@@ -249,7 +250,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77 => github.com/lafriks-fork/rupture v0.0.0-20210115065155-ba9dc0d3d3c4
+# github.com/ethantkoenig/rupture v1.0.0
 ## explicit
 github.com/ethantkoenig/rupture
 # github.com/fatih/color v1.9.0
@@ -262,6 +263,7 @@ github.com/fsnotify/fsnotify
 ## explicit
 github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
+## explicit
 github.com/glycerine/go-unsnap-stream
 # github.com/go-asn1-ber/asn1-ber v1.5.1
 github.com/go-asn1-ber/asn1-ber
@@ -713,7 +715,7 @@ github.com/spf13/viper
 github.com/ssor/bom
 # github.com/steveyen/gtreap v0.1.0
 github.com/steveyen/gtreap
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.7.0
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -734,6 +736,7 @@ github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.5
+## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/webbrowser v1.2.0
 github.com/toqueteos/webbrowser
@@ -762,6 +765,7 @@ github.com/unrolled/render
 ## explicit
 github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
+## explicit
 github.com/willf/bitset
 # github.com/xanzy/go-gitlab v0.39.0
 ## explicit
@@ -1005,4 +1009,3 @@ xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 # github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
-# github.com/ethantkoenig/rupture => github.com/lafriks-fork/rupture v0.0.0-20210115065155-ba9dc0d3d3c4
