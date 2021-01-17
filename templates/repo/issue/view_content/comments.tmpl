@@ -499,11 +499,16 @@
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 											<div class="comment code-comment" id="{{.HashTag}}">
-												{{if not .OriginalAuthor }}
-													<a class="avatar">
-														{{avatar .Poster}}
-													</a>
-												{{end}}
+												<div class="header">
+													<div class="comment-header-right">
+														{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false "DisableQuote" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+													</div>
+													{{if not .OriginalAuthor }}
+														<a class="avatar">
+															{{avatar .Poster}}
+														</a>
+													{{end}}
+												</div>
 												<div class="content">
 													<span class="text grey">
 														{{if .OriginalAuthor }}
@@ -521,7 +526,8 @@
 															<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
 														{{end}}
 														</div>
-														<div class="raw-content hide">{{.Content}}</div>
+														<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+														<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}"></div>
 													</div>
 												</div>
 											</div>
