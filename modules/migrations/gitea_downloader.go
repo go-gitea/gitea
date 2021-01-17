@@ -96,7 +96,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	path := strings.Split(repoPath, "/")
 
 	paginationSupport := true
-	if err := giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
+	if err = giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
 		paginationSupport = false
 	}
 
