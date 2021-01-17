@@ -44,3 +44,8 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 		CloneURL: g.remoteURL,
 	}, nil
 }
+
+// GetTopics return empty string slice
+func (g PlainGitDownloader) GetTopics() ([]string, error) {
+	return []string{}, nil
+}

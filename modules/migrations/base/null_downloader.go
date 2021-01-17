@@ -25,10 +25,9 @@ func (n NullDownloader) GetRepoInfo() (*Repository, error) {
 	return nil, &ErrNotSupported{Entity: "RepoInfo"}
 }
 
-// GetTopics return gitlab topics
+// GetTopics return repository topics
 func (n NullDownloader) GetTopics() ([]string, error) {
-	//TODO: return nil, &ErrNotSupported{Entity: "Topics"}
-	return []string{}, nil
+	return nil, &ErrNotSupported{Entity: "Topics"}
 }
 
 // GetMilestones returns milestones
