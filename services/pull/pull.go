@@ -59,6 +59,12 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 
 	notification.NotifyNewPullRequest(pr, mentions)
+	if len(pull.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(pull.Poster, pull, pull.Labels, nil)
+	}
+	if pull.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(pull.Poster, pull, 0)
+	}
 
 	// add first push codes comment
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
