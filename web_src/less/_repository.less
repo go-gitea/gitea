@@ -939,6 +939,10 @@
         }
       }
 
+      .ui.comments {
+        max-width: 100%;
+      }
+
       .comment {
         > .content {
           > div:first-child {
@@ -1048,9 +1052,36 @@
           border: none !important;
         }
 
+        .comment-header {
+          background: transparent;
+          border-bottom: 0 !important;
+          padding: 0 !important;
+
+          &::after,
+          &::before {
+            display: none;
+          }
+        }
+
         .avatar.image {
           width: 28px;
           height: 28px;
+        }
+      }
+
+      .comment-code-cloud {
+        .segment.reactions {
+          border-top: none !important;
+
+          .ui.label {
+            border: 1px solid;
+            padding: 6px !important;
+            border-radius: var(--border-radius);
+          }
+        }
+
+        button.comment-form-reply {
+          margin-left: 0;
         }
       }
 
