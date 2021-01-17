@@ -1254,6 +1254,7 @@ func applyMentionedCondition(sess *xorm.Session, mentionedID int64) *xorm.Sessio
 
 func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) *xorm.Session {
 	return sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+		And("issue.poster_id <> ?", reviewRequestedID).
 		And("r.type = ?", ReviewTypeRequest).
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
