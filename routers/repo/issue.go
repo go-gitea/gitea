@@ -1377,7 +1377,26 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+			for _, codeComments := range comment.Review.CodeComments {
+				for _, lineComments := range codeComments {
+					for _, c := range lineComments {
+						// Check tag.
+						tag, ok = marked[c.PosterID]
+						if ok {
+							c.ShowTag = tag
+							continue
+						}
 
+						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						if err != nil {
+							ctx.ServerError("commentTag", err)
+							return
+						}
+						marked[c.PosterID] = c.ShowTag
+						participants = addParticipant(c.Poster, participants)
+					}
+				}
+			}
 			if err = comment.LoadResolveDoer(); err != nil {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
