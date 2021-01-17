@@ -2354,8 +2354,8 @@ function initIssueReferenceRepositorySearch() {
         },
       },
       onChange(_value, _text, $choice) {
-        let $form = $choice.closest('form');
-        $form.attr('action', '/' + _text + '/issues/new');
+        const $form = $choice.closest('form');
+        $form.attr('action', `/${_text}/issues/new`);
         $form.find('button').prop('disabled', false);
       },
       fullTextSearch: true
