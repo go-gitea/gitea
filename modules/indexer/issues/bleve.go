@@ -247,6 +247,7 @@ func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int)
 			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),
 		))
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
+	search.SortBy([]string{"-_score"})
 
 	result, err := b.indexer.Search(search)
 	if err != nil {

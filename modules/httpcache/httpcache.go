@@ -17,7 +17,7 @@ import (
 
 // GetCacheControl returns a suitable "Cache-Control" header value
 func GetCacheControl() string {
-	if setting.RunMode == "dev" {
+	if !setting.IsProd() {
 		return "no-store"
 	}
 	return "private, max-age=" + strconv.FormatInt(int64(setting.StaticCacheTime.Seconds()), 10)

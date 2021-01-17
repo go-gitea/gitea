@@ -63,11 +63,10 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(errMsg)
 	} else {
 		var err error
-		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
+		if err = ctx.User.SetPassword(form.Password); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		ctx.User.HashPassword(form.Password)
 		if err := models.UpdateUserCols(ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return

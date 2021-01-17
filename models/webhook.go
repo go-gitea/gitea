@@ -400,20 +400,6 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
-// GetDefaultWebhook returns admin-default webhook by given ID.
-func GetDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{id}
-	}
-	return webhook, nil
-}
-
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
 	return getDefaultWebhooks(x)
@@ -426,11 +412,11 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 		Find(&webhooks)
 }
 
-// GetSystemWebhook returns admin system webhook by given ID.
-func GetSystemWebhook(id int64) (*Webhook, error) {
+// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
+func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
