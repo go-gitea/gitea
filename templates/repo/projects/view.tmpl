@@ -85,6 +85,12 @@
 									{{svg "octicon-pencil"}}
 									{{$.i18n.Tr "repo.projects.board.edit"}}
 								</a>
+								{{if not .Default}}
+									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+										{{svg "octicon-pin"}}
+										{{$.i18n.Tr "repo.projects.board.set_default"}}
+									</a>
+								{{end}}
 								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
 									{{svg "octicon-trashcan"}}
 									{{$.i18n.Tr "repo.projects.board.delete"}}
@@ -109,24 +115,34 @@
 									</div>
 								</div>
 
+								<div class="ui basic modal" id="set-default-project-board-modal-{{.ID}}">
+									<div class="ui icon header">
+										{{$.i18n.Tr "repo.projects.board.set_default"}}
+									</div>
+									<div class="content center">
+										<label>
+											{{$.i18n.Tr "repo.projects.board.set_default_desc"}}
+										</label>
+									</div>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.i18n.Tr "repo.projects.board.set_default"}}</button>
+									</div>
+								</div>
+
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
 									<div class="ui icon header">
 										{{$.i18n.Tr "repo.projects.board.delete"}}
 									</div>
 									<div class="content center">
-										<input type="hidden" name="action" value="delete">
-										<div class="field">
-											<label>
-												{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
-											</label>
-										</div>
+										<label>
+											{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
+										</label>
 									</div>
-									<form class="ui form" method="post">
-										<div class="text right actions">
-											<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-											<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
-										</div>
-									</form>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
+									</div>
 								</div>
 							</div>
 						</div>
