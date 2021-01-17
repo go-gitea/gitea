@@ -65,20 +65,18 @@ func (n NullDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
 	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 
-// FormatGitURL return func to add authentification into remote URLs
-func (n NullDownloader) FormatGitURL() func(opts MigrateOptions, remoteAddr string) (string, error) {
-	return func(opts MigrateOptions, remoteAddr string) (string, error) {
-		if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-			u, err := url.Parse(remoteAddr)
-			if err != nil {
-				return "", err
-			}
-			u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-			if len(opts.AuthToken) > 0 {
-				u.User = url.UserPassword("oauth2", opts.AuthToken)
-			}
-			return u.String(), nil
+// FormatCloneURL add authentification into remote URLs
+func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(remoteAddr)
+		if err != nil {
+			return "", err
 		}
-		return remoteAddr, nil
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		if len(opts.AuthToken) > 0 {
+			u.User = url.UserPassword("oauth2", opts.AuthToken)
+		}
+		return u.String(), nil
 	}
+	return remoteAddr, nil
 }

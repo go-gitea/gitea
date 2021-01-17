@@ -238,24 +238,21 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 	return allComments, nil
 }
 
-// FormatGitURL return func to add authentification into remote URLs
-func (g GogsDownloader) FormatGitURL() func(opts MigrateOptions, remoteAddr string) (string, error) {
-	return func(opts MigrateOptions, remoteAddr string) (string, error) {
-		if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-			u, err := url.Parse(remoteAddr)
-			if err != nil {
-				return "", err
-			}
-			if len(opts.AuthToken) != 0 {
-				u.User = url.UserPassword(opts.AuthToken, "")
-			} else {
-				u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-			}
-			return u.String(), nil
+// FormatCloneURL add authentification into remote URLs
+func (g GogsDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(remoteAddr)
+		if err != nil {
+			return "", err
 		}
-		return remoteAddr, nil
+		if len(opts.AuthToken) != 0 {
+			u.User = url.UserPassword(opts.AuthToken, "")
+		} else {
+			u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		}
+		return u.String(), nil
 	}
-
+	return remoteAddr, nil
 }
 
 func convertGogsIssue(issue *gogs.Issue) *base.Issue {
