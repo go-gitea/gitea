@@ -69,6 +69,7 @@ type GogsDownloader struct {
 	userName           string
 	password           string
 	openIssuesFinished bool
+	openIssuesPages    int
 }
 
 // SetContext set context
@@ -171,9 +172,13 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 
 // GetIssues returns issues according start and limit, perPage is not supported
 func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
-	state := string(gogs.STATE_OPEN)
+	var state string
 	if g.openIssuesFinished {
 		state = string(gogs.STATE_CLOSED)
+		page -= g.openIssuesPages
+	} else {
+		state = string(gogs.STATE_OPEN)
+		g.openIssuesPages = page
 	}
 
 	issues, isEnd, err := g.getIssues(page, state)
