@@ -63,7 +63,8 @@
     }
   }
 
-  .dashboard-repos {
+  .dashboard-repos,
+  .dashboard-orgs {
     margin: 0 1px; /* Accomodate for Semantic's 1px hacks on .attached elements */
   }
 
@@ -110,6 +111,7 @@
 
     .issue.title {
       width: 80%;
+      margin: 0 0 1em;
     }
 
     .push.news .content ul {
@@ -155,16 +157,12 @@
           background-color: #fcf8e9;
         }
 
-        a {
-          padding: 6px 1.2em;
+        .repo-list-link {
+          padding: 6px 1em;
           display: block;
 
           .svg {
-            color: var(--color-secondary-dark-6);
-
-            &.rear {
-              font-size: 15px;
-            }
+            color: var(--color-text-light-2);
           }
 
           .star-num {

@@ -4,7 +4,7 @@ title: "文件"
 slug: "documentation"
 url: "/zh-tw/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -48,7 +48,7 @@ Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使�
 ## 元件
 
 * Web 框架： [Macaron](http://go-macaron.com/)
-* ORM： [XORM](https://github.com/go-xorm/xorm)
+* ORM： [XORM](https://xorm.io)
 * UI 元件：
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)

@@ -37,12 +37,26 @@
   border-color: var(--color-secondary);
 }
 
+.editor-toolbar button {
+  border: none !important;
+  color: var(--color-text-light);
+}
+
 .editor-toolbar button:not(:hover) {
   background-color: transparent !important;
 }
 
 .editor-toolbar i.separator {
   border-left: none;
+  border-right-color: var(--color-secondary);
+}
+
+.editor-toolbar button:hover {
+  background: var(--color-hover);
+}
+
+.editor-toolbar button.active {
+  background: var(--color-active);
 }
 
 .editor-loading {

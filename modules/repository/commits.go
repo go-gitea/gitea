@@ -118,12 +118,14 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		return avatar
 	}
 
+	size := models.DefaultAvatarPixelSize * models.AvatarRenderedSizeFactor
+
 	u, ok := pc.emailUsers[email]
 	if !ok {
 		var err error
 		u, err = models.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = models.HashedAvatarLink(email)
+			pc.avatars[email] = models.SizedAvatarLink(email, size)
 			if !models.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
@@ -133,7 +135,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		}
 	}
 	if u != nil {
-		pc.avatars[email] = u.RelAvatarLink()
+		pc.avatars[email] = u.RealSizedAvatarLink(size)
 	}
 
 	return pc.avatars[email]

@@ -195,7 +195,7 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 			return
 		}
 		ctx.Flash.Error(ctx.Tr("settings.passcode_invalid"))
-		ctx.HTML(200, tplSettingsTwofaEnroll)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 

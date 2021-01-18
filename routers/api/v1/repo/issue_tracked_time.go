@@ -41,6 +41,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: user
+	//   in: query
+	//   description: optional filter by user (available for issue managers)
+	//   type: string
 	// - name: since
 	//   in: query
 	//   description: Only show times updated after the given time. This is a timestamp in RFC 3339 format
@@ -85,13 +89,34 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		IssueID:      issue.ID,
 	}
 
+	qUser := strings.Trim(ctx.Query("user"), " ")
+	if qUser != "" {
+		user, err := models.GetUserByName(qUser)
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "User does not exist", err)
+		} else if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			return
+		}
+		opts.UserID = user.ID
+	}
+
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
-		opts.UserID = ctx.User.ID
+	cantSetUser := !ctx.User.IsAdmin &&
+		opts.UserID != ctx.User.ID &&
+		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+
+	if cantSetUser {
+		if opts.UserID == 0 {
+			opts.UserID = ctx.User.ID
+		} else {
+			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
+			return
+		}
 	}
 
 	trackedTimes, err := models.GetTrackedTimes(opts)
@@ -394,12 +419,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	}
 
 	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin && ctx.User.ID != user.ID {
-		ctx.Error(http.StatusForbidden, "", fmt.Errorf("query user not allowed not enouth rights"))
-		return
-	}
-
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin && ctx.User.ID != user.ID {
-		ctx.Error(http.StatusForbidden, "", fmt.Errorf("query user not allowed not enouth rights"))
+		ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 		return
 	}
 
@@ -440,7 +460,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: query
-	//   description: optional filter by user
+	//   description: optional filter by user (available for issue managers)
 	//   type: string
 	// - name: since
 	//   in: query
@@ -482,7 +502,9 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	qUser := strings.Trim(ctx.Query("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
-		if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "User does not exist", err)
+		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			return
 		}
@@ -495,7 +517,11 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+	cantSetUser := !ctx.User.IsAdmin &&
+		opts.UserID != ctx.User.ID &&
+		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+
+	if cantSetUser {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.User.ID
 		} else {

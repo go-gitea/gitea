@@ -3,7 +3,7 @@ date: "2018-11-23:00:00+02:00"
 title: "External renderers"
 slug: "external-renderers"
 weight: 40
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,12 +15,16 @@ menu:
 
 # Custom files rendering configuration
 
+**Table of Contents**
+
+{{< toc >}}
+
 Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries,
 it is just a matter of:
 
-* installing external binaries
-* add some configuration to your `app.ini` file
-* restart your Gitea instance
+- installing external binaries
+- add some configuration to your `app.ini` file
+- restart your Gitea instance
 
 This supports rendering of whole files. If you want to render code blocks in markdown you would need to do something with javascript. See some examples on the [Customizing Gitea](../customizing-gitea) page.
 
@@ -29,7 +33,7 @@ This supports rendering of whole files. If you want to render code blocks in mar
 In order to get file rendering through external binaries, their associated packages must be installed.
 If you're using a Docker image, your `Dockerfile` should contain something along this lines:
 
-```
+```docker
 FROM gitea/gitea:{{< version >}}
 [...]
 
@@ -49,7 +53,7 @@ RUN pip3 install jupyter docutils
 
 add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 
-```
+```ini
 [markup.asciidoc]
 ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc

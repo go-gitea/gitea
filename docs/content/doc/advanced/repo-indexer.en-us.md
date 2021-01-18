@@ -3,7 +3,7 @@ date: "2019-09-06T01:35:00-03:00"
 title: "Repository indexer"
 slug: "repo-indexer"
 weight: 45
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,11 +15,15 @@ menu:
 
 # Repository indexer
 
+**Table of Contents**
+
+{{< toc >}}
+
 ## Setting up the repository indexer
 
 Gitea can search through the files of the repositories by enabling this function in your [`app.ini`](https://docs.gitea.io/en-us/config-cheat-sheet/):
 
-```
+```ini
 [indexer]
 ; ...
 REPO_INDEXER_ENABLED = true
@@ -49,10 +53,10 @@ Limiting the list of files prevents the indexes from becoming polluted with deri
 
 Pattern matching works as follows:
 
-* To match all files with a `.txt` extension no matter what directory, use `**.txt`.
-* To match all files with a `.txt` extension _only at the root level of the repository_, use `*.txt`.
-* To match all files inside `resources/bin` and below, use `resources/bin/**`.
-* To match all files _immediately inside_ `resources/bin`, use `resources/bin/*`.
-* To match all files named `Makefile`, use `**Makefile`.
-* Matching a directory has no effect; the pattern `resources/bin` will not include/exclude files inside that directory; `resources/bin/**` will.
-* All files and patterns are normalized to lower case, so `**Makefile`, `**makefile` and `**MAKEFILE` are equivalent.
+- To match all files with a `.txt` extension no matter what directory, use `**.txt`.
+- To match all files with a `.txt` extension _only at the root level of the repository_, use `*.txt`.
+- To match all files inside `resources/bin` and below, use `resources/bin/**`.
+- To match all files _immediately inside_ `resources/bin`, use `resources/bin/*`.
+- To match all files named `Makefile`, use `**Makefile`.
+- Matching a directory has no effect; the pattern `resources/bin` will not include/exclude files inside that directory; `resources/bin/**` will.
+- All files and patterns are normalized to lower case, so `**Makefile`, `**makefile` and `**MAKEFILE` are equivalent.

@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // ProtectedBranch struct
@@ -483,7 +482,7 @@ func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if com.IsSliceContainsInt64(newWhitelist, teams[i].ID) {
+		if util.IsInt64InSlice(teams[i].ID, newWhitelist) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}

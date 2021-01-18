@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -134,10 +136,10 @@ var migrations = []Migration{
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 
 	// Gitea 1.10.0 ends at v102
 
-	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
@@ -167,10 +169,10 @@ var migrations = []Migration{
 	// v115 -> v116
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 
 	// Gitea 1.11.0 ends at v117
 
-	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 	// v118 -> v119
@@ -216,10 +218,10 @@ var migrations = []Migration{
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 
 	// Gitea 1.12.0 ends at v140
 
-	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
 	// v141 -> v142
@@ -249,10 +251,10 @@ var migrations = []Migration{
 	// v153 > v154
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 
 	// Gitea 1.13.0 ends at v155
 
-	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
 	// v155 -> v156
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
@@ -265,6 +267,18 @@ var migrations = []Migration{
 	NewMigration("update reactions constraint", updateReactionConstraint),
 	// v160 -> v161
 	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	// v161 -> v162
+	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	// v162 -> v163
+	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
+	// v163 -> v164
+	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
+	// v164 -> v165
+	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
+	// v165 -> v166
+	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
+	// v166 -> v167
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -727,5 +741,41 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		log.Fatal("Unrecognized DB")
 	}
 
+	return nil
+}
+
+// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+	var indexes map[string]*schemas.Index
+	var err error
+	// MSSQL have to remove index at first, otherwise alter column will fail
+	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
+		if err != nil {
+			return err
+		}
+
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().DropIndexSQL(tableName, index))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer func() {
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
+			if err != nil {
+				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
+			}
+		}
+	}()
+
+	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
+	if _, err := x.Exec(alterSQL); err != nil {
+		return err
+	}
 	return nil
 }

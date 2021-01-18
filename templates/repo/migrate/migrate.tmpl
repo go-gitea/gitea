@@ -4,17 +4,17 @@
 		<div class="column">
 			<div class="ui three stackable cards">
 				{{range .Services}}
-					<div class="ui card">
-						<a class="image" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
-							{{svg (Printf "gitea-%s" .Name) 184}}
-						</a>
+					<a class="ui card df ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
+						{{svg (Printf "gitea-%s" .Name) 184}}
 						<div class="content">
-							<a class="header" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">{{.Title}}</a>
-							<div class="description">
+							<div class="header tc">
+								{{.Title}}
+							</div>
+							<div class="description tc">
 								{{(Printf "repo.migrate.%s.description" .Name) | $.i18n.Tr }}
 							</div>
 						</div>
-					</div>
+					</a>
 				{{end}}
 			</div>
 		</div>

@@ -45,6 +45,10 @@ environment variable; this can be used to override the default path to something
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
+**Table of Contents**
+
+{{< toc >}}
+
 ## Serving custom public files
 
 To make Gitea serve custom public files (like pages and images), use the folder
@@ -53,9 +57,22 @@ To make Gitea serve custom public files (like pages and images), use the folder
 For example, a file `image.png` stored in `custom/public/`, can be accessed with
 the url `http://gitea.domain.tld/image.png`.
 
+## Changing the default logo
+
+To build a custom logo replace `assets/logo.svg` and run `make generate-images`. This will update
+these customizable logo files which you can then place in `custom/public/img` on your server:
+
+- `public/img/logo.svg`
+- `public/img/logo.png`
+- `public/img/favicon.png`
+- `public/img/avatar_default.png`
+- `public/img/apple-touch-icon.png`
+
 ## Changing the default avatar
 
-Place the png image at the following path: `custom/public/img/avatar_default.png`
+Either generate it via above method or place the png image at the following path:
+
+- `custom/public/img/avatar_default.png`
 
 ## Customizing Gitea pages and resources
 
@@ -123,8 +140,8 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 <script src="https://your-server.com/encode.js"></script>
 <script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
-<!-- Replace call with address to your plantuml server-->
-parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml")
+  <!-- Replace call with address to your plantuml server-->
+  parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml");
 </script>
 {{end}}
 ```
@@ -144,38 +161,50 @@ The script will detect tags with `class="language-plantuml"`, but you can change
 #### Example: STL Preview
 
 You can display STL file directly in Gitea by adding:
+
 ```html
 <script>
-function lS(src){
-  return new Promise(function(resolve, reject) {
-    let s = document.createElement('script')
-    s.src = src
-    s.addEventListener('load', () => {
-      resolve()
-    })
-    document.body.appendChild(s)
-  });
-}
-
-if($('.view-raw>a[href$=".stl" i]').length){
-  $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
-  Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
-    $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
-    new Madeleine({
-      target: 'view-raw',
-      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
-      path: '/Madeleine.js/src'
+  function lS(src) {
+    return new Promise(function (resolve, reject) {
+      let s = document.createElement("script");
+      s.src = src;
+      s.addEventListener("load", () => {
+        resolve();
+      });
+      document.body.appendChild(s);
     });
-    $('.view-raw>a[href$=".stl"]').remove()
-  });
-}
+  }
+
+  if ($('.view-raw>a[href$=".stl" i]').length) {
+    $("body").append(
+      '<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">'
+    );
+    Promise.all([
+      lS("/Madeleine.js/src/lib/stats.js"),
+      lS("/Madeleine.js/src/lib/detector.js"),
+      lS("/Madeleine.js/src/lib/three.min.js"),
+      lS("/Madeleine.js/src/Madeleine.js"),
+    ]).then(function () {
+      $(".view-raw")
+        .attr("id", "view-raw")
+        .attr("style", "padding: 0;margin-bottom: -10px;");
+      new Madeleine({
+        target: "view-raw",
+        data: $('.view-raw>a[href$=".stl" i]').attr("href"),
+        path: "/Madeleine.js/src",
+      });
+      $('.view-raw>a[href$=".stl"]').remove();
+    });
+  }
 </script>
 ```
+
 to the file `templates/custom/footer.tmpl`
 
 You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
 
 You should end-up with a folder structucture similar to:
+
 ```
 custom/templates
 -- custom
@@ -263,7 +292,7 @@ To add a custom license, add a file with the license text to `custom/options/lic
 
 Locales are managed via our [crowdin](https://crowdin.com/project/gitea).  
 You can override a locale by placing an altered locale file in `custom/options/locale`.  
-Gitea's default locale files can be found in  the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.  
+Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.
 
 To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
 
@@ -285,10 +314,12 @@ currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.S
 ### Reactions
 
 To change reaction emoji's you can set allowed reactions at app.ini
+
 ```
 [ui]
 REACTIONS = +1, -1, laugh, confused, heart, hooray, eyes
 ```
+
 A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gitea.com/issues/8)
 
 ## Customizing the look of Gitea
