@@ -11,10 +11,12 @@ import (
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // OpenIDPost response for change user's openid
-func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
+func OpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AddOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 

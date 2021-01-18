@@ -82,7 +82,8 @@ func AccountPost(ctx *context.Context) {
 }
 
 // EmailPost response for change user's email
-func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
+func EmailPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AddEmailForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -254,8 +255,8 @@ func DeleteAccount(ctx *context.Context) {
 }
 
 // UpdateUIThemePost is used to update users' specific theme
-func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
-
+func UpdateUIThemePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UpdateThemeForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 

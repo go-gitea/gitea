@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -168,7 +169,8 @@ func SettingsProtectedBranch(c *context.Context) {
 }
 
 // SettingsProtectedBranchPost updates the protected branch settings
-func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm) {
+func SettingsProtectedBranchPost(ctx *context.Context) {
+	f := web.GetForm(ctx).(*auth.ProtectBranchForm)
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
 		ctx.NotFound("IsBranchExist", nil)

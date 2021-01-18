@@ -132,10 +132,7 @@ func WebRoutes() *web.Route {
 
 	mailer.InitMailRender(templates.Mailer())
 
-	cpt := captcha.NewCaptcha(captcha.Options{
-		SubURL: setting.AppSubURL,
-	})
-	r.Use(captcha.Captchaer(cpt))
+	r.Use(captcha.Captchaer(context.GetImageCaptcha()))
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
@@ -952,7 +949,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), reqRepoCodeReader)
-		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:[patch|diff]}",
+		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
 			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
 	m.Group("/{username}/{reponame}", func() {

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"xorm.io/xorm/convert"
 )
@@ -206,7 +207,8 @@ func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*model
 }
 
 // NewAuthSourcePost response for adding an auth source
-func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
+func NewAuthSourcePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
@@ -312,7 +314,8 @@ func EditAuthSource(ctx *context.Context) {
 }
 
 // EditAuthSourcePost response for editing auth source
-func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
+func EditAuthSourcePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true

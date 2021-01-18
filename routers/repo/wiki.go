@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -556,7 +557,8 @@ func NewWiki(ctx *context.Context) {
 }
 
 // NewWikiPost response for wiki create request
-func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
+func NewWikiPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -613,7 +615,8 @@ func EditWiki(ctx *context.Context) {
 }
 
 // EditWikiPost response for wiki modify request
-func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
+func EditWikiPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true

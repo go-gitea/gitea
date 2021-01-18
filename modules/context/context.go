@@ -524,13 +524,17 @@ func GetContext(req *http.Request) *Context {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 
-	c, err := cache.NewCacher(cache.Options{
-		Adapter:       setting.CacheService.Adapter,
-		AdapterConfig: setting.CacheService.Conn,
-		Interval:      setting.CacheService.Interval,
-	})
-	if err != nil {
-		panic(err)
+	var c cache.Cache
+	var err error
+	if setting.CacheService.Enabled {
+		c, err = cache.NewCacher(cache.Options{
+			Adapter:       setting.CacheService.Adapter,
+			AdapterConfig: setting.CacheService.Conn,
+			Interval:      setting.CacheService.Interval,
+		})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var csrfOpts = CsrfOptions{
@@ -552,7 +556,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			var ctx = Context{
 				Resp:    NewResponse(resp),
 				Cache:   c,
-				Flash:   &middlewares.Flash{},
 				Locale:  locale,
 				Link:    link,
 				Render:  rnd,
@@ -569,6 +572,10 @@ func Contexter() func(next http.Handler) http.Handler {
 					},
 					"Link": link,
 				},
+			}
+			ctx.Flash = &middlewares.Flash{
+				DataStore: &ctx,
+				Values:    make(url.Values),
 			}
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)

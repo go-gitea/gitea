@@ -216,7 +216,8 @@ func EditUser(ctx *context.Context) {
 }
 
 // EditUserPost response for editting user
-func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
+func EditUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true

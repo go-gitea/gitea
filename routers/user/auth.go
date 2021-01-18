@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/go-chi/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
@@ -876,7 +875,8 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
-func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
+func LinkAccountPostRegister(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RegisterForm)
 	// TODO Make insecure passwords optional for local accounts also,
 	//      once email-based Second-Factor Auth is available
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
@@ -915,7 +915,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
-			valid = cpt.VerifyReq(ctx.Req)
+			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
 		case setting.HCaptcha:
@@ -1075,7 +1075,8 @@ func SignUp(ctx *context.Context) {
 }
 
 // SignUpPost response for sign up information submission
-func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
+func SignUpPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RegisterForm)
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
@@ -1103,7 +1104,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
-			valid = cpt.VerifyReq(ctx.Req)
+			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
 		case setting.HCaptcha:
@@ -1568,7 +1569,8 @@ func MustChangePassword(ctx *context.Context) {
 
 // MustChangePasswordPost response for updating a user's password after his/her
 // account was created by an admin
-func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
+func MustChangePasswordPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MustChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {

@@ -19,9 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
-
-	"gitea.com/go-chi/captcha"
 )
 
 const (
@@ -90,7 +89,8 @@ func allowedOpenIDURI(uri string) (err error) {
 }
 
 // SignInOpenIDPost response for openid sign in request
-func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
+func SignInOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignInOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
@@ -276,8 +276,8 @@ func ConnectOpenID(ctx *context.Context) {
 }
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
-func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
-
+func ConnectOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.ConnectOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -346,7 +346,8 @@ func RegisterOpenID(ctx *context.Context) {
 }
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
-func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
+func RegisterOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignUpOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -369,7 +370,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
-			valid = cpt.VerifyReq(ctx.Req)
+			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)

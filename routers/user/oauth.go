@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
 	"github.com/dgrijalva/jwt-go"
@@ -192,7 +193,8 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 }
 
 // AuthorizeOAuth manages authorize requests
-func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
+func AuthorizeOAuth(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AuthorizationForm)
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
@@ -341,7 +343,8 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 }
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
-func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm) {
+func GrantApplicationOAuth(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.Error(400)
@@ -386,7 +389,8 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 }
 
 // AccessTokenOAuth manages all access token requests by the client
-func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+func AccessTokenOAuth(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AccessTokenForm)
 	if form.ClientID == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)

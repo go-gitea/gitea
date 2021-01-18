@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -117,7 +118,8 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 }
 
 // MigratePost response for migrating from external git repository
-func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
+func MigratePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MigrateRepoForm)
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
 		return
@@ -192,7 +194,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
+		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
@@ -202,5 +204,5 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
+	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 }

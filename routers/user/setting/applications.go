@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -28,7 +29,8 @@ func Applications(ctx *context.Context) {
 }
 
 // ApplicationsPost response for add user's access token
-func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
+func ApplicationsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewAccessTokenForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 

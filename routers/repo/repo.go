@@ -16,6 +16,7 @@ import (
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -181,7 +182,8 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 }
 
 // CreatePost response for creating repository
-func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
+func CreatePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores

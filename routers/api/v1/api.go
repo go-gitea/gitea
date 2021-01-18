@@ -846,7 +846,7 @@ func Routes() *web.Route {
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
 				m.Get("/editorconfig/{filename}", context.RepoRefForAPI, reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
-					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).
+					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).

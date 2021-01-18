@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
@@ -131,7 +132,8 @@ func Dashboard(ctx *context.Context) {
 }
 
 // DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+func DashboardPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true

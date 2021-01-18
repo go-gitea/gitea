@@ -28,6 +28,18 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 	if len(handlers) == 0 {
 		panic("No handlers found")
 	}
+
+	for _, handler := range handlers {
+		switch t := handler.(type) {
+		case http.HandlerFunc, func(http.ResponseWriter, *http.Request),
+			func(ctx *context.Context),
+			func(*context.APIContext),
+			func(*context.PrivateContext),
+			func(http.Handler) http.Handler:
+		default:
+			panic(fmt.Sprintf("Unsupported handler type: %#v", t))
+		}
+	}
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		for i := 0; i < len(handlers); i++ {
 			handler := handlers[i]
@@ -67,7 +79,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 					return
 				}
 			default:
-				panic(fmt.Sprintf("No supported handler type: %#v", t))
+				panic(fmt.Sprintf("Unsupported handler type: %#v", t))
 			}
 		}
 	})
@@ -286,30 +298,30 @@ type Combo struct {
 
 // Get deletegate Get method
 func (c *Combo) Get(h ...interface{}) *Combo {
-	c.r.Get(c.pattern, append(c.h, h...))
+	c.r.Get(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Post deletegate Post method
 func (c *Combo) Post(h ...interface{}) *Combo {
-	c.r.Post(c.pattern, append(c.h, h...))
+	c.r.Post(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Delete deletegate Delete method
 func (c *Combo) Delete(h ...interface{}) *Combo {
-	c.r.Delete(c.pattern, append(c.h, h...))
+	c.r.Delete(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Put deletegate Put method
 func (c *Combo) Put(h ...interface{}) *Combo {
-	c.r.Put(c.pattern, append(c.h, h...))
+	c.r.Put(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Patch deletegate Patch method
 func (c *Combo) Patch(h ...interface{}) *Combo {
-	c.r.Patch(c.pattern, append(c.h, h...))
+	c.r.Patch(c.pattern, append(c.h, h...)...)
 	return c
 }
