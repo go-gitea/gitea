@@ -1209,13 +1209,13 @@ func deleteUser(e Engine, u *User) error {
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
+	if err = util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
