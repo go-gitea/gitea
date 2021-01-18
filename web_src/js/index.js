@@ -941,12 +941,10 @@ async function initRepository() {
       const content = $(`#comment-${$this.data('target')}`).text();
       const subject = content.split('\n', 1)[0].slice(0, 255);
 
-      const repository = $this.data('repository');
       const poster = $this.data('poster');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
-      $modal.find('form').prop('action', `/${repository}/issues/new`);
       $modal.find('input[name="title"').val(subject);
       $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
 
@@ -2379,7 +2377,7 @@ function initIssueReferenceRepositorySearch() {
       },
       onChange(_value, _text, $choice) {
         const $form = $choice.closest('form');
-        $form.attr('action', `/${_text}/issues/new`);
+        $form.attr('action', `${AppSubUrl}/${_text}/issues/new`);
       },
       fullTextSearch: true
     });

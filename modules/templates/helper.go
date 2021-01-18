@@ -377,12 +377,6 @@ func NewFuncMap() []template.FuncMap {
 			html += "</span>"
 			return template.HTML(html)
 		},
-		"cond": func(condition bool, a, b interface{}) interface{} {
-			if condition {
-				return a
-			}
-			return b
-		},
 	}}
 }
 
