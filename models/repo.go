@@ -1522,16 +1522,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if err := sess.Commit(); err != nil {
-		sess.Close()
-		// We need to rewrite the public keys because the commit failed
-		if err2 := RewriteAllPublicKeys(); err2 != nil {
-			return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
-		}
-		return fmt.Errorf("Commit: %v", err)
-	}
-
-	return sess.Close()
+	return sess.Commit()
 }
 
 // DeleteRepositoryWithContext deletes a repository for a user or organization.
