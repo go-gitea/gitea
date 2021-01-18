@@ -18,18 +18,30 @@ import (
 	"github.com/go-chi/chi"
 )
 
+type writtenResponse interface {
+	http.ResponseWriter
+	Written() bool
+}
+
 // Wrap converts all kinds of routes to standard library one
 func Wrap(handlers ...interface{}) http.HandlerFunc {
 	if len(handlers) == 0 {
 		panic("No handlers found")
 	}
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		for i, handler := range handlers {
+		for i := 0; i < len(handlers); i++ {
+			handler := handlers[i]
 			switch t := handler.(type) {
 			case http.HandlerFunc:
 				t(resp, req)
+				if r, ok := resp.(writtenResponse); ok && r.Written() {
+					return
+				}
 			case func(http.ResponseWriter, *http.Request):
 				t(resp, req)
+				if r, ok := resp.(writtenResponse); ok && r.Written() {
+					return
+				}
 			case func(ctx *context.Context):
 				ctx := context.GetContext(req)
 				t(ctx)
@@ -49,13 +61,11 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 					return
 				}
 			case func(http.Handler) http.Handler:
-				var next http.Handler
-				if i == len(handlers)-1 {
-					next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-				} else {
-					next = Wrap(handlers[i+1])
-				}
+				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 				t(next).ServeHTTP(resp, req)
+				if r, ok := resp.(writtenResponse); ok && r.Written() {
+					return
+				}
 			default:
 				panic(fmt.Sprintf("No supported handler type: %#v", t))
 			}
@@ -67,12 +77,12 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			Wrap(f)(resp, req)
 			ctx := context.GetContext(req)
+			f(ctx)
 			if ctx.Written() {
 				return
 			}
-			next.ServeHTTP(resp, req)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
 }
@@ -81,12 +91,12 @@ func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 func MiddleAPI(f func(ctx *context.APIContext)) func(netx http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			Wrap(f)(resp, req)
 			ctx := context.GetAPIContext(req)
+			f(ctx)
 			if ctx.Written() {
 				return
 			}
-			next.ServeHTTP(resp, req)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
 }
@@ -180,13 +190,15 @@ func (r *Route) getPattern(pattern string) string {
 
 // Mount attaches another Route along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
-	subR.Use(r.curMiddlewares...)
+	var middlewares = make([]interface{}, len(r.curMiddlewares), len(r.curMiddlewares))
+	copy(middlewares, r.curMiddlewares)
+	subR.Use(middlewares...)
 	r.R.Mount(r.getPattern(pattern), subR.R)
 }
 
 // Any delegate requests for all methods
 func (r *Route) Any(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.HandleFunc(r.getPattern(pattern), Wrap(middlewares...))
 }
 
@@ -194,7 +206,7 @@ func (r *Route) Any(pattern string, h ...interface{}) {
 func (r *Route) Route(pattern string, methods string, h ...interface{}) {
 	p := r.getPattern(pattern)
 	ms := strings.Split(methods, ",")
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	for _, method := range ms {
 		r.R.MethodFunc(strings.TrimSpace(method), p, Wrap(middlewares...))
 	}
@@ -202,37 +214,44 @@ func (r *Route) Route(pattern string, methods string, h ...interface{}) {
 
 // Delete delegate delete method
 func (r *Route) Delete(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Delete(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+func (r *Route) getMiddlewares(h []interface{}) []interface{} {
+	var middlewares = make([]interface{}, len(r.curMiddlewares), len(r.curMiddlewares)+len(h))
+	copy(middlewares, r.curMiddlewares)
+	middlewares = append(middlewares, h...)
+	return middlewares
 }
 
 // Get delegate get method
 func (r *Route) Get(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Head delegate head method
 func (r *Route) Head(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Head(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Post delegate post method
 func (r *Route) Post(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Post(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Put delegate put method
 func (r *Route) Put(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Put(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Patch delegate patch method
 func (r *Route) Patch(pattern string, h ...interface{}) {
-	var middlewares = append(r.curMiddlewares, h...)
+	var middlewares = r.getMiddlewares(h)
 	r.R.Patch(r.getPattern(pattern), Wrap(middlewares...))
 }
 

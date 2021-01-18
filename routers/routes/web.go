@@ -419,7 +419,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/feishu/{id}", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 		})
 
-		m.Group("/^:configType(default-hooks|system-hooks)$", func() {
+		m.Group("/{configType:default-hooks|system-hooks}", func() {
 			m.Get("/{type}/new", repo.WebhooksNew)
 			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
 			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
@@ -811,8 +811,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/{type:[issues|pulls]}", repo.Issues)
-			m.Get("/{type:[issues|pulls]}/{index}", repo.ViewIssue)
+			m.Get("/{type:issues|pulls}", repo.Issues)
+			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
@@ -829,7 +829,7 @@ func RegisterRoutes(m *web.Route) {
 
 					m.Get("/edit", repo.EditProject)
 					m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
-					m.Post("/{action:[open|close]}", repo.ChangeProjectStatus)
+					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 					m.Group("/{boardID}", func() {
 						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
@@ -984,7 +984,21 @@ func RegisterRoutes(m *web.Route) {
 					ctx.NotFound("", nil)
 				})
 			}, ignSignInAndCsrf)
-			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
+
+			m.Group("", func() {
+				m.Post("/git-upload-pack", repo.ServiceUploadPack)
+				m.Post("/git-receive-pack", repo.ServiceReceivePack)
+				m.Get("/info/refs", repo.GetInfoRefs)
+				m.Get("/HEAD", repo.GetTextFile("HEAD"))
+				m.Get("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
+				m.Get("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
+				m.Get("/objects/info/packs", repo.GetInfoPacks)
+				m.Get("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
+				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
+				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
+				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
+			}, ignSignInAndCsrf)
+
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})
 	})

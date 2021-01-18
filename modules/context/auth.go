@@ -29,40 +29,20 @@ type ToggleOptions struct {
 // Toggle returns toggle options as middleware
 func Toggle(options *ToggleOptions) func(ctx *Context) {
 	return func(ctx *Context) {
-		isAPIPath := IsAPIPath(ctx.Req.URL.Path)
-
 		// Check prohibit login users.
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				if isAPIPath {
-					ctx.JSON(403, map[string]string{
-						"message": "This account is not activated.",
-					})
-					return
-				}
 				ctx.HTML(200, "user/auth/activate")
 				return
 			} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				if isAPIPath {
-					ctx.JSON(403, map[string]string{
-						"message": "This account is prohibited from signing in, please contact your site administrator.",
-					})
-					return
-				}
 				ctx.HTML(200, "user/auth/prohibit_login")
 				return
 			}
 
 			if ctx.User.MustChangePassword {
-				if isAPIPath {
-					ctx.JSON(403, map[string]string{
-						"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
-					})
-					return
-				}
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
@@ -85,7 +65,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" && !IsAPIPath(ctx.Req.URL.Path) {
+		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
 			Validate(ctx, ctx.csrf)
 			if ctx.Written() {
 				return
@@ -94,13 +74,6 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 
 		if options.SignInRequired {
 			if !ctx.IsSigned {
-				// Restrict API calls with error message.
-				if isAPIPath {
-					ctx.JSON(403, map[string]string{
-						"message": "Only signed in user is allowed to call APIs.",
-					})
-					return
-				}
 				if ctx.Req.URL.Path != "/user/events" {
 					ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
 				}
@@ -111,32 +84,10 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 				ctx.HTML(200, "user/auth/activate")
 				return
 			}
-			if ctx.IsSigned && isAPIPath && ctx.IsBasicAuth {
-				twofa, err := models.GetTwoFactorByUID(ctx.User.ID)
-				if err != nil {
-					if models.IsErrTwoFactorNotEnrolled(err) {
-						return // No 2FA enrollment for this user
-					}
-					ctx.Error(500)
-					return
-				}
-				otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-				ok, err := twofa.ValidateTOTP(otpHeader)
-				if err != nil {
-					ctx.Error(500)
-					return
-				}
-				if !ok {
-					ctx.JSON(403, map[string]string{
-						"message": "Only signed in user is allowed to call APIs.",
-					})
-					return
-				}
-			}
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
-		if !options.SignOutRequired && !ctx.IsSigned && !isAPIPath &&
+		if !options.SignOutRequired && !ctx.IsSigned &&
 			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
 			if ctx.Req.URL.Path != "/user/events" {
 				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
