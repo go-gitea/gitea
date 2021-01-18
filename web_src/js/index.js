@@ -932,6 +932,27 @@ async function initRepository() {
       event.preventDefault();
     });
 
+    // Reference issue
+    $(document).on('click', '.reference-issue', function (event) {
+      const $this = $(this);
+
+      $this.closest('.dropdown').find('.menu').toggle('visible');
+
+      const content = $(`#comment-${$this.data('target')}`).text();
+      const subject = content.split('\n', 1)[0].slice(0, 255);
+
+      const poster = $this.data('poster');
+      const reference = $this.data('reference');
+
+      const $modal = $($this.data('modal'));
+      $modal.find('input[name="title"').val(subject);
+      $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
+
+      $modal.modal('show');
+
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
     $(document).on('click', '.edit-content', async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
@@ -2475,7 +2496,7 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
-  $('.show-modal.button,.show-modal-button').on('click', function () {
+  $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
   $('.delete-post.button').on('click', function () {
