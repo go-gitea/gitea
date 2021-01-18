@@ -52,6 +52,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		TrustModel:                      opts.TrustModel,
 	}
 
+	var rollbackRepo *models.Repository
+
 	if err := models.WithTx(func(ctx models.DBContext) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
@@ -95,9 +97,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
 			if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				if errDelete := models.DeleteRepositoryWithContext(ctx, doer, u.ID, repo.ID); errDelete != nil {
-					log.Error("Rollback deleteRepository: %v", errDelete)
-				}
+				rollbackRepo = repo
+				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}
@@ -106,13 +107,18 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			if errDelete := models.DeleteRepositoryWithContext(ctx, doer, u.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
+			rollbackRepo = repo
+			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}
 		return nil
 	}); err != nil {
+		if rollbackRepo != nil {
+			if errDelete := models.DeleteRepository(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+			}
+		}
+
 		return nil, err
 	}
 
