@@ -1512,25 +1512,47 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(doer *User, uid, repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := deleteRepository(sess, doer, uid, repoID); err != nil {
+		return err
+	}
+
+	if err := sess.Commit(); err != nil {
+		sess.Close()
+		// We need to rewrite the public keys because the commit failed
+		if err2 := RewriteAllPublicKeys(); err2 != nil {
+			return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
+		}
+		return fmt.Errorf("Commit: %v", err)
+	}
+
+	return sess.Close()
+}
+
+// DeleteRepositoryWithContext deletes a repository for a user or organization.
+func DeleteRepositoryWithContext(ctx DBContext, doer *User, uid, repoID int64) error {
+	return deleteRepository(ctx.e, doer, uid, repoID)
+}
+
+func deleteRepository(e Engine, doer *User, uid, repoID int64) error {
 	// In case is a organization.
-	org, err := GetUserByID(uid)
+	org, err := getUserByID(e, uid)
 	if err != nil {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err = org.getTeams(e); err != nil {
 			return err
 		}
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	repo := &Repository{ID: repoID, OwnerID: uid}
-	has, err := sess.Get(repo)
+	repo := &Repository{OwnerID: uid}
+	has, err := e.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -1538,17 +1560,17 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
+	deployKeys, err := listDeployKeys(e, repo.ID, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
 	for _, dKey := range deployKeys {
-		if err := deleteDeployKey(sess, doer, dKey.ID); err != nil {
+		if err := deleteDeployKey(e, doer, dKey.ID); err != nil {
 			return fmt.Errorf("deleteDeployKeys: %v", err)
 		}
 	}
 
-	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
+	if cnt, err := e.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
 		return ErrRepoNotExist{repoID, uid, "", ""}
@@ -1556,16 +1578,16 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	if org.IsOrganization() {
 		for _, t := range org.Teams {
-			if !t.hasRepository(sess, repoID) {
+			if !t.hasRepository(e, repoID) {
 				continue
-			} else if err = t.removeRepository(sess, repo, false); err != nil {
+			} else if err = t.removeRepository(e, repo, false); err != nil {
 				return err
 			}
 		}
 	}
 
 	attachments := make([]*Attachment, 0, 20)
-	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
+	if err = e.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
@@ -1575,11 +1597,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err = e.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
-	if err = deleteBeans(sess,
+	if err = deleteBeans(e,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&Watch{RepoID: repoID},
@@ -1605,59 +1627,59 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
+	if attachmentPaths, err = deleteIssuesByRepoID(e, repoID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	if _, err = e.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
-		if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err = e.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err = e.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
 	if len(repo.Topics) > 0 {
-		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+		if err = removeTopicsFromRepo(e, repo.ID); err != nil {
 			return err
 		}
 	}
 
-	projects, _, err := getProjects(sess, ProjectSearchOptions{
+	projects, _, err := getProjects(e, ProjectSearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
 		return fmt.Errorf("get projects: %v", err)
 	}
 	for i := range projects {
-		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+		if err := deleteProjectByID(e, projects[i].ID); err != nil {
 			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}
 
 	// FIXME: Remove repository files should be executed after transaction succeed.
 	repoPath := repo.RepoPath()
-	removeAllWithNotice(sess, "Delete repository files", repoPath)
+	removeAllWithNotice(e, "Delete repository files", repoPath)
 
-	err = repo.deleteWiki(sess)
+	err = repo.deleteWiki(e)
 	if err != nil {
 		return err
 	}
 
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
-	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
+	if err = e.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := e.Count(&LFSMetaObject{Oid: v.Oid})
 		if err != nil {
 			return err
 		}
@@ -1665,31 +1687,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		removeStorageWithNotice(e, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
 	}
 
-	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+	if _, err := e.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
 		return err
 	}
 
 	if repo.NumForks > 0 {
-		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
+		if _, err = e.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error("reset 'fork_id' and 'is_fork': %v", err)
 		}
 	}
-
-	if err = sess.Commit(); err != nil {
-		sess.Close()
-		if len(deployKeys) > 0 {
-			// We need to rewrite the public keys because the commit failed
-			if err2 := RewriteAllPublicKeys(); err2 != nil {
-				return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
-			}
-		}
-		return fmt.Errorf("Commit: %v", err)
-	}
-
-	sess.Close()
 
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be borken.
