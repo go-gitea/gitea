@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -78,6 +79,12 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 	}
 
 	if err := x.Sync2(new(User)); err != nil {
+		return err
+	}
+
+	if _, err := x.Where(builder.Eq{"keep_activity_private": nil}).
+		Cols("keep_activity_private").
+		Update(&User{KeepActivityPrivate: false}); err != nil {
 		return err
 	}
 
