@@ -9,9 +9,8 @@
 				<div class="field">
 					<span class="text"><strong>{{.i18n.Tr "repository"}}</strong></span>
 					<div class="ui search normal selection dropdown issue_reference_repository_search">
-						<div class="default text">{{.i18n.Tr "repository"}}</div>
-						<div class="menu">
-						</div>
+						<div class="default text">{{.Repository.FullName}}</div>
+						<div class="menu"></div>
 					</div>
 				</div>
 				<div class="field">
@@ -23,7 +22,7 @@
 					<textarea name="content" class="form-control"></textarea>
 				</div>
 				<div class="text right">
-					<button class="ui green button" disabled>{{.i18n.Tr "repo.issues.create"}}</button>
+					<button class="ui green button">{{.i18n.Tr "repo.issues.create"}}</button>
 				</div>
 			</div>
 		</form>
