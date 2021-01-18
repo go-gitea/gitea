@@ -1070,7 +1070,6 @@ func deleteBeans(e Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-// FIXME: need some kind of mechanism to record failure. HINT: system notice
 func deleteUser(e Engine, u *User) error {
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
@@ -1152,6 +1151,8 @@ func deleteUser(e Engine, u *User) error {
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
 		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+
+		// Delete Comments
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
 			comments := make([]*Comment, 0, batchSize)
@@ -1162,11 +1163,16 @@ func deleteUser(e Engine, u *User) error {
 				break
 			}
 
-			for i := range comments {
-				if err = deleteComment(e, comments[i]); err != nil {
+			for _, comment := range comments {
+				if err = deleteComment(e, comment); err != nil {
 					return err
 				}
 			}
+		}
+
+		// Delete Reactions
+		if err = deleteReaction(e, &ReactionOptions{Doer: u}); err != nil {
+			return err
 		}
 	}
 
@@ -1205,18 +1211,21 @@ func deleteUser(e Engine, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 	if err = util.RemoveAll(path); err != nil {
-		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		return err
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err = storage.Avatars.Delete(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			return err
 		}
 	}
 

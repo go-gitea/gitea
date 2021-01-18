@@ -1072,11 +1072,7 @@ func deleteComment(e Engine, comment *Comment) error {
 		return err
 	}
 
-	if err := deleteReaction(e, &ReactionOptions{Comment: comment}); err != nil {
-		return err
-	}
-
-	return nil
+	return deleteReaction(e, &ReactionOptions{Comment: comment})
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
