@@ -296,6 +296,7 @@ func (ctx *Context) Header() http.Header {
 
 // FIXME: We should differ Query and Form, currently we just use form as query
 // Currently to be compatible with macaron, we keep it.
+
 // Query returns request form as string with default
 func (ctx *Context) Query(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustString(key, defaults...)

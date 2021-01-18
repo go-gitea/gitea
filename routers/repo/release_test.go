@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 )
 
 func TestNewReleasePost(t *testing.T) {
@@ -48,7 +49,8 @@ func TestNewReleasePost(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		test.LoadGitRepo(t, ctx)
-		NewReleasePost(ctx, testCase.Form)
+		web.SetForm(ctx, testCase.Form)
+		NewReleasePost(ctx)
 		models.AssertExistsAndLoadBean(t, &models.Release{
 			RepoID:      1,
 			PublisherID: 2,

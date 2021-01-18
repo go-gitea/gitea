@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Forms a new enhancement of http.Request
@@ -34,7 +36,9 @@ func (f *Forms) Trimmed(key string) (string, error) {
 // Strings returns request form as strings
 func (f *Forms) Strings(key string) ([]string, error) {
 	if (*http.Request)(f).Form == nil {
-		(*http.Request)(f).ParseMultipartForm(32 << 20)
+		if err := (*http.Request)(f).ParseMultipartForm(32 << 20); err != nil {
+			return nil, err
+		}
 	}
 	if v, ok := (*http.Request)(f).Form[key]; ok {
 		return v, nil
@@ -115,7 +119,10 @@ func (f *Forms) MustTrimmed(key string, defaults ...string) string {
 // MustStrings returns request form as strings with default
 func (f *Forms) MustStrings(key string, defaults ...[]string) []string {
 	if (*http.Request)(f).Form == nil {
-		(*http.Request)(f).ParseMultipartForm(32 << 20)
+		if err := (*http.Request)(f).ParseMultipartForm(32 << 20); err != nil {
+			log.Error("ParseMultipartForm: %v", err)
+			return []string{}
+		}
 	}
 
 	if v, ok := (*http.Request)(f).Form[key]; ok {
