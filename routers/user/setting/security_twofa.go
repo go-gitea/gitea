@@ -189,7 +189,14 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	secret := ctx.Session.Get("twofaSecret").(string)
+	secretRaw := ctx.Session.Get("twofaSecret")
+	if secretRaw == nil {
+		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
+		return
+	}
+
+	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
