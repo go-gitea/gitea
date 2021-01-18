@@ -1150,8 +1150,8 @@ func deleteUser(e Engine, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxDays != 0 &&
-		u.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays)*24*time.Hour).After(time.Now()) {
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
 			comments := make([]*Comment, 0, batchSize)
