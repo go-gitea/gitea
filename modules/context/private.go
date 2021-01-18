@@ -32,13 +32,13 @@ func GetPrivateContext(req *http.Request) *PrivateContext {
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := &APIContext{
+			ctx := &PrivateContext{
 				Context: &Context{
 					Resp: NewResponse(w),
 					Data: map[string]interface{}{},
 				},
 			}
-			ctx.Req = WithAPIContext(req, ctx)
+			ctx.Req = WithPrivateContext(req, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

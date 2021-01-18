@@ -289,41 +289,6 @@ func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, 
 	ctx.serverErrorInternal(title, err)
 }
 
-// HandleText handles HTTP status code
-func (ctx *Context) HandleText(status int, title string) {
-	if (status/100 == 4) || (status/100 == 5) {
-		log.Error("%s", title)
-	}
-	ctx.PlainText(status, []byte(title))
-}
-
-// ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
-	modtime := time.Now()
-	for _, p := range params {
-		switch v := p.(type) {
-		case time.Time:
-			modtime = v
-		}
-	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
-}
-
-// PlainText render content as plain text
-func (ctx *Context) PlainText(status int, bs []byte) {
-	if err := ctx.Render.Text(ctx.Resp, status, string(bs)); err != nil {
-		ctx.ServerError("Render failed", err)
-	}
-}
-
 // Header returns a header
 func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
@@ -361,6 +326,43 @@ func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
+// HandleText handles HTTP status code
+func (ctx *Context) HandleText(status int, title string) {
+	if (status/100 == 4) || (status/100 == 5) {
+		log.Error("%s", title)
+	}
+	ctx.PlainText(status, []byte(title))
+}
+
+// ServeContent serves content to http request
+func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
+	modtime := time.Now()
+	for _, p := range params {
+		switch v := p.(type) {
+		case time.Time:
+			modtime = v
+		}
+	}
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
+}
+
+// PlainText render content as plain text
+func (ctx *Context) PlainText(status int, bs []byte) {
+	ctx.Resp.WriteHeader(status)
+	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf8")
+	if _, err := ctx.Resp.Write(bs); err != nil {
+		ctx.ServerError("Render JSON failed", err)
+	}
+}
+
 // ServeFile serves given file to response.
 func (ctx *Context) ServeFile(file string, names ...string) {
 	var name string
@@ -391,7 +393,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.WriteHeader(status)
-	ctx.Resp.Header().Set("Content-Type", "application/json")
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
