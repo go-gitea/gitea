@@ -1152,10 +1152,21 @@ func deleteUser(e Engine, u *User) error {
 
 	if setting.Service.UserDeleteWithCommentsMaxDays != 0 &&
 		u.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays)*24*time.Hour).After(time.Now()) {
-		if err = deleteBeans(e,
-			&Comment{PosterID: u.ID},
-		); err != nil {
-			return fmt.Errorf("deleteBeans: %v", err)
+		const batchSize = 50
+		for start := 0; ; start += batchSize {
+			comments := make([]*Comment, 0, batchSize)
+			if err = e.Where("type=? AND poster_id=?", CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+				return err
+			}
+			if len(comments) == 0 {
+				break
+			}
+
+			for i := range comments {
+				if err = deleteComment(e, comments[i]); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
