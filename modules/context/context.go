@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
-	"golang.org/x/crypto/pbkdf2"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -37,6 +36,7 @@ import (
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 var (
@@ -329,53 +329,36 @@ func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
 }
 
-// QueryStrings returns a query strings
-func (ctx *Context) QueryStrings(k string) []string {
-	return ctx.Req.URL.Query()[k]
+// FIXME: We should differ Query and Form, currently we just use form as query
+// Currently to be compatible with macaron, we keep it.
+// Query returns request form as string with default
+func (ctx *Context) Query(key string, defaults ...string) string {
+	return (*Forms)(ctx.Req).MustString(key, defaults...)
 }
 
-// Query returns a query string
-func (ctx *Context) Query(k string) string {
-	s := ctx.QueryStrings(k)
-	if len(s) == 0 {
-		return ""
-	}
-	return s[0]
+// QueryTrim returns request form as string with default and trimmed spaces
+func (ctx *Context) QueryTrim(key string, defaults ...string) string {
+	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
 }
 
-// QueryInt returns a query content with int
-func (ctx *Context) QueryInt(k string) int {
-	s := ctx.Query(k)
-	if s == "" {
-		return 0
-	}
-	r, _ := strconv.Atoi(s)
-	return r
+// QueryStrings returns request form as strings with default
+func (ctx *Context) QueryStrings(key string, defaults ...[]string) []string {
+	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
 }
 
-// QueryBool returns a query content as bool
-func (ctx *Context) QueryBool(k string) bool {
-	s := ctx.Query(k)
-	if s == "" {
-		return false
-	}
-	r, _ := strconv.ParseBool(s)
-	return r
+// QueryInt returns request form as int with default
+func (ctx *Context) QueryInt(key string, defaults ...int) int {
+	return (*Forms)(ctx.Req).MustInt(key, defaults...)
 }
 
-// QueryTrim querys and trims spaces form parameter.
-func (ctx *Context) QueryTrim(name string) string {
-	return strings.TrimSpace(ctx.Query(name))
+// QueryInt64 returns request form as int64 with default
+func (ctx *Context) QueryInt64(key string, defaults ...int64) int64 {
+	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
 }
 
-// QueryInt64 returns int64 of query value
-func (ctx *Context) QueryInt64(name string) int64 {
-	vals := ctx.Req.URL.Query()[name]
-	if len(vals) == 0 {
-		return 0
-	}
-	v, _ := strconv.ParseInt(vals[0], 10, 64)
-	return v
+// QueryBool returns request form as bool with default
+func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
+	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
 // ServeFile serves given file to response.

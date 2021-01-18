@@ -35,8 +35,8 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// HTTP implmentation git smart HTTP protocol
-func HTTP(ctx *context.Context) (h *serviceHandler) {
+// httpBase implmentation git smart HTTP protocol
+func httpBase(ctx *context.Context) (h *serviceHandler) {
 	if setting.Repository.DisableHTTPGit {
 		ctx.Resp.WriteHeader(http.StatusForbidden)
 		_, err := ctx.Resp.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
@@ -550,7 +550,7 @@ func serviceRPC(h serviceHandler, service string) {
 
 // ServiceUploadPack implements Git Smart HTTP protocol
 func ServiceUploadPack(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		serviceRPC(*h, "upload-pack")
 	}
@@ -558,7 +558,7 @@ func ServiceUploadPack(ctx *context.Context) {
 
 // ServiceReceivePack implements Git Smart HTTP protocol
 func ServiceReceivePack(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		serviceRPC(*h, "receive-pack")
 	}
@@ -590,7 +590,7 @@ func packetWrite(str string) []byte {
 
 // GetInfoRefs implements Git dumb HTTP
 func GetInfoRefs(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h == nil {
 		return
 	}
@@ -622,7 +622,7 @@ func GetInfoRefs(ctx *context.Context) {
 // GetTextFile implements Git dumb HTTP
 func GetTextFile(p string) func(*context.Context) {
 	return func(ctx *context.Context) {
-		h := HTTP(ctx)
+		h := httpBase(ctx)
 		if h != nil {
 			h.setHeaderNoCache()
 			file := ctx.Params("file")
@@ -637,7 +637,7 @@ func GetTextFile(p string) func(*context.Context) {
 
 // GetInfoPacks implements Git dumb HTTP
 func GetInfoPacks(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		h.setHeaderCacheForever()
 		h.sendFile("text/plain; charset=utf-8", "objects/info/packs")
@@ -646,7 +646,7 @@ func GetInfoPacks(ctx *context.Context) {
 
 // GetLooseObject implements Git dumb HTTP
 func GetLooseObject(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		h.setHeaderCacheForever()
 		h.sendFile("application/x-git-loose-object", fmt.Sprintf("objects/%s/%s",
@@ -656,7 +656,7 @@ func GetLooseObject(ctx *context.Context) {
 
 // GetPackFile implements Git dumb HTTP
 func GetPackFile(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		h.setHeaderCacheForever()
 		h.sendFile("application/x-git-packed-objects", "objects/pack/pack-"+ctx.Params("file")+".pack")
@@ -665,7 +665,7 @@ func GetPackFile(ctx *context.Context) {
 
 // GetIdxFile implements Git dumb HTTP
 func GetIdxFile(ctx *context.Context) {
-	h := HTTP(ctx)
+	h := httpBase(ctx)
 	if h != nil {
 		h.setHeaderCacheForever()
 		h.sendFile("application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.Params("file")+".idx")

@@ -190,7 +190,7 @@ func (r *Route) getPattern(pattern string) string {
 
 // Mount attaches another Route along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
-	var middlewares = make([]interface{}, len(r.curMiddlewares), len(r.curMiddlewares))
+	var middlewares = make([]interface{}, len(r.curMiddlewares))
 	copy(middlewares, r.curMiddlewares)
 	subR.Use(middlewares...)
 	r.R.Mount(r.getPattern(pattern), subR.R)
