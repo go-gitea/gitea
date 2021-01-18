@@ -27,6 +27,13 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
+	// Check if label template exist
+	if len(opts.IssueLabels) > 0 {
+		if _, err := models.GetLabelTemplateFile(opts.IssueLabels); err != nil {
+			return nil, err
+		}
+	}
+
 	repo := &models.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
