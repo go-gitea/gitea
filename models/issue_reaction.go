@@ -178,7 +178,7 @@ func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-func deleteReaction(e *xorm.Session, opts *ReactionOptions) error {
+func deleteReaction(e Engine, opts *ReactionOptions) error {
 	reaction := &Reaction{
 		Type:    opts.Type,
 		UserID:  opts.Doer.ID,

@@ -44,7 +44,7 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 
 // DeleteComment deletes the comment
 func DeleteComment(comment *models.Comment, doer *models.User) error {
-	if err := models.DeleteComment(comment, doer); err != nil {
+	if err := models.DeleteComment(comment); err != nil {
 		return err
 	}
 
