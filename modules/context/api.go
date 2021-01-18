@@ -223,7 +223,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				},
 			}
 			ctx.Req = WithAPIContext(req, ctx)
-			next.ServeHTTP(w, ctx.Req)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
 }
