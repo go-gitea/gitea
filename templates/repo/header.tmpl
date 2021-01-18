@@ -45,7 +45,7 @@
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
-							<button type="submit" class="ui compact basic button"{{if not $.IsSigned}} disabled{{end}}>
+							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
 								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{$.i18n.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
@@ -56,7 +56,7 @@
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.star_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
-							<button type="submit" class="ui compact basic button"{{if not $.IsSigned}} disabled{{end}}>
+							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
 								{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/stars">
@@ -65,8 +65,8 @@
 						</div>
 					</form>
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
-							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
+						<div class="ui labeled button" tabindex="0">
+							<a class="ui compact small basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">

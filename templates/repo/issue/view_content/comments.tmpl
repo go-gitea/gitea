@@ -58,7 +58,7 @@
 								</div>
 							{{end}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						{{end}}
 					</div>
 				</div>
@@ -494,25 +494,49 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $resolved}} hide{{end}} py-3">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}} py-3">
 									<div class="ui comments mb-0">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 											<div class="comment code-comment" id="{{.HashTag}}">
-												{{if not .OriginalAuthor }}
-													<a class="avatar">
-														{{avatar .Poster}}
-													</a>
-												{{end}}
 												<div class="content">
-													<span class="text grey">
-														{{if .OriginalAuthor }}
-															<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
-														{{else}}
-															<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
-														{{end}}
-														{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
-													</span>
+													<div class="header comment-header">
+														<div class="comment-header-left df ac">
+															{{if not .OriginalAuthor }}
+																<a class="avatar">
+																	{{avatar .Poster}}
+																</a>
+															{{end}}
+															<span class="text grey">
+																{{if .OriginalAuthor }}
+																	<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+																{{else}}
+																	<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+																{{end}}
+																{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
+															</span>
+														</div>
+														<div class="comment-header-right actions df ac">
+															{{if not $.Repository.IsArchived}}
+																{{if or (and (eq .PosterID $.Issue.PosterID) (eq $.Issue.OriginalAuthorID 0)) (eq $.Issue.OriginalAuthorID .OriginalAuthorID) }}
+																	<div class="ui basic label">
+																		{{$.i18n.Tr "repo.issues.poster"}}
+																	</div>
+																{{end}}
+																{{if gt .ShowTag 0}}
+																	<div class="ui basic label">
+																		{{if eq .ShowTag 2}}
+																			{{$.i18n.Tr "repo.issues.collaborator"}}
+																		{{else if eq .ShowTag 3}}
+																			{{$.i18n.Tr "repo.issues.owner"}}
+																		{{end}}
+																	</div>
+																{{end}}
+																{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+																{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+															{{end}}
+														</div>
+													</div>
 													<div class="text comment-content">
 														<div class="render-content markdown">
 														{{if .RenderedContent}}
@@ -521,8 +545,15 @@
 															<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
 														{{end}}
 														</div>
-														<div class="raw-content hide">{{.Content}}</div>
+														<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+														<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 													</div>
+													{{$reactions := .Reactions.GroupByType}}
+													{{if $reactions}}
+														<div class="ui attached segment reactions">
+															{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+														</div>
+													{{end}}
 												</div>
 											</div>
 										{{end}}
@@ -530,7 +561,7 @@
 									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
 
 									{{if and $.CanMarkConversation $isNotPending}}
-										<button class="ui tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+										<button class="ui tiny button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
 											{{if $resolved}}
 												{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 											{{else}}

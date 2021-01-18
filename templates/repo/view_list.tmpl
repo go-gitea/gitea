@@ -21,7 +21,7 @@
 						{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 					{{end}}
 				</a>
-				{{template "repo/commit_status" .LatestCommitStatus}}
+				{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
 				{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
 				<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 				{{if IsMultilineCommitMessage .LatestCommit.Message}}

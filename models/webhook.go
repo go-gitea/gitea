@@ -113,7 +113,7 @@ type Webhook struct {
 	*HookEvent      `xorm:"-"`
 	IsSSL           bool         `xorm:"is_ssl"`
 	IsActive        bool         `xorm:"INDEX"`
-	Type            HookTaskType `xorm:"char(16) 'type'"`
+	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
 	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus   // Last delivery status
 
@@ -400,20 +400,6 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
-// GetDefaultWebhook returns admin-default webhook by given ID.
-func GetDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{id}
-	}
-	return webhook, nil
-}
-
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
 	return getDefaultWebhooks(x)
@@ -426,11 +412,11 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 		Find(&webhooks)
 }
 
-// GetSystemWebhook returns admin system webhook by given ID.
-func GetSystemWebhook(id int64) (*Webhook, error) {
+// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
+func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -641,9 +627,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Typ             HookTaskType
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`

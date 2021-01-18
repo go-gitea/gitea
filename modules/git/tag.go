@@ -64,7 +64,7 @@ l:
 			}
 			nextline += eol + 1
 		case eol == 0:
-			tag.Message = string(data[nextline+1 : len(data)-1])
+			tag.Message = string(data[nextline+1:])
 			break l
 		default:
 			break l

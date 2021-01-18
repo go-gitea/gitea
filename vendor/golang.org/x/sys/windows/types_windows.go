@@ -249,24 +249,27 @@ const (
 
 const (
 	// wincrypt.h
-	PROV_RSA_FULL                    = 1
-	PROV_RSA_SIG                     = 2
-	PROV_DSS                         = 3
-	PROV_FORTEZZA                    = 4
-	PROV_MS_EXCHANGE                 = 5
-	PROV_SSL                         = 6
-	PROV_RSA_SCHANNEL                = 12
-	PROV_DSS_DH                      = 13
-	PROV_EC_ECDSA_SIG                = 14
-	PROV_EC_ECNRA_SIG                = 15
-	PROV_EC_ECDSA_FULL               = 16
-	PROV_EC_ECNRA_FULL               = 17
-	PROV_DH_SCHANNEL                 = 18
-	PROV_SPYRUS_LYNKS                = 20
-	PROV_RNG                         = 21
-	PROV_INTEL_SEC                   = 22
-	PROV_REPLACE_OWF                 = 23
-	PROV_RSA_AES                     = 24
+	/* certenrolld_begin -- PROV_RSA_*/
+	PROV_RSA_FULL      = 1
+	PROV_RSA_SIG       = 2
+	PROV_DSS           = 3
+	PROV_FORTEZZA      = 4
+	PROV_MS_EXCHANGE   = 5
+	PROV_SSL           = 6
+	PROV_RSA_SCHANNEL  = 12
+	PROV_DSS_DH        = 13
+	PROV_EC_ECDSA_SIG  = 14
+	PROV_EC_ECNRA_SIG  = 15
+	PROV_EC_ECDSA_FULL = 16
+	PROV_EC_ECNRA_FULL = 17
+	PROV_DH_SCHANNEL   = 18
+	PROV_SPYRUS_LYNKS  = 20
+	PROV_RNG           = 21
+	PROV_INTEL_SEC     = 22
+	PROV_REPLACE_OWF   = 23
+	PROV_RSA_AES       = 24
+
+	/* dwFlags definitions for CryptAcquireContext */
 	CRYPT_VERIFYCONTEXT              = 0xF0000000
 	CRYPT_NEWKEYSET                  = 0x00000008
 	CRYPT_DELETEKEYSET               = 0x00000010
@@ -274,6 +277,17 @@ const (
 	CRYPT_SILENT                     = 0x00000040
 	CRYPT_DEFAULT_CONTAINER_OPTIONAL = 0x00000080
 
+	/* Flags for PFXImportCertStore */
+	CRYPT_EXPORTABLE                   = 0x00000001
+	CRYPT_USER_PROTECTED               = 0x00000002
+	CRYPT_USER_KEYSET                  = 0x00001000
+	PKCS12_PREFER_CNG_KSP              = 0x00000100
+	PKCS12_ALWAYS_CNG_KSP              = 0x00000200
+	PKCS12_ALLOW_OVERWRITE_KEY         = 0x00004000
+	PKCS12_NO_PERSIST_KEY              = 0x00008000
+	PKCS12_INCLUDE_EXTENDED_PROPERTIES = 0x00000010
+
+	/* Default usage match type is AND with value zero */
 	USAGE_MATCH_TYPE_AND = 0
 	USAGE_MATCH_TYPE_OR  = 1
 
@@ -408,6 +422,10 @@ const (
 	CERT_CHAIN_POLICY_MICROSOFT_ROOT    = 7
 	CERT_CHAIN_POLICY_EV                = 8
 	CERT_CHAIN_POLICY_SSL_F12           = 9
+
+	/* Certificate Store close flags */
+	CERT_CLOSE_STORE_FORCE_FLAG = 0x00000001
+	CERT_CLOSE_STORE_CHECK_FLAG = 0x00000002
 
 	/* AuthType values for SSLExtraCertChainPolicyPara struct */
 	AUTHTYPE_CLIENT = 1
@@ -1137,6 +1155,11 @@ type CertChainPolicyStatus struct {
 	ChainIndex        uint32
 	ElementIndex      uint32
 	ExtraPolicyStatus Pointer
+}
+
+type CryptDataBlob struct {
+	Size uint32
+	Data *byte
 }
 
 const (

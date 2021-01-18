@@ -578,7 +578,7 @@
 .ui.disabled.button:hover,
 .ui.disabled.active.button {
   cursor: default;
-  opacity: 0.45 !important;
+  opacity: var(--opacity-disabled) !important;
   background-image: none;
   box-shadow: none;
   pointer-events: none !important;
@@ -7723,22 +7723,6 @@ a.inverted.ui.card:hover,
 
 /* Scrollbars */
 
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
-
 /*******************************
             States
 *******************************/
@@ -9218,7 +9202,7 @@ select.ui.dropdown {
 
 .ui.active.search.dropdown input.search:focus + .text i.icon,
 .ui.active.search.dropdown input.search:focus + .text .flag {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.active.search.dropdown input.search:focus + .text {
@@ -9750,7 +9734,7 @@ select.ui.dropdown {
 .ui.dropdown .menu > .disabled.item {
   cursor: default;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -12029,12 +12013,12 @@ select.ui.dropdown {
 .ui.form .disabled.field,
 .ui.form .field :disabled {
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.form .field.disabled > label,
 .ui.form .fields.disabled > label {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.form .field.disabled :disabled {
@@ -15117,7 +15101,7 @@ h6.ui.header .sub.header {
 *******************************/
 
 .ui.disabled.header {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -15784,7 +15768,7 @@ i.emphasized.icons:not(.disabled) {
 
 i.disabled.icon,
 i.disabled.icons {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   cursor: default;
   pointer-events: none;
 }
@@ -24666,7 +24650,7 @@ img.ui.image {
 .ui.disabled.images,
 .ui.disabled.image {
   cursor: default;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -25024,7 +25008,7 @@ img.ui.bordered.image {
 
 .ui.disabled.input,
 .ui.input:not(.disabled) input[disabled] {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.disabled.input > input,
@@ -37199,7 +37183,7 @@ template {
 .ui.disabled.search {
   cursor: default;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -38000,7 +37984,7 @@ template {
   ---------------*/
 
 .ui.disabled.segment {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   color: rgba(40, 40, 40, 0.3);
 }
 
@@ -39173,53 +39157,6 @@ textarea::selection,
 input::selection {
   background-color: rgba(100, 100, 100, 0.4);
   color: rgba(0, 0, 0, 0.87);
-}
-
-/* Force Simple Scrollbars */
-
-body ::-webkit-scrollbar {
-  -webkit-appearance: none;
-  width: 10px;
-  height: 10px;
-}
-
-body ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 0;
-}
-
-body ::-webkit-scrollbar-thumb {
-  cursor: pointer;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.25);
-  -webkit-transition: color 0.2s ease;
-  transition: color 0.2s ease;
-}
-
-body ::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-body ::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 135, 139, 0.8);
-}
-
-/* Inverted UI */
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
 }
 
 /*******************************
@@ -41846,7 +41783,7 @@ span.ui.warning.text {
 }
 
 span.ui.disabled.text {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /* Sizes */

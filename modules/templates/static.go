@@ -12,7 +12,9 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
@@ -21,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 var (
@@ -45,6 +46,30 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 	}
 
 	return nil, fmt.Errorf("file '%s' not found", name)
+}
+
+// GetAsset get a special asset, only for chi
+func GetAsset(name string) ([]byte, error) {
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		return bs, nil
+	}
+	return Asset(strings.TrimPrefix(name, "templates/"))
+}
+
+// GetAssetNames only for chi
+func GetAssetNames() []string {
+	realFS := Assets.(vfsgen۰FS)
+	var tmpls = make([]string, 0, len(realFS))
+	for k := range realFS {
+		tmpls = append(tmpls, "templates/"+k[1:])
+	}
+
+	customDir := path.Join(setting.CustomPath, "templates")
+	customTmpls := getDirAssetNames(customDir)
+	return append(tmpls, customTmpls...)
 }
 
 func NewTemplateFileSystem() templateFileSystem {
@@ -83,7 +108,7 @@ func NewTemplateFileSystem() templateFileSystem {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir)
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)
@@ -179,7 +204,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		log.Warn("Failed to check if custom directory %s is a directory. %v", err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir)
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)

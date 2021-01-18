@@ -368,6 +368,11 @@ func (db *mssql) DropTableSQL(tableName string) (string, bool) {
 		"DROP TABLE \"%s\"", tableName, tableName), true
 }
 
+func (db *mssql) ModifyColumnSQL(tableName string, col *schemas.Column) string {
+	s, _ := ColumnString(db.dialect, col, false)
+	return fmt.Sprintf("ALTER TABLE %s ALTER COLUMN %s", tableName, s)
+}
+
 func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
 	args := []interface{}{idxName}
 	sql := "select name from sysindexes where id=object_id('" + tableName + "') and name=?"

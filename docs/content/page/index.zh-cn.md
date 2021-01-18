@@ -48,7 +48,7 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 ## 组件
 
 * Web框架： [Macaron](http://go-macaron.com/)
-* ORM： [XORM](https://github.com/go-xorm/xorm)
+* ORM: [XORM](https://xorm.io)
 * UI组件：
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)

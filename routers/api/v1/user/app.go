@@ -85,7 +85,7 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	//       name:
 	//         type: string
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/AccessToken"
 
 	t := &models.AccessToken{
