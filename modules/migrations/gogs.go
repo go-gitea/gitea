@@ -238,8 +238,13 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 	return allComments, nil
 }
 
+// GetTopics return repository topics
+func (g *GogsDownloader) GetTopics() ([]string, error) {
+	return []string{}, nil
+}
+
 // FormatCloneURL add authentification into remote URLs
-func (g GogsDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+func (g *GogsDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
