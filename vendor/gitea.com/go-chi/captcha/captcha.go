@@ -208,41 +208,41 @@ func NewCaptcha(opts ...Options) *Captcha {
 func Captchaer(cpt *Captcha) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, cpt.URLPrefix) {
-				next.ServeHTTP(w, req)
+			if strings.HasPrefix(req.URL.Path, cpt.URLPrefix) {
+				var chars string
+				id := path.Base(req.URL.Path)
+				if i := strings.Index(id, "."); i > -1 {
+					id = id[:i]
+				}
+				key := cpt.key(id)
+
+				reloads := req.URL.Query()["reload"]
+				// Reload captcha.
+				if len(reloads) > 0 && len(reloads[0]) > 0 {
+					chars = cpt.genRandChars()
+					if err := cpt.Store.Put(key, chars, cpt.Expiration); err != nil {
+						w.WriteHeader(500)
+						w.Write([]byte("captcha reload error"))
+						panic(fmt.Errorf("reload captcha: %v", err))
+					}
+				} else {
+					if v, ok := cpt.Store.Get(key).(string); ok {
+						chars = v
+					} else {
+						w.WriteHeader(404)
+						w.Write([]byte("captcha not found"))
+						return
+					}
+				}
+
+				w.WriteHeader(200)
+				if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(w); err != nil {
+					panic(fmt.Errorf("write captcha: %v", err))
+				}
 				return
 			}
 
-			var chars string
-			id := path.Base(req.URL.Path)
-			if i := strings.Index(id, "."); i > -1 {
-				id = id[:i]
-			}
-			key := cpt.key(id)
-
-			reloads := req.URL.Query()["reload"]
-			// Reload captcha.
-			if len(reloads) > 0 && len(reloads[0]) > 0 {
-				chars = cpt.genRandChars()
-				if err := cpt.Store.Put(key, chars, cpt.Expiration); err != nil {
-					w.WriteHeader(500)
-					w.Write([]byte("captcha reload error"))
-					panic(fmt.Errorf("reload captcha: %v", err))
-				}
-			} else {
-				if v, ok := cpt.Store.Get(key).(string); ok {
-					chars = v
-				} else {
-					w.WriteHeader(404)
-					w.Write([]byte("captcha not found"))
-					return
-				}
-			}
-
-			w.WriteHeader(200)
-			if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(w); err != nil {
-				panic(fmt.Errorf("write captcha: %v", err))
-			}
+			next.ServeHTTP(w, req)
 		})
 	}
 }
