@@ -23,7 +23,7 @@ func enableVTMode(console windows.Handle) bool {
 	// https://docs.microsoft.com/en-us/windows/console/setconsolemode
 	// It only works on windows 10. Earlier terminals will fail with an err which we will
 	// handle to say don't color
-	mode = mode | windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING
+	mode |= windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING
 	err = windows.SetConsoleMode(console, mode)
 	return err == nil
 }

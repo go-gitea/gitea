@@ -19,9 +19,9 @@
 				<dt>{{.i18n.Tr "admin.config.domain"}}</dt>
 				<dd>{{.Domain}}</dd>
 				<dt>{{.i18n.Tr "admin.config.offline_mode"}}</dt>
-				<dd><i class="fa fa{{if .OfflineMode}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .OfflineMode}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.disable_router_log"}}</dt>
-				<dd><i class="fa fa{{if .DisableRouterLog}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .DisableRouterLog}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 
 				<div class="ui divider"></div>
 
@@ -67,10 +67,10 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.ssh_enabled"}}</dt>
-				<dd><i class="fa fa{{if not .SSH.Disabled}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
 					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
-					<dd><i class="fa fa{{if .SSH.StartBuiltinServer}}-check{{end}}-square-o"></i></dd>
+					<dd>{{if not .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
 					<dd>{{.SSH.Domain}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
@@ -86,7 +86,7 @@
 						<dt>{{.i18n.Tr "admin.config.ssh_keygen_path"}}</dt>
 						<dd>{{.SSH.KeygenPath}}</dd>
 						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
-						<dd><i class="fa fa{{if .SSH.MinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>
+						<dd>{{if .SSH.MinimumKeySizeCheck}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 						{{if .SSH.MinimumKeySizeCheck}}
 							<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
 							<dd>{{.SSH.MinimumKeySizes}}</dd>
@@ -102,7 +102,7 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.lfs_enabled"}}</dt>
-				<dd><i class="fa fa{{if .LFS.StartServer}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
 					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
 					<dd>{{.LFS.Path}}</dd>
@@ -146,36 +146,36 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.register_email_confirm"}}</dt>
-				<dd><i class="fa fa{{if .Service.RegisterEmailConfirm}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
-				<dd><i class="fa fa{{if .Service.DisableRegistration}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.DisableRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.allow_only_external_registration"}}</dt>
-				<dd><i class="fa fa{{if .Service.AllowOnlyExternalRegistration}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.AllowOnlyExternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>
-				<dd><i class="fa fa{{if .Service.ShowRegistrationButton}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.ShowRegistrationButton}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.enable_openid_signup"}}</dt>
-				<dd><i class="fa fa{{if .Service.EnableOpenIDSignUp}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.EnableOpenIDSignUp}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.enable_openid_signin"}}</dt>
-				<dd><i class="fa fa{{if .Service.EnableOpenIDSignIn}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.EnableOpenIDSignIn}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.require_sign_in_view"}}</dt>
-				<dd><i class="fa fa{{if .Service.RequireSignInView}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.RequireSignInView}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.mail_notify"}}</dt>
-				<dd><i class="fa fa{{if .Service.EnableNotifyMail}}-check{{end}}-square-o"></i></dd>
-				{{/*<dt>{{.i18n.Tr "admin.config.disable_key_size_check"}}</dt>
-				<dd><i class="fa fa{{if .Service.DisableMinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>*/}}
+				<dd>{{if .Service.EnableNotifyMail}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.disable_key_size_check"}}</dt>
+				<dd>{{if .SSH.MinimumKeySizeCheck}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.enable_captcha"}}</dt>
-				<dd><i class="fa fa{{if .Service.EnableCaptcha}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.EnableCaptcha}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
-				<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.DefaultKeepEmailPrivate}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.default_allow_create_organization"}}</dt>
-				<dd><i class="fa fa{{if .Service.DefaultAllowCreateOrganization}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.DefaultAllowCreateOrganization}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.enable_timetracking"}}</dt>
-				<dd><i class="fa fa{{if .Service.EnableTimetracking}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.EnableTimetracking}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .Service.EnableTimetracking}}
 					<dt>{{.i18n.Tr "admin.config.default_enable_timetracking"}}</dt>
-					<dd><i class="fa fa{{if .Service.DefaultEnableTimetracking}}-check{{end}}-square-o"></i></dd>
+					<dd>{{if .Service.DefaultEnableTimetracking}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
-					<dd><i class="fa fa{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}-check{{end}}-square-o"></i></dd>
+					<dd>{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{end}}
 				<dt>{{.i18n.Tr "admin.config.default_visibility_organization"}}</dt>
 				<dd>{{.Service.DefaultOrgVisibility}}</dd>
@@ -183,7 +183,7 @@
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.default_enable_dependencies"}}</dt>
-				<dd><i class="fa fa{{if .Service.DefaultEnableDependencies}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Service.DefaultEnableDependencies}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
@@ -202,7 +202,7 @@
 				<dt>{{.i18n.Tr "admin.config.deliver_timeout"}}</dt>
 				<dd>{{.Webhook.DeliverTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.skip_tls_verify"}}</dt>
-				<dd><i class="fa fa{{if .Webhook.SkipTLSVerify}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Webhook.SkipTLSVerify}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
@@ -212,18 +212,18 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.mailer_enabled"}}</dt>
-				<dd><i class="fa fa{{if .MailerEnabled}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
 					{{if eq .Mailer.MailerType "smtp"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
-						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
+						<dd>{{if .DisableHelo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
 						<dd>{{.Mailer.Host}}</dd>
 					{{else if eq .Mailer.MailerType "sendmail"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
-						<dd><i class="fa fa-check-square-o"></i></dd>
+						<dd>{{svg "octicon-check"}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>
 						<dd>{{.Mailer.SendmailPath}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
@@ -282,7 +282,7 @@
 				<dt>{{.i18n.Tr "admin.config.session_life_time"}}</dt>
 				<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
-				<dd><i class="fa fa{{if .SessionConfig.Secure}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .SessionConfig.Secure}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
@@ -292,10 +292,10 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.disable_gravatar"}}</dt>
-				<dd><i class="fa fa{{if .DisableGravatar}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .DisableGravatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.enable_federated_avatar"}}</dt>
-				<dd><i class="fa fa{{if .EnableFederatedAvatar}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .EnableFederatedAvatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
@@ -305,7 +305,7 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.git_disable_diff_highlight"}}</dt>
-				<dd><i class="fa fa{{if .Git.DisableDiffHighlight}}-check{{end}}-square-o"></i></dd>
+				<dd>{{if .Git.DisableDiffHighlight}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
 				<dd>{{.Git.MaxGitDiffLines}}</dd>
 				<dt>{{.i18n.Tr "admin.config.git_max_diff_line_characters"}}</dt>
@@ -411,7 +411,7 @@
 						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
 					{{end}}
 					<dt>{{$.i18n.Tr "admin.config.xorm_log_sql"}}</dt>
-					<dd><i class="fa fa{{if $.LogSQL}}-check{{end}}-square-o"></i></dd>
+					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{else}}
 					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
 				{{end}}

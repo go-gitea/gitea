@@ -20,7 +20,7 @@ type Notifier interface {
 	NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string)
 	NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string)
 
-	NotifyNewIssue(*models.Issue)
+	NotifyNewIssue(issue *models.Issue, mentions []*models.User)
 	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
 	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
@@ -32,15 +32,16 @@ type Notifier interface {
 	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 		addedLabels []*models.Label, removedLabels []*models.Label)
 
-	NotifyNewPullRequest(*models.PullRequest)
+	NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User)
 	NotifyMergePullRequest(*models.PullRequest, *models.User)
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
-	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
+	NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User)
+	NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
 	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
 
-	NotifyCreateIssueComment(*models.User, *models.Repository,
-		*models.Issue, *models.Comment)
+	NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+		issue *models.Issue, comment *models.Comment, mentions []*models.User)
 	NotifyUpdateComment(*models.User, *models.Comment, string)
 	NotifyDeleteComment(*models.User, *models.Comment)
 

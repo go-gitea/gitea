@@ -47,7 +47,7 @@
 					{{end}}
 				{{end}}
 				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
-				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">

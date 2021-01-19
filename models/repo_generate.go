@@ -117,17 +117,17 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 
 	for _, templateWebhook := range templateWebhooks {
 		generateWebhook := &Webhook{
-			RepoID:       generateRepo.ID,
-			URL:          templateWebhook.URL,
-			HTTPMethod:   templateWebhook.HTTPMethod,
-			ContentType:  templateWebhook.ContentType,
-			Secret:       templateWebhook.Secret,
-			HookEvent:    templateWebhook.HookEvent,
-			IsActive:     templateWebhook.IsActive,
-			HookTaskType: templateWebhook.HookTaskType,
-			OrgID:        templateWebhook.OrgID,
-			Events:       templateWebhook.Events,
-			Meta:         templateWebhook.Meta,
+			RepoID:      generateRepo.ID,
+			URL:         templateWebhook.URL,
+			HTTPMethod:  templateWebhook.HTTPMethod,
+			ContentType: templateWebhook.ContentType,
+			Secret:      templateWebhook.Secret,
+			HookEvent:   templateWebhook.HookEvent,
+			IsActive:    templateWebhook.IsActive,
+			Type:        templateWebhook.Type,
+			OrgID:       templateWebhook.OrgID,
+			Events:      templateWebhook.Events,
+			Meta:        templateWebhook.Meta,
 		}
 		if err := createWebhook(ctx.e, generateWebhook); err != nil {
 			return err

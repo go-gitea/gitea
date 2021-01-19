@@ -4,10 +4,10 @@
 		{{svg "octicon-kebab-horizontal"}}
 	</a>
 	<div class="menu">
-		{{if .diff}}
-			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
-		{{else}}
+		{{if .issue}}
 			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
+		{{else}}
+			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
 		{{end}}
 		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}

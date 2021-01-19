@@ -70,7 +70,7 @@ menu:
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
 - `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
-- `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
+- `ENABLE_GZIP`: 启用实时生成的数据启用 GZIP 压缩，不包括静态资源。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
 
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
@@ -124,6 +124,7 @@ menu:
 - `ACTIVE_CODE_LIVE_MINUTES`: 登录验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
 - `REGISTER_EMAIL_CONFIRM`: 启用注册邮件激活，前提是 `Mailer` 已经启用。
+- `REGISTER_MANUAL_CONFIRM`: **false**: 新注册用户必须由管理员手动激活,启用此选项需取消`REGISTER_EMAIL_CONFIRM`.
 - `DISABLE_REGISTRATION`: 禁用注册，启用后只能用管理员添加用户。
 - `SHOW_REGISTRATION_BUTTON`: 是否显示注册按钮。
 - `REQUIRE_SIGNIN_VIEW`: 是否所有页面都必须登录后才可访问。
