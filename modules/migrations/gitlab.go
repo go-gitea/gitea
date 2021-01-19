@@ -295,12 +295,32 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	}
 
 	for k, asset := range rel.Assets.Links {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
 			ContentType:   &rel.Assets.Sources[k].Format,
 			Size:          &zero,
 			DownloadCount: &zero,
+			DownloadFunc: func() (io.ReadCloser, error) {
+				link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, rel.TagName, asset.ID, gitlab.WithContext(g.ctx))
+				if err != nil {
+					return nil, err
+				}
+
+				req, err := http.NewRequest("GET", link.URL, nil)
+				if err != nil {
+					return nil, err
+				}
+				req = req.WithContext(g.ctx)
+
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return nil, err
+				}
+
+				// resp.Body is closed by the uploader
+				return resp.Body, nil
+			},
 		})
 	}
 	return r
@@ -327,28 +347,6 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
-}
-
-// GetAsset returns an asset
-func (g *GitlabDownloader) GetAsset(tag string, _, id int64) (io.ReadCloser, error) {
-	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id), gitlab.WithContext(g.ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", link.URL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(g.ctx)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// resp.Body is closed by the uploader
-	return resp.Body, nil
 }
 
 // GetIssues returns issues according start and limit

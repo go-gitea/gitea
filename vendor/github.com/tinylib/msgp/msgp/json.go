@@ -206,7 +206,7 @@ func rwFloat32(dst jsWriter, src *Reader) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	src.scratch = strconv.AppendFloat(src.scratch[:0], float64(f), 'f', -1, 64)
+	src.scratch = strconv.AppendFloat(src.scratch[:0], float64(f), 'f', -1, 32)
 	return dst.Write(src.scratch)
 }
 
@@ -215,7 +215,7 @@ func rwFloat64(dst jsWriter, src *Reader) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	src.scratch = strconv.AppendFloat(src.scratch[:0], f, 'f', -1, 32)
+	src.scratch = strconv.AppendFloat(src.scratch[:0], f, 'f', -1, 64)
 	return dst.Write(src.scratch)
 }
 

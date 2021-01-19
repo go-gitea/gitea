@@ -222,10 +222,10 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 					// Add trailers
 					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-Authored-By: ")
+					_, _ = messageBytes.WriteString("Co-authored-by: ")
 					_, _ = messageBytes.WriteString(committerSig.String())
 					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-Committed-By: ")
+					_, _ = messageBytes.WriteString("Co-committed-by: ")
 					_, _ = messageBytes.WriteString(committerSig.String())
 					_, _ = messageBytes.WriteString("\n")
 				}

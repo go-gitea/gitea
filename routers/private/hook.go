@@ -25,7 +25,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"gitea.com/macaron/macaron"
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -82,7 +81,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
 	}()
-	hash := plumbing.NewHash(sha)
+	hash := git.MustIDFromString(sha)
 
 	return git.NewCommand("cat-file", "commit", sha).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
@@ -413,8 +412,8 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, &option)
-			if repo.IsEmpty && option.IsBranch() && option.BranchName() == "master" {
-				// put the master branch first
+			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
+				// put the master/main branch first
 				copy(updates[1:], updates)
 				updates[0] = &option
 			}

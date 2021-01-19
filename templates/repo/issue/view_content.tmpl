@@ -66,14 +66,9 @@
 						</div>
 						<div id="comment-{{.Issue.ID}}" class="raw-content hide">{{.Issue.Content}}</div>
 						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
-					{{if .Issue.Attachments}}
-						<div class="dropzone-attachments">
-							<div class="ui clearing divider"></div>
-							<div class="ui middle aligned padded grid">
-								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments}}
-							</div>
-						</div>
-					{{end}}
+    					{{if .Issue.Attachments}}
+    						{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments "Content" .Issue.RenderedContent}}
+    					{{end}}
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}

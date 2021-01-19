@@ -43,7 +43,7 @@ var (
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
@@ -596,11 +596,15 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
-	if ok && strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mention[1:]), mention, "mention"))
-	} else {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	// team mention should follow @orgName/teamName style
+	if ok && strings.Contains(mention, "/") {
+		mentionOrgAndTeam := strings.Split(mention, "/")
+		if mentionOrgAndTeam[0][1:] == ctx.metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+		}
+		return
 	}
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {

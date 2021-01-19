@@ -1,7 +1,7 @@
 <template>
   <div id="user-heatmap">
     <div class="total-contributions">
-      {{ values.length }} contributions in the last 12 months
+      {{ sum }} contributions in the last 12 months
     </div>
     <calendar-heatmap
       :locale="locale"
@@ -40,6 +40,15 @@ export default {
       no_contributions: 'No contributions',
     },
   }),
+  computed: {
+    sum() {
+      let s = 0;
+      for (let i = 0; i < this.values.length; i++) {
+        s += this.values[i].count;
+      }
+      return s;
+    }
+  }
 };
 </script>
 <style scoped/>

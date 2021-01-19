@@ -3,7 +3,7 @@ date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -17,6 +17,8 @@ menu:
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
 embedded assets. This can be different for older releases.
+
+**Table of Contents**
 
 {{< toc >}}
 

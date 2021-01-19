@@ -79,6 +79,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (issues / pulls) mentioning you, default is false
 	//   type: boolean
+	// - name: review_requested
+	//   in: query
+	//   description: filter pulls requesting your review, default is false
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -204,7 +208,7 @@ func SearchIssues(ctx *context.APIContext) {
 			UpdatedAfterUnix:   since,
 		}
 
-		// Filter for: Created by User, Assigned to User, Mentioning User
+		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
 		if ctx.QueryBool("created") {
 			issuesOpt.PosterID = ctx.User.ID
 		}
@@ -213,6 +217,9 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		if ctx.QueryBool("mentioned") {
 			issuesOpt.MentionedID = ctx.User.ID
+		}
+		if ctx.QueryBool("review_requested") {
+			issuesOpt.ReviewRequestedID = ctx.User.ID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
@@ -486,6 +493,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		Content:      form.Body,
+		Ref:          form.Ref,
 		DeadlineUnix: deadlineUnix,
 	}
 
@@ -624,6 +632,13 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if form.Body != nil {
 		issue.Content = *form.Body
+	}
+	if form.Ref != nil {
+		err = issue_service.ChangeIssueRef(issue, ctx.User, *form.Ref)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
+			return
+		}
 	}
 
 	// Update or remove the deadline, only if set and allowed
