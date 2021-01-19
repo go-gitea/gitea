@@ -204,7 +204,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 					continue
 				}
 			} else {
-				if !col.SQLType.IsJson() {
+				if !col.IsJSON {
 					table, err := statement.tagParser.ParseWithCache(fieldValue)
 					if err != nil {
 						val = fieldValue.Interface()

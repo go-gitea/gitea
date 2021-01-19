@@ -120,13 +120,16 @@ func LFSLocks(ctx *context.Context) {
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		return
 	}
 
 	gitRepo, err := git.OpenRepository(tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		return
 	}
+	defer gitRepo.Close()
 
 	filenames := make([]string, len(lfsLocks))
 
@@ -137,6 +140,7 @@ func LFSLocks(ctx *context.Context) {
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		return
 	}
 
 	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
@@ -147,6 +151,7 @@ func LFSLocks(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
+		return
 	}
 
 	lockables := make([]bool, len(lfsLocks))
@@ -166,6 +171,7 @@ func LFSLocks(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
+		return
 	}
 
 	filemap := make(map[string]bool, len(filelist))
@@ -273,14 +279,19 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	buf = buf[:n]
 
-	isTextFile := base.IsTextFile(buf)
-	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsTextFile"] = base.IsTextFile(buf)
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
