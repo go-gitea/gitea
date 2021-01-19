@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -57,7 +59,7 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 
-	// Gitea 1.5.3 ends at v70
+	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
@@ -66,7 +68,7 @@ var migrations = []Migration{
 	// v72 -> v73
 	NewMigration("add review", addReview),
 
-	// Gitea 1.6.4 ends at v73
+	// Gitea 1.6.0 ends at v73
 
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
@@ -75,7 +77,7 @@ var migrations = []Migration{
 	// v75 -> v76
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
 
-	// Gitea 1.7.6 ends at v76
+	// Gitea 1.7.0 ends at v76
 
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
@@ -90,7 +92,7 @@ var migrations = []Migration{
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
 
-	// Gitea 1.8.3 ends at v82
+	// Gitea 1.8.0 ends at v82
 
 	// v82 -> v83
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
@@ -105,7 +107,7 @@ var migrations = []Migration{
 	// v87 -> v88
 	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
 
-	// Gitea 1.9.6 ends at v88
+	// Gitea 1.9.0 ends at v88
 
 	// v88 -> v89
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
@@ -129,15 +131,15 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
-
-	// Gitea 1.10.3 ends at v99
-
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+
+	// Gitea 1.10.0 ends at v102
+
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
@@ -168,6 +170,9 @@ var migrations = []Migration{
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+
+	// Gitea 1.11.0 ends at v117
+
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 	// v118 -> v119
@@ -214,6 +219,9 @@ var migrations = []Migration{
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
 	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+
+	// Gitea 1.12.0 ends at v140
+
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
 	// v141 -> v142
@@ -244,12 +252,33 @@ var migrations = []Migration{
 	NewMigration("add Team review request support", addTeamReviewRequestSupport),
 	// v154 > v155
 	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
+
+	// Gitea 1.13.0 ends at v155
+
 	// v155 -> v156
 	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
 	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
 	// v157 -> v158
 	NewMigration("ensure repo topics are up-to-date", fixRepoTopics),
+	// v158 -> v159
+	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
+	// v159 -> v160
+	NewMigration("update reactions constraint", updateReactionConstraint),
+	// v160 -> v161
+	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	// v161 -> v162
+	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	// v162 -> v163
+	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
+	// v163 -> v164
+	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
+	// v164 -> v165
+	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
+	// v165 -> v166
+	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
+	// v166 -> v167
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -712,5 +741,41 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		log.Fatal("Unrecognized DB")
 	}
 
+	return nil
+}
+
+// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+	var indexes map[string]*schemas.Index
+	var err error
+	// MSSQL have to remove index at first, otherwise alter column will fail
+	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
+		if err != nil {
+			return err
+		}
+
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().DropIndexSQL(tableName, index))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer func() {
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
+			if err != nil {
+				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
+			}
+		}
+	}()
+
+	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
+	if _, err := x.Exec(alterSQL); err != nil {
+		return err
+	}
 	return nil
 }

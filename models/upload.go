@@ -12,11 +12,11 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
-	"github.com/unknwon/com"
 )
 
 //  ____ ___        .__                    .___ ___________.___.__
@@ -126,7 +126,11 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
-		if !com.IsFile(localPath) {
+		isFile, err := util.IsFile(localPath)
+		if err != nil {
+			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
+		}
+		if !isFile {
 			continue
 		}
 

@@ -1,82 +1,78 @@
-<div class="user signup{{if .LinkAccountMode}} icon{{end}}">
-	<div class="ui middle very relaxed page grid">
-		<div class="column">
-			<form class="ui form" action="{{.SignUpLink}}" method="post">
-				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{if .LinkAccountMode}}
-						{{.i18n.Tr "auth.oauth_signup_title"}}
-					{{else}}
-						{{.i18n.Tr "sign_up"}}
-					{{end}}
-				</h3>
-				<div class="ui attached segment">
-					{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
-					{{template "base/alert" .}}
-					{{end}}
-					{{if .DisableRegistration}}
-						<p>{{.i18n.Tr "auth.disable_register_prompt"}}</p>
-					{{else}}
-						<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-							<label for="user_name">{{.i18n.Tr "username"}}</label>
-							<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
-						</div>
-						<div class="required inline field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{.i18n.Tr "email"}}</label>
-							<input id="email" name="email" type="email" value="{{.email}}" required>
-						</div>
-
-						{{if not .DisablePassword}}
-							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-								<label for="password">{{.i18n.Tr "password"}}</label>
-								<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
-							</div>
-							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-								<label for="retype">{{.i18n.Tr "re_type"}}</label>
-								<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
-							</div>
-						{{end}}
-						{{if and .EnableCaptcha (eq .CaptchaType "image")}}
-							<div class="inline field">
-								<label></label>
-								{{.Captcha.CreateHtml}}
-							</div>
-							<div class="required inline field {{if .Err_Captcha}}error{{end}}">
-								<label for="captcha">{{.i18n.Tr "captcha"}}</label>
-								<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
-							</div>
-						{{end}}
-						{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
-							<div class="inline field required">
-								<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
-							</div>
-						{{end}}
-						{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
-							<div class="inline field required">
-								<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
-							</div>
-						{{end}}
-
-						<div class="inline field">
-							<label></label>
-							<button class="ui green button">
-								{{if .LinkAccountMode}}
-									{{.i18n.Tr "auth.oauth_signup_submit"}}
-								{{else}}
-									{{.i18n.Tr "auth.create_new_account"}}
-								{{end}}
-							</button>
-						</div>
-
-						{{if not .LinkAccountMode}}
-						<div class="inline field">
-							<label></label>
-							<a href="{{AppSubUrl}}/user/login">{{.i18n.Tr "auth.register_helper_msg"}}</a>
-						</div>
-						{{end}}
-					{{end}}
+<div class="ui container column{{if .LinkAccountMode}} icon{{end}}">
+	<h4 class="ui top attached header center">
+		{{if .LinkAccountMode}}
+			{{.i18n.Tr "auth.oauth_signup_title"}}
+		{{else}}
+			{{.i18n.Tr "sign_up"}}
+		{{end}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.SignUpLink}}" method="post">
+			{{.CsrfTokenHtml}}
+			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
+			{{template "base/alert" .}}
+			{{end}}
+			{{if .DisableRegistration}}
+				<p>{{.i18n.Tr "auth.disable_register_prompt"}}</p>
+			{{else}}
+				<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<label for="user_name">{{.i18n.Tr "username"}}</label>
+					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
-			</form>
-		</div>
+				<div class="required inline field {{if .Err_Email}}error{{end}}">
+					<label for="email">{{.i18n.Tr "email"}}</label>
+					<input id="email" name="email" type="email" value="{{.email}}" required>
+				</div>
+
+				{{if not .DisablePassword}}
+					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+						<label for="password">{{.i18n.Tr "password"}}</label>
+						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
+					</div>
+					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+						<label for="retype">{{.i18n.Tr "re_type"}}</label>
+						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
+					</div>
+				{{end}}
+				{{if and .EnableCaptcha (eq .CaptchaType "image")}}
+					<div class="inline field">
+						<label></label>
+						{{.Captcha.CreateHtml}}
+					</div>
+					<div class="required inline field {{if .Err_Captcha}}error{{end}}">
+						<label for="captcha">{{.i18n.Tr "captcha"}}</label>
+						<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
+					</div>
+				{{end}}
+				{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
+					<div class="inline field required">
+						<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
+					</div>
+				{{end}}
+				{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
+					<div class="inline field required">
+						<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
+					</div>
+				{{end}}
+
+				<div class="inline field">
+					<label></label>
+					<button class="ui green button">
+						{{if .LinkAccountMode}}
+							{{.i18n.Tr "auth.oauth_signup_submit"}}
+						{{else}}
+							{{.i18n.Tr "auth.create_new_account"}}
+						{{end}}
+					</button>
+				</div>
+
+				{{if not .LinkAccountMode}}
+				<div class="inline field">
+					<label></label>
+					<a href="{{AppSubUrl}}/user/login">{{.i18n.Tr "auth.register_helper_msg"}}</a>
+				</div>
+				{{end}}
+			{{end}}
+		</form>
 	</div>
 </div>

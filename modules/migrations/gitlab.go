@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -86,6 +87,30 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil, err
 	}
+
+	// split namespace and subdirectory
+	pathParts := strings.Split(strings.Trim(repoPath, "/"), "/")
+	var resp *gitlab.Response
+	u, _ := url.Parse(baseURL)
+	for len(pathParts) >= 2 {
+		_, resp, err = gitlabClient.Version.GetVersion()
+		if err == nil || resp != nil && resp.StatusCode == 401 {
+			err = nil // if no authentication given, this still should work
+			break
+		}
+
+		u.Path = path.Join(u.Path, pathParts[0])
+		baseURL = u.String()
+		pathParts = pathParts[1:]
+		_ = gitlab.WithBaseURL(baseURL)(gitlabClient)
+		repoPath = strings.Join(pathParts, "/")
+	}
+	if err != nil {
+		log.Trace("Error could not get gitlab version: %v", err)
+		return nil, err
+	}
+
+	log.Trace("gitlab downloader: use BaseURL: '%s' and RepoPath: '%s'", baseURL, repoPath)
 
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
@@ -270,12 +295,32 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	}
 
 	for k, asset := range rel.Assets.Links {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
 			ContentType:   &rel.Assets.Sources[k].Format,
 			Size:          &zero,
 			DownloadCount: &zero,
+			DownloadFunc: func() (io.ReadCloser, error) {
+				link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, rel.TagName, asset.ID, gitlab.WithContext(g.ctx))
+				if err != nil {
+					return nil, err
+				}
+
+				req, err := http.NewRequest("GET", link.URL, nil)
+				if err != nil {
+					return nil, err
+				}
+				req = req.WithContext(g.ctx)
+
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return nil, err
+				}
+
+				// resp.Body is closed by the uploader
+				return resp.Body, nil
+			},
 		})
 	}
 	return r
@@ -302,28 +347,6 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 		}
 	}
 	return releases, nil
-}
-
-// GetAsset returns an asset
-func (g *GitlabDownloader) GetAsset(tag string, _, id int64) (io.ReadCloser, error) {
-	link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, tag, int(id), gitlab.WithContext(g.ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", link.URL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(g.ctx)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// resp.Body is closed by the uploader
-	return resp.Body, nil
 }
 
 // GetIssues returns issues according start and limit
@@ -584,8 +607,12 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
+	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
+			return []*base.Review{}, nil
+		}
 		return nil, err
 	}
 

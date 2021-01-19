@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
@@ -131,6 +132,8 @@ func initBasicTasks() {
 	registerArchiveCleanup()
 	registerSyncExternalUsers()
 	registerDeletedBranchesCleanup()
-	registerUpdateMigrationPosterID()
-	registerCleanupHookTaskTable()
+	if !setting.Repository.DisableMigrations {
+		registerUpdateMigrationPosterID()
+	}
+  registerCleanupHookTaskTable()
 }

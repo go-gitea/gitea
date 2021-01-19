@@ -5,7 +5,9 @@
 package integrations
 
 import (
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -233,11 +235,21 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"redirect_uri":  "a",
 		"refresh_token": parsed.RefreshToken,
 	})
+	// tip: Why this changed, because macaron will set req.Body back when consume the req but chi will not.
+	bs, err := ioutil.ReadAll(refreshReq.Body)
+	assert.NoError(t, err)
+
+	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
+
+	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
+	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
+
+	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 400)
 }

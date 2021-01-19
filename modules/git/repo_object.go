@@ -27,6 +27,11 @@ const (
 	ObjectBranch ObjectType = "branch"
 )
 
+// Bytes returns the byte array for the Object Type
+func (o ObjectType) Bytes() []byte {
+	return []byte(o)
+}
+
 // HashObject takes a reader and returns SHA1 hash for that reader
 func (repo *Repository) HashObject(reader io.Reader) (SHA1, error) {
 	idStr, err := repo.hashObject(reader)

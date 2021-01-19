@@ -5,6 +5,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -82,11 +84,6 @@ func runMigrateTask(t *models.Task) (err error) {
 	if err = t.LoadOwner(); err != nil {
 		return
 	}
-	t.StartTime = timeutil.TimeStampNow()
-	t.Status = structs.TaskStatusRunning
-	if err = t.UpdateCols("start_time", "status"); err != nil {
-		return
-	}
 
 	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
@@ -96,7 +93,20 @@ func runMigrateTask(t *models.Task) (err error) {
 
 	opts.MigrateToRepoID = t.RepoID
 	var repo *models.Repository
-	repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), t.Doer, t.Owner.Name, *opts)
+
+	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
+	defer cancel()
+	pm := process.GetManager()
+	pid := pm.Add(fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName), cancel)
+	defer pm.Remove(pid)
+
+	t.StartTime = timeutil.TimeStampNow()
+	t.Status = structs.TaskStatusRunning
+	if err = t.UpdateCols("start_time", "status"); err != nil {
+		return
+	}
+
+	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts)
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return

@@ -5,6 +5,7 @@
 package acme
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/base64"
@@ -37,22 +38,32 @@ func (c *Client) DeactivateReg(ctx context.Context) error {
 	return nil
 }
 
-// registerRFC is quivalent to c.Register but for CAs implementing RFC 8555.
+// registerRFC is equivalent to c.Register but for CAs implementing RFC 8555.
 // It expects c.Discover to have already been called.
-// TODO: Implement externalAccountBinding.
 func (c *Client) registerRFC(ctx context.Context, acct *Account, prompt func(tosURL string) bool) (*Account, error) {
 	c.cacheMu.Lock() // guard c.kid access
 	defer c.cacheMu.Unlock()
 
 	req := struct {
-		TermsAgreed bool     `json:"termsOfServiceAgreed,omitempty"`
-		Contact     []string `json:"contact,omitempty"`
+		TermsAgreed            bool              `json:"termsOfServiceAgreed,omitempty"`
+		Contact                []string          `json:"contact,omitempty"`
+		ExternalAccountBinding *jsonWebSignature `json:"externalAccountBinding,omitempty"`
 	}{
 		Contact: acct.Contact,
 	}
 	if c.dir.Terms != "" {
 		req.TermsAgreed = prompt(c.dir.Terms)
 	}
+
+	// set 'externalAccountBinding' field if requested
+	if acct.ExternalAccountBinding != nil {
+		eabJWS, err := c.encodeExternalAccountBinding(acct.ExternalAccountBinding)
+		if err != nil {
+			return nil, fmt.Errorf("acme: failed to encode external account binding: %v", err)
+		}
+		req.ExternalAccountBinding = eabJWS
+	}
+
 	res, err := c.post(ctx, c.Key, c.dir.RegURL, req, wantStatus(
 		http.StatusOK,      // account with this key already registered
 		http.StatusCreated, // new account created
@@ -75,7 +86,19 @@ func (c *Client) registerRFC(ctx context.Context, acct *Account, prompt func(tos
 	return a, nil
 }
 
-// updateGegRFC is equivalent to c.UpdateReg but for CAs implementing RFC 8555.
+// encodeExternalAccountBinding will encode an external account binding stanza
+// as described in https://tools.ietf.org/html/rfc8555#section-7.3.4.
+func (c *Client) encodeExternalAccountBinding(eab *ExternalAccountBinding) (*jsonWebSignature, error) {
+	jwk, err := jwkEncode(c.Key.Public())
+	if err != nil {
+		return nil, err
+	}
+	var rProtected bytes.Buffer
+	fmt.Fprintf(&rProtected, `{"alg":%q,"kid":%q,"url":%q}`, eab.Algorithm, eab.KID, c.dir.RegURL)
+	return jwsWithMAC(eab.Key, eab.Algorithm, rProtected.Bytes(), []byte(jwk))
+}
+
+// updateRegRFC is equivalent to c.UpdateReg but for CAs implementing RFC 8555.
 // It expects c.Discover to have already been called.
 func (c *Client) updateRegRFC(ctx context.Context, a *Account) (*Account, error) {
 	url := string(c.accountKID(ctx))

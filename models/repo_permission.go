@@ -271,6 +271,27 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	return
 }
 
+// IsUserRealRepoAdmin check if this user is real repo admin
+func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
+	if repo.OwnerID == user.ID {
+		return true, nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := repo.getOwner(sess); err != nil {
+		return false, err
+	}
+
+	accessMode, err := accessLevel(sess, user, repo)
+	if err != nil {
+		return false, err
+	}
+
+	return accessMode >= AccessModeAdmin, nil
+}
+
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
 	return isUserRepoAdmin(x, repo, user)

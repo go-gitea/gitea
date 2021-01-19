@@ -32,6 +32,7 @@ var (
 	GitExecutable = "git"
 
 	// DefaultContext is the default context to run git commands in
+	// will be overwritten by Init with HammerContext
 	DefaultContext = context.Background()
 
 	gitVersion *version.Version

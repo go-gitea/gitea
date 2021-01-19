@@ -787,7 +787,6 @@ func GitHooks(ctx *context.Context) {
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)

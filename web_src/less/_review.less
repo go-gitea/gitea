@@ -1,3 +1,5 @@
+@import "variables.less";
+
 .ui.button.add-code-comment {
   padding: 2px;
   position: absolute;
@@ -42,10 +44,14 @@
 }
 
 .comment-code-cloud {
-  padding: 4px;
+  padding: .5rem;
   padding-left: 0;
   position: relative;
   margin: 0 auto;
+
+  .comments .comment {
+    margin: 0;
+  }
 
   .attached {
     &.tab {
@@ -82,7 +88,7 @@
   }
 
   .footer {
-    border-top: 1px solid #f1f1f1;
+    border-top: 1px solid var(--color-secondary);
     padding: 10px 0;
 
     .markdown-info {
@@ -96,7 +102,7 @@
       padding-top: 6px;
     }
 
-    &:after {
+    &::after {
       clear: both;
       content: "";
       display: block;
@@ -113,22 +119,17 @@
 }
 
 .file-comment {
-  color: rgba(0, 0, 0, .87);
-}
-
-a.fold-file {
-  margin-right: 10px;
-  color: inherit;
+  color: var(--color-text);
 }
 
 a.blob-excerpt {
-  color: #575a68;
+  color: var(--color-text-light);
   height: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  background: var(--color-primary-light-5);
+  background: var(--color-expand-button);
 }
 
 a.blob-excerpt:hover {
@@ -136,13 +137,7 @@ a.blob-excerpt:hover {
   color: #fff;
 }
 
-.btn-review > .dropdown.icon {
-  float: right;
-  height: 12px !important;
-  margin-left: .5rem;
-}
-
-@media only screen and (max-width: 768px) {
+@media @mediaSm {
   #review-box > .menu {
     > .ui.segment {
       width: 94vw;
@@ -157,20 +152,24 @@ a.blob-excerpt:hover {
   }
 }
 
-@media only screen and (min-width: 768px) and (max-width: 992px) {
+@media @mediaMd {
   #review-box .CodeMirror-scroll {
     max-width: 700px;
   }
 }
 
-@media only screen and (min-width: 992px) and (max-width: 1200px) {
+@media @mediaLg {
   #review-box .CodeMirror-scroll {
     max-width: 800px;
   }
 }
 
-@media only screen and (min-width: 1200px) {
+@media @mediaXl {
   #review-box .CodeMirror-scroll {
     max-width: 900px;
   }
+}
+
+.review-box > .segment {
+  border: none !important;
 }

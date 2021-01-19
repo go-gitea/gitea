@@ -23,7 +23,6 @@ import (
 
 	"gitea.com/macaron/session"
 	archiver "github.com/mholt/archiver/v3"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -306,7 +305,11 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
-	if com.IsExist(setting.AppDataPath) {
+	isExist, err := util.IsExist(setting.AppDataPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", setting.AppDataPath, err)
+	}
+	if isExist {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
@@ -349,9 +352,15 @@ func runDump(ctx *cli.Context) error {
 	// yet or not.
 	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
 		log.Info("Skip dumping log files")
-	} else if com.IsExist(setting.LogRootPath) {
-		if err := addRecursive(w, "log", setting.LogRootPath, verbose); err != nil {
-			fatal("Failed to include log: %v", err)
+	} else {
+		isExist, err := util.IsExist(setting.LogRootPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
+		}
+		if isExist {
+			if err := addRecursive(w, "log", setting.LogRootPath, verbose); err != nil {
+				fatal("Failed to include log: %v", err)
+			}
 		}
 	}
 

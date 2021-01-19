@@ -34,13 +34,12 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
-var mac *macaron.Macaron
+var c chi.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -67,8 +66,9 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NewChi()
+	c.Mount("/", routes.NormalRoutes())
+	routes.DelegateToMacaron(c)
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -230,8 +230,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	return deferFn
 }
 
@@ -404,7 +403,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -417,7 +416,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -472,6 +471,5 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 }
