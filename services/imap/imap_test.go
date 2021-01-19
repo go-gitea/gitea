@@ -17,7 +17,7 @@ import (
 var logs string
 
 type testIMAPClient struct {
-	t *testing.T
+	// t *testing.T
 }
 
 func TestIMAP(t *testing.T) {
@@ -84,7 +84,7 @@ func (c *testIMAPClient) Expunge(ch chan uint32) error {
 	return nil
 }
 
-var testMails []string
+// var testMails []string
 
 func (c *testIMAPClient) Fetch(seqset *imap.SeqSet, items []imap.FetchItem, ch chan *imap.Message) error {
 	defer close(ch)
