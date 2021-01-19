@@ -5,6 +5,7 @@
 package test
 
 import (
+	scontext "context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/templates"
 
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,10 +28,15 @@ func MockContext(t *testing.T, path string) *context.Context {
 	ctx.Locale = &mockLocale{}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	ctx.Req = &http.Request{
+	var req = &http.Request{
 		URL:  requestURL,
 		Form: url.Values{},
 	}
+
+	chiCtx := chi.NewRouteContext()
+	req = req.WithContext(scontext.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+
+	ctx.Req = context.WithContext(req, &ctx)
 	ctx.Resp = context.NewResponse(&mockResponseWriter{})
 	ctx.Render = rnd
 	ctx.Data = map[string]interface{}{}

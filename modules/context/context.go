@@ -485,7 +485,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
 	chiCtx := chi.RouteContext(ctx.Req.Context())
-	chiCtx.URLParams.Add(k, v)
+	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), v)
 }
 
 // Write writes data to webbrowser

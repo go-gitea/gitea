@@ -49,7 +49,7 @@ func TestNewReleasePost(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		test.LoadGitRepo(t, ctx)
-		web.SetForm(ctx, testCase.Form)
+		web.SetForm(ctx, &testCase.Form)
 		NewReleasePost(ctx)
 		models.AssertExistsAndLoadBean(t, &models.Release{
 			RepoID:      1,

@@ -115,7 +115,7 @@ func TestNewWikiPost(t *testing.T) {
 		ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		web.SetForm(ctx, auth.NewWikiForm{
+		web.SetForm(ctx, &auth.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,
@@ -133,7 +133,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
-	web.SetForm(ctx, auth.NewWikiForm{
+	web.SetForm(ctx, &auth.NewWikiForm{
 		Title:   "_edit",
 		Content: content,
 		Message: message,
@@ -167,7 +167,7 @@ func TestEditWikiPost(t *testing.T) {
 		ctx.SetParams(":page", "Home")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		web.SetForm(ctx, auth.NewWikiForm{
+		web.SetForm(ctx, &auth.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,

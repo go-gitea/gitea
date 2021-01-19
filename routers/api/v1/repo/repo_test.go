@@ -55,7 +55,7 @@ func TestRepoEdit(t *testing.T) {
 	}
 
 	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, opts)
+	web.SetForm(apiCtx, &opts)
 	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -77,7 +77,7 @@ func TestRepoEditNameChange(t *testing.T) {
 	}
 
 	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, opts)
+	web.SetForm(apiCtx, &opts)
 	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
