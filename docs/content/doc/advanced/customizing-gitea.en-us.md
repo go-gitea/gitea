@@ -39,7 +39,8 @@ Again `gitea help` will allow you review this variable and you can override it u
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
-`GITEA_CUSTOM` might, for example, be set by an init script.
+`GITEA_CUSTOM` might, for example, be set by an init script. You can check whether the value
+is set under the "Configuration" tab on the site administration page.
 
 - [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
 
