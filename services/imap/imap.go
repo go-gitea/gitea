@@ -243,7 +243,7 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 	items := []imap.FetchItem{section.FetchItem()}
 
 	messages := make(chan *imap.Message, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	finished := false
@@ -251,12 +251,13 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 	go func() {
 		err = c.Client.Fetch(seqSet, items, messages)
 		finished = true
+		cancel()
 	}()
 
 	var msg *imap.Message
-	for finished {
+	for !finished {
 		select {
-		case msg, finished = <-messages:
+		case msg = <-messages:
 			if msg != nil {
 				if !finished {
 					close(messages)
