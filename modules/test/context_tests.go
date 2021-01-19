@@ -27,7 +27,7 @@ import (
 func MockContext(t *testing.T, path string) *context.Context {
 	var resp = &mockResponseWriter{}
 	var ctx = context.Context{
-		Render: &mockRender{ResponseWriter: resp},
+		Render: &mockRender{},
 		Data:   make(map[string]interface{}),
 		Flash: &middlewares.Flash{
 			Values: make(url.Values),
