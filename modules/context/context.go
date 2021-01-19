@@ -83,12 +83,18 @@ func NewResponse(resp http.ResponseWriter) *Response {
 	return &Response{resp, 0}
 }
 
+// Render represents a template render
+type Render interface {
+	TemplateLookup(tmpl string) *template.Template
+	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
+}
+
 // Context represents context of a request.
 type Context struct {
 	Resp   *Response
 	Req    *http.Request
 	Data   map[string]interface{}
-	Render *render.Render
+	Render Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF

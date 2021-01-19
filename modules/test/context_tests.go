@@ -6,6 +6,8 @@ package test
 
 import (
 	scontext "context"
+	"html/template"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,17 +17,25 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/middlewares"
-	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
+	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
-	var ctx context.Context
-	var rnd = templates.HTMLRenderer()
-	ctx.Locale = &mockLocale{}
+	var resp = &mockResponseWriter{}
+	var ctx = context.Context{
+		Render: &mockRender{ResponseWriter: resp},
+		Data:   make(map[string]interface{}),
+		Flash: &middlewares.Flash{
+			Values: make(url.Values),
+		},
+		Resp:   context.NewResponse(resp),
+		Locale: &mockLocale{},
+	}
+
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
 	var req = &http.Request{
@@ -35,14 +45,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 
 	chiCtx := chi.NewRouteContext()
 	req = req.WithContext(scontext.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
-
 	ctx.Req = context.WithContext(req, &ctx)
-	ctx.Resp = context.NewResponse(&mockResponseWriter{})
-	ctx.Render = rnd
-	ctx.Data = map[string]interface{}{}
-	ctx.Flash = &middlewares.Flash{
-		Values: make(url.Values),
-	}
 	return &ctx
 }
 
@@ -119,5 +122,19 @@ func (rw *mockResponseWriter) Size() int {
 }
 
 func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
+	return nil
+}
+
+type mockRender struct {
+}
+
+func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
+	return nil
+}
+
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+	if resp, ok := w.(http.ResponseWriter); ok {
+		resp.WriteHeader(status)
+	}
 	return nil
 }
