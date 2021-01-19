@@ -6,7 +6,7 @@ package context
 
 import "net/http"
 
-// ResponseWriter represents a response writer
+// ResponseWriter represents a response writer for HTTP
 type ResponseWriter interface {
 	http.ResponseWriter
 	Flush()
@@ -23,6 +23,7 @@ type Response struct {
 	status int
 }
 
+// Write writes bytes to HTTP endpoint
 func (r *Response) Write(bs []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(bs)
 	if err != nil {
