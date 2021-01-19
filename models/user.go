@@ -1151,6 +1151,15 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	if setting.Service.UserDeleteWithCommentsMaxDays != 0 &&
+		u.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays)*24*time.Hour).After(time.Now()) {
+		if err = deleteBeans(e,
+			&Comment{PosterID: u.ID},
+		); err != nil {
+			return fmt.Errorf("deleteBeans: %v", err)
+		}
+	}
+
 	// ***** START: PublicKey *****
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
@@ -1205,7 +1214,8 @@ func deleteUser(e *xorm.Session, u *User) error {
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
-// but issues/comments/pulls will be kept and shown as someone has been deleted.
+// but issues/comments/pulls will be kept and shown as someone has been deleted,
+// unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
 func DeleteUser(u *User) (err error) {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
