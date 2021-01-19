@@ -55,8 +55,7 @@ func GetReleaseTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err != nil && models.IsErrReleaseNotExist(err) ||
-		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) || release.IsTag {
 		ctx.NotFound()
 		return
 	}
