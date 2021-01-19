@@ -15,6 +15,12 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 	case schemas.MYSQL:
 		_, err := x.Exec("ALTER TABLE `user` MODIFY COLUMN keep_activity_private tinyint(1) DEFAULT 0 NOT NULL;")
 		return err
+	case schemas.POSTGRES:
+		if _, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private SET NOT NULL;"); err != nil {
+			return err
+		}
+		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private SET DEFAULT false;")
+		return err
 	}
 
 	type User struct {
