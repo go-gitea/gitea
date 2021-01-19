@@ -349,12 +349,11 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if user.Salt, err = models.GetUserSalt(); err != nil {
+	if err = user.SetPassword(c.String("password")); err != nil {
 		return err
 	}
-	user.HashPassword(c.String("password"))
 
-	if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 

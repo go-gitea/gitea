@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	router_user_setting "code.gitea.io/gitea/routers/user/setting"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -187,7 +188,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if !models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.InternalServerError(err)
+			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 			return nil
 		}
 		ctx.Data["TwoFactorEnabled"] = false
@@ -266,18 +267,30 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = u.SetPassword(form.Password); err != nil {
+			ctx.ServerError("SetPassword", err)
+			return
+		}
+	}
+
+	if len(form.UserName) != 0 && u.Name != form.UserName {
+		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			return
+		}
+		u.Name = form.UserName
+		u.LowerName = strings.ToLower(form.UserName)
 	}
 
 	if form.Reset2FA {
 		tf, err := models.GetTwoFactorByUID(u.ID)
 		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.InternalServerError(err)
+			ctx.ServerError("GetTwoFactorByUID", err)
 			return
 		}
 
 		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("DeleteTwoFactorByID", err)
 			return
 		}
 	}

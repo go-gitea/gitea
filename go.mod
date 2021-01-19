@@ -5,7 +5,7 @@ go 1.14
 require (
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.13.1
-	gitea.com/go-chi/session v0.0.0-20201218134809-7209fa084f27
+	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
@@ -23,7 +23,7 @@ require (
 	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/blevesearch/bleve v1.0.14
+	github.com/blevesearch/bleve/v2 v2.0.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.9.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -31,7 +31,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.3.9
 	github.com/emirpasic/gods v1.12.0
-	github.com/ethantkoenig/rupture v0.0.0-20181029165146-c3b3b810dc77
+	github.com/ethantkoenig/rupture v1.0.0
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-chi/chi v1.5.1
@@ -90,7 +90,7 @@ require (
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/tstranex/u2f v1.0.0
@@ -111,7 +111,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
 	golang.org/x/net v0.0.0-20201031054903-ff519b6c9102
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sys v0.0.0-20201211090839-8ad439b19e0f
+	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9

@@ -47,7 +47,7 @@ type Label struct {
 func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
+		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -62,7 +62,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 
 		fields := strings.SplitN(parts[0], " ", 2)
 		if len(fields) != 2 {
-			return nil, fmt.Errorf("line is malformed: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
 		}
 
 		color := strings.Trim(fields[0], " ")
@@ -70,7 +70,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 			color = "#" + color
 		}
 		if !LabelColorPattern.MatchString(color) {
-			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
 		}
 
 		var description string
@@ -167,7 +167,7 @@ func (label *Label) ForegroundColor() template.CSS {
 func loadLabels(labelTemplate string) ([]string, error) {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return nil, err
 	}
 
 	labels := make([]string, len(list))
@@ -186,7 +186,7 @@ func LoadLabelsFormatted(labelTemplate string) (string, error) {
 func initializeLabels(e Engine, id int64, labelTemplate string, isOrg bool) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return err
 	}
 
 	labels := make([]*Label, len(list))

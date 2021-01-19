@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 
-	"gitea.com/go-chi/session"
 	"github.com/unrolled/render"
 )
 
@@ -30,7 +29,6 @@ func (d *dataStore) GetData() map[string]interface{} {
 // Although similar to macaron.Recovery() the main difference is that this error will be created
 // with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
-	var isDevelopment = setting.RunMode != "prod"
 	return func(next http.Handler) http.Handler {
 		rnd := render.New(render.Options{
 			Extensions:    []string{".tmpl"},
@@ -38,7 +36,7 @@ func Recovery() func(next http.Handler) http.Handler {
 			Funcs:         templates.NewFuncMap(),
 			Asset:         templates.GetAsset,
 			AssetNames:    templates.GetAssetNames,
-			IsDevelopment: isDevelopment,
+			IsDevelopment: !setting.IsProd(),
 		})
 
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -51,10 +49,10 @@ func Recovery() func(next http.Handler) http.Handler {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 						log.Error(combinedErr)
-						if isDevelopment {
-							http.Error(w, combinedErr, 500)
-						} else {
+						if setting.IsProd() {
 							http.Error(w, http.StatusText(500), 500)
+						} else {
+							http.Error(w, combinedErr, 500)
 						}
 					}
 				}()
@@ -64,7 +62,13 @@ func Recovery() func(next http.Handler) http.Handler {
 					log.Error("%v", combinedErr)
 
 					lc := middlewares.Locale(w, req)
-					sess := session.GetSession(req)
+
+					// TODO: this should be replaced by real session after macaron removed totally
+					sessionStore, err := sessionManager.Start(w, req)
+					if err != nil {
+						// Just invoke the above recover catch
+						panic("session(start): " + err.Error())
+					}
 
 					var store = dataStore{
 						Data: templates.Vars{
@@ -75,7 +79,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					}
 
 					// Get user from session if logged in.
-					user, _ := sso.SignedInUser(req, w, &store, sess)
+					user, _ := sso.SignedInUser(req, w, &store, sessionStore)
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user
@@ -89,10 +93,10 @@ func Recovery() func(next http.Handler) http.Handler {
 
 					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
-					if setting.RunMode != "prod" {
-						store.Data["ErrMsg"] = combinedErr
+					if !setting.IsProd() {
+						store.Data["ErrorMsg"] = combinedErr
 					}
-					err := rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
+					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
 					if err != nil {
 						log.Error("%v", err)
 					}

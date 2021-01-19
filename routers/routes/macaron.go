@@ -199,7 +199,8 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 	}, ignSignIn)
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
-	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
+	m.Get("/issues", reqSignIn, user.Issues)
+	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
@@ -369,19 +370,9 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/^:configType(hooks|system-hooks)$", func() {
+		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
-			m.Get("/:type/new", repo.WebhooksNew)
-			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
-			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
-			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
-			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-			m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-			m.Post("/matrix/new", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-			m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 			m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
@@ -392,6 +383,19 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 			m.Post("/matrix/:id", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 			m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 			m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+		})
+
+		m.Group("/^:configType(default-hooks|system-hooks)$", func() {
+			m.Get("/:type/new", repo.WebhooksNew)
+			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
+			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
+			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
+			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
+			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+			m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
+			m.Post("/matrix/new", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
+			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+			m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 		})
 
 		m.Group("/auths", func() {
@@ -447,8 +451,10 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/:team", user.Dashboard)
-			m.Get("/^:type(issues|pulls)$", user.Issues)
-			m.Get("/^:type(issues|pulls)$/:team", user.Issues)
+			m.Get("/issues", user.Issues)
+			m.Get("/issues/:team", user.Issues)
+			m.Get("/pulls", user.Pulls)
+			m.Get("/pulls/:team", user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/:team", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
@@ -794,6 +800,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 					m.Group("/:boardID", func() {
 						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
 						m.Delete("", repo.DeleteProjectBoard)
+						m.Post("/default", repo.SetDefaultProjectBoard)
 
 						m.Post("/:index", repo.MoveIssueAcrossBoards)
 					})
@@ -856,6 +863,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 			m.Group("/files", func() {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
 				m.Group("/reviews", func() {
+					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", bindIgnErr(auth.CodeCommentForm{}), repo.CreateCodeComment)
 					m.Post("/submit", bindIgnErr(auth.SubmitReviewForm{}), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
