@@ -60,3 +60,31 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 		assert.False(t, IsReadmeFile(testCase[0], testCase[1]))
 	}
 }
+
+func TestPostProcess_RawHTML(t *testing.T) {
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+	test := func(input, expected string) {
+		result, err := PostProcess([]byte(input), "https://example.com", localMetas, false)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, string(result))
+	}
+	var kases = []struct {
+		Input    string
+		Expected string
+	}{
+		{
+			"<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY ",
+			`<a><math><tr><mn><template></template></mn><th></th><tr></tr></tr></math></a>`,
+		},
+		{
+			"<html><head></head><body><div></div></bodY></html>",
+			`<div></div>`,
+		},
+	}
+	for _, kase := range kases {
+		test(kase.Input, kase.Expected)
+	}
+}
