@@ -113,16 +113,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
 	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
 
 	var (
-		assigneeID  = ctx.QueryInt64("assignee")
-		posterID    int64
-		mentionedID int64
-		forceEmpty  bool
+		assigneeID        = ctx.QueryInt64("assignee")
+		posterID          int64
+		mentionedID       int64
+		reviewRequestedID int64
+		forceEmpty        bool
 	)
 
 	if ctx.IsSigned {
@@ -133,6 +134,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			mentionedID = ctx.User.ID
 		case "assigned":
 			assigneeID = ctx.User.ID
+		case "review_requested":
+			reviewRequestedID = ctx.User.ID
 		}
 	}
 
@@ -169,14 +172,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issueStats = &models.IssueStats{}
 	} else {
 		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
-			RepoID:      repo.ID,
-			Labels:      selectLabels,
-			MilestoneID: milestoneID,
-			AssigneeID:  assigneeID,
-			MentionedID: mentionedID,
-			PosterID:    posterID,
-			IsPull:      isPullOption,
-			IssueIDs:    issueIDs,
+			RepoID:            repo.ID,
+			Labels:            selectLabels,
+			MilestoneID:       milestoneID,
+			AssigneeID:        assigneeID,
+			MentionedID:       mentionedID,
+			PosterID:          posterID,
+			ReviewRequestedID: reviewRequestedID,
+			IsPull:            isPullOption,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -217,17 +221,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:      []int64{repo.ID},
-			AssigneeID:   assigneeID,
-			PosterID:     posterID,
-			MentionedID:  mentionedID,
-			MilestoneIDs: mileIDs,
-			ProjectID:    projectID,
-			IsClosed:     util.OptionalBoolOf(isShowClosed),
-			IsPull:       isPullOption,
-			LabelIDs:     labelIDs,
-			SortType:     sortType,
-			IssueIDs:     issueIDs,
+			RepoIDs:           []int64{repo.ID},
+			AssigneeID:        assigneeID,
+			PosterID:          posterID,
+			MentionedID:       mentionedID,
+			ReviewRequestedID: reviewRequestedID,
+			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
+			IsClosed:          util.OptionalBoolOf(isShowClosed),
+			IsPull:            isPullOption,
+			LabelIDs:          labelIDs,
+			SortType:          sortType,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -1117,7 +1122,7 @@ func ViewIssue(ctx *context.Context) {
 		iw.IssueID = issue.ID
 		iw.IsWatching, err = models.CheckIssueWatch(ctx.User, issue)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("CheckIssueWatch", err)
 			return
 		}
 	}
@@ -1372,7 +1377,26 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+			for _, codeComments := range comment.Review.CodeComments {
+				for _, lineComments := range codeComments {
+					for _, c := range lineComments {
+						// Check tag.
+						tag, ok = marked[c.PosterID]
+						if ok {
+							c.ShowTag = tag
+							continue
+						}
 
+						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						if err != nil {
+							ctx.ServerError("commentTag", err)
+							return
+						}
+						marked[c.PosterID] = c.ShowTag
+						participants = addParticipant(c.Poster, participants)
+					}
+				}
+			}
 			if err = comment.LoadResolveDoer(); err != nil {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
