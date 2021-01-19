@@ -18,11 +18,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type writtenResponse interface {
-	http.ResponseWriter
-	Written() bool
-}
-
 // Wrap converts all kinds of routes to standard library one
 func Wrap(handlers ...interface{}) http.HandlerFunc {
 	if len(handlers) == 0 {
@@ -46,12 +41,12 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			switch t := handler.(type) {
 			case http.HandlerFunc:
 				t(resp, req)
-				if r, ok := resp.(writtenResponse); ok && r.Written() {
+				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 					return
 				}
 			case func(http.ResponseWriter, *http.Request):
 				t(resp, req)
-				if r, ok := resp.(writtenResponse); ok && r.Written() {
+				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 					return
 				}
 			case func(ctx *context.Context):
@@ -75,7 +70,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			case func(http.Handler) http.Handler:
 				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 				t(next).ServeHTTP(resp, req)
-				if r, ok := resp.(writtenResponse); ok && r.Written() {
+				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 					return
 				}
 			default:

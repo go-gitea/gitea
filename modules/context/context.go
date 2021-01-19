@@ -39,50 +39,6 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-var (
-	_ http.ResponseWriter = &Response{}
-)
-
-// Response represents a response
-type Response struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *Response) Write(bs []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(bs)
-	if err != nil {
-		return 0, err
-	}
-	if r.status == 0 {
-		r.WriteHeader(200)
-	}
-	return size, nil
-}
-
-// WriteHeader write status code
-func (r *Response) WriteHeader(statusCode int) {
-	r.status = statusCode
-	r.ResponseWriter.WriteHeader(statusCode)
-}
-
-// Flush flush cached data
-func (r *Response) Flush() {
-	if f, ok := r.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
-
-// Status returned status code written
-func (r *Response) Status() int {
-	return r.status
-}
-
-// NewResponse creates a response
-func NewResponse(resp http.ResponseWriter) *Response {
-	return &Response{resp, 0}
-}
-
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) *template.Template
@@ -91,7 +47,7 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp   *Response
+	Resp   ResponseWriter
 	Req    *http.Request
 	Data   map[string]interface{}
 	Render Render
@@ -501,7 +457,7 @@ func (ctx *Context) Write(bs []byte) (int, error) {
 
 // Written returns true if there are something sent to web browser
 func (ctx *Context) Written() bool {
-	return ctx.Resp.status > 0
+	return ctx.Resp.Status() > 0
 }
 
 // Status writes status code

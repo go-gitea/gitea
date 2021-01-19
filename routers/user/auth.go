@@ -150,7 +150,6 @@ func SignIn(ctx *context.Context) {
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.SignInForm)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
@@ -171,6 +170,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
+	form := web.GetForm(ctx).(*auth.SignInForm)
 	u, err := models.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {

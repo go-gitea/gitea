@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-chi/chi/middleware"
 )
 
 type routerLoggerOptions struct {
