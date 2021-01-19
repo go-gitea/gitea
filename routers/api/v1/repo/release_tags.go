@@ -55,6 +55,12 @@ func GetReleaseTag(ctx *context.APIContext) {
 		return
 	}
 
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
+	}
+
 	if err := release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
