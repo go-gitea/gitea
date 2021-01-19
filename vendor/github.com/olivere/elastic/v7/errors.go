@@ -82,6 +82,21 @@ type ErrorDetails struct {
 	CausedBy     map[string]interface{}   `json:"caused_by,omitempty"`
 	RootCause    []*ErrorDetails          `json:"root_cause,omitempty"`
 	FailedShards []map[string]interface{} `json:"failed_shards,omitempty"`
+
+	// ScriptException adds the information in the following block.
+
+	ScriptStack []string             `json:"script_stack,omitempty"` // from ScriptException
+	Script      string               `json:"script,omitempty"`       // from ScriptException
+	Lang        string               `json:"lang,omitempty"`         // from ScriptException
+	Position    *ScriptErrorPosition `json:"position,omitempty"`     // from ScriptException (7.7+)
+}
+
+// ScriptErrorPosition specifies the position of the error
+// in a script. It is used in ErrorDetails for scripting errors.
+type ScriptErrorPosition struct {
+	Offset int `json:"offset"`
+	Start  int `json:"start"`
+	End    int `json:"end"`
 }
 
 // Error returns a string representation of the error.
@@ -90,6 +105,20 @@ func (e *Error) Error() string {
 		return fmt.Sprintf("elastic: Error %d (%s): %s [type=%s]", e.Status, http.StatusText(e.Status), e.Details.Reason, e.Details.Type)
 	}
 	return fmt.Sprintf("elastic: Error %d (%s)", e.Status, http.StatusText(e.Status))
+}
+
+// ErrorReason returns the reason of an error that Elasticsearch reported,
+// if err is of kind Error and has ErrorDetails with a Reason. Any other
+// value of err will return an empty string.
+func ErrorReason(err error) string {
+	if err == nil {
+		return ""
+	}
+	e, ok := err.(*Error)
+	if !ok || e == nil || e.Details == nil {
+		return ""
+	}
+	return e.Details.Reason
 }
 
 // IsContextErr returns true if the error is from a context that was canceled or deadline exceeded
@@ -135,6 +164,15 @@ func IsTimeout(err interface{}) bool {
 // HTTP status code).
 func IsConflict(err interface{}) bool {
 	return IsStatusCode(err, http.StatusConflict)
+}
+
+// IsUnauthorized returns true if the given error indicates that
+// Elasticsearch returned HTTP status 401. This happens e.g. when the
+// cluster is configured to require HTTP Basic Auth.
+// The err parameter can be of type *elastic.Error, elastic.Error,
+// *http.Response or int (indicating the HTTP status code).
+func IsUnauthorized(err interface{}) bool {
+	return IsStatusCode(err, http.StatusUnauthorized)
 }
 
 // IsForbidden returns true if the given error indicates that Elasticsearch

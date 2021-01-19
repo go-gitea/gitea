@@ -18,43 +18,75 @@ export function initNotificationsTable() {
   });
 }
 
-export function initNotificationCount() {
+async function receiveUpdateCount(event) {
+  try {
+    const data = JSON.parse(event.data);
+
+    const notificationCount = document.querySelector('.notification_count');
+    if (data.Count > 0) {
+      notificationCount.classList.remove('hidden');
+    } else {
+      notificationCount.classList.add('hidden');
+    }
+
+    notificationCount.textContent = `${data.Count}`;
+    await updateNotificationTable();
+  } catch (error) {
+    console.error(error, event);
+  }
+}
+
+export async function initNotificationCount() {
   const notificationCount = $('.notification_count');
 
   if (!notificationCount.length) {
     return;
   }
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
-    // Try to connect to the event source first
-    const source = new EventSource(`${AppSubUrl}/user/events`);
-    source.addEventListener('notification-count', async (e) => {
-      try {
-        const data = JSON.parse(e.data);
-
-        const notificationCount = $('.notification_count');
-        if (data.Count === 0) {
-          notificationCount.addClass('hidden');
-        } else {
-          notificationCount.removeClass('hidden');
-        }
-
-        notificationCount.text(`${data.Count}`);
-        await updateNotificationTable();
-      } catch (error) {
-        console.error(error);
-      }
+  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+    // Try to connect to the event source via the shared worker first
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    worker.addEventListener('error', (event) => {
+      console.error(event);
     });
-    source.addEventListener('logout', async (e) => {
-      if (e.data !== 'here') {
+    worker.port.onmessageerror = () => {
+      console.error('Unable to deserialize message');
+    };
+    worker.port.postMessage({
+      type: 'start',
+      url: `${window.location.origin}${AppSubUrl}/user/events`,
+    });
+    worker.port.addEventListener('message', (event) => {
+      if (!event.data || !event.data.type) {
+        console.error(event);
         return;
       }
-      source.close();
-      window.location.href = AppSubUrl;
+      if (event.data.type === 'notification-count') {
+        receiveUpdateCount(event.data);
+      } else if (event.data.type === 'error') {
+        console.error(event.data);
+      } else if (event.data.type === 'logout') {
+        if (event.data !== 'here') {
+          return;
+        }
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
+        window.location.href = AppSubUrl;
+      }
     });
+    worker.port.addEventListener('error', (e) => {
+      console.error(e);
+    });
+    worker.port.start();
     window.addEventListener('beforeunload', () => {
-      source.close();
+      worker.port.postMessage({
+        type: 'close',
+      });
+      worker.port.close();
     });
+
     return;
   }
 

@@ -230,6 +230,25 @@ func (s *PipelineSchedulesService) DeletePipelineSchedule(pid interface{}, sched
 	return s.client.Do(req, nil)
 }
 
+// RunPipelineSchedule triggers a new scheduled pipeline to run immediately.
+//
+// Gitlab API docs:
+// https://docs.gitlab.com/ce/api/pipeline_schedules.html#run-a-scheduled-pipeline-immediately
+func (s *PipelineSchedulesService) RunPipelineSchedule(pid interface{}, schedule int, options ...RequestOptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/play", pathEscape(project), schedule)
+
+	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
 // CreatePipelineScheduleVariableOptions represents the available
 // CreatePipelineScheduleVariable() options.
 //

@@ -12,8 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -97,7 +97,11 @@ func runEnvironmentToIni(c *cli.Context) error {
 	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
 
 	cfg := ini.Empty()
-	if com.IsFile(setting.CustomConf) {
+	isFile, err := util.IsFile(setting.CustomConf)
+	if err != nil {
+		log.Fatal("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+	}
+	if isFile {
 		if err := cfg.Append(setting.CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
@@ -145,7 +149,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 	if len(destination) == 0 {
 		destination = setting.CustomConf
 	}
-	err := cfg.SaveTo(destination)
+	err = cfg.SaveTo(destination)
 	if err != nil {
 		return err
 	}

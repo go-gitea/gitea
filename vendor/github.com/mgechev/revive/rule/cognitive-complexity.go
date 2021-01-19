@@ -52,7 +52,7 @@ type cognitiveComplexityLinter struct {
 func (w cognitiveComplexityLinter) lint() {
 	f := w.file
 	for _, decl := range f.AST.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil {
 			v := cognitiveComplexityVisitor{}
 			c := v.subTreeComplexity(fn.Body)
 			if c > w.maxComplexity {
@@ -109,7 +109,7 @@ func (v *cognitiveComplexityVisitor) Visit(n ast.Node) ast.Visitor {
 		return nil // skip visiting binexp sub-tree (already visited by binExpComplexity)
 	case *ast.BranchStmt:
 		if n.Label != nil {
-			v.complexity += 1
+			v.complexity++
 		}
 	}
 	// TODO handle (at least) direct recursion

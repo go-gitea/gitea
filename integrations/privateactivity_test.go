@@ -45,7 +45,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"_csrf":                 GetCSRF(t, session, "/user/settings"),
 		"name":                  privateActivityTestUser,
 		"email":                 privateActivityTestUser + "@example.com",
-		"language":              "en-us",
+		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
@@ -388,7 +388,7 @@ func TestPrivateActivityYesHeatmapHasNoContentForUserItself(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.True(t, hasContent, "user should see their own heatmap content")
 }
 
 func TestPrivateActivityYesHeatmapHasNoContentForOtherUser(t *testing.T) {
@@ -399,7 +399,7 @@ func TestPrivateActivityYesHeatmapHasNoContentForOtherUser(t *testing.T) {
 	session := loginUser(t, privateActivityTestOtherUser)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.False(t, hasContent, "other user should not see heatmap content")
 }
 
 func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
@@ -410,5 +410,5 @@ func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
 	session := loginUser(t, privateActivityTestAdmin)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.True(t, hasContent, "heatmap should show content for admin")
 }

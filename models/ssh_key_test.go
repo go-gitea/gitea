@@ -57,6 +57,8 @@ func Test_SSHParsePublicKey(t *testing.T) {
 }
 
 func Test_CheckPublicKeyString(t *testing.T) {
+	oldValue := setting.SSH.MinimumKeySizeCheck
+	setting.SSH.MinimumKeySizeCheck = false
 	for _, test := range []struct {
 		content string
 	}{
@@ -131,7 +133,7 @@ AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf
 		_, err := CheckPublicKeyString(test.content)
 		assert.NoError(t, err)
 	}
-
+	setting.SSH.MinimumKeySizeCheck = oldValue
 	for _, invalidKeys := range []struct {
 		content string
 	}{

@@ -87,7 +87,7 @@ func GetArchive(ctx *context.APIContext) {
 	//   required: true
 	// - name: archive
 	//   in: path
-	//   description: archive to download, consisting of a git reference and archive
+	//   description: the git reference for download with attached archive format (e.g. master.zip)
 	//   type: string
 	//   required: true
 	// responses:
@@ -348,6 +348,10 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 	if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 		models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
+		return
+	}
+	if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 		return
 	}
 

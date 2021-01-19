@@ -19,5 +19,6 @@ type Uploader interface {
 	CreatePullRequests(prs ...*PullRequest) error
 	CreateReviews(reviews ...*Review) error
 	Rollback() error
+	Finish() error
 	Close()
 }

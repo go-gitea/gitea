@@ -375,6 +375,19 @@ func (s *SearchService) SearchAfter(sortValues ...interface{}) *SearchService {
 	return s
 }
 
+// DefaultRescoreWindowSize sets the rescore window size for rescores
+// that don't specify their window.
+func (s *SearchService) DefaultRescoreWindowSize(defaultRescoreWindowSize int) *SearchService {
+	s.searchSource = s.searchSource.DefaultRescoreWindowSize(defaultRescoreWindowSize)
+	return s
+}
+
+// Rescorer adds a rescorer to the search.
+func (s *SearchService) Rescorer(rescore *Rescore) *SearchService {
+	s.searchSource = s.searchSource.Rescorer(rescore)
+	return s
+}
+
 // IgnoreUnavailable indicates whether the specified concrete indices
 // should be ignored when unavailable (missing or closed).
 func (s *SearchService) IgnoreUnavailable(ignoreUnavailable bool) *SearchService {
@@ -628,20 +641,20 @@ func (s *SearchService) Do(ctx context.Context) (*SearchResult, error) {
 
 // SearchResult is the result of a search in Elasticsearch.
 type SearchResult struct {
-	Header          http.Header            `json:"-"`
-	TookInMillis    int64                  `json:"took,omitempty"`             // search time in milliseconds
-	TerminatedEarly bool                   `json:"terminated_early,omitempty"` // request terminated early
-	NumReducePhases int                    `json:"num_reduce_phases,omitempty"`
-	Clusters        []*SearchResultCluster `json:"_clusters,omitempty"`    // 6.1.0+
-	ScrollId        string                 `json:"_scroll_id,omitempty"`   // only used with Scroll and Scan operations
-	Hits            *SearchHits            `json:"hits,omitempty"`         // the actual search hits
-	Suggest         SearchSuggest          `json:"suggest,omitempty"`      // results from suggesters
-	Aggregations    Aggregations           `json:"aggregations,omitempty"` // results from aggregations
-	TimedOut        bool                   `json:"timed_out,omitempty"`    // true if the search timed out
-	Error           *ErrorDetails          `json:"error,omitempty"`        // only used in MultiGet
-	Profile         *SearchProfile         `json:"profile,omitempty"`      // profiling results, if optional Profile API was active for this search
-	Shards          *ShardsInfo            `json:"_shards,omitempty"`      // shard information
-	Status          int                    `json:"status,omitempty"`       // used in MultiSearch
+	Header          http.Header          `json:"-"`
+	TookInMillis    int64                `json:"took,omitempty"`             // search time in milliseconds
+	TerminatedEarly bool                 `json:"terminated_early,omitempty"` // request terminated early
+	NumReducePhases int                  `json:"num_reduce_phases,omitempty"`
+	Clusters        *SearchResultCluster `json:"_clusters,omitempty"`    // 6.1.0+
+	ScrollId        string               `json:"_scroll_id,omitempty"`   // only used with Scroll and Scan operations
+	Hits            *SearchHits          `json:"hits,omitempty"`         // the actual search hits
+	Suggest         SearchSuggest        `json:"suggest,omitempty"`      // results from suggesters
+	Aggregations    Aggregations         `json:"aggregations,omitempty"` // results from aggregations
+	TimedOut        bool                 `json:"timed_out,omitempty"`    // true if the search timed out
+	Error           *ErrorDetails        `json:"error,omitempty"`        // only used in MultiGet
+	Profile         *SearchProfile       `json:"profile,omitempty"`      // profiling results, if optional Profile API was active for this search
+	Shards          *ShardsInfo          `json:"_shards,omitempty"`      // shard information
+	Status          int                  `json:"status,omitempty"`       // used in MultiSearch
 }
 
 // SearchResultCluster holds information about a search response
@@ -702,6 +715,30 @@ type NestedHit struct {
 type TotalHits struct {
 	Value    int64  `json:"value"`    // value of the total hit count
 	Relation string `json:"relation"` // how the value should be interpreted: accurate ("eq") or a lower bound ("gte")
+}
+
+// UnmarshalJSON into TotalHits, accepting both the new response structure
+// in ES 7.x as well as the older response structure in earlier versions.
+// The latter can be enabled with RestTotalHitsAsInt(true).
+func (h *TotalHits) UnmarshalJSON(data []byte) error {
+	if data == nil || string(data) == "null" {
+		return nil
+	}
+	var v struct {
+		Value    int64  `json:"value"`    // value of the total hit count
+		Relation string `json:"relation"` // how the value should be interpreted: accurate ("eq") or a lower bound ("gte")
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		var count int64
+		if err2 := json.Unmarshal(data, &count); err2 != nil {
+			return err // return inner error
+		}
+		h.Value = count
+		h.Relation = "eq"
+		return nil
+	}
+	*h = v
+	return nil
 }
 
 // SearchHit is a single hit.

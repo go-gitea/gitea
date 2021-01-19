@@ -4,7 +4,7 @@ title: "Documentation"
 slug: "documentation"
 url: "/fr-fr/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -70,7 +70,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
         - MSSQL
         - [TiDB](https://github.com/pingcap/tidb) (expérimental)
     - Fichier de configuration
-        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     - Panel d'administration
         - Statistiques
         - Actions
@@ -255,7 +255,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
 ## Composants
 
 * Framework web : [Macaron](http://go-macaron.com/)
-* ORM : [XORM](https://github.com/go-xorm/xorm)
+* ORM: [XORM](https://xorm.io)
 * Interface graphique :
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)
@@ -264,7 +264,6 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
   * [CodeMirror](https://codemirror.net/)
-  * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 * Connecteurs de base de données :
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)

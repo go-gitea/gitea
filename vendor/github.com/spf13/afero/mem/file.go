@@ -193,8 +193,11 @@ func (f *File) Read(b []byte) (n int, err error) {
 }
 
 func (f *File) ReadAt(b []byte, off int64) (n int, err error) {
+	prev := atomic.LoadInt64(&f.at)
 	atomic.StoreInt64(&f.at, off)
-	return f.Read(b)
+	n, err = f.Read(b)
+	atomic.StoreInt64(&f.at, prev)
+	return
 }
 
 func (f *File) Truncate(size int64) error {
@@ -233,6 +236,9 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (f *File) Write(b []byte) (n int, err error) {
+	if f.closed == true {
+		return 0, ErrFileClosed
+	}
 	if f.readOnly {
 		return 0, &os.PathError{Op: "write", Path: f.fileData.name, Err: errors.New("file handle is read only")}
 	}

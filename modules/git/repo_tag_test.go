@@ -5,10 +5,10 @@
 package git
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestRepository_GetTag(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
@@ -81,7 +81,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
 	assert.NoError(t, err)
-	defer os.RemoveAll(clonedPath)
+	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)

@@ -243,11 +243,13 @@ func (s *rpSession) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateR
 
 	//TODO: Implement 'atomic' update of references.
 
-	r := ioutil.NewContextReadCloser(ctx, req.Packfile)
-	if err := s.writePackfile(r); err != nil {
-		s.unpackErr = err
-		s.firstErr = err
-		return s.reportStatus(), err
+	if req.Packfile != nil {
+		r := ioutil.NewContextReadCloser(ctx, req.Packfile)
+		if err := s.writePackfile(r); err != nil {
+			s.unpackErr = err
+			s.firstErr = err
+			return s.reportStatus(), err
+		}
 	}
 
 	s.updateReferences(req)

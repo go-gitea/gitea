@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
+	stdioutil "io/ioutil"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 )
 
 var (
@@ -283,7 +284,7 @@ func (p *Parser) resolveDeltas() error {
 
 		if !obj.IsDelta() && len(obj.Children) > 0 {
 			for _, child := range obj.Children {
-				if err := p.resolveObject(ioutil.Discard, child, content); err != nil {
+				if err := p.resolveObject(stdioutil.Discard, child, content); err != nil {
 					return err
 				}
 			}
@@ -298,7 +299,7 @@ func (p *Parser) resolveDeltas() error {
 	return nil
 }
 
-func (p *Parser) get(o *objectInfo, buf *bytes.Buffer) error {
+func (p *Parser) get(o *objectInfo, buf *bytes.Buffer) (err error) {
 	if !o.ExternalRef { // skip cache check for placeholder parents
 		b, ok := p.cache.Get(o.Offset)
 		if ok {
@@ -310,16 +311,20 @@ func (p *Parser) get(o *objectInfo, buf *bytes.Buffer) error {
 	// If it's not on the cache and is not a delta we can try to find it in the
 	// storage, if there's one. External refs must enter here.
 	if p.storage != nil && !o.Type.IsDelta() {
-		e, err := p.storage.EncodedObject(plumbing.AnyObject, o.SHA1)
+		var e plumbing.EncodedObject
+		e, err = p.storage.EncodedObject(plumbing.AnyObject, o.SHA1)
 		if err != nil {
 			return err
 		}
 		o.Type = e.Type()
 
-		r, err := e.Reader()
+		var r io.ReadCloser
+		r, err = e.Reader()
 		if err != nil {
 			return err
 		}
+
+		defer ioutil.CheckClose(r, &err)
 
 		_, err = buf.ReadFrom(io.LimitReader(r, e.Size()))
 		return err

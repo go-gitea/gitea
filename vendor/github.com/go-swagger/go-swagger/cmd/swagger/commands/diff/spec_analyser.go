@@ -59,7 +59,7 @@ func (sd *SpecAnalyser) Analyse(spec1, spec2 *spec.Swagger) error {
 
 func (sd *SpecAnalyser) analyseSpecMetadata(spec1, spec2 *spec.Swagger) {
 	// breaking if it no longer consumes any formats
-	added, deleted, _ := FromStringArray(spec1.Consumes).DiffsTo(spec2.Consumes)
+	added, deleted, _ := fromStringArray(spec1.Consumes).DiffsTo(spec2.Consumes)
 
 	node := getNameOnlyDiffNode("Spec")
 	location := DifferenceLocation{Node: node}
@@ -74,7 +74,7 @@ func (sd *SpecAnalyser) analyseSpecMetadata(spec1, spec2 *spec.Swagger) {
 	}
 
 	// // breaking if it no longer produces any formats
-	added, deleted, _ = FromStringArray(spec1.Produces).DiffsTo(spec2.Produces)
+	added, deleted, _ = fromStringArray(spec1.Produces).DiffsTo(spec2.Produces)
 	producesLocation := location.AddNode(getNameOnlyDiffNode("produces"))
 	for _, eachAdded := range added {
 		sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: producesLocation, Code: AddedProducesFormat, Compatibility: NonBreaking, DiffInfo: eachAdded})
@@ -84,7 +84,7 @@ func (sd *SpecAnalyser) analyseSpecMetadata(spec1, spec2 *spec.Swagger) {
 	}
 
 	// // breaking if it no longer supports a scheme
-	added, deleted, _ = FromStringArray(spec1.Schemes).DiffsTo(spec2.Schemes)
+	added, deleted, _ = fromStringArray(spec1.Schemes).DiffsTo(spec2.Schemes)
 	schemesLocation := location.AddNode(getNameOnlyDiffNode("schemes"))
 
 	for _, eachAdded := range added {
@@ -120,7 +120,7 @@ func (sd *SpecAnalyser) analyseEndpointData() {
 
 	for URLMethod, op2 := range sd.urlMethods2 {
 		if op1, ok := sd.urlMethods1[URLMethod]; ok {
-			addedTags, deletedTags, _ := FromStringArray(op1.Operation.Tags).DiffsTo(op2.Operation.Tags)
+			addedTags, deletedTags, _ := fromStringArray(op1.Operation.Tags).DiffsTo(op2.Operation.Tags)
 			location := DifferenceLocation{URL: URLMethod.Path, Method: URLMethod.Method}
 
 			for _, eachAddedTag := range addedTags {
@@ -566,7 +566,7 @@ func (sd *SpecAnalyser) compareEnums(left, right []interface{}) []TypeDiff {
 	for _, eachRight := range right {
 		rightStrs = append(rightStrs, fmt.Sprintf("%v", eachRight))
 	}
-	added, deleted, _ := FromStringArray(leftStrs).DiffsTo(rightStrs)
+	added, deleted, _ := fromStringArray(leftStrs).DiffsTo(rightStrs)
 	if len(added) > 0 {
 		typeChange := strings.Join(added, ",")
 		diffs = append(diffs, TypeDiff{Change: AddedEnumValue, Description: typeChange})

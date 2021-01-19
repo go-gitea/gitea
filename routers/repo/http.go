@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -101,7 +102,12 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
+		log.Error("Attempted access of unknown user from %s", ctx.RemoteAddr())
 		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		return
+	}
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -243,6 +249,11 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
+		if !authUser.IsActive || authUser.ProhibitLogin {
+			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
+			return
+		}
+
 		if repoExist {
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {
@@ -267,6 +278,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.EnvIsDeployKey + "=false",
+			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !authUser.KeepEmailPrivate {
@@ -322,7 +334,7 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req.Request
@@ -332,8 +344,9 @@ func HTTP(ctx *context.Context) {
 		Env:         environ,
 	}
 
+	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+
 	for _, route := range routes {
-		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 			if setting.Repository.DisableHTTPGit {
 				w.WriteHeader(http.StatusForbidden)
@@ -390,7 +403,7 @@ func dummyInfoRefs(ctx *context.Context) {
 		}
 
 		defer func() {
-			if err := os.RemoveAll(tmpDir); err != nil {
+			if err := util.RemoveAll(tmpDir); err != nil {
 				log.Error("RemoveAll: %v", err)
 			}
 		}()
@@ -482,6 +495,9 @@ var routes = []route{
 	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
+// one or more key=value pairs separated by colons
+var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
+
 func getGitConfig(option, dir string) string {
 	out, err := git.NewCommand("config", option).RunInDir(dir)
 	if err != nil {
@@ -491,7 +507,7 @@ func getGitConfig(option, dir string) string {
 }
 
 func getConfigSetting(service, dir string) bool {
-	service = strings.Replace(service, "-", "", -1)
+	service = strings.ReplaceAll(service, "-", "")
 	setting := getGitConfig("http."+service, dir)
 
 	if service == "uploadpack" {
@@ -552,14 +568,16 @@ func serviceRPC(h serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
+	if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
+	}
+
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
 	defer cancel()
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
-	if service == "receive-pack" {
-		cmd.Env = append(os.Environ(), h.environ...)
-	}
+	cmd.Env = append(os.Environ(), h.environ...)
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
@@ -568,7 +586,7 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
+		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
 		return
 	}
 }
@@ -609,7 +627,13 @@ func getInfoRefs(h serviceHandler) {
 	h.setHeaderNoCache()
 	if hasAccess(getServiceType(h.r), h, false) {
 		service := getServiceType(h.r)
-		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
+
+		if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
+		}
+		h.environ = append(os.Environ(), h.environ...)
+
+		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

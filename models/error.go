@@ -193,6 +193,21 @@ func (err ErrEmailAlreadyUsed) Error() string {
 	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
 }
 
+// ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
+type ErrEmailInvalid struct {
+	Email string
+}
+
+// IsErrEmailInvalid checks if an error is an ErrEmailInvalid
+func IsErrEmailInvalid(err error) bool {
+	_, ok := err.(ErrEmailInvalid)
+	return ok
+}
+
+func (err ErrEmailInvalid) Error() string {
+	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
+}
+
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string
@@ -547,7 +562,7 @@ func IsErrDeployKeyNameAlreadyUsed(err error) bool {
 }
 
 func (err ErrDeployKeyNameAlreadyUsed) Error() string {
-	return fmt.Sprintf("public key already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
+	return fmt.Sprintf("public key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
 }
 
 //    _____                                   ___________     __
@@ -741,6 +756,22 @@ func IsErrRepoAlreadyExist(err error) bool {
 
 func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
+// ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
+type ErrRepoFilesAlreadyExist struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoFilesAlreadyExist checks if an error is a ErrRepoAlreadyExist.
+func IsErrRepoFilesAlreadyExist(err error) bool {
+	_, ok := err.(ErrRepoFilesAlreadyExist)
+	return ok
+}
+
+func (err ErrRepoFilesAlreadyExist) Error() string {
+	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -985,6 +1016,29 @@ func (e *ErrWontSign) Error() string {
 // IsErrWontSign checks if an error is a ErrWontSign
 func IsErrWontSign(err error) bool {
 	_, ok := err.(*ErrWontSign)
+	return ok
+}
+
+// ErrMigrationNotAllowed explains why a migration from an url is not allowed
+type ErrMigrationNotAllowed struct {
+	Host          string
+	NotResolvedIP bool
+	PrivateNet    string
+}
+
+func (e *ErrMigrationNotAllowed) Error() string {
+	if e.NotResolvedIP {
+		return fmt.Sprintf("migrate from '%s' is not allowed: unknown hostname", e.Host)
+	}
+	if len(e.PrivateNet) != 0 {
+		return fmt.Sprintf("migrate from '%s' is not allowed: the host resolve to a private ip address '%s'", e.Host, e.PrivateNet)
+	}
+	return fmt.Sprintf("migrate from '%s is not allowed'", e.Host)
+}
+
+// IsErrMigrationNotAllowed checks if an error is a ErrMigrationNotAllowed
+func IsErrMigrationNotAllowed(err error) bool {
+	_, ok := err.(*ErrMigrationNotAllowed)
 	return ok
 }
 
@@ -1586,6 +1640,44 @@ func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
+// __________                   __               __
+// \______   \_______  ____    |__| ____   _____/  |_  ______
+//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
+//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
+//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
+//                         \______|    \/     \/          \/
+
+// ErrProjectNotExist represents a "ProjectNotExist" kind of error.
+type ErrProjectNotExist struct {
+	ID     int64
+	RepoID int64
+}
+
+// IsErrProjectNotExist checks if an error is a ErrProjectNotExist
+func IsErrProjectNotExist(err error) bool {
+	_, ok := err.(ErrProjectNotExist)
+	return ok
+}
+
+func (err ErrProjectNotExist) Error() string {
+	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
+}
+
+// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrProjectBoardNotExist struct {
+	BoardID int64
+}
+
+// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
+func IsErrProjectBoardNotExist(err error) bool {
+	_, ok := err.(ErrProjectBoardNotExist)
+	return ok
+}
+
+func (err ErrProjectBoardNotExist) Error() string {
+	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
@@ -1938,6 +2030,26 @@ func IsErrReviewNotExist(err error) bool {
 
 func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
+}
+
+// ErrNotValidReviewRequest an not allowed review request modify
+type ErrNotValidReviewRequest struct {
+	Reason string
+	UserID int64
+	RepoID int64
+}
+
+// IsErrNotValidReviewRequest checks if an error is a ErrNotValidReviewRequest.
+func IsErrNotValidReviewRequest(err error) bool {
+	_, ok := err.(ErrNotValidReviewRequest)
+	return ok
+}
+
+func (err ErrNotValidReviewRequest) Error() string {
+	return fmt.Sprintf("%s [user_id: %d, repo_id: %d]",
+		err.Reason,
+		err.UserID,
+		err.RepoID)
 }
 
 //  ________      _____          __  .__

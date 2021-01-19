@@ -11,14 +11,16 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 func registerUpdateMirrorTask() {
 	RegisterTaskFatal("update_mirrors", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: false,
-		Schedule:   "@every 10m",
+		Enabled:         true,
+		RunAtStart:      false,
+		Schedule:        "@every 10m",
+		NoSuccessNotice: true,
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return mirror_service.Update(ctx)
 	})
@@ -114,5 +116,7 @@ func initBasicTasks() {
 	registerArchiveCleanup()
 	registerSyncExternalUsers()
 	registerDeletedBranchesCleanup()
-	registerUpdateMigrationPosterID()
+	if !setting.Repository.DisableMigrations {
+		registerUpdateMigrationPosterID()
+	}
 }

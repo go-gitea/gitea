@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "选择包安装"
 slug: "install-from-package"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -25,7 +25,7 @@ menu:
 
 ## macOS
 
-macOS 平台下当前我们仅支持通过 `brew` 来安装。如果您没有安装 [Homebrew](http://brew.sh/)，你冶可以查看 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
+macOS 平台下当前我们仅支持通过 `brew` 来安装。如果您没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
 
 ```
 brew tap go-gitea/gitea

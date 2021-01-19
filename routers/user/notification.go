@@ -174,6 +174,7 @@ func NotificationStatusPost(c *context.Context) {
 	if c.Written() {
 		return
 	}
+	c.Data["Link"] = fmt.Sprintf("%snotifications", setting.AppURL)
 
 	c.HTML(http.StatusOK, tplNotificationDiv)
 }

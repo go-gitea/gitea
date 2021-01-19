@@ -173,6 +173,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
+	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})
@@ -202,7 +203,6 @@ func DeleteWebhook(ctx *context.Context) {
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireMinicolors"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.HTML(200, tplSettingsLabels)

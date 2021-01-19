@@ -1,14 +1,14 @@
 
 ###################################
 #Build stage
-FROM golang:1.14-alpine3.12 AS build-env
+FROM golang:1.15-alpine3.12 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
-ENV TAGS "bindata $TAGS"
+ENV TAGS "bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 #Build deps
@@ -38,7 +38,6 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    tzdata \
     gnupg
 
 RUN addgroup \

@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -60,7 +61,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		for _, user := range users {
 			oldAvatar := user.Avatar
 
-			if stat, err := os.Stat(filepath.Join(setting.AvatarUploadPath, oldAvatar)); err != nil || !stat.Mode().IsRegular() {
+			if stat, err := os.Stat(filepath.Join(setting.Avatar.Path, oldAvatar)); err != nil || !stat.Mode().IsRegular() {
 				if err == nil {
 					err = fmt.Errorf("Error: \"%s\" is not a regular file", oldAvatar)
 				}
@@ -85,7 +86,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 				return fmt.Errorf("[user: %s] user table update: %v", user.LowerName, err)
 			}
 
-			deleteList[filepath.Join(setting.AvatarUploadPath, oldAvatar)] = struct{}{}
+			deleteList[filepath.Join(setting.Avatar.Path, oldAvatar)] = struct{}{}
 			migrated++
 			select {
 			case <-ticker.C:
@@ -110,8 +111,8 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	log.Info("Deleting %d old avatars ...", deleteCount)
 	i := 0
 	for file := range deleteList {
-		if err := os.Remove(file); err != nil {
-			log.Warn("os.Remove: %v", err)
+		if err := util.Remove(file); err != nil {
+			log.Warn("util.Remove: %v", err)
 		}
 		i++
 		select {
@@ -134,7 +135,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 // copyOldAvatarToNewLocation copies oldAvatar to newAvatarLocation
 // and returns newAvatar location
 func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) {
-	fr, err := os.Open(filepath.Join(setting.AvatarUploadPath, oldAvatar))
+	fr, err := os.Open(filepath.Join(setting.Avatar.Path, oldAvatar))
 	if err != nil {
 		return "", fmt.Errorf("os.Open: %v", err)
 	}
@@ -150,7 +151,7 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 		return newAvatar, nil
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(setting.AvatarUploadPath, newAvatar), data, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0666); err != nil {
 		return "", fmt.Errorf("ioutil.WriteFile: %v", err)
 	}
 

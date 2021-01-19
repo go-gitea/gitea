@@ -93,7 +93,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 		}
 	}
 	// Filter unsafe character ':' in issuer
-	issuer := strings.Replace(setting.AppName+" ("+setting.Domain+")", ":", "", -1)
+	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.Domain+")", ":", "")
 	if otpKey == nil {
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
@@ -189,13 +189,20 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	secret := ctx.Session.Get("twofaSecret").(string)
+	secretRaw := ctx.Session.Get("twofaSecret")
+	if secretRaw == nil {
+		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
+		return
+	}
+
+	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
 		}
 		ctx.Flash.Error(ctx.Tr("settings.passcode_invalid"))
-		ctx.HTML(200, tplSettingsTwofaEnroll)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 

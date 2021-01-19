@@ -19,8 +19,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // Commit represents a git commit.
@@ -41,61 +39,6 @@ type Commit struct {
 type CommitGPGSignature struct {
 	Signature string
 	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
-}
-
-func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
-	if c.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
-		return nil
-	}
-
-	for _, parent := range c.ParentHashes {
-		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
-			return nil
-		}
-	}
-
-	if _, err = fmt.Fprint(&w, "author "); err != nil {
-		return nil
-	}
-
-	if err = c.Author.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
-		return nil
-	}
-
-	if err = c.Committer.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: c.PGPSignature,
-		Payload:   w.String(),
-	}
-}
-
-func convertCommit(c *object.Commit) *Commit {
-	return &Commit{
-		ID:            c.Hash,
-		CommitMessage: c.Message,
-		Committer:     &c.Committer,
-		Author:        &c.Author,
-		Signature:     convertPGPSignature(c),
-		Parents:       c.ParentHashes,
-	}
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -262,8 +205,19 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string) (int64, error) {
-	stdout, err := NewCommand("rev-list", "--all", "--count").RunInDir(repoPath)
+func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+	args := []string{"--all", "--count"}
+	if hidePRRefs {
+		args = append([]string{"--exclude=refs/pull/*"}, args...)
+	}
+	cmd := NewCommand("rev-list")
+	cmd.AddArguments(args...)
+	if len(files) > 0 {
+		cmd.AddArguments("--")
+		cmd.AddArguments(files...)
+	}
+
+	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return 0, err
 	}
@@ -271,11 +225,13 @@ func AllCommitsCount(repoPath string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-func commitsCount(repoPath, revision, relpath string) (int64, error) {
+// CommitsCountFiles returns number of total commits of until given revision.
+func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand("rev-list", "--count")
-	cmd.AddArguments(revision)
+	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
-		cmd.AddArguments("--", relpath)
+		cmd.AddArguments("--")
+		cmd.AddArguments(relpath...)
 	}
 
 	stdout, err := cmd.RunInDir(repoPath)
@@ -287,8 +243,8 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath, revision string) (int64, error) {
-	return commitsCount(repoPath, revision, "")
+func CommitsCount(repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
@@ -466,9 +422,22 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
+// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	data, err := NewCommand("name-rev", "--name-only", "--no-undefined", c.ID.String()).RunInDir(c.repo.Path)
+	err := LoadGitVersion()
+	if err != nil {
+		return "", fmt.Errorf("Git version missing: %v", err)
+	}
+
+	args := []string{
+		"name-rev",
+	}
+	if CheckGitVersionAtLeast("2.13.0") == nil {
+		args = append(args, "--exclude", "refs/tags/*")
+	}
+	args = append(args, "--name-only", "--no-undefined", c.ID.String())
+
+	data, err := NewCommand(args...).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -480,6 +449,31 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
+}
+
+// LoadBranchName load branch name for commit
+func (c *Commit) LoadBranchName() (err error) {
+	if len(c.Branch) != 0 {
+		return
+	}
+
+	c.Branch, err = c.GetBranchName()
+	return
+}
+
+// GetTagName gets the current tag name for given commit
+func (c *Commit) GetTagName() (string, error) {
+	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	if err != nil {
+		// handle special case where there is no tag for this commit
+		if strings.Contains(err.Error(), "no tag exactly matches") {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	return strings.TrimSpace(data), nil
 }
 
 // CommitFileStatus represents status of files in a commit.
@@ -525,7 +519,7 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
-		return nil, concatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 
 	<-done

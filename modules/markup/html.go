@@ -43,7 +43,7 @@ var (
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
@@ -268,6 +268,25 @@ func RenderCommitMessageSubject(
 	return ctx.postProcess(rawHTML)
 }
 
+// RenderIssueTitle to process title on individual issue/pull page
+func RenderIssueTitle(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			issueIndexPatternProcessor,
+			sha1CurrentPatternProcessor,
+			emojiShortCodeProcessor,
+			emojiProcessor,
+		},
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(
@@ -481,6 +500,7 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Attr:     []html.Attribute{},
 	}
 	if class != "" {
+		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
 		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
 	}
 
@@ -576,11 +596,15 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
-	if ok && strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mention[1:]), mention, "mention"))
-	} else {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	// team mention should follow @orgName/teamName style
+	if ok && strings.Contains(mention, "/") {
+		mentionOrgAndTeam := strings.Split(mention, "/")
+		if mentionOrgAndTeam[0][1:] == ctx.metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+		}
+		return
 	}
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -631,16 +655,18 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			// When parsing HTML, x/net/html will change all quotes which are
 			// not used for syntax into UTF-8 quotes. So checking val[0] won't
 			// be enough, since that only checks a single byte.
-			if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
-				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
-				const lenQuote = len("‘")
-				val = val[lenQuote : len(val)-lenQuote]
-			} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
-				(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
-				val = val[1 : len(val)-1]
-			} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
-				const lenQuote = len("‘")
-				val = val[1 : len(val)-lenQuote]
+			if len(val) > 1 {
+				if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
+					(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
+					const lenQuote = len("‘")
+					val = val[lenQuote : len(val)-lenQuote]
+				} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+					(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+					val = val[1 : len(val)-1]
+				} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+					const lenQuote = len("‘")
+					val = val[1 : len(val)-lenQuote]
+				}
 			}
 			props[key] = val
 		}
@@ -682,9 +708,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 	absoluteLink := isLinkStr(link)
 	if !absoluteLink {
 		if image {
-			link = strings.Replace(link, " ", "+", -1)
+			link = strings.ReplaceAll(link, " ", "+")
 		} else {
-			link = strings.Replace(link, " ", "-", -1)
+			link = strings.ReplaceAll(link, " ", "-")
 		}
 		if !strings.Contains(link, "/") {
 			link = url.PathEscape(link)
@@ -901,7 +927,7 @@ func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 
 	alias := node.Data[m[0]:m[1]]
-	alias = strings.Replace(alias, ":", "", -1)
+	alias = strings.ReplaceAll(alias, ":", "")
 	converted := emoji.FromAlias(alias)
 	if converted == nil {
 		// check if this is a custom reaction

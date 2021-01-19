@@ -176,6 +176,50 @@ func (s *GroupMembersService) AddGroupMember(gid interface{}, opt *AddGroupMembe
 	return gm, resp, err
 }
 
+// ShareWithGroup shares a group with the group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#share-groups-with-groups
+func (s *GroupMembersService) ShareWithGroup(gid interface{}, opt *ShareWithGroupOptions, options ...RequestOptionFunc) (*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/share", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := new(Group)
+	resp, err := s.client.Do(req, g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, err
+}
+
+// DeleteShareWithGroup allows to unshare a group from a group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#delete-link-sharing-group-with-another-group
+func (s *GroupMembersService) DeleteShareWithGroup(gid interface{}, groupID int, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/share/%d", pathEscape(group), groupID)
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
 // EditGroupMemberOptions represents the available EditGroupMember()
 // options.
 //

@@ -46,7 +46,7 @@ func GetTree(ctx *context.APIContext) {
 	//   type: integer
 	// - name: per_page
 	//   in: query
-	//   description: number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE
+	//   description: number of items per page
 	//   required: false
 	//   type: integer
 	// responses:

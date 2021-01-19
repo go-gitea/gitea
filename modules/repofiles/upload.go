@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 // UploadRepoFileOptions contains the uploaded repository file options
@@ -163,12 +164,16 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	// OK now we can insert the data into the store - there's no way to clean up the store
 	// once it's in there, it's in there.
-	contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
 	for _, uploadInfo := range infos {
 		if uploadInfo.lfsMetaObject == nil {
 			continue
 		}
-		if !contentStore.Exists(uploadInfo.lfsMetaObject) {
+		exist, err := contentStore.Exists(uploadInfo.lfsMetaObject)
+		if err != nil {
+			return cleanUpAfterFailure(&infos, t, err)
+		}
+		if !exist {
 			file, err := os.Open(uploadInfo.upload.LocalPath())
 			if err != nil {
 				return cleanUpAfterFailure(&infos, t, err)

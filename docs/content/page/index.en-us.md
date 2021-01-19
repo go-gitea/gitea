@@ -4,7 +4,7 @@ title: "Documentation"
 slug: "documentation"
 url: "/en-us/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -75,7 +75,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - MSSQL
         - TiDB (experimental, not recommended)
     - Configuration file
-        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     - Admin panel
         - Statistics
         - Actions
@@ -128,6 +128,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
     - Environment variables
     - Command line options
 - Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/master/options/locale))
+- [Mermaid](https://mermaidjs.github.io/) Diagram support
 - Mail service
     - Notifications
     - Registration confirmation
@@ -267,7 +268,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 ## Components
 
 * Web framework: [Macaron](http://go-macaron.com/)
-* ORM: [XORM](https://github.com/go-xorm/xorm)
+* ORM: [XORM](https://xorm.io)
 * UI components:
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)
@@ -276,7 +277,6 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
   * [CodeMirror](https://codemirror.net/)
-  * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 * Database drivers:
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)

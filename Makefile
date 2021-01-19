@@ -1,4 +1,3 @@
-
 ifeq ($(USE_REPO_TEST_DIR),1)
 
 # This rule replaces the whole Makefile when we're trying to use /tmp repository temporary files
@@ -21,14 +20,17 @@ IMPORT := code.gitea.io/gitea
 export GO111MODULE=on
 
 GO ?= go
-SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.14.x
-MIN_GO_VERSION := 001012000
+XGO_VERSION := go-1.15.x
+MIN_GO_VERSION := 001013000
 MIN_NODE_VERSION := 010013000
+
+DOCKER_IMAGE ?= gitea/gitea
+DOCKER_TAG ?= latest
+DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
@@ -38,23 +40,22 @@ ifeq ($(HAS_GO), GO)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
+	GOFLAGS := -v
 	EXECUTABLE ?= gitea
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		SED_INPLACE := sed -i ''
-	endif
-	ifeq ($(UNAME_S),FreeBSD)
-		SED_INPLACE := sed -i ''
-	endif
+endif
+
+ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
+	SED_INPLACE := sed -i
+else
+	SED_INPLACE := sed -i ''
 endif
 
 GOFMT ?= gofmt -s
 
-GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -88,19 +89,30 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
+FOMANTIC_DEST_DIR := web_src/fomantic/build
+
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
+
+SVG_DEST_DIR := public/img/svg
+
+AIR_TMP_DIR := .air
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-GO_DIRS := cmd integrations models modules routers build services vendor
+TEST_TAGS ?= sqlite sqlite_unlock_notify
+
+GO_DIRS := cmd integrations models modules routers build services vendor tools
+
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
 
@@ -110,15 +122,12 @@ endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
 
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
-FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
-FOMANTIC_DEST_DIR := public/fomantic
-
-#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_EXCLUDE := code.gitea.io/sdk
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -142,40 +151,46 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 .PHONY: all
 all: build
 
-include docker/Makefile
-
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - \"\"                               equivalent to \"build\""
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch                            watch everything and continuously rebuild"
+	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
-	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - checks                           run various consistency checks"
+	@echo " - checks-frontend                  check frontend files"
+	@echo " - checks-backend                   check backend files"
 	@echo " - webpack                          build webpack files"
+	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
+	@echo " - generate-license                 update license files"
+	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - revive                           run revive linter"
 	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - test[\#TestSpecificName]    	   run unit test"
+	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.13 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -197,7 +212,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES) $(FOMANTIC_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_ENTRIES)
 
 .PHONY: clean
 clean:
@@ -210,15 +225,15 @@ clean:
 
 .PHONY: fmt
 fmt:
-	$(GOFMT) -w $(GO_SOURCES_OWN)
+	@echo "Running go fmt..."
+	@$(GOFMT) -w $(GO_SOURCES_OWN)
 
 .PHONY: vet
 vet:
-	# Default vet
-	$(GO) vet $(GO_PACKAGES)
-	# Custom vet
-	$(GO) build -mod=vendor gitea.com/jolheiser/gitea-vet
-	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+	@echo "Running go vet..."
+	@$(GO) vet $(GO_PACKAGES)
+	@GOOS= GOARCH= $(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -231,7 +246,7 @@ endif
 
 .PHONY: generate-swagger
 generate-swagger:
-	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
+	$(SWAGGER) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -242,7 +257,7 @@ swagger-check: generate-swagger
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: swagger-validate
 swagger-validate:
@@ -253,9 +268,10 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kisielk/errcheck; \
+		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
 	fi
-	errcheck $(GO_PACKAGES)
+	@echo "Running errcheck..."
+	@errcheck $(GO_PACKAGES)
 
 .PHONY: revive
 revive:
@@ -264,16 +280,18 @@ revive:
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
+	@echo "Running misspell-check..."
+	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -w -i unknwon $(GO_SOURCES_OWN)
+	@echo "Running go misspell..."
+	@misspell -w -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: fmt-check
 fmt-check:
@@ -283,31 +301,52 @@ fmt-check:
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
+
+.PHONY: checks
+checks: checks-frontend checks-backend
+
+.PHONY: checks-frontend
+checks-frontend: svg-check
+
+.PHONY: checks-backend
+checks-backend: misspell-check test-vendor swagger-check swagger-validate
 
 .PHONY: lint
-lint: lint-backend lint-frontend
-
-.PHONY: lint-backend
-lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
+lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint web_src/js webpack.config.js
-	npx stylelint web_src/less
+	npx eslint --color --max-warnings=0 web_src/js build templates webpack.config.js
+	npx stylelint --color --max-warnings=0 web_src/less
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive vet
+
+.PHONY: watch
+watch:
+	bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules
+watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+	NODE_ENV=development npx webpack --watch --progress
+
+.PHONY: watch-backend
+watch-backend: go-check
+	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+	fi
+	air -c .air.conf
 
 .PHONY: test
 test:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-check
 test-check:
-	@echo "Checking if tests have changed the source tree...";
+	@echo "Running test-check...";
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test has changed files in the source tree:"; \
@@ -315,11 +354,12 @@ test-check:
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
-	fi;
+	fi
 
 .PHONY: test\#%
 test\#%:
-	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -327,7 +367,8 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage -tags '$(TEST_TAGS)'..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -340,7 +381,7 @@ test-vendor: vendor
 		echo "Please run 'make vendor' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
-	fi;
+	fi
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -348,15 +389,15 @@ generate-ini-sqlite:
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test generate-ini-sqlite
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite\#%
 test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
 test-sqlite-migration:  migrations.sqlite.test generate-ini-sqlite
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
 
 generate-ini-mysql:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -368,15 +409,15 @@ generate-ini-mysql:
 
 .PHONY: test-mysql
 test-mysql: integrations.mysql.test generate-ini-mysql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-mysql\#%
 test-mysql\#%: integrations.mysql.test generate-ini-mysql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql-migration
 test-mysql-migration: migrations.mysql.test generate-ini-mysql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
 
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
@@ -388,15 +429,15 @@ generate-ini-mysql8:
 
 .PHONY: test-mysql8
 test-mysql8: integrations.mysql8.test generate-ini-mysql8
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test
 
 .PHONY: test-mysql8\#%
 test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test -test.run $(subst .,/,$*)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql8-migration
 test-mysql8-migration: migrations.mysql8.test generate-ini-mysql8
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -409,15 +450,15 @@ generate-ini-pgsql:
 
 .PHONY: test-pgsql
 test-pgsql: integrations.pgsql.test generate-ini-pgsql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 .PHONY: test-pgsql\#%
 test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-pgsql-migration
 test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
 
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
@@ -429,35 +470,35 @@ generate-ini-mssql:
 
 .PHONY: test-mssql
 test-mssql: integrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test
 
 .PHONY: test-mssql\#%
 test-mssql\#%: integrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mssql-migration
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mysql
 bench-mysql: integrations.mysql.test generate-ini-mysql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mssql
 bench-mssql: integrations.mssql.test generate-ini-mssql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-pgsql
 bench-pgsql: integrations.pgsql.test generate-ini-pgsql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test generate-ini-mysql
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.mysql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
@@ -472,7 +513,7 @@ integrations.mssql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
 integrations.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
 integrations.cover.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
@@ -495,7 +536,7 @@ migrations.mssql.test: $(GO_SOURCES)
 
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
 check: test
@@ -508,20 +549,21 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
+frontend: node-check $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
 
 .PHONY: generate
 generate: $(TAGS_PREREQ)
-	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+	@echo "Running go generate..."
+	@CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-docs release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -529,9 +571,10 @@ $(DIST_DIRS):
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	@echo "Warning: windows version is built using golang 1.14"
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -539,9 +582,9 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -549,7 +592,7 @@ endif
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -574,8 +617,19 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) node_modules
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache --exclude=./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
+
+.PHONY: release-docs
+release-docs: | $(DIST_DIRS) docs
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+
+.PHONY: docs
+docs:
+	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
+	fi
+	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -586,14 +640,18 @@ npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	@touch node_modules
 
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
+	@if [ ! -d node_modules/fomantic-ui ]; then \
+		npm install --no-save --no-package-lock fomantic-ui@2.8.7; \
+	fi
 	rm -rf $(FOMANTIC_DEST_DIR)
-	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
-	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
+	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
 
@@ -602,8 +660,23 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack --hide-modules --display-entrypoints=false
+	npx webpack
 	@touch $(WEBPACK_DEST)
+
+.PHONY: svg
+svg: node-check | node_modules
+	rm -rf $(SVG_DEST_DIR)
+	node build/generate-svg.js
+
+.PHONY: svg-check
+svg-check: svg
+	@git add $(SVG_DEST_DIR)
+	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi
 
 .PHONY: update-translations
 update-translations:
@@ -615,36 +688,18 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
+.PHONY: generate-license
+generate-license:
+	GO111MODULE=on $(GO) run build/generate-licenses.go
+
+.PHONY: generate-gitignore
+generate-gitignore:
+	GO111MODULE=on $(GO) run build/generate-gitignores.go
+
 .PHONY: generate-images
 generate-images:
-	$(eval TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp'))
-	mkdir -p $(TMPDIR)/images
-	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
-	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png
-	inkscape -f $(PWD)/assets/logo.svg -w 192 -h 192 -e $(PWD)/public/img/gitea-192.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
-	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png
-	inkscape -f $(PWD)/assets/logo.svg -w 200 -h 200 -e $(PWD)/public/img/avatar_default.png
-	inkscape -f $(PWD)/assets/logo.svg -w 180 -h 180 -e $(PWD)/public/img/favicon.png
-	inkscape -f $(PWD)/assets/logo.svg -w 128 -h 128 -e $(TMPDIR)/images/128-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 64 -h 64 -e $(TMPDIR)/images/64-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer1 -e $(TMPDIR)/images/32-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
-	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
-	rm -f $(TMPDIR)/images/*-*.png
-	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
-					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
-					$(PWD)/public/img/favicon.ico
-	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
-
-	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
+	npm install --no-save --no-package-lock fabric imagemin-zopfli
+	node build/generate-images.js $(TAGS)
 
 .PHONY: pr\#%
 pr\#%: clean-all
@@ -654,9 +709,18 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
 	fi
-	golangci-lint run --timeout 5m
+	golangci-lint run --timeout 10m
+
+.PHONY: docker
+docker:
+	docker build --disable-content-trust=false -t $(DOCKER_REF) .
+# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+.PHONY: docker-build
+docker-build:
+	docker run -ti --rm -v "$(CURDIR):/srv/app/src/code.gitea.io/gitea" -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" LDFLAGS="$(LDFLAGS)" CGO_EXTRA_CFLAGS="$(CGO_EXTRA_CFLAGS)" webhippie/golang:edge make clean build
 
 # This endif closes the if at the top of the file
 endif

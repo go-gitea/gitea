@@ -5,14 +5,17 @@
 package integrations
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -48,6 +51,7 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			Description: "Temporary repo",
 			Name:        ctx.Reponame,
 			Private:     true,
+			Template:    true,
 			Gitignores:  "",
 			License:     "WTFPL",
 			Readme:      "Default",
@@ -224,11 +228,29 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			Do:                string(models.MergeStyleMerge),
 		})
 
-		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
-			return
+		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+
+		if resp.Code == http.StatusMethodNotAllowed {
+			err := api.APIError{}
+			DecodeJSON(t, resp, &err)
+			assert.EqualValues(t, "Please try again later", err.Message)
+			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+				MergeMessageField: "doAPIMergePullRequest Merge",
+				Do:                string(models.MergeStyleMerge),
+			})
+			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}
-		ctx.Session.MakeRequest(t, req, 200)
+
+		expected := ctx.ExpectedCode
+		if expected == 0 {
+			expected = 200
+		}
+
+		if !assert.EqualValues(t, expected, resp.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, resp)
+		}
 	}
 }
 

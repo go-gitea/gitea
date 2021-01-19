@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +51,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(dstPath)
+		defer util.RemoveAll(dstPath)
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, models.AccessModeRead))
@@ -99,7 +99,7 @@ func testGit(t *testing.T, u *url.URL) {
 			//Setup clone folder
 			dstPath, err := ioutil.TempDir("", sshContext.Reponame)
 			assert.NoError(t, err)
-			defer os.RemoveAll(dstPath)
+			defer util.RemoveAll(dstPath)
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
@@ -124,7 +124,7 @@ func testGit(t *testing.T, u *url.URL) {
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
 	dstLocalPath, err := ioutil.TempDir("", "repo1")
 	assert.NoError(t, err)
-	defer os.RemoveAll(dstLocalPath)
+	defer util.RemoveAll(dstLocalPath)
 	t.Run("CloneAnonymous", doGitClone(dstLocalPath, u))
 
 }
@@ -498,7 +498,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		// Create a temporary directory
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
-		defer os.RemoveAll(tmpDir)
+		defer util.RemoveAll(tmpDir)
 
 		// Now create local repository to push as our test and set its origin
 		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))

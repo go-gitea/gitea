@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"gitea.com/macaron/session"
-	"github.com/couchbaselabs/go-couchbase"
+	"github.com/couchbase/go-couchbase"
 )
 
 // CouchbaseSessionStore represents a couchbase session store implementation.

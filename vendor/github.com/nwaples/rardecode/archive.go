@@ -137,12 +137,13 @@ func findSig(br *bufio.Reader) (int, error) {
 // files in a multi-volume archive
 type volume struct {
 	fileBlockReader
-	f    *os.File      // current file handle
-	br   *bufio.Reader // buffered reader for current volume file
-	dir  string        // volume directory
-	file string        // current volume file
-	num  int           // volume number
-	old  bool          // uses old naming scheme
+	f     *os.File      // current file handle
+	br    *bufio.Reader // buffered reader for current volume file
+	dir   string        // volume directory
+	file  string        // current volume file (not including directory)
+	files []string      // full path names for current volume files processed
+	num   int           // volume number
+	old   bool          // uses old naming scheme
 }
 
 // nextVolName updates name to the next filename in the archive.
@@ -258,6 +259,7 @@ func (v *volume) next() (*fileBlockHeader, error) {
 		if v.version() != ver {
 			return nil, errVerMismatch
 		}
+		v.files = append(v.files, v.dir+v.file)
 		v.reset() // reset encryption
 	}
 }
@@ -284,6 +286,7 @@ func openVolume(name, password string) (*volume, error) {
 		v.f.Close()
 		return nil, err
 	}
+	v.files = append(v.files, name)
 	return v, nil
 }
 

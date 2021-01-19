@@ -4,10 +4,11 @@ trigger:
 strategy:
   matrix:
     linux:
-      imageName: ubuntu-16.04
+      imageName: ubuntu-18.04
       gorootDir: /usr/local
     mac:
-      imageName: macos-10.13
+      # Mojave
+      imageName: macos-10.14
       gorootDir: /usr/local
     windows:
       imageName: windows-2019
@@ -26,6 +27,12 @@ variables:
   #GO111MODULE: on
 
 steps:
+
+- bash: git config --global core.autocrlf false
+  displayName: "Disable line ending conversion for git to"
+
+- checkout: self
+
 - bash: |
     latestGo=$(curl "https://golang.org/VERSION?m=text")
     echo "##vso[task.setvariable variable=LATEST_GO]$latestGo"
@@ -57,17 +64,15 @@ steps:
   displayName: Install Go on macOS
 
 - powershell: |
-    Write-Host "Downloading Go... (please be patient, I am very slow)"
-    (New-Object System.Net.WebClient).DownloadFile("https://dl.google.com/go/$(LATEST_GO).windows-amd64.zip", "$(LATEST_GO).windows-amd64.zip")
-    Write-Host "Extracting Go... (I'm slow too)"
-    Expand-Archive "$(LATEST_GO).windows-amd64.zip" -DestinationPath "$(gorootDir)"
+    echo "Downloading Go..."
+    # Windows comes with BSD curl, which is MUCH faster than the native Windows HTTP
+    curl.exe -fsSL -o "$(LATEST_GO).windows-amd64.zip" "https://dl.google.com/go/$(LATEST_GO).windows-amd64.zip"
+    echo "Extracting Go..."
+    # Yes, Windows tar (BSD tar) handles zip files. Who knew!?
+    # (and it's MUCH, MUCH, MUCH faster than the native Windows expander)
+    tar.exe xf "$(LATEST_GO).windows-amd64.zip" -C "$(gorootDir)"
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
   displayName: Install Go on Windows
-
-# TODO: When this issue is fixed, replace with installer script:
-# https://github.com/golangci/golangci-lint/issues/472
-- script: go get -v github.com/golangci/golangci-lint/cmd/golangci-lint
-  displayName: Install golangci-lint
 
 - bash: |
     printf "Using go at: $(which go)\n"
@@ -79,8 +84,28 @@ steps:
   displayName: Print Go version and environment
 
 - script: |
-    go get -v -t -d ./...
-    golangci-lint run -E gofmt -E goimports -E misspell
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.31.0
+    ./bin/golangci-lint run -E gofmt -E goimports -E misspell ./...
+  workingDirectory: '$(modulePath)'
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  displayName: Run Lint
+
+- bash: |
+    go mod tidy
+    if [ ! -z "$(git status --porcelain go.mod)" ]; then
+      printf "go.mod has modifications\n"
+      git diff go.mod
+      exit 1
+    fi
+    if [ ! -z "$(git status --porcelain go.sum)" ]; then
+      printf "go.sum has modifications\n"
+      git diff go.sum
+      exit 1
+    fi
+  workingDirectory: '$(modulePath)'
+  displayName: Ensure that module definition and checksums are correct
+
+- script: |
     go test -race ./...
   workingDirectory: '$(modulePath)'
   displayName: Run tests

@@ -31,6 +31,13 @@ func main() {
     }
 }
 ```
+output
+
+    cp
+    -Rdp
+    file name
+    file name2
+    dir name
 
 ## Documentation
 
