@@ -22,8 +22,11 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 	if err != nil {
 		return nil, err
 	}
-
-	notification.NotifyCreateIssueComment(doer, repo, issue, comment)
+	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+	if err != nil {
+		return nil, err
+	}
+	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }

@@ -191,6 +191,10 @@ var (
 			EventSourceUpdateTime time.Duration
 		} `ini:"ui.notification"`
 
+		SVG struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		} `ini:"ui.svg"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -230,6 +234,11 @@ var (
 			TimeoutStep:           10 * time.Second,
 			MaxTimeout:            60 * time.Second,
 			EventSourceUpdateTime: 10 * time.Second,
+		},
+		SVG: struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		}{
+			Enabled: true,
 		},
 		Admin: struct {
 			UserPagingNum   int
@@ -368,7 +377,6 @@ var (
 	CustomConf    string
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
-	ProdMode      bool
 	RunMode       string
 	RunUser       string
 	IsWindows     bool
@@ -379,6 +387,11 @@ var (
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
 )
+
+// IsProd if it's a production mode
+func IsProd() bool {
+	return strings.EqualFold(RunMode, "prod")
+}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -1091,24 +1104,14 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		StartURL:  appURL,
 		Icons: []manifestIcon{
 			{
-				Src:   absoluteAssetURL + "/img/logo-lg.png",
-				Type:  "image/png",
-				Sizes: "880x880",
-			},
-			{
-				Src:   absoluteAssetURL + "/img/logo-512.png",
+				Src:   absoluteAssetURL + "/img/logo.png",
 				Type:  "image/png",
 				Sizes: "512x512",
 			},
 			{
-				Src:   absoluteAssetURL + "/img/logo-192.png",
-				Type:  "image/png",
-				Sizes: "192x192",
-			},
-			{
-				Src:   absoluteAssetURL + "/img/logo-sm.png",
-				Type:  "image/png",
-				Sizes: "120x120",
+				Src:   absoluteAssetURL + "/img/logo.svg",
+				Type:  "image/svg+xml",
+				Sizes: "512x512",
 			},
 		},
 	})

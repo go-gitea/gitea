@@ -195,6 +195,7 @@
       border-radius: 0;
       padding: 5px 10px;
       width: 50%;
+      line-height: 1.4;
     }
 
     .clone.button {
@@ -938,6 +939,10 @@
         }
       }
 
+      .ui.comments {
+        max-width: 100%;
+      }
+
       .comment {
         > .content {
           > div:first-child {
@@ -1047,9 +1052,36 @@
           border: none !important;
         }
 
+        .comment-header {
+          background: transparent;
+          border-bottom: 0 !important;
+          padding: 0 !important;
+
+          &::after,
+          &::before {
+            display: none;
+          }
+        }
+
         .avatar.image {
           width: 28px;
           height: 28px;
+        }
+      }
+
+      .comment-code-cloud {
+        .segment.reactions {
+          border-top: none !important;
+
+          .ui.label {
+            border: 1px solid;
+            padding: 6px !important;
+            border-radius: var(--border-radius);
+          }
+        }
+
+        button.comment-form-reply {
+          margin-left: 0;
         }
       }
 
@@ -1474,7 +1506,7 @@
     }
   }
 
-  .diff-box .header {
+  .diff-box .header:not(.resolved-placeholder) {
     display: flex;
     align-items: center;
 
@@ -1489,6 +1521,15 @@
       margin-top: -8px;
       margin-bottom: -8px;
       margin-right: 0;
+    }
+  }
+
+  .diff-box .resolved-placeholder {
+    display: flex;
+    align-items: center;
+
+    .button {
+      padding: 8px 12px;
     }
   }
 
@@ -1641,6 +1682,7 @@
         border-radius: 0;
         padding: 5px 10px;
         font-size: 1.2em;
+        line-height: 1.4;
       }
     }
   }
@@ -2695,7 +2737,12 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
-  margin: 0;
+}
+
+.repository:not(.diff) {
+  .commit-body {
+    margin: 0;
+  }
 }
 
 .git-notes.top {

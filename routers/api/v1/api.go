@@ -650,7 +650,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRefForAPI(), repo.Edit)
+					Patch(reqToken(), reqAdmin(), context.RepoRefForAPI(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -723,8 +723,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Delete(reqToken(), repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(bind(api.EditReactionOption{}), reqToken(), repo.PostIssueCommentReaction).
-								Delete(bind(api.EditReactionOption{}), reqToken(), repo.DeleteIssueCommentReaction)
+								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 						})
 					})
 					m.Group("/:index", func() {
@@ -764,8 +764,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(bind(api.EditReactionOption{}), reqToken(), repo.PostIssueReaction).
-							Delete(bind(api.EditReactionOption{}), reqToken(), repo.DeleteIssueReaction)
+							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

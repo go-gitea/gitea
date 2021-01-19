@@ -6,7 +6,7 @@ description: |
   an independent binary distribution across ALL platforms that Go supports,
   including Linux, Mac OS X, Windows and ARM.
 
-icon: public/img/logo-lg.png
+icon: public/img/logo.png
 confinement: strict
 base: core18
 adopt-info: gitea

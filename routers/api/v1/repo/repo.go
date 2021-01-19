@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -501,6 +502,12 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
+	if opts.MirrorInterval != nil {
+		if err := updateMirrorInterval(ctx, opts); err != nil {
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
@@ -778,6 +785,38 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				return err
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		}
+	}
+	return nil
+}
+
+// updateMirrorInterval updates the repo's mirror Interval
+func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) error {
+	repo := ctx.Repo.Repository
+
+	if opts.MirrorInterval != nil {
+		if !repo.IsMirror {
+			err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
+			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			return err
+		}
+		if err := repo.GetMirror(); err != nil {
+			log.Error("Failed to get mirror: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+			return err
+		}
+		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
+			repo.Mirror.Interval = interval
+			if err := models.UpdateMirror(repo.Mirror); err != nil {
+				log.Error("Failed to Set Mirror Interval: %s", err)
+				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+				return err
+			}
+			log.Trace("Repository %s/%s Mirror Interval was Updated to %s", ctx.Repo.Owner.Name, repo.Name, interval)
+		} else {
+			log.Error("Wrong format for MirrorInternal Sent: %s", err)
+			ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+			return err
 		}
 	}
 	return nil

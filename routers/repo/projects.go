@@ -270,23 +270,17 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	uncategorizedBoard, err := models.GetUncategorizedBoard(project.ID)
-	uncategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
-	if err != nil {
-		ctx.ServerError("GetUncategorizedBoard", err)
-		return
-	}
-
 	boards, err := models.GetProjectBoards(project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
 	}
 
-	allBoards := models.ProjectBoardList{uncategorizedBoard}
-	allBoards = append(allBoards, boards...)
+	if boards[0].ID == 0 {
+		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+	}
 
-	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {
+	if ctx.Data["Issues"], err = boards.LoadIssues(); err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
@@ -295,7 +289,7 @@ func ViewProject(ctx *context.Context) {
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
-	ctx.Data["Boards"] = allBoards
+	ctx.Data["Boards"] = boards
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
 
@@ -355,7 +349,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 
 	pb, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("GetProjectBoard", err)
 		return
 	}
 	if pb.ProjectID != ctx.ParamsInt64(":id") {
@@ -416,21 +410,19 @@ func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitle
 	})
 }
 
-// EditProjectBoardTitle allows a project board's title to be updated
-func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
-
+func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, *models.ProjectBoard) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
-		return
+		return nil, nil
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
-		return
+		return nil, nil
 	}
 
 	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
@@ -440,25 +432,35 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
-		return
+		return nil, nil
 	}
 
 	board, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.InternalServerError(err)
-		return
+		ctx.ServerError("GetProjectBoard", err)
+		return nil, nil
 	}
 	if board.ProjectID != ctx.ParamsInt64(":id") {
 		ctx.JSON(422, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", board.ID, project.ID),
 		})
-		return
+		return nil, nil
 	}
 
 	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.JSON(422, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, ctx.Repo.Repository.ID),
 		})
+		return nil, nil
+	}
+	return project, board
+}
+
+// EditProjectBoardTitle allows a project board's title to be updated
+func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
+
+	_, board := checkProjectBoardChangePermissions(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -468,6 +470,24 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 
 	if err := models.UpdateProjectBoard(board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+// SetDefaultProjectBoard set default board for uncategorized issues/pulls
+func SetDefaultProjectBoard(ctx *context.Context) {
+
+	project, board := checkProjectBoardChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := models.SetDefaultBoard(project.ID, board.ID); err != nil {
+		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
 

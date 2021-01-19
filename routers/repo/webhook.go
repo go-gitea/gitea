@@ -36,6 +36,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Repo.RepoLink + "/settings/hooks"
+	ctx.Data["BaseLinkNew"] = ctx.Repo.RepoLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
 	ws, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, models.ListOptions{})
@@ -54,6 +55,7 @@ type orgRepoCtx struct {
 	IsAdmin         bool
 	IsSystemWebhook bool
 	Link            string
+	LinkNew         string
 	NewTemplate     base.TplName
 }
 
@@ -63,6 +65,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		return &orgRepoCtx{
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
+			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			NewTemplate: tplHookNew,
 		}, nil
 	}
@@ -71,16 +74,18 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		return &orgRepoCtx{
 			OrgID:       ctx.Org.Organization.ID,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
+			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			NewTemplate: tplOrgHookNew,
 		}, nil
 	}
 
 	if ctx.User.IsAdmin {
 		// Are we looking at default webhooks?
-		if ctx.Params(":configType") == "hooks" {
+		if ctx.Params(":configType") == "default-hooks" {
 			return &orgRepoCtx{
 				IsAdmin:     true,
 				Link:        path.Join(setting.AppSubURL, "/admin/hooks"),
+				LinkNew:     path.Join(setting.AppSubURL, "/admin/default-hooks"),
 				NewTemplate: tplAdminHookNew,
 			}, nil
 		}
@@ -89,7 +94,8 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		return &orgRepoCtx{
 			IsAdmin:         true,
 			IsSystemWebhook: true,
-			Link:            path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/system-hooks"),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -121,8 +127,8 @@ func WebhooksNew(ctx *context.Context) {
 		ctx.Data["PageIsAdminSystemHooks"] = true
 		ctx.Data["PageIsAdminSystemHooksNew"] = true
 	} else if orCtx.IsAdmin {
-		ctx.Data["PageIsAdminHooks"] = true
-		ctx.Data["PageIsAdminHooksNew"] = true
+		ctx.Data["PageIsAdminDefaultHooks"] = true
+		ctx.Data["PageIsAdminDefaultHooksNew"] = true
 	} else {
 		ctx.Data["PageIsSettingsHooks"] = true
 		ctx.Data["PageIsSettingsHooksNew"] = true
@@ -139,7 +145,7 @@ func WebhooksNew(ctx *context.Context) {
 			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
-	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	ctx.HTML(200, orCtx.NewTemplate)
 }
@@ -187,7 +193,7 @@ func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
-	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
 		ctx.HTML(200, orCtx.NewTemplate)
@@ -241,7 +247,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
-	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
 		ctx.HTML(200, orCtx.NewTemplate)
@@ -537,7 +543,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 
 	if form.HasInvalidChannel() {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
-		ctx.Redirect(orCtx.Link + "/slack/new")
+		ctx.Redirect(orCtx.LinkNew + "/slack/new")
 		return
 	}
 
@@ -632,12 +638,10 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		w, err = models.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.OrgID > 0 {
 		w, err = models.GetWebhookByOrgID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
-	} else if orCtx.IsSystemWebhook {
-		w, err = models.GetSystemWebhook(ctx.ParamsInt64(":id"))
-	} else {
-		w, err = models.GetDefaultWebhook(ctx.ParamsInt64(":id"))
+	} else if orCtx.IsAdmin {
+		w, err = models.GetSystemOrDefaultWebhook(ctx.ParamsInt64(":id"))
 	}
-	if err != nil {
+	if err != nil || w == nil {
 		if models.IsErrWebhookNotExist(err) {
 			ctx.NotFound("GetWebhookByID", nil)
 		} else {

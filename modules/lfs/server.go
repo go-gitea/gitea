@@ -413,9 +413,8 @@ func PutHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	bodyReader := ctx.Req.Body().ReadCloser()
-	defer bodyReader.Close()
-	if err := contentStore.Put(meta, bodyReader); err != nil {
+	defer ctx.Req.Request.Body.Close()
+	if err := contentStore.Put(meta, ctx.Req.Request.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
 		if err == errSizeMismatch || err == errHashMismatch {

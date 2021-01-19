@@ -20,6 +20,8 @@
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 					<input type="hidden" name="state" value="{{.State}}">
+					<input type="hidden" name="scope" value="{{.Scope}}">
+					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
 					<input type="submit" id="authorize-app" value="{{.i18n.Tr "auth.authorize_application"}}" class="ui red inline button"/>
 					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
