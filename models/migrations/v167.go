@@ -7,6 +7,7 @@ package migrations
 import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
@@ -88,11 +89,25 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 		return err
 	}
 
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		_, err := x.Exec("ALTER TABLE `user` MODIFY COLUMN keep_activity_private tinyint(1) DEFAULT 0 NOT NULL;")
+		return err
+	case schemas.MSSQL:
+		_, err := x.Exec("ALTER TABLE `user` MODIFY COLUMN keep_activity_private BIT DEFAULT 0 NOT NULL;")
+		return err
+	case schemas.POSTGRES:
+		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private SET DEFAULT false NOT NULL;")
+		return err
+	}
+
+	// handle SQLite
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
+
 	if err := recreateTable(sess, new(User)); err != nil {
 		return err
 	}
