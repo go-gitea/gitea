@@ -57,7 +57,11 @@ func NewContext() {
 }
 
 func handleReciveEmail(m *Mail) error {
-	from := m.Heads["From"][0].Address
+	fromEmail, ok := m.Heads["From"]
+	if !ok || len(fromEmail) < 1 {
+		return nil
+	}
+	from := fromEmail[0].Address
 	doer, err := models.GetUserByEmail(from)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {

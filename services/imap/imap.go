@@ -5,6 +5,7 @@
 package imap
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -28,14 +29,27 @@ func init() {
 	charset.RegisterEncoding("gb18030", simplifiedchinese.GB18030)
 }
 
+var testMode bool
+
 // Client an imap clientor
 type Client struct {
-	Client   *client.Client
+	Client   ClientPort
 	UserName string
 	Passwd   string
 	Addr     string
 	IsTLS    bool
 	Lock     sync.Mutex
+}
+
+// ClientPort client port to imap server or test code
+type ClientPort interface {
+	Login(username, password string) error
+	Logout() error
+	Select(name string, readOnly bool) (*imap.MailboxStatus, error)
+	Search(criteria *imap.SearchCriteria) (seqNums []uint32, err error)
+	Store(seqset *imap.SeqSet, item imap.StoreItem, value interface{}, ch chan *imap.Message) error
+	Expunge(ch chan uint32) error
+	Fetch(seqset *imap.SeqSet, items []imap.FetchItem, ch chan *imap.Message) error
 }
 
 // ClientInitOpt options to init an Client
@@ -73,6 +87,11 @@ func (c *Client) Login() error {
 
 	c.Lock.Lock()
 
+	// test mode
+	if testMode {
+		return c.Client.Login(c.UserName, c.Passwd)
+	}
+
 	// Connect to server
 	if c.IsTLS {
 		c.Client, err = client.DialTLS(c.Addr, nil)
@@ -89,7 +108,6 @@ func (c *Client) Login() error {
 // LogOut LogOut from service
 func (c *Client) LogOut() error {
 	err := c.Client.Logout()
-	c.Client = nil
 	c.Lock.Unlock()
 	return err
 }
@@ -225,12 +243,34 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 	items := []imap.FetchItem{section.FetchItem()}
 
 	messages := make(chan *imap.Message, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	finished := false
 
 	go func() {
 		err = c.Client.Fetch(seqSet, items, messages)
+		finished = true
 	}()
 
-	msg := <-messages
+	var msg *imap.Message
+	for finished {
+		select {
+		case msg, finished = <-messages:
+			if msg != nil {
+				if !finished {
+					close(messages)
+				}
+				break
+			}
+		case <-ctx.Done():
+			if !finished {
+				close(messages)
+			}
+			break
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -26,7 +26,7 @@ func FetchAllUnReadMails() (err error) {
 		}
 	}
 
-	if !mailReadQueue.IsEmpty() {
+	if !testMode && !mailReadQueue.IsEmpty() {
 		return
 	}
 
