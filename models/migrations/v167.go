@@ -7,9 +7,16 @@ package migrations
 import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		_, err := x.Exec("ALTER TABLE `user` MODIFY COLUMN keep_activity_private tinyint(1) DEFAULT 0 NOT NULL;")
+		return err
+	}
+
 	type User struct {
 		ID                  int64 `xorm:"pk autoincr"`
 		KeepActivityPrivate bool  `xorm:"NOT NULL DEFAULT false"`
