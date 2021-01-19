@@ -226,7 +226,12 @@ func (g *GogsDownloader) GetComments(issueNumber int64) ([]*base.Comment, error)
 		return nil, fmt.Errorf("error while listing repos: %v", err)
 	}
 	for _, comment := range comments {
+		if len(comment.Body) == 0 || comment.Poster == nil {
+			continue
+		}
 		allComments = append(allComments, &base.Comment{
+			IssueIndex:  issueNumber,
+			PosterID:    comment.Poster.ID,
 			PosterName:  comment.Poster.Login,
 			PosterEmail: comment.Poster.Email,
 			Content:     comment.Body,
