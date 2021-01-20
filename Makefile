@@ -232,7 +232,7 @@ fmt:
 vet:
 	@echo "Running go vet..."
 	@$(GO) vet $(GO_PACKAGES)
-	@$(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@GOOS= GOARCH= $(GO) build -mod=vendor code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
