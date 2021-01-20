@@ -23,6 +23,7 @@ require (
 	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
+	github.com/blevesearch/bleve/v2 v2.0.1
 	github.com/caddyserver/certmagic v0.12.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.9.0
