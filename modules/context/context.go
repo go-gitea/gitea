@@ -508,8 +508,10 @@ func Contexter() func(next http.Handler) http.Handler {
 		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
-		CookiePath:     setting.AppSubURL,
+		CookiePath:     setting.SessionConfig.CookiePath,
 	}
+
+	var flashEncryptionKey, _ = NewSecret()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -536,12 +538,55 @@ func Contexter() func(next http.Handler) http.Handler {
 					"Link": link,
 				},
 			}
-			ctx.Flash = &middlewares.Flash{
-				DataStore: &ctx,
-				Values:    make(url.Values),
-			}
+
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
+
+			// Get flash.
+			flashCookie := ctx.GetCookie("macaron_flash")
+			decrypted, _ := DecryptSecret(flashEncryptionKey, flashCookie)
+			vals, _ := url.ParseQuery(decrypted)
+			if len(vals) > 0 {
+				f := &middlewares.Flash{Values: vals}
+				f.ErrorMsg = f.Get("error")
+				f.SuccessMsg = f.Get("success")
+				f.InfoMsg = f.Get("info")
+				f.WarningMsg = f.Get("warning")
+				t, _ := strconv.ParseInt(f.Get("time"), 10, 64)
+				now := time.Now().Unix()
+				if now-t >= 0 && now-t < 3600 {
+					ctx.Data["Flash"] = f
+				}
+			}
+
+			if len(flashCookie) > 0 {
+				ctx.SetCookie("macaron_flash", "", -1,
+					setting.SessionConfig.CookiePath,
+					middlewares.Domain(setting.SessionConfig.Domain),
+					middlewares.HTTPOnly(true),
+					middlewares.Secure(setting.SessionConfig.Secure),
+					//middlewares.SameSite(),
+				)
+			}
+
+			f := &middlewares.Flash{&ctx, url.Values{}, "", "", "", ""}
+			ctx.Resp.Before(func(resp ResponseWriter) {
+				f.Set("time", strconv.FormatInt(time.Now().Unix(), 10))
+				if flash := f.Encode(); len(flash) > 0 {
+					encrypted, err := EncryptSecret(flashEncryptionKey, flash)
+					if err == nil {
+						middlewares.SetCookie(resp, "macaron_flash", encrypted, 0,
+							setting.SessionConfig.CookiePath,
+							middlewares.Domain(setting.SessionConfig.Domain),
+							middlewares.HTTPOnly(true),
+							middlewares.Secure(setting.SessionConfig.Secure),
+							//middlewares.SameSite(opt.SameSite),
+						)
+					}
+				}
+			})
+
+			ctx.Flash = f
 
 			// Quick responses appropriate go-get meta with status 200
 			// regardless of if user have access to the repository,
