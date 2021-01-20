@@ -317,8 +317,6 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-const byteBodyTag = "<body>"
-const byteBodyTagClosing = "</body>"
 
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
