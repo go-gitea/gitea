@@ -11,6 +11,12 @@ import (
 )
 
 func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
+	if _, err := x.Where(builder.IsNull{"keep_activity_private"}).
+		Cols("keep_activity_private").
+		Update(User{KeepActivityPrivate: false}); err != nil {
+		return err
+	}
+
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
 		_, err := x.Exec("ALTER TABLE `user` MODIFY COLUMN keep_activity_private tinyint(1) DEFAULT 0 NOT NULL;")
