@@ -16,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -90,9 +91,11 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 
 			next.ServeHTTP(w, req)
 
-			ww := middleware.NewWrapResponseWriter(w, req.ProtoMajor)
+			var status int
+			if v, ok := w.(context.ResponseWriter); ok {
+				status = v.Status()
+			}
 
-			status := ww.Status()
 			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
 		})
 	}
@@ -183,6 +186,11 @@ var (
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
+	c.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(context.NewResponse(resp), req)
+		})
+	})
 	c.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
