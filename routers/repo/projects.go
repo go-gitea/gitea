@@ -280,10 +280,32 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	if ctx.Data["Issues"], err = boards.LoadIssues(); err != nil {
+	issueList, err := boards.LoadIssues()
+	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
+	ctx.Data["Issues"] = issueList
+
+	linkedPrsMap := make(map[int64][]*models.Issue)
+	for _, issue := range issueList {
+		var referencedIds []int64
+		for _, comment := range issue.Comments {
+			if comment.RefIssueID != 0 && comment.RefIsPull {
+				referencedIds = append(referencedIds, comment.RefIssueID)
+			}
+		}
+
+		if len(referencedIds) > 0 {
+			if linkedPrs, err := models.Issues(&models.IssuesOptions{
+				IssueIDs: referencedIds,
+				IsPull:   util.OptionalBoolTrue,
+			}); err == nil {
+				linkedPrsMap[issue.ID] = linkedPrs
+			}
+		}
+	}
+	ctx.Data["LinkedPRs"] = linkedPrsMap
 
 	project.RenderedContent = string(markdown.Render([]byte(project.Description), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 
