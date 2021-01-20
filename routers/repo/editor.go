@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -502,7 +501,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
-		treePath := filepath.Dir(ctx.Repo.TreePath)
+		treePath := path.Dir(ctx.Repo.TreePath)
 		if treePath == "." {
 			treePath = "" // the file deleted was in the root, so we return the user to the root directory
 		}
@@ -805,10 +804,10 @@ func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
 	// see if the tree has entries
 	if tree, err := commit.SubTree(treePath); err != nil {
 		// failed to get tree, going up a dir
-		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+		return GetClosestParentWithFiles(path.Dir(treePath), commit)
 	} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
 		// no files in this dir, going up a dir
-		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+		return GetClosestParentWithFiles(path.Dir(treePath), commit)
 	}
 	return treePath
 }
