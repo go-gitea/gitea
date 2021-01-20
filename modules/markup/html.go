@@ -375,10 +375,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	res = buf.Bytes()
-
 	// Everything done successfully, return parsed data.
-	return res, nil
+	return buf.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
