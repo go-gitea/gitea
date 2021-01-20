@@ -317,7 +317,6 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
