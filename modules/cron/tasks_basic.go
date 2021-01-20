@@ -135,5 +135,5 @@ func initBasicTasks() {
 	if !setting.Repository.DisableMigrations {
 		registerUpdateMigrationPosterID()
 	}
-  registerCleanupHookTaskTable()
+	registerCleanupHookTaskTable()
 }
