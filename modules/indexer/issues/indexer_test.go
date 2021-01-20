@@ -65,7 +65,7 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
+	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
@@ -89,7 +89,7 @@ func TestDBSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
+	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
