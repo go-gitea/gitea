@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/routers"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-chi/chi/middleware"
 )
 
 func installRecovery() func(next http.Handler) http.Handler {
@@ -78,11 +77,8 @@ func installRecovery() func(next http.Handler) http.Handler {
 // InstallRoutes registers the install routes
 func InstallRoutes() *web.Route {
 	r := web.NewRoute()
-	r.Use(middleware.RealIP)
-	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			r.Use(LoggerHandler(setting.RouterLogLevel))
-		}
+	for _, middle := range commonMiddlewares() {
+		r.Use(middle)
 	}
 
 	r.Use(session.Sessioner(session.Options{
@@ -97,9 +93,6 @@ func InstallRoutes() *web.Route {
 	}))
 
 	r.Use(installRecovery())
-	if setting.EnableAccessLog {
-		r.Use(accessLogger())
-	}
 
 	r.Use(public.Custom(
 		&public.Options{

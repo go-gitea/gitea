@@ -70,7 +70,6 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 	if setting.EnableAccessLog {
 		handlers = append(handlers, accessLogger())
 	}
-	handlers = append(handlers, Recovery())
 	return handlers
 }
 
@@ -80,6 +79,8 @@ func NormalRoutes() *web.Route {
 	for _, middle := range commonMiddlewares() {
 		r.Use(middle)
 	}
+	r.Use(Recovery())
+
 	r.Mount("/", WebRoutes())
 	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
