@@ -11,6 +11,11 @@ import (
 )
 
 func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
+	type User struct {
+		ID                  int64 `xorm:"pk autoincr"`
+		KeepActivityPrivate bool  `xorm:"NOT NULL DEFAULT false"`
+	}
+
 	if _, err := x.Where(builder.IsNull{"keep_activity_private"}).
 		Cols("keep_activity_private").
 		Update(User{KeepActivityPrivate: false}); err != nil {
@@ -27,11 +32,6 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 		}
 		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private SET DEFAULT false;")
 		return err
-	}
-
-	type User struct {
-		ID                  int64 `xorm:"pk autoincr"`
-		KeepActivityPrivate bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	sess := x.NewSession()
