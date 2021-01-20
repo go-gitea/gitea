@@ -28,7 +28,6 @@ import (
 )
 
 // RedisStore represents a redis session store implementation.
-// TODO: copied from modules/session/redis.go and should remove that one until macaron removed.
 type RedisStore struct {
 	c           redis.UniversalClient
 	prefix, sid string

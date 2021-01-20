@@ -50,7 +50,7 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 	if err != nil {
 		panic(err)
 	}
-
+	req.Header.Add("Content-Type", "x-www-form-urlencoded")
 	m.ServeHTTP(httpRecorder, req)
 
 	switch httpRecorder.Code {
