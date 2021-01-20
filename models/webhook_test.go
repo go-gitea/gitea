@@ -231,7 +231,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      3,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -250,7 +250,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
@@ -268,7 +268,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -287,7 +287,7 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      3,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -306,7 +306,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
@@ -324,7 +324,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Type:        GITEA,
+		Typ:         GITEA,
 		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
