@@ -49,7 +49,7 @@ func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOption
 	}
 
 	log.Trace("Create gogs downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, fields[0], fields[1])
-	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, fields[0], fields[1]), nil
+	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, fields[0], fields[1], opts.PullRequests), nil
 }
 
 // GitServiceType returns the type of git service
@@ -61,16 +61,19 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // from gogs via API
 type GogsDownloader struct {
 	base.NullDownloader
-	ctx                context.Context
-	client             *gogs.Client
-	baseURL            string
-	repoOwner          string
-	repoName           string
-	userName           string
-	password           string
-	openIssuesFinished bool
-	openIssuesPages    int
-	transport          http.RoundTripper
+	ctx       context.Context
+	client    *gogs.Client
+	baseURL   string
+	repoOwner string
+	repoName  string
+	userName  string
+	password  string
+	// gog specific workarounds
+	issueDownloadMode int
+	skipPages         int
+	issueIndexes      map[int64]bool
+	pullsAsIssue      bool
+	transport         http.RoundTripper
 }
 
 // SetContext set context
@@ -79,7 +82,7 @@ func (g *GogsDownloader) SetContext(ctx context.Context) {
 }
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string, pullsAsIssue bool) *GogsDownloader {
 	var downloader = GogsDownloader{
 		ctx:       ctx,
 		baseURL:   baseURL,
@@ -87,6 +90,9 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 		password:  password,
 		repoOwner: repoOwner,
 		repoName:  repoName,
+		// gog specific workarounds
+		issueIndexes: make(map[int64]bool),
+		pullsAsIssue: pullsAsIssue,
 	}
 
 	var client *gogs.Client
@@ -182,12 +188,17 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 // GetIssues returns issues according start and limit, perPage is not supported
 func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 	var state string
-	if g.openIssuesFinished {
-		state = string(gogs.STATE_CLOSED)
-		page -= g.openIssuesPages
-	} else {
+	switch g.issueDownloadMode {
+	case 0: // download open issues
 		state = string(gogs.STATE_OPEN)
-		g.openIssuesPages = page
+	case 1: // download close issues
+		state = string(gogs.STATE_CLOSED)
+		page -= g.skipPages
+	default: // download pulls as issues
+		if !g.pullsAsIssue {
+			return nil, true, nil
+		}
+		return g.getPullRequests(page - g.skipPages)
 	}
 
 	issues, isEnd, err := g.getIssues(page, state)
@@ -196,10 +207,8 @@ func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 	}
 
 	if isEnd {
-		if g.openIssuesFinished {
-			return issues, true, nil
-		}
-		g.openIssuesFinished = true
+		g.issueDownloadMode++
+		g.skipPages = page
 	}
 
 	return issues, false, nil
@@ -220,10 +229,43 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 		if issue.PullRequest != nil {
 			continue
 		}
+		g.issueIndexes[issue.Index] = true
 		allIssues = append(allIssues, convertGogsIssue(issue))
 	}
 
 	return allIssues, len(issues) == 0, nil
+}
+
+// getPullRequests returns pull requests as issue
+func (g *GogsDownloader) getPullRequests(page int) ([]*base.Issue, bool, error) {
+	index := int64(page)
+	if g.issueIndexes[index] {
+		// next index
+		return nil, false, nil
+	}
+
+	gogsIssue, err := g.client.GetIssue(g.repoOwner, g.repoName, index)
+	if err != nil {
+		if err.Error() == "404 Not Found" {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+
+	issue := convertGogsIssue(gogsIssue)
+
+	issue.Title = "[Pull] " + issue.Title
+	if gogsIssue.PullRequest != nil && gogsIssue.PullRequest.HasMerged {
+		issue.State = "closed"
+		issue.Title += " (Merged)"
+	}
+
+	return []*base.Issue{issue}, false, nil
+}
+
+// GetPullRequests is a dummy since pulls are migrated as issue
+func (g *GogsDownloader) GetPullRequests(_, _ int) ([]*base.PullRequest, bool, error) {
+	return nil, true, nil
 }
 
 // GetComments returns comments according issueNumber

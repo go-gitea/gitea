@@ -62,19 +62,19 @@
 								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
 							</div>
 						</div>
-						<!-- Gogs do not support it
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
 								<input name="pull_requests" type="checkbox" {{if .pull_requests}} checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_merge_requests" | Safe}}</label>
+								<label>{{.i18n.Tr "repo.migrate_items_pullrequests_as_issues" | Safe}}</label>
 							</div>
+							<!-- Gogs do not support it
 							<div class="ui checkbox">
 								<input name="releases" type="checkbox" {{if .releases}} checked{{end}}>
 								<label>{{.i18n.Tr "repo.migrate_items_releases" | Safe}}</label>
 							</div>
+							-->
 						</div>
-					  -->
 					</div>
 
 					<div class="ui divider"></div>

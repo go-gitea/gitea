@@ -30,7 +30,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 		return
 	}
 
-	downloader := NewGogsDownloader(context.Background(), "https://try.gogs.io", "", "", gogsPersonalAccessToken, "lunnytest", "TESTREPO")
+	downloader := NewGogsDownloader(context.Background(), "https://try.gogs.io", "", "", gogsPersonalAccessToken, "lunnytest", "TESTREPO", false)
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 
