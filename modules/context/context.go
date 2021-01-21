@@ -569,7 +569,14 @@ func Contexter() func(next http.Handler) http.Handler {
 				)
 			}
 
-			f := &middlewares.Flash{&ctx, url.Values{}, "", "", "", ""}
+			f := &middlewares.Flash{
+				DataStore:  &ctx,
+				Values:     url.Values{},
+				ErrorMsg:   "",
+				WarningMsg: "",
+				InfoMsg:    "",
+				SuccessMsg: "",
+			}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				f.Set("time", strconv.FormatInt(time.Now().Unix(), 10))
 				if flash := f.Encode(); len(flash) > 0 {
