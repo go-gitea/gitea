@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,22 +85,6 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	return 10
 }
 
-func fullURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
-	var fullRemoteAddr = remoteAddr
-	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", err
-		}
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
-		}
-		fullRemoteAddr = u.String()
-	}
-	return fullRemoteAddr, nil
-}
-
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
@@ -109,10 +92,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	remoteAddr, err := fullURL(opts, repo.CloneURL)
-	if err != nil {
-		return err
-	}
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
@@ -138,7 +117,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
-		CloneAddr:      remoteAddr,
+		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags

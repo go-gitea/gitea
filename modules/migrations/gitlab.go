@@ -63,6 +63,7 @@ func (f *GitlabDownloaderFactory) GitServiceType() structs.GitServiceType {
 // - issueSeen, working alongside issueCount, is checked in GetComments() to see whether we
 // need to fetch the Issue or PR comments, as Gitlab stores them separately.
 type GitlabDownloader struct {
+	base.NullDownloader
 	ctx             context.Context
 	client          *gitlab.Client
 	repoID          int
