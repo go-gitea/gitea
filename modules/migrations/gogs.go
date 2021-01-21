@@ -70,6 +70,7 @@ type GogsDownloader struct {
 	password           string
 	openIssuesFinished bool
 	openIssuesPages    int
+	transport          http.RoundTripper
 }
 
 // SetContext set context
@@ -93,19 +94,27 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 		client = gogs.NewClient(baseURL, token)
 		downloader.userName = token
 	} else {
+		downloader.transport = &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				req.SetBasicAuth(userName, password)
+				return nil, nil
+			},
+		}
+
 		client = gogs.NewClient(baseURL, "")
 		client.SetHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					req.SetBasicAuth(userName, password)
-					return nil, nil
-				},
-			},
+			Transport: &downloader,
 		})
 	}
 
 	downloader.client = client
 	return &downloader
+}
+
+// RoundTrip wraps the provided request within this downloaders context and passes it to our internal http.Transport.
+// This implements http.RoundTripper and makes the gogs client requests cancellable even though it is not cancellable itself
+func (g *GogsDownloader) RoundTrip(req *http.Request) (*http.Response, error) {
+	return g.transport.RoundTrip(req.WithContext(g.ctx))
 }
 
 // GetRepoInfo returns a repository information
