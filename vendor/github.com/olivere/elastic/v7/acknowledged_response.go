@@ -5,7 +5,7 @@
 package elastic
 
 // AcknowledgedResponse is returned from various APIs. It simply indicates
-// whether the operation is ack'd or not.
+// whether the operation is acknowledged or not.
 type AcknowledgedResponse struct {
 	Acknowledged       bool   `json:"acknowledged"`
 	ShardsAcknowledged bool   `json:"shards_acknowledged"`

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -276,6 +277,10 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
+	apiUsers := make([]*api.User, 0, len(users))
+	for i := range users {
+		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, false)
+	}
 
-	ctx.JSON(http.StatusOK, users.APIFormat())
+	ctx.JSON(http.StatusOK, apiUsers)
 }

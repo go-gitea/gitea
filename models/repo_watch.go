@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // RepoWatchMode specifies what kind of watch the user has on a repository
@@ -26,10 +27,12 @@ const (
 
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	ID     int64         `xorm:"pk autoincr"`
-	UserID int64         `xorm:"UNIQUE(watch)"`
-	RepoID int64         `xorm:"UNIQUE(watch)"`
-	Mode   RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	ID          int64              `xorm:"pk autoincr"`
+	UserID      int64              `xorm:"UNIQUE(watch)"`
+	RepoID      int64              `xorm:"UNIQUE(watch)"`
+	Mode        RepoWatchMode      `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // getWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found

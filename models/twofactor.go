@@ -5,18 +5,14 @@
 package models
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -67,8 +63,8 @@ func (t *TwoFactor) getEncryptionKey() []byte {
 }
 
 // SetSecret sets the 2FA secret.
-func (t *TwoFactor) SetSecret(secret string) error {
-	secretBytes, err := aesEncrypt(t.getEncryptionKey(), []byte(secret))
+func (t *TwoFactor) SetSecret(secretString string) error {
+	secretBytes, err := secret.AesEncrypt(t.getEncryptionKey(), []byte(secretString))
 	if err != nil {
 		return err
 	}
@@ -82,49 +78,12 @@ func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	secret, err := aesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
+	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
 		return false, err
 	}
-	secretStr := string(secret)
+	secretStr := string(secretBytes)
 	return totp.Validate(passcode, secretStr), nil
-}
-
-// aesEncrypt encrypts text and given key with AES.
-func aesEncrypt(key, text []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	b := base64.StdEncoding.EncodeToString(text)
-	ciphertext := make([]byte, aes.BlockSize+len(b))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
-	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-	return ciphertext, nil
-}
-
-// aesDecrypt decrypts text and given key with AES.
-func aesDecrypt(key, text []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	if len(text) < aes.BlockSize {
-		return nil, errors.New("ciphertext too short")
-	}
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
-	cfb.XORKeyStream(text, text)
-	data, err := base64.StdEncoding.DecodeString(string(text))
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

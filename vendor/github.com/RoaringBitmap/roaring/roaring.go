@@ -345,8 +345,10 @@ func newIntReverseIterator(a *Bitmap) *intReverseIterator {
 
 // ManyIntIterable allows you to iterate over the values in a Bitmap
 type ManyIntIterable interface {
-	// pass in a buffer to fill up with values, returns how many values were returned
-	NextMany([]uint32) int
+	// NextMany fills buf up with values, returns how many values were returned
+	NextMany(buf []uint32) int
+	// NextMany64 fills up buf with 64 bit values, uses hs as a mask (OR), returns how many values were returned
+	NextMany64(hs uint64, buf []uint64) int
 }
 
 type manyIntIterator struct {
@@ -372,6 +374,25 @@ func (ii *manyIntIterator) NextMany(buf []uint32) int {
 			break
 		}
 		moreN := ii.iter.nextMany(ii.hs, buf[n:])
+		n += moreN
+		if moreN == 0 {
+			ii.pos = ii.pos + 1
+			ii.init()
+		}
+	}
+
+	return n
+}
+
+func (ii *manyIntIterator) NextMany64(hs64 uint64, buf []uint64) int {
+	n := 0
+	for n < len(buf) {
+		if ii.iter == nil {
+			break
+		}
+
+		hs := uint64(ii.hs) | hs64
+		moreN := ii.iter.nextMany64(hs, buf[n:])
 		n += moreN
 		if moreN == 0 {
 			ii.pos = ii.pos + 1
@@ -678,7 +699,10 @@ func (rb *Bitmap) GetCardinality() uint64 {
 	return size
 }
 
-// Rank returns the number of integers that are smaller or equal to x (Rank(infinity) would be GetCardinality())
+// Rank returns the number of integers that are smaller or equal to x (Rank(infinity) would be GetCardinality()).
+// If you pass the smallest value, you get the value 1. If you pass a value that is smaller than the smallest
+// value, you get 0. Note that this function differs in convention from the Select function since it
+// return 1 and not 0 on the smallest value.
 func (rb *Bitmap) Rank(x uint32) uint64 {
 	size := uint64(0)
 	for i := 0; i < rb.highlowcontainer.size(); i++ {
@@ -695,7 +719,9 @@ func (rb *Bitmap) Rank(x uint32) uint64 {
 	return size
 }
 
-// Select returns the xth integer in the bitmap
+// Select returns the xth integer in the bitmap. If you pass 0, you get
+// the smallest element. Note that this function differs in convention from
+// the Rank function which returns 1 on the smallest value.
 func (rb *Bitmap) Select(x uint32) (uint32, error) {
 	if rb.GetCardinality() <= uint64(x) {
 		return 0, fmt.Errorf("can't find %dth integer in a bitmap with only %d items", x, rb.GetCardinality())
@@ -980,7 +1006,7 @@ main:
 				}
 				s2 = x2.highlowcontainer.getKeyAtIndex(pos2)
 			} else {
-				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getWritableContainerAtIndex(pos1).ior(x2.highlowcontainer.getContainerAtIndex(pos2)), false)
+				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getUnionedWritableContainer(pos1, x2.highlowcontainer.getContainerAtIndex(pos2)), false)
 				pos1++
 				pos2++
 				if (pos1 == length1) || (pos2 == length2) {

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="explore users">
+<div class="page-content explore users">
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		{{template "explore/search" .}}
@@ -7,12 +7,12 @@
 		<div class="ui user list">
 			{{range .Users}}
 				<div class="item">
-				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
+					{{avatar .}}
 				  <div class="content">
 					<span class="header">
 						<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
 						{{if .Visibility.IsPrivate}}
-							<span class="text gold">{{svg "octicon-lock"}}</span>
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
 						{{end}}
 					</span>
 					<div class="description">

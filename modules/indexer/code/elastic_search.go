@@ -40,7 +40,7 @@ type ElasticSearchIndexer struct {
 }
 
 type elasticLogger struct {
-	*log.Logger
+	log.Logger
 }
 
 func (l elasticLogger) Printf(format string, args ...interface{}) {

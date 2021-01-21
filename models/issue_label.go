@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -21,14 +23,17 @@ var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID                int64 `xorm:"pk autoincr"`
-	RepoID            int64 `xorm:"INDEX"`
-	OrgID             int64 `xorm:"INDEX"`
-	Name              string
-	Description       string
-	Color             string `xorm:"VARCHAR(7)"`
-	NumIssues         int
-	NumClosedIssues   int
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"`
+	OrgID           int64 `xorm:"INDEX"`
+	Name            string
+	Description     string
+	Color           string `xorm:"VARCHAR(7)"`
+	NumIssues       int
+	NumClosedIssues int
+	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
 	IsChecked         bool   `xorm:"-"`
@@ -42,7 +47,7 @@ type Label struct {
 func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
+		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -57,7 +62,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 
 		fields := strings.SplitN(parts[0], " ", 2)
 		if len(fields) != 2 {
-			return nil, fmt.Errorf("line is malformed: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
 		}
 
 		color := strings.Trim(fields[0], " ")
@@ -65,7 +70,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 			color = "#" + color
 		}
 		if !LabelColorPattern.MatchString(color) {
-			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
 		}
 
 		var description string
@@ -162,7 +167,7 @@ func (label *Label) ForegroundColor() template.CSS {
 func loadLabels(labelTemplate string) ([]string, error) {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return nil, err
 	}
 
 	labels := make([]string, len(list))
@@ -181,7 +186,7 @@ func LoadLabelsFormatted(labelTemplate string) (string, error) {
 func initializeLabels(e Engine, id int64, labelTemplate string, isOrg bool) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return err
 	}
 
 	labels := make([]*Label, len(list))
@@ -670,6 +675,11 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -696,6 +706,11 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
@@ -739,6 +754,11 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 

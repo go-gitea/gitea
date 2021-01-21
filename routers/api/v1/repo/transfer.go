@@ -105,5 +105,5 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 	}
 
 	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
-	ctx.JSON(http.StatusAccepted, newRepo.APIFormat(models.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(newRepo, models.AccessModeAdmin))
 }

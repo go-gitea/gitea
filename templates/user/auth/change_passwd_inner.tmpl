@@ -9,13 +9,13 @@
 			{{.CsrfTokenHtml}}
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="password">{{.i18n.Tr "password"}}</label>
-				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 			</div>
 
 
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 				<label for="retype">{{.i18n.Tr "re_type"}}</label>
-				<input id="retype" name="retype" type="password" autocomplete="off" required>
+				<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 			</div>
 
 			<div class="inline field">

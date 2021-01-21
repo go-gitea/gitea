@@ -89,6 +89,7 @@ type Project struct {
 	MirrorTriggerBuilds                       bool               `json:"mirror_trigger_builds"`
 	OnlyMirrorProtectedBranches               bool               `json:"only_mirror_protected_branches"`
 	MirrorOverwritesDivergedBranches          bool               `json:"mirror_overwrites_diverged_branches"`
+	PackagesEnabled                           bool               `json:"packages_enabled"`
 	ServiceDeskEnabled                        bool               `json:"service_desk_enabled"`
 	ServiceDeskAddress                        string             `json:"service_desk_address"`
 	IssuesAccessLevel                         AccessControlValue `json:"issues_access_level"`
@@ -105,11 +106,12 @@ type Project struct {
 		GroupName        string `json:"group_name"`
 		GroupAccessLevel int    `json:"group_access_level"`
 	} `json:"shared_with_groups"`
-	Statistics        *ProjectStatistics `json:"statistics"`
-	Links             *Links             `json:"_links,omitempty"`
-	CIConfigPath      string             `json:"ci_config_path"`
-	CIDefaultGitDepth int                `json:"ci_default_git_depth"`
-	CustomAttributes  []*CustomAttribute `json:"custom_attributes"`
+	Statistics           *ProjectStatistics `json:"statistics"`
+	Links                *Links             `json:"_links,omitempty"`
+	CIConfigPath         string             `json:"ci_config_path"`
+	CIDefaultGitDepth    int                `json:"ci_default_git_depth"`
+	CustomAttributes     []*CustomAttribute `json:"custom_attributes"`
+	ComplianceFrameworks []string           `json:"compliance_frameworks"`
 }
 
 // Repository represents a repository.
@@ -132,11 +134,13 @@ type Repository struct {
 
 // ProjectNamespace represents a project namespace.
 type ProjectNamespace struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Kind     string `json:"kind"`
-	FullPath string `json:"full_path"`
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Kind      string `json:"kind"`
+	FullPath  string `json:"full_path"`
+	AvatarURL string `json:"avatar_url"`
+	WebURL    string `json:"web_url"`
 }
 
 // StorageStatistics represents a statistics record for a group or project.
@@ -1190,19 +1194,20 @@ func (s *ProjectsService) ListProjectForks(pid interface{}, opt *ListProjectsOpt
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/projects.html#push-rules
 type ProjectPushRules struct {
-	ID                    int        `json:"id"`
-	ProjectID             int        `json:"project_id"`
-	CommitMessageRegex    string     `json:"commit_message_regex"`
-	BranchNameRegex       string     `json:"branch_name_regex"`
-	DenyDeleteTag         bool       `json:"deny_delete_tag"`
-	CreatedAt             *time.Time `json:"created_at"`
-	MemberCheck           bool       `json:"member_check"`
-	PreventSecrets        bool       `json:"prevent_secrets"`
-	AuthorEmailRegex      string     `json:"author_email_regex"`
-	FileNameRegex         string     `json:"file_name_regex"`
-	MaxFileSize           int        `json:"max_file_size"`
-	CommitCommitterCheck  bool       `json:"commit_committer_check"`
-	RejectUnsignedCommits bool       `json:"reject_unsigned_commits"`
+	ID                         int        `json:"id"`
+	ProjectID                  int        `json:"project_id"`
+	CommitMessageRegex         string     `json:"commit_message_regex"`
+	CommitMessageNegativeRegex string     `json:"commit_message_negative_regex"`
+	BranchNameRegex            string     `json:"branch_name_regex"`
+	DenyDeleteTag              bool       `json:"deny_delete_tag"`
+	CreatedAt                  *time.Time `json:"created_at"`
+	MemberCheck                bool       `json:"member_check"`
+	PreventSecrets             bool       `json:"prevent_secrets"`
+	AuthorEmailRegex           string     `json:"author_email_regex"`
+	FileNameRegex              string     `json:"file_name_regex"`
+	MaxFileSize                int        `json:"max_file_size"`
+	CommitCommitterCheck       bool       `json:"commit_committer_check"`
+	RejectUnsignedCommits      bool       `json:"reject_unsigned_commits"`
 }
 
 // GetProjectPushRules gets the push rules of a project.
@@ -1236,14 +1241,17 @@ func (s *ProjectsService) GetProjectPushRules(pid interface{}, options ...Reques
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/projects.html#add-project-push-rule
 type AddProjectPushRuleOptions struct {
-	DenyDeleteTag      *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
-	MemberCheck        *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
-	PreventSecrets     *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
-	CommitMessageRegex *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
-	BranchNameRegex    *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
-	AuthorEmailRegex   *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
-	FileNameRegex      *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
-	MaxFileSize        *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
 }
 
 // AddProjectPushRule adds a push rule to a specified project.
@@ -1277,16 +1285,17 @@ func (s *ProjectsService) AddProjectPushRule(pid interface{}, opt *AddProjectPus
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/projects.html#edit-project-push-rule
 type EditProjectPushRuleOptions struct {
-	AuthorEmailRegex      *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
-	BranchNameRegex       *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
-	CommitMessageRegex    *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
-	FileNameRegex         *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
-	DenyDeleteTag         *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
-	MemberCheck           *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
-	PreventSecrets        *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
-	MaxFileSize           *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
-	CommitCommitterCheck  *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
-	RejectUnsignedCommits *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
 }
 
 // EditProjectPushRule edits a push rule for a specified project.

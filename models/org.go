@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -310,11 +310,9 @@ func deleteOrg(e *xorm.Session, u *User) error {
 	}
 
 	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := util.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		avatarPath := u.CustomAvatarRelativePath()
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
@@ -478,7 +476,8 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
 		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
-		Desc("`user`.updated_unix").Find(&orgs)
+		Asc("`user`.name").
+		Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
@@ -747,13 +746,14 @@ type AccessibleReposEnvironment interface {
 type accessibleReposEnv struct {
 	org     *User
 	user    *User
+	team    *Team
 	teamIDs []int64
 	e       Engine
 	keyword string
 	orderBy SearchOrderBy
 }
 
-// AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// AccessibleReposEnv builds an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
 	return org.accessibleReposEnv(x, userID)
@@ -783,16 +783,31 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 	}, nil
 }
 
+// AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// that are accessible to the specified team.
+func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+	return &accessibleReposEnv{
+		org:     org,
+		team:    team,
+		e:       x,
+		orderBy: SearchOrderByRecentUpdated,
+	}
+}
+
 func (env *accessibleReposEnv) cond() builder.Cond {
 	var cond = builder.NewCond()
-	if env.user == nil || !env.user.IsRestricted {
-		cond = cond.Or(builder.Eq{
-			"`repository`.owner_id":   env.org.ID,
-			"`repository`.is_private": false,
-		})
-	}
-	if len(env.teamIDs) > 0 {
-		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	if env.team != nil {
+		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
+	} else {
+		if env.user == nil || !env.user.IsRestricted {
+			cond = cond.Or(builder.Eq{
+				"`repository`.owner_id":   env.org.ID,
+				"`repository`.is_private": false,
+			})
+		}
+		if len(env.teamIDs) > 0 {
+			cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+		}
 	}
 	if env.keyword != "" {
 		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})

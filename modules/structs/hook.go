@@ -338,7 +338,7 @@ func ParsePushHook(raw []byte) (*PushPayload, error) {
 
 // Branch returns branch name from a payload
 func (p *PushPayload) Branch() string {
-	return strings.Replace(p.Ref, "refs/heads/", "", -1)
+	return strings.ReplaceAll(p.Ref, "refs/heads/", "")
 }
 
 // .___

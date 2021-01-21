@@ -37,6 +37,7 @@ type InstanceCluster struct {
 	ID                 int                 `json:"id"`
 	Name               string              `json:"name"`
 	Domain             string              `json:"domain"`
+	Managed            bool                `json:"managed"`
 	CreatedAt          *time.Time          `json:"created_at"`
 	ProviderType       string              `json:"provider_type"`
 	PlatformType       string              `json:"platform_type"`

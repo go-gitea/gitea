@@ -138,6 +138,7 @@ type SearchRepoOptions struct {
 	Keyword         string
 	OwnerID         int64
 	PriorityOwnerID int64
+	TeamID          int64
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
@@ -175,6 +176,8 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones util.OptionalBool
+	// LowerNames represents valid lower names to restrict to
+	LowerNames []string
 }
 
 //SearchOrderBy is used to sort the result
@@ -290,6 +293,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		}
 
 		cond = cond.And(accessCond)
+	}
+
+	if opts.TeamID > 0 {
+		cond = cond.And(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").From("team_repo").Where(builder.Eq{"`team_repo`.team_id": opts.TeamID})))
 	}
 
 	if opts.Keyword != "" {

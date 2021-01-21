@@ -21,13 +21,13 @@ import (
 func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == models.AccessModeRead
 	if repository.ID == key.RepoID {
-		apiKey.Repository = repository.APIFormat(key.Mode)
+		apiKey.Repository = convert.ToRepo(repository, key.Mode)
 	} else {
 		repo, err := models.GetRepositoryByID(key.RepoID)
 		if err != nil {
 			return apiKey, err
 		}
-		apiKey.Repository = repo.APIFormat(key.Mode)
+		apiKey.Repository = convert.ToRepo(repo, key.Mode)
 	}
 	return apiKey, nil
 }
@@ -177,6 +177,8 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Key content has been used as non-deploy key")
 	case models.IsErrKeyNameAlreadyUsed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Key title has been used")
+	case models.IsErrDeployKeyNameAlreadyUsed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", "A key with the same name already exists")
 	default:
 		ctx.Error(http.StatusInternalServerError, "AddKey", err)
 	}

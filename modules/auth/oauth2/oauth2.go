@@ -23,6 +23,7 @@ import (
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/mastodon"
 	"github.com/markbates/goth/providers/nextcloud"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
@@ -116,6 +117,11 @@ func RegisterProvider(providerName, providerType, clientID, clientSecret, openID
 // RemoveProvider removes the given OAuth2 provider from the goth lib
 func RemoveProvider(providerName string) {
 	delete(goth.GetProviders(), providerName)
+}
+
+// ClearProviders clears all OAuth2 providers from the goth lib
+func ClearProviders() {
+	goth.ClearProviders()
 }
 
 // used to create different types of goth providers
@@ -213,6 +219,12 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "yandex":
 		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
 		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
+	case "mastodon":
+		instanceURL := mastodon.InstanceURL
+		if customURLMapping != nil && len(customURLMapping.AuthURL) > 0 {
+			instanceURL = customURLMapping.AuthURL
+		}
+		provider = mastodon.NewCustomisedURL(clientID, clientSecret, callbackURL, instanceURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
@@ -249,6 +261,8 @@ func GetDefaultAuthURL(provider string) string {
 		return gitea.AuthURL
 	case "nextcloud":
 		return nextcloud.AuthURL
+	case "mastodon":
+		return mastodon.InstanceURL
 	}
 	return ""
 }

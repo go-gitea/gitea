@@ -191,8 +191,12 @@ func getContentHandler(ctx *context.Context) {
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
-		// Errors are logged in contentStore.Get
-		writeStatus(ctx, 404)
+		if IsErrRangeNotSatisfiable(err) {
+			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
+		} else {
+			// Errors are logged in contentStore.Get
+			writeStatus(ctx, 404)
+		}
 		return
 	}
 	defer content.Close()
@@ -409,9 +413,8 @@ func PutHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	bodyReader := ctx.Req.Body().ReadCloser()
-	defer bodyReader.Close()
-	if err := contentStore.Put(meta, bodyReader); err != nil {
+	defer ctx.Req.Request.Body.Close()
+	if err := contentStore.Put(meta, ctx.Req.Request.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
 		if err == errSizeMismatch || err == errHashMismatch {

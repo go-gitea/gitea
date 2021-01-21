@@ -28,7 +28,7 @@ func (e *ErrInvalidRevision) Error() string {
 type Revisioner interface {
 }
 
-// Ref represents a reference name : HEAD, master
+// Ref represents a reference name : HEAD, master, <hash>
 type Ref string
 
 // TildePath represents ~, ~{n}
@@ -297,7 +297,7 @@ func (p *Parser) parseAt() (Revisioner, error) {
 		}
 
 		if t != cbrace {
-			return nil, &ErrInvalidRevision{fmt.Sprintf(`missing "}" in @{-n} structure`)}
+			return nil, &ErrInvalidRevision{s: `missing "}" in @{-n} structure`}
 		}
 
 		return AtCheckout{n}, nil
@@ -419,7 +419,7 @@ func (p *Parser) parseCaretBraces() (Revisioner, error) {
 		case re == "" && tok == emark && nextTok == minus:
 			negate = true
 		case re == "" && tok == emark:
-			return nil, &ErrInvalidRevision{fmt.Sprintf(`revision suffix brace component sequences starting with "/!" others than those defined are reserved`)}
+			return nil, &ErrInvalidRevision{s: `revision suffix brace component sequences starting with "/!" others than those defined are reserved`}
 		case re == "" && tok == slash:
 			p.unscan()
 		case tok != slash && start:
@@ -490,7 +490,7 @@ func (p *Parser) parseColonSlash() (Revisioner, error) {
 		case re == "" && tok == emark && nextTok == minus:
 			negate = true
 		case re == "" && tok == emark:
-			return nil, &ErrInvalidRevision{fmt.Sprintf(`revision suffix brace component sequences starting with "/!" others than those defined are reserved`)}
+			return nil, &ErrInvalidRevision{s: `revision suffix brace component sequences starting with "/!" others than those defined are reserved`}
 		case tok == eof:
 			p.unscan()
 			reg, err := regexp.Compile(re)

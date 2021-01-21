@@ -8,7 +8,7 @@ require (
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/go-git/gcfg v1.5.0
 	github.com/go-git/go-billy/v5 v5.0.0
-	github.com/go-git/go-git-fixtures/v4 v4.0.1
+	github.com/go-git/go-git-fixtures/v4 v4.0.2-0.20200613231340-f56387b50c12
 	github.com/google/go-cmp v0.3.0
 	github.com/imdario/mergo v0.3.9
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99

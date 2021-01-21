@@ -4,7 +4,7 @@
 
 package queue
 
-import "github.com/go-redis/redis"
+import "github.com/go-redis/redis/v7"
 
 // RedisUniqueQueueType is the type for redis queue
 const RedisUniqueQueueType Type = "unique-redis"

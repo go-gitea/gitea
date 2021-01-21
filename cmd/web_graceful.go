@@ -37,6 +37,12 @@ func NoMainListener() {
 	graceful.GetManager().InformCleanup()
 }
 
+// NoInstallListener tells our cleanup routine that we will not be using a possibly provided listener
+// for our install HTTP/HTTPS service
+func NoInstallListener() {
+	graceful.GetManager().InformCleanup()
+}
+
 func runFCGI(network, listenAddr string, m http.Handler) error {
 	// This needs to handle stdin as fcgi point
 	fcgiServer := graceful.NewServer(network, listenAddr)

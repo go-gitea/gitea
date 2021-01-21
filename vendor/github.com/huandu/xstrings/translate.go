@@ -4,7 +4,6 @@
 package xstrings
 
 import (
-	"bytes"
 	"unicode"
 	"unicode/utf8"
 )
@@ -152,12 +151,12 @@ func NewTranslator(from, to string) *Translator {
 			continue
 		}
 
-		fromStart, toStart = tr.addRuneRange(fromStart, fromEnd, toStart, toStart, singleRunes)
+		_, toStart = tr.addRuneRange(fromStart, fromEnd, toStart, toStart, singleRunes)
 		fromEnd = utf8.RuneError
 	}
 
 	if fromEnd != utf8.RuneError {
-		singleRunes = tr.addRune(fromEnd, toStart, singleRunes)
+		tr.addRune(fromEnd, toStart, singleRunes)
 	}
 
 	tr.reverted = reverted
@@ -303,7 +302,7 @@ func (tr *Translator) Translate(str string) string {
 
 	orig := str
 
-	var output *bytes.Buffer
+	var output *stringBuilder
 
 	for len(str) > 0 {
 		r, size = utf8.DecodeRuneInString(str)
@@ -500,7 +499,7 @@ func Squeeze(str, pattern string) string {
 	var size int
 	var skipSqueeze, matched bool
 	var tr *Translator
-	var output *bytes.Buffer
+	var output *stringBuilder
 
 	orig := str
 	last = -1

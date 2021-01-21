@@ -1,0 +1,3 @@
+.PHONY: test
+test:
+	go test -race -deprecations -strict-decoder -v . ./aws/... ./config/... ./trace/... ./uritemplates/...

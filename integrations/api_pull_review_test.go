@@ -122,4 +122,110 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 0, review.CodeCommentsCount)
 	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
 	resp = session.MakeRequest(t, req, http.StatusNoContent)
+
+	// test get review requests
+	// to make it simple, use same api with get review
+	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	assert.NoError(t, pullIssue12.LoadAttributes())
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &reviews)
+	assert.EqualValues(t, 11, reviews[0].ID)
+	assert.EqualValues(t, "REQUEST_REVIEW", reviews[0].State)
+	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
+	assert.EqualValues(t, false, reviews[0].Stale)
+	assert.EqualValues(t, true, reviews[0].Official)
+	assert.EqualValues(t, "test_team", reviews[0].ReviewerTeam.Name)
+
+	assert.EqualValues(t, 12, reviews[1].ID)
+	assert.EqualValues(t, "REQUEST_REVIEW", reviews[1].State)
+	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
+	assert.EqualValues(t, false, reviews[1].Stale)
+	assert.EqualValues(t, true, reviews[1].Official)
+	assert.EqualValues(t, 1, reviews[1].Reviewer.ID)
+}
+
+func TestAPIPullReviewRequest(t *testing.T) {
+	defer prepareTestEnv(t)()
+	pullIssue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	assert.NoError(t, pullIssue.LoadAttributes())
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+
+	// Test add Review Request
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user4@example.com", "user8"},
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	// poster of pr can't be reviewer
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user1"},
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// test user not exist
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"testOther"},
+	})
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// Test Remove Review Request
+	session2 := loginUser(t, "user4")
+	token2 := getTokenForLoggedInUser(t, session2)
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user4"},
+	})
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// doer is not admin
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user8"},
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user8"},
+	})
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// Test team review request
+	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	assert.NoError(t, pullIssue12.LoadAttributes())
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+
+	// Test add Team Review Request
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"team1", "owners"},
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	// Test add Team Review Request to not allowned
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"test_team"},
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// Test add Team Review Request to not exist
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"not_exist_team"},
+	})
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// Test Remove team Review Request
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"team1"},
+	})
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// empty request test
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	session.MakeRequest(t, req, http.StatusNoContent)
 }

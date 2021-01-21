@@ -5,6 +5,8 @@
 package queue
 
 import (
+	"code.gitea.io/gitea/modules/nosql"
+
 	"gitea.com/lunny/levelqueue"
 )
 
@@ -14,7 +16,9 @@ const LevelUniqueQueueType Type = "unique-level"
 // LevelUniqueQueueConfiguration is the configuration for a LevelUniqueQueue
 type LevelUniqueQueueConfiguration struct {
 	ByteFIFOQueueConfiguration
-	DataDir string
+	DataDir          string
+	ConnectionString string
+	QueueName        string
 }
 
 // LevelUniqueQueue implements a disk library queue
@@ -34,7 +38,11 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	}
 	config := configInterface.(LevelUniqueQueueConfiguration)
 
-	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.DataDir)
+	if len(config.ConnectionString) == 0 {
+		config.ConnectionString = config.DataDir
+	}
+
+	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {
 		return nil, err
 	}
@@ -55,18 +63,25 @@ var _ (UniqueByteFIFO) = &LevelUniqueQueueByteFIFO{}
 
 // LevelUniqueQueueByteFIFO represents a ByteFIFO formed from a LevelUniqueQueue
 type LevelUniqueQueueByteFIFO struct {
-	internal *levelqueue.UniqueQueue
+	internal   *levelqueue.UniqueQueue
+	connection string
 }
 
 // NewLevelUniqueQueueByteFIFO creates a new ByteFIFO formed from a LevelUniqueQueue
-func NewLevelUniqueQueueByteFIFO(dataDir string) (*LevelUniqueQueueByteFIFO, error) {
-	internal, err := levelqueue.OpenUnique(dataDir)
+func NewLevelUniqueQueueByteFIFO(connection, prefix string) (*LevelUniqueQueueByteFIFO, error) {
+	db, err := nosql.GetManager().GetLevelDB(connection)
+	if err != nil {
+		return nil, err
+	}
+
+	internal, err := levelqueue.NewUniqueQueue(db, []byte(prefix), []byte(prefix+"-unique"), false)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LevelUniqueQueueByteFIFO{
-		internal: internal,
+		connection: connection,
+		internal:   internal,
 	}, nil
 }
 
@@ -96,7 +111,9 @@ func (fifo *LevelUniqueQueueByteFIFO) Has(data []byte) (bool, error) {
 
 // Close this fifo
 func (fifo *LevelUniqueQueueByteFIFO) Close() error {
-	return fifo.internal.Close()
+	err := fifo.internal.Close()
+	_ = nosql.GetManager().CloseLevelDB(fifo.connection)
+	return err
 }
 
 func init() {

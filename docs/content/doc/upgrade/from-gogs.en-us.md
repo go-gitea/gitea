@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Upgrade from Gogs"
 slug: "upgrade-from-gogs"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -14,6 +14,10 @@ menu:
 ---
 
 # Upgrade from Gogs
+
+**Table of Contents**
+
+{{< toc >}}
 
 Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
@@ -81,7 +85,7 @@ Then repeat the procedure, but this time using the [lastest release](https://dl.
 
 ## Upgrading from a more recent version of Gogs
 
-Upgrading from a more recent version of Gogs is also possible, but requires a bit more work. 
+Upgrading from a more recent version of Gogs is also possible, but requires a bit more work.
 See [#4286](https://github.com/go-gitea/gitea/issues/4286).
 
 ## Troubleshooting

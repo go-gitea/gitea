@@ -17,8 +17,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -37,17 +35,17 @@ func nameAllowed(name string) error {
 
 // NameToSubURL converts a wiki name to its corresponding sub-URL.
 func NameToSubURL(name string) string {
-	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
+	return url.QueryEscape(strings.ReplaceAll(name, " ", "-"))
 }
 
 // NormalizeWikiName normalizes a wiki name
 func NormalizeWikiName(name string) string {
-	return strings.Replace(name, "-", " ", -1)
+	return strings.ReplaceAll(name, "-", " ")
 }
 
 // NameToFilename converts a wiki name to its corresponding filename.
 func NameToFilename(name string) string {
-	name = strings.Replace(name, " ", "-", -1)
+	name = strings.ReplaceAll(name, " ", "-")
 	return url.QueryEscape(name) + ".md"
 }
 
@@ -77,6 +75,8 @@ func InitWiki(repo *models.Repository) error {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
+	} else if _, err = git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
+		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil
 }
@@ -86,8 +86,8 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
+	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)
@@ -240,8 +240,8 @@ func EditWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWi
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string) (err error) {
-	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
+	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)

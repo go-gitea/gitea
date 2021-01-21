@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -17,16 +16,18 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 )
 
-func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	ctx.Data["AttachmentStoreType"] = setting.Attachment.StoreType
-	ctx.Data["AttachmentAllowedTypes"] = setting.Attachment.AllowedTypes
-	ctx.Data["AttachmentMaxSize"] = setting.Attachment.MaxSize
-	ctx.Data["AttachmentMaxFiles"] = setting.Attachment.MaxFiles
+// UploadIssueAttachment response for Issue/PR attachments
+func UploadIssueAttachment(ctx *context.Context) {
+	uploadAttachment(ctx, setting.Attachment.AllowedTypes)
 }
 
-// UploadAttachment response for uploading issue's attachment
-func UploadAttachment(ctx *context.Context) {
+// UploadReleaseAttachment response for uploading release attachments
+func UploadReleaseAttachment(ctx *context.Context) {
+	uploadAttachment(ctx, setting.Repository.Release.AllowedTypes)
+}
+
+// UploadAttachment response for uploading attachments
+func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	if !setting.Attachment.Enabled {
 		ctx.Error(404, "attachment is not enabled")
 		return
@@ -45,7 +46,7 @@ func UploadAttachment(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.Attachment.AllowedTypes, ","))
+	err = upload.Verify(buf, header.Filename, allowedTypes)
 	if err != nil {
 		ctx.Error(400, err.Error())
 		return

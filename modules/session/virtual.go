@@ -15,7 +15,6 @@ import (
 	mysql "gitea.com/macaron/session/mysql"
 	nodb "gitea.com/macaron/session/nodb"
 	postgres "gitea.com/macaron/session/postgres"
-	redis "gitea.com/macaron/session/redis"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
@@ -40,7 +39,7 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	case "file":
 		o.provider = &session.FileProvider{}
 	case "redis":
-		o.provider = &redis.RedisProvider{}
+		o.provider = &RedisProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":

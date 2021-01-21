@@ -52,6 +52,7 @@ FROM        = sqlite-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = true
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -87,6 +88,7 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
+DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.OQkH5UmzID2XBdwQ9TAI6Jj2t1X-wElVTjbE7aoN4I8

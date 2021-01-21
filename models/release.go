@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -54,7 +53,11 @@ func (r *Release) loadAttributes(e Engine) error {
 	if r.Publisher == nil {
 		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
-			return err
+			if IsErrUserNotExist(err) {
+				r.Publisher = NewGhostUser()
+			} else {
+				return err
+			}
 		}
 	}
 	return getReleaseAttachments(e, r)
@@ -84,31 +87,6 @@ func (r *Release) TarURL() string {
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
 	return fmt.Sprintf("%s/releases/tag/%s", r.Repo.HTMLURL(), r.TagName)
-}
-
-// APIFormat convert a Release to api.Release
-func (r *Release) APIFormat() *api.Release {
-	assets := make([]*api.Attachment, 0)
-	for _, att := range r.Attachments {
-		assets = append(assets, att.APIFormat())
-	}
-	return &api.Release{
-		ID:           r.ID,
-		TagName:      r.TagName,
-		Target:       r.Target,
-		Title:        r.Title,
-		Note:         r.Note,
-		URL:          r.APIURL(),
-		HTMLURL:      r.HTMLURL(),
-		TarURL:       r.TarURL(),
-		ZipURL:       r.ZipURL(),
-		IsDraft:      r.IsDraft,
-		IsPrerelease: r.IsPrerelease,
-		CreatedAt:    r.CreatedUnix.AsTime(),
-		PublishedAt:  r.CreatedUnix.AsTime(),
-		Publisher:    r.Publisher.APIFormat(),
-		Attachments:  assets,
-	}
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.

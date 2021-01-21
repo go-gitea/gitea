@@ -285,6 +285,12 @@ func runHookUpdate(c *cli.Context) error {
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	// First of all run update-server-info no matter what
+	if _, err := git.NewCommand("update-server-info").Run(); err != nil {
+		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	// Now if we're an internal don't do anything else
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
 	}
