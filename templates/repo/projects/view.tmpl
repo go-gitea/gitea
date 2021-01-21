@@ -166,13 +166,21 @@
 								</span>
 								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
 							</div>
+							{{- if .MilestoneID }}
 							<div class="meta">
-								{{ if .MilestoneID }}
 								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
 									{{svg "octicon-milestone"}} {{ .Milestone.Name }}
 								</a>
-								{{ end }}
 							</div>
+							{{- end }}
+							{{- range index $.LinkedPRs .ID }}
+							<div class="meta">
+								<a href="{{$.RepoLink}}/pulls/{{ .ID }}">
+									<span class="{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
+									{{ .Title}} (#{{ .ID }})
+								</a>
+							</div>
+							{{- end }}
 						</div>
 						<div class="extra content">
 							{{ range .Labels }}
