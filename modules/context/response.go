@@ -46,6 +46,12 @@ func (r *Response) Write(bs []byte) (int, error) {
 
 // WriteHeader write status code
 func (r *Response) WriteHeader(statusCode int) {
+	if !r.beforeExecuted {
+		for _, before := range r.befores {
+			before(r)
+		}
+		r.beforeExecuted = true
+	}
 	r.status = statusCode
 	r.ResponseWriter.WriteHeader(statusCode)
 }

@@ -8,14 +8,18 @@ package context
 import (
 	"context"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"gitea.com/go-chi/session"
 )
 
 // APIContext is a specific macaron context for API service
@@ -214,15 +218,37 @@ func (ctx *APIContext) CheckForOTP() {
 
 // APIContexter returns apicontext as macaron middleware
 func APIContexter() func(http.Handler) http.Handler {
+	var csrfOpts = getCsrfOpts()
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := &APIContext{
+			var ctx = APIContext{
 				Context: &Context{
-					Resp: NewResponse(w),
-					Data: map[string]interface{}{},
+					Resp:    NewResponse(w),
+					Data:    map[string]interface{}{},
+					Session: session.GetSession(req),
 				},
 			}
-			ctx.Req = WithAPIContext(req, ctx)
+			ctx.Req = WithAPIContext(req, &ctx)
+			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
+
+			// Get user from session if logged in.
+			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
+			if ctx.User != nil {
+				ctx.Data["IsApiToken"] = true
+				ctx.IsSigned = true
+				ctx.Data["IsSigned"] = ctx.IsSigned
+				ctx.Data["SignedUser"] = ctx.User
+				ctx.Data["SignedUserID"] = ctx.User.ID
+				ctx.Data["SignedUserName"] = ctx.User.Name
+				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+			} else {
+				ctx.Data["SignedUserID"] = int64(0)
+				ctx.Data["SignedUserName"] = ""
+			}
+
+			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

@@ -6,17 +6,10 @@
 package context
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-// IsAPIPath if URL is an api path
-func IsAPIPath(url string) bool {
-	return strings.HasPrefix(url, "/api/")
-}
 
 // ToggleOptions contains required or check options
 type ToggleOptions struct {

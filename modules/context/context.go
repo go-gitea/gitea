@@ -483,6 +483,19 @@ func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
 }
 
+func getCsrfOpts() CsrfOptions {
+	return CsrfOptions{
+		Secret:         setting.SecretKey,
+		Cookie:         setting.CSRFCookieName,
+		SetCookie:      true,
+		Secure:         setting.SessionConfig.Secure,
+		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
+		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
+		CookiePath:     setting.SessionConfig.CookiePath,
+	}
+}
+
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
@@ -500,17 +513,7 @@ func Contexter() func(next http.Handler) http.Handler {
 		}
 	}
 
-	var csrfOpts = CsrfOptions{
-		Secret:         setting.SecretKey,
-		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
-		Secure:         setting.SessionConfig.Secure,
-		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
-		CookieDomain:   setting.SessionConfig.Domain,
-		CookiePath:     setting.SessionConfig.CookiePath,
-	}
-
+	var csrfOpts = getCsrfOpts()
 	var flashEncryptionKey, _ = NewSecret()
 
 	return func(next http.Handler) http.Handler {
@@ -547,26 +550,20 @@ func Contexter() func(next http.Handler) http.Handler {
 			decrypted, _ := DecryptSecret(flashEncryptionKey, flashCookie)
 			vals, _ := url.ParseQuery(decrypted)
 			if len(vals) > 0 {
-				f := &middlewares.Flash{Values: vals}
-				f.ErrorMsg = f.Get("error")
-				f.SuccessMsg = f.Get("success")
-				f.InfoMsg = f.Get("info")
-				f.WarningMsg = f.Get("warning")
+				f := &middlewares.Flash{
+					DataStore:  &ctx,
+					Values:     vals,
+					ErrorMsg:   vals.Get("error"),
+					SuccessMsg: vals.Get("success"),
+					InfoMsg:    vals.Get("info"),
+					WarningMsg: vals.Get("warning"),
+				}
+
 				t, _ := strconv.ParseInt(f.Get("time"), 10, 64)
 				now := time.Now().Unix()
 				if now-t >= 0 && now-t < 3600 {
 					ctx.Data["Flash"] = f
 				}
-			}
-
-			if len(flashCookie) > 0 {
-				ctx.SetCookie("macaron_flash", "", -1,
-					setting.SessionConfig.CookiePath,
-					middlewares.Domain(setting.SessionConfig.Domain),
-					middlewares.HTTPOnly(true),
-					middlewares.Secure(setting.SessionConfig.Secure),
-					//middlewares.SameSite(),
-				)
 			}
 
 			f := &middlewares.Flash{
@@ -589,8 +586,17 @@ func Contexter() func(next http.Handler) http.Handler {
 							middlewares.Secure(setting.SessionConfig.Secure),
 							//middlewares.SameSite(opt.SameSite),
 						)
+						return
 					}
 				}
+
+				ctx.SetCookie("macaron_flash", "", -1,
+					setting.SessionConfig.CookiePath,
+					middlewares.Domain(setting.SessionConfig.Domain),
+					middlewares.HTTPOnly(true),
+					middlewares.Secure(setting.SessionConfig.Secure),
+					//middlewares.SameSite(),
+				)
 			})
 
 			ctx.Flash = f
