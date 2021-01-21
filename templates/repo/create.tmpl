@@ -8,6 +8,7 @@
 					{{.i18n.Tr "new_repo"}}
 				</h3>
 				<div class="ui attached segment">
+					{{template "base/alert" .}}
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">
 							<p>{{.i18n.Tr (TrN .i18n.Lang .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n") .MaxCreationLimit}}</p>
