@@ -525,7 +525,11 @@ func bind(obj interface{}) http.HandlerFunc {
 	}
 	return web.Wrap(func(ctx *context.APIContext) {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
-		binding.Bind(ctx.Req, theObj)
+		errs := binding.Bind(ctx.Req, theObj)
+		if len(errs) > 0 {
+			ctx.Error(422, "validationError", errs[0].Error())
+			return
+		}
 		web.SetForm(ctx, theObj)
 	})
 }
