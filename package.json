@@ -34,6 +34,7 @@
     "monaco-editor": "0.21.2",
     "monaco-editor-webpack-plugin": "2.1.0",
     "postcss": "8.2.1",
+    "pretty-ms": "7.0.1",
     "raw-loader": "4.0.2",
     "sortablejs": "1.12.0",
     "swagger-ui-dist": "3.38.0",

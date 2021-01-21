@@ -147,6 +147,8 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
+			Seconds:       sw.Seconds(),
+			Duration:      sw.Duration(),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,
