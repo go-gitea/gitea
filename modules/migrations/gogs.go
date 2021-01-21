@@ -111,7 +111,7 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 	return &downloader
 }
 
-// RoundTrip wraps the provided request within this downloaders context and passes it to our internal http.Transport.
+// RoundTrip wraps the provided request within this downloader's context and passes it to our internal http.Transport.
 // This implements http.RoundTripper and makes the gogs client requests cancellable even though it is not cancellable itself
 func (g *GogsDownloader) RoundTrip(req *http.Request) (*http.Response, error) {
 	return g.transport.RoundTrip(req.WithContext(g.ctx))
