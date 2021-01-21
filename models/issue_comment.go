@@ -1052,7 +1052,6 @@ func DeleteComment(comment *Comment) error {
 }
 
 func deleteComment(e Engine, comment *Comment) error {
-
 	if _, err := e.Delete(&Comment{
 		ID: comment.ID,
 	}); err != nil {
