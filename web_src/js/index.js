@@ -22,6 +22,7 @@ import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {initStopwatch} from './features/stopwatch.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 import {stripTags} from './utils.js';
@@ -2626,6 +2627,7 @@ $(document).ready(async () => {
     initProject(),
     initServiceWorker(),
     initNotificationCount(),
+    initStopwatch(),
     renderMarkdownContent(),
     initGithook(),
   ]);
