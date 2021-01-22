@@ -7,7 +7,6 @@ package integrations
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,14 +30,11 @@ func TestAPIListStopWatches(t *testing.T) {
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
-		apiWatches[0].Created = time.Time{}
-		assert.EqualValues(t, api.StopWatch{
-			Created:       time.Time{},
-			IssueIndex:    issue.Index,
-			IssueTitle:    issue.Title,
-			RepoName:      repo.Name,
-			RepoOwnerName: repo.OwnerName,
-		}, *apiWatches[0])
+		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
+		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
 	}
 }
 
