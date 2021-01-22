@@ -143,8 +143,8 @@ func WebRoutes() *web.Route {
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
 
-	m.Use(user.GetNotificationCount)
-	m.Use(repo.GetActiveStopwatch)
+	r.Use(user.GetNotificationCount)
+	r.Use(repo.GetActiveStopwatch)
 	r.Use(func(ctx *context.Context) {
 		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
 		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
