@@ -34,7 +34,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -79,13 +78,13 @@ func loadRepoConfig() {
 			log.Fatal("Failed to get custom %s files: %v", t, err)
 		}
 		if isDir {
-			customFiles, err := com.StatDir(customPath)
+			customFiles, err := util.StatDir(customPath)
 			if err != nil {
 				log.Fatal("Failed to get custom %s files: %v", t, err)
 			}
 
 			for _, f := range customFiles {
-				if !com.IsSliceContainsStr(files, f) {
+				if !util.IsStringInSlice(f, files, true) {
 					files = append(files, f)
 				}
 			}
@@ -115,12 +114,12 @@ func loadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if com.IsSliceContainsStr(Licenses, name) {
+		if util.IsStringInSlice(name, Licenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !com.IsSliceContainsStr(setting.Repository.PreferredLicenses, name) {
+		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
@@ -980,6 +979,7 @@ type CreateRepoOptions struct {
 	AutoInit       bool
 	Status         RepositoryStatus
 	TrustModel     TrustModelType
+	MirrorInterval string
 }
 
 // GetRepoInitFile returns repository init files
@@ -1511,26 +1511,27 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 }
 
 // DeleteRepository deletes a repository for a user or organization.
+// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *User, uid, repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	// In case is a organization.
-	org, err := GetUserByID(uid)
+	org, err := getUserByID(sess, uid)
 	if err != nil {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err = org.getTeams(sess); err != nil {
 			return err
 		}
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	repo := &Repository{ID: repoID, OwnerID: uid}
-	has, err := sess.Get(repo)
+	repo := &Repository{OwnerID: uid}
+	has, err := sess.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -1679,14 +1680,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
-		sess.Close()
-		if len(deployKeys) > 0 {
-			// We need to rewrite the public keys because the commit failed
-			if err2 := RewriteAllPublicKeys(); err2 != nil {
-				return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
-			}
-		}
-		return fmt.Errorf("Commit: %v", err)
+		return err
 	}
 
 	sess.Close()
@@ -1933,7 +1927,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
-		id := com.StrTo(result["id"]).MustInt64()
+		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
@@ -2001,7 +1995,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
@@ -2024,7 +2018,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
@@ -2047,7 +2041,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")

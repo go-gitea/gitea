@@ -21,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/unknwon/com"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -55,7 +53,18 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		return err
 	}
 
-	notification.NotifyNewPullRequest(pr)
+	mentions, err := pull.FindAndUpdateIssueMentions(models.DefaultDBContext(), pull.Poster, pull.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewPullRequest(pr, mentions)
+	if len(pull.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(pull.Poster, pull, pull.Labels, nil)
+	}
+	if pull.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(pull.Poster, pull, 0)
+	}
 
 	// add first push codes comment
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
@@ -326,7 +335,7 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 	defer headGitRepo.Close()
 
 	// Add a temporary remote.
-	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
+	tmpRemote := "checkIfPRContentChanged-" + fmt.Sprint(time.Now().UnixNano())
 	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
 		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
@@ -502,8 +511,8 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	return nil
 }
 
-// GetCommitMessages returns the commit messages between head and merge base (if there is one)
-func GetCommitMessages(pr *models.PullRequest) string {
+// GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
+func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
@@ -550,34 +559,22 @@ func GetCommitMessages(pr *models.PullRequest) string {
 		return ""
 	}
 
-	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
+
+	stringBuilder.WriteString(pr.Issue.Content)
+	if stringBuilder.Len() > 0 {
+		stringBuilder.WriteRune('\n')
+		stringBuilder.WriteRune('\n')
+	}
+
 	// commits list is in reverse chronological order
 	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
-
-		if maxSize < 0 || stringBuilder.Len() < maxSize {
-			toWrite := []byte(commit.CommitMessage)
-			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
-				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
-			}
-			if _, err := stringBuilder.Write(toWrite); err != nil {
-				log.Error("Unable to write commit message Error: %v", err)
-				return ""
-			}
-
-			if _, err := stringBuilder.WriteRune('\n'); err != nil {
-				log.Error("Unable to write commit message Error: %v", err)
-				return ""
-			}
-		}
-
 		authorString := commit.Author.String()
 		if !authorsMap[authorString] && authorString != posterSig {
 			authors = append(authors, authorString)
@@ -679,6 +676,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer baseGitRepo.Close()
+
 	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		return false, err
@@ -691,6 +690,8 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err != nil {
 		return false, err
 	}
+	defer headGitRepo.Close()
+
 	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
 	if err != nil {
 		return false, err

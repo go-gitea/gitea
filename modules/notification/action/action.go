@@ -29,7 +29,7 @@ func NewNotifier() base.Notifier {
 	return &actionNotifier{}
 }
 
-func (a *actionNotifier) NotifyNewIssue(issue *models.Issue) {
+func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
 	if err := issue.LoadPoster(); err != nil {
 		log.Error("issue.LoadPoster: %v", err)
 		return
@@ -88,7 +88,7 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *model
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
 func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment) {
+	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -120,7 +120,7 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	}
 }
 
-func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
+func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions []*models.User) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
 		return
@@ -203,7 +203,7 @@ func (a *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *
 	}
 }
 
-func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User) {
 	if err := review.LoadReviewer(); err != nil {
 		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
 		return

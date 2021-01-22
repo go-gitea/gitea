@@ -570,8 +570,17 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp)
-	if err != nil {
+	if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+		if strings.Contains(err.Error(), "no provider for ") {
+			if err = models.ResetOAuth2(); err != nil {
+				ctx.ServerError("SignIn", err)
+				return
+			}
+			if err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp); err != nil {
+				ctx.ServerError("SignIn", err)
+			}
+			return
+		}
 		ctx.ServerError("SignIn", err)
 	}
 	// redirect is done in oauth2.Auth
@@ -1508,11 +1517,10 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if u.Salt, err = models.GetUserSalt(); err != nil {
+	if err = u.SetPassword(passwd); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	u.HashPassword(passwd)
 	u.MustChangePassword = false
 	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
@@ -1582,12 +1590,11 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	}
 
 	var err error
-	if u.Salt, err = models.GetUserSalt(); err != nil {
+	if err = u.SetPassword(form.Password); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
-	u.HashPassword(form.Password)
 	u.MustChangePassword = false
 
 	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -266,7 +265,7 @@ func (a *Action) GetIssueInfos() []string {
 // GetIssueTitle returns the title of first issue associated
 // with the action.
 func (a *Action) GetIssueTitle() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
@@ -278,7 +277,7 @@ func (a *Action) GetIssueTitle() string {
 // GetIssueContent returns the content of first issue associated with
 // this action.
 func (a *Action) GetIssueContent() string {
-	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
+	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
@@ -290,6 +289,7 @@ func (a *Action) GetIssueContent() string {
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	RequestedUser   *User // the user we want activity for
+	RequestedTeam   *Team // the team we want activity for
 	Actor           *User // the user viewing the activity
 	IncludePrivate  bool  // include private actions
 	OnlyPerformedBy bool  // only actions performed by requested user
@@ -298,46 +298,13 @@ type GetFeedsOptions struct {
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
-	cond := builder.NewCond()
-
-	var repoIDs []int64
-	var actorID int64
-
-	if opts.Actor != nil {
-		actorID = opts.Actor.ID
+	if !activityReadable(opts.RequestedUser, opts.Actor) {
+		return make([]*Action, 0), nil
 	}
 
-	if opts.RequestedUser.IsOrganization() {
-		env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
-		if err != nil {
-			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
-		}
-		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
-			return nil, fmt.Errorf("GetUserRepositories: %v", err)
-		}
-
-		cond = cond.And(builder.In("repo_id", repoIDs))
-	} else {
-		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
-	}
-
-	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		if opts.RequestedUser.KeepActivityPrivate && actorID != opts.RequestedUser.ID {
-			return make([]*Action, 0), nil
-		}
-	}
-
-	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
-
-	if opts.OnlyPerformedBy {
-		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
-	}
-	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if !opts.IncludeDeleted {
-		cond = cond.And(builder.Eq{"is_deleted": false})
+	cond, err := activityQueryCondition(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
@@ -351,4 +318,66 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	return actions, nil
+}
+
+func activityReadable(user *User, doer *User) bool {
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+	if doer == nil || !doer.IsAdmin {
+		if user.KeepActivityPrivate && doerID != user.ID {
+			return false
+		}
+	}
+	return true
+}
+
+func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
+	cond := builder.NewCond()
+
+	var repoIDs []int64
+	var actorID int64
+	if opts.Actor != nil {
+		actorID = opts.Actor.ID
+	}
+
+	// check readable repositories by doer/actor
+	if opts.Actor == nil || !opts.Actor.IsAdmin {
+		if opts.RequestedUser.IsOrganization() {
+			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
+			if err != nil {
+				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
+			}
+			if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
+				return nil, fmt.Errorf("GetUserRepositories: %v", err)
+			}
+			cond = cond.And(builder.In("repo_id", repoIDs))
+		} else {
+			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+		}
+	}
+
+	if opts.RequestedTeam != nil {
+		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
+		}
+		cond = cond.And(builder.In("repo_id", teamRepoIDs))
+	}
+
+	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+
+	if opts.OnlyPerformedBy {
+		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+	}
+	if !opts.IncludePrivate {
+		cond = cond.And(builder.Eq{"is_private": false})
+	}
+	if !opts.IncludeDeleted {
+		cond = cond.And(builder.Eq{"is_deleted": false})
+	}
+
+	return cond, nil
 }

@@ -183,9 +183,69 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter('$'))
 }
 
+func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
+	// Pre-condition: Shorter than sniffLen detects SVG.
+	assert.Equal(t, "image/svg+xml", DetectContentType([]byte(`<!-- Comment --><svg></svg>`)))
+	// Longer than sniffLen detects something else.
+	assert.Equal(t, "text/plain; charset=utf-8", DetectContentType([]byte(`<!--
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
+Comment Comment Comment --><svg></svg>`)))
+}
+
 func TestIsTextFile(t *testing.T) {
 	assert.True(t, IsTextFile([]byte{}))
 	assert.True(t, IsTextFile([]byte("lorem ipsum")))
+}
+
+func TestIsSVGImageFile(t *testing.T) {
+	assert.True(t, IsSVGImageFile([]byte("<svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte("    <svg></svg>")))
+	assert.True(t, IsSVGImageFile([]byte(`<svg width="100"></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte("<svg/>")))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?><svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiline
+	Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Basic//EN"
+	"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-basic.dtd">
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multiple -->
+	<!-- Comments -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- Multline
+	Comment -->
+	<svg></svg>`)))
+	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+	<!-- Multline
+	Comment -->
+	<svg></svg>`)))
+	assert.False(t, IsSVGImageFile([]byte{}))
+	assert.False(t, IsSVGImageFile([]byte("svg")))
+	assert.False(t, IsSVGImageFile([]byte("<svgfoo></svgfoo>")))
+	assert.False(t, IsSVGImageFile([]byte("text<svg></svg>")))
+	assert.False(t, IsSVGImageFile([]byte("<html><body><svg></svg></body></html>")))
+	assert.False(t, IsSVGImageFile([]byte(`<script>"<svg></svg>"</script>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
+	assert.False(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+	<!-- <svg></svg> inside comment -->
+	<foo></foo>`)))
 }
 
 func TestFormatNumberSI(t *testing.T) {

@@ -1912,6 +1912,12 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "filter pulls requesting your review, default is false",
+            "name": "review_requested",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2007,6 +2013,13 @@
             "format": "int64",
             "description": "repo owner to prioritize in the results",
             "name": "priority_owner_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "search only for repos that belong to the given team id",
+            "name": "team_id",
             "in": "query"
           },
           {
@@ -5842,6 +5855,12 @@
           },
           {
             "type": "string",
+            "description": "optional filter by user (available for issue managers)",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
@@ -8811,7 +8830,7 @@
           },
           {
             "type": "string",
-            "description": "optional filter by user",
+            "description": "optional filter by user (available for issue managers)",
             "name": "user",
             "in": "query"
           },
@@ -11122,7 +11141,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "$ref": "#/responses/AccessToken"
           }
         }
@@ -12469,7 +12488,7 @@
           "x-go-name": "Gitignores"
         },
         "issue_labels": {
-          "description": "Issue Label set to use",
+          "description": "Label-Set to use",
           "type": "string",
           "x-go-name": "IssueLabels"
         },
@@ -13250,6 +13269,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "mirror_interval": {
+          "description": "set to a string like `8h30m0s` to set the mirror interval time",
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
         "name": {
           "description": "name of the repository",
           "type": "string",
@@ -13687,6 +13711,10 @@
         "http_git_disabled": {
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
+        },
+        "migrations_disabled": {
+          "type": "boolean",
+          "x-go-name": "MigrationsDisabled"
         },
         "mirrors_disabled": {
           "type": "boolean",
@@ -14231,6 +14259,10 @@
           "type": "boolean",
           "x-go-name": "Mirror"
         },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
@@ -14305,6 +14337,10 @@
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
+        },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
         },
         "private": {
           "type": "boolean",
@@ -15290,6 +15326,10 @@
           "type": "boolean",
           "x-go-name": "Mirror"
         },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -15433,6 +15473,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "duration": {
+          "type": "string",
+          "x-go-name": "Duration"
+        },
         "issue_index": {
           "type": "integer",
           "format": "int64",
@@ -15449,6 +15493,11 @@
         "repo_owner_name": {
           "type": "string",
           "x-go-name": "RepoOwnerName"
+        },
+        "seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
