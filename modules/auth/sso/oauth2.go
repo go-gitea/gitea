@@ -62,7 +62,7 @@ func (o *OAuth2) Free() error {
 
 // userIDFromToken returns the user id corresponding to the OAuth token.
 func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
-	req.ParseForm()
+	_ = req.ParseForm()
 
 	// Check access token.
 	tokenSHA := req.Form.Get("token")
