@@ -44,12 +44,14 @@ Beispiel: Wenn der Button mit `löschen` beschriftet ist, sollte im Modal die Fr
 
 * _Der_ Commit (m.)
 * _Der_ Branch (m.)
-* _Der_ Issue (m.)
+* _Das_ Issue (n.)
 * _Der_ Fork (m.)
 * _Das_ Repository (n.)
 * _Der_ Pull-Request (m.)
-* _Das_ Token (n.)
+* _Der_ Token (m.)
 * _Das_ Review (n.)
+* _Der_ Key (m.)
+* _Der_ Committer (m.)
 
 ## Weiterführende Links
 
