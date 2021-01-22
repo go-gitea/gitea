@@ -6,6 +6,7 @@ package setting
 
 import (
 	"regexp"
+	"time"
 
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -50,7 +51,7 @@ var Service struct {
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
 	DefaultOrgMemberVisible                 bool
-	UserDeleteWithCommentsMaxDays           int
+	UserDeleteWithCommentsMaxTime           time.Duration
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -103,7 +104,7 @@ func newService() {
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
-	Service.UserDeleteWithCommentsMaxDays = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_DAYS").MustInt(0)
+	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
