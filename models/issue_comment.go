@@ -1051,41 +1051,37 @@ func UpdateComment(c *Comment, doer *User) error {
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *Comment, _ *User) error {
+func DeleteComment(comment *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := deleteComment(sess, comment); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-func deleteComment(e Engine, comment *Comment) error {
-	if _, err := e.Delete(&Comment{
+	if _, err := sess.Delete(&Comment{
 		ID: comment.ID,
 	}); err != nil {
 		return err
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}
-	if _, err := e.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(e); err != nil {
+	if err := comment.neuterCrossReferences(sess); err != nil {
 		return err
 	}
 
-	return deleteReaction(e, &ReactionOptions{Comment: comment})
+	if err := deleteReaction(sess, &ReactionOptions{Comment: comment}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
