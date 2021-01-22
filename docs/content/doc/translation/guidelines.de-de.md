@@ -1,22 +1,16 @@
 ---
-date: "2016-11-08T16:00:00+02:00"
-title: "German Translation Guidelines"
+date: "2021-01-22T00:00:00+02:00"
+title: "Übersetzungs Richtlinien"
 weight: 10
 toc: true
 draft: false
 menu:
   sidebar:
-    parent: "developers"
-    name: "German Translation Guidelines"
+    parent: "translation"
+    name: "Übersetzungs Richtlinien"
     weight: 70
-    identifier: "german-translation-guidelines"
+    identifier: "translation-guidelines"
 ---
-
-# German Translation Guidelines
-
-> This document contains the guidelines for the german translation of gitea. 
-> It is used to provide a common set of rules to make sure the translation is consistent.
-> Because this is about specific parts of the german language, it is written in german.
 
 ## Allgemeines
 
