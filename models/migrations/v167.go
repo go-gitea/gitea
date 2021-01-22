@@ -14,6 +14,7 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 	type User struct {
 		ID                  int64 `xorm:"pk autoincr"`
 		KeepActivityPrivate bool  `xorm:"NOT NULL DEFAULT false"`
+		TmpCol              bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	if _, err := x.Where(builder.IsNull{"keep_activity_private"}).
@@ -40,8 +41,11 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 		return err
 	}
 
-	var activityPrivateUsers []int64
-	if err := sess.Select("id").Table("user").Where(builder.Eq{"keep_activity_private": true}).Find(&activityPrivateUsers); err != nil {
+	if err := sess.Sync2(new(User)); err != nil {
+		return err
+	}
+
+	if _, err := sess.Exec("UPDATE `user` SET tmp_col=keep_activity_private;"); err != nil {
 		return err
 	}
 
@@ -53,10 +57,12 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 		return err
 	}
 
-	for _, uid := range activityPrivateUsers {
-		if _, err := sess.ID(uid).Cols("keep_activity_private").Update(&User{KeepActivityPrivate: true}); err != nil {
-			return err
-		}
+	if _, err := sess.Exec("UPDATE `user` SET keep_activity_private=tmp_col;"); err != nil {
+		return err
+	}
+
+	if err := dropTableColumns(sess, "user", "tmp_col"); err != nil {
+		return err
 	}
 
 	return sess.Commit()
