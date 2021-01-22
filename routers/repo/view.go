@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	gotemplate "html/template"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"path"
@@ -435,7 +436,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			buf = make([]byte, 1024)
 			n, err = dataRc.Read(buf)
-			if err != nil {
+			// Error EOF don't mean there is an error, it just means we read to
+			// the end
+			if err != nil && err != io.EOF {
 				ctx.ServerError("Data", err)
 				return
 			}
