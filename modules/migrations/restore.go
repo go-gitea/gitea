@@ -19,6 +19,7 @@ import (
 
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
+	base.NullDownloader
 	ctx       context.Context
 	baseDir   string
 	repoOwner string

@@ -509,7 +509,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(ctx.User, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

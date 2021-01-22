@@ -4,12 +4,15 @@
 		{{svg "octicon-kebab-horizontal"}}
 	</a>
 	<div class="menu">
-		{{if .issue}}
-			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
-		{{else}}
-			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
-		{{end}}
+		{{ $referenceUrl := "" }}
+		{{ if .issue }}
+			{{ $referenceUrl = Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag }}
+		{{ else }}
+			{{ $referenceUrl = Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag }}
+		{{ end }}
+		<div class="item context clipboard" data-clipboard-text="{{$referenceUrl}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
 		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
+		<div class="item context reference-issue" data-target="{{.item.ID}}" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-reference="{{$referenceUrl}}">{{.ctx.i18n.Tr "repo.issues.context.reference_issue"}}</div>
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
 			<div class="divider"></div>
 			<div class="item context edit-content">{{.ctx.i18n.Tr "repo.issues.context.edit"}}</div>

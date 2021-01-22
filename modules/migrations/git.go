@@ -16,6 +16,7 @@ var (
 
 // PlainGitDownloader implements a Downloader interface to clone git from a http/https URL
 type PlainGitDownloader struct {
+	base.NullDownloader
 	ownerName string
 	repoName  string
 	remoteURL string
@@ -44,42 +45,7 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
-// GetTopics returns empty list for plain git repo
-func (g *PlainGitDownloader) GetTopics() ([]string, error) {
+// GetTopics return empty string slice
+func (g PlainGitDownloader) GetTopics() ([]string, error) {
 	return []string{}, nil
-}
-
-// GetMilestones returns milestones
-func (g *PlainGitDownloader) GetMilestones() ([]*base.Milestone, error) {
-	return nil, ErrNotSupported
-}
-
-// GetLabels returns labels
-func (g *PlainGitDownloader) GetLabels() ([]*base.Label, error) {
-	return nil, ErrNotSupported
-}
-
-// GetReleases returns releases
-func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
-	return nil, ErrNotSupported
-}
-
-// GetIssues returns issues according page and perPage
-func (g *PlainGitDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-	return nil, false, ErrNotSupported
-}
-
-// GetComments returns comments according issueNumber
-func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
-	return nil, ErrNotSupported
-}
-
-// GetPullRequests returns pull requests according page and perPage
-func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, bool, error) {
-	return nil, false, ErrNotSupported
-}
-
-// GetReviews returns reviews according issue number
-func (g *PlainGitDownloader) GetReviews(issueNumber int64) ([]*base.Review, error) {
-	return nil, ErrNotSupported
 }
