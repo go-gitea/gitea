@@ -7,7 +7,7 @@ draft: false
 menu:
   sidebar:
     parent: "translation"
-    name: "Übersetzungs Richtlinien"
+    name: "Übersetzungsrichtlinien"
     weight: 70
     identifier: "translation-guidelines"
 ---

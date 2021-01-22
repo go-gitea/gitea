@@ -13,3 +13,5 @@ menu:
 ---
 
 It is used to provide a common set of rules to make sure the translation is consistent.
+
+* [German](https://docs.gitea.io/de-de/übersetzungs-richtlinien/)
