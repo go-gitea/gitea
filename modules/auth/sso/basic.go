@@ -81,6 +81,7 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 			return nil
 		}
 	}
+
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		u, err = models.GetUserByID(token.UID)

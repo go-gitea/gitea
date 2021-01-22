@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 
 	"gitea.com/go-chi/session"
@@ -221,11 +222,14 @@ func APIContexter() func(http.Handler) http.Handler {
 	var csrfOpts = getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
+
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			var locale = middlewares.Locale(w, req)
 			var ctx = APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},
+					Locale:  locale,
 					Session: session.GetSession(req),
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
@@ -234,8 +238,17 @@ func APIContexter() func(http.Handler) http.Handler {
 				},
 				Org: &APIOrganization{},
 			}
-			ctx.Req = WithAPIContext(req, &ctx)
+
+			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
 			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
+
+			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
+				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
+					ctx.InternalServerError(err)
+					return
+				}
+			}
 
 			// Get user from session if logged in.
 			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
@@ -251,6 +264,8 @@ func APIContexter() func(http.Handler) http.Handler {
 				ctx.Data["SignedUserID"] = int64(0)
 				ctx.Data["SignedUserName"] = ""
 			}
+
+			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 

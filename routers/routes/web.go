@@ -971,7 +971,7 @@ func RegisterRoutes(m *web.Route) {
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
-			m.Group("\\.git/info/lfs", func() {
+			m.Group("/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
 				m.Get("/objects/{oid}/{filename}", lfs.ObjectOidHandler)
 				m.Any("/objects/{oid}", lfs.ObjectOidHandler)
