@@ -302,8 +302,8 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 
-	if setting.Service.UserDeleteWithCommentsMaxDays != 0 {
-		ctx.Data["UserDeleteWithCommentsMaxDays"] = setting.Service.UserDeleteWithCommentsMaxDays
-		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays) * 24 * time.Hour).After(time.Now())
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
+		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()
+		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
 	}
 }
