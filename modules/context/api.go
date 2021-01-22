@@ -227,8 +227,10 @@ func APIContexter() func(http.Handler) http.Handler {
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},
 					Session: session.GetSession(req),
-					Repo:    &Repository{},
-					Org:     &Organization{},
+					Repo: &Repository{
+						PullRequest: &PullRequest{},
+					},
+					Org: &Organization{},
 				},
 				Org: &APIOrganization{},
 			}
