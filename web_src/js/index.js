@@ -2243,7 +2243,7 @@ function u2fError(errorType) {
     2: $('#u2f-error-2'),
     3: $('#u2f-error-3'),
     4: $('#u2f-error-4'),
-    5: $('.u2f-error-5')
+    5: $('.u2f_error_5')
   };
   u2fErrors[errorType].removeClass('hide');
 
