@@ -122,8 +122,8 @@ func sudo() func(ctx *context.APIContext) {
 
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		userName := ctx.Params("{username}")
-		repoName := ctx.Params("{reponame}")
+		userName := ctx.Params("username")
+		repoName := ctx.Params("reponame")
 
 		var (
 			owner *models.User
@@ -994,10 +994,6 @@ func Routes() *web.Route {
 					Delete(org.RemoveTeamRepository)
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
-
-		m.Any("/*", func(ctx *context.APIContext) {
-			ctx.NotFound()
-		})
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

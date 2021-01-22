@@ -227,7 +227,10 @@ func APIContexter() func(http.Handler) http.Handler {
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},
 					Session: session.GetSession(req),
+					Repo:    &Repository{},
+					Org:     &Organization{},
 				},
+				Org: &APIOrganization{},
 			}
 			ctx.Req = WithAPIContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
