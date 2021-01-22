@@ -1051,7 +1051,7 @@ func UpdateComment(c *Comment, doer *User) error {
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *Comment) error {
+func DeleteComment(comment *Comment, _ *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
