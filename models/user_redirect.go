@@ -13,7 +13,7 @@ type UserRedirect struct {
 	RedirectUserID int64  // userID to redirect to
 }
 
-// LookupUserRedirect look up if a user has a redirect name
+// LookupUserRedirect look up userID if a user has a redirect name
 func LookupUserRedirect(userName string) (int64, error) {
 	userName = strings.ToLower(userName)
 	redirect := &UserRedirect{LowerName: userName}

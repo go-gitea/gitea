@@ -139,10 +139,10 @@ func repoAssignment() macaron.Handler {
 					} else if models.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
-						ctx.ServerError("LookupUserRedirect", err)
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
 					}
 				} else {
-					ctx.ServerError("GetUserByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 				}
 				return
 			}
@@ -159,10 +159,10 @@ func repoAssignment() macaron.Handler {
 				} else if models.IsErrRepoRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.ServerError("LookupRepoRedirect", err)
+					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
 				}
 			} else {
-				ctx.ServerError("GetRepositoryByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
 			}
 			return
 		}
@@ -405,10 +405,10 @@ func orgAssignment(args ...bool) macaron.Handler {
 					} else if models.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
-						ctx.ServerError("LookupUserRedirect", err)
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
 					}
 				} else {
-					ctx.ServerError("GetOrgByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 				}
 				return
 			}
