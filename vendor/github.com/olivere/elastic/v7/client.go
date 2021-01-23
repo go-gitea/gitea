@@ -14,7 +14,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -26,7 +25,7 @@ import (
 
 const (
 	// Version is the current version of Elastic.
-	Version = "7.0.9"
+	Version = "7.0.21"
 
 	// DefaultURL is the default endpoint of Elasticsearch on the local machine.
 	// It is used e.g. when initializing a new Client without a specific URL.
@@ -140,7 +139,6 @@ type Client struct {
 	snifferCallback           SnifferCallback // callback to modify the sniffing decision
 	snifferStop               chan bool       // notify sniffer to stop, and notify back
 	decoder                   Decoder         // used to decode data sent from Elasticsearch
-	basicAuth                 bool            // indicates whether to send HTTP Basic Auth credentials
 	basicAuthUsername         string          // username for HTTP Basic Auth
 	basicAuthPassword         string          // password for HTTP Basic Auth
 	sendGetBodyAs             string          // override for when sending a GET with a body
@@ -266,11 +264,10 @@ func NewSimpleClient(options ...ClientOptionFunc) (*Client, error) {
 	c.urls = canonicalize(c.urls...)
 
 	// If the URLs have auth info, use them here as an alternative to SetBasicAuth
-	if !c.basicAuth {
+	if c.basicAuthUsername == "" && c.basicAuthPassword == "" {
 		for _, urlStr := range c.urls {
 			u, err := url.Parse(urlStr)
 			if err == nil && u.User != nil {
-				c.basicAuth = true
 				c.basicAuthUsername = u.User.Username()
 				c.basicAuthPassword, _ = u.User.Password()
 				break
@@ -352,11 +349,10 @@ func DialContext(ctx context.Context, options ...ClientOptionFunc) (*Client, err
 	c.urls = canonicalize(c.urls...)
 
 	// If the URLs have auth info, use them here as an alternative to SetBasicAuth
-	if !c.basicAuth {
+	if c.basicAuthUsername == "" && c.basicAuthPassword == "" {
 		for _, urlStr := range c.urls {
 			u, err := url.Parse(urlStr)
 			if err == nil && u.User != nil {
-				c.basicAuth = true
 				c.basicAuthUsername = u.User.Username()
 				c.basicAuthPassword, _ = u.User.Password()
 				break
@@ -465,11 +461,9 @@ func configToOptions(cfg *config.Config) ([]ClientOptionFunc, error) {
 		if cfg.Sniff != nil {
 			options = append(options, SetSniff(*cfg.Sniff))
 		}
-		/*
-			if cfg.Healthcheck != nil {
-				options = append(options, SetHealthcheck(*cfg.Healthcheck))
-			}
-		*/
+		if cfg.Healthcheck != nil {
+			options = append(options, SetHealthcheck(*cfg.Healthcheck))
+		}
 	}
 	return options, nil
 }
@@ -493,7 +487,6 @@ func SetBasicAuth(username, password string) ClientOptionFunc {
 	return func(c *Client) error {
 		c.basicAuthUsername = username
 		c.basicAuthPassword = password
-		c.basicAuth = c.basicAuthUsername != "" || c.basicAuthPassword != ""
 		return nil
 	}
 }
@@ -508,6 +501,12 @@ func SetURL(urls ...string) ClientOptionFunc {
 			c.urls = []string{DefaultURL}
 		default:
 			c.urls = urls
+		}
+		// Check URLs
+		for _, urlStr := range c.urls {
+			if _, err := url.Parse(urlStr); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -817,8 +816,6 @@ func (c *Client) Stop() {
 	c.infof("elastic: client stopped")
 }
 
-var logDeprecation = func(*http.Request, *http.Response) {}
-
 // errorf logs to the error log.
 func (c *Client) errorf(format string, args ...interface{}) {
 	if c.errorlog != nil {
@@ -967,7 +964,7 @@ func (c *Client) sniffNode(ctx context.Context, url string) []*conn {
 	}
 
 	c.mu.RLock()
-	if c.basicAuth {
+	if c.basicAuthUsername != "" || c.basicAuthPassword != "" {
 		req.SetBasicAuth(c.basicAuthUsername, c.basicAuthPassword)
 	}
 	c.mu.RUnlock()
@@ -996,25 +993,24 @@ func (c *Client) sniffNode(ctx context.Context, url string) []*conn {
 	return nodes
 }
 
-// reSniffHostAndPort is used to extract hostname and port from a result
-// from a Nodes Info API (example: "inet[/127.0.0.1:9200]").
-var reSniffHostAndPort = regexp.MustCompile(`\/([^:]*):([0-9]+)\]`)
-
+// extractHostname returns the URL from the http.publish_address setting.
 func (c *Client) extractHostname(scheme, address string) string {
-	if strings.HasPrefix(address, "inet") {
-		m := reSniffHostAndPort.FindStringSubmatch(address)
-		if len(m) == 3 {
-			return fmt.Sprintf("%s://%s:%s", scheme, m[1], m[2])
-		}
+	var (
+		host string
+		port string
+
+		addrs = strings.Split(address, "/")
+		ports = strings.Split(address, ":")
+	)
+
+	if len(addrs) > 1 {
+		host = addrs[0]
+	} else {
+		host = strings.Split(addrs[0], ":")[0]
 	}
-	s := address
-	if idx := strings.Index(s, "/"); idx >= 0 {
-		s = s[idx+1:]
-	}
-	if !strings.Contains(s, ":") {
-		return ""
-	}
-	return fmt.Sprintf("%s://%s", scheme, s)
+	port = ports[len(ports)-1]
+
+	return fmt.Sprintf("%s://%s:%s", scheme, host, port)
 }
 
 // updateConns updates the clients' connections with new information
@@ -1082,7 +1078,8 @@ func (c *Client) healthcheck(parentCtx context.Context, timeout time.Duration, f
 		c.mu.RUnlock()
 		return
 	}
-	basicAuth := c.basicAuth
+	headers := c.headers
+	basicAuth := c.basicAuthUsername != "" || c.basicAuthPassword != ""
 	basicAuthUsername := c.basicAuthUsername
 	basicAuthPassword := c.basicAuthPassword
 	c.mu.RUnlock()
@@ -1107,6 +1104,13 @@ func (c *Client) healthcheck(parentCtx context.Context, timeout time.Duration, f
 			}
 			if basicAuth {
 				req.SetBasicAuth(basicAuthUsername, basicAuthPassword)
+			}
+			if len(headers) > 0 {
+				for key, values := range headers {
+					for _, v := range values {
+						req.Header.Add(key, v)
+					}
+				}
 			}
 			res, err := c.c.Do((*http.Request)(req).WithContext(ctx))
 			if res != nil {
@@ -1144,7 +1148,8 @@ func (c *Client) healthcheck(parentCtx context.Context, timeout time.Duration, f
 func (c *Client) startupHealthcheck(parentCtx context.Context, timeout time.Duration) error {
 	c.mu.Lock()
 	urls := c.urls
-	basicAuth := c.basicAuth
+	headers := c.headers
+	basicAuth := c.basicAuthUsername != "" || c.basicAuthPassword != ""
 	basicAuthUsername := c.basicAuthUsername
 	basicAuthPassword := c.basicAuthPassword
 	c.mu.Unlock()
@@ -1162,14 +1167,23 @@ func (c *Client) startupHealthcheck(parentCtx context.Context, timeout time.Dura
 			if basicAuth {
 				req.SetBasicAuth(basicAuthUsername, basicAuthPassword)
 			}
+			if len(headers) > 0 {
+				for key, values := range headers {
+					for _, v := range values {
+						req.Header.Add(key, v)
+					}
+				}
+			}
 			ctx, cancel := context.WithTimeout(parentCtx, timeout)
 			defer cancel()
 			req = req.WithContext(ctx)
 			res, err := c.c.Do(req)
-			if err == nil && res != nil && res.StatusCode >= 200 && res.StatusCode < 300 {
-				return nil
-			} else if err != nil {
+			if err != nil {
 				lastErr = err
+			} else if res.StatusCode >= 200 && res.StatusCode < 300 {
+				return nil
+			} else if res.StatusCode == http.StatusUnauthorized {
+				lastErr = &Error{Status: res.StatusCode}
 			}
 		}
 		select {
@@ -1183,7 +1197,7 @@ func (c *Client) startupHealthcheck(parentCtx context.Context, timeout time.Dura
 		}
 	}
 	if lastErr != nil {
-		if IsContextErr(lastErr) {
+		if IsContextErr(lastErr) || IsUnauthorized(lastErr) {
 			return lastErr
 		}
 		return errors.Wrapf(ErrNoClient, "health check timeout: %v", lastErr)
@@ -1270,11 +1284,12 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 
 	c.mu.RLock()
 	timeout := c.healthcheckTimeout
-	basicAuth := c.basicAuth
+	basicAuth := c.basicAuthUsername != "" || c.basicAuthPassword != ""
 	basicAuthUsername := c.basicAuthUsername
 	basicAuthPassword := c.basicAuthPassword
 	sendGetBodyAs := c.sendGetBodyAs
 	gzipEnabled := c.gzipEnabled
+	healthcheckEnabled := c.healthcheckEnabled
 	retrier := c.retrier
 	if opt.Retrier != nil {
 		retrier = opt.Retrier
@@ -1307,6 +1322,10 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 			if !retried {
 				// Force a healtcheck as all connections seem to be dead.
 				c.healthcheck(ctx, timeout, false)
+				if healthcheckEnabled {
+					retried = true
+					continue
+				}
 			}
 			wait, ok, rerr := retrier.Retry(ctx, n, nil, nil, err)
 			if rerr != nil {
@@ -1664,6 +1683,11 @@ func (c *Client) SyncedFlush(indices ...string) *IndicesSyncedFlushService {
 	return NewIndicesSyncedFlushService(c).Index(indices...)
 }
 
+// ClearCache clears caches for one or more indices.
+func (c *Client) ClearCache(indices ...string) *IndicesClearCacheService {
+	return NewIndicesClearCacheService(c).Index(indices...)
+}
+
 // Alias enables the caller to add and/or remove aliases.
 func (c *Client) Alias() *AliasService {
 	return NewAliasService(c)
@@ -1750,6 +1774,11 @@ func (c *Client) CatIndices() *CatIndicesService {
 	return NewCatIndicesService(c)
 }
 
+// CatShards returns information about shards.
+func (c *Client) CatShards() *CatShardsService {
+	return NewCatShardsService(c)
+}
+
 // -- Ingest APIs --
 
 // IngestPutPipeline adds pipelines and updates existing pipelines in
@@ -1830,10 +1859,10 @@ func (c *Client) TasksGetTask() *TasksGetTaskService {
 
 // -- Snapshot and Restore --
 
-// TODO Snapshot Delete
-// TODO Snapshot Get
-// TODO Snapshot Restore
-// TODO Snapshot Status
+// SnapshotStatus returns information about the status of a snapshot.
+func (c *Client) SnapshotStatus() *SnapshotStatusService {
+	return NewSnapshotStatusService(c)
+}
 
 // SnapshotCreate creates a snapshot.
 func (c *Client) SnapshotCreate(repository string, snapshot string) *SnapshotCreateService {

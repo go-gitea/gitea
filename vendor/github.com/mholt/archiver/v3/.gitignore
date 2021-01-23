@@ -1,5 +1,10 @@
+/arc
+/cmd/arc/arc
+/dist/
+/vendor/
+
 .DS_Store
 _gitignore
 builds/
 *.test
-cmd/archiver/archiver
+.*.sw*

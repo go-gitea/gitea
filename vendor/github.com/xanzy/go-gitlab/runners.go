@@ -336,6 +336,44 @@ func (s *RunnersService) DisableProjectRunner(pid interface{}, runner int, optio
 	return s.client.Do(req, nil)
 }
 
+// ListGroupsRunnersOptions represents the available ListGroupsRunners() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#list-groups-runners
+type ListGroupsRunnersOptions struct {
+	ListOptions
+	Type    *string  `url:"type,omitempty" json:"type,omitempty"`
+	Status  *string  `url:"status,omitempty" json:"status,omitempty"`
+	TagList []string `url:"tag_list,comma,omitempty" json:"tag_list,omitempty"`
+}
+
+// ListGroupsRunners lists all runners (specific and shared) available in the
+// group as well it’s ancestor groups. Shared runners are listed if at least one
+// shared runner is defined.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#list-groups-runners
+func (s *RunnersService) ListGroupsRunners(gid interface{}, opt *ListGroupsRunnersOptions, options ...RequestOptionFunc) ([]*Runner, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/runners", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var rs []*Runner
+	resp, err := s.client.Do(req, &rs)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return rs, resp, err
+}
+
 // RegisterNewRunnerOptions represents the available RegisterNewRunner()
 // options.
 //

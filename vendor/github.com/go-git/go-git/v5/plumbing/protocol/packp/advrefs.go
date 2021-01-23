@@ -201,3 +201,11 @@ func (a *AdvRefs) addSymbolicRefs(s storer.ReferenceStorer) error {
 func (a *AdvRefs) supportSymrefs() bool {
 	return a.Capabilities.Supports(capability.SymRef)
 }
+
+// IsEmpty returns true if doesn't contain any reference.
+func (a *AdvRefs) IsEmpty() bool {
+	return a.Head == nil &&
+		len(a.References) == 0 &&
+		len(a.Peeled) == 0 &&
+		len(a.Shallows) == 0
+}

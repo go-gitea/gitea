@@ -9,6 +9,8 @@ import (
 )
 
 var (
+	// ErrPtrSliceType represents a type error
+	ErrPtrSliceType = errors.New("A point to a slice is needed")
 	// ErrParamsType params error
 	ErrParamsType = errors.New("Params type error")
 	// ErrTableNotFound table not found error

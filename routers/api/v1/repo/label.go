@@ -222,7 +222,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		label.Description = *form.Description
 	}
 	if err := models.UpdateLabel(label); err != nil {
-		ctx.ServerError("UpdateLabel", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToLabel(label))

@@ -94,7 +94,7 @@ func writeToFile(swspec *spec.Swagger, pretty bool, output string) error {
 		fmt.Println(string(b))
 		return nil
 	}
-	return ioutil.WriteFile(output, b, 0644)
+	return ioutil.WriteFile(output, b, 0644) // #nosec
 }
 
 func marshalToJSONFormat(swspec *spec.Swagger, pretty bool) ([]byte, error) {

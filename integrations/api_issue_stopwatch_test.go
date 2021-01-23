@@ -26,12 +26,16 @@ func TestAPIListStopWatches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	expect := models.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	expectAPI, _ := expect.APIFormat()
-	assert.Len(t, apiWatches, 1)
-
-	assert.EqualValues(t, expectAPI.IssueIndex, apiWatches[0].IssueIndex)
-	assert.EqualValues(t, expectAPI.Created.Unix(), apiWatches[0].Created.Unix())
+	stopwatch := models.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
+	if assert.Len(t, apiWatches, 1) {
+		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
+		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
+		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
+	}
 }
 
 func TestAPIStopStopWatches(t *testing.T) {

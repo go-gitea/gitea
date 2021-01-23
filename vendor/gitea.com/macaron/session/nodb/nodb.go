@@ -19,8 +19,8 @@ import (
 	"sync"
 
 	"gitea.com/macaron/session"
-	"github.com/lunny/nodb"
-	"github.com/lunny/nodb/config"
+	"gitea.com/lunny/nodb"
+	"gitea.com/lunny/nodb/config"
 )
 
 // NodbStore represents a nodb session store implementation.

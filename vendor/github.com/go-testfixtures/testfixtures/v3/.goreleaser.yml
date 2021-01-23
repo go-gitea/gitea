@@ -1,0 +1,41 @@
+build:
+  binary: testfixtures
+  main: ./cmd/testfixtures
+  goos:
+    - windows
+    - darwin
+    - linux
+  goarch:
+    - 386
+    - amd64
+  ignore:
+    - goos: darwin
+      goarch: 386
+  flags:
+    - -tags=sqlite
+
+archives:
+  - name_template: "{{.Binary}}_{{.Os}}_{{.Arch}}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+release:
+  draft: true
+
+snapshot:
+  name_template: "{{.Tag}}"
+
+checksum:
+  name_template: "testfixtures_checksums.txt"
+
+nfpms:
+  - vendor: testfixtures
+    homepage: https://github.com/go-testfixtures/testfixtures
+    maintainer: Andrey Nering <andrey.nering@gmail.com>
+    description: Ruby on Rails like test fixtures for Go.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    file_name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"

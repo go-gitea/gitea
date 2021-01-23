@@ -6,6 +6,7 @@ package gzip
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -329,6 +330,15 @@ func (proxy *ProxyResponseWriter) Flush() {
 	}
 
 	proxy.internal.Flush()
+}
+
+// Push implements http.Pusher for HTTP/2 Push purposes
+func (proxy *ProxyResponseWriter) Push(target string, opts *http.PushOptions) error {
+	pusher, ok := proxy.internal.(http.Pusher)
+	if !ok {
+		return errors.New("the ResponseWriter doesn't support the Pusher interface")
+	}
+	return pusher.Push(target, opts)
 }
 
 // Hijack implements http.Hijacker. If the underlying ResponseWriter is a

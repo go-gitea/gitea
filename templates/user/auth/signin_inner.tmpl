@@ -13,12 +13,12 @@
 			{{.CsrfTokenHtml}}
 			<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
-				<input id="user_name" name="user_name" value="{{.user_name}}" autofocus required>
+				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="password">{{.i18n.Tr "password"}}</label>
-				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 			</div>
 			{{end}}
 			{{if not .LinkAccountMode}}

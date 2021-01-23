@@ -125,7 +125,6 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			}
 			keys := v.MapKeys()
 			for i := 0; i < v.Len(); i++ {
-				showTypeInStruct := true
 				k := keys[i]
 				mv := v.MapIndex(k)
 				pp.printValue(k, false, true)
@@ -133,7 +132,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 				if expand {
 					writeByte(pp, '\t')
 				}
-				showTypeInStruct = t.Elem().Kind() == reflect.Interface
+				showTypeInStruct := t.Elem().Kind() == reflect.Interface
 				pp.printValue(mv, showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")

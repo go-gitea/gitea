@@ -87,7 +87,7 @@ func GetArchive(ctx *context.APIContext) {
 	//   required: true
 	// - name: archive
 	//   in: path
-	//   description: archive to download, consisting of a git reference and archive
+	//   description: the git reference for download with attached archive format (e.g. master.zip)
 	//   type: string
 	//   required: true
 	// responses:

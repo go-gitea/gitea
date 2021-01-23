@@ -11,26 +11,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestAPIAllowedReactions(t *testing.T) {
-	defer prepareTestEnv(t)()
-
-	type allowed []string
-
-	a := new(allowed)
-
-	req := NewRequest(t, "GET", "/api/v1/settings/allowed_reactions")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &a)
-	assert.Len(t, *a, len(setting.UI.Reactions))
-	assert.ElementsMatch(t, setting.UI.Reactions, *a)
-}
 
 func TestAPIIssuesReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
@@ -76,7 +61,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     user2.APIFormat(),
+		User:     convert.ToUser(user2, true, true),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
@@ -136,12 +121,12 @@ func TestAPICommentReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     user2.APIFormat(),
+		User:     convert.ToUser(user2, true, true),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248004, 0),
 	}
 	expectResponse[1] = api.Reaction{
-		User:     user1.APIFormat(),
+		User:     convert.ToUser(user1, true, true),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
 	}

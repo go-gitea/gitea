@@ -16,6 +16,8 @@
 
 package gitlab
 
+import "time"
+
 // LicenseService handles communication with the license
 // related methods of the GitLab API.
 //
@@ -30,17 +32,30 @@ type LicenseService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/license.html
 type License struct {
-	StartsAt  *ISOTime `json:"starts_at"`
-	ExpiresAt *ISOTime `json:"expires_at"`
-	Licensee  struct {
+	ID               int        `json:"id"`
+	Plan             string     `json:"plan"`
+	CreatedAt        *time.Time `json:"created_at"`
+	StartsAt         *ISOTime   `json:"starts_at"`
+	ExpiresAt        *ISOTime   `json:"expires_at"`
+	HistoricalMax    int        `json:"historical_max"`
+	MaximumUserCount int        `json:"maximum_user_count"`
+	Expired          bool       `json:"expired"`
+	Overage          int        `json:"overage"`
+	UserLimit        int        `json:"user_limit"`
+	ActiveUsers      int        `json:"active_users"`
+	Licensee         struct {
 		Name    string `json:"Name"`
 		Company string `json:"Company"`
 		Email   string `json:"Email"`
 	} `json:"licensee"`
-	UserLimit   int `json:"user_limit"`
-	ActiveUsers int `json:"active_users"`
-	AddOns      struct {
-		GitLabFileLocks int `json:"GitLabFileLocks"`
+	// Add on codes that may occur in legacy licenses that don't have a plan yet.
+	// https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/app/models/license.rb
+	AddOns struct {
+		GitLabAuditorUser int `json:"GitLab_Auditor_User"`
+		GitLabDeployBoard int `json:"GitLab_DeployBoard"`
+		GitLabFileLocks   int `json:"GitLab_FileLocks"`
+		GitLabGeo         int `json:"GitLab_Geo"`
+		GitLabServiceDesk int `json:"GitLab_ServiceDesk"`
 	} `json:"add_ons"`
 }
 

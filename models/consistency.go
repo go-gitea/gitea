@@ -283,3 +283,15 @@ func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
 		Delete("`" + subject + "`")
 	return err
 }
+
+// CountNullArchivedRepository counts the number of repositories with is_archived is null
+func CountNullArchivedRepository() (int64, error) {
+	return x.Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+}
+
+// FixNullArchivedRepository sets is_archived to false where it is null
+func FixNullArchivedRepository() (int64, error) {
+	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").Update(&Repository{
+		IsArchived: false,
+	})
+}

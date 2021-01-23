@@ -54,6 +54,30 @@ type Service struct {
 	WikiPageEvents           bool       `json:"wiki_page_events"`
 }
 
+// ListServices gets a list of all active services.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/services.html#list-all-active-services
+func (s *ServicesService) ListServices(pid interface{}, options ...RequestOptionFunc) ([]*Service, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/services", pathEscape(project))
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var svcs []*Service
+	resp, err := s.client.Do(req, &svcs)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return svcs, resp, err
+}
+
 // DroneCIService represents Drone CI service settings.
 //
 // GitLab API docs:
@@ -251,7 +275,7 @@ type GithubService struct {
 // https://docs.gitlab.com/ce/api/services.html#github-premium
 type GithubServiceProperties struct {
 	RepositoryURL string `json:"repository_url,omitempty"`
-	StaticContext string `json:"static_context,omitempty"`
+	StaticContext bool   `json:"static_context,omitempty"`
 }
 
 // GetGithubService gets Github service settings for a project.
@@ -665,7 +689,17 @@ type MicrosoftTeamsService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/services.html#microsoft-teams
 type MicrosoftTeamsServiceProperties struct {
-	WebHook string `json:"webhook"`
+	WebHook                   string    `json:"webhook"`
+	NotifyOnlyBrokenPipelines BoolValue `json:"notify_only_broken_pipelines"`
+	BranchesToBeNotified      string    `json:"branches_to_be_notified"`
+	IssuesEvents              BoolValue `json:"issues_events"`
+	ConfidentialIssuesEvents  BoolValue `json:"confidential_issues_events"`
+	MergeRequestsEvents       BoolValue `json:"merge_requests_events"`
+	TagPushEvents             BoolValue `json:"tag_push_events"`
+	NoteEvents                BoolValue `json:"note_events"`
+	ConfidentialNoteEvents    BoolValue `json:"confidential_note_events"`
+	PipelineEvents            BoolValue `json:"pipeline_events"`
+	WikiPageEvents            BoolValue `json:"wiki_page_events"`
 }
 
 // GetMicrosoftTeamsService gets MicrosoftTeams service settings for a project.
@@ -699,7 +733,18 @@ func (s *ServicesService) GetMicrosoftTeamsService(pid interface{}, options ...R
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/services.html#create-edit-microsoft-teams-service
 type SetMicrosoftTeamsServiceOptions struct {
-	WebHook *string `url:"webhook,omitempty" json:"webhook,omitempty"`
+	WebHook                   *string `url:"webhook,omitempty" json:"webhook,omitempty"`
+	NotifyOnlyBrokenPipelines *bool   `url:"notify_only_broken_pipelines" json:"notify_only_broken_pipelines"`
+	BranchesToBeNotified      *string `url:"branches_to_be_notified,omitempty" json:"branches_to_be_notified,omitempty"`
+	PushEvents                *bool   `url:"push_events,omitempty" json:"push_events,omitempty"`
+	IssuesEvents              *bool   `url:"issues_events,omitempty" json:"issues_events,omitempty"`
+	ConfidentialIssuesEvents  *bool   `url:"confidential_issues_events,omitempty" json:"confidential_issues_events,omitempty"`
+	MergeRequestsEvents       *bool   `url:"merge_requests_events,omitempty" json:"merge_requests_events,omitempty"`
+	TagPushEvents             *bool   `url:"tag_push_events,omitempty" json:"tag_push_events,omitempty"`
+	NoteEvents                *bool   `url:"note_events,omitempty" json:"note_events,omitempty"`
+	ConfidentialNoteEvents    *bool   `url:"confidential_note_events,omitempty" json:"confidential_note_events,omitempty"`
+	PipelineEvents            *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
+	WikiPageEvents            *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
 }
 
 // SetMicrosoftTeamsService sets Microsoft Teams service for a project
@@ -756,6 +801,7 @@ type PipelinesEmailProperties struct {
 	Recipients                string    `json:"recipients,omitempty"`
 	NotifyOnlyBrokenPipelines BoolValue `json:"notify_only_broken_pipelines,omitempty"`
 	NotifyOnlyDefaultBranch   BoolValue `json:"notify_only_default_branch,omitempty"`
+	BranchesToBeNotified      string    `json:"branches_to_be_notified,omitempty"`
 }
 
 // GetPipelinesEmailService gets Pipelines Email service settings for a project.

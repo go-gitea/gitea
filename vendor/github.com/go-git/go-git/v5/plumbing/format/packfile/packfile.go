@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/idxfile"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 )
 
 var (
@@ -307,11 +308,13 @@ func (p *Packfile) getNextMemoryObject(h *ObjectHeader) (plumbing.EncodedObject,
 	return obj, nil
 }
 
-func (p *Packfile) fillRegularObjectContent(obj plumbing.EncodedObject) error {
+func (p *Packfile) fillRegularObjectContent(obj plumbing.EncodedObject) (err error) {
 	w, err := obj.Writer()
 	if err != nil {
 		return err
 	}
+
+	defer ioutil.CheckClose(w, &err)
 
 	_, _, err = p.s.NextObject(w)
 	p.cachePut(obj)

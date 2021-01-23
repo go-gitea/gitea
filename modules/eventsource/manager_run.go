@@ -17,6 +17,9 @@ import (
 
 // Init starts this eventsource
 func (m *Manager) Init() {
+	if setting.UI.Notification.EventSourceUpdateTime <= 0 {
+		return
+	}
 	go graceful.GetManager().RunWithShutdownContext(m.Run)
 }
 

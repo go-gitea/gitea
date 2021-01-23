@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list all hooks of a repository
@@ -144,9 +144,9 @@ func TestHook(ctx *context.APIContext) {
 		Before: ctx.Repo.Commit.ID.String(),
 		After:  ctx.Repo.Commit.ID.String(),
 		Commits: []*api.PayloadCommit{
-			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
+			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
-		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
 		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
 		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
 	}); err != nil {

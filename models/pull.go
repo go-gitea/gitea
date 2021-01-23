@@ -45,6 +45,8 @@ type PullRequest struct {
 	CommitsAhead    int
 	CommitsBehind   int
 
+	ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
 	Index   int64

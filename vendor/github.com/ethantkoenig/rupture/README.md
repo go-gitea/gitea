@@ -1,6 +1,6 @@
 # rupture
 
-[![Build Status](https://travis-ci.org/ethantkoenig/rupture.svg?branch=master)](https://travis-ci.org/ethantkoenig/rupture) [![GoDoc](https://godoc.org/github.com/ethantkoenig/rupture?status.svg)](https://godoc.org/github.com/ethantkoenig/rupture) [![Go Report Card](https://goreportcard.com/badge/blevesearch/bleve)](https://goreportcard.com/report/blevesearch/bleve)
+[![Build Status](https://travis-ci.org/ethantkoenig/rupture.svg?branch=master)](https://travis-ci.org/ethantkoenig/rupture) [![GoDoc](https://godoc.org/github.com/ethantkoenig/rupture?status.svg)](https://godoc.org/github.com/ethantkoenig/rupture) [![Go Report Card](https://goreportcard.com/badge/github.com/ethantkoenig/rupture)](https://goreportcard.com/report/github.com/ethantkoenig/rupture)
 
 An explosive companion to the [bleve indexing library](https://www.github.com/blevesearch/bleve)
 

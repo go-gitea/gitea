@@ -394,7 +394,7 @@ func (item *MoreLikeThisQueryItem) Source() (interface{}, error) {
 		source["fields"] = item.fields
 	}
 	if item.routing != "" {
-		source["_routing"] = item.routing
+		source["routing"] = item.routing
 	}
 	if item.fsc != nil {
 		src, err := item.fsc.Source()

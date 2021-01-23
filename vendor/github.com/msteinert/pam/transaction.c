@@ -2,9 +2,15 @@
 #include <security/pam_appl.h>
 #include <string.h>
 
+#ifdef __sun
+#define PAM_CONST
+#else
+#define PAM_CONST const
+#endif
+
 int cb_pam_conv(
 	int num_msg,
-	const struct pam_message **msg,
+	PAM_CONST struct pam_message **msg,
 	struct pam_response **resp,
 	void *appdata_ptr)
 {

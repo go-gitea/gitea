@@ -11,48 +11,7 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/mcuadros/go-version"
 )
-
-func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(id)
-	if err != nil {
-		return nil, err
-	}
-
-	tree := NewTree(repo, id)
-	tree.gogitTree = gogitTree
-	return tree, nil
-}
-
-// GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
-		if err != nil {
-			return nil, err
-		}
-		if len(res) > 0 {
-			idStr = res[:len(res)-1]
-		}
-	}
-	id, err := NewIDFromString(idStr)
-	if err != nil {
-		return nil, err
-	}
-	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(id)
-	if err == nil {
-		id = SHA1(commitObject.TreeHash)
-	}
-	treeObject, err := repo.getTree(id)
-	if err != nil {
-		return nil, err
-	}
-	treeObject.ResolvedID = resolvedID
-	return treeObject, nil
-}
 
 // CommitTreeOpts represents the possible options to CommitTree
 type CommitTreeOpts struct {
@@ -64,8 +23,8 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	binVersion, err := BinVersion()
+func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
+	err := LoadGitVersion()
 	if err != nil {
 		return SHA1{}, err
 	}
@@ -74,11 +33,11 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_NAME="+author.Name,
+		"GIT_AUTHOR_EMAIL="+author.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+committer.Name,
+		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	cmd := NewCommand("commit-tree", tree.ID.String())
@@ -91,11 +50,11 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if version.Compare(binVersion, "1.7.9", ">=") && (opts.KeyID != "" || opts.AlwaysSign) {
+	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if version.Compare(binVersion, "2.0.0", ">=") && opts.NoGPGSign {
+	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
@@ -104,7 +63,7 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
 
 	if err != nil {
-		return SHA1{}, concatenateError(err, stderr.String())
+		return SHA1{}, ConcatenateError(err, stderr.String())
 	}
 	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

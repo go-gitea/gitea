@@ -1,31 +1,33 @@
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
-/* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
 
 import Vue from 'vue';
+import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
-import {svg} from './utils.js';
 
+import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
-import initUserHeatmap from './features/userheatmap.js';
-import initDateTimePicker from './features/datetimepicker.js';
+import initHeatmap from './features/heatmap.js';
+import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
-import highlight from './features/highlight.js';
+import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createCodeEditor} from './features/codeeditor.js';
+import {initStopwatch} from './features/stopwatch.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
+import {stripTags} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
-
-function htmlEncode(text) {
-  return jQuery('<div />').text(text).html();
-}
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -46,9 +48,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      $('pre code', $previewPanel[0]).each(function () {
-        highlight(this);
-      });
+      renderMarkdownContent();
     });
   });
 
@@ -78,9 +78,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        $('pre code', $previewPanel[0]).each(function () {
-          highlight(this);
-        });
+        renderMarkdownContent();
       });
     });
   }
@@ -114,9 +112,29 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
+  const $isNewIssue = $branchMenu.hasClass('new-issue');
   $branchMenu.find('.item:not(.no-select)').click(function () {
-    $($(this).data('id-selector')).val($(this).data('id'));
-    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+    const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
+    $($(this).data('id-selector')).val(selectedValue);
+    if ($isNewIssue) {
+      $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+      return;
+    }
+
+    if (editMode === 'true') {
+      const form = $('#update_issueref_form');
+
+      $.post(form.attr('action'), {
+        _csrf: csrf,
+        ref: selectedValue
+      },
+      () => {
+        window.location.reload();
+      });
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
+    }
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
@@ -137,20 +155,20 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  $('.color-picker').each(function () {
-    $(this).minicolors();
-  });
+  createColorPicker($('.color-picker'));
+
   $('.precolors .color').on('click', function () {
     const color_hex = $(this).data('color-hex');
     $('.color-picker').val(color_hex);
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
+    $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
     $('.edit-label .color-picker').val($(this).data('color'));
-    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label .minicolors-swatch-color').css('background-color', $(this).data('color'));
     $('.edit-label.modal').modal({
       onApprove() {
         $('.edit-label.form').trigger('submit');
@@ -160,7 +178,7 @@ function initLabelEdit() {
   });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
+function updateIssuesMeta(url, action, issueIds, elementId) {
   return new Promise(((resolve) => {
     $.ajax({
       type: 'POST',
@@ -170,7 +188,6 @@ function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
         action,
         issue_ids: issueIds,
         id: elementId,
-        is_add: isAdd
       },
       success: resolve
     });
@@ -180,33 +197,40 @@ function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
 function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
+  $('#repo_migrating_failed_image').hide();
   if (migrating) {
-    const repo_name = migrating.attr('repo');
-    if (typeof repo_name === 'undefined') {
+    const task = migrating.attr('task');
+    if (typeof task === 'undefined') {
       return;
     }
     $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/${repo_name}/status`,
+      url: `${AppSubUrl}/user/task/${task}`,
       data: {
         _csrf: csrf,
       },
       complete(xhr) {
-        if (xhr.status === 200) {
-          if (xhr.responseJSON) {
-            if (xhr.responseJSON.status === 0) {
-              window.location.reload();
-              return;
-            }
-
-            setTimeout(() => {
-              initRepoStatusChecker();
-            }, 2000);
+        if (xhr.status === 200 && xhr.responseJSON) {
+          if (xhr.responseJSON.status === 4) {
+            window.location.reload();
+            return;
+          } else if (xhr.responseJSON.status === 3) {
+            $('#repo_migrating_progress').hide();
+            $('#repo_migrating').hide();
+            $('#repo_migrating_failed').show();
+            $('#repo_migrating_failed_image').show();
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
             return;
           }
+          setTimeout(() => {
+            initRepoStatusChecker();
+          }, 2000);
+          return;
         }
         $('#repo_migrating_progress').hide();
+        $('#repo_migrating').hide();
         $('#repo_migrating_failed').show();
+        $('#repo_migrating_failed_image').show();
       }
     });
   }
@@ -284,42 +308,32 @@ function replaceAndKeepCursor(field, oldval, newval) {
   }
 }
 
-function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
-  if (!pasteEvent.clipboardData) {
-    return;
+function getPastedImages(e) {
+  if (!e.clipboardData) return [];
+
+  const files = [];
+  for (const item of e.clipboardData.items || []) {
+    if (!item.type || !item.type.startsWith('image/')) continue;
+    files.push(item.getAsFile());
   }
 
-  const {items} = pasteEvent.clipboardData;
-  if (typeof items === 'undefined') {
-    return;
+  if (files.length) {
+    e.preventDefault();
+    e.stopPropagation();
   }
-
-  for (let i = 0; i < items.length; i++) {
-    if (!items[i].type.includes('image')) continue;
-    const blob = items[i].getAsFile();
-
-    if (typeof (callback) === 'function') {
-      pasteEvent.preventDefault();
-      pasteEvent.stopPropagation();
-      callback(blob);
-    }
-  }
+  return files;
 }
 
-function uploadFile(file, callback) {
-  const xhr = new XMLHttpRequest();
-
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      callback(xhr.responseText);
-    }
-  });
-
-  xhr.open('post', `${AppSubUrl}/attachments`, true);
-  xhr.setRequestHeader('X-Csrf-Token', csrf);
+async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file, file.name);
-  xhr.send(formData);
+
+  const res = await fetch($('#dropzone').data('upload-url'), {
+    method: 'POST',
+    headers: {'X-Csrf-Token': csrf},
+    body: formData,
+  });
+  return await res.json();
 }
 
 function reload() {
@@ -329,33 +343,29 @@ function reload() {
 function initImagePaste(target) {
   target.each(function () {
     const field = this;
-    field.addEventListener('paste', (event) => {
-      retrieveImageFromClipboardAsBlob(event, (img) => {
+    field.addEventListener('paste', async (e) => {
+      for (const img of getPastedImages(e)) {
         const name = img.name.substr(0, img.name.lastIndexOf('.'));
         insertAtCursor(field, `![${name}]()`);
-        uploadFile(img, (res) => {
-          const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
-        });
-      });
+        const data = await uploadFile(img);
+        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $('.files').append(input);
+      }
     }, false);
   });
 }
 
 function initSimpleMDEImagePaste(simplemde, files) {
-  simplemde.codemirror.on('paste', (_, event) => {
-    retrieveImageFromClipboardAsBlob(event, (img) => {
+  simplemde.codemirror.on('paste', async (_, e) => {
+    for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      uploadFile(img, (res) => {
-        const data = JSON.parse(res);
-        const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        files.append(input);
-      });
-    });
+      const data = await uploadFile(img);
+      const pos = simplemde.codemirror.getCursor();
+      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+      files.append(input);
+    }
   });
 }
 
@@ -376,21 +386,20 @@ function initCommentForm() {
     const $list = $(`.ui.${outerSelector}.list`);
     const $noSelect = $list.find('.no-select');
     const $listMenu = $(`.${selector} .menu`);
-    let hasLabelUpdateAction = $listMenu.data('action') === 'update';
-    const labels = {};
+    let hasUpdateAction = $listMenu.data('action') === 'update';
+    const items = {};
 
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasLabelUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasLabelUpdateAction) {
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+      if (hasUpdateAction) {
         const promises = [];
-        Object.keys(labels).forEach((elementId) => {
-          const label = labels[elementId];
+        Object.keys(items).forEach((elementId) => {
+          const item = items[elementId];
           const promise = updateIssuesMeta(
-            label['update-url'],
-            label.action,
-            label['issue-id'],
+            item['update-url'],
+            item.action,
+            item['issue-id'],
             elementId,
-            label['is-checked']
           );
           promises.push(promise);
         });
@@ -398,65 +407,47 @@ function initCommentForm() {
       }
     });
 
-    $listMenu.find('.item:not(.no-select)').on('click', function () {
-      // we don't need the action attribute when updating assignees
-      if (selector === 'select-assignees-modify' || selector === 'select-reviewers-modify') {
-        // UI magic. We need to do this here, otherwise it would destroy the functionality of
-        // adding/removing labels
-
-        if ($(this).data('can-change') === 'block') {
-          return false;
-        }
-
-        if ($(this).hasClass('checked')) {
-          $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('invisible');
-          $(this).data('is-checked', 'remove');
-        } else {
-          $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('invisible');
-          $(this).data('is-checked', 'add');
-        }
-
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          '',
-          $listMenu.data('issue-id'),
-          $(this).data('id'),
-          $(this).data('is-checked')
-        );
-        $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+    $listMenu.find('.item:not(.no-select)').on('click', function (e) {
+      e.preventDefault();
+      if ($(this).hasClass('ban-change')) {
         return false;
       }
 
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
         $(this).find('.octicon-check').addClass('invisible');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'detach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
       } else {
         $(this).addClass('checked');
         $(this).find('.octicon-check').removeClass('invisible');
-        if (hasLabelUpdateAction) {
-          if (!($(this).data('id') in labels)) {
-            labels[$(this).data('id')] = {
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
               'update-url': $listMenu.data('update-url'),
               action: 'attach',
               'issue-id': $listMenu.data('issue-id'),
             };
           } else {
-            delete labels[$(this).data('id')];
+            delete items[$(this).data('id')];
           }
         }
+      }
+
+      // TODO: Which thing should be done for choosing review requests
+      // to make choosed items be shown on time here?
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
       }
 
       const listIds = [];
@@ -476,22 +467,25 @@ function initCommentForm() {
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
-    $listMenu.find('.no-select.item').on('click', function () {
-      if (hasLabelUpdateAction || selector === 'select-assignees-modify') {
+    $listMenu.find('.no-select.item').on('click', function (e) {
+      e.preventDefault();
+      if (hasUpdateAction) {
         updateIssuesMeta(
           $listMenu.data('update-url'),
           'clear',
           $listMenu.data('issue-id'),
           '',
-          ''
         ).then(reload);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
         $(this).find('.octicon').addClass('invisible');
-        $(this).data('is-checked', 'remove');
       });
+
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+        return false;
+      }
 
       $list.find('.item').each(function () {
         $(this).addClass('hide');
@@ -524,19 +518,25 @@ function initCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-          $(this).data('is-checked')
         ).then(reload);
       }
-      switch (input_id) {
-        case '#milestone_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
-          break;
-        case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
-                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
-                          htmlEncode($(this).text())}</a>`);
+
+      let icon = '';
+      if (input_id === '#milestone_id') {
+        icon = svg('octicon-milestone', 18, 'mr-3');
+      } else if (input_id === '#project_id') {
+        icon = svg('octicon-project', 18, 'mr-3');
+      } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
+
+      $list.find('.selected').html(`
+        <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
+          ${icon}
+          ${htmlEscape($(this).text())}
+        </a>
+      `);
+
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
@@ -551,7 +551,6 @@ function initCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-          $(this).data('is-checked')
         ).then(reload);
       }
 
@@ -561,7 +560,8 @@ function initCommentForm() {
     });
   }
 
-  // Milestone and assignee
+  // Milestone, Assignee, Project
+  selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
@@ -665,16 +665,16 @@ function initIssueComments() {
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
-    const isChecked = $(this).data('is-checked');
+    const isChecked = $(this).hasClass('checked');
 
     event.preventDefault();
     updateIssuesMeta(
       url,
-      '',
+      isChecked ? 'detach' : 'attach',
       issueId,
       id,
-      isChecked
     ).then(reload);
+    return false;
   });
 
   $(document).on('click', (event) => {
@@ -696,6 +696,54 @@ function initIssueComments() {
   });
 }
 
+function getArchive($target, url, first) {
+  $.ajax({
+    url,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          // XXX Shouldn't happen?
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (!xhr.responseJSON.complete) {
+          $target.closest('.dropdown').children('i').addClass('loading');
+          // Wait for only three quarters of a second initially, in case it's
+          // quickly archived.
+          setTimeout(() => {
+            getArchive($target, url, false);
+          }, first ? 750 : 2000);
+        } else {
+          // We don't need to continue checking.
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          window.location.href = url;
+        }
+      }
+    }
+  });
+}
+
+function initArchiveLinks() {
+  if ($('.archive-link').length === 0) {
+    return;
+  }
+
+  $('.archive-link').on('click', function (event) {
+    const url = $(this).data('url');
+    if (typeof url === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    getArchive($(event.target), url, true);
+  });
+}
+
 async function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -714,6 +762,15 @@ async function initRepository() {
       message: {noResults: $dropdown.data('no-results')}
     });
   }
+
+  // Commit statuses
+  $('.commit-statuses-trigger').each(function () {
+    $(this)
+      .popup({
+        on: 'click',
+        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+      });
+  });
 
   // File list and commits
   if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
@@ -755,21 +812,20 @@ async function initRepository() {
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-
-    await initDateTimePicker($datepicker.data('lang'));
-
-    $datepicker.datetimepicker({
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      onSelectDate(date) {
-        $('#deadline').val(date.toISOString().substring(0, 10));
-      },
-    });
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
+    });
+  }
+
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      if (gitignores || license) {
+        $('input[name="auto_init"]').prop('checked', true);
+      }
     });
   }
 
@@ -785,6 +841,7 @@ async function initRepository() {
       $('#pull-desc').toggle();
       $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
+      $('#issue-title-wrapper').toggleClass('edit-active');
       $editInput.focus();
       return false;
     };
@@ -851,35 +908,54 @@ async function initRepository() {
     });
 
     // Quote reply
-    $('.quote-reply').on('click', function (event) {
+    $(document).on('click', '.quote-reply', function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
       const content = `> ${quote}\n\n`;
-
-      let $content;
+      let $simplemde = autoSimpleMDE;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').trigger('click');
-        $content = $parent.find('[name="content"]');
-        if ($content.val() !== '') {
-          $content.val(`${$content.val()}\n\n${content}`);
+        $simplemde = $parent.find('[name="content"]').data('simplemde');
+      }
+      if ($simplemde !== null) {
+        if ($simplemde.value() !== '') {
+          $simplemde.value(`${$simplemde.value()}\n\n${content}`);
         } else {
-          $content.val(`${content}`);
-        }
-        $content.focus();
-      } else if (autoSimpleMDE !== null) {
-        if (autoSimpleMDE.value() !== '') {
-          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
-        } else {
-          autoSimpleMDE.value(`${content}`);
+          $simplemde.value(`${content}`);
         }
       }
+      requestAnimationFrame(() => {
+        $simplemde.codemirror.focus();
+        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+      });
+      event.preventDefault();
+    });
+
+    // Reference issue
+    $(document).on('click', '.reference-issue', function (event) {
+      const $this = $(this);
+
+      $this.closest('.dropdown').find('.menu').toggle('visible');
+
+      const content = $(`#comment-${$this.data('target')}`).text();
+      const subject = content.split('\n', 1)[0].slice(0, 255);
+
+      const poster = $this.data('poster');
+      const reference = $this.data('reference');
+
+      const $modal = $($this.data('modal'));
+      $modal.find('input[name="title"').val(subject);
+      $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
+
+      $modal.modal('show');
+
       event.preventDefault();
     });
 
     // Edit issue or comment content
-    $('.edit-content').on('click', async function (event) {
+    $(document).on('click', '.edit-content', async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -906,12 +982,13 @@ async function initRepository() {
             headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
-            acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+            acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
             addRemoveLinks: true,
             dictDefaultMessage: $dropzone.data('default-message'),
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -926,10 +1003,10 @@ async function initRepository() {
                   return;
                 }
                 $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: filenameDict[file.name].uuid,
-                    _csrf: $dropzone.data('csrf')
+                    _csrf: csrf,
                   });
                 }
               });
@@ -943,7 +1020,7 @@ async function initRepository() {
                   dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
-                    const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
+                    const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
@@ -979,7 +1056,9 @@ async function initRepository() {
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          dz.emit('reload');
+          if (dz) {
+            dz.emit('reload');
+          }
         });
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
@@ -993,29 +1072,30 @@ async function initRepository() {
             context: $editContentZone.data('context'),
             files: $attachments
           }, (data) => {
-            if (data.length === 0) {
+            if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              $('pre code', $renderContent[0]).each(function () {
-                highlight(this);
-              });
             }
-            const $content = $segment.parent();
-            if (!$content.find('.ui.small.images').length) {
+            const $content = $segment;
+            if (!$content.find('.dropzone-attachments').length) {
               if (data.attachments !== '') {
-                $content.append(
-                  '<div class="ui bottom attached segment"><div class="ui small images"></div></div>'
-                );
-                $content.find('.ui.small.images').html(data.attachments);
+                $content.append(`
+                  <div class="dropzone-attachments">
+                  </div>
+                `);
+                $content.find('.dropzone-attachments').replaceWith(data.attachments);
               }
             } else if (data.attachments === '') {
-              $content.find('.ui.small.images').parent().remove();
+              $content.find('.dropzone-attachments').remove();
             } else {
-              $content.find('.ui.small.images').html(data.attachments);
+              $content.find('.dropzone-attachments').replaceWith(data.attachments);
             }
-            dz.emit('submit');
-            dz.emit('reload');
+            if (dz) {
+              dz.emit('submit');
+              dz.emit('reload');
+            }
+            renderMarkdownContent();
           });
         });
       } else {
@@ -1030,19 +1110,34 @@ async function initRepository() {
         $textarea.val($rawContent.text());
         $simplemde.value($rawContent.text());
       }
-      $textarea.focus();
-      $simplemde.codemirror.focus();
+      requestAnimationFrame(() => {
+        $textarea.focus();
+        $simplemde.codemirror.focus();
+      });
       event.preventDefault();
     });
 
     // Delete comment
-    $('.delete-comment').on('click', function () {
+    $(document).on('click', '.delete-comment', function () {
       const $this = $(this);
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
         }).done(() => {
+          const $conversationHolder = $this.closest('.conversation-holder');
           $(`#${$this.data('comment-id')}`).remove();
+          if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
+            const path = $conversationHolder.data('path');
+            const side = $conversationHolder.data('side');
+            const idx = $conversationHolder.data('idx');
+            const lineType = $conversationHolder.closest('tr').data('line-type');
+            if (lineType === 'same') {
+              $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).removeClass('invisible');
+            } else {
+              $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            }
+            $conversationHolder.remove();
+          }
         });
       }
       return false;
@@ -1050,7 +1145,7 @@ async function initRepository() {
 
     // Change status
     const $statusButton = $('#status-button');
-    $('#comment-form .edit_area').on('keyup', function () {
+    $('#comment-form textarea').on('keyup', function () {
       if ($(this).val().length === 0) {
         $statusButton.text($statusButton.data('status'));
       } else {
@@ -1068,6 +1163,8 @@ async function initRepository() {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $(this).parent().hide();
+      $('.instruct-toggle').hide();
+      $('.instruct-content').hide();
     });
     $('.merge-button > .dropdown').dropdown({
       onChange(_text, _value, $choice) {
@@ -1081,35 +1178,25 @@ async function initRepository() {
       e.preventDefault();
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
+      $('.instruct-toggle').show();
     });
     initReactionSelector();
-  }
-
-  // Diff
-  if ($('.repository.diff').length > 0) {
-    $('.diff-counter').each(function () {
-      const $item = $(this);
-      const addLine = $item.find('span[data-line].add').data('line');
-      const delLine = $item.find('span[data-line].del').data('line');
-      const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-      $item.find('.bar .add').css('width', `${addPercent}%`);
-    });
   }
 
   // Quick start and repository home
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
-    $('#repo-clone-https').removeClass('blue');
+    $(this).addClass('primary');
+    $('#repo-clone-https').removeClass('primary');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
   $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('blue');
+    $(this).addClass('primary');
     if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('blue');
+      $('#repo-clone-ssh').removeClass('primary');
       localStorage.setItem('repo-clone-protocol', 'https');
     }
   });
@@ -1156,27 +1243,30 @@ async function initRepository() {
   }
 }
 
-function initMigration() {
-  const toggleMigrations = function () {
-    const authUserName = $('#auth_username').val();
-    const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
-      $('#migrate_items').show();
-    } else {
-      $('#migrate_items').hide();
-    }
-  };
-
-  toggleMigrations();
-
-  $('#clone_addr').on('input', toggleMigrations);
-  $('#auth_username').on('input', toggleMigrations);
-  $('#mirror').on('change', toggleMigrations);
+function initPullRequestMergeInstruction() {
+  $('.show-instruction').on('click', () => {
+    $('.instruct-content').toggle();
+  });
 }
 
 function initPullRequestReview() {
-  $('.show-outdated').on('click', function (e) {
+  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    const commentDiv = $(window.location.hash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      if (groupID && groupID.startsWith('code-comments-')) {
+        const id = groupID.substr(14);
+        $(`#show-outdated-${id}`).addClass('hide');
+        $(`#code-comments-${id}`).removeClass('hide');
+        $(`#code-preview-${id}`).removeClass('hide');
+        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(window).scrollTop(commentDiv.offset().top);
+      }
+    }
+  }
+
+  $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
     $(this).addClass('hide');
@@ -1185,7 +1275,7 @@ function initPullRequestReview() {
     $(`#hide-outdated-${id}`).removeClass('hide');
   });
 
-  $('.hide-outdated').on('click', function (e) {
+  $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
     $(this).addClass('hide');
@@ -1194,7 +1284,7 @@ function initPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('hide');
   });
 
-  $('button.comment-form-reply').on('click', function (e) {
+  $(document).on('click', 'button.comment-form-reply', function (e) {
     e.preventDefault();
     $(this).hide();
     const form = $(this).parent().find('.comment-form');
@@ -1217,64 +1307,60 @@ function initPullRequestReview() {
     return;
   }
 
-  $('.diff-detail-box.ui.sticky').sticky();
-
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
-  }).closest('.dropdown').find('.link.close')
-    .on('click', function (e) {
-      e.preventDefault();
-      $(this).closest('.menu').toggle('visible');
-    });
-
-  $('.code-view .lines-code,.code-view .lines-num')
-    .on('mouseenter', function () {
-      const parent = $(this).closest('td');
-      $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
-      );
-    })
-    .on('mouseleave', function () {
-      $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
-    });
-  $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+  }).closest('.dropdown').find('.close').on('click', function (e) {
     e.preventDefault();
+    $(this).closest('.menu').toggle('visible');
+  });
+
+  $('a.add-code-comment').on('click', async function (e) {
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+    e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
-    const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+    const lineType = tr.data('line-type');
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td colspan="2" class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0) {
-      td.html(form);
+    if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
+      const data = await $.get($(this).data('new-comment-url'));
+      td.html(data);
       commentCloud = td.find('.comment-code-cloud');
       assingMenuAttributes(commentCloud.find('.menu'));
-
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
+      const $textarea = commentCloud.find('textarea');
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.focus();
+      $simplemde.codemirror.focus();
     }
-    const $textarea = commentCloud.find('textarea');
-    attachTribute($textarea.get(), {mentions: true, emoji: true});
-
-    const $simplemde = setCommentSimpleMDE($textarea);
-    $textarea.focus();
-    $simplemde.codemirror.focus();
   });
 }
 
@@ -1326,27 +1412,26 @@ function initWikiForm() {
       element: $editArea[0],
       forceSync: true,
       previewRender(plainText, preview) { // Async method
+        // FIXME: still send render request when return back to edit mode
+        const render = function () {
+          sideBySideChanges = 0;
+          if (sideBySideTimeout !== null) {
+            clearTimeout(sideBySideTimeout);
+            sideBySideTimeout = null;
+          }
+          $.post($editArea.data('url'), {
+            _csrf: csrf,
+            mode: 'gfm',
+            context: $editArea.data('context'),
+            text: plainText,
+            wiki: true
+          }, (data) => {
+            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+            renderMarkdownContent();
+          });
+        };
+
         setTimeout(() => {
-          // FIXME: still send render request when return back to edit mode
-          const render = function () {
-            sideBySideChanges = 0;
-            if (sideBySideTimeout !== null) {
-              clearTimeout(sideBySideTimeout);
-              sideBySideTimeout = null;
-            }
-            $.post($editArea.data('url'), {
-              _csrf: csrf,
-              mode: 'gfm',
-              context: $editArea.data('context'),
-              text: plainText,
-              wiki: true
-            }, (data) => {
-              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              $(preview).find('pre code').each((_, e) => {
-                highlight(e);
-              });
-            });
-          };
           if (!simplemde.isSideBySideActive()) {
             render();
           } else {
@@ -1496,7 +1581,26 @@ function setCommentSimpleMDE($editArea) {
     spellChecker: false,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
+      'code', 'quote', '|', {
+        name: 'checkbox-empty',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-square-o',
+        title: 'Add Checkbox (empty)',
+      },
+      {
+        name: 'checkbox-checked',
+        action(e) {
+          const cm = e.codemirror;
+          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
+          cm.focus();
+        },
+        className: 'fa fa-check-square-o',
+        title: 'Add Checkbox (checked)',
+      }, '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
       'clean-block', '|',
@@ -1548,16 +1652,12 @@ async function initEditor() {
     let value;
     let parts;
 
-    if (e.keyCode === 8) {
-      if ($(this).getCursorPosition() === 0) {
-        if ($section.length > 0) {
-          value = $section.last().find('a').text();
-          $(this).val(value + $(this).val());
-          $(this)[0].setSelectionRange(value.length, value.length);
-          $section.last().remove();
-          $divider.last().remove();
-        }
-      }
+    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length > 0) {
+      value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      $(this)[0].setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
     }
     if (e.keyCode === 191) {
       parts = $(this).val().split('/');
@@ -1599,7 +1699,9 @@ async function initEditor() {
   const dirtyFileClass = 'dirty-file';
 
   // Disabling the button at the start
-  $commitButton.prop('disabled', true);
+  if ($('input[name="page_has_posted"]').val() !== 'true') {
+    $commitButton.prop('disabled', true);
+  }
 
   // Registering a custom listener for the file path and the file content
   $editForm.areYouSure({
@@ -1668,15 +1770,10 @@ function initUserSettings() {
   }
 }
 
-function initGithook() {
-  if ($('.edit.githook').length === 0) {
-    return;
-  }
-
-  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
-    lineNumbers: true,
-    mode: 'shell'
-  }), 'shell');
+async function initGithook() {
+  if ($('.edit.githook').length === 0) return;
+  const filename = document.querySelector('.hook-filename').textContent;
+  await createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 function initWebhook() {
@@ -1727,6 +1824,7 @@ function initAdmin() {
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
     $('#login_type').on('change', function () {
       if ($(this).val().substring(0, 1) === '0') {
+        $('#user_name').removeAttr('disabled');
         $('#login_name').removeAttr('required');
         $('.non-local').hide();
         $('.local').show();
@@ -1736,6 +1834,7 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
+        $('#user_name').attr('disabled', 'disabled');
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
@@ -1764,16 +1863,19 @@ function initAdmin() {
     }
   }
 
-  function onOAuth2Change() {
+  function onOAuth2Change(applyDefaultValues) {
     $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
     $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'github':
-      case 'gitlab':
       case 'gitea':
       case 'nextcloud':
+      case 'mastodon':
+        $('#oauth2_use_custom_url').attr('checked', 'checked');
+        // fallthrough intentional
+      case 'github':
+      case 'gitlab':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1781,19 +1883,21 @@ function initAdmin() {
         $('.open_id_connect_auto_discovery_url').show();
         break;
     }
-    onOAuth2UseCustomURLChange();
+    onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange() {
+  function onOAuth2UseCustomURLChange(applyDefaultValues) {
     const provider = $('#oauth2_provider').val();
     $('.oauth2_use_custom_url_field').hide();
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      if (applyDefaultValues) {
+        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+      }
 
       switch (provider) {
         case 'github':
@@ -1807,7 +1911,19 @@ function initAdmin() {
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
           $('#oauth2_email_url').val('');
           break;
+        case 'mastodon':
+          $('.oauth2_auth_url input').attr('required', 'required');
+          $('.oauth2_auth_url').show();
+          break;
       }
+    }
+  }
+
+  function onVerifyGroupMembershipChange() {
+    if ($('#groups_enabled').is(':checked')) {
+      $('#groups_enabled_change').show();
+    } else {
+      $('#groups_enabled_change').hide();
     }
   }
 
@@ -1842,7 +1958,7 @@ function initAdmin() {
         case '6': // OAuth2
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
-          onOAuth2Change();
+          onOAuth2Change(true);
           break;
         case '7': // SSPI
           $('.sspi').show();
@@ -1851,6 +1967,7 @@ function initAdmin() {
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
+        onVerifyGroupMembershipChange();
       }
       if (authType === '2') {
         onUsePagedSearchChange();
@@ -1859,21 +1976,24 @@ function initAdmin() {
     $('#auth_type').trigger('change');
     $('#security_protocol').on('change', onSecurityProtocolChange);
     $('#use_paged_search').on('change', onUsePagedSearchChange);
-    $('#oauth2_provider').on('change', onOAuth2Change);
-    $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+    $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
+    $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
+      $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+      onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').on('change', onOAuth2Change);
-      $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
-      onOAuth2Change();
+      $('#oauth2_provider').on('change', () => onOAuth2Change(true));
+      $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(false));
+      onOAuth2Change(false);
     }
   }
 
@@ -1942,7 +2062,7 @@ function searchUsers() {
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEncode(item.full_name)})`;
+            title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
             title,
@@ -2006,49 +2126,54 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      let $list;
+      if ($('div.blame').length) {
+        $list = $('.code-view td.lines-code li');
+      } else {
+        $list = $('.code-view td.lines-code');
+      }
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({target}) => {
-    const box = target.closest('.file-content');
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
-    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
-    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    if (!url) return;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2124,7 +2249,7 @@ function u2fError(errorType) {
     2: $('#u2f-error-2'),
     3: $('#u2f-error-3'),
     4: $('#u2f-error-4'),
-    5: $('.u2f-error-5')
+    5: $('.u2f_error_5')
   };
   u2fErrors[errorType].removeClass('hide');
 
@@ -2224,7 +2349,7 @@ function initTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEncode(repo.full_name),
+                name: htmlEscape(repo.full_name),
                 value: repo.id
               });
             });
@@ -2238,6 +2363,31 @@ function initTemplateSearch() {
   };
   $('#uid').on('change', changeOwner);
   changeOwner();
+}
+
+function initIssueReferenceRepositorySearch() {
+  $('.issue_reference_repository_search')
+    .dropdown({
+      apiSettings: {
+        url: `${AppSubUrl}/api/v1/repos/search?q={query}&limit=20`,
+        onResponse(response) {
+          const filteredResponse = {success: true, results: []};
+          $.each(response.data, (_r, repo) => {
+            filteredResponse.results.push({
+              name: htmlEscape(repo.full_name),
+              value: repo.full_name
+            });
+          });
+          return filteredResponse;
+        },
+        cache: false,
+      },
+      onChange(_value, _text, $choice) {
+        const $form = $choice.closest('form');
+        $form.attr('action', `${AppSubUrl}/${_text}/issues/new`);
+      },
+      fullTextSearch: true
+    });
 }
 
 $(document).ready(async () => {
@@ -2304,12 +2454,13 @@ $(document).ready(async () => {
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
-      acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+      acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
       addRemoveLinks: true,
       dictDefaultMessage: $dropzone.data('default-message'),
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2320,10 +2471,10 @@ $(document).ready(async () => {
           if (file.name in filenameDict) {
             $(`#${filenameDict[file.name]}`).remove();
           }
-          if ($dropzone.data('remove-url') && $dropzone.data('csrf')) {
+          if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: filenameDict[file.name],
-              _csrf: $dropzone.data('csrf')
+              _csrf: csrf
             });
           }
         });
@@ -2335,6 +2486,7 @@ $(document).ready(async () => {
   $('.delete-button').on('click', showDeletePopup);
   $('.add-all-button').on('click', showAddAllPopup);
   $('.link-action').on('click', linkAction);
+  $('.language-menu a[lang]').on('click', linkLanguageAction);
   $('.link-email-action').on('click', linkEmailAction);
 
   $('.delete-branch-button').on('click', showDeletePopup);
@@ -2360,15 +2512,6 @@ $(document).ready(async () => {
       _csrf: csrf
     }).done(() => {
       window.location.href = $this.data('done-url');
-    });
-  });
-
-  // Set anchor.
-  $('.markdown').each(function () {
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2411,17 +2554,24 @@ $(document).ready(async () => {
     $(e).trigger('click');
   });
 
-  $('.resolve-conversation').on('click', function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
-    const id = $(this).data('comment-id');
+    const comment_id = $(this).data('comment-id');
+    const origin = $(this).data('origin');
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    $.post(url, {
-      _csrf: csrf,
-      action,
-      comment_id: id,
-    }).then(reload);
+    const data = await $.post(url, {_csrf: csrf, origin, action, comment_id});
+
+    if ($(this).closest('.conversation-holder').length) {
+      const conversation = $(data);
+      $(this).closest('.conversation-holder').replaceWith(conversation);
+      conversation.find('.dropdown').dropdown();
+      initReactionSelector(conversation);
+      initClipboard();
+    } else {
+      reload();
+    }
   });
 
   buttonsClickOnEnter();
@@ -2429,15 +2579,16 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
+  initArchiveLinks();
   initRepository();
   initMigration();
   initWikiForm();
   initEditForm();
   initEditor();
   initOrganization();
-  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
@@ -2449,29 +2600,17 @@ $(document).ready(async () => {
   initU2FAuth();
   initU2FRegister();
   initIssueList();
+  initIssueTimetracking();
+  initIssueDue();
   initWipTitle();
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initIssueReferenceRepositorySearch();
   initContextPopups();
+  initTableSort();
   initNotificationsTable();
-  initNotificationCount();
-
-  // Repo clone url.
-  if ($('#repo-clone-url').length > 0) {
-    switch (localStorage.getItem('repo-clone-protocol')) {
-      case 'ssh':
-        if ($('#repo-clone-ssh').length > 0) {
-          $('#repo-clone-ssh').trigger('click');
-        } else {
-          $('#repo-clone-https').trigger('click');
-        }
-        break;
-      default:
-        $('#repo-clone-https').trigger('click');
-        break;
-    }
-  }
+  initPullRequestMergeInstruction();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -2485,22 +2624,18 @@ $(document).ready(async () => {
     }
   }
 
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.on('change', () => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
-    }
-  });
-
   // parallel init of async loaded features
   await Promise.all([
-    highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
-    initUserHeatmap(),
+    initHeatmap(),
+    initProject(),
     initServiceWorker(),
+    initNotificationCount(),
+    initStopwatch(),
+    renderMarkdownContent(),
+    initGithook(),
   ]);
 });
 
@@ -2534,7 +2669,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
@@ -2637,6 +2772,13 @@ function linkAction(e) {
   });
 }
 
+function linkLanguageAction() {
+  const $this = $(this);
+  $.post($this.data('url')).always(() => {
+    window.location.reload();
+  });
+}
+
 function linkEmailAction(e) {
   const $this = $(this);
   $('#form-uid').val($this.data('uid'));
@@ -2649,6 +2791,23 @@ function linkEmailAction(e) {
 }
 
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {
+      props: {
+        size: {
+          type: String,
+          default: '16',
+        },
+      },
+      template,
+    });
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2667,9 +2826,14 @@ function initVueComponents() {
         type: Number,
         required: true
       },
+      teamId: {
+        type: Number,
+        required: false,
+        default: 0
+      },
       organizations: {
         type: Array,
-        default: []
+        default: () => [],
       },
       isOrganization: {
         type: Boolean,
@@ -2765,7 +2929,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
+        return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -2946,7 +3110,7 @@ function initVueComponents() {
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
             self.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
@@ -2974,17 +3138,17 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
         } else if (repo.mirror) {
-          return 'octicon-repo-clone';
+          return 'octicon-mirror';
         } else if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
+          return `octicon-repo-template`;
         } else if (repo.private) {
           return 'octicon-lock';
         } else if (repo.internal) {
-          return 'octicon-internal-repo';
+          return 'octicon-repo';
         }
         return 'octicon-repo';
       }
@@ -3009,36 +3173,38 @@ function initVueApp() {
   initVueComponents();
 
   new Vue({
-    delimiters: ['${', '}'],
     el,
-    data: {
-      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
-      suburl: AppSubUrl,
-      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
-      activityTopAuthors: window.ActivityTopAuthors || [],
-    },
+    delimiters: ['${', '}'],
     components: {
       ActivityTopAuthors,
+    },
+    data: () => {
+      return {
+        searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+        suburl: AppSubUrl,
+        uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+        activityTopAuthors: window.ActivityTopAuthors || [],
+      };
     },
   });
 }
 
-window.timeAddManual = function () {
-  $('.mini.modal')
-    .modal({
+function initIssueTimetracking() {
+  $(document).on('click', '.issue-add-time', () => {
+    $('.mini.modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
-};
-
-window.toggleStopwatch = function () {
-  $('#toggle_stopwatch_form').trigger('submit');
-};
-window.cancelStopwatch = function () {
-  $('#cancel_stopwatch_form').trigger('submit');
-};
+  });
+  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
+    $('#toggle_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', '.issue-cancel-time', () => {
+    $('#cancel_stopwatch_form').trigger('submit');
+  });
+}
 
 function initFilterBranchTagDropdown(selector) {
   $(selector).each(function () {
@@ -3064,24 +3230,30 @@ function initFilterBranchTagDropdown(selector) {
     });
     $data.remove();
     new Vue({
-      delimiters: ['${', '}'],
       el: this,
+      delimiters: ['${', '}'],
       data,
+      computed: {
+        filteredItems() {
+          const items = this.items.filter((item) => {
+            return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+              (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          });
 
-      beforeMount() {
-        const vm = this;
-
-        this.noResults = vm.$el.getAttribute('data-no-results');
-        this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
-
-        document.body.addEventListener('click', (event) => {
-          if (vm.$el.contains(event.target)) {
-            return;
+          // no idea how to fix this so linting rule is disabled instead
+          this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1); // eslint-disable-line vue/no-side-effects-in-computed-properties
+          return items;
+        },
+        showNoResults() {
+          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+        },
+        showCreateNewBranch() {
+          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+            return false;
           }
-          if (vm.menuVisible) {
-            Vue.set(vm, 'menuVisible', false);
-          }
-        });
+
+          return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+        }
       },
 
       watch: {
@@ -3092,30 +3264,16 @@ function initFilterBranchTagDropdown(selector) {
         }
       },
 
-      computed: {
-        filteredItems() {
-          const vm = this;
+      beforeMount() {
+        this.noResults = this.$el.getAttribute('data-no-results');
+        this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
 
-          const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
-              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
-          });
-
-          vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
-
-          return items;
-        },
-        showNoResults() {
-          return this.filteredItems.length === 0 && !this.showCreateNewBranch;
-        },
-        showCreateNewBranch() {
-          const vm = this;
-          if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
-            return false;
+        document.body.addEventListener('click', (event) => {
+          if (this.$el.contains(event.target)) return;
+          if (this.menuVisible) {
+            Vue.set(this, 'menuVisible', false);
           }
-
-          return vm.items.filter((item) => item.name.toLowerCase() === vm.searchTerm.toLowerCase()).length === 0;
-        }
+        });
       },
 
       methods: {
@@ -3128,15 +3286,12 @@ function initFilterBranchTagDropdown(selector) {
           window.location.href = item.url;
         },
         createNewBranch() {
-          if (!this.showCreateNewBranch) {
-            return;
-          }
+          if (!this.showCreateNewBranch) return;
           $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
-          const vm = this;
           Vue.nextTick(() => {
-            vm.$refs.searchField.focus();
+            this.$refs.searchField.focus();
           });
         },
         getSelected() {
@@ -3153,15 +3308,12 @@ function initFilterBranchTagDropdown(selector) {
         },
         scrollToActive() {
           let el = this.$refs[`listItem${this.active}`];
-          if (!el || el.length === 0) {
-            return;
-          }
+          if (!el || !el.length) return;
           if (Array.isArray(el)) {
             el = el[0];
           }
 
           const cont = this.$refs.scrollContainer;
-
           if (el.offsetTop < cont.scrollTop) {
             cont.scrollTop = el.offsetTop;
           } else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
@@ -3169,49 +3321,41 @@ function initFilterBranchTagDropdown(selector) {
           }
         },
         keydown(event) {
-          const vm = this;
-          if (event.keyCode === 40) {
-            // arrow down
+          if (event.keyCode === 40) { // arrow down
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+            if (this.active + (this.showCreateNewBranch ? 0 : 1) >= this.filteredItems.length) {
               return;
             }
-            vm.active++;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 38) {
-            // arrow up
+            this.active++;
+            this.scrollToActive();
+          } else if (event.keyCode === 38) { // arrow up
             event.preventDefault();
 
-            if (vm.active === -1) {
-              vm.active = vm.getSelectedIndexInFiltered();
+            if (this.active === -1) {
+              this.active = this.getSelectedIndexInFiltered();
             }
 
-            if (vm.active <= 0) {
+            if (this.active <= 0) {
               return;
             }
-            vm.active--;
-            vm.scrollToActive();
-          }
-          if (event.keyCode === 13) {
-            // enter
+            this.active--;
+            this.scrollToActive();
+          } else if (event.keyCode === 13) { // enter
             event.preventDefault();
 
-            if (vm.active >= vm.filteredItems.length) {
-              vm.createNewBranch();
-            } else if (vm.active >= 0) {
-              vm.selectItem(vm.filteredItems[vm.active]);
+            if (this.active >= this.filteredItems.length) {
+              this.createNewBranch();
+            } else if (this.active >= 0) {
+              this.selectItem(this.filteredItems[this.active]);
             }
-          }
-          if (event.keyCode === 27) {
-            // escape
+          } else if (event.keyCode === 27) { // escape
             event.preventDefault();
-            vm.menuVisible = false;
+            this.menuVisible = false;
           }
         }
       }
@@ -3278,7 +3422,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            const link = $('<a class="ui repo-topic small label topic"></a>');
+            const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
@@ -3335,10 +3479,6 @@ function initTopicbar() {
           success: false,
           results: [],
         };
-        const stripTags = function (text) {
-          return text.replace(/<[^>]*>?/gm, '');
-        };
-
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
@@ -3420,16 +3560,7 @@ function initTopicbar() {
   });
 }
 
-window.toggleDeadlineForm = function () {
-  $('#deadlineForm').fadeToggle(150);
-};
-
-window.setDeadline = function () {
-  const deadline = $('#deadlineDate').val();
-  window.updateDeadline(deadline);
-};
-
-window.updateDeadline = function (deadlineString) {
+function updateDeadline(deadlineString) {
   $('#deadline-err-invalid-date').hide();
   $('#deadline-loader').addClass('loading');
 
@@ -3463,7 +3594,20 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
     }
   });
-};
+}
+
+function initIssueDue() {
+  $(document).on('click', '.issue-due-edit', () => {
+    $('#deadlineForm').fadeToggle(150);
+  });
+  $(document).on('click', '.issue-due-remove', () => {
+    updateDeadline('');
+  });
+  $(document).on('submit', '.issue-due-form', () => {
+    updateDeadline($('#deadlineDate').val());
+    return false;
+  });
+}
 
 window.deleteDependencyModal = function (id, type) {
   $('.remove-dependency')
@@ -3501,8 +3645,8 @@ function initIssueList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEncode(issue.title)
-              }<div class="text small dont-break-out">${htmlEncode(issue.repository.full_name)}</div>`,
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id
             });
           });
@@ -3548,6 +3692,28 @@ function initIssueList() {
     }
   });
 }
+
+$(document).on('click', 'button[name="is_review"]', (e) => {
+  $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+});
+
+$(document).on('submit', '.conversation-holder form', async (e) => {
+  e.preventDefault();
+  const form = $(e.target);
+  const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
+  const {path, side, idx} = newConversationHolder.data();
+
+  form.closest('.conversation-holder').replaceWith(newConversationHolder);
+  if (form.closest('tr').data('line-type') === 'same') {
+    $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).addClass('invisible');
+  } else {
+    $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
+  }
+  newConversationHolder.find('.dropdown').dropdown();
+  initReactionSelector(newConversationHolder);
+  initClipboard();
+});
+
 window.cancelCodeComment = function (btn) {
   const form = $(btn).closest('form');
   if (form.length > 0 && form.hasClass('comment-form')) {
@@ -3555,13 +3721,6 @@ window.cancelCodeComment = function (btn) {
     form.parent().find('button.comment-form-reply').show();
   } else {
     form.closest('.comment-code-cloud').remove();
-  }
-};
-
-window.submitReply = function (btn) {
-  const form = $(btn).closest('form');
-  if (form.length > 0 && form.hasClass('comment-form')) {
-    form.trigger('submit');
   }
 };
 
@@ -3579,12 +3738,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});

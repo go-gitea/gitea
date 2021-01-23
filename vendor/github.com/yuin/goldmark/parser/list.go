@@ -191,7 +191,7 @@ func (b *listParser) Continue(node ast.Node, reader text.Reader, pc Context) Sta
 					isHeading := false
 					last := pc.LastOpenedBlock().Node
 					if ast.IsParagraph(last) {
-						c, ok := matchesSetextHeadingBar(line)
+						c, ok := matchesSetextHeadingBar(line[match[3]-1:])
 						if ok && c == '-' {
 							isHeading = true
 						}

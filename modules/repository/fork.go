@@ -46,11 +46,21 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 	oldRepoPath := oldRepo.RepoPath()
 
 	err = models.WithTx(func(ctx models.DBContext) error {
-		if err = models.CreateRepository(ctx, doer, owner, repo); err != nil {
+		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
 			return err
 		}
 
+		rollbackRemoveFn := func() {
+			if repo.ID == 0 {
+				return
+			}
+			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+			}
+		}
+
 		if err = models.IncrementRepoForkNum(ctx, oldRepo.ID); err != nil {
+			rollbackRemoveFn()
 			return err
 		}
 
@@ -60,6 +70,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", oldRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, oldRepo, stdout, err)
+			rollbackRemoveFn()
 			return fmt.Errorf("git clone: %v", err)
 		}
 
@@ -67,10 +78,12 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
+			rollbackRemoveFn()
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 
 		if err = createDelegateHooks(repoPath); err != nil {
+			rollbackRemoveFn()
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		return nil
@@ -86,5 +99,12 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 	if err := models.CopyLanguageStat(oldRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed")
 	}
-	return repo, models.CopyLFS(ctx, repo, oldRepo)
+
+	if err := models.CopyLFS(ctx, repo, oldRepo); err != nil {
+		if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
+			log.Error("Rollback deleteRepository: %v", errDelete)
+		}
+		return nil, err
+	}
+	return repo, nil
 }

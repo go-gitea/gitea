@@ -32,14 +32,14 @@ func TestDeleteBranch(t *testing.T) {
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	defer prepareTestEnv(t)()
-
-	deleteBranch(t)
-	htmlDoc, name := branchAction(t, ".undo-button")
-	assert.Contains(t,
-		htmlDoc.doc.Find(".ui.positive.message").Text(),
-		i18n.Tr("en", "repo.branch.restore_success", name),
-	)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		deleteBranch(t)
+		htmlDoc, name := branchAction(t, ".undo-button")
+		assert.Contains(t,
+			htmlDoc.doc.Find(".ui.positive.message").Text(),
+			i18n.Tr("en", "repo.branch.restore_success", name),
+		)
+	})
 }
 
 func deleteBranch(t *testing.T) {

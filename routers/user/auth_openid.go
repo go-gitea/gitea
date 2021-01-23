@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
@@ -330,6 +331,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
@@ -359,23 +361,33 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
 			valid = cpt.VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			err := ctx.Req.ParseForm()
-			if err != nil {
+			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)
 				return
 			}
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			if err := ctx.Req.ParseForm(); err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {

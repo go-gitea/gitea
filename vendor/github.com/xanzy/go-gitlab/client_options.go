@@ -24,6 +24,16 @@ func WithCustomBackoff(backoff retryablehttp.Backoff) ClientOptionFunc {
 	}
 }
 
+// WithCustomLimiter injects a custom rate limiter to the client.
+func WithCustomLimiter(limiter RateLimiter) ClientOptionFunc {
+	return func(c *Client) error {
+		c.configureLimiterOnce.Do(func() {
+			c.limiter = limiter
+		})
+		return nil
+	}
+}
+
 // WithCustomRetry can be used to configure a custom retry policy.
 func WithCustomRetry(checkRetry retryablehttp.CheckRetry) ClientOptionFunc {
 	return func(c *Client) error {

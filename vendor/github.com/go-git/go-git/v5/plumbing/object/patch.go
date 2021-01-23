@@ -115,18 +115,18 @@ func fileContent(f *File) (content string, isBinary bool, err error) {
 	return
 }
 
-// textPatch is an implementation of fdiff.Patch interface
+// Patch is an implementation of fdiff.Patch interface
 type Patch struct {
 	message     string
 	filePatches []fdiff.FilePatch
 }
 
-func (t *Patch) FilePatches() []fdiff.FilePatch {
-	return t.filePatches
+func (p *Patch) FilePatches() []fdiff.FilePatch {
+	return p.filePatches
 }
 
-func (t *Patch) Message() string {
-	return t.message
+func (p *Patch) Message() string {
+	return p.message
 }
 
 func (p *Patch) Encode(w io.Writer) error {
@@ -198,12 +198,12 @@ func (tf *textFilePatch) Files() (from fdiff.File, to fdiff.File) {
 	return
 }
 
-func (t *textFilePatch) IsBinary() bool {
-	return len(t.chunks) == 0
+func (tf *textFilePatch) IsBinary() bool {
+	return len(tf.chunks) == 0
 }
 
-func (t *textFilePatch) Chunks() []fdiff.Chunk {
-	return t.chunks
+func (tf *textFilePatch) Chunks() []fdiff.Chunk {
+	return tf.chunks
 }
 
 // textChunk is an implementation of fdiff.Chunk interface

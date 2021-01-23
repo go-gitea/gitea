@@ -3,7 +3,6 @@ package bbolt
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"sort"
 	"unsafe"
 )
@@ -208,35 +207,31 @@ func (n *node) write(p *page) {
 	}
 
 	// Loop over each item and write it to the page.
-	bp := uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p) + n.pageElementSize()*uintptr(len(n.inodes))
+	// off tracks the offset into p of the start of the next data.
+	off := unsafe.Sizeof(*p) + n.pageElementSize()*uintptr(len(n.inodes))
 	for i, item := range n.inodes {
 		_assert(len(item.key) > 0, "write: zero-length inode key")
+
+		// Create a slice to write into of needed size and advance
+		// byte pointer for next iteration.
+		sz := len(item.key) + len(item.value)
+		b := unsafeByteSlice(unsafe.Pointer(p), off, 0, sz)
+		off += uintptr(sz)
 
 		// Write the page element.
 		if n.isLeaf {
 			elem := p.leafPageElement(uint16(i))
-			elem.pos = uint32(bp - uintptr(unsafe.Pointer(elem)))
+			elem.pos = uint32(uintptr(unsafe.Pointer(&b[0])) - uintptr(unsafe.Pointer(elem)))
 			elem.flags = item.flags
 			elem.ksize = uint32(len(item.key))
 			elem.vsize = uint32(len(item.value))
 		} else {
 			elem := p.branchPageElement(uint16(i))
-			elem.pos = uint32(bp - uintptr(unsafe.Pointer(elem)))
+			elem.pos = uint32(uintptr(unsafe.Pointer(&b[0])) - uintptr(unsafe.Pointer(elem)))
 			elem.ksize = uint32(len(item.key))
 			elem.pgid = item.pgid
 			_assert(elem.pgid != p.id, "write: circular dependency occurred")
 		}
-
-		// Create a slice to write into of needed size and advance
-		// byte pointer for next iteration.
-		klen, vlen := len(item.key), len(item.value)
-		sz := klen + vlen
-		b := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
-			Data: bp,
-			Len:  sz,
-			Cap:  sz,
-		}))
-		bp += uintptr(sz)
 
 		// Write data for the element to the end of the page.
 		l := copy(b, item.key)

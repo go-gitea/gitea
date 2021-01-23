@@ -19,7 +19,7 @@ type LanguageStat struct {
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CommitID    string
 	IsPrimary   bool
-	Language    string             `xorm:"VARCHAR(30) UNIQUE(s) INDEX NOT NULL"`
+	Language    string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	Percentage  float32            `xorm:"-"`
 	Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 	Color       string             `xorm:"-"`

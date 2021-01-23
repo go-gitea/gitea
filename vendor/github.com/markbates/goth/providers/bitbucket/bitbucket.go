@@ -4,12 +4,12 @@ package bitbucket
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	"fmt"
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
 )
@@ -107,6 +107,9 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	}
 
 	err = userFromReader(bytes.NewReader(bits), &user)
+	if err != nil {
+		return user, err
+	}
 
 	response, err = goth.HTTPClientWithFallBack(p.Client()).Get(endpointEmail + "?access_token=" + url.QueryEscape(sess.AccessToken))
 	if err != nil {

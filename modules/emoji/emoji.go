@@ -130,6 +130,8 @@ func ReplaceAliases(s string) string {
 // FindEmojiSubmatchIndex returns index pair of longest emoji in a string
 func FindEmojiSubmatchIndex(s string) []int {
 	loadMap()
+	found := make(map[int]int)
+	keys := make([]int, 0)
 
 	//see if there are any emoji in string before looking for position of specific ones
 	//no performance difference when there is a match but 10x faster when there are not
@@ -137,11 +139,26 @@ func FindEmojiSubmatchIndex(s string) []int {
 		return nil
 	}
 
+	// get index of first emoji occurrence while also checking for longest combination
 	for j := range GemojiData {
 		i := strings.Index(s, GemojiData[j].Emoji)
 		if i != -1 {
-			return []int{i, i + len(GemojiData[j].Emoji)}
+			if _, ok := found[i]; !ok {
+				if len(keys) == 0 || i < keys[0] {
+					found[i] = j
+					keys = []int{i}
+				}
+				if i == 0 {
+					break
+				}
+			}
 		}
 	}
+
+	if len(keys) > 0 {
+		index := keys[0]
+		return []int{index, index + len(GemojiData[found[index]].Emoji)}
+	}
+
 	return nil
 }
