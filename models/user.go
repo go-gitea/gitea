@@ -1008,7 +1008,14 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	if err = sess.Commit(); err != nil {
+		if err2 := os.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			return err2
+		}
+		return err
+	}
+	
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user
