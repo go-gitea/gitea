@@ -45,7 +45,7 @@ pacman -S gitea
 
 ## SUSE and OpenSUSE
 
-OpenSUSE build service provides packages for [SUSE deriviates](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm)
+OpenSUSE build service provides packages for [SUSE deriviates](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm) in the Software configuration management Repository
 
 ## Windows
 
