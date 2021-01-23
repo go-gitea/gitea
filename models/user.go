@@ -1004,12 +1004,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteUserRedirect(sess, newUserName); err != nil {
-		return fmt.Errorf("delete user redirect: %v", err)
-	}
-
-	if err := newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
 		return err
 	}
 
