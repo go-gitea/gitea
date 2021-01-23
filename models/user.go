@@ -40,7 +40,6 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -1020,8 +1019,7 @@ func deleteBeans(e Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-// FIXME: need some kind of mechanism to record failure. HINT: system notice
-func deleteUser(e *xorm.Session, u *User) error {
+func deleteUser(e Engine, u *User) error {
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
 
@@ -1135,18 +1133,21 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
-		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+	if err = util.RemoveAll(path); err != nil {
+		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		return err
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
+			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			return err
 		}
 	}
 
