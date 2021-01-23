@@ -474,7 +474,7 @@ relation to port exhaustion.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
 - `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
-- `USER_DELETE_WITH_COMMENTS_MAX_DAYS`: **0** If a user deletes his account before that amount of days, his comments will be deleted as well.
+- `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 

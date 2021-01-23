@@ -133,15 +133,22 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
-		return err
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Info("migrating repo infos is not supported, ignored")
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}
+	if repo.CloneURL, err = downloader.FormatCloneURL(opts, repo.CloneURL); err != nil {
+		return err
+	}
+
 	log.Trace("migrating git data")
-	if err := uploader.CreateRepo(repo, opts); err != nil {
+	if err = uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
 	defer uploader.Close()
@@ -149,10 +156,13 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	log.Trace("migrating topics")
 	topics, err := downloader.GetTopics()
 	if err != nil {
-		return err
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("migrating topics is not supported, ignored")
 	}
-	if len(topics) > 0 {
-		if err := uploader.CreateTopics(topics...); err != nil {
+	if len(topics) != 0 {
+		if err = uploader.CreateTopics(topics...); err != nil {
 			return err
 		}
 	}
@@ -161,7 +171,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating milestones is not supported, ignored")
 		}
 
 		msBatchSize := uploader.MaxBatchInsertSize("milestone")
@@ -181,7 +194,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating labels")
 		labels, err := downloader.GetLabels()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating labels is not supported, ignored")
 		}
 
 		lbBatchSize := uploader.MaxBatchInsertSize("label")
@@ -201,7 +217,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating releases")
 		releases, err := downloader.GetReleases()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating releases is not supported, ignored")
 		}
 
 		relBatchSize := uploader.MaxBatchInsertSize("release")
@@ -210,14 +229,14 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err = uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
 		}
 
 		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		if err := uploader.SyncTags(); err != nil {
+		if err = uploader.SyncTags(); err != nil {
 			return err
 		}
 	}
@@ -234,7 +253,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
 			if err != nil {
-				return err
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating issues is not supported, ignored")
+				break
 			}
 
 			if err := uploader.CreateIssues(issues...); err != nil {
@@ -247,13 +270,16 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating issue %d's comments", issue.Number)
 					comments, err := downloader.GetComments(issue.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 
@@ -262,7 +288,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -280,7 +306,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
-				return err
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating pull requests is not supported, ignored")
+				break
 			}
 
 			if err := uploader.CreatePullRequests(prs...); err != nil {
@@ -294,20 +324,23 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating pull request %d's comments", pr.Number)
 					comments, err := downloader.GetComments(pr.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 						allComments = allComments[commentBatchSize:]
 					}
 				}
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -323,26 +356,30 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					}
 
 					reviews, err := downloader.GetReviews(number)
+					if err != nil {
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating reviews is not supported, ignored")
+						break
+					}
 					if pr.OriginalNumber > 0 {
 						for i := range reviews {
 							reviews[i].IssueIndex = pr.Number
 						}
 					}
-					if err != nil {
-						return err
-					}
 
 					allReviews = append(allReviews, reviews...)
 
 					if len(allReviews) >= reviewBatchSize {
-						if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
 							return err
 						}
 						allReviews = allReviews[reviewBatchSize:]
 					}
 				}
 				if len(allReviews) > 0 {
-					if err := uploader.CreateReviews(allReviews...); err != nil {
+					if err = uploader.CreateReviews(allReviews...); err != nil {
 						return err
 					}
 				}
