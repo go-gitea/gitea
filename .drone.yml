@@ -453,23 +453,24 @@ trigger:
   cron:
     - update_gitignore_and_licenses
 
-- name: download
-  image: golang:1.15
-  commands:
-    - timeout -s ABRT 40m make generate-license generate-gitignore
+steps:
+  - name: download
+    image: golang:1.15
+    commands:
+      - timeout -s ABRT 40m make generate-license generate-gitignore
 
-- name: push
-  pull: always
-  image: appleboy/drone-git-push
-  settings:
-    author_email: "teabot@gitea.io"
-    author_name: GiteaBot
-    commit: true
-    commit_message: "[skip ci] Updated licenses and gitignores "
-    remote: "git@github.com:go-gitea/gitea.git"
-  environment:
-    GIT_PUSH_SSH_KEY:
-      from_secret: git_push_ssh_key
+  - name: push
+    pull: always
+    image: appleboy/drone-git-push
+    settings:
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
+      commit: true
+      commit_message: "[skip ci] Updated licenses and gitignores "
+      remote: "git@github.com:go-gitea/gitea.git"
+    environment:
+      GIT_PUSH_SSH_KEY:
+        from_secret: git_push_ssh_key
 
 ---
 kind: pipeline
