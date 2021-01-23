@@ -152,10 +152,6 @@ func CreateOrganization(org, owner *User) (err error) {
 		return ErrUserAlreadyExist{org.Name}
 	}
 
-	if err = DeleteUserRedirect(org.Name); err != nil {
-		return err
-	}
-
 	org.LowerName = strings.ToLower(org.Name)
 	if org.Rands, err = GetUserSalt(); err != nil {
 		return err
@@ -172,6 +168,10 @@ func CreateOrganization(org, owner *User) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = deleteUserRedirect(sess, org.Name); err != nil {
 		return err
 	}
 

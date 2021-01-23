@@ -50,9 +50,3 @@ func deleteUserRedirect(e Engine, userName string) error {
 	_, err := e.Delete(&UserRedirect{LowerName: userName})
 	return err
 }
-
-// DeleteUserRedirect delete any redirect from the specified user name to
-// anything else
-func DeleteUserRedirect(userName string) error {
-	return deleteUserRedirect(x, userName)
-}
