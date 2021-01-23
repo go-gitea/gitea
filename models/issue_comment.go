@@ -1077,6 +1077,10 @@ func DeleteComment(comment *Comment, doer *User) error {
 		return err
 	}
 
+	if err := deleteReaction(sess, &ReactionOptions{Comment: comment}); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
