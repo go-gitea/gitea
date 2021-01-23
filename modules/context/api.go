@@ -73,6 +73,11 @@ type APIRedirect struct{}
 // swagger:response string
 type APIString string
 
+// ServerError responds with error message, status is 500
+func (ctx *APIContext) ServerError(title string, err error) {
+	ctx.Error(http.StatusInternalServerError, title, err)
+}
+
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
