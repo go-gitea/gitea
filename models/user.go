@@ -1009,7 +1009,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("delete user redirect: %v", err)
 	}
 
-	if err := NewUserRedirect(DBContext{sess}, u.ID, oldUserName, newUserName); err != nil {
+	if err := newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
 		return err
 	}
 

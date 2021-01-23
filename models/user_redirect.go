@@ -25,16 +25,16 @@ func LookupUserRedirect(userName string) (int64, error) {
 	return redirect.RedirectUserID, nil
 }
 
-// NewUserRedirect create a new user redirect
-func NewUserRedirect(ctx DBContext, ID int64, oldUserName, newUserName string) error {
+// newUserRedirect create a new user redirect
+func newUserRedirect(e Engine, ID int64, oldUserName, newUserName string) error {
 	oldUserName = strings.ToLower(oldUserName)
 	newUserName = strings.ToLower(newUserName)
 
-	if err := deleteUserRedirect(ctx.e, newUserName); err != nil {
+	if err := deleteUserRedirect(e, newUserName); err != nil {
 		return err
 	}
 
-	if _, err := ctx.e.Insert(&UserRedirect{
+	if _, err := e.Insert(&UserRedirect{
 		LowerName:      oldUserName,
 		RedirectUserID: ID,
 	}); err != nil {
