@@ -15,11 +15,13 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
+
+	// Needed for the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -310,6 +312,13 @@ func DumpDatabase(filePath string, dbType string) error {
 			return err
 		}
 		tbs = append(tbs, t)
+	}
+
+	// temporary fix for v1.13.x (https://github.com/go-gitea/gitea/issues/14069)
+	if _, err := x.Where(builder.IsNull{"keep_activity_private"}).
+		Cols("keep_activity_private").
+		Update(User{KeepActivityPrivate: false}); err != nil {
+		return err
 	}
 
 	type Version struct {
