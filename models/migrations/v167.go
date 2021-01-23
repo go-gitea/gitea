@@ -33,6 +33,12 @@ func recreateUserTableToFixDefaultValues(x *xorm.Engine) error {
 		}
 		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private SET DEFAULT false;")
 		return err
+	case schemas.MSSQL:
+		if _, err := x.Exec("ALTER TABLE `user` ADD  DEFAULT 0 FOR keep_activity_private GO;"); err != nil {
+			return err
+		}
+		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN keep_activity_private bit NOT NULL GO;")
+		return err
 	}
 
 	sess := x.NewSession()
