@@ -107,17 +107,8 @@ func GetInfo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(ctx.Params(":username")); err == nil {
-				context.RedirectToUser(ctx.Context, ctx.Params(":username"), redirectUserID)
-			} else {
-				ctx.NotFound("GetUserByName", err)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
+	u := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -157,18 +148,8 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// Get the user to throw an error if it does not exist
-	user, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(ctx.Params(":username")); err == nil {
-				context.RedirectToUser(ctx.Context, ctx.Params(":username"), redirectUserID)
-			} else {
-				ctx.NotFound("GetUserByName", err)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
+	user := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 

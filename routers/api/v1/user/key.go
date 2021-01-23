@@ -39,29 +39,6 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 	return apiKey, nil
 }
 
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(name)
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
-				context.RedirectToUser(ctx.Context, name, redirectUserID)
-			} else {
-				ctx.NotFound("GetUserByName", err)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return nil
-	}
-	return user
-}
-
-// GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.APIContext) *models.User {
-	return GetUserByParamsName(ctx, ctx.Params(":username"))
-}
-
 func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }
