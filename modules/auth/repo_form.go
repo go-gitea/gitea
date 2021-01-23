@@ -548,6 +548,7 @@ func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
+	Origin         string `binding:"Required;In(timeline,diff)"`
 	Content        string `binding:"Required"`
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64

@@ -33,6 +33,18 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: lint-backend-windows
+    pull: always
+    image: golang:1.15
+    commands:
+      - make golangci-lint vet
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GOOS: windows
+      GOARCH: amd64
+
   - name: lint-backend-gogit
     pull: always
     image: golang:1.15
@@ -83,6 +95,18 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
+    depends_on: [checks-backend]
+
+  - name: build-backend-windows
+    image: golang:1.15
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: windows
+      GOARCH: amd64
+      TAGS: bindata gogit
+    commands:
+      - go build -mod=vendor -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
@@ -380,7 +404,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.12
+    image: alpine:3.13
     commands:
       - ./build/update-locales.sh
 
@@ -408,6 +432,45 @@ steps:
     environment:
       CROWDIN_KEY:
         from_secret: crowdin_key
+
+---
+kind: pipeline
+name: update_gitignore_and_licenses
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  branch:
+    - master
+  event:
+    - cron
+  cron:
+    - update_gitignore_and_licenses
+
+steps:
+  - name: download
+    image: golang:1.15
+    commands:
+      - timeout -s ABRT 40m make generate-license generate-gitignore
+
+  - name: push
+    pull: always
+    image: appleboy/drone-git-push
+    settings:
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
+      commit: true
+      commit_message: "[skip ci] Updated licenses and gitignores "
+      remote: "git@github.com:go-gitea/gitea.git"
+    environment:
+      GIT_PUSH_SSH_KEY:
+        from_secret: git_push_ssh_key
 
 ---
 kind: pipeline

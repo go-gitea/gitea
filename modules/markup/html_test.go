@@ -46,6 +46,12 @@ func TestRender_Commits(t *testing.T) {
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
+	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
+
+	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
+	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -376,4 +382,29 @@ func TestRender_ShortLinks(t *testing.T) {
 		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
+}
+
+func Test_ParseClusterFuzz(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+	assert.NotContains(t, string(val), "<html")
+
+	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err = PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+
+	assert.NotContains(t, string(val), "<html")
 }

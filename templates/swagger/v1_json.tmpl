@@ -1912,6 +1912,12 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "filter pulls requesting your review, default is false",
+            "name": "review_requested",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -12482,7 +12488,7 @@
           "x-go-name": "Gitignores"
         },
         "issue_labels": {
-          "description": "Issue Label set to use",
+          "description": "Label-Set to use",
           "type": "string",
           "x-go-name": "IssueLabels"
         },
@@ -15467,6 +15473,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "duration": {
+          "type": "string",
+          "x-go-name": "Duration"
+        },
         "issue_index": {
           "type": "integer",
           "format": "int64",
@@ -15483,6 +15493,11 @@
         "repo_owner_name": {
           "type": "string",
           "x-go-name": "RepoOwnerName"
+        },
+        "seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
