@@ -1,6 +1,6 @@
 3DFX GLIDE Source Code General Public License
 
-   1. PREAMBLE
+1. PREAMBLE
 
 This license is for software that provides a 3D graphics application program
 interface (API).The license is intended to offer terms similar to some standard
@@ -21,7 +21,7 @@ Rather, the license is limited to only the identifiable portion of the derivativ
 work that is derived from the licensed software. The precise terms and conditions
 for copying, distribution and modification follow.
 
-   2. DEFINITIONS
+2. DEFINITIONS
 
 2.1 This License applies to any program (or other "work") which contains a
 notice placed by the copyright holder saying it may be distributed under the
@@ -39,7 +39,7 @@ It does not include any other portions of a work.
 2.4 "Modifications of the Program" means any work, which includes a Derivative
 Work, and includes the whole of such work.
 
-      2.5 "License" means this 3dfx GLIDE Source Code General Public License.
+     2.5 "License" means this 3dfx GLIDE Source Code General Public License.
 
 2.6 The "Source Code" for a work means the preferred form of the work for
 making modifications to it. For an executable work, complete source code means
@@ -47,9 +47,9 @@ all the source code for all modules it contains, any associated interface
 definition files, and the scripts used to control compilation and installation
 of the executable work.
 
-      2.7 "3dfx" means 3dfx Interactive, Inc.
+     2.7 "3dfx" means 3dfx Interactive, Inc.
 
-   3. LICENSED ACTIVITIES
+3. LICENSED ACTIVITIES
 
 3.1 COPYING - You may copy and distribute verbatim copies of the Program's
 Source Code as you receive it, in any medium, subject to the provision of
@@ -110,7 +110,7 @@ to claim rights or contest your rights to work written entirely by you; rather,
 the intent is to exercise the right to control the distribution of Derivative
 Works.
 
-      3.3 DISTRIBUTION
+     3.3 DISTRIBUTION
 
 (a) All copies of the Program or Derivative Works which are distributed must
 include in the file headers the following language verbatim:
@@ -129,7 +129,7 @@ COMPUTER SOFTWARE CLAUSE AT DFARS 252.227-7013, AND/OR IN SIMILAR OR SUCCESSOR
 CLAUSES IN THE FAR, DOD OR NASA FAR SUPPLEMENT. UNPUBLISHED RIGHTS RESERVED
 UNDER THE COPYRIGHT LAWS OF THE UNITED STATES.
 
-         COPYRIGHT 3DFX INTERACTIVE, INC. 1999, ALL RIGHTS RESERVED"
+          COPYRIGHT 3DFX INTERACTIVE, INC. 1999, ALL RIGHTS RESERVED"
 
 (b) You may distribute the Program or a Derivative Work in object code or
 executable form under the terms of Sections 3.1 and 3.2 provided that you
@@ -178,7 +178,7 @@ However, parties who have received copies, or rights, from you under this
 License will not have their licenses terminated so long as such parties remain
 in full compliance.
 
-   4. MISCELLANEOUS
+4. MISCELLANEOUS
 
 4.1 Acceptance of this License is voluntary. By using, modifying or distributing
 the Program or any Derivative Work, you indicate your acceptance of this License
@@ -198,7 +198,7 @@ License incorporates the limitation as if written in the body of this License.
 California and you consent to personal jurisdiction in the State of California
 in the event it is necessary to enforce the provisions of this License.
 
-   5. NO WARRANTIES
+5. NO WARRANTIES
 
 5.1 TO THE EXTENT PERMITTED BY APPLICABLE LAW, THERE IS NO WARRANTY FOR THE
 PROGRAM. OR DERIVATIVE WORKS THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE

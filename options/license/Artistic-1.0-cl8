@@ -47,15 +47,12 @@ Available, such as by posting said modifications to Usenet or an equivalent
 medium, or placing the modifications on a major archive site such as ftp.uu.net,
 or by allowing the Copyright Holder to include your modifications in the Standard
 Version of the Package.
-
-      b) use the modified Package only within your corporation or organization.
-
+     b) use the modified Package only within your corporation or organization.
 c) rename any non-standard executables so the names do not conflict with standard
 executables, which must also be provided, and provide a separate manual page
 for each non-standard executable that clearly documents how it differs from
 the Standard Version.
-
-      d) make other distribution arrangements with the Copyright Holder.
+     d) make other distribution arrangements with the Copyright Holder.
 
 4. You may distribute the programs of this Package in object code or executable
 form, provided that you do at least ONE of the following:
@@ -63,16 +60,13 @@ form, provided that you do at least ONE of the following:
 a) distribute a Standard Version of the executables and library files, together
 with instructions (in the manual page or equivalent) on where to get the Standard
 Version.
-
 b) accompany the distribution with the machine-readable source of the Package
 with your modifications.
-
 c) accompany any non-standard executables with their corresponding Standard
 Version executables, giving the non-standard executables non-standard names,
 and clearly documenting the differences in manual pages (or equivalent), together
 with instructions on where to get the Standard Version.
-
-      d) make other distribution arrangements with the Copyright Holder.
+     d) make other distribution arrangements with the Copyright Holder.
 
 5. You may charge a reasonable copying fee for any distribution of this Package.
 You may charge any fee you choose for support of this Package. You may not
@@ -100,4 +94,6 @@ products derived from this software without specific prior written permission.
 
 10. THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND
-FITNESS FOR A PARTICULAR PURPOSE. The End
+FITNESS FOR A PARTICULAR PURPOSE.
+
+The End
