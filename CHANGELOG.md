@@ -4,6 +4,42 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.1](https://github.com/go-gitea/gitea/releases/tag/v1.13.1) - 2020-12-29
+
+* SECURITY
+  * Hide private participation in Orgs (#13994) (#14031)
+  * Fix escaping issue in diff (#14153) (#14154)
+* BUGFIXES
+  * Fix bug of link query order on markdown render (#14156) (#14171)
+  * Drop long repo topics during migration (#14152) (#14155)
+  * Ensure that search term and page are not lost on adoption page-turn (#14133) (#14143)
+  * Fix storage config implementation (#14091) (#14095)
+  * Fix panic in BasicAuthDecode (#14046) (#14048)
+  * Always wait for the cmd to finish (#14006) (#14039)
+  * Don't use simpleMDE editor on mobile devices for 1.13 (#14029)
+  * Fix incorrect review comment diffs (#14002) (#14011)
+  * Trim the branch prefix from action.GetBranch (#13981) (#13986)
+  * Ensure template renderer is available before storage handler (#13164) (#13982)
+  * Whenever the password is updated ensure that the hash algorithm is too (#13966) (#13967)
+  * Enforce setting HEAD in wiki to master (#13950) (#13961)
+  * Fix feishu webhook caused by API changed (#13938)
+  * Fix Quote Reply button on review diff (#13830) (#13898)
+  * Fix Pull Merge when tag with same name as base branch exist (#13882) (#13896)
+  * Fix mermaid chart size (#13865)
+  * Fix branch/tag notifications in mirror sync (#13855) (#13862)
+  * Fix crash in short link processor (#13839) (#13841)
+  * Update font stack to bootstrap's latest (#13834) (#13837)
+  * Make sure email recipients can see issue (#13820) (#13827)
+  * Reply button is not removed when deleting a code review comment (#13824)
+  * When reinitialising DBConfig reset the database use flags (#13796) (#13811)
+* ENHANCEMENTS
+  * Add emoji in label to project boards (#13978) (#14021)
+  * Send webhook when tag is removed via Web UI (#14015) (#14019)
+  * Use Process Manager to create own Context (#13792) (#13793)
+* API
+  * GetCombinedCommitStatusByRef always return json & swagger doc fixes (#14047)
+  * Return original URL of Repositories (#13885) (#13886)
+
 ## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-12-01
 * SECURITY
   * Add Allow-/Block-List for Migrate & Mirrors (#13610) (#13776)

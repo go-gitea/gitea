@@ -411,11 +411,18 @@ func RepoAssignment() macaron.Handler {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					if ctx.Query("go-get") == "1" {
-						EarlyResponseForGoGetMeta(ctx)
-						return
+					redirectUserID, err := models.LookupUserRedirect(userName)
+					if err == nil {
+						RedirectToUser(ctx, userName, redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						if ctx.Query("go-get") == "1" {
+							EarlyResponseForGoGetMeta(ctx)
+							return
+						}
+						ctx.NotFound("GetUserByName", nil)
+					} else {
+						ctx.ServerError("LookupUserRedirect", err)
 					}
-					ctx.NotFound("GetUserByName", nil)
 				} else {
 					ctx.ServerError("GetUserByName", err)
 				}

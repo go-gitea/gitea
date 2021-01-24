@@ -1,4 +1,6 @@
-THE Q PUBLIC LICENSE version 1.0 Copyright (C) 1999-2005 Trolltech AS, Norway.
+THE Q PUBLIC LICENSE version 1.0
+
+Copyright (C) 1999-2005 Trolltech AS, Norway.
 
 Everyone is permitted to copy and distribute this license document.
 
@@ -29,7 +31,6 @@ in a form that is separate from the Software, such as patches. The following
 restrictions apply to modifications:
 
 a. Modifications must not alter or remove any copyright notices in the Software.
-
 b. When modifications to the Software are released under this license, a non-exclusive
 royalty-free right is granted to the initial developer of the Software to
 distribute your modification in future versions of the Software provided such
@@ -39,7 +40,7 @@ of the initial developer.
 4. You may distribute machine-executable forms of the Software or machine-executable
 forms of modified versions of the Software, provided that you meet these restrictions:
 
-      a. You must include this license document in the distribution.
+     a. You must include this license document in the distribution.
 
 b. You must ensure that all recipients of the machine-executable forms are
 also able to receive the complete machine-readable source code to the distributed

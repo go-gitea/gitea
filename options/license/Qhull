@@ -9,7 +9,7 @@ This software includes Qhull from The Geometry Center. Qhull is copyrighted
 as noted above. Qhull is free software and may be obtained via http from www.qhull.org.
 It may be freely copied, modified, and redistributed under the following conditions:
 
-   1. All copyright notices must remain intact in all files.
+1. All copyright notices must remain intact in all files.
 
 2. A copy of this text file must be distributed along with any copies of Qhull
 that you redistribute; this includes copies that you have modified, or copies

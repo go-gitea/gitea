@@ -1,5 +1,4 @@
 GNU GENERAL PUBLIC LICENSE
-
 Version 1, February 1989
 
 Copyright (C) 1989 Free Software Foundation, Inc. 51 Franklin St, Fifth Floor,
@@ -154,12 +153,10 @@ Our decision will be guided by the two goals of preserving the free status
 of all derivatives of our free software and of promoting the sharing and reuse
 of software generally.
 
-   
+NO WARRANTY
 
-   NO WARRANTY 9.
-
-BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR THE
-PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
+9. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR
+THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
 STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM
 "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
 BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -175,6 +172,7 @@ OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF DATA
 OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES
 OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH
 HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
 END OF TERMS AND CONDITIONS
 
 Appendix: How to Apply These Terms to Your New Programs
@@ -188,9 +186,8 @@ them to the start of each source file to most effectively convey the exclusion
 of warranty; and each file should have at least the "copyright" line and a
 pointer to where the full notice is found.
 
-<one line to give the program's name and a brief idea of what it does.>
-
-Copyright (C) 19yy <name of author>
+<one line to give the program's name and a brief idea of what it does.> Copyright
+(C) 19yy <name of author>
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -227,6 +224,6 @@ Yoyodyne, Inc., hereby disclaims all copyright interest in the program `Gnomovis
 (a program to direct compilers to make passes at assemblers) written by James
 Hacker.
 
-<signature of Ty Coon>, 1 April 1989 Ty Coon, President of Vice
+     <signature of Ty Coon>, 1 April 1989 Ty Coon, President of Vice
 
 That's all there is to it!

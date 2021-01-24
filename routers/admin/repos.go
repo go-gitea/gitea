@@ -5,6 +5,8 @@
 package admin
 
 import (
+	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -71,6 +73,8 @@ func UnadoptedRepos(ctx *context.Context) {
 		opts.Page = 1
 	}
 
+	ctx.Data["CurrentPage"] = opts.Page
+
 	doSearch := ctx.QueryBool("search")
 
 	ctx.Data["search"] = doSearch
@@ -79,6 +83,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
 		pager.SetDefaultParams(ctx)
+		pager.AddParam(ctx, "search", "search")
 		ctx.Data["Page"] = pager
 		ctx.HTML(200, tplUnadoptedRepos)
 		return
@@ -92,6 +97,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplUnadoptedRepos)
 }
@@ -100,6 +106,9 @@ func UnadoptedRepos(ctx *context.Context) {
 func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.Query("id")
 	action := ctx.Query("action")
+	page := ctx.QueryInt("page")
+	q := ctx.Query("q")
+
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {
 		ctx.Redirect(setting.AppSubURL + "/admin/repos")
@@ -148,5 +157,5 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted")
+	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + strconv.Itoa(page))
 }

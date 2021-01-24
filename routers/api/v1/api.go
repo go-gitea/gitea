@@ -134,7 +134,13 @@ func repoAssignment() macaron.Handler {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					ctx.NotFound()
+					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetUserByName", err)
+					} else {
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+					}
 				} else {
 					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 				}
@@ -393,7 +399,14 @@ func orgAssignment(args ...bool) macaron.Handler {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					ctx.NotFound()
+					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":org"))
+					if err == nil {
+						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetOrgByName", err)
+					} else {
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+					}
 				} else {
 					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 				}
@@ -640,7 +653,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRefForAPI(), repo.Edit)
+					Patch(reqToken(), reqAdmin(), context.RepoRefForAPI(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -719,8 +732,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Delete(reqToken(), repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(bind(api.EditReactionOption{}), reqToken(), repo.PostIssueCommentReaction).
-								Delete(bind(api.EditReactionOption{}), reqToken(), repo.DeleteIssueCommentReaction)
+								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 						})
 					})
 					m.Group("/:index", func() {
@@ -760,8 +773,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(bind(api.EditReactionOption{}), reqToken(), repo.PostIssueReaction).
-							Delete(bind(api.EditReactionOption{}), reqToken(), repo.DeleteIssueReaction)
+							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

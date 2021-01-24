@@ -1,5 +1,4 @@
 ADAPTIVE PUBLIC LICENSE
-
 Version 1.0
 
 THE LICENSED WORK IS PROVIDED UNDER THE TERMS OF THIS ADAPTIVE PUBLIC LICENSE
@@ -21,13 +20,12 @@ of law and jurisdiction see Part 3 of Exhibit A; (b) for the selected definition
 of Third Party see Part 4 of Exhibit A; and (c) for selected patent licensing
 terms (if any) see Section 2.2 below and Part 6 of Exhibit A.
 
-   1. DEFINITIONS.
+1. DEFINITIONS.
 
-      1.1. "CONTRIBUTION" means:
+1.1. "CONTRIBUTION" means:
 
 (a) In the case of the Initial Contributor, the Initial Work distributed under
 this License by the Initial Contributor; and
-
 (b) In the case of each Subsequent Contributor, the Subsequent Work originating
 from and distributed by such Subsequent Contributor.
 
@@ -70,7 +68,7 @@ thereof with code not governed by this License.
 1.11. "LICENSED WORK" means the Initial Work and/or any Subsequent Work, in
 each case including portions thereof.
 
-      1.12. "LICENSE NOTICE" has the meaning assigned in Part 5 of Exhibit A.
+1.12. "LICENSE NOTICE" has the meaning assigned in Part 5 of Exhibit A.
 
 1.13. "MODIFICATION" or "MODIFICATIONS" means any change to and/or addition
 to the Licensed Work.
@@ -94,12 +92,9 @@ Work to at least one Third Party.
 1.18. "SUBSEQUENT WORK" means a work that has resulted or arises from changes
 to and/or additions to:
 
-         (a) the Initial Work;
-
-         (b) any other Subsequent Work; or
-
+     (a) the Initial Work;
+     (b) any other Subsequent Work; or
 (c) to any combination of the Initial Work and any such other Subsequent Work;
-
 where such changes and/or additions originate from a Subsequent Contributor.
 A Subsequent Work will "originate" from a Subsequent Contributor if the Subsequent
 Work was a result of efforts by such Subsequent Contributor (or anyone acting
@@ -111,11 +106,11 @@ capture within its meaning any Independent Module.
 1.19. "SUPPLEMENT FILE" means a file distributed with the Licensed Work having
 a file name "suppfile.txt".
 
-      1.20. "THIRD PARTY" has the meaning assigned in Part 4 of Exhibit A.
+1.20. "THIRD PARTY" has the meaning assigned in Part 4 of Exhibit A.
 
-   2. LICENSE.
+2. LICENSE.
 
-      2.1. COPYRIGHT LICENSE FROM INITIAL AND SUBSEQUENT CONTRIBUTORS.
+2.1. COPYRIGHT LICENSE FROM INITIAL AND SUBSEQUENT CONTRIBUTORS.
 
 (a) Subject to the terms of this License, the Initial Contributor hereby grants
 each Recipient a world-wide, royalty-free, non-exclusive copyright license
@@ -123,10 +118,8 @@ to:
 
 (i) reproduce, prepare derivative works of, publicly display, publicly perform,
 distribute and sublicense the Initial Work; and
-
 (ii) reproduce, publicly display, publicly perform, distribute, and sublicense
 any derivative works (if any) prepared by Recipient;
-
 in Source Code and Executable form, either with other Modifications, on an
 unmodified basis, or as part of a Larger Work.
 
@@ -137,14 +130,12 @@ license to:
 (i) reproduce, prepare derivative works of, publicly display, publicly perform,
 distribute and sublicense the Subsequent Work of such Subsequent Contributor;
 and
-
 (ii) reproduce, publicly display, publicly perform, distribute, and sublicense
 any derivative works (if any) prepared by Recipient;
-
 in Source Code and Executable form, either with other Modifications, on an
 unmodified basis, or as part of a Larger Work.
 
-      2.2. PATENT LICENSE FROM INITIAL AND SUBSEQUENT CONTRIBUTORS.
+2.2. PATENT LICENSE FROM INITIAL AND SUBSEQUENT CONTRIBUTORS.
 
 (a) This License does not include or grant any patent license whatsoever from
 the Initial Contributor, Subsequent Contributor, or any Distributor unless,
@@ -154,7 +145,6 @@ to Part 6 of Exhibit A the patent terms in paragraphs A, B, C, D and E from
 Part 6 of Exhibit A. If this is not done then the Initial Work and any other
 Subsequent Work is made available under the License without any patent license
 (the "PATENTS-EXCLUDED LICENSE").
-
 (b) However, the Initial Contributor may subsequently distribute or make available
 (as the case may be) future copies of: (1) the Initial Work; or (2) any Licensed
 Work distributed by the Initial Contributor which includes the Initial Work
@@ -164,7 +154,6 @@ LICENSE") by selecting pursuant to Part 6 of Exhibit A the patent terms in
 paragraphs A, B, C, D and E from Part 6 of Exhibit A, when the Initial Contributor
 distributes or makes available (as the case may be) such future copies under
 this License.
-
 (c) If any Recipient receives or obtains one or more copies of the Initial
 Work or any other portion of the Licensed Work under the Patents-Included
 License, then all licensing of such copies under this License shall include
@@ -177,7 +166,6 @@ license with respect to such copies received under the Patents-Excluded License
 and availability and distribution of such copies, including Modifications
 made by such Recipient to such copies, shall be under a copy of the License
 without any patent license.
-
 (d) Where a Recipient uses in combination or combines any copy of the Licensed
 Work (or portion thereof) licensed under a copy of the License having a Patents-Excluded
 License with any copy of the Licensed Work (or portion thereof) licensed under
@@ -188,8 +176,7 @@ to only the terms of the License having the Patents-Included License which
 shall include the terms in paragraphs A, B, C, D and E from Part 6 of Exhibit
 A.
 
-      2.3. ACKNOWLEDGEMENT AND DISCLAIMER.
-
+2.3. ACKNOWLEDGEMENT AND DISCLAIMER.
 Recipient understands and agrees that although Initial Contributor and each
 Subsequent Contributor grants the licenses to its Contributions set forth
 herein, no representation, warranty, guarantee or assurance is provided by
@@ -205,16 +192,15 @@ limiting the foregoing disclaimers, if a third party patent license is required
 to allow Recipient to distribute the Licensed Work, it is Recipient's responsibility
 to acquire that license before distributing the Licensed Work.
 
-      2.4. RESERVATION.
-
+2.4. RESERVATION.
 Nothing in this License shall be deemed to grant any rights to trademarks,
 copyrights, patents, trade secrets or any other intellectual property of Initial
 Contributor, Subsequent Contributor, or Distributor except as expressly stated
 herein.
 
-   3. DISTRIBUTION OBLIGATIONS.
+3. DISTRIBUTION OBLIGATIONS.
 
-      3.1. DISTRIBUTION GENERALLY.
+3.1. DISTRIBUTION GENERALLY.
 
 (a) A Subsequent Contributor shall make that Subsequent Contributor's Subsequent
 Work(s) available to the public via an Electronic Distribution Mechanism for
@@ -222,7 +208,6 @@ a period of at least twelve (12) months. The aforesaid twelve (12) month period
 shall begin within a reasonable time after the creation of the Subsequent
 Work and no later than sixty (60) days after first distribution of that Subsequent
 Contributor's Subsequent Work.
-
 (b) All Distributors must distribute the Licensed Work in accordance with
 the terms of the License, and must include a copy of this License (including
 without limitation Exhibit A and the accompanying Supplement File) with each
@@ -233,8 +218,7 @@ the beginning of all Source Code files, and viewable to a user in any executable
 such that the License Notice is reasonably brought to the attention of any
 party using the Licensed Work.
 
-      3.2. EXECUTABLE DISTRIBUTIONS OF THE LICENSED WORK.
-
+3.2. EXECUTABLE DISTRIBUTIONS OF THE LICENSED WORK.
 A Distributor may choose to distribute the Licensed Work, or any portion thereof,
 in Executable form (an "EXECUTABLE DISTRIBUTION") to any third party, under
 the terms of Section 2 of this License, provided the Executable Distribution
@@ -245,7 +229,6 @@ at least ONE of the following conditions is fulfilled:
 the Licensed Work making up the Executable Distribution, and the Source Code
 must be distributed on the same media as the Executable Distribution or using
 an Electronic Distribution Mechanism; or
-
 (b) The Executable Distribution must be accompanied with a written offer,
 valid for at least thirty six (36) months, to give any third party under the
 terms of this License, for a charge no more than the cost of physically performing
@@ -262,8 +245,7 @@ Work or portion thereof distributed to any third party in Executable form,
 whether such distribution is made alone, in combination with a Larger Work
 or Independent Modules, or in some other combination.
 
-      3.3. SOURCE CODE DISTRIBUTIONS.
-
+3.3. SOURCE CODE DISTRIBUTIONS.
 When a Distributor makes the Licensed Work, or any portion thereof, available
 to any Person in Source Code form, it must be made available under this License
 and a copy of this License must be included with each copy of the Source Code,
@@ -273,8 +255,7 @@ distribution of the Licensed Work in any Source Code form. A Distributor may
 charge a fee for the physical act of transferring a copy, which charge shall
 be no more than the cost of physically performing source distribution.
 
-      3.4. REQUIRED NOTICES IN SOURCE CODE.
-
+3.4. REQUIRED NOTICES IN SOURCE CODE.
 Each Subsequent Contributor must ensure that the notice set out in Part 5
 of Exhibit A is included in each file of the Source Code for each Subsequent
 Work originating from that particular Subsequent Contributor, if such notice
@@ -284,8 +265,7 @@ Contributor must include such notice in a location (such as a relevant directory
 in which the file is stored) where a user would be likely to look for such
 a notice.
 
-      3.5. NO DISTRIBUTION REQUIREMENTS FOR INTERNALLY USED MODIFICATIONS.
-
+3.5. NO DISTRIBUTION REQUIREMENTS FOR INTERNALLY USED MODIFICATIONS.
 Notwithstanding Sections 3.2, 3.3 and 3.4, Recipient may, internally within
 its own corporation or organization use the Licensed Work, including the Initial
 Work and Subsequent Works, and make Modifications for internal use within
@@ -303,15 +283,13 @@ Subsequent Contributor, and shall from the first such instance become part
 of the Licensed Work that must thereafter be distributed and made available
 to third parties in accordance with the terms of Sections 3.1 to 3.4 inclusive.
 
-      3.6. INDEPENDENT MODULES.
-
+3.6. INDEPENDENT MODULES.
 This License shall not apply to Independent Modules of any Initial Contributor,
 Subsequent Contributor, Distributor or any Recipient, and such Independent
 Modules may be licensed or made available under one or more separate license
 agreements.
 
-      3.7. LARGER WORKS.
-
+3.7. LARGER WORKS.
 Any Distributor or Recipient may create or contribute to a Larger Work by
 combining any of the Licensed Work with other code not governed by the terms
 of this License, and may distribute the Larger Work as one or more products.
@@ -319,7 +297,7 @@ However, in any such case, Distributor or Recipient (as the case may be) must
 make sure that the requirements of this License are fulfilled for the Licensed
 Work portion of the Larger Work.
 
-      3.8. DESCRIPTION OF DISTRIBUTED MODIFICATIONS.
+3.8. DESCRIPTION OF DISTRIBUTED MODIFICATIONS.
 
 (a) Each Subsequent Contributor (including the Initial Contributor where the
 Initial Contributor also qualifies as a Subsequent Contributor) must cause
@@ -330,14 +308,12 @@ the creation or contribution to that Subsequent Work. If no Supplement File
 exists or no requirements are set out in Part 1 of the Supplement File, then
 there are no requirements for Subsequent Contributors to document changes
 that they make resulting in Subsequent Works.
-
 (b) The Initial Contributor may at any time introduce requirements or add
 to or change earlier requirements (in each case, the "EARLIER DESCRIPTION
 REQUIREMENTS") for documenting changes resulting in Subsequent Works by revising
 Part 1 of each copy of the Supplement File distributed by the Initial Contributor
 with future copies of the Licensed Work so that Part 1 then contains new requirements
 (the "NEW DESCRIPTION REQUIREMENTS") for documenting such changes.
-
 (c) Any Recipient receiving at any time any copy of an Initial Work or any
 Subsequent Work under a copy of this License (in each case, an "Earlier LICENSED
 COPY") having the Earlier Description Requirements may choose, with respect
@@ -347,7 +323,6 @@ to comply with the New Description Requirements, that Recipient will, when
 thereafter distributing any copies of any such Earlier Licensed Copy, include
 a Supplement File having a section entitled Part 1 that contains a copy of
 the New Description Requirements.
-
 (d) For greater certainty, the intent of Part 1 of the Supplement File is
 to provide a mechanism (if any) by which Subsequent Contributors must document
 changes that they make to the Licensed Work resulting in Subsequent Works.
@@ -360,7 +335,6 @@ to comply with Part 1 of the Supplement File, but cannot be penalised with
 damages. Part 1 of any Supplement File is only binding on each Recipient of
 any Licensed Work to the extent Part 1 sets out the requirements for documenting
 changes to the Initial Work or any Subsequent Work.
-
 (e) An example of a set of requirements for documenting changes and contributions
 made by Subsequent Contributor is set out in Part 7 of Exhibit A of this License.
 Part 7 is a sample only and is not binding on Recipients, unless (subject
@@ -368,13 +342,12 @@ to the earlier paragraphs of this Section 3.8) those are the requirements
 that the Initial Contributor includes in Part 1 of the Supplement File with
 the copies of the Initial Work distributed under this License.
 
-      3.9. USE OF DISTRIBUTOR NAME.
-
+3.9. USE OF DISTRIBUTOR NAME.
 The name of a Distributor may not be used by any other Distributor to endorse
 or promote the Licensed Work or products derived from the Licensed Work, without
 prior written permission.
 
-      3.10. LIMITED RECOGNITION OF INITIAL CONTRIBUTOR.
+3.10. LIMITED RECOGNITION OF INITIAL CONTRIBUTOR.
 
 (a) As a modest attribution to the Initial Contributor, in the hope that its
 promotional value may help justify the time, money and effort invested in
@@ -393,18 +366,15 @@ than the following Attribution Information: (a) a copyright notice including
 the name of the Initial Contributor; (b) a word or one phrase (not exceeding
 10 words); (c) one digital image or graphic provided with the Initial Work;
 and (d) a URL (collectively, the "ATTRIBUTION LIMITS").
-
 (b) If no Supplement File exists, or no Attribution Information is set out
 in Part 2 of the Supplement File, then there are no requirements for Recipients
 to display any Attribution Information of the Initial Contributor.
-
 (c) Each Recipient acknowledges that all trademarks, service marks and/or
 trade names contained within Part 2 of the Supplement File distributed with
 the Licensed Work are the exclusive property of the Initial Contributor and
 may only be used with the permission of the Initial Contributor, or under
 circumstances otherwise permitted by law, or as expressly set out in this
 License.
-
 3.11. For greater certainty, any description or attribution provisions contained
 within a Supplement File may only be used to specify the nature of the description
 or attribution requirements, as the case may be. Any provision in a Supplement
@@ -412,10 +382,9 @@ File that otherwise purports to modify, vary, nullify or amend any right,
 obligation or representation contained herein shall be deemed void to that
 extent, and shall be of no force or effect.
 
-   4. COMMERCIAL USE AND INDEMNITY.
+4. COMMERCIAL USE AND INDEMNITY.
 
-      4.1. COMMERCIAL SERVICES.
-
+4.1. COMMERCIAL SERVICES.
 A Recipient ("COMMERCIAL RECIPIENT") may choose to offer, and to charge a
 fee for, warranty, support, indemnity or liability obligations (collectively,
 "SERVICES") to one or more other Recipients or Distributors. However, such
@@ -433,8 +402,7 @@ royalty-free (subject to the right to charge a fee of no more than the cost
 of physically performing Source Code or Executable distribution (as the case
 may be)).
 
-      4.2. INDEMNITY.
-
+4.2. INDEMNITY.
 Commercial distributors of software may accept certain responsibilities with
 respect to end users, business partners and the like. While this License is
 intended to facilitate the commercial use of the Licensed Work, the Distributor
@@ -456,15 +424,13 @@ allow the Commercial Distributor to control, and co-operate with the Commercial
 Distributor in, the defense and any related settlement negotiations. The Indemnified
 Party may participate in any such claim at its own expense.
 
-   5. VERSIONS OF THE LICENSE.
+5. VERSIONS OF THE LICENSE.
 
-      5.1. NEW VERSIONS.
-
+5.1. NEW VERSIONS.
 The Initial Contributor may publish revised and/or new versions of the License
 from time to time. Each version will be given a distinguishing version number.
 
-      5.2. EFFECT OF NEW VERSIONS.
-
+5.2. EFFECT OF NEW VERSIONS.
 Once the Licensed Work or any portion thereof has been published by Initial
 Contributor under a particular version of the License, Recipient may choose
 to continue to use it under the terms of that version. However, if a Recipient
@@ -477,10 +443,9 @@ by the Recipient in connection with the Licensed Work. No one other than the
 Initial Contributor has the right to modify the terms applicable to the Licensed
 Work
 
-   6. DISCLAIMER OF WARRANTY.
+6. DISCLAIMER OF WARRANTY.
 
-      6.1. GENERAL DISCLAIMER.
-
+6.1. GENERAL DISCLAIMER.
 EXCEPT AS EXPRESSLY SET FORTH IN THIS LICENSE, THE LICENSED WORK IS PROVIDED
 UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT ANY REPRESENTATION, WARRANTY,
 GUARANTEE, ASSURANCE OR CONDITION OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
@@ -493,8 +458,7 @@ SERVICING, REPAIR OR CORRECTION. THIS CLAUSE CONSTITUTES AN ESSENTIAL PART
 OF THIS LICENSE. NO USE OF ANY LICENSED WORK IS AUTHORIZED HEREUNDER EXCEPT
 UNDER THIS LICENSE INCLUDING WITHOUT LIMITATION THIS DISCLAIMER.
 
-      6.2. RESPONSIBILITY OF RECIPIENTS.
-
+6.2. RESPONSIBILITY OF RECIPIENTS.
 Each Recipient is solely responsible for determining the appropriateness of
 using and distributing the Licensed Work and assumes all risks associated
 with its exercise of rights under this License, including but not limited
@@ -502,7 +466,7 @@ to the risks and costs of program errors, compliance with applicable laws,
 damage to or loss of data, programs or equipment, and unavailability or interruption
 of operations.
 
-   7. TERMINATION.
+7. TERMINATION.
 
 7.1. This License shall continue until terminated in accordance with the express
 terms herein.
@@ -537,7 +501,7 @@ Recipient, Sections 4.1, 4.2, 6.1, 6.2, 7.4, 7.5, 8.1, and 8.2, together with
 all provisions of this License necessary for the interpretation and enforcement
 of same, shall expressly survive such termination.
 
-   8. LIMITATION OF LIABILITY.
+8. LIMITATION OF LIABILITY.
 
 8.1. IN NO EVENT SHALL ANY OF INITIAL CONTRIBUTOR, ITS SUBSIDIARIES, OR AFFILIATES,
 OR ANY OF ITS OR THEIR RESPECTIVE OFFICERS, DIRECTORS, EMPLOYEES, AND/OR AGENTS
@@ -570,7 +534,7 @@ OF SUCH DAMAGES. THIS LIMITATION OF LIABILITY SHALL NOT APPLY TO LIABILITY
 FOR DEATH OR PERSONAL INJURY RESULTING FROM SUCH PARTY'S NEGLIGENCE TO THE
 EXTENT APPLICABLE LAW PROHIBITS SUCH LIMITATION.
 
-   9. GOVERNING LAW AND LEGAL ACTION.
+9. GOVERNING LAW AND LEGAL ACTION.
 
 9.1. This License shall be governed by and construed in accordance with the
 laws of the Governing Jurisdiction assigned in Part 3 of Exhibit A, without
@@ -596,7 +560,7 @@ prevailing party shall be entitled to recover all costs and expenses including
 the fees of its attorneys in such action or proceeding in such amount as the
 court may adjudge reasonable.
 
-   10. MISCELLANEOUS.
+10. MISCELLANEOUS.
 
 10.1. The obligations imposed by this License are for the benefit of the Initial
 Contributor and any Recipient, and each Recipient acknowledges and agrees
@@ -633,45 +597,37 @@ this License, is not limiting whether or not non-limiting language (such as
 used with reference thereto.
 
 10.8. The parties hereto acknowledge they have expressly required that this
-License and notices relating thereto be drafted in the English language. //***THE
-LICENSE TERMS END HERE (OTHER THAN AS SET OUT IN EXHIBIT A).***//
+License and notices relating thereto be drafted in the English language.
+
+//***THE LICENSE TERMS END HERE (OTHER THAN AS SET OUT IN EXHIBIT A).***//
 
 EXHIBIT A (to the Adaptive Public License)
 
-   PART 1: INITIAL CONTRIBUTOR AND DESIGNATED WEB SITE
+PART 1: INITIAL CONTRIBUTOR AND DESIGNATED WEB SITE
 
-   The Initial Contributor is:
+The Initial Contributor is:
+____________________________________________________
+ 
+[Enter full name of Initial Contributor]
 
-   ________________________________________________
+Address of Initial Contributor:
+________________________________________________
+ 
+________________________________________________
+ 
+________________________________________________
+ 
+[Enter address above]
 
-   [Enter full name of Initial Contributor]
-
-   
-
-   Address of Initial Contributor:
-
-   ________________________________________________
-
-   ________________________________________________
-
-   ________________________________________________
-
-   [Enter address above]
-
-   
-
-   The Designated Web Site is:
-
-   ________________________________________________
-
-   [Enter URL for Designated Web Site of Initial Contributor]
-
-   
+The Designated Web Site is:
+__________________________________________________
+ 
+[Enter URL for Designated Web Site of Initial Contributor]
 
 NOTE: The Initial Contributor is to complete this Part 1, along with Parts
 2, 3, and 5, and, if applicable, Parts 4 and 6.
 
-   PART 2: INITIAL WORK
+PART 2: INITIAL WORK
 
 The Initial Work comprises the computer program(s) distributed by the Initial
 Contributor having the following title(s): _______________________________________________.
@@ -679,12 +635,12 @@ Contributor having the following title(s): _____________________________________
 The date on which the Initial Work was first available under this License:
 _________________
 
-   PART 3: GOVERNING JURISDICTION
+PART 3: GOVERNING JURISDICTION
 
 For the purposes of this License, the Governing Jurisdiction is _________________________________________________.
-[Initial Contributor to Enter Governing Jurisdiction here]
+ [Initial Contributor to Enter Governing Jurisdiction here]
 
-   PART 4: THIRD PARTIES
+PART 4: THIRD PARTIES
 
 For the purposes of this License, "Third Party" has the definition set forth
 below in the ONE paragraph selected by the Initial Contributor from paragraphs
@@ -692,52 +648,43 @@ A, B, C, D and E when the Initial Work is distributed or otherwise made availabl
 by the Initial Contributor. To select one of the following paragraphs, the
 Initial Contributor must place an "X" or "x" in the selection box alongside
 the one respective paragraph selected.
-
-   SELECTION
-
-   BOX PARAGRAPH
-
-      
-
-      [ ] A. "THIRD PARTY" means any third party.
-
-      
-
-[ ] B. "THIRD PARTY" means any third party except for any of the following:
+SELECTION
+ 
+BOX   PARAGRAPH
+[  ]  A. "THIRD PARTY" means any third party.
+ 
+ 
+[  ]  B. "THIRD PARTY" means any third party except for any of the following:
 (a) a wholly owned subsidiary of the Subsequent Contributor in question; (b)
 a legal entity (the "PARENT") that wholly owns the Subsequent Contributor
 in question; or (c) a wholly owned subsidiary of the wholly owned subsidiary
 in (a) or of the Parent in (b).
-
-      
-
-[ ] C. "THIRD PARTY" means any third party except for any of the following:
+ 
+ 
+[  ]  C. "THIRD PARTY" means any third party except for any of the following:
 (a) any Person directly or indirectly owning a majority of the voting interest
 in the Subsequent Contributor or (b) any Person in which the Subsequent Contributor
 directly or indirectly owns a majority voting interest.
-
-      
-
-[ ] D. "THIRD PARTY" means any third party except for any Person directly
+ 
+ 
+[  ]  D. "THIRD PARTY" means any third party except for any Person directly
 or indirectly controlled by the Subsequent Contributor. For purposes of this
 definition, "control" shall mean the power to direct or cause the direction
 of, the management and policies of such Person whether through the ownership
 of voting interests, by contract, or otherwise.
-
-      
-
-[ ] E. "THIRD PARTY" means any third party except for any Person directly
+ 
+ 
+[  ]  E. "THIRD PARTY" means any third party except for any Person directly
 or indirectly controlling, controlled by, or under common control with the
 Subsequent Contributor. For purposes of this definition, "control" shall mean
 the power to direct or cause the direction of, the management and policies
 of such Person whether through the ownership of voting interests, by contract,
 or otherwise.
-
 The default definition of "THIRD PARTY" is the definition set forth in paragraph
 A, if NONE OR MORE THAN ONE of paragraphs A, B, C, D or E in this Part 4 are
 selected by the Initial Contributor.
 
-   PART 5: NOTICE
+PART 5: NOTICE
 
 THE LICENSED WORK IS PROVIDED UNDER THE TERMS OF THE ADAPTIVE PUBLIC LICENSE
 ("LICENSE") AS FIRST COMPLETED BY: ______________________ [Insert the name
@@ -755,22 +702,16 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
 the specific language governing rights and limitations under the License.
 
-   PART 6: PATENT LICENSING TERMS
+PART 6: PATENT LICENSING TERMS
 
 For the purposes of this License, paragraphs A, B, C, D and E of this Part
 6 of Exhibit A are only incorporated and form part of the terms of the License
 if the Initial Contributor places an "X" or "x" in the selection box alongside
 the YES answer to the question immediately below.
 
-   Is this a Patents-Included License pursuant to Section 2.2 of the License?
-
-      
-
-      YES [ ]
-
-      
-
-      NO [ ]
+Is this a Patents-Included License pursuant to Section 2.2 of the License?
+YES   [      ]
+NO    [      ]
 
 By default, if YES is not selected by the Initial Contributor, the answer
 is NO.
@@ -803,15 +744,11 @@ exporting, transfer or disposal of any such Modifications made by that Subsequen
 Contributor alone and/or in combination with its Subsequent Work (or portions
 of such combination) to make, use, sell, offer for sale, have made, import,
 export, transfer and otherwise dispose of:
-
 (1) Modifications made by that Subsequent Contributor (or portions thereof);
 and
-
 (2) the combination of Modifications made by that Subsequent Contributor with
 its Subsequent Work (or portions of such combination);
-
-         (collectively and in each case, the "SUBSEQUENT CONTRIBUTOR VERSION").
-
+(collectively and in each case, the "SUBSEQUENT CONTRIBUTOR VERSION").
 Notwithstanding the foregoing, no patent license is granted under this Paragraph
 C by such Subsequent Contributor: (1) for any code that such Subsequent Contributor
 deletes from the Subsequent Contributor Version (or any portion thereof) distributed
@@ -852,12 +789,11 @@ by Recipient upon License termination. License termination is only effective
 with respect to patents and/or copyrights for which proper notice has been
 given.
 
-   PART 7: SAMPLE REQUIREMENTS FOR THE DESCRIPTION OF DISTRIBUTED MODIFICATIONS
+PART 7: SAMPLE REQUIREMENTS FOR THE DESCRIPTION OF DISTRIBUTED MODIFICATIONS
 
 Each Subsequent Contributor (including the Initial Contributor where the Initial
 Contributor qualifies as a Subsequent Contributor) is invited (but not required)
 to cause each Subsequent Work created or contributed to by that Subsequent
 Contributor to contain a file documenting the changes such Subsequent Contributor
-made to create that Subsequent Work and the date of any change.
-
-//***EXHIBIT A ENDS HERE.***//
+made to create that Subsequent Work and the date of any change. //***EXHIBIT
+A ENDS HERE.***//

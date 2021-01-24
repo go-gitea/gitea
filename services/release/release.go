@@ -63,9 +63,11 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
 
-		u, err := models.GetUserByEmail(commit.Author.Email)
-		if err == nil {
-			rel.PublisherID = u.ID
+		if rel.PublisherID <= 0 {
+			u, err := models.GetUserByEmail(commit.Author.Email)
+			if err == nil {
+				rel.PublisherID = u.ID
+			}
 		}
 
 	} else {
@@ -151,6 +153,15 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
 			return fmt.Errorf("git tag -d: %v", err)
 		}
+
+		notification.NotifyPushCommits(
+			doer, repo,
+			&repository.PushUpdateOptions{
+				RefFullName: git.TagPrefix + rel.TagName,
+				OldCommitID: rel.Sha1,
+				NewCommitID: git.EmptySHA,
+			}, repository.NewPushCommits())
+		notification.NotifyDeleteRef(doer, repo, "tag", git.TagPrefix+rel.TagName)
 
 		if err := models.DeleteReleaseByID(id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %v", err)

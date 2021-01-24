@@ -37,7 +37,6 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 )
 
@@ -111,7 +110,7 @@ func runPR() {
 	models.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
-	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()

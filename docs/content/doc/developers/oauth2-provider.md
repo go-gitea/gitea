@@ -30,7 +30,9 @@ Gitea supports acting as an OAuth2 provider to allow third party applications to
 
 ## Supported OAuth2 Grants
 
-At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636) extension.
+At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the following extensions:
+- [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636)
+- [OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth)
 
 To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings.
 

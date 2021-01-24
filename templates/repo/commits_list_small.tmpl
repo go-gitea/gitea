@@ -16,8 +16,8 @@
 
 		<span class="ui float right shabox">
 			{{if eq (CommitType .) "SignCommitWithStatuses"}}
-        		{{template "repo/commit_status" .Status}}
-        	{{end}}
+				{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
+			{{end}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
 				{{$class = (printf "%s%s" $class " isSigned")}}
