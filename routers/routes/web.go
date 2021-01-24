@@ -759,7 +759,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
-			m.Group("/_new/", func() {
+			m.Group("/_new", func() {
 				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
 				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
 				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
@@ -816,7 +816,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/{type:issues|pulls}", repo.Issues)
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
-			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
+			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
@@ -849,8 +849,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/?{page}", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})\\.[patch|diff]}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
@@ -967,7 +967,6 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {

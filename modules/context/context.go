@@ -435,7 +435,8 @@ func (ctx *Context) RemoteAddr() string {
 
 // Params returns the param on route
 func (ctx *Context) Params(p string) string {
-	return chi.URLParam(ctx.Req, strings.TrimPrefix(p, ":"))
+	s, _ := url.PathUnescape(chi.URLParam(ctx.Req, strings.TrimPrefix(p, ":")))
+	return s
 }
 
 // ParamsInt64 returns the param on route as int64
@@ -447,7 +448,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
 	chiCtx := chi.RouteContext(ctx.Req.Context())
-	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), v)
+	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
 
 // Write writes data to webbrowser

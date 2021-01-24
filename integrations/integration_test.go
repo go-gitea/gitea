@@ -385,6 +385,9 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	t.Helper()
+	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
+		urlStr = "/" + urlStr
+	}
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr

@@ -503,13 +503,6 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	}
 }
 
-func mustEnableUserHeatmap(ctx *context.APIContext) {
-	if !setting.Service.EnableUserHeatmap {
-		ctx.NotFound()
-		return
-	}
-}
-
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
 		ctx.NotFound()
@@ -599,7 +592,10 @@ func Routes() *web.Route {
 
 			m.Group("/{username}", func() {
 				m.Get("", user.GetInfo)
-				m.Get("/heatmap", mustEnableUserHeatmap, user.GetUserHeatmapData)
+
+				if setting.Service.EnableUserHeatmap {
+					m.Get("/heatmap", user.GetUserHeatmapData)
+				}
 
 				m.Get("/repos", user.ListUserRepos)
 				m.Group("/tokens", func() {

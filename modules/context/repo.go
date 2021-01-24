@@ -405,6 +405,7 @@ func RepoAssignment() func(http.Handler) http.Handler {
 
 			userName := ctx.Params(":username")
 			repoName := ctx.Params(":reponame")
+			repoName = strings.TrimSuffix(repoName, ".git")
 
 			// Check if the user is the same as the repository owner
 			if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {

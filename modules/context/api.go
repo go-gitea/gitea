@@ -253,7 +253,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			// Get user from session if logged in.
 			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
 			if ctx.User != nil {
-				ctx.Data["IsApiToken"] = true
 				ctx.IsSigned = true
 				ctx.Data["IsSigned"] = ctx.IsSigned
 				ctx.Data["SignedUser"] = ctx.User

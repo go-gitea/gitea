@@ -7,7 +7,6 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"reflect"
 	"strings"
 
@@ -174,12 +173,9 @@ func (r *Route) Use(middlewares ...interface{}) {
 
 // Group mounts a sub-Router along a `pattern` string.
 func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
-	if pattern == "" {
-		pattern = "/"
-	}
 	var previousGroupPrefix = r.curGroupPrefix
 	var previousMiddlewares = r.curMiddlewares
-	r.curGroupPrefix = path.Join(r.curGroupPrefix, pattern)
+	r.curGroupPrefix = r.curGroupPrefix + pattern
 	r.curMiddlewares = append(r.curMiddlewares, middlewares...)
 
 	fn()
@@ -189,10 +185,14 @@ func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
 }
 
 func (r *Route) getPattern(pattern string) string {
-	if pattern == "" {
-		pattern = "/"
+	newPattern := r.curGroupPrefix + pattern
+	if !strings.HasPrefix(newPattern, "/") {
+		newPattern = "/" + newPattern
 	}
-	return path.Join(r.curGroupPrefix, pattern)
+	if newPattern == "/" {
+		return newPattern
+	}
+	return strings.TrimSuffix(newPattern, "/")
 }
 
 // Mount attaches another Route along ./pattern/*
