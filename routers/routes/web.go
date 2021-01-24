@@ -846,7 +846,8 @@ func RegisterRoutes(m *web.Route) {
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
-			m.Get("/?{page}", repo.Wiki)
+			m.Get("/", repo.Wiki)
+			m.Get("/{page}", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
