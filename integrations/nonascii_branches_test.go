@@ -170,10 +170,9 @@ func TestNonasciiBranches(t *testing.T) {
 	setDefaultBranch(t, session, user, repo, "Plus+Is+Not+Space")
 
 	for _, test := range testRedirects {
-		t.Run(test.from+" -> "+test.to, func(t *testing.T) {
-			testSrcRouteRedirect(t, session, user, repo, test.from, test.to, test.status)
-		})
+		testSrcRouteRedirect(t, session, user, repo, test.from, test.to, test.status)
 	}
 
 	setDefaultBranch(t, session, user, repo, "master")
+
 }

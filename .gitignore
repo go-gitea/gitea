@@ -106,5 +106,3 @@ prime/
 
 # Make evidence files
 /.make_evidence
-
-mysql-log
