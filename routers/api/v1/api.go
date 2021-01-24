@@ -134,7 +134,13 @@ func repoAssignment() macaron.Handler {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					ctx.NotFound()
+					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetUserByName", err)
+					} else {
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+					}
 				} else {
 					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 				}
@@ -393,7 +399,14 @@ func orgAssignment(args ...bool) macaron.Handler {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					ctx.NotFound()
+					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":org"))
+					if err == nil {
+						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetOrgByName", err)
+					} else {
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+					}
 				} else {
 					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 				}

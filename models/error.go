@@ -146,6 +146,21 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
+type ErrUserRedirectNotExist struct {
+	Name string
+}
+
+// IsErrUserRedirectNotExist check if an error is an ErrUserRedirectNotExist.
+func IsErrUserRedirectNotExist(err error) bool {
+	_, ok := err.(ErrUserRedirectNotExist)
+	return ok
+}
+
+func (err ErrUserRedirectNotExist) Error() string {
+	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
 type ErrUserProhibitLogin struct {
 	UID  int64
