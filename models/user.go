@@ -922,6 +922,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
+	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
@@ -939,16 +940,24 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
 	// Do not fail if directory does not exist
-	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = os.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return sess.Commit()
+	if err = sess.Commit(); err != nil {
+		if err2 := os.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user
