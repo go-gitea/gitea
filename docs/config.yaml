@@ -19,7 +19,7 @@ params:
   author: The Gitea Authors
   website: https://docs.gitea.io
   version: 1.13.1
-  minGoVersion: 1.13
+  minGoVersion: 1.14
   goVersion: 1.15
   minNodeVersion: 10.13
 
