@@ -68,12 +68,12 @@ func accessLogger() func(http.Handler) http.Handler {
 				ResponseWriter: rw,
 			})
 			if err != nil {
-				log.Error("Could not set up macaron access logger: %v", err.Error())
+				log.Error("Could not set up chi access logger: %v", err.Error())
 			}
 
 			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
 			if err != nil {
-				log.Error("Could not set up macaron access logger: %v", err.Error())
+				log.Error("Could not set up chi access logger: %v", err.Error())
 			}
 		})
 	}
