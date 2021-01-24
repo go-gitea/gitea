@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -216,6 +217,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
 	case models.IsErrMigrationNotAllowed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
+	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)

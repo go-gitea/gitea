@@ -144,11 +144,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	} else {
-		ctx.HTML(200, tplCreate)
-	}
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+
+	ctx.HTML(200, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {

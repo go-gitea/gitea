@@ -102,8 +102,15 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
-		log.Error("Attempted access of unknown user from %s", ctx.RemoteAddr())
-		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		if models.IsErrUserNotExist(err) {
+			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+				context.RedirectToUser(ctx, username, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
 		return
 	}
 	if !owner.IsOrganization() && !owner.IsActive {
