@@ -1014,7 +1014,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		}
 		return err
 	}
-	
+
 	return nil
 }
 
