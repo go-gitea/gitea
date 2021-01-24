@@ -175,7 +175,7 @@ func (r *Route) Use(middlewares ...interface{}) {
 func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
 	var previousGroupPrefix = r.curGroupPrefix
 	var previousMiddlewares = r.curMiddlewares
-	r.curGroupPrefix = r.curGroupPrefix + pattern
+	r.curGroupPrefix += pattern
 	r.curMiddlewares = append(r.curMiddlewares, middlewares...)
 
 	fn()
