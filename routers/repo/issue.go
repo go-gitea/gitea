@@ -113,16 +113,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
-	if !com.IsSliceContainsStr(types, viewType) {
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
+	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
 
 	var (
-		assigneeID  = ctx.QueryInt64("assignee")
-		posterID    int64
-		mentionedID int64
-		forceEmpty  bool
+		assigneeID        = ctx.QueryInt64("assignee")
+		posterID          int64
+		mentionedID       int64
+		reviewRequestedID int64
+		forceEmpty        bool
 	)
 
 	if ctx.IsSigned {
@@ -133,6 +134,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			mentionedID = ctx.User.ID
 		case "assigned":
 			assigneeID = ctx.User.ID
+		case "review_requested":
+			reviewRequestedID = ctx.User.ID
 		}
 	}
 
@@ -169,14 +172,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issueStats = &models.IssueStats{}
 	} else {
 		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
-			RepoID:      repo.ID,
-			Labels:      selectLabels,
-			MilestoneID: milestoneID,
-			AssigneeID:  assigneeID,
-			MentionedID: mentionedID,
-			PosterID:    posterID,
-			IsPull:      isPullOption,
-			IssueIDs:    issueIDs,
+			RepoID:            repo.ID,
+			Labels:            selectLabels,
+			MilestoneID:       milestoneID,
+			AssigneeID:        assigneeID,
+			MentionedID:       mentionedID,
+			PosterID:          posterID,
+			ReviewRequestedID: reviewRequestedID,
+			IsPull:            isPullOption,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -217,17 +221,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:      []int64{repo.ID},
-			AssigneeID:   assigneeID,
-			PosterID:     posterID,
-			MentionedID:  mentionedID,
-			MilestoneIDs: mileIDs,
-			ProjectID:    projectID,
-			IsClosed:     util.OptionalBoolOf(isShowClosed),
-			IsPull:       isPullOption,
-			LabelIDs:     labelIDs,
-			SortType:     sortType,
-			IssueIDs:     issueIDs,
+			RepoIDs:           []int64{repo.ID},
+			AssigneeID:        assigneeID,
+			PosterID:          posterID,
+			MentionedID:       mentionedID,
+			ReviewRequestedID: reviewRequestedID,
+			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
+			IsClosed:          util.OptionalBoolOf(isShowClosed),
+			IsPull:            isPullOption,
+			LabelIDs:          labelIDs,
+			SortType:          sortType,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -259,7 +264,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				return
 			}
 
-			commitStatus[issues[i].PullRequest.ID], _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
+			var statuses, _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
+			commitStatus[issues[i].PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
 	}
 
@@ -270,6 +276,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
+	handleTeamMentions(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -407,6 +418,11 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
+	handleTeamMentions(ctx)
+	if ctx.Written() {
 		return
 	}
 }
@@ -970,7 +986,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
+	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
 }
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
@@ -1050,10 +1066,10 @@ func ViewIssue(ctx *context.Context) {
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	} else if ctx.Params(":type") == "pulls" && !issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
 		return
 	}
 
@@ -1106,7 +1122,7 @@ func ViewIssue(ctx *context.Context) {
 		iw.IssueID = issue.ID
 		iw.IsWatching, err = models.CheckIssueWatch(ctx.User, issue)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("CheckIssueWatch", err)
 			return
 		}
 	}
@@ -1361,7 +1377,26 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+			for _, codeComments := range comment.Review.CodeComments {
+				for _, lineComments := range codeComments {
+					for _, c := range lineComments {
+						// Check tag.
+						tag, ok = marked[c.PosterID]
+						if ok {
+							c.ShowTag = tag
+							continue
+						}
 
+						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						if err != nil {
+							ctx.ServerError("commentTag", err)
+							return
+						}
+						marked[c.PosterID] = c.ShowTag
+						participants = addParticipant(c.Poster, participants)
+					}
+				}
+			}
 			if err = comment.LoadResolveDoer(); err != nil {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
@@ -1400,7 +1435,7 @@ func ViewIssue(ctx *context.Context) {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true
-						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index) + "/cleanup"
 					}
 				}
 			}
@@ -1649,7 +1684,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachmentsHTML(ctx, issue.Attachments),
+		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }
 
@@ -2065,7 +2100,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachmentsHTML(ctx, comment.Attachments),
+		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
 
@@ -2090,7 +2125,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(ctx.User, comment); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
@@ -2399,10 +2434,11 @@ func updateAttachments(item interface{}, files []string) error {
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) string {
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, content string) string {
 	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
 		"ctx":         ctx.Data,
 		"Attachments": attachments,
+		"Content":     content,
 	})
 	if err != nil {
 		ctx.ServerError("attachmentsHTML.HTMLString", err)
@@ -2442,4 +2478,41 @@ func combineLabelComments(issue *models.Issue) {
 		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 		i--
 	}
+}
+
+// get all teams that current user can mention
+func handleTeamMentions(ctx *context.Context) {
+	if ctx.User == nil || !ctx.Repo.Owner.IsOrganization() {
+		return
+	}
+
+	isAdmin := false
+	var err error
+	// Admin has super access.
+	if ctx.User.IsAdmin {
+		isAdmin = true
+	} else {
+		isAdmin, err = ctx.Repo.Owner.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		}
+	}
+
+	if isAdmin {
+		if err := ctx.Repo.Owner.GetTeams(&models.SearchTeamOptions{}); err != nil {
+			ctx.ServerError("GetTeams", err)
+			return
+		}
+	} else {
+		ctx.Repo.Owner.Teams, err = ctx.Repo.Owner.GetUserTeams(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetUserTeams", err)
+			return
+		}
+	}
+
+	ctx.Data["MentionableTeams"] = ctx.Repo.Owner.Teams
+	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.RelAvatarLink()
 }

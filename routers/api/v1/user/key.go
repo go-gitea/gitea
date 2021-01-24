@@ -39,25 +39,6 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 	return apiKey, nil
 }
 
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(ctx.Params(name))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
-		return nil
-	}
-	return user
-}
-
-// GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.APIContext) *models.User {
-	return GetUserByParamsName(ctx, ":username")
-}
-
 func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }
@@ -267,7 +248,16 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+	id := ctx.ParamsInt64(":id")
+	externallyManaged, err := models.PublicKeyIsExternallyManaged(id)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+	}
+	if externallyManaged {
+		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+	}
+
+	if err := models.DeletePublicKey(ctx.User, id); err != nil {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {

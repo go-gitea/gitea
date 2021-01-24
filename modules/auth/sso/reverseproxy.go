@@ -6,14 +6,13 @@
 package sso
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
 	gouuid "github.com/google/uuid"
 )
 
@@ -31,8 +30,8 @@ type ReverseProxy struct {
 }
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
-func (r *ReverseProxy) getUserName(ctx *macaron.Context) string {
-	webAuthUser := strings.TrimSpace(ctx.Req.Header.Get(setting.ReverseProxyAuthUser))
+func (r *ReverseProxy) getUserName(req *http.Request) string {
+	webAuthUser := strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
 	if len(webAuthUser) == 0 {
 		return ""
 	}
@@ -61,8 +60,8 @@ func (r *ReverseProxy) IsEnabled() bool {
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
-	username := r.getUserName(ctx)
+func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
 	}
@@ -70,7 +69,7 @@ func (r *ReverseProxy) VerifyAuthData(ctx *macaron.Context, sess session.Store) 
 	user, err := models.GetUserByName(username)
 	if err != nil {
 		if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
-			return r.newUser(ctx)
+			return r.newUser(req)
 		}
 		log.Error("GetUserByName: %v", err)
 		return nil
@@ -86,15 +85,15 @@ func (r *ReverseProxy) isAutoRegisterAllowed() bool {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (r *ReverseProxy) newUser(ctx *macaron.Context) *models.User {
-	username := r.getUserName(ctx)
+func (r *ReverseProxy) newUser(req *http.Request) *models.User {
+	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
 	}
 
 	email := gouuid.New().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
-		webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
+		webAuthEmail := req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {
 			email = webAuthEmail
 		}

@@ -7,6 +7,7 @@ package stats
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -37,6 +38,7 @@ func (db *DBIndexer) Index(id int64) error {
 	// Get latest commit for default branch
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
+		log.Error("Unable to get commit ID for defaultbranch %s in %s", repo.DefaultBranch, repo.RepoPath())
 		return err
 	}
 
@@ -48,6 +50,7 @@ func (db *DBIndexer) Index(id int64) error {
 	// Calculate and save language statistics to database
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
+		log.Error("Unable to get language stats for ID %s for defaultbranch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
 	return repo.UpdateLanguageStats(commitID, stats)

@@ -483,7 +483,7 @@ func (db *sqlite3) GetIndexes(queryer core.Queryer, ctx context.Context, tableNa
 			continue
 		}
 
-		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []'\"")
+		indexName := strings.Trim(strings.TrimSpace(sql[nNStart+6:nNEnd]), "`[]'\"")
 		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			index.Name = indexName[5+len(tableName):]

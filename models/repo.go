@@ -34,7 +34,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -79,13 +78,13 @@ func loadRepoConfig() {
 			log.Fatal("Failed to get custom %s files: %v", t, err)
 		}
 		if isDir {
-			customFiles, err := com.StatDir(customPath)
+			customFiles, err := util.StatDir(customPath)
 			if err != nil {
 				log.Fatal("Failed to get custom %s files: %v", t, err)
 			}
 
 			for _, f := range customFiles {
-				if !com.IsSliceContainsStr(files, f) {
+				if !util.IsStringInSlice(f, files, true) {
 					files = append(files, f)
 				}
 			}
@@ -115,12 +114,12 @@ func loadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if com.IsSliceContainsStr(Licenses, name) {
+		if util.IsStringInSlice(name, Licenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !com.IsSliceContainsStr(setting.Repository.PreferredLicenses, name) {
+		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
@@ -322,11 +321,6 @@ func (repo *Repository) APIURL() string {
 	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
 }
 
-// APIFormat converts a Repository to api.Repository
-func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
-	return repo.innerAPIFormat(x, mode, false)
-}
-
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
 func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
 	var prefix string
@@ -336,135 +330,6 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 		prefix = "commit"
 	}
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
-}
-
-func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
-	var parent *api.Repository
-
-	cloneLink := repo.cloneLink(false)
-	permission := &api.Permission{
-		Admin: mode >= AccessModeAdmin,
-		Push:  mode >= AccessModeWrite,
-		Pull:  mode >= AccessModeRead,
-	}
-	if !isParent {
-		err := repo.getBaseRepo(e)
-		if err != nil {
-			log.Error("APIFormat: %v", err)
-		}
-		if repo.BaseRepo != nil {
-			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
-		}
-	}
-
-	//check enabled/disabled units
-	hasIssues := false
-	var externalTracker *api.ExternalTracker
-	var internalTracker *api.InternalTracker
-	if unit, err := repo.getUnit(e, UnitTypeIssues); err == nil {
-		config := unit.IssuesConfig()
-		hasIssues = true
-		internalTracker = &api.InternalTracker{
-			EnableTimeTracker:                config.EnableTimetracker,
-			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
-			EnableIssueDependencies:          config.EnableDependencies,
-		}
-	} else if unit, err := repo.getUnit(e, UnitTypeExternalTracker); err == nil {
-		config := unit.ExternalTrackerConfig()
-		hasIssues = true
-		externalTracker = &api.ExternalTracker{
-			ExternalTrackerURL:    config.ExternalTrackerURL,
-			ExternalTrackerFormat: config.ExternalTrackerFormat,
-			ExternalTrackerStyle:  config.ExternalTrackerStyle,
-		}
-	}
-	hasWiki := false
-	var externalWiki *api.ExternalWiki
-	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
-		hasWiki = true
-	} else if unit, err := repo.getUnit(e, UnitTypeExternalWiki); err == nil {
-		hasWiki = true
-		config := unit.ExternalWikiConfig()
-		externalWiki = &api.ExternalWiki{
-			ExternalWikiURL: config.ExternalWikiURL,
-		}
-	}
-	hasPullRequests := false
-	ignoreWhitespaceConflicts := false
-	allowMerge := false
-	allowRebase := false
-	allowRebaseMerge := false
-	allowSquash := false
-	if unit, err := repo.getUnit(e, UnitTypePullRequests); err == nil {
-		config := unit.PullRequestsConfig()
-		hasPullRequests = true
-		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
-		allowMerge = config.AllowMerge
-		allowRebase = config.AllowRebase
-		allowRebaseMerge = config.AllowRebaseMerge
-		allowSquash = config.AllowSquash
-	}
-	hasProjects := false
-	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
-		hasProjects = true
-	}
-
-	repo.mustOwner(e)
-
-	numReleases, _ := GetReleaseCountByRepoID(repo.ID, FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
-
-	return &api.Repository{
-		ID: repo.ID,
-		// TODO use convert.ToUser(repo.Owner)
-		Owner: &api.User{
-			ID:        repo.Owner.ID,
-			UserName:  repo.Owner.Name,
-			FullName:  repo.Owner.FullName,
-			Email:     repo.Owner.GetEmail(),
-			AvatarURL: repo.Owner.AvatarLink(),
-			LastLogin: repo.Owner.LastLoginUnix.AsTime(),
-			Created:   repo.Owner.CreatedUnix.AsTime(),
-		},
-		Name:                      repo.Name,
-		FullName:                  repo.FullName(),
-		Description:               repo.Description,
-		Private:                   repo.IsPrivate,
-		Template:                  repo.IsTemplate,
-		Empty:                     repo.IsEmpty,
-		Archived:                  repo.IsArchived,
-		Size:                      int(repo.Size / 1024),
-		Fork:                      repo.IsFork,
-		Parent:                    parent,
-		Mirror:                    repo.IsMirror,
-		HTMLURL:                   repo.HTMLURL(),
-		SSHURL:                    cloneLink.SSH,
-		CloneURL:                  cloneLink.HTTPS,
-		Website:                   repo.Website,
-		Stars:                     repo.NumStars,
-		Forks:                     repo.NumForks,
-		Watchers:                  repo.NumWatches,
-		OpenIssues:                repo.NumOpenIssues,
-		OpenPulls:                 repo.NumOpenPulls,
-		Releases:                  int(numReleases),
-		DefaultBranch:             repo.DefaultBranch,
-		Created:                   repo.CreatedUnix.AsTime(),
-		Updated:                   repo.UpdatedUnix.AsTime(),
-		Permissions:               permission,
-		HasIssues:                 hasIssues,
-		ExternalTracker:           externalTracker,
-		InternalTracker:           internalTracker,
-		HasWiki:                   hasWiki,
-		HasProjects:               hasProjects,
-		ExternalWiki:              externalWiki,
-		HasPullRequests:           hasPullRequests,
-		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
-		AllowMerge:                allowMerge,
-		AllowRebase:               allowRebase,
-		AllowRebaseMerge:          allowRebaseMerge,
-		AllowSquash:               allowSquash,
-		AvatarURL:                 repo.avatarLink(e),
-		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-	}
 }
 
 func (repo *Repository) getUnits(e Engine) (err error) {
@@ -1114,6 +979,7 @@ type CreateRepoOptions struct {
 	AutoInit       bool
 	Status         RepositoryStatus
 	TrustModel     TrustModelType
+	MirrorInterval string
 }
 
 // GetRepoInitFile returns repository init files
@@ -1446,8 +1312,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("NewRepoRedirect: %v", err)
+	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
 	return sess.Commit()
@@ -1495,12 +1361,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, repo.OwnerID, newRepoName); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
-	}
-
-	if err := NewRepoRedirect(DBContext{sess}, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 
@@ -1645,26 +1506,27 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 }
 
 // DeleteRepository deletes a repository for a user or organization.
+// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *User, uid, repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	// In case is a organization.
-	org, err := GetUserByID(uid)
+	org, err := getUserByID(sess, uid)
 	if err != nil {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err = org.getTeams(sess); err != nil {
 			return err
 		}
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	repo := &Repository{ID: repoID, OwnerID: uid}
-	has, err := sess.Get(repo)
+	repo := &Repository{OwnerID: uid}
+	has, err := sess.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -1813,14 +1675,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
-		sess.Close()
-		if len(deployKeys) > 0 {
-			// We need to rewrite the public keys because the commit failed
-			if err2 := RewriteAllPublicKeys(); err2 != nil {
-				return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
-			}
-		}
-		return fmt.Errorf("Commit: %v", err)
+		return err
 	}
 
 	sess.Close()
@@ -2067,7 +1922,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
-		id := com.StrTo(result["id"]).MustInt64()
+		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
@@ -2135,7 +1990,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
@@ -2158,7 +2013,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
@@ -2181,7 +2036,7 @@ func CheckRepoStats(ctx context.Context) error {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
-			id := com.StrTo(result["id"]).MustInt64()
+			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
