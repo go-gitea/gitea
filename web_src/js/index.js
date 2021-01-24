@@ -2387,12 +2387,12 @@ function initIssueReferenceRepositorySearch() {
 function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
-      width: image1.width,
-      height: image1.height
+      width: image1 && image1.width || 0,
+      height: image1 && image1.height || 0
     };
     const size2 = {
-      width: image2.width,
-      height: image2.height
+      width: image2 && image2.width || 0,
+      height: image2 && image2.height || 0
     };
     const max = {
       width: Math.max(size2.width, size1.width),
@@ -2430,11 +2430,16 @@ function initImageDiff() {
     }];
 
     for (const info of imageInfos) {
-      info.$image.on('load', () => {
+      if (info.$image.length > 0) {
+        info.$image.on('load', () => {
+          info.loaded = true;
+          setReadyIfLoaded();
+        });
+        info.$image.attr('src', info.path);
+      } else {
         info.loaded = true;
         setReadyIfLoaded();
-      });
-      info.$image.attr('src', info.path);
+      }
     }
 
     const diffContainerWidth = $container.width() - 300;
@@ -2445,10 +2450,12 @@ function initImageDiff() {
       }
     }
 
-    function initViews($imageAfter, imageBefore) {
-      initSideBySide(createContext($imageAfter[0], imageBefore[0]));
-      initSwipe(createContext($imageAfter[1], imageBefore[1]));
-      initOverlay(createContext($imageAfter[2], imageBefore[2]));
+    function initViews($imageAfter, $imageBefore) {
+      initSideBySide(createContext($imageAfter[0], $imageBefore[0]));
+      if ($imageAfter.length > 0 && $imageBefore.length > 0) {
+        initSwipe(createContext($imageAfter[1], $imageBefore[1]));
+        initOverlay(createContext($imageAfter[2], $imageBefore[2]));
+      }
     }
 
     function initSideBySide(sizes) {
