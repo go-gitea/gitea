@@ -280,6 +280,8 @@ var migrations = []Migration{
 	// v166 -> v167
 	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
 	// v167 -> v168
+	NewMigration("Add user redirect", addUserRedirect),
+	// v168 -> v169
 	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
 }
 

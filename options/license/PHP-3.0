@@ -1,5 +1,6 @@
-The PHP License, version 3.0 Copyright (c) 1999 - 2006 The PHP Group. All
-rights reserved.
+The PHP License, version 3.0
+
+Copyright (c) 1999 - 2006 The PHP Group. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 is permitted provided that the following conditions are met:
@@ -42,6 +43,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 This software consists of voluntary contributions made by many individuals
 on behalf of the PHP Group.
