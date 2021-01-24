@@ -10,6 +10,12 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
 steps:
   - name: deps-frontend
     pull: always
@@ -130,6 +136,12 @@ platform:
 
 depends_on:
   - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
 
 workspace:
   base: /go
@@ -305,6 +317,12 @@ platform:
 
 depends_on:
   - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
 
 workspace:
   base: /go
@@ -661,6 +679,12 @@ platform:
 
 depends_on:
   - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
 
 steps:
   - name: build-docs
