@@ -2456,6 +2456,9 @@ function initImageDiff() {
         initSwipe(createContext($imageAfter[1], $imageBefore[1]));
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
+
+      $container.find('.loader').hide();
+      $container.find('.hide').removeClass('hide');
     }
 
     function initSideBySide(sizes) {

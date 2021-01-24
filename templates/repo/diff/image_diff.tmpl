@@ -16,7 +16,7 @@
 				</div>
 			</div>
 			<div class="ui bottom attached tab image-diff-container" data-tab="diff-side-by-side">
-				<div class="diff-side-by-side">
+				<div class="diff-side-by-side hide">
 					{{if $imageInfoBase }}
 					<span class="side">
 						<p class="side-header">{{.root.i18n.Tr "repo.diff.file_before"}}</p>
@@ -74,8 +74,8 @@
 				</div>
 			</div>
 			{{if and $imageInfoBase $imageInfoHead}}
-			<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe">
-				<div class="diff-swipe">
+			<div class="ui bottom attached tab image-diff-container hide" data-tab="diff-swipe">
+				<div class="diff-swipe hide">
 					<div class="swipe-frame">
 						<span class="before-container"><img class="image-before" /></span>
 						<span class="swipe-container">
@@ -88,8 +88,8 @@
 					</div>
 				</div>
 			</div>
-			<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay">
-				<div class="diff-overlay">
+			<div class="ui bottom attached tab image-diff-container hide" data-tab="diff-overlay">
+				<div class="diff-overlay hide">
 					<div class="overlay-frame">
 						<div class="ui centered">
 							<input type="range" min="0" max="100" value="50" />
@@ -100,6 +100,7 @@
 				</div>
 			</div>
 			{{end}}
+			<div class="ui active centered inline loader"></div>
 		</div>
 	</td>
 </tr>
