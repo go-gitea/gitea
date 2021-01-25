@@ -8,10 +8,10 @@
 		<div class="image-diff" data-path-before="{{$imagePathOld}}" data-path-after="{{$imagePathNew}}">
 			<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu">
 				<div class="new-menu-inner">
-					<a class="item active" data-tab="diff-side-by-side">Side by Side</a>
+					<a class="item active" data-tab="diff-side-by-side">{{.root.i18n.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and $imageInfoBase $imageInfoHead}}
-					<a class="item" data-tab="diff-swipe">Swipe</a>
-					<a class="item" data-tab="diff-overlay">Overlay</a>
+					<a class="item" data-tab="diff-swipe">{{.root.i18n.Tr "repo.diff.image.swipe"}}</a>
+					<a class="item" data-tab="diff-overlay">{{.root.i18n.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
 				</div>
 			</div>
