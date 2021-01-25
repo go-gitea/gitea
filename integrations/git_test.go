@@ -493,9 +493,7 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
-		t.Run("GetLastCommitID", func(t *testing.T) {
-			lastCommitID = doGitGetLastCommitID(dstPath, baseBranch)(t)
-		})
+		lastCommitID = pr.Base.Sha
 		t.Run("ManuallyMergePR", doAPIManuallyMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, lastCommitID, pr.Index))
 	}
 }
