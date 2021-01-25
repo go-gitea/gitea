@@ -192,27 +192,10 @@ func Recovery() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
-				// Why we need this? The first recover will try to render a beautiful
-				// error page for user, but the process can still panic again, then
-				// we have to just recover twice and send a simple error page that
-				// should not panic any more.
-				defer func() {
-					if err := recover(); err != nil {
-						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-						log.Error("%v", combinedErr)
-						if setting.IsProd() {
-							http.Error(w, http.StatusText(500), 500)
-						} else {
-							http.Error(w, combinedErr, 500)
-						}
-					}
-				}()
-
 				if err := recover(); err != nil {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 
-					lc := middlewares.Locale(w, req)
 					sessionStore := session.GetSession(req)
 					if sessionStore == nil {
 						if setting.IsProd() {
@@ -223,6 +206,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						return
 					}
 
+					var lc = middlewares.Locale(w, req)
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":   lc.Language(),

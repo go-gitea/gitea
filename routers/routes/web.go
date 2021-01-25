@@ -6,6 +6,7 @@ package routes
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -67,6 +68,27 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			// Why we need this? The Recovery() will try to render a beautiful
+			// error page for user, but the process can still panic again, and other
+			// middleware like session also may panic then we have to recover twice
+			// and send a simple error page that should not panic any more.
+			defer func() {
+				if err := recover(); err != nil {
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
+					log.Error("%v", combinedErr)
+					if setting.IsProd() {
+						http.Error(resp, http.StatusText(500), 500)
+					} else {
+						http.Error(resp, combinedErr, 500)
+					}
+				}
+			}()
+			next.ServeHTTP(resp, req)
+		})
+	})
+
 	if setting.EnableAccessLog {
 		handlers = append(handlers, accessLogger())
 	}
