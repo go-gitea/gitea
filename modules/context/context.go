@@ -548,7 +548,6 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
-			//decrypted, _ := DecryptSecret(flashEncryptionKey, flashCookie)
 			vals, _ := url.ParseQuery(flashCookie)
 			if len(vals) > 0 {
 				f := &middlewares.Flash{
@@ -559,12 +558,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					InfoMsg:    vals.Get("info"),
 					WarningMsg: vals.Get("warning"),
 				}
-
-				/*t, _ := strconv.ParseInt(f.Get("time"), 10, 64)
-				now := time.Now().Unix()
-				if now-t >= 0 && now-t < 3600 {*/
 				ctx.Data["Flash"] = f
-				//}
 			}
 
 			f := &middlewares.Flash{
@@ -576,16 +570,14 @@ func Contexter() func(next http.Handler) http.Handler {
 				SuccessMsg: "",
 			}
 			ctx.Resp.Before(func(resp ResponseWriter) {
-				//f.Set("time", strconv.FormatInt(time.Now().Unix(), 10))
 				if flash := f.Encode(); len(flash) > 0 {
-					//encrypted, err := EncryptSecret(flashEncryptionKey, flash)
 					if err == nil {
 						middlewares.SetCookie(resp, "macaron_flash", flash, 0,
 							setting.SessionConfig.CookiePath,
 							middlewares.Domain(setting.SessionConfig.Domain),
 							middlewares.HTTPOnly(true),
 							middlewares.Secure(setting.SessionConfig.Secure),
-							//middlewares.SameSite(opt.SameSite),
+							//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
 						)
 						return
 					}
@@ -596,7 +588,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					middlewares.Domain(setting.SessionConfig.Domain),
 					middlewares.HTTPOnly(true),
 					middlewares.Secure(setting.SessionConfig.Secure),
-					//middlewares.SameSite(),
+					//middlewares.SameSite(), FIXME: we need a samesite config
 				)
 			})
 

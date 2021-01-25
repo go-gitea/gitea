@@ -50,8 +50,7 @@ func InstallInit(next http.Handler) http.Handler {
 		var locale = middlewares.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = context.Context{
-			Resp: context.NewResponse(resp),
-			//csrf:    x,
+			Resp:    context.NewResponse(resp),
 			Flash:   &middlewares.Flash{},
 			Locale:  locale,
 			Render:  rnd,
