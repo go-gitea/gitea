@@ -423,16 +423,50 @@ func PrepareCompareDiff(
 	ctx.Data["CommitRepoLink"] = headRepo.Link()
 
 	headCommitID := headBranch
-	if ctx.Data["HeadIsCommit"] == false {
-		if ctx.Data["HeadIsTag"] == true {
-			headCommitID, err = headGitRepo.GetTagCommitID(headBranch)
+
+	var (
+		headIsTag    bool
+		headIsBranch bool
+		headIsCommit bool
+		has          bool
+	)
+	if _, has = ctx.Data["HeadIsTag"]; !has {
+		headIsTag = false
+	} else {
+		headIsTag = ctx.Data["HeadIsTag"].(bool)
+	}
+
+	if !headIsTag {
+		if _, has = ctx.Data["HeadIsBranch"]; !has {
+			headIsBranch = false
 		} else {
-			headCommitID, err = headGitRepo.GetBranchCommitID(headBranch)
+			headIsBranch = ctx.Data["HeadIsBranch"].(bool)
 		}
+	}
+
+	if !headIsTag && !headIsBranch {
+		if _, has = ctx.Data["HeadIsCommit"]; !has {
+			headIsCommit = false
+		} else {
+			headIsCommit = ctx.Data["HeadIsCommit"].(bool)
+		}
+	}
+
+	if headIsTag {
+		headCommitID, err = headGitRepo.GetTagCommitID(headBranch)
 		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
+			ctx.ServerError("GetTagCommitID", err)
 			return false
 		}
+	} else if headIsBranch {
+		headCommitID, err = headGitRepo.GetBranchCommitID(headBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommitID", err)
+			return false
+		}
+	} else if !headIsCommit {
+		ctx.NotFound("HeadCommit", nil)
+		return false
 	}
 
 	ctx.Data["AfterCommitID"] = headCommitID
@@ -442,7 +476,7 @@ func PrepareCompareDiff(
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 			if !config.AutodetectManualMerge {
-				ctx.Data["AllowEmptyPr"] = true
+				ctx.Data["AllowEmptyPr"] = !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
 			} else {
 				ctx.Data["AllowEmptyPr"] = false
 			}

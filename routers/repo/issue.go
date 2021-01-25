@@ -1521,9 +1521,21 @@ func ViewIssue(ctx *context.Context) {
 			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
-		ctx.Data["StillCanManualMerge"] = !pull.CanAutoMerge() && !pull.IsChecking() &&
-			!pull.IsWorkInProgress() && !pull.HasMerged && !issue.IsClosed &&
-			(ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)) && prConfig.AllowManualMerge
+		stillCanManualMerge := func() bool {
+			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
+				return false
+			}
+			if pull.CanAutoMerge() || pull.IsWorkInProgress() || pull.IsChecking() {
+				return false
+			}
+			if (ctx.User.IsAdmin || ctx.Repo.IsAdmin()) && prConfig.AllowManualMerge {
+				return true
+			}
+
+			return false
+		}
+
+		ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 	}
 
 	// Get Dependencies
