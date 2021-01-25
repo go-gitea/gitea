@@ -82,7 +82,7 @@ func (p Pipeline) String() string {
 
 // PipelineTestReport contains a detailed report of a test run.
 type PipelineTestReport struct {
-	TotalTime    int                  `json:"total_time"`
+	TotalTime    float64              `json:"total_time"`
 	TotalCount   int                  `json:"total_count"`
 	SuccessCount int                  `json:"success_count"`
 	FailedCount  int                  `json:"failed_count"`
@@ -94,7 +94,7 @@ type PipelineTestReport struct {
 // PipelineTestSuites contains test suites results.
 type PipelineTestSuites struct {
 	Name         string              `json:"name"`
-	TotalTime    int                 `json:"total_time"`
+	TotalTime    float64             `json:"total_time"`
 	TotalCount   int                 `json:"total_count"`
 	SuccessCount int                 `json:"success_count"`
 	FailedCount  int                 `json:"failed_count"`
@@ -105,12 +105,10 @@ type PipelineTestSuites struct {
 
 // PipelineTestCases contains test cases details.
 type PipelineTestCases struct {
-	Status        string `json:"status"`
-	Name          string `json:"name"`
-	Classname     string `json:"classname"`
-	ExecutionTime int    `json:"execution_time"`
-	SystemOutput  string `json:"system_output"`
-	StackTrace    string `json:"stack_trace"`
+	Status        string  `json:"status"`
+	Name          string  `json:"name"`
+	Classname     string  `json:"classname"`
+	ExecutionTime float64 `json:"execution_time"`
 }
 
 func (p PipelineTestReport) String() string {

@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/routers/utils"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -50,7 +48,7 @@ func Teams(ctx *context.Context) {
 
 // TeamsAction response for join, leave, remove, add operations to team
 func TeamsAction(ctx *context.Context) {
-	uid := com.StrTo(ctx.Query("uid")).MustInt64()
+	uid := ctx.QueryInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 		return
@@ -155,7 +153,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
-		err = ctx.Org.Team.RemoveRepository(com.StrTo(ctx.Query("repoid")).MustInt64())
+		err = ctx.Org.Team.RemoveRepository(ctx.QueryInt64("repoid"))
 	case "addall":
 		err = ctx.Org.Team.AddAllRepositories()
 	case "removeall":

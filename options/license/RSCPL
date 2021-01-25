@@ -1,8 +1,7 @@
 Ricoh Source Code Public License
-
 Version 1.0
 
-   1. Definitions.
+1. Definitions.
 
 1.1. "Contributor" means each entity that creates or contributes to the creation
 of Modifications.
@@ -27,7 +26,7 @@ with code not governed by the terms of this License.
 whether at the time of the initial grant or subsequently acquired, any and
 all of the rights conveyed herein.
 
-      1.8. "License" means this document.
+     1.8. "License" means this document.
 
 1.9. "Modifications" means any addition to or deletion from the substance
 or structure of either the Original Code or any previous Modifications. When
@@ -66,7 +65,7 @@ or indirect, to cause the direction or management of such entity, whether
 by contract or otherwise, or (b) ownership of fifty percent (50%) or more
 of the outstanding shares or beneficial ownership of such entity.
 
-   2. Source Code License.
+2. Source Code License.
 
 2.1. Grant from RSV. RSV hereby grants You a worldwide, royalty-free, non-exclusive
 license, subject to third party intellectual property claims:
@@ -94,7 +93,7 @@ have made, and/or otherwise dispose of: (i) Modifications made by that Contribut
 (or portions thereof); and (ii) the combination of Modifications made by that
 Contributor with its Contributor Version (or portions of such combination).
 
-   3. Distribution Obligations.
+3. Distribution Obligations.
 
 3.1. Application of License. The Modifications which You create or to which
 You contribute are governed by the terms of this License, including without
@@ -127,7 +126,7 @@ Code provided by RSV and including the name of RSV in (a) the Source Code,
 and (b) in any notice in an Executable Code version or related documentation
 in which You describe the origin or ownership of the Governed Code.
 
-      3.4. Intellectual Property Matters.
+     3.4. Intellectual Property Matters.
 
 3.4.1. Third Party Claims. If You have knowledge that a party claims an intellectual
 property right in particular functionality or code (or its utilization under
@@ -190,8 +189,7 @@ with other code not governed by the terms of this License and distribute the
 Larger Work as a single product. In such a case, You must make sure the requirements
 of this License are fulfilled for the Governed Code.
 
-   4. Inability to Comply Due to Statute or Regulation.
-
+4. Inability to Comply Due to Statute or Regulation.
 If it is impossible for You to comply with any of theterms of this License
 with respect to some or all of the Governed Code due to statute or regulation
 then You must: (a) comply with the terms of this License to the maximum extent
@@ -201,7 +199,7 @@ must be included with all distributions of the Source Code. Except to the
 extent prohibited by statute or regulation, such description must be sufficiently
 detailed for a recipient of ordinary skill to be able to understand it.
 
-   5. Trademark Usage.
+5. Trademark Usage.
 
 5.1. Advertising Materials. All advertising materials mentioning features
 or use of the Governed Code must display the following acknowledgement: "This
@@ -215,7 +213,7 @@ the prior written permission of RSV.
 "Ricoh" nor may the word "Ricoh" appear in their names without the prior written
 permission of RSV.
 
-   6. Versions of the License.
+6. Versions of the License.
 
 6.1. New Versions. RSV may publish revised and/or new versions of the License
 from time to time. Each version will be given a distinguishing version number.
@@ -227,8 +225,7 @@ the terms of any subsequent version of the License published by RSV. No one
 other than RSV has the right to modify the terms applicable to Governed Code
 created under this License.
 
-   7. Disclaimer of Warranty.
-
+7. Disclaimer of Warranty.
 GOVERNED CODE IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT
 WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, WITHOUT LIMITATION,
 WARRANTIES THAT THE GOVERNED CODE IS FREE OF DEFECTS, MERCHANTABLE, FIT FOR
@@ -239,7 +236,7 @@ THE COST OF ANY NECESSARY SERVICING, REPAIR OR CORRECTION. THIS DISCLAIMER
 OF WARRANTY CONSTITUTES AN ESSENTIAL PART OF THIS LICENSE. NO USE OF ANY GOVERNED
 CODE IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
 
-   8. Termination.
+8. Termination.
 
 8.1. This License and the rights granted hereunder will terminate automatically
 if You fail to comply with terms herein and fail to cure such breach within
@@ -286,8 +283,7 @@ user license agreements (excluding distributors and resellers) which have
 been validly granted by You or any distributor hereunder prior to termination
 shall survive termination.
 
-   9. Limitation of Liability.
-
+9. Limitation of Liability.
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL RSV, ANY CONTRIBUTOR, OR ANY DISTRIBUTOR
 OF GOVERNED CODE, OR ANY SUPPLIER OF ANY OF SUCH PARTIES, BE LIABLE TO YOU
@@ -301,7 +297,7 @@ NEGLIGENCE TO THE EXTENT APPLICABLE LAW PROHIBITS SUCH LIMITATION. SOME JURISDIC
 DO NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL OR CONSEQUENTIAL DAMAGES,
 SO THAT EXCLUSION AND LIMITATION MAY NOT APPLY TO YOU. TO THE EXTENT THAT
 ANY EXCLUSION OF DAMAGES ABOVE IS NOT VALID, YOU AGREE THAT IN NO EVENT WILL
-RSV'S LIABILITY UNDER OR RELATED TO THIS AGREEMENT EXCEED FIVE THOUSAND DOLLARS
+RSVS LIABILITY UNDER OR RELATED TO THIS AGREEMENT EXCEED FIVE THOUSAND DOLLARS
 ($5,000). THE GOVERNED CODE IS NOT INTENDED FOR USE IN CONNECTION WITH ANY
 NUCLER, AVIATION, MASS TRANSIT OR MEDICAL APPLICATION OR ANY OTHER INHERENTLY
 DANGEROUS APPLICATION THAT COULD RESULT IN DEATH, PERSONAL INJURY, CATASTROPHIC
@@ -309,8 +305,8 @@ DAMAGE OR MASS DESTRUCTION, AND YOU AGREE THAT NEITHER RSV NOR ANY CONTRIBUTOR
 SHALL HAVE ANY LIABILITY OF ANY NATURE AS A RESULT OF ANY SUCH USE OF THE
 GOVERNED CODE.
 
-   10. U.S. Government End Users.
 
+10. U.S. Government End Users.
 The Governed Code is a "commercial item," as that term is defined in 48 C.F.R.
 2.101 (Oct. 1995), consisting of "commercial computer software" and "commercial
 computer software documentation," as such terms are used in 48 C.F.R. 12.212
@@ -318,8 +314,7 @@ computer software documentation," as such terms are used in 48 C.F.R. 12.212
 227.7202-4 (June 1995), all U.S. Government End Users acquire Governed Code
 with only those rights set forth herein.
 
-   11. Miscellaneous.
-
+11. Miscellaneous.
 This License represents the complete agreement concerning subject matter hereof.
 If any provision of this License is held to be unenforceable, such provision
 shall be reformed only to the extent necessary to make it enforceable. This
@@ -330,21 +325,23 @@ further agree that any cause of action arising under or related to this Agreemen
 shall be brought in the Federal Courts of the Northern District of California,
 with venue lying in Santa Clara County, California. The losing party shall
 be responsible for costs, including without limitation, court costs and reasonable
-attorney's fees and expenses. Notwithstanding anything to the contrary herein,
+attorneys fees and expenses. Notwithstanding anything to the contrary herein,
 RSV may seek injunctive relief related to a breach of this Agreement in any
 court of competent jurisdiction. The application of the United Nations Convention
 on Contracts for the International Sale of Goods is expressly excluded. Any
 law or regulation which provides that the language of a contract shall be
 construed against the drafter shall not apply to this License.
 
-   12. Responsibility for Claims.
-
+12. Responsibility for Claims.
 Except in cases where another Contributor has failed to comply with Section
 3.4, You are responsible for damages arising, directly or indirectly, out
 of Your utilization of rights under this License, based on the number of copies
 of Governed Code you made available, the revenues you received from utilizing
 such rights, and other relevant factors. You agree to work with affected parties
-to distribute responsibility on an equitable basis. EXHIBIT A
+to distribute responsibility on an equitable basis.
+
+
+EXHIBIT A
 
 "The contents of this file are subject to the Ricoh Source Code Public License
 Version 1.0 (the "License"); you may not use this file except in compliance

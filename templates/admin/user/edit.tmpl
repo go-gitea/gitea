@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin edit user">
+<div class="page-content admin edit user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -9,9 +9,9 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="inline field {{if .Err_UserName}}error{{end}}">
+				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
-					<span>{{.User.Name}}</span>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -19,7 +19,7 @@
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
 						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
@@ -90,12 +90,12 @@
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox" data-tooltip="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}">
+					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field" {{if or (DisableImportLocal) (.DisableMigrations)}}hidden{{end}}>
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
@@ -106,6 +106,16 @@
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.allow_create_organization"}}</strong></label>
 						<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
+					</div>
+				</div>
+				{{end}}
+
+				{{if .TwoFactorEnabled}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.reset_2fa"}}</strong></label>
+						<input name="reset_2fa" type="checkbox">
 					</div>
 				</div>
 				{{end}}

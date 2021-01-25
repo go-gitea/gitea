@@ -4,7 +4,7 @@
   }
 
   .hero {
-    @media only screen and (max-width: 767px) {
+    @media @mediaSm {
       h1 {
         font-size: 3.5em;
       }
@@ -14,7 +14,7 @@
       }
     }
 
-    @media only screen and (min-width: 768px) {
+    @media @mediaMdAndUp {
       h1 {
         font-size: 5.5em;
       }
@@ -25,7 +25,7 @@
     }
 
     .svg {
-      color: #5aa509;
+      color: var(--color-green);
       height: 40px;
       width: 50px;
       vertical-align: bottom;
@@ -45,18 +45,14 @@
   }
 
   a {
-    color: #5aa509;
+    color: var(--color-green);
   }
-}
-
-.signup {
-  padding-top: 15px;
 }
 
 footer {
   .ui.container .left,
   .ui.container .right {
-    @media only screen and (max-width: 880px) {
+    @media (max-width: 880px) {
       display: block;
       text-align: center;
       float: none;

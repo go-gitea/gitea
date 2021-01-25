@@ -24,21 +24,6 @@ func assertUserDeleted(t *testing.T, userID int64) {
 	models.AssertNotExistsBean(t, &models.Star{UID: userID})
 }
 
-func TestAdminDeleteUser(t *testing.T) {
-	defer prepareTestEnv(t)()
-
-	session := loginUser(t, "user1")
-
-	csrf := GetCSRF(t, session, "/admin/users/8")
-	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
-		"_csrf": csrf,
-	})
-	session.MakeRequest(t, req, http.StatusOK)
-
-	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
-}
-
 func TestUserDeleteAccount(t *testing.T) {
 	defer prepareTestEnv(t)()
 

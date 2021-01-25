@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
-	"github.com/unknwon/com"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.
@@ -129,7 +128,12 @@ const (
 func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
-	if com.IsExist(hookPath) {
+	isExist, err := util.IsExist(hookPath)
+	if err != nil {
+		log("Unable to check if %s exists. Error: %v", hookPath, err)
+		return err
+	}
+	if isExist {
 		err = util.Remove(hookPath)
 	} else {
 		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)

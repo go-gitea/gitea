@@ -11,16 +11,15 @@ Redistributions must also contain a copy of this document.
 this list of conditions and the following disclaimer in the documentation
 and/or other materials provided with the distribution.
 
-3. The name "classworlds" must not be used to endorse or promote products
-derived from this Software without prior written permission of The Codehaus
-. For written permission, please contact bob@codehaus.org .
+3. The name "classworlds” must not be used to endorse or promote products
+derived from this Software without prior written permission of The Codehaus.
+For written permission, please contact bob@codehaus.org.
 
-4. Products derived from this Software may not be called "classworlds" nor
-may "classworlds" appear in their names without prior written permission of
-The Codehaus . "classworlds" is a registered trademark of The Codehaus .
+4. Products derived from this Software may not be called "classworlds” nor
+may "classworlds” appear in their names without prior written permission of
+The Codehaus. "classworlds” is a registered trademark of The Codehaus.
 
-5. Due credit should be given to The Codehaus. (http://classworlds.codehaus.org/)
-.
+5. Due credit should be given to The Codehaus. (http://classworlds.codehaus.org/).
 
 THIS SOFTWARE IS PROVIDED BY THE CODEHAUS AND CONTRIBUTORS ``AS IS'' AND ANY
 EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="organization members">
+<div class="page-content organization members">
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -7,12 +7,12 @@
 		<div class="list">
 			{{ range .Members}}
 				<div class="item ui grid">
-					<div class="ui one wide column">
-						<img class="ui avatar" src="{{.SizedRelAvatarLink 48}}">
-					</div>
-					<div class="ui three wide column">
-						<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
-						<div class="meta">{{.FullName}}</div>
+					<div class="ui four wide column" style="display: flex;">
+						{{avatar . 48}}
+						<div>
+							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
+							<div class="meta">{{.FullName}}</div>
+						</div>
 					</div>
 					<div class="ui four wide column center">
 						<div class="meta">

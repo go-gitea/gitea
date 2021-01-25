@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -46,6 +47,11 @@ type Context struct {
 
 	Repo *Repository
 	Org  *Organization
+}
+
+// GetData returns the data
+func (ctx *Context) GetData() map[string]interface{} {
+	return ctx.Data
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin
@@ -82,6 +88,26 @@ func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
 // IsUserRepoReaderAny returns true if current user can read any part of current repo
 func (ctx *Context) IsUserRepoReaderAny() bool {
 	return ctx.Repo.HasAccess()
+}
+
+// RedirectToUser redirect to a differently-named user
+func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
+	user, err := models.GetUserByID(redirectUserID)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	redirectPath := strings.Replace(
+		ctx.Req.URL.Path,
+		userName,
+		user.Name,
+		1,
+	)
+	if ctx.Req.URL.RawQuery != "" {
+		redirectPath += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 }
 
 // HasAPIError returns true if error occurs in form validation.
@@ -303,7 +329,7 @@ func Contexter() macaron.Handler {
 		}
 
 		// Get user from session if logged in.
-		ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Context, ctx.Session)
+		ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req.Request, c.Resp, ctx, ctx.Session)
 
 		if ctx.User != nil {
 			ctx.IsSigned = true
@@ -343,6 +369,9 @@ func Contexter() macaron.Handler {
 
 		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+		ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+
+		ctx.Data["ManifestData"] = setting.ManifestData
 
 		c.Map(ctx)
 	}

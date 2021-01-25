@@ -43,6 +43,8 @@ const (
 	ObjectRemovedDelete                            = "s3:ObjectRemoved:Delete"
 	ObjectRemovedDeleteMarkerCreated               = "s3:ObjectRemoved:DeleteMarkerCreated"
 	ObjectReducedRedundancyLostObject              = "s3:ReducedRedundancyLostObject"
+	BucketCreatedAll                               = "s3:BucketCreated:*"
+	BucketRemovedAll                               = "s3:BucketRemoved:*"
 )
 
 // FilterRule - child of S3Key, a tag in the notification xml which

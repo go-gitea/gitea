@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository new repo">
+<div class="page-content repository new repo">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -9,29 +9,34 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
+					{{if not .CanCreateRepo}}
+						<div class="ui negative message">
+							<p>{{.i18n.Tr (TrN .i18n.Lang .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n") .MaxCreationLimit}}</p>
+						</div>
+					{{end}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{.i18n.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text" title="{{.ContextUser.Name}}">
-								<img class="ui mini image" src="{{.ContextUser.RelAvatarLink}}">
+								{{avatar .ContextUser 28 "mini"}}
 								{{.ContextUser.ShortName 20}}
 							</span>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
+									{{avatar .SignedUser 28 "mini"}}
 									{{.SignedUser.ShortName 20}}
 								</div>
 								{{range .Orgs}}
 									<div class="item" data-value="{{.ID}}" title="{{.Name}}">
-										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{avatar . 28 "mini"}}
 										{{.ShortName 20}}
 									</div>
 								{{end}}
 							</div>
 						</div>
-						<span class="help">Some organizations may not show up in the dropdown due to a maximum repository count limit</span>
+						<span class="help">{{.i18n.Tr "repo.owner_helper"}}</span>
 					</div>
 
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
@@ -73,7 +78,7 @@
 								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_content"}}</label>
 							</div>
-							<div class="ui checkbox" {{if not .SignedUser.CanEditGitHook}}data-tooltip="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} poping up{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
 								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_hooks"}}</label>
 							</div>
@@ -172,7 +177,7 @@
 							<div class="ui selection owner dropdown">
 								<input type="hidden" id="trust_model" name="trust_model" value="default" required>
 								<div class="default text">{{.i18n.Tr "repo.settings.trust_model"}}</div>
-								<i class="dropdown icon"></i>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="item" data-value="default">{{.i18n.Tr "repo.settings.trust_model.default"}}</div>
 									<div class="item" data-value="collaborator">{{.i18n.Tr "repo.settings.trust_model.collaborator"}}</div>
@@ -193,7 +198,7 @@
 					<br/>
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">
 							{{.i18n.Tr "repo.create_repo"}}
 						</button>
 						<a class="ui button" href="{{AppSubUrl}}/">{{.i18n.Tr "cancel"}}</a>

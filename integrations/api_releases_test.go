@@ -154,3 +154,26 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	DecodeJSON(t, resp, &err)
 	assert.True(t, strings.HasPrefix(err.Message, "release tag does not exist"))
 }
+
+func TestAPIDeleteTagByName(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag/?token=%s",
+		owner.Name, repo.Name, token)
+
+	req := NewRequestf(t, http.MethodDelete, urlStr)
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
+
+	// Make sure that actual releases can't be deleted outright
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag/?token=%s",
+		owner.Name, repo.Name, token)
+
+	req = NewRequestf(t, http.MethodDelete, urlStr)
+	_ = session.MakeRequest(t, req, http.StatusConflict)
+}

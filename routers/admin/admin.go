@@ -39,10 +39,6 @@ const (
 	tplQueue     base.TplName = "admin/queue"
 )
 
-var (
-	startTime = time.Now()
-)
-
 var sysStatus struct {
 	Uptime       string
 	NumGoroutine int
@@ -85,7 +81,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)

@@ -91,7 +91,7 @@ type golistState struct {
 
 	goVersionOnce  sync.Once
 	goVersionError error
-	goVersion      string // third field of 'go version'
+	goVersion      int // The X in Go 1.X.
 
 	// vendorDirs caches the (non)existence of vendor directories.
 	vendorDirs map[string]bool
@@ -139,6 +139,12 @@ func goListDriver(cfg *Config, patterns ...string) (*driverResponse, error) {
 
 	response := newDeduper()
 
+	state := &golistState{
+		cfg:        cfg,
+		ctx:        ctx,
+		vendorDirs: map[string]bool{},
+	}
+
 	// Fill in response.Sizes asynchronously if necessary.
 	var sizeserr error
 	var sizeswg sync.WaitGroup
@@ -146,17 +152,11 @@ func goListDriver(cfg *Config, patterns ...string) (*driverResponse, error) {
 		sizeswg.Add(1)
 		go func() {
 			var sizes types.Sizes
-			sizes, sizeserr = packagesdriver.GetSizesGolist(ctx, cfg.BuildFlags, cfg.Env, cfg.gocmdRunner, cfg.Dir)
+			sizes, sizeserr = packagesdriver.GetSizesGolist(ctx, state.cfgInvocation(), cfg.gocmdRunner)
 			// types.SizesFor always returns nil or a *types.StdSizes.
 			response.dr.Sizes, _ = sizes.(*types.StdSizes)
 			sizeswg.Done()
 		}()
-	}
-
-	state := &golistState{
-		cfg:        cfg,
-		ctx:        ctx,
-		vendorDirs: map[string]bool{},
 	}
 
 	// Determine files requested in contains patterns
@@ -381,32 +381,34 @@ func (state *golistState) adhocPackage(pattern, query string) (*driverResponse, 
 // Fields must match go list;
 // see $GOROOT/src/cmd/go/internal/load/pkg.go.
 type jsonPackage struct {
-	ImportPath      string
-	Dir             string
-	Name            string
-	Export          string
-	GoFiles         []string
-	CompiledGoFiles []string
-	CFiles          []string
-	CgoFiles        []string
-	CXXFiles        []string
-	MFiles          []string
-	HFiles          []string
-	FFiles          []string
-	SFiles          []string
-	SwigFiles       []string
-	SwigCXXFiles    []string
-	SysoFiles       []string
-	Imports         []string
-	ImportMap       map[string]string
-	Deps            []string
-	Module          *Module
-	TestGoFiles     []string
-	TestImports     []string
-	XTestGoFiles    []string
-	XTestImports    []string
-	ForTest         string // q in a "p [q.test]" package, else ""
-	DepOnly         bool
+	ImportPath        string
+	Dir               string
+	Name              string
+	Export            string
+	GoFiles           []string
+	CompiledGoFiles   []string
+	IgnoredGoFiles    []string
+	IgnoredOtherFiles []string
+	CFiles            []string
+	CgoFiles          []string
+	CXXFiles          []string
+	MFiles            []string
+	HFiles            []string
+	FFiles            []string
+	SFiles            []string
+	SwigFiles         []string
+	SwigCXXFiles      []string
+	SysoFiles         []string
+	Imports           []string
+	ImportMap         map[string]string
+	Deps              []string
+	Module            *Module
+	TestGoFiles       []string
+	TestImports       []string
+	XTestGoFiles      []string
+	XTestImports      []string
+	ForTest           string // q in a "p [q.test]" package, else ""
+	DepOnly           bool
 
 	Error *jsonPackageError
 }
@@ -558,6 +560,7 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 			GoFiles:         absJoin(p.Dir, p.GoFiles, p.CgoFiles),
 			CompiledGoFiles: absJoin(p.Dir, p.CompiledGoFiles),
 			OtherFiles:      absJoin(p.Dir, otherFiles(p)...),
+			IgnoredFiles:    absJoin(p.Dir, p.IgnoredGoFiles, p.IgnoredOtherFiles),
 			forTest:         p.ForTest,
 			Module:          p.Module,
 		}
@@ -728,7 +731,7 @@ func (state *golistState) shouldAddFilenameFromError(p *jsonPackage) bool {
 
 	// On Go 1.14 and earlier, only add filenames from errors if the import stack is empty.
 	// The import stack behaves differently for these versions than newer Go versions.
-	if strings.HasPrefix(goV, "go1.13") || strings.HasPrefix(goV, "go1.14") {
+	if goV < 15 {
 		return len(p.Error.ImportStack) == 0
 	}
 
@@ -739,31 +742,9 @@ func (state *golistState) shouldAddFilenameFromError(p *jsonPackage) bool {
 	return len(p.Error.ImportStack) == 0 || p.Error.ImportStack[len(p.Error.ImportStack)-1] == p.ImportPath
 }
 
-func (state *golistState) getGoVersion() (string, error) {
+func (state *golistState) getGoVersion() (int, error) {
 	state.goVersionOnce.Do(func() {
-		var b *bytes.Buffer
-		// Invoke go version. Don't use invokeGo because it will supply build flags, and
-		// go version doesn't expect build flags.
-		inv := gocommand.Invocation{
-			Verb: "version",
-			Env:  state.cfg.Env,
-			Logf: state.cfg.Logf,
-		}
-		gocmdRunner := state.cfg.gocmdRunner
-		if gocmdRunner == nil {
-			gocmdRunner = &gocommand.Runner{}
-		}
-		b, _, _, state.goVersionError = gocmdRunner.RunRaw(state.cfg.Context, inv)
-		if state.goVersionError != nil {
-			return
-		}
-
-		sp := strings.Split(b.String(), " ")
-		if len(sp) < 3 {
-			state.goVersionError = fmt.Errorf("go version output: expected 'go version <version>', got '%s'", b.String())
-			return
-		}
-		state.goVersion = sp[2]
+		state.goVersion, state.goVersionError = gocommand.GoVersion(state.ctx, state.cfgInvocation(), state.cfg.gocmdRunner)
 	})
 	return state.goVersion, state.goVersionError
 }
@@ -836,18 +817,26 @@ func golistargs(cfg *Config, words []string) []string {
 	return fullargs
 }
 
-// invokeGo returns the stdout of a go command invocation.
-func (state *golistState) invokeGo(verb string, args ...string) (*bytes.Buffer, error) {
+// cfgInvocation returns an Invocation that reflects cfg's settings.
+func (state *golistState) cfgInvocation() gocommand.Invocation {
 	cfg := state.cfg
-
-	inv := gocommand.Invocation{
-		Verb:       verb,
-		Args:       args,
+	return gocommand.Invocation{
 		BuildFlags: cfg.BuildFlags,
+		ModFile:    cfg.modFile,
+		ModFlag:    cfg.modFlag,
 		Env:        cfg.Env,
 		Logf:       cfg.Logf,
 		WorkingDir: cfg.Dir,
 	}
+}
+
+// invokeGo returns the stdout of a go command invocation.
+func (state *golistState) invokeGo(verb string, args ...string) (*bytes.Buffer, error) {
+	cfg := state.cfg
+
+	inv := state.cfgInvocation()
+	inv.Verb = verb
+	inv.Args = args
 	gocmdRunner := cfg.gocmdRunner
 	if gocmdRunner == nil {
 		gocmdRunner = &gocommand.Runner{}

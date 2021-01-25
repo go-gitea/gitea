@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -124,7 +123,9 @@ type Comment struct {
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
-	Label            *Label `xorm:"-"`
+	Label            *Label   `xorm:"-"`
+	AddedLabels      []*Label `xorm:"-"`
+	RemovedLabels    []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
 	OldProject       *Project `xorm:"-"`
@@ -365,7 +366,7 @@ func (c *Comment) HashTag() string {
 
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
-	return "event-" + com.ToStr(c.ID)
+	return fmt.Sprintf("event-%d", c.ID)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
@@ -710,6 +711,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RefAction:        opts.RefAction,
 		RefIsPull:        opts.RefIsPull,
 		IsForcePush:      opts.IsForcePush,
+		Invalidated:      opts.Invalidated,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -876,6 +878,7 @@ type CreateCommentOptions struct {
 	RefAction        references.XRefAction
 	RefIsPull        bool
 	IsForcePush      bool
+	Invalidated      bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -951,6 +954,8 @@ type FindCommentsOptions struct {
 	ReviewID int64
 	Since    int64
 	Before   int64
+	Line     int64
+	TreePath string
 	Type     CommentType
 }
 
@@ -974,6 +979,12 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
+	if opts.Line != 0 {
+		cond = cond.And(builder.Eq{"comment.line": opts.Line})
+	}
+	if len(opts.TreePath) > 0 {
+		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
+	}
 	return cond
 }
 
@@ -987,6 +998,8 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
+
+	// WARNING: If you change this order you will need to fix createCodeComment
 
 	return comments, sess.
 		Asc("comment.created_unix").
@@ -1024,33 +1037,41 @@ func UpdateComment(c *Comment, doer *User) error {
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *Comment, doer *User) error {
+func DeleteComment(comment *Comment) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err := sess.Delete(&Comment{
+	if err := deleteComment(sess, comment); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func deleteComment(e Engine, comment *Comment) error {
+	if _, err := e.Delete(&Comment{
 		ID: comment.ID,
 	}); err != nil {
 		return err
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}
-	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+	if _, err := e.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(sess); err != nil {
+	if err := comment.neuterCrossReferences(e); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return deleteReaction(e, &ReactionOptions{Comment: comment})
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
@@ -1065,18 +1086,35 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if review == nil {
 		review = &Review{ID: 0}
 	}
-	//Find comments
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		ReviewID: review.ID,
 	}
+
+	comments, err := findCodeComments(e, opts, issue, currentUser, review)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, comment := range comments {
+		if pathToLineToComment[comment.TreePath] == nil {
+			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+		}
+		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+	}
+	return pathToLineToComment, nil
+}
+
+func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentUser *User, review *Review) ([]*Comment, error) {
+	var comments []*Comment
+	if review == nil {
+		review = &Review{ID: 0}
+	}
 	conds := opts.toConds()
 	if review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
-
-	var comments []*Comment
 	if err := e.Where(conds).
 		Asc("comment.created_unix").
 		Asc("comment.id").
@@ -1104,30 +1142,42 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		return nil, err
 	}
 
+	n := 0
 	for _, comment := range comments {
+		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
+			// If the review is pending only the author can see the comments (except if the review is set)
+			if review.ID == 0 && re.Type == ReviewTypePending &&
+				(currentUser == nil || currentUser.ID != re.ReviewerID) {
+				continue
+			}
+			comment.Review = re
+		}
+		comments[n] = comment
+		n++
+
 		if err := comment.LoadResolveDoer(); err != nil {
 			return nil, err
 		}
 
-		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
-			// If the review is pending only the author can see the comments (except the review is set)
-			if review.ID == 0 {
-				if re.Type == ReviewTypePending &&
-					(currentUser == nil || currentUser.ID != re.ReviewerID) {
-					continue
-				}
-			}
-			comment.Review = re
+		if err := comment.LoadReactions(issue.Repo); err != nil {
+			return nil, err
 		}
 
 		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
 			issue.Repo.ComposeMetas()))
-		if pathToLineToComment[comment.TreePath] == nil {
-			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
-		}
-		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
 	}
-	return pathToLineToComment, nil
+	return comments[:n], nil
+}
+
+// FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
+func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, line int64) ([]*Comment, error) {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  issue.ID,
+		TreePath: treePath,
+		Line:     line,
+	}
+	return findCodeComments(x, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line

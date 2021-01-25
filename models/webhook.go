@@ -8,6 +8,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -110,11 +111,11 @@ type Webhook struct {
 	Secret          string `xorm:"TEXT"`
 	Events          string `xorm:"TEXT"`
 	*HookEvent      `xorm:"-"`
-	IsSSL           bool `xorm:"is_ssl"`
-	IsActive        bool `xorm:"INDEX"`
-	HookTaskType    HookTaskType
-	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus // Last delivery status
+	IsSSL           bool         `xorm:"is_ssl"`
+	IsActive        bool         `xorm:"INDEX"`
+	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
+	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus   // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -310,6 +311,7 @@ func CreateWebhook(w *Webhook) error {
 }
 
 func createWebhook(e Engine, w *Webhook) error {
+	w.Type = strings.TrimSpace(w.Type)
 	_, err := e.Insert(w)
 	return err
 }
@@ -398,20 +400,6 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
-// GetDefaultWebhook returns admin-default webhook by given ID.
-func GetDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{id}
-	}
-	return webhook, nil
-}
-
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
 	return getDefaultWebhooks(x)
@@ -424,11 +412,11 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 		Find(&webhooks)
 }
 
-// GetSystemWebhook returns admin system webhook by given ID.
-func GetSystemWebhook(id int64) (*Webhook, error) {
+// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
+func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -547,68 +535,20 @@ func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
 //        \/                    \/              \/     \/     \/
 
 // HookTaskType is the type of an hook task
-type HookTaskType int
+type HookTaskType = string
 
 // Types of hook tasks
 const (
-	GOGS HookTaskType = iota + 1
-	SLACK
-	GITEA
-	DISCORD
-	DINGTALK
-	TELEGRAM
-	MSTEAMS
-	FEISHU
-	MATRIX
+	GITEA    HookTaskType = "gitea"
+	GOGS     HookTaskType = "gogs"
+	SLACK    HookTaskType = "slack"
+	DISCORD  HookTaskType = "discord"
+	DINGTALK HookTaskType = "dingtalk"
+	TELEGRAM HookTaskType = "telegram"
+	MSTEAMS  HookTaskType = "msteams"
+	FEISHU   HookTaskType = "feishu"
+	MATRIX   HookTaskType = "matrix"
 )
-
-var hookTaskTypes = map[string]HookTaskType{
-	"gitea":    GITEA,
-	"gogs":     GOGS,
-	"slack":    SLACK,
-	"discord":  DISCORD,
-	"dingtalk": DINGTALK,
-	"telegram": TELEGRAM,
-	"msteams":  MSTEAMS,
-	"feishu":   FEISHU,
-	"matrix":   MATRIX,
-}
-
-// ToHookTaskType returns HookTaskType by given name.
-func ToHookTaskType(name string) HookTaskType {
-	return hookTaskTypes[name]
-}
-
-// Name returns the name of an hook task type
-func (t HookTaskType) Name() string {
-	switch t {
-	case GITEA:
-		return "gitea"
-	case GOGS:
-		return "gogs"
-	case SLACK:
-		return "slack"
-	case DISCORD:
-		return "discord"
-	case DINGTALK:
-		return "dingtalk"
-	case TELEGRAM:
-		return "telegram"
-	case MSTEAMS:
-		return "msteams"
-	case FEISHU:
-		return "feishu"
-	case MATRIX:
-		return "matrix"
-	}
-	return ""
-}
-
-// IsValidHookTaskType returns true if given name is a valid hook task type.
-func IsValidHookTaskType(name string) bool {
-	_, ok := hookTaskTypes[name]
-	return ok
-}
 
 // HookEventType is the type of an hook event
 type HookEventType string
@@ -687,9 +627,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Type            HookTaskType
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`

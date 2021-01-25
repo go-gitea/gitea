@@ -263,8 +263,6 @@ func (a *App) Run(arguments []string) (err error) {
 	if a.Before != nil {
 		beforeErr := a.Before(context)
 		if beforeErr != nil {
-			_, _ = fmt.Fprintf(a.Writer, "%v\n\n", beforeErr)
-			_ = ShowAppHelp(context)
 			a.handleExitCoder(context, beforeErr)
 			err = beforeErr
 			return err

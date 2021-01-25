@@ -80,7 +80,17 @@ coverage.all
 /public/css
 /public/fonts
 /public/img/webpack
-/web_src/fomantic/build
+/web_src/fomantic/build/*
+!/web_src/fomantic/build/semantic.js
+!/web_src/fomantic/build/semantic.css
+!/web_src/fomantic/build/themes
+/web_src/fomantic/build/themes/*
+!/web_src/fomantic/build/themes/default
+/web_src/fomantic/build/themes/default/assets/*
+!/web_src/fomantic/build/themes/default/assets/fonts
+/web_src/fomantic/build/themes/default/assets/fonts/*
+!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
+!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
 

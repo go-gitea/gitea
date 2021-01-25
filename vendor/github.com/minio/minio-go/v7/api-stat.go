@@ -78,27 +78,48 @@ func (c Client) statObject(ctx context.Context, bucketName, objectName string, o
 	if err := s3utils.CheckValidObjectName(objectName); err != nil {
 		return ObjectInfo{}, err
 	}
+	headers := opts.Header()
+	if opts.Internal.ReplicationDeleteMarker {
+		headers.Set(minIOBucketReplicationDeleteMarker, "true")
+	}
 
 	urlValues := make(url.Values)
 	if opts.VersionID != "" {
 		urlValues.Set("versionId", opts.VersionID)
 	}
-
 	// Execute HEAD on objectName.
 	resp, err := c.executeMethod(ctx, http.MethodHead, requestMetadata{
 		bucketName:       bucketName,
 		objectName:       objectName,
 		queryValues:      urlValues,
 		contentSHA256Hex: emptySHA256Hex,
-		customHeader:     opts.Header(),
+		customHeader:     headers,
 	})
 	defer closeResponse(resp)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
+	deleteMarker := resp.Header.Get(amzDeleteMarker) == "true"
+
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
-			return ObjectInfo{}, httpRespToErrorResponse(resp, bucketName, objectName)
+			if resp.StatusCode == http.StatusBadRequest && opts.VersionID != "" && deleteMarker {
+				errResp := ErrorResponse{
+					StatusCode: resp.StatusCode,
+					Code:       "MethodNotAllowed",
+					Message:    "The specified method is not allowed against this resource.",
+					BucketName: bucketName,
+					Key:        objectName,
+				}
+				return ObjectInfo{
+					VersionID:      resp.Header.Get(amzVersionID),
+					IsDeleteMarker: deleteMarker,
+				}, errResp
+			}
+			return ObjectInfo{
+				VersionID:      resp.Header.Get(amzVersionID),
+				IsDeleteMarker: deleteMarker,
+			}, httpRespToErrorResponse(resp, bucketName, objectName)
 		}
 	}
 

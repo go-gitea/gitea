@@ -147,6 +147,27 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// GetMigratingTaskByID returns the migrating task by repo's id
+func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+	var task = Task{
+		ID:     id,
+		DoerID: doerID,
+		Type:   structs.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&task)
+	if err != nil {
+		return nil, nil, err
+	} else if !has {
+		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
+	}
+
+	var opts migration.MigrateOptions
+	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
+		return nil, nil, err
+	}
+	return &task, &opts, nil
+}
+
 // FindTaskOptions find all tasks
 type FindTaskOptions struct {
 	Status int
@@ -188,10 +209,6 @@ func FinishMigrateTask(task *Task) error {
 		return err
 	}
 	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
-		return err
-	}
-	task.Repo.Status = RepositoryReady
-	if _, err := sess.ID(task.RepoID).Cols("status").Update(task.Repo); err != nil {
 		return err
 	}
 

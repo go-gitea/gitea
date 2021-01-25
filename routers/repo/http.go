@@ -102,7 +102,19 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		if models.IsErrUserNotExist(err) {
+			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+				context.RedirectToUser(ctx, username, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -242,6 +254,11 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 			}
+		}
+
+		if !authUser.IsActive || authUser.ProhibitLogin {
+			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
+			return
 		}
 
 		if repoExist {

@@ -10,11 +10,13 @@ import (
 
 // Zstd facilitates Zstandard compression.
 type Zstd struct {
+	EncoderOptions []zstd.EOption
+	DecoderOptions []zstd.DOption
 }
 
 // Compress reads in, compresses it, and writes it to out.
 func (zs *Zstd) Compress(in io.Reader, out io.Writer) error {
-	w, err := zstd.NewWriter(out)
+	w, err := zstd.NewWriter(out, zs.EncoderOptions...)
 	if err != nil {
 		return err
 	}
@@ -25,7 +27,7 @@ func (zs *Zstd) Compress(in io.Reader, out io.Writer) error {
 
 // Decompress reads in, decompresses it, and writes it to out.
 func (zs *Zstd) Decompress(in io.Reader, out io.Writer) error {
-	r, err := zstd.NewReader(in)
+	r, err := zstd.NewReader(in, zs.DecoderOptions...)
 	if err != nil {
 		return err
 	}

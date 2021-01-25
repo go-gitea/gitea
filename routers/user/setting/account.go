@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -63,12 +64,11 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(errMsg)
 	} else {
 		var err error
-		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
+		if err = ctx.User.SetPassword(form.Password); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		ctx.User.HashPassword(form.Password)
-		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
+		if err := models.UpdateUserCols(ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -178,6 +178,11 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
+			return
+		} else if models.IsErrEmailInvalid(err) {
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
 			return
 		}
 		ctx.ServerError("AddEmailAddress", err)
@@ -296,4 +301,9 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
+
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
+		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()
+		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
+	}
 }

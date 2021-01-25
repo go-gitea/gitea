@@ -931,3 +931,44 @@ func (s *UsersService) SetUserStatus(opt *UserStatusOptions, options ...RequestO
 
 	return status, resp, err
 }
+
+// UserMembership represents a membership of the user in a namespace or project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#user-memberships-admin-only
+type UserMembership struct {
+	SourceID    int    `json:"source_id"`
+	SourceName  string `json:"source_name"`
+	SourceType  string `json:"source_type"`
+	AccessLevel string `json:"access_level"`
+}
+
+// GetUserMembershipOptions represents the options available to query user memberships.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#user-memberships-admin-only
+type GetUserMembershipOptions struct {
+	ListOptions
+	Type *string `url:"type,omitempty" json:"type,omitempty"`
+}
+
+// GetUserMemberships retrieves a list of the user's memberships.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#user-memberships-admin-only
+func (s *UsersService) GetUserMemberships(user int, opt *GetUserMembershipOptions, options ...RequestOptionFunc) ([]*UserMembership, *Response, error) {
+	u := fmt.Sprintf("users/%d/memberships", user)
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var m []*UserMembership
+	resp, err := s.client.Do(req, &m)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return m, resp, err
+}

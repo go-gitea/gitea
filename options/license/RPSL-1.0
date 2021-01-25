@@ -317,7 +317,7 @@ subject to this License. Licensor may, at its sole discretion, choose to license
 such Licensor Modifications under this License, or on different terms from
 those contained in this License or may choose not to license them at all.
 
-   11. Termination.
+11. Termination.
 
 11.1 Term and Termination. The term of this License is perpetual unless terminated
 as provided below. This License and the rights granted hereunder will terminate:
@@ -351,7 +351,7 @@ for compensation, indemnity or damages of any sort solely as a result of termina
 this License in accordance with its terms, and termination of this License
 will be without prejudice to any other right or remedy of any party.
 
-   12. Miscellaneous.
+12. Miscellaneous.
 
 12.1 Government End Users. The Covered Code is a "commercial item" as defined
 in FAR 2.101. Government software and technical data rights in the Covered
@@ -414,6 +414,8 @@ Where You are located in the province of Quebec, Canada, the following clause
 applies: The parties hereby confirm that they have requested that this License
 and all related documents be drafted in English. Les parties ont exigé que
 le présent contrat et tous les documents connexes soient rédigés en anglais.
+
+
 EXHIBIT A.
 
 "Copyright (c) 1995-2002 RealNetworks, Inc. and/or its licensors. All Rights
@@ -442,7 +444,9 @@ PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
 Contributor(s): ____________________________________
 
 Technology Compatibility Kit Test Suite(s) Location (if licensed under the
-RCSL): _____"
+RCSL):
+
+________________________________"
 
 Object Code Notice: Helix DNA Client technology included. Copyright (c) RealNetworks,
 Inc., 1995-2002. All rights reserved.
@@ -454,63 +458,34 @@ following list applies to the most recent version of the license as of October
 25, 2002, unless otherwise indicated.
 
 Academic Free License
-
 Apache Software License
-
 Apple Public Source License
-
 Artistic license
-
 Attribution Assurance Licenses
-
 BSD license
-
 Common Public License1
-
 Eiffel Forum License
-
 GNU General Public License (GPL)1
-
 GNU Library or "Lesser" General Public License (LGPL)1
-
 IBM Public License
-
 Intel Open Source License
-
 Jabber Open Source License
-
 MIT license
-
 MITRE Collaborative Virtual Workspace License (CVW License)
-
 Motosoto License
-
 Mozilla Public License 1.0 (MPL)
-
 Mozilla Public License 1.1 (MPL)
-
 Nokia Open Source License
-
 Open Group Test Suite License
-
 Python Software Foundation License
-
 Ricoh Source Code Public License
-
 Sun Industry Standards Source License (SISSL)
-
 Sun Public License
-
 University of Illinois/NCSA Open Source License
-
 Vovida Software License v. 1.0
-
 W3C License
-
 X.Net License
-
 Zope Public License
-
 zlib/libpng license
 
 1Note: because this license contains certain reciprocal licensing terms that

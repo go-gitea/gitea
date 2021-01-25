@@ -18,9 +18,10 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+								{{avatar .User 28 "mr-2"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
 							{{else}}
-								<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{$userName}}
+								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
+								{{$userName}}
 							{{end}}
 						</td>
 						<td class="sha">
@@ -69,7 +70,7 @@
 							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 							{{end}}
 							{{if eq (CommitType .) "SignCommitWithStatuses"}}
-								{{template "repo/commit_status" .Status}}
+								{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{end}}
 							{{if IsMultilineCommitMessage .Message}}
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
