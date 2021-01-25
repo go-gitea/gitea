@@ -7,6 +7,8 @@ package convert
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -14,9 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/webhook"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -105,28 +105,29 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 	}
 
 	return &api.BranchProtection{
-		BranchName:                  bp.BranchName,
-		EnablePush:                  bp.CanPush,
-		EnablePushWhitelist:         bp.EnableWhitelist,
-		PushWhitelistUsernames:      pushWhitelistUsernames,
-		PushWhitelistTeams:          pushWhitelistTeams,
-		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
-		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
-		MergeWhitelistUsernames:     mergeWhitelistUsernames,
-		MergeWhitelistTeams:         mergeWhitelistTeams,
-		EnableStatusCheck:           bp.EnableStatusCheck,
-		StatusCheckContexts:         bp.StatusCheckContexts,
-		RequiredApprovals:           bp.RequiredApprovals,
-		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
-		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
-		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
-		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
-		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
-		DismissStaleApprovals:       bp.DismissStaleApprovals,
-		RequireSignedCommits:        bp.RequireSignedCommits,
-		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
-		Created:                     bp.CreatedUnix.AsTime(),
-		Updated:                     bp.UpdatedUnix.AsTime(),
+		BranchName:                    bp.BranchName,
+		EnablePush:                    bp.CanPush,
+		EnablePushWhitelist:           bp.EnableWhitelist,
+		PushWhitelistUsernames:        pushWhitelistUsernames,
+		PushWhitelistTeams:            pushWhitelistTeams,
+		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:       mergeWhitelistUsernames,
+		MergeWhitelistTeams:           mergeWhitelistTeams,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableApprovalsWhitelist:      bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames:   approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
+		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
+		DismissStaleApprovals:         bp.DismissStaleApprovals,
+		RequireSignedCommits:          bp.RequireSignedCommits,
+		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
+		Created:                       bp.CreatedUnix.AsTime(),
+		Updated:                       bp.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -166,7 +167,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:          key.ID,
 		Key:         key.Content,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
@@ -224,7 +225,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		s := webhook.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
@@ -234,7 +235,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    w.HookTaskType.Name(),
+		Type:    string(w.Type),
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,
@@ -260,7 +261,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		KeyID:       key.KeyID,
 		Key:         key.Content,
 		Fingerprint: key.Fingerprint,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
 		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
@@ -344,23 +345,14 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 	}
 }
 
-// ToCommitStatus converts models.CommitStatus to api.Status
-func ToCommitStatus(status *models.CommitStatus) *api.Status {
-	apiStatus := &api.Status{
-		Created:     status.CreatedUnix.AsTime(),
-		Updated:     status.CreatedUnix.AsTime(),
-		State:       api.StatusState(status.State),
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-		ID:          status.Index,
-		URL:         status.APIURL(),
-		Context:     status.Context,
+// ToLFSLock convert a LFSLock to api.LFSLock
+func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	return &api.LFSLock{
+		ID:       strconv.FormatInt(l.ID, 10),
+		Path:     l.Path,
+		LockedAt: l.Created.Round(time.Second),
+		Owner: &api.LFSLockOwner{
+			Name: l.Owner.DisplayName(),
+		},
 	}
-
-	if status.CreatorID != 0 {
-		creator, _ := models.GetUserByID(status.CreatorID)
-		apiStatus.Creator = ToUser(creator, false, false)
-	}
-
-	return apiStatus
 }

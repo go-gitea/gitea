@@ -16,13 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -70,36 +69,6 @@ func runHTTPRedirector() {
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
-}
-
-func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
-	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(domain),
-		Cache:      autocert.DirCache(directory),
-		Email:      email,
-	}
-	go func() {
-		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
-		if err != nil {
-			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
-		}
-	}()
-	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
-}
-
-func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" && r.Method != "HEAD" {
-		http.Error(w, "Use HTTPS", http.StatusBadRequest)
-		return
-	}
-	// Remove the trailing slash at the end of setting.AppURL, the request
-	// URI always contains a leading slash, which would result in a double
-	// slash
-	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
-	http.Redirect(w, r, target, http.StatusFound)
 }
 
 func runWeb(ctx *cli.Context) error {
@@ -188,7 +157,11 @@ func setPort(port string) error {
 	default:
 		// Save LOCAL_ROOT_URL if port changed
 		cfg := ini.Empty()
-		if com.IsFile(setting.CustomConf) {
+		isFile, err := util.IsFile(setting.CustomConf)
+		if err != nil {
+			log.Fatal("Unable to check if %s is a file", err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfg.Append(setting.CustomConf); err != nil {
 				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)

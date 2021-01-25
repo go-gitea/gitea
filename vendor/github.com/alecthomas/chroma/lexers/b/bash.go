@@ -14,7 +14,7 @@ var Bash = internal.Register(MustNewLexer(
 	&Config{
 		Name:      "Bash",
 		Aliases:   []string{"bash", "sh", "ksh", "zsh", "shell"},
-		Filenames: []string{"*.sh", "*.ksh", "*.bash", "*.ebuild", "*.eclass", "*.exheres-0", "*.exlib", "*.zsh", "*.zshrc", ".bashrc", "bashrc", ".bash_*", "bash_*", "zshrc", ".zshrc", "PKGBUILD"},
+		Filenames: []string{"*.sh", "*.ksh", "*.bash", "*.ebuild", "*.eclass", ".env", "*.env", "*.exheres-0", "*.exlib", "*.zsh", "*.zshrc", ".bashrc", "bashrc", ".bash_*", "bash_*", "zshrc", ".zshrc", "PKGBUILD"},
 		MimeTypes: []string{"application/x-sh", "application/x-shellscript"},
 	},
 	Rules{

@@ -146,6 +146,21 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
+type ErrUserRedirectNotExist struct {
+	Name string
+}
+
+// IsErrUserRedirectNotExist check if an error is an ErrUserRedirectNotExist.
+func IsErrUserRedirectNotExist(err error) bool {
+	_, ok := err.(ErrUserRedirectNotExist)
+	return ok
+}
+
+func (err ErrUserRedirectNotExist) Error() string {
+	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
 type ErrUserProhibitLogin struct {
 	UID  int64
@@ -1016,6 +1031,29 @@ func (e *ErrWontSign) Error() string {
 // IsErrWontSign checks if an error is a ErrWontSign
 func IsErrWontSign(err error) bool {
 	_, ok := err.(*ErrWontSign)
+	return ok
+}
+
+// ErrMigrationNotAllowed explains why a migration from an url is not allowed
+type ErrMigrationNotAllowed struct {
+	Host          string
+	NotResolvedIP bool
+	PrivateNet    string
+}
+
+func (e *ErrMigrationNotAllowed) Error() string {
+	if e.NotResolvedIP {
+		return fmt.Sprintf("migrate from '%s' is not allowed: unknown hostname", e.Host)
+	}
+	if len(e.PrivateNet) != 0 {
+		return fmt.Sprintf("migrate from '%s' is not allowed: the host resolve to a private ip address '%s'", e.Host, e.PrivateNet)
+	}
+	return fmt.Sprintf("migrate from '%s is not allowed'", e.Host)
+}
+
+// IsErrMigrationNotAllowed checks if an error is a ErrMigrationNotAllowed
+func IsErrMigrationNotAllowed(err error) bool {
+	_, ok := err.(*ErrMigrationNotAllowed)
 	return ok
 }
 

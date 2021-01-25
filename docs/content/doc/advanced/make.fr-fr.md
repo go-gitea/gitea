@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Make"
 slug: "make"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -19,7 +19,7 @@ Gitea fait largement usage de Make pour automatiser les tâches et avoir un dév
 
 ### Linux
 
-Vous pouvez installer Make avec votre gestionnaire de paquetages 
+Vous pouvez installer Make avec votre gestionnaire de paquetages
 
 Depuis Ubuntu/Debian:
 

@@ -9,13 +9,14 @@
 		{{range $app := .Applications}}
 			<div class="item">
 				<div class="right floated content">
-					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny icon button">
-						<i class="pencil alternate icon"></i>
+					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny button">
+						{{svg "octicon-pencil" 16 "mr-2"}}
 						{{$.i18n.Tr "settings.oauth2_application_edit"}}
 					</a>
 					<button class="ui red tiny button delete-button" id="remove-gitea-oauth2-application"
 							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/delete"
 							data-id="{{$app.ID}}">
+						{{svg "octicon-trashcan" 16 "mr-2"}}
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>

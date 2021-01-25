@@ -22,9 +22,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -57,13 +57,13 @@ func getExitStatusFromError(err error) int {
 }
 
 func sessionHandler(session ssh.Session) {
-	keyID := session.Context().Value(giteaKeyID).(int64)
+	keyID := fmt.Sprintf("%d", session.Context().Value(giteaKeyID).(int64))
 
 	command := session.RawCommand()
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + com.ToStr(keyID), "--config=" + setting.CustomConf}
+	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
 	cmd := exec.Command(setting.AppPath, args...)
 	cmd.Env = append(
@@ -133,26 +133,39 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+	}
+
 	if ctx.User() != setting.SSH.BuiltinServerUser {
+		log.Warn("Invalid SSH username %s - must use %s for all git operations via ssh", ctx.User(), setting.SSH.BuiltinServerUser)
+		log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 		return false
 	}
 
 	// check if we have a certificate
 	if cert, ok := key.(*gossh.Certificate); ok {
+		if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+			log.Debug("Handle Certificate: %s Fingerprint: %s is a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+		}
+
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
+			log.Warn("Certificate Rejected: No trusted certificate authorities for this server")
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}
 
 		// look for the exact principal
+	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
 			pkey, err := models.SearchPublicKeyByContentExact(principal)
 			if err != nil {
+				if models.IsErrKeyNotExist(err) {
+					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
+					continue principalLoop
+				}
 				log.Error("SearchPublicKeyByContentExact: %v", err)
 				return false
-			}
-
-			if models.IsErrKeyNotExist(err) {
-				continue
 			}
 
 			c := &gossh.CertChecker{
@@ -169,26 +182,58 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			// check the CA of the cert
 			if !c.IsUserAuthority(cert.SignatureKey) {
-				return false
+				if log.IsDebug() {
+					log.Debug("Principal Rejected: %s Untrusted Authority Signature Fingerprint %s for Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(cert.SignatureKey), principal)
+				}
+				continue principalLoop
 			}
 
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
+				// User is presenting an invalid certificate - STOP any further processing
+				if log.IsError() {
+					log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
+				}
+				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+
 				return false
 			}
 
+			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+				log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key), principal)
+			}
 			ctx.SetValue(giteaKeyID, pkey.ID)
 
 			return true
 		}
+
+		if log.IsWarn() {
+			log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+		}
+		return false
+	}
+
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
+		if models.IsErrKeyNotExist(err) {
+			if log.IsWarn() {
+				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+			}
+			return false
+		}
 		log.Error("SearchPublicKeyByContent: %v", err)
 		return false
 	}
 
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+	}
 	ctx.SetValue(giteaKeyID, pkey.ID)
 
 	return true
@@ -211,7 +256,11 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	}
 
 	keyPath := filepath.Join(setting.AppDataPath, "ssh/gogs.rsa")
-	if !com.IsExist(keyPath) {
+	isExist, err := util.IsExist(keyPath)
+	if err != nil {
+		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+	}
+	if !isExist {
 		filePath := filepath.Dir(keyPath)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
@@ -225,7 +274,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		log.Trace("New private key is generated: %s", keyPath)
 	}
 
-	err := srv.SetOption(ssh.HostKeyFile(keyPath))
+	err = srv.SetOption(ssh.HostKeyFile(keyPath))
 	if err != nil {
 		log.Error("Failed to set Host Key. %s", err)
 	}

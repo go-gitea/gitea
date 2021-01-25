@@ -5,18 +5,13 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addDismissedReviewColumn(x *xorm.Engine) error {
-	type Review struct {
-		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
+func addBlockOnOfficialReviewRequests(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		BlockOnOfficialReviewRequests bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(ProtectedBranch))
 }

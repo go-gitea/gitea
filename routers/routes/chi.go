@@ -16,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers"
 
+	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +39,7 @@ type routerLoggerOptions struct {
 }
 
 // SignedUserName returns signed user's name via context
-// FIXME currently no any data stored on gin.Context but macaron.Context, so this will
+// FIXME currently no any data stored on chi.Context but macaron.Context, so this will
 // return "" before we remove macaron totally
 func SignedUserName(req *http.Request) string {
 	if v, ok := req.Context().Value("SignedUserName").(string); ok {
@@ -85,32 +87,16 @@ func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 
-			_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
+			_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(req.Method), req.URL.RequestURI(), req.RemoteAddr)
 
 			next.ServeHTTP(w, req)
 
-			ww := middleware.NewWrapResponseWriter(w, req.ProtoMajor)
+			var status int
+			if v, ok := w.(context.ResponseWriter); ok {
+				status = v.Status()
+			}
 
-			status := ww.Status()
-			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
-		})
-	}
-}
-
-// Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
-// Although similar to macaron.Recovery() the main difference is that this error will be created
-// with the gitea 500 page.
-func Recovery() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					http.Error(w, combinedErr, 500)
-				}
-			}()
-
-			next.ServeHTTP(w, req)
+			_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(req.Method), req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(start)))
 		})
 	}
 }
@@ -124,12 +110,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					return
 				}
 
-				if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+				if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
 					next.ServeHTTP(w, req)
 					return
 				}
 
-				rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+				rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 				u, err := objStore.URL(rPath, path.Base(rPath))
 				if err != nil {
 					if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
@@ -156,12 +142,12 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			if !strings.HasPrefix(req.RequestURI, "/"+prefix) {
+			if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			rPath := strings.TrimPrefix(req.RequestURI, "/"+prefix)
+			rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 			rPath = strings.TrimPrefix(rPath, "/")
 
 			fi, err := objStore.Stat(rPath)
@@ -193,15 +179,43 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
+var (
+	sessionManager *session.Manager
+)
+
 // NewChi creates a chi Router
 func NewChi() chi.Router {
 	c := chi.NewRouter()
+	c.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(context.NewResponse(resp), req)
+		})
+	})
 	c.Use(middleware.RealIP)
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			c.Use(LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+
+	var opt = session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}
+	opt = session.PrepareOptions([]session.Options{opt})
+
+	var err error
+	sessionManager, err = session.NewManager(opt.Provider, opt)
+	if err != nil {
+		panic(err)
+	}
+
 	c.Use(Recovery())
 	if setting.EnableAccessLog {
 		setupAccessLogger(c)
@@ -229,6 +243,12 @@ func NewChi() chi.Router {
 func RegisterInstallRoute(c chi.Router) {
 	m := NewMacaron()
 	RegisterMacaronInstallRoute(m)
+
+	// We need at least one handler in chi so that it does not drop
+	// our middleware: https://github.com/go-gitea/gitea/issues/13725#issuecomment-735244395
+	c.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		m.ServeHTTP(w, req)
+	})
 
 	c.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		m.ServeHTTP(w, req)

@@ -48,7 +48,7 @@ type IAM struct {
 	Client *http.Client
 
 	// Custom endpoint to fetch IAM role credentials.
-	endpoint string
+	Endpoint string
 }
 
 // IAM Roles for Amazon EC2
@@ -62,13 +62,12 @@ const (
 
 // NewIAM returns a pointer to a new Credentials object wrapping the IAM.
 func NewIAM(endpoint string) *Credentials {
-	p := &IAM{
+	return New(&IAM{
 		Client: &http.Client{
 			Transport: http.DefaultTransport,
 		},
-		endpoint: endpoint,
-	}
-	return New(p)
+		Endpoint: endpoint,
+	})
 }
 
 // Retrieve retrieves credentials from the EC2 service.
@@ -78,7 +77,7 @@ func (m *IAM) Retrieve() (Value, error) {
 	var roleCreds ec2RoleCredRespBody
 	var err error
 
-	endpoint := m.endpoint
+	endpoint := m.Endpoint
 	switch {
 	case len(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")) > 0:
 		if len(endpoint) == 0 {
@@ -90,11 +89,9 @@ func (m *IAM) Retrieve() (Value, error) {
 		}
 
 		creds := &STSWebIdentity{
-			Client:          m.Client,
-			stsEndpoint:     endpoint,
-			roleARN:         os.Getenv("AWS_ROLE_ARN"),
-			roleSessionName: os.Getenv("AWS_ROLE_SESSION_NAME"),
-			getWebIDTokenExpiry: func() (*WebIdentityToken, error) {
+			Client:      m.Client,
+			STSEndpoint: endpoint,
+			GetWebIDTokenExpiry: func() (*WebIdentityToken, error) {
 				token, err := ioutil.ReadFile(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
 				if err != nil {
 					return nil, err
@@ -102,6 +99,8 @@ func (m *IAM) Retrieve() (Value, error) {
 
 				return &WebIdentityToken{Token: string(token)}, nil
 			},
+			roleARN:         os.Getenv("AWS_ROLE_ARN"),
+			roleSessionName: os.Getenv("AWS_ROLE_SESSION_NAME"),
 		}
 
 		stsWebIdentityCreds, err := creds.Retrieve()
@@ -121,7 +120,6 @@ func (m *IAM) Retrieve() (Value, error) {
 	case len(os.Getenv("AWS_CONTAINER_CREDENTIALS_FULL_URI")) > 0:
 		if len(endpoint) == 0 {
 			endpoint = os.Getenv("AWS_CONTAINER_CREDENTIALS_FULL_URI")
-
 			var ok bool
 			if ok, err = isLoopback(endpoint); !ok {
 				if err == nil {

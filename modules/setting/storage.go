@@ -31,21 +31,9 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(name, typ string, overrides ...*ini.Section) Storage {
+func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	const sectionName = "storage"
 	sec := Cfg.Section(sectionName)
-
-	if len(overrides) == 0 {
-		overrides = []*ini.Section{
-			Cfg.Section(sectionName + "." + typ),
-			Cfg.Section(sectionName + "." + name),
-		}
-	}
-
-	var storage Storage
-
-	storage.Type = sec.Key("STORAGE_TYPE").MustString(typ)
-	storage.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 
 	// Global Defaults
 	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
@@ -55,17 +43,37 @@ func getStorage(name, typ string, overrides ...*ini.Section) Storage {
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 
-	storage.Section = sec
+	var storage Storage
+	storage.Section = targetSec
+	storage.Type = typ
+
+	overrides := make([]*ini.Section, 0, 3)
+	nameSec, err := Cfg.GetSection(sectionName + "." + name)
+	if err == nil {
+		overrides = append(overrides, nameSec)
+	}
+
+	typeSec, err := Cfg.GetSection(sectionName + "." + typ)
+	if err == nil {
+		overrides = append(overrides, typeSec)
+		nextType := typeSec.Key("STORAGE_TYPE").String()
+		if len(nextType) > 0 {
+			storage.Type = nextType // Support custom STORAGE_TYPE
+		}
+	}
+	overrides = append(overrides, sec)
 
 	for _, override := range overrides {
-		for _, key := range storage.Section.Keys() {
-			if !override.HasKey(key.Name()) {
-				_, _ = override.NewKey(key.Name(), key.Value())
+		for _, key := range override.Keys() {
+			if !targetSec.HasKey(key.Name()) {
+				_, _ = targetSec.NewKey(key.Name(), key.Value())
 			}
 		}
-		storage.ServeDirect = override.Key("SERVE_DIRECT").MustBool(false)
-		storage.Section = override
+		if len(storage.Type) == 0 {
+			storage.Type = override.Key("STORAGE_TYPE").String()
+		}
 	}
+	storage.ServeDirect = storage.Section.Key("SERVE_DIRECT").MustBool(false)
 
 	// Specific defaults
 	storage.Path = storage.Section.Key("PATH").MustString(filepath.Join(AppDataPath, name))

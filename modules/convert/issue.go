@@ -34,6 +34,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		Poster:   ToUser(issue.Poster, false, false),
 		Title:    issue.Title,
 		Body:     issue.Content,
+		Ref:      issue.Ref,
 		Labels:   ToLabelList(issue.Labels),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,
@@ -146,6 +147,8 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
+			Seconds:       sw.Seconds(),
+			Duration:      sw.Duration(),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,

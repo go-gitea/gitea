@@ -509,21 +509,22 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	}
 
 	protectBranch = &models.ProtectedBranch{
-		RepoID:                   ctx.Repo.Repository.ID,
-		BranchName:               form.BranchName,
-		CanPush:                  form.EnablePush,
-		EnableWhitelist:          form.EnablePush && form.EnablePushWhitelist,
-		EnableMergeWhitelist:     form.EnableMergeWhitelist,
-		WhitelistDeployKeys:      form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
-		EnableStatusCheck:        form.EnableStatusCheck,
-		StatusCheckContexts:      form.StatusCheckContexts,
-		EnableApprovalsWhitelist: form.EnableApprovalsWhitelist,
-		RequiredApprovals:        requiredApprovals,
-		BlockOnRejectedReviews:   form.BlockOnRejectedReviews,
-		DismissStaleApprovals:    form.DismissStaleApprovals,
-		RequireSignedCommits:     form.RequireSignedCommits,
-		ProtectedFilePatterns:    form.ProtectedFilePatterns,
-		BlockOnOutdatedBranch:    form.BlockOnOutdatedBranch,
+		RepoID:                        ctx.Repo.Repository.ID,
+		BranchName:                    form.BranchName,
+		CanPush:                       form.EnablePush,
+		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
+		EnableMergeWhitelist:          form.EnableMergeWhitelist,
+		WhitelistDeployKeys:           form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
+		EnableStatusCheck:             form.EnableStatusCheck,
+		StatusCheckContexts:           form.StatusCheckContexts,
+		EnableApprovalsWhitelist:      form.EnableApprovalsWhitelist,
+		RequiredApprovals:             requiredApprovals,
+		BlockOnRejectedReviews:        form.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: form.BlockOnOfficialReviewRequests,
+		DismissStaleApprovals:         form.DismissStaleApprovals,
+		RequireSignedCommits:          form.RequireSignedCommits,
+		ProtectedFilePatterns:         form.ProtectedFilePatterns,
+		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
@@ -650,6 +651,10 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 
 	if form.BlockOnRejectedReviews != nil {
 		protectBranch.BlockOnRejectedReviews = *form.BlockOnRejectedReviews
+	}
+
+	if form.BlockOnOfficialReviewRequests != nil {
+		protectBranch.BlockOnOfficialReviewRequests = *form.BlockOnOfficialReviewRequests
 	}
 
 	if form.DismissStaleApprovals != nil {
