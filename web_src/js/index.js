@@ -1145,7 +1145,7 @@ async function initRepository() {
 
     // Change status
     const $statusButton = $('#status-button');
-    $('#comment-form .edit_area').on('keyup', function () {
+    $('#comment-form textarea').on('keyup', function () {
       if ($(this).val().length === 0) {
         $statusButton.text($statusButton.data('status'));
       } else {
@@ -1736,10 +1736,13 @@ function initOrganization() {
   if ($('.organization.settings.options').length > 0) {
     $('#org_name').on('keyup', function () {
       const $prompt = $('#org-name-change-prompt');
+      const $prompt_redirect = $('#org-name-change-redirect-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('org-name').toString().toLowerCase()) {
         $prompt.show();
+        $prompt_redirect.show();
       } else {
         $prompt.hide();
+        $prompt_redirect.hide();
       }
     });
   }
@@ -1755,10 +1758,13 @@ function initUserSettings() {
   if ($('.user.settings.profile').length > 0) {
     $('#username').on('keyup', function () {
       const $prompt = $('#name-change-prompt');
+      const $prompt_redirect = $('#name-change-redirect-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
         $prompt.show();
+        $prompt_redirect.show();
       } else {
         $prompt.hide();
+        $prompt_redirect.hide();
       }
     });
   }

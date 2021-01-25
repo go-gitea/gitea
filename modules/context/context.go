@@ -90,6 +90,26 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 	return ctx.Repo.HasAccess()
 }
 
+// RedirectToUser redirect to a differently-named user
+func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
+	user, err := models.GetUserByID(redirectUserID)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	redirectPath := strings.Replace(
+		ctx.Req.URL.Path,
+		userName,
+		user.Name,
+		1,
+	)
+	if ctx.Req.URL.RawQuery != "" {
+		redirectPath += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+}
+
 // HasAPIError returns true if error occurs in form validation.
 func (ctx *Context) HasAPIError() bool {
 	hasErr, ok := ctx.Data["HasError"]
