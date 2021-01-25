@@ -1210,8 +1210,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.IsArchived != util.OptionalBoolNone {
-		sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
-			And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
 	if opts.LabelIDs != nil {
@@ -1292,6 +1291,8 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 	repoIDs := make([]int64, 0, 5)
 	sess := x.NewSession()
 	defer sess.Close()
+
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	opts.setupSession(sess)
 
