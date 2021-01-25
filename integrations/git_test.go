@@ -488,20 +488,14 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 		}))
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
-		t.Run("AddCommit", func(t *testing.T) {
-			_ = doCommitAndPush(t, littleSize, dstPath, "data-file-")
-		})
 		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
-		t.Run("CreatePullRequest", func(t *testing.T) {
+		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
-		t.Run("CheckOutBaseBranch", doGitCheckoutBranch(dstPath, baseBranch))
-		t.Run("GitMerge", doGitMerge(dstPath, headBranch))
 		t.Run("GetLastCommitID", func(t *testing.T) {
 			lastCommitID = doGitGetLastCommitID(dstPath, baseBranch)(t)
 		})
-		t.Run("PushToBaseBranch", doGitPushTestRepository(dstPath, "origin", baseBranch))
 		t.Run("ManuallyMergePR", doAPIManuallyMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, lastCommitID, pr.Index))
 	}
 }
