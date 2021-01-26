@@ -136,12 +136,14 @@ var (
 				Usage: "ID of user of the user to delete",
 			},
 			&cli.StringFlag{
-				Name:  "username,u",
-				Usage: "Username of the user to delete",
+				Name:    "username",
+				Aliases: []string{"u"},
+				Usage:   "Username of the user to delete",
 			},
 			&cli.StringFlag{
-				Name:  "email,e",
-				Usage: "Email of the user to delete",
+				Name:    "email",
+				Aliases: []string{"e"},
+				Usage:   "Email of the user to delete",
 			},
 		},
 		Action: runDeleteUser,
@@ -321,8 +323,9 @@ var (
 				Value: "",
 			},
 			&cli.BoolFlag{
-				Name:  "force,f",
-				Usage: "A flag to bypass a confirmation step",
+				Name:    "force",
+				Aliases: []string{"f"},
+				Usage:   "A flag to bypass a confirmation step",
 			},
 		},
 	}

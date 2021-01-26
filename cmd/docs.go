@@ -23,8 +23,9 @@ var CmdDocs = cli.Command{
 			Usage: "Output man pages instead",
 		},
 		&cli.StringFlag{
-			Name:  "output, o",
-			Usage: "Path to output to instead of stdout (will overwrite if exists)",
+			Name:    "output",
+			Aliases: []string{"o"},
+			Usage:   "Path to output to instead of stdout (will overwrite if exists)",
 		},
 	},
 }

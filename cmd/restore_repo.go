@@ -26,9 +26,10 @@ var CmdRestoreRepository = cli.Command{
 	Action:      runRestoreRepository,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "repo_dir, r",
-			Value: "./data",
-			Usage: "Repository dir path to restore from",
+			Name:    "repo_dir",
+			Aliases: []string{"r"},
+			Value:   "./data",
+			Usage:   "Repository dir path to restore from",
 		},
 		&cli.StringFlag{
 			Name:  "owner_name",

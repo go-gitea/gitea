@@ -26,19 +26,22 @@ var CmdMigrateStorage = cli.Command{
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "type, t",
-			Value: "",
-			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
+			Name:    "type",
+			Aliases: []string{"t"},
+			Value:   "",
+			Usage:   "Kinds of files to migrate, currently only 'attachments' is supported",
 		},
 		&cli.StringFlag{
-			Name:  "storage, s",
-			Value: "",
-			Usage: "New storage type: local (default) or minio",
+			Name:    "storage",
+			Aliases: []string{"s"},
+			Value:   "",
+			Usage:   "New storage type: local (default) or minio",
 		},
 		&cli.StringFlag{
-			Name:  "path, p",
-			Value: "",
-			Usage: "New storage placement if store is local (leave blank for default)",
+			Name:    "path",
+			Aliases: []string{"p"},
+			Value:   "",
+			Usage:   "New storage placement if store is local (leave blank for default)",
 		},
 		&cli.StringFlag{
 			Name:  "minio-endpoint",

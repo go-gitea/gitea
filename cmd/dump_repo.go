@@ -32,9 +32,10 @@ var CmdDumpRepository = cli.Command{
 			Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
 		},
 		&cli.StringFlag{
-			Name:  "repo_dir, r",
-			Value: "./data",
-			Usage: "Repository dir path to store the data",
+			Name:    "repo_dir",
+			Aliases: []string{"r"},
+			Value:   "./data",
+			Usage:   "Repository dir path to store the data",
 		},
 		&cli.StringFlag{
 			Name:  "clone_addr",
