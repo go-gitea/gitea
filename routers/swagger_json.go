@@ -7,6 +7,7 @@ package routers
 import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // tplSwaggerV1Json swagger v1 json template
@@ -14,5 +15,10 @@ const tplSwaggerV1Json base.TplName = "swagger/v1_json"
 
 // SwaggerV1Json render swagger v1 json
 func SwaggerV1Json(ctx *context.Context) {
-	ctx.HTML(200, tplSwaggerV1Json)
+	t := ctx.Render.TemplateLookup(string(tplSwaggerV1Json))
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
+		log.Error("%v", err)
+		ctx.Error(500)
+	}
 }
