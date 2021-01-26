@@ -67,40 +67,11 @@ The provider type of the sublogger can be set using the `MODE` value in
 its subsection, but will default to the name. This allows you to have
 multiple subloggers that will log to files.
 
-### The "Macaron" logger
-
-By default Macaron will log to its own go `log` instance. This writes
-to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
-section which you can configure the outputs of by setting the `MACARON`
-value in the `[log]` section of the configuration. `MACARON` defaults
-to `file` if unset.
-
-Please note, the macaron logger will log at `INFO` level, setting the
-`LEVEL` of this logger to `WARN` or above will result in no macaron logs.
-
-Each output sublogger for this logger is configured in
-`[log.sublogger.macaron]` sections. There are certain default values
-which will not be inherited from the `[log]` or relevant
-`[log.sublogger]` sections:
-
-- `FLAGS` is `stdflags` (Equal to
-  `date,time,medfile,shortfuncname,levelinitial`)
-- `FILE_NAME` will default to `%(ROOT_PATH)/macaron.log`
-- `EXPRESSION` will default to `""`
-- `PREFIX` will default to `""`
-
-NB: You can redirect the macaron logger to send its events to the gitea
-log using the value: `MACARON = ,`
-
 ### The "Router" logger
 
-There are two types of Router log. By default Macaron send its own
-router log which will be directed to Macaron's go `log`, however if you
-`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
-disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
+You can disable Router log by setting `DISABLE_ROUTER_LOG`.
 
-If you enable the redirect, you can configure the outputs of this
+You can configure the outputs of this
 router log by setting the `ROUTER` value in the `[log]` section of the
 configuration. `ROUTER` will default to `console` if unset. The Gitea
 Router logs the same data as the Macaron log but has slightly different
@@ -162,11 +133,11 @@ This value represent a go template. It's default value is:
 
 The template is passed following options:
 
-- `Ctx` is the `macaron.Context`
+- `Ctx` is the `context.Context`
 - `Identity` is the `SignedUserName` or `"-"` if the user is not logged
   in
 - `Start` is the start time of the request
-- `ResponseWriter` is the `macaron.ResponseWriter`
+- `ResponseWriter` is the `http.ResponseWriter`
 
 Caution must be taken when changing this template as it runs outside of
 the standard panic recovery trap. The template should also be as simple
