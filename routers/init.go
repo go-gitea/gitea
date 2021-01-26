@@ -148,6 +148,8 @@ func GlobalInit(ctx context.Context) {
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
+	} else if setting.Database.UseSQLite3 {
+		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
 	if err := initDBEngine(ctx); err == nil {
 		log.Info("ORM engine initialization successful!")
