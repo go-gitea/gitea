@@ -37,22 +37,16 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
-
-	"gitea.com/macaron/macaron"
 )
 
 func checkRunMode() {
 	switch setting.RunMode {
-	case "dev":
-		git.Debug = true
-	case "test":
+	case "dev", "test":
 		git.Debug = true
 	default:
-		macaron.Env = macaron.PROD
-		macaron.ColorLog = false
 		git.Debug = false
 	}
-	log.Info("Run Mode: %s", strings.Title(macaron.Env))
+	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 }
 
 // NewServices init new services

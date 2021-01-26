@@ -23,12 +23,14 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	// 2. Get language information from cookies.
 	if len(lang) == 0 {
 		ck, _ := req.Cookie("lang")
-		lang = ck.Value
-		hasCookie = true
+		if ck != nil {
+			lang = ck.Value
+			hasCookie = true
+		}
 	}
 
 	// Check again in case someone modify by purpose.
-	if !i18n.IsExist(lang) {
+	if lang != "" && !i18n.IsExist(lang) {
 		lang = ""
 		hasCookie = false
 	}

@@ -340,23 +340,6 @@
 					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 				{{end}}
 				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.macaron_log_mode"}}</dt>
-				{{if .RedirectMacaronLog}}
-					{{if .Loggers.macaron.SubLogDescriptions}}
-						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.macaron.SubLogDescriptions}}
-							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-				{{else}}
-					<dd>{{$.i18n.Tr "admin.config.go_log"}}</dd>
-				{{end}}
-				<div class="ui divider"></div>
 				<dt>{{$.i18n.Tr "admin.config.router_log_mode"}}</dt>
 				{{if .DisableRouterLog}}
 					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
