@@ -18,9 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
