@@ -1266,6 +1266,8 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+
 	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
@@ -1312,6 +1314,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
@@ -1339,6 +1342,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	}, 0, 1)
 
 	sess.Select("COUNT(issue.id) AS count").Table("issue")
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("Find: %v", err)
