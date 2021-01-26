@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 
-	macaron_i18n "gitea.com/macaron/i18n"
 	"github.com/unknwon/i18n"
 	"golang.org/x/text/language"
 )
@@ -20,49 +19,57 @@ type Locale interface {
 	Tr(string, ...interface{}) string
 }
 
+// LangType represents a lang type
+type LangType struct {
+	Lang, Name string
+}
+
 var (
-	matcher language.Matcher
+	matcher  language.Matcher
+	allLangs []LangType
 )
+
+// AllLangs returns all supported langauages
+func AllLangs() []LangType {
+	return allLangs
+}
 
 // InitLocales loads the locales
 func InitLocales() {
 	localeNames, err := options.Dir("locale")
-
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
-	localFiles := make(map[string][]byte)
 
+	localFiles := make(map[string][]byte)
 	for _, name := range localeNames {
 		localFiles[name], err = options.Locale(name)
-
 		if err != nil {
 			log.Fatal("Failed to load %s locale file. %v", name, err)
 		}
 	}
 
 	// These codes will be used once macaron removed
-	/*tags := make([]language.Tag, len(setting.Langs))
+	tags := make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)
 	}
-	matcher = language.NewMatcher(tags)
-	for i, name := range setting.Names {
-		i18n.SetMessage(setting.Langs[i], localFiles[name])
-	}
-	i18n.SetDefaultLang("en-US")*/
 
-	// To be compatible with macaron, we now have to use macaron i18n, once macaron
-	// removed, we can use i18n directly
-	macaron_i18n.I18n(macaron_i18n.Options{
-		SubURL:       setting.AppSubURL,
-		Files:        localFiles,
-		Langs:        setting.Langs,
-		Names:        setting.Names,
-		DefaultLang:  "en-US",
-		Redirect:     false,
-		CookieDomain: setting.SessionConfig.Domain,
-	})
+	matcher = language.NewMatcher(tags)
+	for i := range setting.Names {
+		key := "locale_" + setting.Langs[i] + ".ini"
+		if err := i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+			log.Fatal("Failed to set messages to %s: %v", setting.Langs[i], err)
+		}
+	}
+	i18n.SetDefaultLang("en-US")
+
+	allLangs = make([]LangType, 0, i18n.Count()-1)
+	langs := i18n.ListLangs()
+	names := i18n.ListLangDescs()
+	for i, v := range langs {
+		allLangs = append(allLangs, LangType{v, names[i]})
+	}
 }
 
 // Match matches accept languages

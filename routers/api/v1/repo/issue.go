@@ -22,6 +22,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -448,7 +449,7 @@ func GetIssue(ctx *context.APIContext) {
 }
 
 // CreateIssue create an issue of a repository
-func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
+func CreateIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
 	// ---
 	// summary: Create an issue. If using deadline only the date will be taken into account, and time of day ignored.
@@ -480,7 +481,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -564,7 +565,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 }
 
 // EditIssue modify an issue of a repository
-func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
+func EditIssue(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
 	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
@@ -603,6 +604,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   "412":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*api.EditIssueOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -723,7 +725,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 }
 
 // UpdateIssueDeadline updates an issue deadline
-func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
+func UpdateIssueDeadline(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
 	// ---
 	// summary: Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.
@@ -759,7 +761,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	form := web.GetForm(ctx).(*api.EditDeadlineOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

@@ -102,8 +102,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := routes.NewChi()
-		routes.RegisterInstallRoute(c)
+		c := routes.InstallRoutes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -134,11 +133,9 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// Set up Chi routes
-	c := routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
 
+	// Set up Chi routes
+	c := routes.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())

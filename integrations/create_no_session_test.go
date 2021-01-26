@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,9 +58,7 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		c = routes.NewChi()
-		c.Mount("/", routes.NormalRoutes())
-		routes.DelegateToMacaron(c)
+		c = routes.NormalRoutes()
 	}()
 
 	var config session.Options
@@ -84,9 +82,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	c = routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c = routes.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

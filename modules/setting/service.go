@@ -67,7 +67,7 @@ func newService() {
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
 	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
-		Service.RegisterManualConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(false)
+		Service.RegisterManualConfirm = sec.Key("REGISTER_MANUAL_CONFIRM").MustBool(false)
 	} else {
 		Service.RegisterManualConfirm = false
 	}
