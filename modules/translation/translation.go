@@ -59,7 +59,7 @@ func InitLocales() {
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err := i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Fatal("Failed to set messages to %s", setting.Langs[i])
+			log.Fatal("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
 	i18n.SetDefaultLang("en-US")
