@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
@@ -20,9 +21,6 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
-
-	// for embed
-	_ "github.com/shurcooL/vfsgen"
 
 	"github.com/urfave/cli"
 )
@@ -43,6 +41,7 @@ var (
 func init() {
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith()
+	setting.AppStartTime = time.Now().UTC()
 
 	// Grab the original help templates
 	originalAppHelpTemplate = cli.AppHelpTemplate
@@ -71,6 +70,10 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDoctor,
 		cmd.CmdManager,
 		cmd.Cmdembedded,
+		cmd.CmdMigrateStorage,
+		cmd.CmdDocs,
+		cmd.CmdDumpRepository,
+		cmd.CmdRestoreRepository,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -191,5 +194,5 @@ func formatBuiltWith() string {
 		return " built with " + version
 	}
 
-	return " built with " + version + " : " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with " + version + " : " + strings.ReplaceAll(Tags, " ", ", ")
 }

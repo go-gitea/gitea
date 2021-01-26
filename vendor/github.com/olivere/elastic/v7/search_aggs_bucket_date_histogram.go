@@ -92,9 +92,8 @@ func (a *DateHistogramAggregation) FixedInterval(fixedInterval string) *DateHist
 
 // CalendarInterval by which the aggregation gets processed.
 //
-// Allowed values are: "year", "1y", "quarter", "1q", "month", "1M",
-// "week", "1w", "day", "1d", "hour", "1h", "minute", "1m", "second",
-// or "1s". It also supports time settings like "1.5h".
+// Allowed values are: "year" ("1y", "y"), "quarter" ("1q", "q"),
+// "month" ("1M", "M"), "week" ("1w", "w"), "day" ("d", "1d")
 //
 // These units are calendar-aware, meaning they respect leap
 // additions, variable days per month etc. This is mutually

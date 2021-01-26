@@ -126,6 +126,9 @@ func (r *RegexpFs) Open(name string) (File, error) {
 		}
 	}
 	f, err := r.source.Open(name)
+	if err != nil {
+		return nil, err
+	}
 	return &RegexpFile{f: f, re: r.re}, nil
 }
 

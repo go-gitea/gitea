@@ -1,9 +1,9 @@
 ![go-git logo](https://cdn.rawgit.com/src-d/artwork/02036484/go-git/files/go-git-github-readme-header.png)
-[![GoDoc](https://godoc.org/github.com/go-git/go-git/v5?status.svg)](https://godoc.org/github.com/src-d/go-git) [![Build Status](https://github.com/go-git/go-git/workflows/Test%20&%20Coverage/badge.svg)](https://github.com/go-git/go-git/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/src-d/go-git)](https://goreportcard.com/report/github.com/src-d/go-git)
+[![GoDoc](https://godoc.org/github.com/go-git/go-git/v5?status.svg)](https://pkg.go.dev/github.com/go-git/go-git/v5) [![Build Status](https://github.com/go-git/go-git/workflows/Test/badge.svg)](https://github.com/go-git/go-git/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/go-git/go-git)](https://goreportcard.com/report/github.com/go-git/go-git)
 
 *go-git* is a highly extensible git implementation library written in **pure Go**.
 
-It can be used to manipulate git repositories at low level *(plumbing)* or high level *(porcelain)*, through an idiomatic Go API. It also supports several types of storage, such as in-memory filesystems, or custom implementations, thanks to the [`Storer`](https://godoc.org/github.com/go-git/go-git/v5/plumbing/storer) interface.
+It can be used to manipulate git repositories at low level *(plumbing)* or high level *(porcelain)*, through an idiomatic Go API. It also supports several types of storage, such as in-memory filesystems, or custom implementations, thanks to the [`Storer`](https://pkg.go.dev/github.com/go-git/go-git/v5/plumbing/storer) interface.
 
 It's being actively developed since 2015 and is being used extensively by [Keybase](https://keybase.io/blog/encrypted-git-for-everyone), [Gitea](https://gitea.io/en-us/) or [Pulumi](https://github.com/search?q=org%3Apulumi+go-git&type=Code), and by many other libraries and tools.
 
@@ -12,7 +12,7 @@ Project Status
 
 After the legal issues with the [`src-d`](https://github.com/src-d) organization, the lack of update for four months and the requirement to make a hard fork, the project is **now back to normality**.
 
-The project is currently actively maintained by individual contributors, including several of the original authors, but also backed by a new company `gitsigth` where `go-git` is a critical component used at scale.
+The project is currently actively maintained by individual contributors, including several of the original authors, but also backed by a new company, [gitsight](https://github.com/gitsight), where `go-git` is a critical component used at scale.
 
 
 Comparison with git
@@ -37,7 +37,7 @@ import "github.com/go-git/go-git" // with go modules disabled
 Examples
 --------
 
-> Please note that the `CheckIfError` and `Info` functions  used in the examples are from the [examples package](https://github.com/src-d/go-git/blob/master/_examples/common.go#L17) just to be used in the examples.
+> Please note that the `CheckIfError` and `Info` functions  used in the examples are from the [examples package](https://github.com/go-git/go-git/blob/master/_examples/common.go#L19) just to be used in the examples.
 
 
 ### Basic example

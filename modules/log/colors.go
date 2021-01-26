@@ -158,15 +158,15 @@ func ColorBytes(attrs ...ColorAttribute) []byte {
 	return bytes
 }
 
-var levelToColor = map[Level]string{
-	TRACE:    ColorString(Bold, FgCyan),
-	DEBUG:    ColorString(Bold, FgBlue),
-	INFO:     ColorString(Bold, FgGreen),
-	WARN:     ColorString(Bold, FgYellow),
-	ERROR:    ColorString(Bold, FgRed),
-	CRITICAL: ColorString(Bold, BgMagenta),
-	FATAL:    ColorString(Bold, BgRed),
-	NONE:     ColorString(Reset),
+var levelToColor = map[Level][]byte{
+	TRACE:    ColorBytes(Bold, FgCyan),
+	DEBUG:    ColorBytes(Bold, FgBlue),
+	INFO:     ColorBytes(Bold, FgGreen),
+	WARN:     ColorBytes(Bold, FgYellow),
+	ERROR:    ColorBytes(Bold, FgRed),
+	CRITICAL: ColorBytes(Bold, BgMagenta),
+	FATAL:    ColorBytes(Bold, BgRed),
+	NONE:     ColorBytes(Reset),
 }
 
 var resetBytes = ColorBytes(Reset)
@@ -355,7 +355,7 @@ func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
 // The Value will be colored with FgCyan
 // If a ColoredValue is provided it is not changed
 func NewColoredIDValue(value interface{}) *ColoredValue {
-	return NewColoredValueBytes(&value, &fgCyanBytes)
+	return NewColoredValueBytes(value, &fgCyanBytes)
 }
 
 // Format will format the provided value and protect against ANSI color spoofing within the value

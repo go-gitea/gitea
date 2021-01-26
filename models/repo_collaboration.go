@@ -7,14 +7,20 @@ package models
 
 import (
 	"fmt"
+
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Collaboration represent the relation between an individual and a repository.
 type Collaboration struct {
-	ID     int64      `xorm:"pk autoincr"`
-	RepoID int64      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	UserID int64      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
+	ID          int64              `xorm:"pk autoincr"`
+	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	UserID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Mode        AccessMode         `xorm:"DEFAULT 2 NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (repo *Repository) addCollaborator(e Engine, u *User) error {
@@ -189,12 +195,47 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	// Remove all IssueWatches a user has subscribed to in the repository
-	if err := removeIssueWatchersByRepoID(sess, uid, repo.ID); err != nil {
+	if err = repo.reconsiderWatches(sess, uid); err != nil {
+		return err
+	}
+
+	// Unassign a user from any issue (s)he has been assigned to in the repository
+	if err := repo.reconsiderIssueAssignees(sess, uid); err != nil {
 		return err
 	}
 
 	return sess.Commit()
+}
+
+func (repo *Repository) reconsiderIssueAssignees(e Engine, uid int64) error {
+	user, err := getUserByID(e, uid)
+	if err != nil {
+		return err
+	}
+
+	if canAssigned, err := canBeAssigned(e, user, repo, true); err != nil || canAssigned {
+		return err
+	}
+
+	if _, err := e.Where(builder.Eq{"assignee_id": uid}).
+		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
+		Delete(&IssueAssignees{}); err != nil {
+		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
+	}
+	return nil
+}
+
+func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
+	if has, err := hasAccess(e, uid, repo); err != nil || has {
+		return err
+	}
+
+	if err := watchRepo(e, uid, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	return removeIssueWatchersByRepoID(e, uid, repo.ID)
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {

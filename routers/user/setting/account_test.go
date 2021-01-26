@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -85,11 +86,12 @@ func TestChangePassword(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 
-		AccountPost(ctx, auth.ChangePasswordForm{
+		web.SetForm(ctx, &auth.ChangePasswordForm{
 			OldPassword: req.OldPassword,
 			Password:    req.NewPassword,
 			Retype:      req.Retype,
 		})
+		AccountPost(ctx)
 
 		assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())

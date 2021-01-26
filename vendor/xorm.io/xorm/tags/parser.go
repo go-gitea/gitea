@@ -115,6 +115,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 	t := v.Type()
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
+		v = v.Elem()
 	}
 	if t.Kind() != reflect.Struct {
 		return nil, ErrUnsupportedType
@@ -252,7 +253,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 					addIndex(indexName, table, col, indexType)
 				}
 			}
-		} else {
+		} else if fieldValue.CanSet() {
 			var sqlType schemas.SQLType
 			if fieldValue.CanAddr() {
 				if _, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
@@ -271,6 +272,8 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 			if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
 				idFieldColName = col.Name
 			}
+		} else {
+			continue
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

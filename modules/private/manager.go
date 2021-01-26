@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -80,4 +81,111 @@ func FlushQueues(timeout time.Duration, nonBlocking bool) (int, string) {
 	}
 
 	return http.StatusOK, "Flushed"
+}
+
+// PauseLogging pauses logging
+func PauseLogging() (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/pause-logging"
+
+	req := newInternalRequest(reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Logging Paused"
+}
+
+// ResumeLogging resumes logging
+func ResumeLogging() (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/resume-logging"
+
+	req := newInternalRequest(reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Logging Restarted"
+}
+
+// ReleaseReopenLogging releases and reopens logging files
+func ReleaseReopenLogging() (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/release-and-reopen-logging"
+
+	req := newInternalRequest(reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Logging Restarted"
+}
+
+// LoggerOptions represents the options for the add logger call
+type LoggerOptions struct {
+	Group  string
+	Name   string
+	Mode   string
+	Config map[string]interface{}
+}
+
+// AddLogger adds a logger
+func AddLogger(group, name, mode string, config map[string]interface{}) (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/add-logger"
+
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+	jsonBytes, _ := json.Marshal(LoggerOptions{
+		Group:  group,
+		Name:   name,
+		Mode:   mode,
+		Config: config,
+	})
+	req.Body(jsonBytes)
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Added"
+
+}
+
+// RemoveLogger removes a logger
+func RemoveLogger(group, name string) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/remove-logger/%s/%s", url.PathEscape(group), url.PathEscape(name))
+
+	req := newInternalRequest(reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Removed"
 }

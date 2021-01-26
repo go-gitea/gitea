@@ -6,14 +6,15 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -63,7 +64,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-	ctx.JSON(http.StatusOK, attach.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToReleaseAttachment(attach))
 }
 
 // ListReleaseAttachments lists all attachments of the release
@@ -108,7 +109,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, release.APIFormat().Attachments)
+	ctx.JSON(http.StatusOK, convert.ToRelease(release).Attachments)
 }
 
 // CreateReleaseAttachment creates an attachment and saves the given file
@@ -154,7 +155,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
-	if !setting.AttachmentEnabled {
+	if !setting.Attachment.Enabled {
 		ctx.NotFound("Attachment is not enabled")
 		return
 	}
@@ -168,7 +169,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Get uploaded file from request
-	file, header, err := ctx.GetFile("attachment")
+	file, header, err := ctx.Req.FormFile("attachment")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFile", err)
 		return
@@ -182,7 +183,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if the filetype is allowed by the settings
-	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.Verify(buf, header.Filename, setting.Repository.Release.AllowedTypes)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "DetectContentType", err)
 		return
@@ -204,11 +205,11 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, attach.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
 }
 
 // EditReleaseAttachment updates the given attachment
-func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptions) {
+func EditReleaseAttachment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoEditReleaseAttachment
 	// ---
 	// summary: Edit a release attachment
@@ -247,6 +248,8 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
 
+	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
@@ -268,7 +271,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	if err := models.UpdateAttachment(attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
-	ctx.JSON(http.StatusCreated, attach.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
 }
 
 // DeleteReleaseAttachment delete a given attachment

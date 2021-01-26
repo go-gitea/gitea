@@ -91,8 +91,7 @@ func (n *node) calculateChildren() error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-
-		return nil
+		return err
 	}
 
 	for _, file := range files {

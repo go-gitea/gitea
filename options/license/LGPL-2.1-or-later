@@ -3,14 +3,13 @@ GNU LESSER GENERAL PUBLIC LICENSE
 Version 2.1, February 1999
 
 Copyright (C) 1991, 1999 Free Software Foundation, Inc.
-
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 Everyone is permitted to copy and distribute verbatim copies of this license
 document, but changing it is not allowed.
 
-[This is the first released version of the Lesser GPL. It also counts as the
-successor of the GNU Library Public License, version 2, hence the version
+[This is the first released version of the Lesser GPL.  It also counts as
+the successor of the GNU Library Public License, version 2, hence the version
 number 2.1.]
 
 Preamble
@@ -154,7 +153,7 @@ thus forming a work based on the Library, and copy and distribute such modificat
 or work under the terms of Section 1 above, provided that you also meet all
 of these conditions:
 
-      a) The modified work must itself be a software library.
+     a) The modified work must itself be a software library.
 
 b) You must cause the files modified to carry prominent notices stating that
 you changed the files and the date of any change.
@@ -397,7 +396,7 @@ for this. Our decision will be guided by the two goals of preserving the free
 status of all derivatives of our free software and of promoting the sharing
 and reuse of software generally.
 
-   NO WARRANTY
+NO WARRANTY
 
 15. BECAUSE THE LIBRARY IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR
 THE LIBRARY, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
@@ -416,6 +415,7 @@ OR INABILITY TO USE THE LIBRARY (INCLUDING BUT NOT LIMITED TO LOSS OF DATA
 OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES
 OR A FAILURE OF THE LIBRARY TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF SUCH
 HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
 END OF TERMS AND CONDITIONS
 
 How to Apply These Terms to Your New Libraries
@@ -431,9 +431,8 @@ to attach them to the start of each source file to most effectively convey
 the exclusion of warranty; and each file should have at least the "copyright"
 line and a pointer to where the full notice is found.
 
-<one line to give the library's name and an idea of what it does.>
-
-Copyright (C) <year> <name of author>
+     one line to give the library's name and an idea of what it does.
+     Copyright (C) year  name of author
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -442,27 +441,22 @@ any later version.
 
 This library is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 details.
 
 You should have received a copy of the GNU Lesser General Public License along
 with this library; if not, write to the Free Software Foundation, Inc., 51
-Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-
-Also add information on how to contact you by electronic and paper mail.
+Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA Also add information
+on how to contact you by electronic and paper mail.
 
 You should also get your employer (if you work as a programmer) or your school,
 if any, to sign a "copyright disclaimer" for the library, if necessary. Here
 is a sample; alter the names:
 
 Yoyodyne, Inc., hereby disclaims all copyright interest in
-
 the library `Frob' (a library for tweaking knobs) written
-
 by James Random Hacker.
 
-< signature of Ty Coon > , 1 April 1990
-
+signature of Ty Coon, 1 April 1990
 Ty Coon, President of Vice
-
 That's all there is to it!

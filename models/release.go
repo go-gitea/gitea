@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -35,6 +34,7 @@ type Release struct {
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
+	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
@@ -53,7 +53,11 @@ func (r *Release) loadAttributes(e Engine) error {
 	if r.Publisher == nil {
 		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
-			return err
+			if IsErrUserNotExist(err) {
+				r.Publisher = NewGhostUser()
+			} else {
+				return err
+			}
 		}
 	}
 	return getReleaseAttachments(e, r)
@@ -80,28 +84,9 @@ func (r *Release) TarURL() string {
 	return fmt.Sprintf("%s/archive/%s.tar.gz", r.Repo.HTMLURL(), r.TagName)
 }
 
-// APIFormat convert a Release to api.Release
-func (r *Release) APIFormat() *api.Release {
-	assets := make([]*api.Attachment, 0)
-	for _, att := range r.Attachments {
-		assets = append(assets, att.APIFormat())
-	}
-	return &api.Release{
-		ID:           r.ID,
-		TagName:      r.TagName,
-		Target:       r.Target,
-		Title:        r.Title,
-		Note:         r.Note,
-		URL:          r.APIURL(),
-		TarURL:       r.TarURL(),
-		ZipURL:       r.ZipURL(),
-		IsDraft:      r.IsDraft,
-		IsPrerelease: r.IsPrerelease,
-		CreatedAt:    r.CreatedUnix.AsTime(),
-		PublishedAt:  r.CreatedUnix.AsTime(),
-		Publisher:    r.Publisher.APIFormat(),
-		Attachments:  assets,
-	}
+// HTMLURL the url for a release on the web UI. release must have attributes loaded
+func (r *Release) HTMLURL() string {
+	return fmt.Sprintf("%s/releases/tag/%s", r.Repo.HTMLURL(), r.TagName)
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
@@ -215,6 +200,28 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 
 	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
+}
+
+// GetLatestReleaseByRepoID returns the latest release for a repository
+func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
+	cond := builder.NewCond().
+		And(builder.Eq{"repo_id": repoID}).
+		And(builder.Eq{"is_draft": false}).
+		And(builder.Eq{"is_prerelease": false}).
+		And(builder.Eq{"is_tag": false})
+
+	rel := new(Release)
+	has, err := x.
+		Desc("created_unix", "id").
+		Where(cond).
+		Get(rel)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrReleaseNotExist{0, "latest"}
+	}
+
+	return rel, nil
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.

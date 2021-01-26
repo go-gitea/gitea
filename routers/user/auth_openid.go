@@ -9,16 +9,18 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/captcha"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
@@ -87,7 +89,8 @@ func allowedOpenIDURI(uri string) (err error) {
 }
 
 // SignInOpenIDPost response for openid sign in request
-func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
+func SignInOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignInOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
@@ -126,9 +129,12 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
 	log.Trace("Form-passed openid-remember: %t", form.Remember)
-	err = ctx.Session.Set("openid_signin_remember", form.Remember)
-	if err != nil {
-		log.Error("SignInOpenIDPost: Could not set session: %v", err.Error())
+
+	if err := ctx.Session.Set("openid_signin_remember", form.Remember); err != nil {
+		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("SignInOpenIDPost: Unable to save changes to the session: %v", err)
 	}
 
 	ctx.Redirect(url)
@@ -137,9 +143,9 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.URL.String())
 
-	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: " + fullURL)
 
 	var id, err = openid.Verify(fullURL)
@@ -225,23 +231,22 @@ func signInOpenIDVerify(ctx *context.Context) {
 		}
 	}
 
-	err = ctx.Session.Set("openid_verified_uri", id)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_verified_uri", id); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_verified_uri in session: %v", err)
 	}
-
-	err = ctx.Session.Set("openid_determined_email", email)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_determined_email", email); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_determined_email in session: %v", err)
 	}
 
 	if u != nil {
 		nickname = u.LowerName
 	}
 
-	err = ctx.Session.Set("openid_determined_username", nickname)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_determined_username", nickname); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_determined_username in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
 	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp {
@@ -271,8 +276,8 @@ func ConnectOpenID(ctx *context.Context) {
 }
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
-func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
-
+func ConnectOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.ConnectOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -326,6 +331,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
@@ -340,7 +346,8 @@ func RegisterOpenID(ctx *context.Context) {
 }
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
-func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
+func RegisterOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignUpOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -355,23 +362,33 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
+		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
-			valid = cpt.VerifyReq(ctx.Req)
+			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			err := ctx.Req.ParseForm()
-			if err != nil {
+			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)
 				return
 			}
-			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+		case setting.HCaptcha:
+			if err := ctx.Req.ParseForm(); err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
+		}
+		if err != nil {
+			log.Debug("%s", err.Error())
 		}
 
 		if !valid {

@@ -6,12 +6,16 @@
 package user
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -34,13 +38,13 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID, utils.GetListOptions(ctx))
+	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
 		return
@@ -58,7 +62,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 }
 
 // CreateAccessToken create access tokens
-func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
+func CreateAccessToken(ctx *context.APIContext) {
 	// swagger:operation POST /users/{username}/tokens user userCreateToken
 	// ---
 	// summary: Create an access token
@@ -82,13 +86,26 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	//       name:
 	//         type: string
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/AccessToken"
+
+	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+
+	exist, err := models.AccessTokenByNameExists(t)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if exist {
+		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
+		return
+	}
+
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
@@ -116,15 +133,44 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//   required: true
 	// - name: token
 	//   in: path
-	//   description: token to be deleted
-	//   type: integer
-	//   format: int64
+	//   description: token to be deleted, identified by ID and if not available by name
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/error"
 
-	tokenID := ctx.ParamsInt64(":id")
+	token := ctx.Params(":id")
+	tokenID, _ := strconv.ParseInt(token, 0, 64)
+
+	if tokenID == 0 {
+		tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{
+			Name:   token,
+			UserID: ctx.User.ID,
+		})
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
+			return
+		}
+
+		switch len(tokens) {
+		case 0:
+			ctx.NotFound()
+			return
+		case 1:
+			tokenID = tokens[0].ID
+		default:
+			ctx.Error(http.StatusUnprocessableEntity, "DeleteAccessTokenByID", fmt.Errorf("multible matches for token name '%s'", token))
+			return
+		}
+	}
+	if tokenID == 0 {
+		ctx.Error(http.StatusInternalServerError, "Invalid TokenID", nil)
+		return
+	}
+
 	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
 		if models.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
@@ -138,7 +184,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 }
 
 // CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user
-func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2ApplicationOptions) {
+func CreateOauth2Application(ctx *context.APIContext) {
 	// swagger:operation POST /user/applications/oauth2 user userCreateOAuth2Application
 	// ---
 	// summary: creates a new OAuth2 application
@@ -153,6 +199,9 @@ func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/OAuth2Application"
+
+	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+
 	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
@@ -186,7 +235,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -230,4 +279,86 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetOauth2Application get OAuth2 Application
+func GetOauth2Application(ctx *context.APIContext) {
+	// swagger:operation GET /user/applications/oauth2/{id} user userGetOAuth2Application
+	// ---
+	// summary: get an OAuth2 Application
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: Application ID to be found
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OAuth2Application"
+	appID := ctx.ParamsInt64(":id")
+	app, err := models.GetOAuth2ApplicationByID(appID)
+	if err != nil {
+		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetOauth2ApplicationByID", err)
+		}
+		return
+	}
+
+	app.ClientSecret = ""
+
+	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
+}
+
+// UpdateOauth2Application update OAuth2 Application
+func UpdateOauth2Application(ctx *context.APIContext) {
+	// swagger:operation PATCH /user/applications/oauth2/{id} user userUpdateOAuth2Application
+	// ---
+	// summary: update an OAuth2 Application, this includes regenerating the client secret
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: application to be updated
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OAuth2Application"
+	appID := ctx.ParamsInt64(":id")
+
+	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+
+	app, err := models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
+		Name:         data.Name,
+		UserID:       ctx.User.ID,
+		ID:           appID,
+		RedirectURIs: data.RedirectURIs,
+	})
+	if err != nil {
+		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UpdateOauth2ApplicationByID", err)
+		}
+		return
+	}
+	app.ClientSecret, err = app.GenerateClientSecret()
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", "error updating application secret")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

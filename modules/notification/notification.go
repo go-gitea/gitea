@@ -39,16 +39,16 @@ func NewContext() {
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
 func NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment) {
+	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyCreateIssueComment(doer, repo, issue, comment)
+		notifier.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 	}
 }
 
 // NotifyNewIssue notifies new issue to notifiers
-func NotifyNewIssue(issue *models.Issue) {
+func NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyNewIssue(issue)
+		notifier.NotifyNewIssue(issue, mentions)
 	}
 }
 
@@ -67,9 +67,9 @@ func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 }
 
 // NotifyNewPullRequest notifies new pull request to notifiers
-func NotifyNewPullRequest(pr *models.PullRequest) {
+func NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyNewPullRequest(pr)
+		notifier.NotifyNewPullRequest(pr, mentions)
 	}
 }
 
@@ -81,9 +81,16 @@ func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
 }
 
 // NotifyPullRequestReview notifies new pull request review
-func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPullRequestReview(pr, review, comment)
+		notifier.NotifyPullRequestReview(pr, review, comment, mentions)
+	}
+}
+
+// NotifyPullRequestCodeComment notifies new pull request code comment
+func NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestCodeComment(pr, comment, mentions)
 	}
 }
 
@@ -91,6 +98,13 @@ func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comm
 func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
+	}
+}
+
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestPushCommits(doer, pr, comment)
 	}
 }
 
@@ -150,6 +164,13 @@ func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee 
 	}
 }
 
+// NotifyPullReviewRequest notifies Request Review change
+func NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
+	}
+}
+
 // NotifyIssueClearLabels notifies clear labels to notifiers
 func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 	for _, notifier := range notifiers {
@@ -161,6 +182,13 @@ func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 func NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeTitle(doer, issue, oldTitle)
+	}
+}
+
+// NotifyIssueChangeRef notifies change reference to notifiers
+func NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeRef(doer, issue, oldRef)
 	}
 }
 
@@ -215,9 +243,9 @@ func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+		notifier.NotifyPushCommits(pusher, repo, opts, commits)
 	}
 }
 
@@ -236,9 +264,9 @@ func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refF
 }
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
-func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
-		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+		notifier.NotifySyncPushCommits(pusher, repo, opts, commits)
 	}
 }
 

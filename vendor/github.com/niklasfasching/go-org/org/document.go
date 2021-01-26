@@ -36,6 +36,8 @@ type Document struct {
 	Path           string // Path of the file containing the parse input - used to resolve relative paths during parsing (e.g. INCLUDE).
 	tokens         []token
 	baseLvl        int
+	Macros         map[string]string
+	Links          map[string]string
 	Nodes          []Node
 	NamedNodes     map[string]Node
 	Outline        Outline           // Outline is a Table Of Contents for the document and contains all sections (headline + content).
@@ -63,6 +65,7 @@ var lexFns = []lexFn{
 	lexHeadline,
 	lexDrawer,
 	lexBlock,
+	lexResult,
 	lexList,
 	lexTable,
 	lexHorizontalRule,
@@ -83,7 +86,7 @@ func New() *Configuration {
 		DefaultSettings: map[string]string{
 			"TODO":         "TODO | DONE",
 			"EXCLUDE_TAGS": "noexport",
-			"OPTIONS":      "toc:t <:t e:t f:t pri:t todo:t tags:t",
+			"OPTIONS":      "toc:t <:t e:t f:t pri:t todo:t tags:t title:t",
 		},
 		Log:      log.New(os.Stderr, "go-org: ", 0),
 		ReadFile: ioutil.ReadFile,
@@ -120,6 +123,8 @@ func (c *Configuration) Parse(input io.Reader, path string) (d *Document) {
 		Outline:        Outline{outlineSection, outlineSection, 0},
 		BufferSettings: map[string]string{},
 		NamedNodes:     map[string]Node{},
+		Links:          map[string]string{},
+		Macros:         map[string]string{},
 		Path:           path,
 	}
 	defer func() {
@@ -169,12 +174,13 @@ func (d *Document) Get(key string) string {
 // - < (export timestamps)
 // - e (export org entities)
 // - f (export footnotes)
-// - toc (export table of content)
+// - title (export title)
+// - toc (export table of content. an int limits the included org headline lvl)
 // - todo (export headline todo status)
 // - pri (export headline priority)
 // - tags (export headline tags)
 // see https://orgmode.org/manual/Export-settings.html for more information
-func (d *Document) GetOption(key string) bool {
+func (d *Document) GetOption(key string) string {
 	get := func(settings map[string]string) string {
 		for _, field := range strings.Fields(settings["OPTIONS"]) {
 			if strings.HasPrefix(field, key+":") {
@@ -187,15 +193,11 @@ func (d *Document) GetOption(key string) bool {
 	if value == "" {
 		value = get(d.DefaultSettings)
 	}
-	switch value {
-	case "t":
-		return true
-	case "nil":
-		return false
-	default:
-		d.Log.Printf("Bad value for export option %s (%s)", key, value)
-		return false
+	if value == "" {
+		value = "nil"
+		d.Log.Printf("Missing value for export option %s", key)
 	}
+	return value
 }
 
 func (d *Document) parseOne(i int, stop stopFn) (consumed int, node Node) {
@@ -206,6 +208,8 @@ func (d *Document) parseOne(i int, stop stopFn) (consumed int, node Node) {
 		consumed, node = d.parseTable(i, stop)
 	case "beginBlock":
 		consumed, node = d.parseBlock(i, stop)
+	case "result":
+		consumed, node = d.parseResult(i, stop)
 	case "beginDrawer":
 		consumed, node = d.parseDrawer(i, stop)
 	case "text":

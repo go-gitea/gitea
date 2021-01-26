@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // GenerateRepoOptions contains the template units to generate
@@ -117,17 +117,17 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 
 	for _, templateWebhook := range templateWebhooks {
 		generateWebhook := &Webhook{
-			RepoID:       generateRepo.ID,
-			URL:          templateWebhook.URL,
-			HTTPMethod:   templateWebhook.HTTPMethod,
-			ContentType:  templateWebhook.ContentType,
-			Secret:       templateWebhook.Secret,
-			HookEvent:    templateWebhook.HookEvent,
-			IsActive:     templateWebhook.IsActive,
-			HookTaskType: templateWebhook.HookTaskType,
-			OrgID:        templateWebhook.OrgID,
-			Events:       templateWebhook.Events,
-			Meta:         templateWebhook.Meta,
+			RepoID:      generateRepo.ID,
+			URL:         templateWebhook.URL,
+			HTTPMethod:  templateWebhook.HTTPMethod,
+			ContentType: templateWebhook.ContentType,
+			Secret:      templateWebhook.Secret,
+			HookEvent:   templateWebhook.HookEvent,
+			IsActive:    templateWebhook.IsActive,
+			Type:        templateWebhook.Type,
+			OrgID:       templateWebhook.OrgID,
+			Events:      templateWebhook.Events,
+			Meta:        templateWebhook.Meta,
 		}
 		if err := createWebhook(ctx.e, generateWebhook); err != nil {
 			return err
@@ -139,7 +139,7 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 // GenerateAvatar generates the avatar from a template repository
 func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error {
 	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
-	if err := com.Copy(templateRepo.CustomAvatarPath(), generateRepo.CustomAvatarPath()); err != nil {
+	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
 		return err
 	}
 

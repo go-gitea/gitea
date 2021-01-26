@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -130,6 +130,9 @@ type swaggerParameterBodies struct {
 	EditReactionOption api.EditReactionOption
 
 	// in:body
+	CreateBranchRepoOption api.CreateBranchRepoOption
+
+	// in:body
 	CreateBranchProtectionOption api.CreateBranchProtectionOption
 
 	// in:body
@@ -137,4 +140,19 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
+
+	// in:body
+	CreatePullReviewOptions api.CreatePullReviewOptions
+
+	// in:body
+	CreatePullReviewComment api.CreatePullReviewComment
+
+	// in:body
+	SubmitPullReviewOptions api.SubmitPullReviewOptions
+
+	// in:body
+	MigrateRepoOptions api.MigrateRepoOptions
+
+	// in:body
+	PullReviewRequestOptions api.PullReviewRequestOptions
 }

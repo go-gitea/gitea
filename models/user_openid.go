@@ -111,8 +111,8 @@ func GetUserByOpenID(uri string) (*User, error) {
 	log.Trace("Normalized OpenID URI: " + uri)
 
 	// Otherwise, check in openid table
-	oid := &UserOpenID{URI: uri}
-	has, err := x.Get(oid)
+	oid := &UserOpenID{}
+	has, err := x.Where("uri=?", uri).Get(oid)
 	if err != nil {
 		return nil, err
 	}

@@ -252,11 +252,21 @@ func TestGetLabelsByIssueID(t *testing.T) {
 func TestUpdateLabel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	label := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	label.Color = "#ffff00"
-	label.Name = "newLabelName"
-	assert.NoError(t, UpdateLabel(label))
+	// make sure update wont overwrite it
+	update := &Label{
+		ID:          label.ID,
+		Color:       "#ffff00",
+		Name:        "newLabelName",
+		Description: label.Description,
+	}
+	label.Color = update.Color
+	label.Name = update.Name
+	assert.NoError(t, UpdateLabel(update))
 	newLabel := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.Equal(t, *label, *newLabel)
+	assert.EqualValues(t, label.ID, newLabel.ID)
+	assert.EqualValues(t, label.Color, newLabel.Color)
+	assert.EqualValues(t, label.Name, newLabel.Name)
+	assert.EqualValues(t, label.Description, newLabel.Description)
 	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -58,7 +58,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusMethodNotAllowed)
 }
 
-func TestAPICreatePullSuccess1(t *testing.T) {
+func TestAPICreatePullSuccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	// repo10 have code, pulls units.
@@ -78,7 +78,7 @@ func TestAPICreatePullSuccess1(t *testing.T) {
 	session.MakeRequest(t, req, 201)
 }
 
-func TestAPICreatePullSuccess2(t *testing.T) {
+func TestAPIEditPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
@@ -90,6 +90,21 @@ func TestAPICreatePullSuccess2(t *testing.T) {
 		Base:  "master",
 		Title: "create a success pr",
 	})
+	pull := new(api.PullRequest)
+	resp := session.MakeRequest(t, req, 201)
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, "master", pull.Base.Name)
 
-	session.MakeRequest(t, req, 201)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+		Base:  "feature/1",
+		Title: "edit a this pr",
+	})
+	resp = session.MakeRequest(t, req, 201)
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, "feature/1", pull.Base.Name)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+		Base: "not-exist",
+	})
+	session.MakeRequest(t, req, 404)
 }

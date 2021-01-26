@@ -7,10 +7,11 @@ package setting
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -28,7 +29,8 @@ func Applications(ctx *context.Context) {
 }
 
 // ApplicationsPost response for add user's access token
-func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
+func ApplicationsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewAccessTokenForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
@@ -43,6 +45,18 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+
+	exist, err := models.AccessTokenByNameExists(t)
+	if err != nil {
+		ctx.ServerError("AccessTokenByNameExists", err)
+		return
+	}
+	if exist {
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
+		return
+	}
+
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
@@ -68,7 +82,7 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := models.ListAccessTokens(ctx.User.ID, models.ListOptions{})
+	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return

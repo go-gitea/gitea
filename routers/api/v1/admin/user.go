@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
@@ -42,7 +43,7 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 }
 
 // CreateUser create a user
-func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
+func CreateUser(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users admin adminCreateUser
 	// ---
 	// summary: Create a user
@@ -64,7 +65,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateUserOption)
 	u := &models.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
@@ -87,11 +88,21 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
+	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	if pwned {
+		if err != nil {
+			log.Error(err.Error())
+		}
+		ctx.Data["Err_Password"] = true
+		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNameCharsNotAllowed(err) ||
+			models.IsErrEmailInvalid(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -109,7 +120,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 }
 
 // EditUser api for modifying a user's information
-func EditUser(ctx *context.APIContext, form api.EditUserOption) {
+func EditUser(ctx *context.APIContext) {
 	// swagger:operation PATCH /admin/users/{username} admin adminEditUser
 	// ---
 	// summary: Edit an existing user
@@ -134,7 +145,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.EditUserOption)
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -145,18 +156,29 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 		return
 	}
 
-	if len(form.Password) > 0 {
+	if len(form.Password) != 0 {
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		var err error
+		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Data["Err_Password"] = true
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = u.SetPassword(form.Password); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	if form.MustChangePassword != nil {
@@ -164,10 +186,23 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	u.LoginName = form.LoginName
-	u.FullName = form.FullName
-	u.Email = form.Email
-	u.Website = form.Website
-	u.Location = form.Location
+
+	if form.FullName != nil {
+		u.FullName = *form.FullName
+	}
+	if form.Email != nil {
+		u.Email = *form.Email
+		if len(u.Email) == 0 {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
+			return
+		}
+	}
+	if form.Website != nil {
+		u.Website = *form.Website
+	}
+	if form.Location != nil {
+		u.Location = *form.Location
+	}
 	if form.Active != nil {
 		u.IsActive = *form.Active
 	}
@@ -191,7 +226,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
@@ -249,7 +284,7 @@ func DeleteUser(ctx *context.APIContext) {
 }
 
 // CreatePublicKey api for creating a public key to a user
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/keys admin adminCreatePublicKey
 	// ---
 	// summary: Add a public key on behalf of a user
@@ -274,12 +309,12 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	user.CreateUserPublicKey(ctx, form, u.ID)
+	user.CreateUserPublicKey(ctx, *form, u.ID)
 }
 
 // DeleteUserPublicKey api for deleting a user's public key
@@ -343,7 +378,7 @@ func GetAllUsers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -351,10 +386,12 @@ func GetAllUsers(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
+	listOptions := utils.GetListOptions(ctx)
+
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:        models.UserTypeIndividual,
 		OrderBy:     models.SearchOrderByAlphabetically,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
@@ -366,5 +403,8 @@ func GetAllUsers(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &results)
 }

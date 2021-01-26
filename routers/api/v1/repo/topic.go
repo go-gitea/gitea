@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -40,7 +41,7 @@ func ListTopics(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -66,7 +67,7 @@ func ListTopics(ctx *context.APIContext) {
 }
 
 // UpdateTopics updates repo with a new set of topics
-func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
+func UpdateTopics(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/topics repository repoUpdateTopics
 	// ---
 	// summary: Replace list of topics for a repository
@@ -93,6 +94,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
+	form := web.GetForm(ctx).(*api.RepoTopicOptions)
 	topicNames := form.Topics
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
 
@@ -259,7 +261,7 @@ func TopicSearch(ctx *context.APIContext) {
 	//     type: integer
 	//   - name: limit
 	//     in: query
-	//     description: page size of results, maximum page size is 50
+	//     description: page size of results
 	//     type: integer
 	// responses:
 	//   "200":
@@ -275,12 +277,6 @@ func TopicSearch(ctx *context.APIContext) {
 	kw := ctx.Query("q")
 
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.Page < 1 {
-		listOptions.Page = 1
-	}
-	if listOptions.PageSize < 1 {
-		listOptions.PageSize = 10
-	}
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
 		Keyword:     kw,

@@ -5,18 +5,15 @@
 package session
 
 import (
-	"container/list"
 	"encoding/json"
 	"fmt"
 	"sync"
 
-	"gitea.com/macaron/session"
-	couchbase "gitea.com/macaron/session/couchbase"
-	memcache "gitea.com/macaron/session/memcache"
-	mysql "gitea.com/macaron/session/mysql"
-	nodb "gitea.com/macaron/session/nodb"
-	postgres "gitea.com/macaron/session/postgres"
-	redis "gitea.com/macaron/session/redis"
+	"gitea.com/go-chi/session"
+	couchbase "gitea.com/go-chi/session/couchbase"
+	memcache "gitea.com/go-chi/session/memcache"
+	mysql "gitea.com/go-chi/session/mysql"
+	postgres "gitea.com/go-chi/session/postgres"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
@@ -37,11 +34,11 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	// This is only slightly more wrong than modules/setting/session.go:23
 	switch opts.Provider {
 	case "memory":
-		o.provider = &MemProvider{list: list.New(), data: make(map[string]*list.Element)}
+		o.provider = &session.MemProvider{}
 	case "file":
 		o.provider = &session.FileProvider{}
 	case "redis":
-		o.provider = &redis.RedisProvider{}
+		o.provider = &RedisProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":
@@ -50,8 +47,6 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &couchbase.CouchbaseProvider{}
 	case "memcache":
 		o.provider = &memcache.MemcacheProvider{}
-	case "nodb":
-		o.provider = &nodb.NodbProvider{}
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}
@@ -107,10 +102,11 @@ func init() {
 
 // VirtualStore represents a virtual session store implementation.
 type VirtualStore struct {
-	p    *VirtualSessionProvider
-	sid  string
-	lock sync.RWMutex
-	data map[interface{}]interface{}
+	p        *VirtualSessionProvider
+	sid      string
+	lock     sync.RWMutex
+	data     map[interface{}]interface{}
+	released bool
 }
 
 // NewVirtualStore creates and returns a virtual session store.
@@ -164,7 +160,7 @@ func (s *VirtualStore) Release() error {
 		// Now ensure that we don't exist!
 		realProvider := s.p.provider
 
-		if realProvider.Exist(s.sid) {
+		if !s.released && realProvider.Exist(s.sid) {
 			// This is an error!
 			return fmt.Errorf("new sid '%s' already exists", s.sid)
 		}
@@ -172,12 +168,19 @@ func (s *VirtualStore) Release() error {
 		if err != nil {
 			return err
 		}
+		if err := realStore.Flush(); err != nil {
+			return err
+		}
 		for key, value := range s.data {
 			if err := realStore.Set(key, value); err != nil {
 				return err
 			}
 		}
-		return realStore.Release()
+		err = realStore.Release()
+		if err == nil {
+			s.released = true
+		}
+		return err
 	}
 	return nil
 }

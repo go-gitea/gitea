@@ -64,15 +64,20 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 		})
 		labelIDs = append(labelIDs, label.ID)
 	}
-	if _, err := sess.Insert(issueLabels); err != nil {
-		return err
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
 	}
 
 	for _, reaction := range issue.Reactions {
 		reaction.IssueID = issue.ID
 	}
-	if _, err := sess.Insert(issue.Reactions); err != nil {
-		return err
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
 	}
 
 	cols := make([]string, 0)
@@ -151,8 +156,10 @@ func InsertIssueComments(comments []*Comment) error {
 			reaction.IssueID = comment.IssueID
 			reaction.CommentID = comment.ID
 		}
-		if _, err := sess.Insert(comment.Reactions); err != nil {
-			return err
+		if len(comment.Reactions) > 0 {
+			if _, err := sess.Insert(comment.Reactions); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -196,12 +203,14 @@ func InsertReleases(rels ...*Release) error {
 			return err
 		}
 
-		for i := 0; i < len(rel.Attachments); i++ {
-			rel.Attachments[i].ReleaseID = rel.ID
-		}
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
 
-		if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
-			return err
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -5,8 +5,8 @@
 package repository
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -14,9 +14,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1"
 )
@@ -27,9 +28,9 @@ import (
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
-// wikiRemoteURL returns accessible repository URL for wiki if exists.
+// WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func wikiRemoteURL(remote string) string {
+func WikiRemoteURL(remote string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
@@ -41,7 +42,7 @@ func wikiRemoteURL(remote string) string {
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opts api.MigrateRepoOption) (*models.Repository, error) {
+func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.Repository, opts migration.MigrateOptions) (*models.Repository, error) {
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
@@ -57,11 +58,11 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	var err error
-	if err = os.RemoveAll(repoPath); err != nil {
+	if err = util.RemoveAll(repoPath); err != nil {
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err = git.CloneWithContext(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -71,20 +72,20 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 
 	if opts.Wiki {
 		wikiPath := models.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := os.RemoveAll(wikiPath); err != nil {
+			if err := util.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
 				Branch:  "master",
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
-				if err := os.RemoveAll(wikiPath); err != nil {
+				if err := util.RemoveAll(wikiPath); err != nil {
 					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
 			}
@@ -102,18 +103,22 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
-	if !opts.Releases && !repo.IsEmpty {
-		// Try to get HEAD branch and set it as default branch.
-		headBranch, err := gitRepo.GetHEADBranch()
-		if err != nil {
-			return repo, fmt.Errorf("GetHEADBranch: %v", err)
-		}
-		if headBranch != nil {
-			repo.DefaultBranch = headBranch.Name
+	if !repo.IsEmpty {
+		if len(repo.DefaultBranch) == 0 {
+			// Try to get HEAD branch and set it as default branch.
+			headBranch, err := gitRepo.GetHEADBranch()
+			if err != nil {
+				return repo, fmt.Errorf("GetHEADBranch: %v", err)
+			}
+			if headBranch != nil {
+				repo.DefaultBranch = headBranch.Name
+			}
 		}
 
-		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Error("Failed to synchronize tags to releases for repository: %v", err)
+		if !opts.Releases {
+			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Error("Failed to synchronize tags to releases for repository: %v", err)
+			}
 		}
 	}
 
@@ -122,12 +127,33 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 	}
 
 	if opts.Mirror {
-		if err = models.InsertMirror(&models.Mirror{
+		mirrorModel := models.Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-		}); err != nil {
+		}
+
+		if opts.MirrorInterval != "" {
+			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+			if err != nil {
+				log.Error("Failed to set Interval: %v", err)
+				return repo, err
+			}
+			if parsedInterval == 0 {
+				mirrorModel.Interval = 0
+				mirrorModel.NextUpdateUnix = 0
+			} else if parsedInterval < setting.Mirror.MinInterval {
+				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
+				return repo, err
+			} else {
+				mirrorModel.Interval = parsedInterval
+				mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+			}
+		}
+
+		if err = models.InsertMirror(&mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 

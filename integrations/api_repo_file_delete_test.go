@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -109,18 +107,10 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo1, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		correctSHA := deleteFileOptions.SHA
 		deleteFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
-		expectedAPIError := context.APIError{
-			Message: "sha does not match [given: " + deleteFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     setting.API.SwaggerURL,
-		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
-		assert.Equal(t, expectedAPIError, apiError)
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++

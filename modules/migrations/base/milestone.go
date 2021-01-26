@@ -15,5 +15,5 @@ type Milestone struct {
 	Created     time.Time
 	Updated     *time.Time
 	Closed      *time.Time
-	State       string
+	State       string // open, closed
 }

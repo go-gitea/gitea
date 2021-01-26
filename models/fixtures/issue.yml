@@ -32,6 +32,7 @@
   poster_id: 1
   name: issue3
   content: content for the third issue
+  milestone_id: 3
   is_closed: false
   is_pull: true
   created_unix: 946684820
@@ -134,3 +135,40 @@
   is_pull: true
   created_unix: 1579194806
   updated_unix: 1579194806
+
+-
+  id: 12
+  repo_id: 3
+  index: 2
+  poster_id: 2
+  name: pull6
+  content: content for the a pull request
+  is_closed: false
+  is_pull: true
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+
+-
+  id: 13
+  repo_id: 50
+  index: 0
+  poster_id: 2
+  name: issue in active repo
+  content: we'll be testing github issue 13171 with this.
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+-
+  id: 14
+  repo_id: 51
+  index: 0
+  poster_id: 2
+  name: issue in archived repo
+  content: we'll be testing github issue 13171 with this.
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696

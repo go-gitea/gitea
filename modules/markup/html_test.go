@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/emoji"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,7 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	var commit = util.URLJoin(AppSubURL, "commit", sha)
 	var subtree = util.URLJoin(commit, "src")
-	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var tree = strings.ReplaceAll(subtree, "/commit/", "/tree/")
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
@@ -45,6 +46,12 @@ func TestRender_Commits(t *testing.T) {
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
+	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
+
+	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
+	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -117,13 +124,13 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
 	test(
 		"https://www.example.com/foo/?bar=baz&inga=42&quux",
-		`<p><a href="https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
+		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux=" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
 	test(
 		"http://142.42.1.1/",
 		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
 	test(
 		"https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd",
-		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
+		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa%2Fbbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
 	test(
 		"https://en.wikipedia.org/wiki/URL_(disambiguation)",
 		`<p><a href="https://en.wikipedia.org/wiki/URL_(disambiguation)" rel="nofollow">https://en.wikipedia.org/wiki/URL_(disambiguation)</a></p>`)
@@ -141,7 +148,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
-		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+		`<p><a href="magnet:?xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -207,7 +214,7 @@ func TestRender_email(t *testing.T) {
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
-		`<p>“info@gitea.com”</p>`)
+		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
@@ -226,6 +233,56 @@ func TestRender_email(t *testing.T) {
 	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
+}
+
+func TestRender_emoji(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+	setting.StaticURLPrefix = AppURL
+
+	test := func(input, expected string) {
+		expected = strings.ReplaceAll(expected, "&", "&amp;")
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	// Make sure we can successfully match every emoji in our dataset with regex
+	for i := range emoji.GemojiData {
+		test(
+			emoji.GemojiData[i].Emoji,
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+	for i := range emoji.GemojiData {
+		test(
+			":"+emoji.GemojiData[i].Aliases[0]+":",
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+
+	//Text that should be turned into or recognized as emoji
+	test(
+		":gitea:",
+		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+
+	test(
+		"Some text with 😄 in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with :smile: in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with 😄😄 2 emoji next to each other",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+	test(
+		"😎🤪🔐🤑❓",
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+
+	// should match nothing
+	test(
+		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
+	test(
+		":not exist:",
+		`<p>:not exist:</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -325,4 +382,29 @@ func TestRender_ShortLinks(t *testing.T) {
 		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
+}
+
+func Test_ParseClusterFuzz(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+	assert.NotContains(t, string(val), "<html")
+
+	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err = PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+
+	assert.NotContains(t, string(val), "<html")
 }

@@ -99,6 +99,6 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	expectedFileResponse := getExpectedFileResponse()
 
 	fileResponse, err := GetFileResponseFromCommit(repo, commit, branch, treePath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, expectedFileResponse, fileResponse)
 }

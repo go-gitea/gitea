@@ -6,6 +6,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -37,7 +39,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -77,7 +79,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -130,7 +132,7 @@ func GetTeam(ctx *context.APIContext) {
 }
 
 // CreateTeam api for create a team
-func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
+func CreateTeam(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/teams organization orgCreateTeam
 	// ---
 	// summary: Create a team
@@ -153,7 +155,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	//     "$ref": "#/responses/Team"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateTeamOption)
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -189,7 +191,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 }
 
 // EditTeam api for edit a team
-func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
+func EditTeam(ctx *context.APIContext) {
 	// swagger:operation PATCH /teams/{id} organization orgEditTeam
 	// ---
 	// summary: Edit a team
@@ -210,6 +212,8 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+
+	form := web.GetForm(ctx).(*api.EditTeamOption)
 
 	team := ctx.Org.Team
 	if err := team.GetUnits(); err != nil {
@@ -310,7 +314,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -472,7 +476,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -491,7 +495,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = repo.APIFormat(access)
+		repos[i] = convert.ToRepo(repo, access)
 	}
 	ctx.JSON(http.StatusOK, repos)
 }
@@ -635,7 +639,7 @@ func SearchTeam(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -650,15 +654,17 @@ func SearchTeam(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/Team"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	}
 
-	teams, _, err := models.SearchTeam(opts)
+	teams, maxResults, err := models.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -681,6 +687,9 @@ func SearchTeam(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,

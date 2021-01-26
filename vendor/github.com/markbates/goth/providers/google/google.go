@@ -32,13 +32,13 @@ func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 
 // Provider is the implementation of `goth.Provider` for accessing Google.
 type Provider struct {
-	ClientKey    string
-	Secret       string
-	CallbackURL  string
-	HTTPClient   *http.Client
-	config       *oauth2.Config
-	prompt       oauth2.AuthCodeOption
-	providerName string
+	ClientKey       string
+	Secret          string
+	CallbackURL     string
+	HTTPClient      *http.Client
+	config          *oauth2.Config
+	authCodeOptions []oauth2.AuthCodeOption
+	providerName    string
 }
 
 // Name is the name used to retrieve this provider later.
@@ -61,11 +61,7 @@ func (p *Provider) Debug(debug bool) {}
 
 // BeginAuth asks Google for an authentication endpoint.
 func (p *Provider) BeginAuth(state string) (goth.Session, error) {
-	var opts []oauth2.AuthCodeOption
-	if p.prompt != nil {
-		opts = append(opts, p.prompt)
-	}
-	url := p.config.AuthCodeURL(state, opts...)
+	url := p.config.AuthCodeURL(state, p.authCodeOptions...)
 	session := &Session{
 		AuthURL: url,
 	}
@@ -152,12 +148,12 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 	return c
 }
 
-//RefreshTokenAvailable refresh token is provided by auth provider or not
+// RefreshTokenAvailable refresh token is provided by auth provider or not
 func (p *Provider) RefreshTokenAvailable() bool {
 	return true
 }
 
-//RefreshToken get new access token based on the refresh token
+// RefreshToken get new access token based on the refresh token
 func (p *Provider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
 	token := &oauth2.Token{RefreshToken: refreshToken}
 	ts := p.config.TokenSource(goth.ContextForClient(p.Client()), token)
@@ -176,5 +172,15 @@ func (p *Provider) SetPrompt(prompt ...string) {
 	if len(prompt) == 0 {
 		return
 	}
-	p.prompt = oauth2.SetAuthURLParam("prompt", strings.Join(prompt, " "))
+	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("prompt", strings.Join(prompt, " ")))
+}
+
+// SetHostedDomain sets the hd parameter for google OAuth call.
+// Use this to force user to pick user from specific hosted domain.
+// See https://developers.google.com/identity/protocols/oauth2/openid-connect#hd-param
+func (p *Provider) SetHostedDomain(hd string) {
+	if hd == "" {
+		return
+	}
+	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("hd", hd))
 }

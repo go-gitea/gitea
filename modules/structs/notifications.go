@@ -21,10 +21,11 @@ type NotificationThread struct {
 
 // NotificationSubject contains the notification subject (Issue/Pull/Commit)
 type NotificationSubject struct {
-	Title            string `json:"title"`
-	URL              string `json:"url"`
-	LatestCommentURL string `json:"latest_comment_url"`
-	Type             string `json:"type" binding:"In(Issue,Pull,Commit)"`
+	Title            string    `json:"title"`
+	URL              string    `json:"url"`
+	LatestCommentURL string    `json:"latest_comment_url"`
+	Type             string    `json:"type" binding:"In(Issue,Pull,Commit)"`
+	State            StateType `json:"state"`
 }
 
 // NotificationCount number of unread notifications

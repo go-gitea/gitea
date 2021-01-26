@@ -6,29 +6,40 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		All:         all,
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
+func listUserOrgs(ctx *context.APIContext, u *models.User) {
+
+	listOptions := utils.GetListOptions(ctx)
+	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
+
+	orgs, err := models.GetOrgsByUserID(u.ID, showPrivate)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
+	maxResults := len(orgs)
 
-	apiOrgs := make([]*api.Organization, len(u.Orgs))
-	for i := range u.Orgs {
-		apiOrgs[i] = convert.ToOrganization(u.Orgs[i])
+	orgs = utils.PaginateUserSlice(orgs, listOptions.Page, listOptions.PageSize)
+
+	apiOrgs := make([]*api.Organization, len(orgs))
+	for i := range orgs {
+		apiOrgs[i] = convert.ToOrganization(orgs[i])
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
 
@@ -46,13 +57,13 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	listUserOrgs(ctx, ctx.User, true)
+	listUserOrgs(ctx, ctx.User)
 }
 
 // ListUserOrgs list user's orgs
@@ -74,7 +85,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -84,7 +95,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User.IsAdmin)
+	listUserOrgs(ctx, u)
 }
 
 // GetAll return list of all public organizations
@@ -101,7 +112,7 @@ func GetAll(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -115,8 +126,10 @@ func GetAll(ctx *context.APIContext) {
 		}
 	}
 
-	publicOrgs, _, err := models.SearchUsers(&models.SearchUserOptions{
-		ListOptions: utils.GetListOptions(ctx),
+	listOptions := utils.GetListOptions(ctx)
+
+	publicOrgs, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		ListOptions: listOptions,
 		Type:        models.UserTypeOrganization,
 		OrderBy:     models.SearchOrderByAlphabetically,
 		Visible:     vMode,
@@ -130,11 +143,14 @@ func GetAll(ctx *context.APIContext) {
 		orgs[i] = convert.ToOrganization(publicOrgs[i])
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &orgs)
 }
 
 // Create api for create organization
-func Create(ctx *context.APIContext, form api.CreateOrgOption) {
+func Create(ctx *context.APIContext) {
 	// swagger:operation POST /orgs organization orgCreate
 	// ---
 	// summary: Create an organization
@@ -154,7 +170,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.User.CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
@@ -216,7 +232,7 @@ func Get(ctx *context.APIContext) {
 }
 
 // Edit change an organization's information
-func Edit(ctx *context.APIContext, form api.EditOrgOption) {
+func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /orgs/{org} organization orgEdit
 	// ---
 	// summary: Edit an organization
@@ -238,7 +254,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-
+	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
 	org.Description = form.Description

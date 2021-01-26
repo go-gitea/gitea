@@ -32,18 +32,20 @@ type ScrollService struct {
 	filterPath []string    // list of filters used to reduce the response
 	headers    http.Header // custom request-level HTTP headers
 
-	indices           []string
-	types             []string
-	keepAlive         string
-	body              interface{}
-	ss                *SearchSource
-	size              *int
-	routing           string
-	preference        string
-	ignoreUnavailable *bool
-	allowNoIndices    *bool
-	expandWildcards   string
-	maxResponseSize   int64
+	indices            []string
+	types              []string
+	keepAlive          string
+	body               interface{}
+	ss                 *SearchSource
+	size               *int
+	routing            string
+	preference         string
+	ignoreUnavailable  *bool
+	ignoreThrottled    *bool
+	allowNoIndices     *bool
+	expandWildcards    string
+	maxResponseSize    int64
+	restTotalHitsAsInt *bool
 
 	mu       sync.RWMutex
 	scrollId string
@@ -116,6 +118,9 @@ func (s *ScrollService) Index(indices ...string) *ScrollService {
 }
 
 // Type sets the name of one or more types to iterate over.
+//
+// Deprecated: Types are in the process of being removed. Instead of using a type, prefer to
+// filter on a field on the document.
 func (s *ScrollService) Type(types ...string) *ScrollService {
 	if s.types == nil {
 		s.types = make([]string, 0)
@@ -245,6 +250,13 @@ func (s *ScrollService) TrackTotalHits(trackTotalHits interface{}) *ScrollServic
 	return s
 }
 
+// RestTotalHitsAsInt indicates whether hits.total should be rendered as an
+// integer or an object in the rest search response.
+func (s *ScrollService) RestTotalHitsAsInt(enabled bool) *ScrollService {
+	s.restTotalHitsAsInt = &enabled
+	return s
+}
+
 // Routing is a list of specific routing values to control the shards
 // the search will be executed on.
 func (s *ScrollService) Routing(routings ...string) *ScrollService {
@@ -269,6 +281,13 @@ func (s *ScrollService) IgnoreUnavailable(ignoreUnavailable bool) *ScrollService
 	return s
 }
 
+// IgnoreThrottled indicates whether specified concrete, expanded or aliased
+// indices should be ignored when throttled.
+func (s *ScrollService) IgnoreThrottled(ignoreThrottled bool) *ScrollService {
+	s.ignoreThrottled = &ignoreThrottled
+	return s
+}
+
 // AllowNoIndices indicates whether to ignore if a wildcard indices
 // expression resolves into no concrete indices. (This includes `_all` string
 // or when no indices have been specified).
@@ -288,6 +307,28 @@ func (s *ScrollService) ExpandWildcards(expandWildcards string) *ScrollService {
 // to guard against OOM situations.
 func (s *ScrollService) MaxResponseSize(maxResponseSize int64) *ScrollService {
 	s.maxResponseSize = maxResponseSize
+	return s
+}
+
+// NoStoredFields indicates that no stored fields should be loaded, resulting in only
+// id and type to be returned per field.
+func (s *ScrollService) NoStoredFields() *ScrollService {
+	s.ss = s.ss.NoStoredFields()
+	return s
+}
+
+// StoredField adds a single field to load and return (note, must be stored) as
+// part of the search request. If none are specified, the source of the
+// document will be returned.
+func (s *ScrollService) StoredField(fieldName string) *ScrollService {
+	s.ss = s.ss.StoredField(fieldName)
+	return s
+}
+
+// StoredFields	sets the fields to load and return as part of the search request.
+// If none are specified, the source of the document will be returned.
+func (s *ScrollService) StoredFields(fields ...string) *ScrollService {
+	s.ss = s.ss.StoredFields(fields...)
 	return s
 }
 
@@ -471,6 +512,12 @@ func (s *ScrollService) buildFirstURL() (string, url.Values, error) {
 	if s.ignoreUnavailable != nil {
 		params.Set("ignore_unavailable", fmt.Sprintf("%v", *s.ignoreUnavailable))
 	}
+	if s.ignoreThrottled != nil {
+		params.Set("ignore_throttled", fmt.Sprintf("%v", *s.ignoreThrottled))
+	}
+	if v := s.restTotalHitsAsInt; v != nil {
+		params.Set("rest_total_hits_as_int", fmt.Sprint(*v))
+	}
 
 	return path, params, nil
 }
@@ -571,6 +618,9 @@ func (s *ScrollService) buildNextURL() (string, url.Values, error) {
 		}
 		params.Set("filter_path", strings.Join(s.filterPath, ","))
 	}
+	if v := s.restTotalHitsAsInt; v != nil {
+		params.Set("rest_total_hits_as_int", fmt.Sprint(*v))
+	}
 
 	return path, params, nil
 }
@@ -587,4 +637,32 @@ func (s *ScrollService) bodyNext() (interface{}, error) {
 	}
 	s.mu.RUnlock()
 	return body, nil
+}
+
+// DocvalueField adds a single field to load from the field data cache
+// and return as part of the search.
+func (s *ScrollService) DocvalueField(docvalueField string) *ScrollService {
+	s.ss = s.ss.DocvalueField(docvalueField)
+	return s
+}
+
+// DocvalueFieldWithFormat adds a single field to load from the field data cache
+// and return as part of the search.
+func (s *ScrollService) DocvalueFieldWithFormat(docvalueField DocvalueField) *ScrollService {
+	s.ss = s.ss.DocvalueFieldWithFormat(docvalueField)
+	return s
+}
+
+// DocvalueFields adds one or more fields to load from the field data cache
+// and return as part of the search.
+func (s *ScrollService) DocvalueFields(docvalueFields ...string) *ScrollService {
+	s.ss = s.ss.DocvalueFields(docvalueFields...)
+	return s
+}
+
+// DocvalueFieldsWithFormat adds one or more fields to load from the field data cache
+// and return as part of the search.
+func (s *ScrollService) DocvalueFieldsWithFormat(docvalueFields ...DocvalueField) *ScrollService {
+	s.ss = s.ss.DocvalueFieldsWithFormat(docvalueFields...)
+	return s
 }

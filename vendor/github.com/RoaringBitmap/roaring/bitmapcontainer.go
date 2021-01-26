@@ -96,6 +96,18 @@ func (bc *bitmapContainer) maximum() uint16 {
 	return uint16(0)
 }
 
+func (bc *bitmapContainer) iterate(cb func(x uint16) bool) bool {
+	iterator := bitmapContainerShortIterator{bc, bc.NextSetBit(0)}
+
+	for iterator.hasNext() {
+		if !cb(iterator.next()) {
+			return false
+		}
+	}
+
+	return true
+}
+
 type bitmapContainerShortIterator struct {
 	ptr *bitmapContainer
 	i   int
@@ -182,6 +194,33 @@ func (bcmi *bitmapContainerManyIterator) nextMany(hs uint32, buf []uint32) int {
 		}
 		t := bitset & -bitset
 		buf[n] = uint32(((base * 64) + int(popcount(t-1)))) | hs
+		n = n + 1
+		bitset ^= t
+	}
+
+	bcmi.base = base
+	bcmi.bitset = bitset
+	return n
+}
+
+func (bcmi *bitmapContainerManyIterator) nextMany64(hs uint64, buf []uint64) int {
+	n := 0
+	base := bcmi.base
+	bitset := bcmi.bitset
+
+	for n < len(buf) {
+		if bitset == 0 {
+			base++
+			if base >= len(bcmi.ptr.bitmap) {
+				bcmi.base = base
+				bcmi.bitset = bitset
+				return n
+			}
+			bitset = bcmi.ptr.bitmap[base]
+			continue
+		}
+		t := bitset & -bitset
+		buf[n] = uint64(((base * 64) + int(popcount(t-1)))) | hs
 		n = n + 1
 		bitset ^= t
 	}
@@ -919,6 +958,32 @@ func (bc *bitmapContainer) loadData(arrayContainer *arrayContainer) {
 		x := arrayContainer.content[k]
 		i := int(x) / 64
 		bc.bitmap[i] |= (uint64(1) << uint(x%64))
+	}
+}
+
+func (bc *bitmapContainer) resetTo(a container) {
+	switch x := a.(type) {
+	case *arrayContainer:
+		fill(bc.bitmap, 0)
+		bc.loadData(x)
+
+	case *bitmapContainer:
+		bc.cardinality = x.cardinality
+		copy(bc.bitmap, x.bitmap)
+
+	case *runContainer16:
+		bc.cardinality = len(x.iv)
+		lastEnd := 0
+		for _, r := range x.iv {
+			bc.cardinality += int(r.length)
+			resetBitmapRange(bc.bitmap, lastEnd, int(r.start))
+			lastEnd = int(r.start+r.length) + 1
+			setBitmapRange(bc.bitmap, int(r.start), lastEnd)
+		}
+		resetBitmapRange(bc.bitmap, lastEnd, maxCapacity)
+
+	default:
+		panic("unsupported container type")
 	}
 }
 

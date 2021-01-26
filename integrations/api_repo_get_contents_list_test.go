@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -139,14 +138,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// Test file contents a file with a bad ref
 	ref = "badref"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
-	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
-	expectedAPIError := context.APIError{
-		Message: "object does not exist [id: " + ref + ", rel_path: ]",
-		URL:     setting.API.SwaggerURL,
-	}
-	var apiError context.APIError
-	DecodeJSON(t, resp, &apiError)
-	assert.Equal(t, expectedAPIError, apiError)
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)

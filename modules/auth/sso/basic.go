@@ -6,6 +6,7 @@
 package sso
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -13,9 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
 )
 
 // Ensure the struct implements the interface.
@@ -49,14 +47,14 @@ func (b *Basic) IsEnabled() bool {
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.User {
-	baHead := ctx.Req.Header.Get("Authorization")
+func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+	baHead := req.Header.Get("Authorization")
 	if len(baHead) == 0 {
 		return nil
 	}
 
 	auths := strings.Fields(baHead)
-	if len(auths) != 2 || auths[0] != "Basic" {
+	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
 		return nil
 	}
 
@@ -75,7 +73,7 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 	uid := CheckOAuthAccessToken(authToken)
 	if uid != 0 {
 		var err error
-		ctx.Data["IsApiToken"] = true
+		store.GetData()["IsApiToken"] = true
 
 		u, err = models.GetUserByID(uid)
 		if err != nil {
@@ -85,22 +83,12 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 	}
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
-		if isUsernameToken {
-			u, err = models.GetUserByID(token.UID)
-			if err != nil {
-				log.Error("GetUserByID:  %v", err)
-				return nil
-			}
-		} else {
-			u, err = models.GetUserByName(uname)
-			if err != nil {
-				log.Error("GetUserByID:  %v", err)
-				return nil
-			}
-			if u.ID != token.UID {
-				return nil
-			}
+		u, err = models.GetUserByID(token.UID)
+		if err != nil {
+			log.Error("GetUserByID:  %v", err)
+			return nil
 		}
+
 		token.UpdatedUnix = timeutil.TimeStampNow()
 		if err = models.UpdateAccessToken(token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
@@ -118,7 +106,7 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 			return nil
 		}
 	} else {
-		ctx.Data["IsApiToken"] = true
+		store.GetData()["IsApiToken"] = true
 	}
 
 	return u

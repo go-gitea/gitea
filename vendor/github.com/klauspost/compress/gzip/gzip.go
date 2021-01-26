@@ -37,13 +37,13 @@ type Writer struct {
 	Header      // written at first call to Write, Flush, or Close
 	w           io.Writer
 	level       int
-	wroteHeader bool
+	err         error
 	compressor  *flate.Writer
 	digest      uint32 // CRC-32, IEEE polynomial (section 8)
 	size        uint32 // Uncompressed size (section 2.3.1)
+	wroteHeader bool
 	closed      bool
 	buf         [10]byte
-	err         error
 }
 
 // NewWriter returns a new Writer.

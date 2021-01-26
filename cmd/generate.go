@@ -7,9 +7,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"code.gitea.io/gitea/modules/generate"
 
+	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli"
 )
 
@@ -59,7 +61,12 @@ func runGenerateInternalToken(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("%s\n", internalToken)
+	fmt.Printf("%s", internalToken)
+
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Printf("\n")
+	}
+
 	return nil
 }
 
@@ -69,7 +76,12 @@ func runGenerateLfsJwtSecret(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("%s\n", JWTSecretBase64)
+	fmt.Printf("%s", JWTSecretBase64)
+
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Printf("\n")
+	}
+
 	return nil
 }
 
@@ -79,6 +91,11 @@ func runGenerateSecretKey(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("%s\n", secretKey)
+	fmt.Printf("%s", secretKey)
+
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Printf("\n")
+	}
+
 	return nil
 }

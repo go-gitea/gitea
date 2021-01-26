@@ -117,6 +117,26 @@ func (u *CopyOnWriteFs) LstatIfPossible(name string) (os.FileInfo, bool, error) 
 	return fi, false, err
 }
 
+func (u *CopyOnWriteFs) SymlinkIfPossible(oldname, newname string) error {
+	if slayer, ok := u.layer.(Linker); ok {
+		return slayer.SymlinkIfPossible(oldname, newname)
+	}
+
+	return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: ErrNoSymlink}
+}
+
+func (u *CopyOnWriteFs) ReadlinkIfPossible(name string) (string, error) {
+	if rlayer, ok := u.layer.(LinkReader); ok {
+		return rlayer.ReadlinkIfPossible(name)
+	}
+
+	if rbase, ok := u.base.(LinkReader); ok {
+		return rbase.ReadlinkIfPossible(name)
+	}
+
+	return "", &os.PathError{Op: "readlink", Path: name, Err: ErrNoReadlink}
+}
+
 func (u *CopyOnWriteFs) isNotExist(err error) bool {
 	if e, ok := err.(*os.PathError); ok {
 		err = e.Err
