@@ -95,7 +95,6 @@ require (
 	github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.0.3
-	github.com/urfave/cli v1.22.1
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/xanzy/go-gitlab v0.39.0
 	github.com/yohcop/openid-go v1.0.0

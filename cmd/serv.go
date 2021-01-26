@@ -106,7 +106,7 @@ func runServ(c *cli.Context) error {
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		fail("Key ID format error", "Invalid key argument: %s", c.Args()[1])
+		fail("Key ID format error", "Invalid key argument: %s", keys[1])
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")

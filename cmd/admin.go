@@ -284,7 +284,7 @@ var (
 			Value: "",
 			Usage: "Use a custom Email URL (option for GitHub)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "icon-url",
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",

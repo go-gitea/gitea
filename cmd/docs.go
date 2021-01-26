@@ -7,9 +7,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdDocs represents the available docs sub-command.
@@ -37,13 +36,6 @@ func runDocs(ctx *cli.Context) error {
 	}
 	if err != nil {
 		return err
-	}
-
-	if !ctx.Bool("man") {
-		// Clean up markdown. The following bug was fixed in v2, but is present in v1.
-		// It affects markdown output (even though the issue is referring to man pages)
-		// https://github.com/urfave/cli/issues/1040
-		docs = docs[strings.Index(docs, "#"):]
 	}
 
 	out := os.Stdout

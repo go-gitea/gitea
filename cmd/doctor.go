@@ -54,7 +54,7 @@ var CmdDoctor = cli.Command{
 			Name:  "log-file",
 			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "color, H",
 			Usage: "Use color for outputted information",
 		},
