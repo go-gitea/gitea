@@ -1210,7 +1210,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.IsArchived != util.OptionalBoolNone {
-		sess.Join("INNER", "repository", "issue.repo_id = repository.id").And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
 	if opts.LabelIDs != nil {
@@ -1266,6 +1266,8 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+
 	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
@@ -1292,11 +1294,12 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 	sess := x.NewSession()
 	defer sess.Close()
 
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+
 	opts.setupSession(sess)
 
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
-		Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
 		Distinct("issue.repo_id").
 		Table("issue").
 		Find(&repoIDs); err != nil {
@@ -1311,6 +1314,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
@@ -1338,6 +1342,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	}, 0, 1)
 
 	sess.Select("COUNT(issue.id) AS count").Table("issue")
+	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("Find: %v", err)
