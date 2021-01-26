@@ -31,15 +31,15 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
-var c chi.Router
+var c *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -66,9 +66,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c = routes.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -387,6 +385,9 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	t.Helper()
+	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
+		urlStr = "/" + urlStr
+	}
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr

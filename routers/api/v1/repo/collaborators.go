@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -111,7 +112,7 @@ func IsCollaborator(ctx *context.APIContext) {
 }
 
 // AddCollaborator add a collaborator to a repository
-func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
+func AddCollaborator(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/collaborators/{collaborator} repository repoAddCollaborator
 	// ---
 	// summary: Add a collaborator to a repository
@@ -142,6 +143,8 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	//     "$ref": "#/responses/empty"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {

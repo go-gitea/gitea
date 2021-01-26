@@ -11,18 +11,23 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
+	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
 )
 
@@ -33,17 +38,39 @@ const (
 )
 
 // InstallInit prepare for rendering installation page
-func InstallInit(ctx *context.Context) {
-	if setting.InstallLock {
-		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-		ctx.HTML(200, tplPostInstall)
-		return
-	}
+func InstallInit(next http.Handler) http.Handler {
+	var rnd = templates.HTMLRenderer()
 
-	ctx.Data["Title"] = ctx.Tr("install.install")
-	ctx.Data["PageIsInstall"] = true
-
-	ctx.Data["DbOptions"] = setting.SupportedDatabases
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if setting.InstallLock {
+			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
+			return
+		}
+		var locale = middlewares.Locale(resp, req)
+		var startTime = time.Now()
+		var ctx = context.Context{
+			Resp:    context.NewResponse(resp),
+			Flash:   &middlewares.Flash{},
+			Locale:  locale,
+			Render:  rnd,
+			Session: session.GetSession(req),
+			Data: map[string]interface{}{
+				"Title":         locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"DbOptions":     setting.SupportedDatabases,
+				"i18n":          locale,
+				"Language":      locale.Language(),
+				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+				"PageStartTime": startTime,
+				"TmplLoadTimes": func() string {
+					return time.Since(startTime).String()
+				},
+			},
+		}
+		ctx.Req = context.WithContext(req, &ctx)
+		next.ServeHTTP(resp, ctx.Req)
+	})
 }
 
 // Install render installation page
@@ -116,12 +143,13 @@ func Install(ctx *context.Context) {
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
-	auth.AssignForm(form, ctx.Data)
+	middlewares.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
-func InstallPost(ctx *context.Context, form auth.InstallForm) {
+func InstallPost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
