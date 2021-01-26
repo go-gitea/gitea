@@ -56,7 +56,7 @@ func main() {
 	app.Description = `By default, gitea will start serving using the webserver with no
 arguments - which can alternatively be run by running the subcommand web.`
 	app.Version = Version + formatBuiltWith()
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		&cmd.CmdWeb,
 		&cmd.CmdServ,
 		&cmd.CmdHook,
