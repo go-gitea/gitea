@@ -123,14 +123,13 @@ func setCost(histogram []uint32, histogram_size uint, literal_histogram bool, co
 	}
 }
 
-func zopfliCostModelSetFromCommands(self *zopfliCostModel, position uint, ringbuffer []byte, ringbuffer_mask uint, commands []command, num_commands uint, last_insert_len uint) {
+func zopfliCostModelSetFromCommands(self *zopfliCostModel, position uint, ringbuffer []byte, ringbuffer_mask uint, commands []command, last_insert_len uint) {
 	var histogram_literal [numLiteralSymbols]uint32
 	var histogram_cmd [numCommandSymbols]uint32
 	var histogram_dist [maxEffectiveDistanceAlphabetSize]uint32
 	var cost_literal [numLiteralSymbols]float32
 	var pos uint = position - last_insert_len
 	var min_cost_cmd float32 = kInfinity
-	var i uint
 	var cost_cmd []float32 = self.cost_cmd_[:]
 	var literal_costs []float32
 
@@ -138,7 +137,7 @@ func zopfliCostModelSetFromCommands(self *zopfliCostModel, position uint, ringbu
 	histogram_cmd = [numCommandSymbols]uint32{}
 	histogram_dist = [maxEffectiveDistanceAlphabetSize]uint32{}
 
-	for i = 0; i < num_commands; i++ {
+	for i := range commands {
 		var inslength uint = uint(commands[i].insert_len_)
 		var copylength uint = uint(commandCopyLen(&commands[i]))
 		var distcode uint = uint(commands[i].dist_prefix_) & 0x3FF
@@ -161,7 +160,7 @@ func zopfliCostModelSetFromCommands(self *zopfliCostModel, position uint, ringbu
 	setCost(histogram_cmd[:], numCommandSymbols, false, cost_cmd)
 	setCost(histogram_dist[:], uint(self.distance_histogram_size), false, self.cost_dist_)
 
-	for i = 0; i < numCommandSymbols; i++ {
+	for i := 0; i < numCommandSymbols; i++ {
 		min_cost_cmd = brotli_min_float(min_cost_cmd, cost_cmd[i])
 	}
 
@@ -169,10 +168,10 @@ func zopfliCostModelSetFromCommands(self *zopfliCostModel, position uint, ringbu
 	{
 		literal_costs = self.literal_costs_
 		var literal_carry float32 = 0.0
-		var num_bytes uint = self.num_bytes_
+		num_bytes := int(self.num_bytes_)
 		literal_costs[0] = 0.0
-		for i = 0; i < num_bytes; i++ {
-			literal_carry += cost_literal[ringbuffer[(position+i)&ringbuffer_mask]]
+		for i := 0; i < num_bytes; i++ {
+			literal_carry += cost_literal[ringbuffer[(position+uint(i))&ringbuffer_mask]]
 			literal_costs[i+1] = literal_costs[i] + literal_carry
 			literal_carry -= literal_costs[i+1] - literal_costs[i]
 		}
@@ -502,7 +501,9 @@ func updateNodes(num_bytes uint, block_start uint, pos uint, ringbuffer []byte, 
 					var cost float32 = dist_cost + float32(getCopyExtra(copycode)) + zopfliCostModelGetCommandCost(model, cmdcode)
 					if cost < nodes[pos+len].u.cost {
 						updateZopfliNode(nodes, pos, start, uint(len), len_code, dist, 0, cost)
-						result = brotli_max_size_t(result, uint(len))
+						if len > result {
+							result = len
+						}
 					}
 				}
 			}
@@ -530,7 +531,7 @@ func computeShortestPathFromNodes(num_bytes uint, nodes []zopfliNode) uint {
 }
 
 /* REQUIRES: nodes != NULL and len(nodes) >= num_bytes + 1 */
-func zopfliCreateCommands(num_bytes uint, block_start uint, nodes []zopfliNode, dist_cache []int, last_insert_len *uint, params *encoderParams, commands []command, num_literals *uint) {
+func zopfliCreateCommands(num_bytes uint, block_start uint, nodes []zopfliNode, dist_cache []int, last_insert_len *uint, params *encoderParams, commands *[]command, num_literals *uint) {
 	var max_backward_limit uint = maxBackwardLimit(params.lgwin)
 	var pos uint = 0
 	var offset uint32 = nodes[0].u.next
@@ -552,7 +553,7 @@ func zopfliCreateCommands(num_bytes uint, block_start uint, nodes []zopfliNode, 
 			var max_distance uint = brotli_min_size_t(block_start+pos, max_backward_limit)
 			var is_dictionary bool = (distance > max_distance+gap)
 			var dist_code uint = uint(zopfliNodeDistanceCode(next))
-			initCommand(&commands[i], &params.dist, insert_length, copy_length, int(len_code)-int(copy_length), dist_code)
+			*commands = append(*commands, makeCommand(&params.dist, insert_length, copy_length, int(len_code)-int(copy_length), dist_code))
 
 			if !is_dictionary && dist_code > 0 {
 				dist_cache[3] = dist_cache[2]
@@ -679,16 +680,16 @@ func zopfliComputeShortestPath(num_bytes uint, position uint, ringbuffer []byte,
 	return computeShortestPathFromNodes(num_bytes, nodes)
 }
 
-func createZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher *h10, dist_cache []int, last_insert_len *uint, commands []command, num_commands *uint, num_literals *uint) {
+func createZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher *h10, dist_cache []int, last_insert_len *uint, commands *[]command, num_literals *uint) {
 	var nodes []zopfliNode
 	nodes = make([]zopfliNode, (num_bytes + 1))
 	initZopfliNodes(nodes, num_bytes+1)
-	*num_commands += zopfliComputeShortestPath(num_bytes, position, ringbuffer, ringbuffer_mask, params, dist_cache, hasher, nodes)
+	zopfliComputeShortestPath(num_bytes, position, ringbuffer, ringbuffer_mask, params, dist_cache, hasher, nodes)
 	zopfliCreateCommands(num_bytes, position, nodes, dist_cache, last_insert_len, params, commands, num_literals)
 	nodes = nil
 }
 
-func createHqZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher hasherHandle, dist_cache []int, last_insert_len *uint, commands []command, num_commands *uint, num_literals *uint) {
+func createHqZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer []byte, ringbuffer_mask uint, params *encoderParams, hasher hasherHandle, dist_cache []int, last_insert_len *uint, commands *[]command, num_literals *uint) {
 	var max_backward_limit uint = maxBackwardLimit(params.lgwin)
 	var num_matches []uint32 = make([]uint32, num_bytes)
 	var matches_size uint = 4 * num_bytes
@@ -703,7 +704,7 @@ func createHqZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer 
 	var orig_num_literals uint
 	var orig_last_insert_len uint
 	var orig_dist_cache [4]int
-	var orig_num_commands uint
+	var orig_num_commands int
 	var model zopfliCostModel
 	var nodes []zopfliNode
 	var matches []backwardMatch = make([]backwardMatch, matches_size)
@@ -769,7 +770,7 @@ func createHqZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer 
 	orig_num_literals = *num_literals
 	orig_last_insert_len = *last_insert_len
 	copy(orig_dist_cache[:], dist_cache[:4])
-	orig_num_commands = *num_commands
+	orig_num_commands = len(*commands)
 	nodes = make([]zopfliNode, (num_bytes + 1))
 	initZopfliCostModel(&model, &params.dist, num_bytes)
 	for i = 0; i < 2; i++ {
@@ -777,14 +778,14 @@ func createHqZopfliBackwardReferences(num_bytes uint, position uint, ringbuffer 
 		if i == 0 {
 			zopfliCostModelSetFromLiteralCosts(&model, position, ringbuffer, ringbuffer_mask)
 		} else {
-			zopfliCostModelSetFromCommands(&model, position, ringbuffer, ringbuffer_mask, commands, *num_commands-orig_num_commands, orig_last_insert_len)
+			zopfliCostModelSetFromCommands(&model, position, ringbuffer, ringbuffer_mask, (*commands)[orig_num_commands:], orig_last_insert_len)
 		}
 
-		*num_commands = orig_num_commands
+		*commands = (*commands)[:orig_num_commands]
 		*num_literals = orig_num_literals
 		*last_insert_len = orig_last_insert_len
 		copy(dist_cache, orig_dist_cache[:4])
-		*num_commands += zopfliIterate(num_bytes, position, ringbuffer, ringbuffer_mask, params, gap, dist_cache, &model, num_matches, matches, nodes)
+		zopfliIterate(num_bytes, position, ringbuffer, ringbuffer_mask, params, gap, dist_cache, &model, num_matches, matches, nodes)
 		zopfliCreateCommands(num_bytes, position, nodes, dist_cache, last_insert_len, params, commands, num_literals)
 	}
 

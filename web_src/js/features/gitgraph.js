@@ -46,6 +46,57 @@ export default async function initGitGraph() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   });
+  const url = new URL(window.location);
+  const params = url.searchParams;
+  const updateGraph = async () => {
+    const queryString = params.toString();
+    const ajaxUrl = new URL(url);
+    ajaxUrl.searchParams.set('div-only', 'true');
+    window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
+    $('#pagination').empty();
+    $('#rel-container').addClass('hide');
+    $('#rev-container').addClass('hide');
+    $('#loading-indicator').removeClass('hide');
+
+    const div = $(await $.ajax(String(ajaxUrl)));
+    $('#pagination').html(div.find('#pagination').html());
+    $('#rel-container').html(div.find('#rel-container').html());
+    $('#rev-container').html(div.find('#rev-container').html());
+    $('#loading-indicator').addClass('hide');
+    $('#rel-container').removeClass('hide');
+    $('#rev-container').removeClass('hide');
+  };
+  const dropdownSelected = params.getAll('branch');
+  if (params.has('hide-pr-refs') && params.get('hide-pr-refs') === 'true') {
+    dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
+  }
+
+  $('#flow-select-refs-dropdown').dropdown('set selected', dropdownSelected);
+  $('#flow-select-refs-dropdown').dropdown({
+    clearable: true,
+    onRemove(toRemove) {
+      if (toRemove === '...flow-hide-pr-refs') {
+        params.delete('hide-pr-refs');
+      } else {
+        const branches = params.getAll('branch');
+        params.delete('branch');
+        for (const branch of branches) {
+          if (branch !== toRemove) {
+            params.append('branch', branch);
+          }
+        }
+      }
+      updateGraph();
+    },
+    onAdd(toAdd) {
+      if (toAdd === '...flow-hide-pr-refs') {
+        params.set('hide-pr-refs', true);
+      } else {
+        params.append('branch', toAdd);
+      }
+      updateGraph();
+    },
+  });
   $('#git-graph-container').on('mouseenter', '#rev-list li', (e) => {
     const flow = $(e.currentTarget).data('flow');
     if (flow === 0) return;

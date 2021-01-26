@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "認證"
 slug: "authentication"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

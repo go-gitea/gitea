@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/repo"
 )
 
@@ -167,7 +168,7 @@ func canReadFiles(r *context.Repository) bool {
 }
 
 // CreateFile handles API call for creating a file
-func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
+func CreateFile(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
 	// ---
 	// summary: Create a file in a repository
@@ -206,6 +207,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   "422":
 	//     "$ref": "#/responses/error"
 
+	apiOpts := web.GetForm(ctx).(*api.CreateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
 	}
@@ -253,7 +255,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 }
 
 // UpdateFile handles API call for updating a file
-func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
+func UpdateFile(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
 	// ---
 	// summary: Update a file in a repository
@@ -291,7 +293,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/error"
-
+	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
 	}
@@ -377,7 +379,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *repofiles.UpdateRepoFileO
 }
 
 // DeleteFile Delete a fle in a repository
-func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
+func DeleteFile(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{filepath} repository repoDeleteFile
 	// ---
 	// summary: Delete a file in a repository
@@ -416,6 +418,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
+	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
 	if !canWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,

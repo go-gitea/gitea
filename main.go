@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
@@ -40,6 +41,7 @@ var (
 func init() {
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith()
+	setting.AppStartTime = time.Now().UTC()
 
 	// Grab the original help templates
 	originalAppHelpTemplate = cli.AppHelpTemplate
@@ -54,7 +56,7 @@ func main() {
 	app.Description = `By default, gitea will start serving using the webserver with no
 arguments - which can alternatively be run by running the subcommand web.`
 	app.Version = Version + formatBuiltWith()
-	app.Commands = []*cli.Command{
+	app.Commands = []cli.Command{
 		&cmd.CmdWeb,
 		&cmd.CmdServ,
 		&cmd.CmdHook,
@@ -69,6 +71,9 @@ arguments - which can alternatively be run by running the subcommand web.`
 		&cmd.CmdManager,
 		&cmd.Cmdembedded,
 		&cmd.CmdMigrateStorage,
+		&cmd.CmdDocs,
+		&cmd.CmdDumpRepository,
+		&cmd.CmdRestoreRepository,
 	}
 	// Now adjust these commands to add our global configuration options
 

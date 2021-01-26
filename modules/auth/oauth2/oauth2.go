@@ -119,6 +119,11 @@ func RemoveProvider(providerName string) {
 	delete(goth.GetProviders(), providerName)
 }
 
+// ClearProviders clears all OAuth2 providers from the goth lib
+func ClearProviders() {
+	goth.ClearProviders()
+}
+
 // used to create different types of goth providers
 func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string, customURLMapping *CustomURLMapping) (goth.Provider, error) {
 	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"

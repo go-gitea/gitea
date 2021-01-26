@@ -19,6 +19,16 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
+// Seconds returns the amount of time passed since creation, based on local server time
+func (s Stopwatch) Seconds() int64 {
+	return int64(timeutil.TimeStampNow() - s.CreatedUnix)
+}
+
+// Duration returns a human-readable duration string based on local server time
+func (s Stopwatch) Duration() string {
+	return SecToTime(s.Seconds())
+}
+
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
 	exists, err = e.

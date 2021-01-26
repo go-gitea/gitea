@@ -297,6 +297,8 @@ func ToObjectInfo(bucketName string, objectName string, h http.Header) (ObjectIn
 	// extract lifecycle expiry date and rule ID
 	expTime, ruleID := amzExpirationToExpiryDateRuleID(h.Get(amzExpiration))
 
+	deleteMarker := h.Get(amzDeleteMarker) == "true"
+
 	// Save object metadata info.
 	return ObjectInfo{
 		ETag:              etag,
@@ -306,6 +308,7 @@ func ToObjectInfo(bucketName string, objectName string, h http.Header) (ObjectIn
 		ContentType:       contentType,
 		Expires:           expiry,
 		VersionID:         h.Get(amzVersionID),
+		IsDeleteMarker:    deleteMarker,
 		ReplicationStatus: h.Get(amzReplicationStatus),
 		Expiration:        expTime,
 		ExpirationRuleID:  ruleID,

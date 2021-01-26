@@ -54,11 +54,11 @@ To create a writer with default options, do like this:
 ```Go
 // Compress input to output.
 func Compress(in io.Reader, out io.Writer) error {
-    w, err := NewWriter(output)
+    enc, err := zstd.NewWriter(out)
     if err != nil {
         return err
     }
-    _, err := io.Copy(w, input)
+    _, err = io.Copy(enc, in)
     if err != nil {
         enc.Close()
         return err

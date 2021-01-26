@@ -328,6 +328,17 @@ func (ra *roaringArray) getFastContainerAtIndex(i int, needsWriteable bool) cont
 	return c
 }
 
+// getUnionedWritableContainer switches behavior for in-place Or
+// depending on whether the container requires a copy on write.
+// If it does using the non-inplace or() method leads to fewer allocations.
+func (ra *roaringArray) getUnionedWritableContainer(pos int, other container) container {
+	if ra.needCopyOnWrite[pos] {
+		return ra.getContainerAtIndex(pos).or(other)
+	}
+	return ra.getContainerAtIndex(pos).ior(other)
+
+}
+
 func (ra *roaringArray) getWritableContainerAtIndex(i int) container {
 	if ra.needCopyOnWrite[i] {
 		ra.containers[i] = ra.containers[i].clone()
@@ -491,11 +502,11 @@ func (ra *roaringArray) writeTo(w io.Writer) (n int64, err error) {
 		binary.LittleEndian.PutUint16(buf[2:], uint16(len(ra.keys)-1))
 		nw += 2
 		// compute isRun bitmap without temporary allocation
-		var runbitmapslice = buf[nw:nw+isRunSizeInBytes]
+		var runbitmapslice = buf[nw : nw+isRunSizeInBytes]
 		for i, c := range ra.containers {
 			switch c.(type) {
 			case *runContainer16:
-				runbitmapslice[i / 8] |= 1<<(uint(i)%8)
+				runbitmapslice[i/8] |= 1 << (uint(i) % 8)
 			}
 		}
 		nw += isRunSizeInBytes

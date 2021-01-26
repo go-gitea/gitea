@@ -13,10 +13,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -165,7 +166,8 @@ func EnrollTwoFactor(ctx *context.Context) {
 }
 
 // EnrollTwoFactorPost handles enrolling the user into 2FA.
-func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
+func EnrollTwoFactorPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -189,13 +191,20 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	secret := ctx.Session.Get("twofaSecret").(string)
+	secretRaw := ctx.Session.Get("twofaSecret")
+	if secretRaw == nil {
+		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
+		return
+	}
+
+	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
 		}
 		ctx.Flash.Error(ctx.Tr("settings.passcode_invalid"))
-		ctx.HTML(200, tplSettingsTwofaEnroll)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 

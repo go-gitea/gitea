@@ -1,0 +1,23 @@
+version: "{build}"
+
+os: Windows Server 2016
+
+image: Visual Studio 2017
+
+clone_folder: c:\gopath\src\github.com\urfave\cli
+
+environment:
+  GOPATH: C:\gopath
+  GOVERSION: 1.11.x
+
+install:
+  - set PATH=%GOPATH%\bin;C:\go\bin;%PATH%
+  - go version
+  - go env
+  - go get github.com/urfave/gfmrun/...
+  - go get -v -t ./...
+
+build_script:
+  - go run build.go vet
+  - go run build.go test
+  - go run build.go gfmrun
