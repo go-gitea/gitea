@@ -101,7 +101,6 @@ func NormalRoutes() *web.Route {
 	for _, middle := range commonMiddlewares() {
 		r.Use(middle)
 	}
-	r.Use(Recovery())
 
 	r.Mount("/", WebRoutes())
 	r.Mount("/api/v1", apiv1.Routes())
@@ -123,6 +122,8 @@ func WebRoutes() *web.Route {
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
 	}))
+
+	r.Use(Recovery())
 
 	r.Use(public.Custom(
 		&public.Options{
