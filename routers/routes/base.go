@@ -5,7 +5,6 @@
 package routes
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/auth/sso"
@@ -27,57 +25,6 @@ import (
 
 	"gitea.com/go-chi/session"
 )
-
-type routerLoggerOptions struct {
-	req            *http.Request
-	Identity       *string
-	Start          *time.Time
-	ResponseWriter http.ResponseWriter
-}
-
-// SignedUserName returns signed user's name via context
-func SignedUserName(req *http.Request) string {
-	ctx := context.GetContext(req)
-	if ctx != nil {
-		v := ctx.Data["SignedUserName"]
-		if res, ok := v.(string); ok {
-			return res
-		}
-	}
-	return ""
-}
-
-func accessLogger() func(http.Handler) http.Handler {
-	logger := log.GetLogger("access")
-	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			start := time.Now()
-			next.ServeHTTP(w, req)
-			identity := "-"
-			if val := SignedUserName(req); val != "" {
-				identity = val
-			}
-			rw := w
-
-			buf := bytes.NewBuffer([]byte{})
-			err := logTemplate.Execute(buf, routerLoggerOptions{
-				req:            req,
-				Identity:       &identity,
-				Start:          &start,
-				ResponseWriter: rw,
-			})
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
-
-			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
-		})
-	}
-}
 
 // LoggerHandler is a handler that will log the routing to the default gitea log
 func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
