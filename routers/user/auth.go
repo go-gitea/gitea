@@ -747,6 +747,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
@@ -800,6 +801,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["LinkAccountModeSignIn"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -885,6 +887,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["LinkAccountModeRegister"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -1063,6 +1066,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
@@ -1083,6 +1087,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
