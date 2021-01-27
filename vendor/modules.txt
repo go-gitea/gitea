@@ -7,6 +7,16 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.1
 ## explicit
 code.gitea.io/sdk/gitea
+# gitea.com/go-chi/binding v0.0.0-20210113025129-03f1d313373c
+## explicit
+gitea.com/go-chi/binding
+# gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
+## explicit
+gitea.com/go-chi/cache
+gitea.com/go-chi/cache/memcache
+# gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
+## explicit
+gitea.com/go-chi/captcha
 # gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 ## explicit
 gitea.com/go-chi/session
@@ -17,55 +27,11 @@ gitea.com/go-chi/session/postgres
 # gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
-# gitea.com/lunny/log v0.0.0-20190322053110-01b5df579c4e
-gitea.com/lunny/log
-# gitea.com/lunny/nodb v0.0.0-20200923032308-3238c4655727
-gitea.com/lunny/nodb
-gitea.com/lunny/nodb/config
-gitea.com/lunny/nodb/store
-gitea.com/lunny/nodb/store/driver
-gitea.com/lunny/nodb/store/goleveldb
-# gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
-## explicit
-gitea.com/macaron/binding
-# gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
-## explicit
-gitea.com/macaron/cache
-gitea.com/macaron/cache/memcache
-# gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
-## explicit
-gitea.com/macaron/captcha
-# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-## explicit
-gitea.com/macaron/cors
-# gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
-## explicit
-gitea.com/macaron/csrf
-# gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-## explicit
-gitea.com/macaron/gzip
-# gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
-## explicit
-gitea.com/macaron/i18n
-# gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-## explicit
-gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
-## explicit
-gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
-## explicit
-gitea.com/macaron/session
-gitea.com/macaron/session/couchbase
-gitea.com/macaron/session/memcache
-gitea.com/macaron/session/mysql
-gitea.com/macaron/session/nodb
-gitea.com/macaron/session/postgres
-# gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
-## explicit
-gitea.com/macaron/toolbox
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
+# github.com/NYTimes/gziphandler v1.1.1
+## explicit
+github.com/NYTimes/gziphandler
 # github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
 github.com/PuerkitoBio/goquery
@@ -274,6 +240,9 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
+# github.com/go-chi/cors v1.1.1
+## explicit
+github.com/go-chi/cors
 # github.com/go-enry/go-enry/v2 v2.6.0
 ## explicit
 github.com/go-enry/go-enry/v2
@@ -709,8 +678,6 @@ github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 ## explicit
 github.com/shurcooL/vfsgen
-# github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d
-github.com/siddontang/go-snappy/snappy
 # github.com/spf13/afero v1.3.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
