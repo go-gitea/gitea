@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -38,7 +39,8 @@ func Settings(ctx *context.Context) {
 }
 
 // SettingsPost response for settings change submited
-func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UpdateOrgSettingForm)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -115,7 +117,8 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 }
 
 // SettingsAvatar response for change avatar on settings page
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	form.Source = auth.AvatarLocal
 	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())

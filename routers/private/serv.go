@@ -11,17 +11,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
-
-	"gitea.com/macaron/macaron"
 )
 
 // ServNoCommand returns information about the provided keyid
-func ServNoCommand(ctx *macaron.Context) {
+func ServNoCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	if keyID <= 0 {
 		ctx.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -73,7 +72,7 @@ func ServNoCommand(ctx *macaron.Context) {
 }
 
 // ServCommand returns information about the provided keyid
-func ServCommand(ctx *macaron.Context) {
+func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")

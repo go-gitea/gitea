@@ -254,7 +254,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
 
 ## Composants
 
-* Framework web : [Macaron](http://go-macaron.com/)
+* Framework web : [Chi](http://github.com/go-chi/chi)
 * ORM: [XORM](https://xorm.io)
 * Interface graphique :
   * [Semantic UI](http://semantic-ui.com/)

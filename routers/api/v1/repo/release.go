@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -124,7 +125,7 @@ func ListReleases(ctx *context.APIContext) {
 }
 
 // CreateRelease create a release
-func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
+func CreateRelease(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/releases repository repoCreateRelease
 	// ---
 	// summary: Create a release
@@ -154,7 +155,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
-
+	form := web.GetForm(ctx).(*api.CreateReleaseOption)
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
@@ -210,7 +211,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 }
 
 // EditRelease edit a release
-func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
+func EditRelease(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id} repository repoEditRelease
 	// ---
 	// summary: Update a release
@@ -245,6 +246,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	form := web.GetForm(ctx).(*api.EditReleaseOption)
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
 	if err != nil && !models.IsErrReleaseNotExist(err) {

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -258,7 +259,7 @@ func DeletePullReview(ctx *context.APIContext) {
 }
 
 // CreatePullReview create a review to an pull request
-func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions) {
+func CreatePullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
 	// ---
 	// summary: Create a review to an pull request
@@ -294,6 +295,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -373,7 +375,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 }
 
 // SubmitPullReview submit a pending review to an pull request
-func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions) {
+func SubmitPullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoSubmitPullReview
 	// ---
 	// summary: Submit a pending review to an pull request
@@ -415,6 +417,7 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	opts := web.GetForm(ctx).(*api.SubmitPullReviewOptions)
 	review, pr, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
@@ -542,7 +545,7 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 }
 
 // CreateReviewRequests create review requests to an pull request
-func CreateReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+func CreateReviewRequests(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoCreatePullReviewRequests
 	// ---
 	// summary: create review requests for a pull request
@@ -577,11 +580,13 @@ func CreateReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	apiReviewRequest(ctx, opts, true)
+
+	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	apiReviewRequest(ctx, *opts, true)
 }
 
 // DeleteReviewRequests delete review requests to an pull request
-func DeleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+func DeleteReviewRequests(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletePullReviewRequests
 	// ---
 	// summary: cancel review requests for a pull request
@@ -616,7 +621,8 @@ func DeleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	apiReviewRequest(ctx, opts, false)
+	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	apiReviewRequest(ctx, *opts, false)
 }
 
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
