@@ -549,7 +549,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
@@ -609,8 +609,6 @@ Default templates for project boards:
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
-- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger or the default logger.
-- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.macaron\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
 - `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
 NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
@@ -618,7 +616,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
-  - `Ctx`: the `macaron.Context` of the request.
+  - `Ctx`: the `context.Context` of the request.
   - `Identity`: the SignedUserName or `"-"` if not logged in.
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
@@ -695,6 +693,15 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
+
+### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
+
+- `ENABLED`: **true**: Enable cleanup hook_task job.
+- `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
+- `SCHEDULE`: **@every 24h**: Cron syntax for cleaning hook_task table.
+- `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
+- `OLDER_THAN`: **168h**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
+- `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
 
 #### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 

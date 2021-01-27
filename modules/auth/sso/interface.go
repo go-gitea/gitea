@@ -8,19 +8,15 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/session"
 )
 
 // DataStore represents a data store
-type DataStore interface {
-	GetData() map[string]interface{}
-}
+type DataStore middlewares.DataStore
 
 // SessionStore represents a session store
-type SessionStore interface {
-	Get(interface{}) interface{}
-	Set(interface{}, interface{}) error
-	Delete(interface{}) error
-}
+type SessionStore session.Store
 
 // SingleSignOn represents a SSO authentication method (plugin) for HTTP requests.
 type SingleSignOn interface {

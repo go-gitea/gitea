@@ -1,3 +1,4 @@
+// Copyright 2020 The Macaron Authors
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -11,6 +12,56 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 )
+
+// MaxAge sets the maximum age for a provided cookie
+func MaxAge(maxAge int) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.MaxAge = maxAge
+	}
+}
+
+// Path sets the path for a provided cookie
+func Path(path string) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.Path = path
+	}
+}
+
+// Domain sets the domain for a provided cookie
+func Domain(domain string) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.Domain = domain
+	}
+}
+
+// Secure sets the secure setting for a provided cookie
+func Secure(secure bool) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.Secure = secure
+	}
+}
+
+// HTTPOnly sets the HttpOnly setting for a provided cookie
+func HTTPOnly(httpOnly bool) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.HttpOnly = httpOnly
+	}
+}
+
+// Expires sets the expires and rawexpires for a provided cookie
+func Expires(expires time.Time) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.Expires = expires
+		c.RawExpires = expires.Format(time.UnixDate)
+	}
+}
+
+// SameSite sets the SameSite for a provided cookie
+func SameSite(sameSite http.SameSite) func(*http.Cookie) {
+	return func(c *http.Cookie) {
+		c.SameSite = sameSite
+	}
+}
 
 // NewCookie creates a cookie
 func NewCookie(name, value string, maxAge int) *http.Cookie {
@@ -101,4 +152,14 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 	}
 
 	resp.Header().Add("Set-Cookie", cookie.String())
+}
+
+// GetCookie returns given cookie value from request header.
+func GetCookie(req *http.Request, name string) string {
+	cookie, err := req.Cookie(name)
+	if err != nil {
+		return ""
+	}
+	val, _ := url.QueryUnescape(cookie.Value)
+	return val
 }

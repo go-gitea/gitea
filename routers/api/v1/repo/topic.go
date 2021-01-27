@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -66,7 +67,7 @@ func ListTopics(ctx *context.APIContext) {
 }
 
 // UpdateTopics updates repo with a new set of topics
-func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
+func UpdateTopics(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/topics repository repoUpdateTopics
 	// ---
 	// summary: Replace list of topics for a repository
@@ -93,6 +94,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
+	form := web.GetForm(ctx).(*api.RepoTopicOptions)
 	topicNames := form.Topics
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
 

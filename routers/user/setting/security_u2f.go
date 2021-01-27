@@ -8,16 +8,18 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/tstranex/u2f"
 )
 
 // U2FRegister initializes the u2f registration procedure
-func U2FRegister(ctx *context.Context, form auth.U2FRegistrationForm) {
+func U2FRegister(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.U2FRegistrationForm)
 	if form.Name == "" {
 		ctx.Error(409)
 		return
@@ -55,7 +57,8 @@ func U2FRegister(ctx *context.Context, form auth.U2FRegistrationForm) {
 }
 
 // U2FRegisterPost receives the response of the security key
-func U2FRegisterPost(ctx *context.Context, response u2f.RegisterResponse) {
+func U2FRegisterPost(ctx *context.Context) {
+	response := web.GetForm(ctx).(*u2f.RegisterResponse)
 	challSess := ctx.Session.Get("u2fChallenge")
 	u2fName := ctx.Session.Get("u2fName")
 	if challSess == nil || u2fName == nil {
@@ -69,7 +72,7 @@ func U2FRegisterPost(ctx *context.Context, response u2f.RegisterResponse) {
 		// certificate by default.
 		SkipAttestationVerify: true,
 	}
-	reg, err := u2f.Register(response, *challenge, config)
+	reg, err := u2f.Register(*response, *challenge, config)
 	if err != nil {
 		ctx.ServerError("u2f.Register", err)
 		return
@@ -82,7 +85,8 @@ func U2FRegisterPost(ctx *context.Context, response u2f.RegisterResponse) {
 }
 
 // U2FDelete deletes an security key by id
-func U2FDelete(ctx *context.Context, form auth.U2FDeleteForm) {
+func U2FDelete(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.U2FDeleteForm)
 	reg, err := models.GetU2FRegistrationByID(form.ID)
 	if err != nil {
 		if models.IsErrU2FRegistrationNotExist(err) {
