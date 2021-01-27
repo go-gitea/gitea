@@ -23,7 +23,7 @@ import (
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, _ := reader.Read(buf)
+	n, err := reader.Read(buf)
 	if n >= 0 {
 		buf = buf[:n]
 	}
@@ -48,7 +48,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		}
 	}
 
-	_, err := ctx.Resp.Write(buf)
+	_, err = ctx.Resp.Write(buf)
 	if err != nil {
 		return err
 	}
