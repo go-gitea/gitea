@@ -759,7 +759,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 }
 
 // DismissPullReview dismiss a review for a pull request
-func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOptions) {
+func DismissPullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals repository repoDismissPullReview
 	// ---
 	// summary: Dismiss a review for a pull request
@@ -800,6 +800,7 @@ func DismissPullReview(ctx *context.APIContext, opts api.DismissPullReviewOption
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
 	disMissReview(ctx, opts.Message, true)
 }
 
