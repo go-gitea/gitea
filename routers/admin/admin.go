@@ -16,20 +16,20 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 const (
@@ -132,7 +132,8 @@ func Dashboard(ctx *context.Context) {
 }
 
 // DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+func DashboardPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
@@ -239,7 +240,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(macaron.Env)
+	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}

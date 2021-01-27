@@ -317,9 +317,6 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-var byteBodyTag = []byte("<body>")
-var byteBodyTagClosing = []byte("</body>")
-
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
@@ -327,9 +324,9 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 
 	// give a generous extra 50 bytes
 	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, byteBodyTag...)
+	res = append(res, "<html><body>"...)
 	res = append(res, rawHTML...)
-	res = append(res, byteBodyTagClosing...)
+	res = append(res, "</body></html>"...)
 
 	// parse the HTML
 	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
@@ -340,6 +337,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	for _, node := range nodes {
 		ctx.visitNode(node, true)
 	}
+
+	newNodes := make([]*html.Node, 0, len(nodes))
+
+	for _, node := range nodes {
+		if node.Data == "html" {
+			node = node.FirstChild
+			for node != nil && node.Data != "body" {
+				node = node.NextSibling
+			}
+		}
+		if node == nil {
+			continue
+		}
+		if node.Data == "body" {
+			child := node.FirstChild
+			for child != nil {
+				newNodes = append(newNodes, child)
+				child = child.NextSibling
+			}
+		} else {
+			newNodes = append(newNodes, node)
+		}
+	}
+
+	nodes = newNodes
 
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
@@ -353,12 +375,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	// remove initial parts - because Render creates a whole HTML page.
-	res = buf.Bytes()
-	res = res[bytes.Index(res, byteBodyTag)+len(byteBodyTag) : bytes.LastIndex(res, byteBodyTagClosing)]
-
 	// Everything done successfully, return parsed data.
-	return res, nil
+	return buf.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {

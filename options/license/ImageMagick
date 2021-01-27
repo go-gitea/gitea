@@ -5,27 +5,19 @@ It allows you to:
 
 * freely download and use ImageMagick software, in whole or in part, for personal,
 company internal, or commercial purposes;
-
-   * use ImageMagick software in packages or distributions that you create;
-
-   * link against a library under a different license;
-
-   * link code under a different license against a library under this license;
-
-   * merge code into a work under a different license;
-
-   * extend patent grants to any code using code under this license;
-
-   * and extend patent protection.
+     * use ImageMagick software in packages or distributions that you create;
+     * link against a library under a different license;
+* link code under a different license against a library under this license;
+     * merge code into a work under a different license;
+     * extend patent grants to any code using code under this license;
+     * and extend patent protection.
 
 It forbids you to:
 
 * redistribute any piece of ImageMagick-originated software without proper
 attribution;
-
 * use any marks owned by ImageMagick Studio LLC in any way that might state
 or imply that ImageMagick Studio LLC endorses your distribution;
-
 * use any marks owned by ImageMagick Studio LLC in any way that might state
 or imply that you created the ImageMagick software in question.
 
@@ -33,7 +25,6 @@ It requires you to:
 
 * include a copy of the license in any redistribution you may make that includes
 ImageMagick software;
-
 * provide clear attribution to ImageMagick Studio LLC for any distributions
 that include ImageMagick software.
 
@@ -42,33 +33,29 @@ It does not require you to:
 * include the source of the ImageMagick software itself, or of any modifications
 you may have made to it, in any redistribution you may assemble that includes
 it;
-
 * submit changes that you make to the software back to the ImageMagick Studio
 LLC (though such feedback is encouraged).
 
 A few other clarifications include:
 
-   * ImageMagick is freely available without charge;
-
+     * ImageMagick is freely available without charge;
 * you may include ImageMagick on a DVD as long as you comply with the terms
 of the license;
-
 * you can give modified code away for free or sell it under the terms of the
 ImageMagick license or distribute the result under a different license, but
 you need to acknowledge the use of the ImageMagick software;
-
-   * the license is compatible with the GPL V3.
-
-   * when exporting the ImageMagick software, review its export classification.
+     * the license is compatible with the GPL V3.
+* when exporting the ImageMagick software, review its export classification.
 
 Terms and Conditions for Use, Reproduction, and Distribution
 
 The legally binding and authoritative terms and conditions for use, reproduction,
-and distribution of ImageMagick follow: Copyright 1999-2013 ImageMagick Studio
-LLC, a non-profit organization dedicated to making software imaging solutions
-freely available.
+and distribution of ImageMagick follow:
 
-   1. Definitions.
+Copyright 1999-2013 ImageMagick Studio LLC, a non-profit organization dedicated
+to making software imaging solutions freely available.
+
+1. Definitions.
 
 License shall mean the terms and conditions for use, reproduction, and distribution
 as defined by Sections 1 through 9 of this document.
@@ -148,15 +135,12 @@ in Source or Object form, provided that You meet the following conditions:
 
 a. You must give any other recipients of the Work or Derivative Works a copy
 of this License; and
-
 b. You must cause any modified files to carry prominent notices stating that
 You changed the files; and
-
 c. You must retain, in the Source form of any Derivative Works that You distribute,
 all copyright, patent, trademark, and attribution notices from the Source
 form of the Work, excluding those notices that do not pertain to any part
 of the Derivative Works; and
-
 d. If the Work includes a "NOTICE" text file as part of its distribution,
 then any Derivative Works that You distribute must include a readable copy
 of the attribution notices contained within such NOTICE file, excluding those
@@ -217,7 +201,9 @@ You may act only on Your own behalf and on Your sole responsibility, not on
 behalf of any other Contributor, and only if You agree to indemnify, defend,
 and hold each Contributor harmless for any liability incurred by, or claims
 asserted against, such Contributor by reason of your accepting any such warranty
-or additional liability. How to Apply the License to your Work
+or additional liability.
+
+How to Apply the License to your Work
 
 To apply the ImageMagick License to your work, attach the following boilerplate
 notice, with the fields enclosed by brackets "[]" replaced with your own identifying
@@ -227,13 +213,13 @@ or class name and description of purpose be included on the same "printed
 page" as the copyright notice for easier identification within third-party
 archives.
 
-Copyright [yyyy] [name of copyright owner]
+     Copyright [yyyy] [name of copyright owner]
 
 Licensed under the ImageMagick License (the "License"); you may not use this
 file except in compliance with the License. You may obtain a copy of the License
 at
 
-http://www.imagemagick.org/script/license.php
+     http://www.imagemagick.org/script/license.php
 
 Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR

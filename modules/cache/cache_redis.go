@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/nosql"
 
-	"gitea.com/macaron/cache"
+	"gitea.com/go-chi/cache"
 	"github.com/go-redis/redis/v7"
 	"github.com/unknwon/com"
 )

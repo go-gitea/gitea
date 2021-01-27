@@ -7,10 +7,11 @@ package setting
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -31,7 +32,8 @@ func Keys(ctx *context.Context) {
 }
 
 // KeysPost response for change user's SSH/GPG keys
-func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
+func KeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled

@@ -10,6 +10,12 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
 steps:
   - name: deps-frontend
     pull: always
@@ -63,7 +69,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.14
+    image: golang:1.15
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -76,7 +82,7 @@ steps:
 
   - name: build-backend-no-gcc
     pull: always
-    image: golang:1.13 # this step is kept as the lowest version of golang that we support
+    image: golang:1.14 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -131,6 +137,12 @@ platform:
 depends_on:
   - compliance
 
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -164,7 +176,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2020-10-09T22-55-05Z
+    image: minio/minio:RELEASE.2021-01-16T02-19-44Z
     commands:
     - minio server /data
     environment:
@@ -306,6 +318,12 @@ platform:
 depends_on:
   - compliance
 
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -404,7 +422,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.12
+    image: alpine:3.13
     commands:
       - ./build/update-locales.sh
 
@@ -432,6 +450,45 @@ steps:
     environment:
       CROWDIN_KEY:
         from_secret: crowdin_key
+
+---
+kind: pipeline
+name: update_gitignore_and_licenses
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  branch:
+    - master
+  event:
+    - cron
+  cron:
+    - update_gitignore_and_licenses
+
+steps:
+  - name: download
+    image: golang:1.15
+    commands:
+      - timeout -s ABRT 40m make generate-license generate-gitignore
+
+  - name: push
+    pull: always
+    image: appleboy/drone-git-push
+    settings:
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
+      commit: true
+      commit_message: "[skip ci] Updated licenses and gitignores "
+      remote: "git@github.com:go-gitea/gitea.git"
+    environment:
+      GIT_PUSH_SSH_KEY:
+        from_secret: git_push_ssh_key
 
 ---
 kind: pipeline
@@ -622,6 +679,12 @@ platform:
 
 depends_on:
   - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
 
 steps:
   - name: build-docs

@@ -1,8 +1,7 @@
 NETIZEN OPEN SOURCE LICENSE
-
 Version 1.0
 
-   1. Definitions.
+1. Definitions.
 
 1.0.1. "Commercial Use" means distribution or otherwise making the Covered
 Code available to a third party.
@@ -20,7 +19,7 @@ of the Original Code and Modifications, in each case including portions thereof.
 1.4. "Electronic Distribution Mechanism" means a mechanism generally accepted
 in the software development community for the electronic transfer of data.
 
-      1.5. "Executable" means Covered Code in any form other than Source Code.
+     1.5. "Executable" means Covered Code in any form other than Source Code.
 
 1.6. "Initial Developer" means the individual or entity identified as the
 Initial Developer in the Source Code notice required by Exhibit A.
@@ -28,7 +27,7 @@ Initial Developer in the Source Code notice required by Exhibit A.
 1.7. "Larger Work" means a work which combines Covered Code or portions thereof
 with code not governed by the terms of this License.
 
-      1.8. "License" means this document.
+     1.8. "License" means this document.
 
 1.8.1. "Licensable" means having the right to grant, to the maximum extent
 possible, whether at the time of the initial grant or subsequently acquired,
@@ -37,10 +36,8 @@ any and all of the rights conveyed herein.
 1.9. "Modifications" means any addition to or deletion from the substance
 or structure of either the Original Code or any previous Modifications. When
 Covered Code is released as a series of files, a Modification is:
-
 A. Any addition to or deletion from the contents of a file containing Original
 Code or previous Modifications.
-
 B. Any new file that contains any part of the Original Code or previous Modifications.
 
 1.10. "Original Code" means Source Code of computer software code which is
@@ -70,51 +67,42 @@ or indirect, to cause the direction or management of such entity, whether
 by contract or otherwise, or (b) ownership of more than fifty percent (50%)
 of the outstanding shares or beneficial ownership of such entity.
 
-   2. Source Code License.
+2. Source Code License.
 
 2.1. The Initial Developer Grant. The Initial Developer hereby grants You
 a world-wide, royalty-free, non-exclusive license, subject to third party
 intellectual property claims:
-
 (a) under intellectual property rights (other than patent or trademark) Licensable
 by Initial Developer to use, reproduce, modify, display, perform, sublicense
 and distribute the Original Code (or portions thereof) with or without Modifications,
 and/or as part of a Larger Work; and
-
 (b) under Patents Claims infringed by the making, using or selling of Original
 Code, to make, have made, use, practice, sell, and offer for sale, and/or
 otherwise dispose of the Original Code (or portions thereof).
-
 (c) the licenses granted in this Section 2.1(a) and (b) are effective on the
 date Initial Developer first distributes Original Code under the terms of
 this License.
-
 (d) Notwithstanding Section 2.1(b) above, no patent license is granted: 1)
 for code that You delete from the Original Code; 2) separate from the Original
 Code; or 3) for infringements caused by: i) the modification of the Original
 Code or ii) the combination of the Original Code with other software or devices.
 
-      2.2. Contributor Grant.
-
+     2.2. Contributor Grant.
 Subject to third party intellectual property claims, each Contributor hereby
 grants You a world-wide, royalty-free, non-exclusive license
-
 (a) under intellectual property rights (other than patent or trademark) Licensable
 by Contributor, to use, reproduce, modify, display, perform, sublicense and
 distribute the Modifications created by such Contributor (or portions thereof)
 either on an unmodified basis, with other Modifications, as Covered Code and/or
 as part of a Larger Work; and
-
 (b) under Patent Claims infringed by the making, using, or selling of Modifications
 made by that Contributor either alone and/or in combination with its Contributor
 Version (or portions of such combination), to make, use, sell, offer for sale,
 have made, and/or otherwise dispose of: 1) Modifications made by that Contributor
 (or portions thereof); and 2) the combination of Modifications made by that
 Contributor with its Contributor Version (or portions of such combination).
-
 (c) the licenses granted in Sections 2.2(a) and 2.2(b) are effective on the
 date Contributor first makes Commercial Use of the Covered Code.
-
 (d) Notwithstanding Section 2.2(b) above, no patent license is granted: 1)
 for any code that Contributor has deleted from the Contributor Version; 2)
 separate from the Contributor Version; 3) for infringements caused by: i)
@@ -123,7 +111,7 @@ Modifications made by that Contributor with other software (except as part
 of the Contributor Version) or other devices; or 4) under Patent Claims infringed
 by Covered Code in the absence of Modifications made by that Contributor.
 
-   3. Distribution Obligations.
+3. Distribution Obligations.
 
 3.1. Application of License. The Modifications which You create or to which
 You contribute are governed by the terms of this License, including without
@@ -156,10 +144,8 @@ Developer in (a) the Source Code, and (b) in any notice in an Executable version
 or related documentation in which You describe the origin or ownership of
 the Covered Code.
 
-      3.4. Intellectual Property Matters
-
-         (a) Third Party Claims.
-
+     3.4. Intellectual Property Matters
+          (a) Third Party Claims.
 If Contributor has knowledge that a license under a third party's intellectual
 property rights is required to exercise the rights granted by such Contributor
 under Sections 2.1 or 2.2, Contributor must include a text file with the Source
@@ -171,23 +157,18 @@ in all copies Contributor makes available thereafter and shall take other
 steps (such as notifying appropriate mailing lists or newsgroups) reasonably
 calculated to inform those who received the Covered Code that new knowledge
 has been obtained.
-
-         (b) Contributor APIs.
-
+          (b) Contributor APIs.
 If Contributor's Modifications include an application programming interface
 and Contributor has knowledge of patent licenses which are reasonably necessary
 to implement that API, Contributor must also include this information in the
 LEGAL file.
-
-         (c) Representations.
-
+          (c) Representations.
 Contributor represents that, except as disclosed pursuant to Section 3.4(a)
 above, Contributor believes that Contributor's Modifications are Contributor's
 original creation(s) and/or Contributor has sufficient rights to grant the
 rights conveyed by this License.
 
-      3.5. Required Notices.
-
+     3.5. Required Notices.
 You must duplicate the notice in Exhibit A in each file of the Source Code.
 If it is not possible to put such notice in a particular Source Code file
 due to its structure, then You must include such notice in a location (such
@@ -205,8 +186,7 @@ the Initial Developer and every Contributor for any liability incurred by
 the Initial Developer or such Contributor as a result of warranty, support,
 indemnity or liability terms You offer.
 
-      3.6. Distribution of Executable Versions.
-
+     3.6. Distribution of Executable Versions.
 You may distribute Covered Code in Executable form only if the requirements
 of Section 3.1-3.5 have been met for that Covered Code, and if You include
 a notice stating that the Source Code version of the Covered Code is available
@@ -226,14 +206,13 @@ or any Contributor. You hereby agree to indemnify the Initial Developer and
 every Contributor for any liability incurred by the Initial Developer or such
 Contributor as a result of any such terms You offer.
 
-      3.7. Larger Works.
-
+     3.7. Larger Works.
 You may create a Larger Work by combining Covered Code with other code not
 governed by the terms of this License and distribute the Larger Work as a
 single LEDs product. In such a case, You must make sure the requirements of
 this License are fulfilled for the Covered Code.
 
-   4. Inability to Comply Due to Statute or Regulation.
+4. Inability to Comply Due to Statute or Regulation.
 
 If it is impossible for You to comply with any of the terms of this License
 with respect to some or all of the Covered Code due to statute, judicial order,
@@ -245,29 +224,26 @@ Except to the extent prohibited by statute or regulation, such description
 must be sufficiently detailed for a recipient of ordinary skill to be able
 to understand it.
 
-   5. Application of this License.
+5. Application of this License.
 
 This License applies to code to which the Initial Developer has attached the
 notice in Exhibit A and to related Covered Code.
 
-   6. Versions of the License.
+6. Versions of the License.
 
-      6.1. New Versions.
-
+     6.1. New Versions.
 Netizen Pty Ltd ("Netizen ") may publish revised and/or new versions of the
 License from time to time. Each version will be given a distinguishing version
 number.
 
-      6.2. Effect of New Versions.
-
+     6.2. Effect of New Versions.
 Once Covered Code has been published under a particular version of the License,
 You may always continue to use it under the terms of that version. You may
 also choose to use such Covered Code under the terms of any subsequent version
 of the License published by Netizen. No one other than Netizen has the right
 to modify the terms applicable to Covered Code created under this License.
 
-      6.3. Derivative Works.
-
+     6.3. Derivative Works.
 If You create or use a modified version of this License (which you may only
 do in order to apply it to code which is not already Covered Code governed
 by this License), You must (a) rename Your license so that the phrases "Netizen",
@@ -279,7 +255,7 @@ name of the Initial Developer, Original Code or Contributor in the notice
 described in Exhibit A shall not of themselves be deemed to be modifications
 of this License.)
 
-   7. DISCLAIMER OF WARRANTY.
+7. DISCLAIMER OF WARRANTY.
 
 COVERED CODE IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT WARRANTY
 OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, WITHOUT LIMITATION, WARRANTIES
@@ -307,7 +283,7 @@ of the cost of having the goods repaired; and if the breach relates to services
 the supplying of the services again; or the payment of the cost of having
 the services supplied again.
 
-   8. TERMINATION.
+8. TERMINATION.
 
 8.1. This License and the rights granted hereunder will terminate automatically
 if You fail to comply with terms herein and fail to cure such breach within
@@ -320,7 +296,6 @@ of this License shall survive.
 declatory judgment actions) against Initial Developer or a Contributor (the
 Initial Developer or Contributor against whom You file such action is referred
 to as "Participant") alleging that:
-
 (a) such Participant's Contributor Version directly or indirectly infringes
 any patent, then any and all rights granted by such Participant to You under
 Sections 2.1 and/or 2.2 of this License shall, upon 60 days notice from Participant
@@ -333,7 +308,6 @@ and payment arrangement are not mutually agreed upon in writing by the parties
 or the litigation claim is not withdrawn, the rights granted by Participant
 to You under Sections 2.1 and/or 2.2 automatically terminate at the expiration
 of the 60 day notice period specified above.
-
 (b) any software, hardware, or device, other than such Participant's Contributor
 Version, directly or indirectly infringes any patent, then any rights granted
 to You by such Participant under Sections 2.1(b) and 2.2(b) are revoked effective
@@ -353,8 +327,7 @@ user license agreements (excluding distributors and resellers) which have
 been validly granted by You or any distributor hereunder prior to termination
 shall survive termination.
 
-   9. LIMITATION OF LIABILITY.
-
+9. LIMITATION OF LIABILITY.
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL YOU, THE INITIAL DEVELOPER, ANY
 OTHER CONTRIBUTOR, OR ANY DISTRIBUTOR OF COVERED CODE, OR ANY SUPPLIER OF
@@ -369,7 +342,7 @@ SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL
 OR CONSEQUENTIAL DAMAGES, SO THIS EXCLUSION AND LIMITATION MAY NOT APPLY TO
 YOU.
 
-   10. U.S. GOVERNMENT END USERS.
+10. U.S. GOVERNMENT END USERS.
 
 The Covered Code is a "commercial item," as that term is defined in 48 C.F.R.
 2.101 (Oct. 1995), consisting of "commercial computer software" and "commercial
@@ -378,23 +351,21 @@ computer software documentation," as such terms are used in 48 C.F.R. 12.212
 227.7202-4 (June 1995), all U.S. Government End Users acquire Covered Code
 with only those rights set forth herein.
 
-   11. MISCELLANEOUS.
+11. MISCELLANEOUS.
 
 This License represents the complete agreement concerning subject matter hereof.
 If any provision of this License is held to be unenforceable, such provision
 shall be reformed only to the extent necessary to make it enforceable.
-
 This Agreement shall be governed by and construed according to the law of
 the State of Victoria. The parties irrevocably submit to the exclusive jurisdiction
 of the Courts of Victoria and Australia and any Courts hearing appeals from
 such Courts. This Agreement is deemed to have been made in Victoria.
-
 The application of the United Nations Convention on Contracts for the International
 Sale of Goods is expressly excluded. Any law or regulation which provides
 that the language of a contract shall be construed against the drafter shall
 not apply to this License.
 
-   12. RESPONSIBILITY FOR CLAIMS.
+12. RESPONSIBILITY FOR CLAIMS.
 
 As between Initial Developer and the Contributors, each party is responsible
 for claims and damages arising, directly or indirectly, out of its utilization
@@ -403,13 +374,15 @@ and Contributors to distribute such responsibility on an equitable basis.
 Nothing herein is intended or shall be deemed to constitute any admission
 of liability.
 
-   13. MULTIPLE-LICENSED CODE.
+13. MULTIPLE-LICENSED CODE.
 
 Initial Developer may designate portions of the Covered Code as "Multiple-Licensed".
 "Multiple-Licensed" means that the Initial Developer permits you to utilize
 portions of the Covered Code under Your choice of the NPL or the alternative
 licenses, if any, specified by the Initial Developer in the file described
-in Exhibit A. EXHIBIT A - Netizen Open Source License
+in Exhibit A.
+
+EXHIBIT A - Netizen Open Source License
 
 ``The contents of this file are subject to the Netizen Open Source License
 Version 1.0 (the "License"); you may not use this file except in compliance
@@ -419,13 +392,13 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
 the specific language governing rights and limitations under the License.
 
-The Original Code is ______________________________________.
+     The Original Code is ______________________________________.
 
 The Initial Developer of the Original Code is ________________________. Portions
 created by ______________________ are Copyright (C) ______ _______________________.
 All Rights Reserved.
 
-Contributor(s): ______________________________________.
+     Contributor(s): ______________________________________.
 
 Alternatively, the contents of this file may be used under the terms of the
 _____ license (the "[___] License"), in which case the provisions of [______]
