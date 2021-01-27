@@ -57,7 +57,7 @@ require (
 	github.com/klauspost/compress v1.11.7
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.3.2
-	github.com/lib/pq v1.8.1-0.20200908161135-083382b7e6fc
+	github.com/lib/pq v1.9.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.65.0
 	github.com/mattn/go-colorable v0.1.7 // indirect
