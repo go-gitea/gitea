@@ -125,11 +125,11 @@ func TestHtmlTimeSince(t *testing.T) {
 	}
 	test("1 second", time.Second)
 	test("3 minutes", 3*time.Minute+5*time.Second)
-	test("1 day", DayDur+18*time.Hour)
-	test("1 week", WeekDur+6*DayDur)
-	test("3 months", 3*MonthDur+3*WeekDur)
+	test("1 day", DayDur+11*time.Hour)
+	test("1 week", WeekDur+3*DayDur)
+	test("3 months", 3*MonthDur+2*WeekDur)
 	test("2 years", 2*YearDur)
-	test("3 years", 3*YearDur+11*MonthDur+4*WeekDur)
+	test("3 years", 2*YearDur+11*MonthDur+4*WeekDur)
 }
 
 func TestComputeTimeDiff(t *testing.T) {
@@ -163,9 +163,9 @@ func TestComputeTimeDiff(t *testing.T) {
 	test(Month, "1 month", 0, 1)
 	test(Month, "2 months", 16*Day, Month-1)
 	test(10*Month, "10 months", 0, 13*Day)
-	test(Year, "1 year", 0, 182*Day)
-	test(Year, "2 years", 184*Day, Year-1)
-	test(3*Year, "3 years", 0, 182*Day)
+	test(Year, "1 year", 0, 179*Day)
+	test(Year, "2 years", 180*Day, Year-1)
+	test(3*Year, "3 years", 0, 179*Day)
 }
 
 func TestMinutesToFriendly(t *testing.T) {
