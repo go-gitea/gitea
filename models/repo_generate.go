@@ -33,7 +33,7 @@ type GenerateRepoOptions struct {
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels || gro.BranchProtection // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
 // GiteaTemplate holds information about a .gitea/template file
