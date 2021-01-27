@@ -49,7 +49,6 @@ func InitLocales() {
 		}
 	}
 
-	// These codes will be used once macaron removed
 	tags := make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)

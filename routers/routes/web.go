@@ -215,7 +215,7 @@ func WebRoutes() *web.Route {
 	return r
 }
 
-// RegisterRoutes routes routes to Macaron
+// RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
