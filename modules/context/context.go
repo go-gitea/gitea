@@ -487,10 +487,10 @@ func GetContext(req *http.Request) *Context {
 
 // SignedUserName returns signed user's name via context
 func SignedUserName(req *http.Request) string {
-	if middlewares.IsInternalPath(req) {
+	if middleware.IsInternalPath(req) {
 		return ""
 	}
-	if middlewares.IsAPIPath(req) {
+	if middleware.IsAPIPath(req) {
 		ctx, ok := req.Context().Value(apiContextKey).(*APIContext)
 		if ok {
 			v := ctx.Data["SignedUserName"]
